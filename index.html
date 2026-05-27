@@ -8465,7 +8465,10 @@ function mpRenderPlayerList(players) {
   document.getElementById('mp-lobby-status').textContent =
     `${allPicked}/${players.length} nations chosen`;
   if (MP.isHost) {
-    document.getElementById('mp-start-btn').disabled = allPicked < 1;
+    // Start enabled ONLY when every player in the room has picked a nation.
+    // (Was previously enabled at >=1 picked, which let the host start while
+    //  joiners hadn't chosen — they'd then never get into the game.)
+    document.getElementById('mp-start-btn').disabled = allPicked < players.length;
   }
   // If we're on the country-pick screen, refresh the globe so newly-claimed
   // nations get their gold tint immediately.
