@@ -1461,6 +1461,36 @@
     text-align: center;
   }
 
+  /* Prominent "waiting for other players" overlay shown when local player has
+     submitted turn but others haven't yet. Hides on TURN_RESOLVED. */
+  #mp-waiting-overlay {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    display: none; align-items: center; gap: 14px;
+    background: linear-gradient(180deg, rgba(12,18,34,0.96), rgba(6,10,20,0.96));
+    border: 1px solid rgba(212,160,23,0.5); border-radius: 8px;
+    padding: 18px 26px; z-index: 60;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,160,23,0.18);
+    backdrop-filter: blur(8px);
+    color: var(--ink); font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; letter-spacing: .08em; min-width: 260px;
+  }
+  #mp-waiting-overlay.show { display: flex; }
+  #mp-waiting-overlay .mw-spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2.5px solid rgba(212,160,23,0.25);
+    border-top-color: var(--gold); flex-shrink: 0;
+    animation: mw-spin 0.9s linear infinite;
+  }
+  @keyframes mw-spin { to { transform: rotate(360deg); } }
+  #mp-waiting-overlay .mw-text { flex: 1; line-height: 1.45; }
+  #mp-waiting-overlay .mw-sub {
+    margin-top: 4px; font-size: 10px; color: var(--ink-dim); letter-spacing: .1em;
+  }
+
+  /* In multiplayer, hide single-player-only items (save, save&exit) */
+  body.mp-active .sdd-item.sp-only,
+  body.mp-active .sdd-section.sp-only { display: none; }
+
   /* Chat */
   #mp-chat {
     position: fixed; bottom: 64px; right: 14px; z-index: 25;
@@ -1873,7 +1903,7 @@
 
 <!-- Settings Dropdown (appended to body so it isn't clipped by topbar overflow) -->
 <div id="settings-dropdown">
-  <div class="sdd-section">
+  <div class="sdd-section sp-only">
     <button class="sdd-item" onclick="sddSave()">
       <span class="sdd-icon">💾</span>
       <div><div class="sdd-label" data-i18n="sdd_save">SAVE GAME</div><div class="sdd-sub" data-i18n="sdd_save_sub">Choose a save slot</div></div>
@@ -1915,7 +1945,7 @@
         data-i18n="mapmode_flat">🗺 FLAT</button>
     </div>
   </div>
-  <div class="sdd-section">
+  <div class="sdd-section sp-only">
     <button class="sdd-item danger" onclick="sddExit()">
       <span class="sdd-icon">🚪</span>
       <div><div class="sdd-label" data-i18n="sdd_exit">SAVE &amp; EXIT</div><div class="sdd-sub" data-i18n="sdd_exit_sub">Save, then close the game</div></div>
@@ -8127,7 +8157,7 @@ function showGameOver(outcome, victor, vc) {
 // ============================================================================
 
 // ── Config — CHANGE THIS to your Render URL after deploy ─────────────────────
-const MP_SERVER_URL = 'wss://terra-bellum-server-ibun.onrender.com';
+const MP_SERVER_URL = 'wss://terra-bellum-server.onrender.com';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const MP = {
@@ -8315,6 +8345,7 @@ function mpHandleMessage(msg) {
       MP.myNationId = msg.nationId;
       MP.isHost     = msg.isHost;
       MP.allNations = msg.allNations || {};
+      document.body.classList.add('mp-active');
       closeMPOverlay();
       // Launch game as singleplayer — then override humanId for this player
       // The host picks a scenario first via the normal flow,
@@ -8335,10 +8366,20 @@ function mpHandleMessage(msg) {
 
     case 'PLAYER_SUBMITTED':
       MP.waitingFor = msg.remaining || 0;
-      document.getElementById('mp-waiting-label').textContent =
-        msg.remaining > 0
-          ? `Waiting for ${msg.remaining} player${msg.remaining > 1 ? 's' : ''}…`
+      {
+        const r = msg.remaining || 0;
+        const label = r > 0
+          ? `Waiting for ${r} player${r > 1 ? 's' : ''}…`
           : 'All submitted — resolving…';
+        const subLabel = r > 0
+          ? 'Your turn is locked in.'
+          : 'Calculating the new turn…';
+        document.getElementById('mp-waiting-label').textContent = label;
+        const main = document.getElementById('mp-waiting-main');
+        const sub  = document.getElementById('mp-waiting-sub');
+        if (main) main.textContent = label;
+        if (sub)  sub.textContent  = subLabel;
+      }
       break;
 
     case 'RESOLVE_TURN':
@@ -8493,7 +8534,10 @@ function mpResetTurnState() {
   MP.submitted   = false;
   MP.waitingFor  = 0;
   document.getElementById('end-turn').disabled = false;
+  document.getElementById('end-turn').textContent = T('end_turn') || 'END TURN ▸';
   document.getElementById('mp-waiting-label').textContent = '';
+  const ov = document.getElementById('mp-waiting-overlay');
+  if (ov) ov.classList.remove('show');
   mpStartCountdown(MP.turnMs);
   renderStatsPanel();
 }
@@ -8536,6 +8580,9 @@ window.endTurn = function() {
   document.getElementById('end-turn').disabled = true;
   document.getElementById('end-turn').textContent = '⏳ SUBMITTED';
   document.getElementById('mp-waiting-label').textContent = 'Waiting for other players…';
+  // Centered overlay so the player can't miss the wait state
+  const ov = document.getElementById('mp-waiting-overlay');
+  if (ov) ov.classList.add('show');
   // Submit queue to server
   mpSend({ type: 'SUBMIT_TURN', actions: MP.actionQueue });
   // Host still runs full turn when server sends RESOLVE_TURN
@@ -10127,6 +10174,15 @@ boot();
   <div id="mp-timer-label">PLANNING PHASE · 2:00</div>
   <div id="mp-timer-bar-wrap"><div id="mp-timer-bar"></div></div>
   <div id="mp-waiting-label"></div>
+</div>
+
+<!-- Centered waiting overlay shown while other players finish their turn -->
+<div id="mp-waiting-overlay" role="status" aria-live="polite">
+  <div class="mw-spinner" aria-hidden="true"></div>
+  <div class="mw-text">
+    <div id="mp-waiting-main">Waiting for other players…</div>
+    <div class="mw-sub" id="mp-waiting-sub">Your turn is locked in.</div>
+  </div>
 </div>
 
 <!-- ── IN-GAME CHAT ── -->
