@@ -1511,6 +1511,13 @@
     background: rgba(212,160,23,0.1); color: var(--gold); border: 1px solid rgba(212,160,23,0.2);
     letter-spacing: .1em;
   }
+  .mp-kick-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .12em;
+    padding: 3px 8px; cursor: pointer; border-radius: 3px;
+    background: transparent; color: #d88a82; border: 1px solid rgba(232,93,74,0.4);
+    transition: all .15s; margin-left: 4px;
+  }
+  .mp-kick-btn:hover { background: rgba(232,93,74,0.18); border-color: rgba(232,93,74,0.9); color: #ffaaa0; }
   .mp-status { font-size: 10px; color: #556; letter-spacing: .1em; text-align: center; padding: 10px 0; }
 
   /* In-game HUD overlay elements */
@@ -2433,6 +2440,10 @@ en: {
   dr_rejected: '{name} rejected your offer of {action}.',
   dr_offline: '{name} is offline — your offer of {action} could not be delivered.',
   dr_already_pending: 'A request is already pending for this player.',
+  ui_kick: 'KICK',
+  mp_kick_confirm: 'Kick {name} from the room?',
+  mp_you_were_kicked: 'You were kicked from the room by {by}.',
+  mp_player_kicked: '{name} was kicked from the room.',
   wa_multi: '{nations} and {last} have declared war on you!',
   log_war_decl:     '{attacker} declares war on {defender}.',
   log_peace_sued:   '{nation} sues for peace.',
@@ -3120,6 +3131,10 @@ ru: {
   dr_rejected: '{name} отклонил(а) ваше предложение {action}.',
   dr_offline: '{name} не в сети — предложение {action} не доставлено.',
   dr_already_pending: 'Запрос уже отправлен этому игроку.',
+  ui_kick: 'ВЫГНАТЬ',
+  mp_kick_confirm: 'Выгнать {name} из комнаты?',
+  mp_you_were_kicked: '{by} выгнал(а) вас из комнаты.',
+  mp_player_kicked: '{name} был(а) выгнан(а) из комнаты.',
   wa_multi: '{nations} и {last} объявили вам войну!',
   log_war_decl:     '{attacker} объявляет войну {defender}.',
   log_peace_sued:   '{nation} просит мира.',
@@ -8400,6 +8415,16 @@ function mpReturnToLobby() {
 }
 window.mpReturnToLobby = mpReturnToLobby;
 
+// Host-only: kick a player from the lobby. Confirms before sending.
+function mpKickPlayer(targetPlayerId, targetName) {
+  if (!MP.isHost) return;
+  if (MP.active) return;  // server enforces this too
+  const msg = Tpl('mp_kick_confirm', { name: targetName || 'this player' });
+  if (!confirm(msg)) return;
+  mpSend({ type: 'KICK_PLAYER', targetPlayerId });
+}
+window.mpKickPlayer = mpKickPlayer;
+
 // ── Show room lobby ───────────────────────────────────────────────────────────
 function mpShowRoomLobby(code, players) {
   document.getElementById('mp-lobby-tabs').style.display = 'none';
@@ -8421,11 +8446,18 @@ function mpRenderPlayerList(players) {
     const nation = p.nationId
       ? (S.countries[p.nationId]?.name || p.nationId)
       : '— no nation picked';
+    // Kick button: only the host sees it, only on other non-host players, only pre-game
+    const canKick = MP.isHost && !isMe && !p.isHost && !MP.active;
+    const safeName = (p.name || '').replace(/[\\']/g, m => '\\' + m);
+    const kickBtn = canKick
+      ? `<button class="mp-kick-btn" onclick="mpKickPlayer('${p.id}', '${safeName}')">${T('ui_kick') || 'KICK'}</button>`
+      : '';
     return `<div class="mp-player-row">
       <div class="mp-player-dot${isMe ? ' you' : p.nationId ? ' ready' : ''}"></div>
       <span class="mp-player-name">${p.name}${isMe ? ' (you)' : ''}</span>
       <span class="mp-player-nation">${nation}</span>
       ${p.isHost ? `<span class="mp-player-badge">${T('ui_host')}</span>` : ''}
+      ${kickBtn}
     </div>`;
   }).join('');
   const allPicked = players.filter(p => p.nationId).length;
@@ -8538,6 +8570,27 @@ function mpHandleMessage(msg) {
           action: T('dr_action_' + msg.action)
         }));
       }
+      break;
+    }
+
+    case 'KICKED': {
+      // The host kicked us — show a notice and bail back to the menu
+      const by = msg.byName || 'Host';
+      showDiploResult('bad', Tpl('mp_you_were_kicked', { by }), 6000);
+      if (typeof closeMPOverlay === 'function') closeMPOverlay();
+      try { MP.ws && MP.ws.close(); } catch (e) {}
+      MP.active = false; MP.isHost = false; MP.pickingNation = false;
+      MP.actionQueue = []; MP.submitted = false; MP.allNations = {};
+      MP.picksByNationId = {};
+      document.body.classList.remove('mp-active');
+      break;
+    }
+
+    case 'PLAYER_KICKED': {
+      // Another player was kicked — refresh the lobby list and show a small toast
+      if (msg.players) mpRenderPlayerList(msg.players);
+      const kickedName = msg.kickedName || 'A player';
+      showDiploResult('ok', Tpl('mp_player_kicked', { name: kickedName }), 3500);
       break;
     }
 
