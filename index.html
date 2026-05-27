@@ -8712,10 +8712,22 @@ function mpApplyAction(action) {
 // ── Non-host: receive and apply resolved state ────────────────────────────────
 function mpApplyResolvedState(newS, logEntries, turn) {
   if (!newS) return;
-  // Merge authoritative state — preserve rotation/scale (cosmetic)
-  const rot = S.rotation, sc = S.scale;
+  // CRITICAL: snapshot per-client UI fields before Object.assign so the host's
+  // authoritative state doesn't overwrite WHO this client is or their view.
+  // The host strips these in mpSerialiseS too, but we defend at both ends.
+  const preserved = {
+    humanId:    S.humanId,
+    selectedId: S.selectedId,
+    moveMode:   S.moveMode,
+    moveFromId: S.moveFromId,
+    mapMode:    S.mapMode,
+    rotation:   S.rotation,
+    scale:      S.scale,
+    setupPhase: S.setupPhase,
+  };
   Object.assign(S, newS);
-  S.rotation = rot; S.scale = sc;
+  // Restore — these fields belong to THIS client, not the network
+  Object.assign(S, preserved);
   // Append log entries from host
   for (const entry of (logEntries || [])) {
     if (entry && !S.log.find(l => l.msg === entry.msg && l.date === entry.date)) {
@@ -8732,12 +8744,24 @@ function mpApplyResolvedState(newS, logEntries, turn) {
 
 // ── Serialise S (strip WebSocket/DOM refs) ────────────────────────────────────
 function mpSerialiseS() {
-  // JSON.stringify/parse to deep clone and drop non-serialisable refs
+  // JSON.stringify/parse to deep clone and drop non-serialisable refs.
+  // CRITICAL: strip per-client UI fields so the host doesn't overwrite other
+  // players' identity / view state. humanId in particular must NEVER be sent;
+  // every client has their own and getting this wrong = "everyone becomes the host".
   try {
-    return JSON.parse(JSON.stringify(S, (k, v) => {
+    const clone = JSON.parse(JSON.stringify(S, (k, v) => {
       if (v instanceof HTMLElement || v instanceof CanvasRenderingContext2D) return undefined;
       return v;
     }));
+    delete clone.humanId;       // who YOU are — per-client
+    delete clone.selectedId;    // what YOU have selected — per-client
+    delete clone.moveMode;      // YOUR in-progress army move — per-client
+    delete clone.moveFromId;    // YOUR move source — per-client
+    delete clone.mapMode;       // YOUR globe/flat preference — per-client
+    delete clone.rotation;      // YOUR globe rotation — per-client
+    delete clone.scale;         // YOUR zoom — per-client
+    delete clone.setupPhase;    // local UI flag, always false post-launch
+    return clone;
   } catch(e) { console.error('mpSerialiseS error:', e); return {}; }
 }
 
