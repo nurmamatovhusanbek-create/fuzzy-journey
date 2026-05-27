@@ -687,6 +687,23 @@
   }
   #war-alert .wa-close:hover { opacity: 1; }
 
+  /* Picked-notice — shown when a player tries to choose an already-taken nation */
+  #picked-notice {
+    position: fixed; top: 84px; left: 50%; transform: translateX(-50%) translateY(-12px);
+    display: none; align-items: center; gap: 12px;
+    background: linear-gradient(180deg, rgba(60,40,12,0.98), rgba(40,28,8,0.98));
+    border: 2px solid var(--gold); border-radius: 8px;
+    color: #ffe9b8; font-family: 'JetBrains Mono', monospace; font-weight: 600;
+    font-size: 13px; letter-spacing: .06em; padding: 14px 22px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,160,23,0.3);
+    z-index: 9999; max-width: 520px; line-height: 1.4;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+  }
+  #picked-notice.show { display: flex; opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  #picked-notice::before {
+    content: '⚠'; color: var(--gold); font-size: 17px; flex-shrink: 0;
+  }
+
   /* Setup screen — load/new game buttons */
   .setup-menu {
     display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; justify-content: center;
@@ -2341,6 +2358,7 @@ en: {
   log_defeated:     '{nation} has been completely defeated.',
   log_war_decl_you: '{nation} declares war on you!',
   wa_single: '{nation} has declared war on you!',
+  pn_taken: '{player} has already chosen {nation}. Pick another country.',
   wa_multi: '{nations} and {last} have declared war on you!',
   log_war_decl:     '{attacker} declares war on {defender}.',
   log_peace_sued:   '{nation} sues for peace.',
@@ -3014,6 +3032,7 @@ ru: {
   log_defeated:     '{nation} полностью разгромлен.',
   log_war_decl_you: '{nation} объявляет вам войну!',
   wa_single: '{nation} объявил(а) вам войну!',
+  pn_taken: '{player} уже выбрал(а) страну {nation}. Выберите другую.',
   wa_multi: '{nations} и {last} объявили вам войну!',
   log_war_decl:     '{attacker} объявляет войну {defender}.',
   log_peace_sued:   '{nation} просит мира.',
@@ -6212,6 +6231,9 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     for (const oid in _meRel)
       if (_meRel[oid] === 'war' && S.players[oid] && !S.players[oid].eliminated) _warSet.add(oid);
   }
+  // MP setup phase: precompute taken nations so the picker can mark them visually
+  const _mpTaken = (S.setupPhase && window.MP && MP.pickingNation && MP.picksByNationId)
+    ? MP.picksByNationId : null;
   for (const f of S.features) {
     const c = S.countries[f.id];
     if (!c) continue;
@@ -6222,6 +6244,11 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     // Enemy-at-war: overlay a clear red wash so hostile nations are unmistakable
     if (_warSet.has(c.ownerId)) {
       targetCtx.fillStyle = 'rgba(220,60,45,0.42)';
+      targetCtx.fill();
+    }
+    // MP setup: tint taken nations (other players') so they read as unavailable
+    if (_mpTaken && _mpTaken[f.id] && _mpTaken[f.id].id !== MP.playerId) {
+      targetCtx.fillStyle = 'rgba(212,160,23,0.55)';   // gold wash = claimed
       targetCtx.fill();
     }
     // Crisp thin border between every country
@@ -8296,6 +8323,11 @@ function mpShowRoomLobby(code, players) {
 }
 
 function mpRenderPlayerList(players) {
+  // Build a quick map of taken nations so the picker can block dupes
+  MP.picksByNationId = {};
+  for (const p of (players || [])) {
+    if (p.nationId) MP.picksByNationId[p.nationId] = { name: p.name, id: p.id };
+  }
   const el = document.getElementById('mp-player-list');
   el.innerHTML = players.map(p => {
     const isMe = p.id === MP.playerId;
@@ -8314,6 +8346,11 @@ function mpRenderPlayerList(players) {
     `${allPicked}/${players.length} nations chosen`;
   if (MP.isHost) {
     document.getElementById('mp-start-btn').disabled = allPicked < 1;
+  }
+  // If we're on the country-pick screen, refresh the globe so newly-claimed
+  // nations get their gold tint immediately.
+  if (MP.pickingNation && typeof renderSetup === 'function') {
+    try { renderSetup(); } catch(e) {}
   }
 }
 
@@ -8534,7 +8571,7 @@ function mpResetTurnState() {
   MP.submitted   = false;
   MP.waitingFor  = 0;
   document.getElementById('end-turn').disabled = false;
-  document.getElementById('end-turn').textContent = T('end_turn') || 'END TURN ▸';
+  document.getElementById('end-turn').textContent = T('hud_end_turn') || 'END TURN ▸';
   document.getElementById('mp-waiting-label').textContent = '';
   const ov = document.getElementById('mp-waiting-overlay');
   if (ov) ov.classList.remove('show');
@@ -9620,6 +9657,12 @@ function handleSelect(id) {
     const c = S.countries[id];
     if (!c) return;
     if (MP.pickingNation) {
+      // Block if another player already chose this nation
+      const taken = MP.picksByNationId && MP.picksByNationId[id];
+      if (taken && taken.id !== MP.playerId) {
+        showPickedNotice(taken.name, c.name);
+        return;
+      }
       MP.myNationId = id;
       mpSend({ type: 'PICK_NATION', nationId: id });
       mpReturnToLobby();
@@ -9905,6 +9948,29 @@ function dismissWarAlert() {
   if (_warAlertTimer) { clearTimeout(_warAlertTimer); _warAlertTimer = null; }
 }
 window.dismissWarAlert = dismissWarAlert;
+
+// Lightweight notice when player tries to pick a nation already taken by someone else
+let _pickedNoticeTimer = null;
+function showPickedNotice(playerName, nationName) {
+  let el = document.getElementById('picked-notice');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'picked-notice';
+  }
+  // Always reparent to body so it isn't trapped inside another element's stacking context
+  if (el.parentNode !== document.body) document.body.appendChild(el);
+  // Safe text — fall back to plain English if Tpl/i18n fails for any reason
+  let txt;
+  try { txt = Tpl('pn_taken', { player: playerName, nation: nationName }); } catch (e) { txt = null; }
+  if (!txt || txt === 'pn_taken') {
+    txt = `${playerName} has already chosen ${nationName}. Pick another country.`;
+  }
+  el.textContent = txt;
+  el.classList.add('show');
+  if (_pickedNoticeTimer) clearTimeout(_pickedNoticeTimer);
+  _pickedNoticeTimer = setTimeout(() => el.classList.remove('show'), 4000);
+}
+window.showPickedNotice = showPickedNotice;
 
 // ---- Slot HTML Renderer ----------------------------------------------------
 function slotHTML(slot, forLoad) {
