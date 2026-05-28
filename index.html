@@ -2434,6 +2434,11 @@ en: {
   dr_action_peace: 'peace',
   dr_action_ally: 'an alliance',
   dr_action_vassalize: 'submission',
+  dr_offer_vassalize: '<b>{nation}</b> demands your submission as a vassal. Accept?',
+  dr_offer_marriage: '<b>{nation}</b> proposes a royal marriage. Accept the union?',
+  dr_offer_nap: '<b>{nation}</b> proposes a non-aggression pact. Accept?',
+  dr_action_marriage: 'a royal marriage',
+  dr_action_nap: 'a non-aggression pact',
   dr_accept: 'ACCEPT',
   dr_reject: 'REJECT',
   dr_waiting: 'Waiting for {nation} to respond to your offer of {action}…',
@@ -3125,6 +3130,11 @@ ru: {
   dr_action_peace: 'мира',
   dr_action_ally: 'союза',
   dr_action_vassalize: 'вассалитета',
+  dr_offer_vassalize: '<b>{nation}</b> требует вашего подчинения в качестве вассала. Принять?',
+  dr_offer_marriage: '<b>{nation}</b> предлагает королевский брак. Принять союз?',
+  dr_offer_nap: '<b>{nation}</b> предлагает пакт о ненападении. Принять?',
+  dr_action_marriage: 'королевского брака',
+  dr_action_nap: 'пакта о ненападении',
   dr_accept: 'ПРИНЯТЬ',
   dr_reject: 'ОТКЛОНИТЬ',
   dr_waiting: 'Ожидание ответа от {nation} на ваше предложение {action}…',
@@ -8465,10 +8475,7 @@ function mpRenderPlayerList(players) {
   document.getElementById('mp-lobby-status').textContent =
     `${allPicked}/${players.length} nations chosen`;
   if (MP.isHost) {
-    // Start enabled ONLY when every player in the room has picked a nation.
-    // (Was previously enabled at >=1 picked, which let the host start while
-    //  joiners hadn't chosen — they'd then never get into the game.)
-    document.getElementById('mp-start-btn').disabled = allPicked < players.length;
+    document.getElementById('mp-start-btn').disabled = allPicked < 1;
   }
   // If we're on the country-pick screen, refresh the globe so newly-claimed
   // nations get their gold tint immediately.
@@ -8552,16 +8559,21 @@ function mpHandleMessage(msg) {
       const key = `${msg.toPlayerId}:${msg.action}`;
       delete _pendingDiploRequests[key];
       if (msg.accepted) {
-        // Queue the action so the host applies it authoritatively next turn-resolve.
-        // doDiplomacy here is the queue-interceptor (not the consent wrapper), so the
-        // action goes into MP.actionQueue and applies locally too.
+        // Apply via the correct underlying function (consent already granted).
+        // We call the captured original (queue-wrapped) fn directly AND queue it
+        // so the host applies it authoritatively at next turn-resolve.
         const targetNationId = MP.allNations[msg.toPlayerId];
-        if (targetNationId && typeof _origDoDiplomacy === 'function') {
-          // Bypass the consent wrapper (we already have consent) and call the
-          // queue-wrapped version, which is the function reference that was here
-          // before our consent wrapper replaced window.doDiplomacy
-          _mpQueueAction('doDiplomacy', [targetNationId, msg.action]);
-          _origDoDiplomacy(targetNationId, msg.action);
+        if (targetNationId) {
+          if (msg.action === 'marriage' && _origDiploFns.doProposeMarriage) {
+            _mpQueueAction('doProposeMarriage', [targetNationId]);
+            _origDiploFns.doProposeMarriage(targetNationId);
+          } else if (msg.action === 'nap' && _origDiploFns.doProposeNAP) {
+            _mpQueueAction('doProposeNAP', [targetNationId]);
+            _origDiploFns.doProposeNAP(targetNationId);
+          } else if (_origDiploFns.doDiplomacy) {
+            _mpQueueAction('doDiplomacy', [targetNationId, msg.action]);
+            _origDiploFns.doDiplomacy(targetNationId, msg.action);
+          }
         }
         showDiploResult('ok', Tpl('dr_accepted', {
           name: msg.byName || 'Player',
@@ -8707,7 +8719,13 @@ function mpApplyAction(action) {
                    'doResearchTech','doProposeNAP','doProposeMarriage',
                    'doSpyOp'];
   if (!allowed.includes(action.fn)) return;
-  const fn = window[action.fn];
+  // Use the ORIGINAL (non-consent-wrapped) fn for diplomacy actions. The queued
+  // action already passed consent on the requester's client; calling the wrapped
+  // version here would re-trigger the consent gate and re-send a request instead
+  // of applying the change.
+  const fn = (typeof _origDiploFns !== 'undefined' && _origDiploFns[action.fn])
+             ? _origDiploFns[action.fn]
+             : window[action.fn];
   if (typeof fn !== 'function') return;
   try { fn.apply(null, action.args || []); } catch(e) { console.warn('mpApplyAction error:', e); }
 }
@@ -8854,7 +8872,7 @@ const _mpQueueAction = (fn, args) => {
 // We wrap doDiplomacy here, OUTSIDE the action-queue interceptor, so consent
 // is checked before any local apply or queue. On accept, we re-call doDiplomacy
 // — that hits the queue interceptor normally and applies via host at turn-resolve.
-const _CONSENT_ACTIONS = new Set(['peace', 'ally', 'vassalize']);
+const _CONSENT_ACTIONS = new Set(['peace', 'ally', 'vassalize', 'marriage', 'nap']);
 const _pendingDiploRequests = {};  // key: `${targetPlayerId}:${action}` to dedup
 function mpPlayerOfNation(nationId) {
   if (!MP.allNations) return null;
@@ -8864,35 +8882,43 @@ function mpPlayerOfNation(nationId) {
   return null;
 }
 
-const _origDoDiplomacy = window.doDiplomacy;
-window.doDiplomacy = function(otherId, action) {
-  if (!MP.active || !_CONSENT_ACTIONS.has(action)) {
-    return _origDoDiplomacy.apply(this, arguments);
+// DP cost for each consent action (used for a pre-send affordability check)
+function _diploDpCost(action) {
+  switch (action) {
+    case 'ally':      return P1.DP_COST.ally;
+    case 'peace':     return P1.DP_COST.peace;
+    case 'vassalize': return P1.DP_COST.vassal;
+    case 'marriage':  return P1.DP_COST.marriage;
+    case 'nap':       return P1.DP_COST.nap;
+    default:          return 0;
   }
+}
+
+// The original (queue-wrapped) functions, captured BEFORE we install consent wrappers.
+// On the receiver's accept, we call these directly + queue for host resolution.
+const _origDiploFns = {};
+
+// Generic MP consent gate. Returns true if it handled the action as a consent
+// request (so the caller should NOT run the original); false if the caller
+// should proceed normally (AI target, single-player, etc).
+function mpDiploConsentGate(action, otherId) {
+  if (!MP.active || !_CONSENT_ACTIONS.has(action)) return false;
   const targetPid = mpPlayerOfNation(otherId);
-  if (!targetPid || targetPid === MP.playerId) {
-    // Target is AI (or yourself); no consent needed, original flow applies
-    return _origDoDiplomacy.apply(this, arguments);
-  }
-  // Don't double-send if a request for this same action/target is already pending
+  if (!targetPid || targetPid === MP.playerId) return false;  // AI or self → normal flow
   const key = `${targetPid}:${action}`;
   if (_pendingDiploRequests[key]) {
     showDiploResult('bad', T('dr_already_pending') || 'A request is already pending for this player.');
-    return;
+    return true;
+  }
+  // Affordability check up front so the player isn't misled (actual spend
+  // happens when the queued action runs at host turn-resolve)
+  const me = S.players[S.humanId];
+  const dpNeeded = _diploDpCost(action);
+  if (me && me.dp < dpNeeded) {
+    logT('glog_079', {v0: dpNeeded}, 'crit');
+    return true;
   }
   _pendingDiploRequests[key] = true;
-  // Need a basic DP check so the player isn't blindsided — we won't deduct yet
-  // (the actual deduction happens when the queued action runs at host turn-resolve)
-  const me = S.players[S.humanId];
-  const dpNeeded = action === 'ally' ? P1.DP_COST.ally
-                 : action === 'peace' ? P1.DP_COST.peace
-                 : action === 'vassalize' ? P1.DP_COST.vassal : 0;
-  if (me && me.dp < dpNeeded) {
-    delete _pendingDiploRequests[key];
-    logT('glog_079', {v0: dpNeeded}, 'crit');
-    return;
-  }
-  // Send the request to the target player via the relay
   mpSend({
     type: 'DIPLO_REQUEST',
     action,
@@ -8905,7 +8931,36 @@ window.doDiplomacy = function(otherId, action) {
     action: T('dr_action_' + action),
     nation: (S.countries[otherId] && S.countries[otherId].name) || 'them'
   }), 5000);
+  return true;
+}
+
+// Wrap doDiplomacy (peace/ally/vassalize) — action is its 2nd arg
+_origDiploFns.doDiplomacy = window.doDiplomacy;
+window.doDiplomacy = function(otherId, action) {
+  if (mpDiploConsentGate(action, otherId)) return;
+  return _origDiploFns.doDiplomacy.apply(this, arguments);
 };
+
+// Wrap doProposeMarriage — implicit action 'marriage', single arg
+_origDiploFns.doProposeMarriage = window.doProposeMarriage;
+if (typeof _origDiploFns.doProposeMarriage === 'function') {
+  window.doProposeMarriage = function(otherId) {
+    if (mpDiploConsentGate('marriage', otherId)) return;
+    return _origDiploFns.doProposeMarriage.apply(this, arguments);
+  };
+}
+
+// Wrap doProposeNAP — implicit action 'nap', single arg
+_origDiploFns.doProposeNAP = window.doProposeNAP;
+if (typeof _origDiploFns.doProposeNAP === 'function') {
+  window.doProposeNAP = function(otherId) {
+    if (mpDiploConsentGate('nap', otherId)) return;
+    return _origDiploFns.doProposeNAP.apply(this, arguments);
+  };
+}
+
+// Backward-compat alias (older code referenced _origDoDiplomacy directly)
+const _origDoDiplomacy = _origDiploFns.doDiplomacy;
 
 // ── Diplo request modal (receiver) ────────────────────────────────────────────
 let _currentDiploRequest = null;
