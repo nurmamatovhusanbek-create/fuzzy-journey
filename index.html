@@ -688,6 +688,38 @@
   }
   #war-alert .wa-close:hover { color: var(--ink); }
 
+  /* ── Nested tooltips (CK3-style) ─────────────────────────────────────────── */
+  /* Floating tooltip element — single instance, repositioned per hover. */
+  #tt {
+    position: fixed; z-index: 10000; pointer-events: auto;
+    display: none; max-width: 280px;
+    background: rgba(8, 13, 26, 0.96);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    backdrop-filter: blur(8px);
+    padding: 8px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px; line-height: 1.45;
+    color: var(--ink);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+  }
+  #tt.show { display: block; }
+  #tt .tt-name {
+    color: var(--gold-bright); font-weight: 700;
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 4px;
+  }
+  #tt .tt-body { color: var(--ink); }
+  /* Term spans — the hoverable handle. Subtle underline using gold accent. */
+  .tt-term {
+    cursor: help;
+    border-bottom: 1px dotted rgba(212,160,23,0.55);
+    color: inherit;
+  }
+  .tt-term:hover { color: var(--gold-bright); border-bottom-color: var(--gold-bright); }
+  /* Chip tooltips (topbar) — use chips as terms too */
+  .chip[data-tt] { cursor: help; }
+
   /* Picked-notice — shown when a player tries to choose an already-taken nation */
   #picked-notice {
     position: fixed; top: 84px; left: 50%; transform: translateX(-50%) translateY(-12px);
@@ -1790,14 +1822,14 @@
   <header class="topbar">
     <div class="brand">TERRA BELLUM</div>
     <div class="hud-chips">
-      <div class="chip" title="Gold"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h3.5a1.5 1.5 0 0 1 0 3H9.5"/></svg></span><span class="chip-val gold-v" id="my-gold">0</span></div>
-      <div class="chip" title="Manpower"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/></svg></span><span class="chip-val" id="my-manpower">0</span></div>
-      <div class="chip" title="Movement Points"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6 6.5.5-5 4.3 1.6 6.4L12 17l-5.6 3.2L8 13.8l-5-4.3 6.5-.5z"/></svg></span><span class="chip-val" id="my-mp">0</span></div>
-      <div class="chip" title="Diplomacy Points"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-3 3-4-4 4-4M13 7l3-3 4 4-4 4M8 13l3-3 3 3-2 2"/></svg></span><span class="chip-val" id="my-dp">0</span></div>
-      <div class="chip" title="Intelligence"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg></span><span class="chip-val" id="my-intel">0</span></div>
-      <div class="chip" title="Trade Income"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4l5 3-5 3M21 7H8M8 20l-5-3 5-3M3 17h13"/></svg></span><span class="chip-val" id="my-trade">0g</span></div>
-      <div class="chip" title="Territories"><span class="chip-val" id="my-lands">0</span><span class="chip-lbl" data-i18n="hud_lands">LANDS</span></div>
-      <div class="chip" title="Armies"><span class="chip-val" id="my-armies">0</span><span class="chip-lbl" data-i18n="hud_armies">ARMIES</span></div>
+      <div class="chip" data-tt="gold"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h3.5a1.5 1.5 0 0 1 0 3H9.5"/></svg></span><span class="chip-val gold-v" id="my-gold">0</span></div>
+      <div class="chip" data-tt="manpower"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/></svg></span><span class="chip-val" id="my-manpower">0</span></div>
+      <div class="chip" data-tt="mp"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6 6.5.5-5 4.3 1.6 6.4L12 17l-5.6 3.2L8 13.8l-5-4.3 6.5-.5z"/></svg></span><span class="chip-val" id="my-mp">0</span></div>
+      <div class="chip" data-tt="dp"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-3 3-4-4 4-4M13 7l3-3 4 4-4 4M8 13l3-3 3 3-2 2"/></svg></span><span class="chip-val" id="my-dp">0</span></div>
+      <div class="chip" data-tt="intel"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg></span><span class="chip-val" id="my-intel">0</span></div>
+      <div class="chip" data-tt="trade"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4l5 3-5 3M21 7H8M8 20l-5-3 5-3M3 17h13"/></svg></span><span class="chip-val" id="my-trade">0g</span></div>
+      <div class="chip" data-tt="territories"><span class="chip-val" id="my-lands">0</span><span class="chip-lbl" data-i18n="hud_lands">LANDS</span></div>
+      <div class="chip" data-tt="armies"><span class="chip-val" id="my-armies">0</span><span class="chip-lbl" data-i18n="hud_armies">ARMIES</span></div>
     </div>
     <div class="topbar-right">
       <div class="date"><span id="date-text">JAN 1450</span><span class="era" id="era-text">· ANCIENT</span></div>
@@ -2077,6 +2109,42 @@ var _lang = localStorage.getItem('tb_lang') || 'en';
 
 const TB_LANG = {
 en: {
+  // ── Nested tooltips (CK3-style). Bodies use tt() to mark inner terms hoverable.
+  tt_gold_n: 'Gold',
+  tt_gold_b: 'The lifeblood of empire. Spent on armies, buildings, and diplomacy. Income comes from your provinces and ${tt_trade}.',
+  tt_manpower_n: 'Manpower',
+  tt_manpower_b: 'Recruitable population. Required (alongside gold) to raise new ${tt_armies}. Slowly regenerates each turn from your provinces.',
+  tt_mp_n: 'Movement Points',
+  tt_mp_b: 'How many moves your armies have left this turn. Each army move spends one MP. Replenishes at the start of every turn.',
+  tt_dp_n: 'Diplomacy Points',
+  tt_dp_b: 'Spent on diplomatic actions — proposing ${tt_ally}, ${tt_nap}, peace, or marriages. Regenerates each turn.',
+  tt_intel_n: 'Intelligence',
+  tt_intel_b: 'Currency of ${tt_espionage}. Spend it to spy on rivals, forge claims, bribe generals, or sow corruption. Earned passively from your spy network.',
+  tt_trade_n: 'Trade Income',
+  tt_trade_b: 'Extra ${tt_gold} per turn from trade routes between your coastal or border provinces and foreign partners. Disrupted by ${tt_war}.',
+  tt_territories_n: 'Territories',
+  tt_territories_b: 'Provinces under your direct control. Each generates ${tt_gold} and ${tt_manpower}; more provinces means a larger empire — but also a longer border to defend.',
+  tt_armies_n: 'Armies',
+  tt_armies_b: 'Your standing forces. Each army has soldiers and a general. Move them to conquer provinces and win ${tt_war}s. Cost gold to maintain.',
+  tt_stability_n: 'Stability',
+  tt_stability_b: 'How well your realm holds together. High stability boosts income and reduces revolt risk; low stability invites disasters and corruption.',
+  tt_war_n: 'War',
+  tt_war_b: 'When you declare war, you can attack the enemy\u2019s provinces and armies. Each battle shifts ${tt_warscore}. Higher score means better peace terms.',
+  tt_ally_n: 'Alliance',
+  tt_ally_b: 'A defensive pact. Allies are dragged into wars against either of you. Costs ${tt_dp} to propose; the other side must accept.',
+  tt_nap_n: 'Non-Aggression Pact',
+  tt_nap_b: 'A promise not to attack each other for a set number of turns. Lighter than an ${tt_ally} — no obligation to join wars.',
+  tt_vassal_n: 'Vassal',
+  tt_vassal_b: 'A subordinate nation. Vassals pay tribute and fight in your ${tt_war}s, but keep their own borders. A defeated power may accept vassalage instead of full annexation.',
+  tt_era_n: 'Era',
+  tt_era_b: 'The technological age you live in. Advancing eras unlocks new ${tt_tech} and units, but resets some progress and demands enough development.',
+  tt_tech_n: 'Technology',
+  tt_tech_b: 'Researched advances within your current ${tt_era}. Boost economy, combat, or diplomacy. Each tech costs ${tt_gold} and a turn to research.',
+  tt_espionage_n: 'Espionage',
+  tt_espionage_b: 'Covert operations against rivals — paid for with ${tt_intel}. Includes spying on armies, forging claims, bribing generals, and sowing corruption.',
+  tt_warscore_n: 'War Score',
+  tt_warscore_b: 'A measure of who is winning a ${tt_war}, from -100 to +100. Winning battles and holding enemy provinces raises it. Higher score = harsher peace terms you can demand.',
+
   hud_diplo: 'DIPLO',
   diff_label: 'DIFFICULTY',
   diff_easy: 'EASY',
@@ -2470,6 +2538,42 @@ en: {
   // ── Tutorial (full translated steps) — stored separately below ───────────
 },
 ru: {
+  // ── Подсказки с вложенностью (стиль CK3) ─────────────────────────────────
+  tt_gold_n: 'Золото',
+  tt_gold_b: 'Кровь империи. Тратится на армии, постройки и дипломатию. Доход поступает от провинций и от {tt_trade}.',
+  tt_manpower_n: 'Людские ресурсы',
+  tt_manpower_b: 'Доступное для призыва население. Нужны (вместе с золотом), чтобы набирать новые {tt_armies}. Медленно восстанавливаются каждый ход из провинций.',
+  tt_mp_n: 'Очки движения',
+  tt_mp_b: 'Сколько ходов осталось вашим армиям в этот ход. Каждое перемещение тратит одно ОД. Восстанавливаются в начале каждого хода.',
+  tt_dp_n: 'Очки дипломатии',
+  tt_dp_b: 'Тратятся на дипломатические действия — предложения {tt_ally}, {tt_nap}, мира или династических браков. Восстанавливаются каждый ход.',
+  tt_intel_n: 'Разведка',
+  tt_intel_b: 'Валюта {tt_espionage}. Тратьте её, чтобы шпионить, фабриковать претензии, подкупать генералов или сеять коррупцию. Получаете пассивно от шпионской сети.',
+  tt_trade_n: 'Торговый доход',
+  tt_trade_b: 'Дополнительное {tt_gold} в ход от торговых маршрутов между вашими прибрежными или приграничными провинциями и иностранными партнёрами. Прерывается {tt_war}.',
+  tt_territories_n: 'Территории',
+  tt_territories_b: 'Провинции под вашим прямым контролем. Каждая даёт {tt_gold} и {tt_manpower}; больше провинций — больше империя, но и длиннее граница, которую нужно защищать.',
+  tt_armies_n: 'Армии',
+  tt_armies_b: 'Ваши действующие войска. У каждой армии есть солдаты и генерал. Двигайте их, чтобы захватывать провинции и выигрывать {tt_war}. Содержание стоит золота.',
+  tt_stability_n: 'Стабильность',
+  tt_stability_b: 'Насколько ваше государство держится вместе. Высокая стабильность повышает доходы и снижает риск восстаний; низкая — приглашает катастрофы и коррупцию.',
+  tt_war_n: 'Война',
+  tt_war_b: 'Объявив войну, вы можете атаковать провинции и армии врага. Каждая битва сдвигает {tt_warscore}. Чем выше очки, тем лучше условия мира.',
+  tt_ally_n: 'Союз',
+  tt_ally_b: 'Оборонительный пакт. Союзники втягиваются в войны, объявленные любому из вас. Стоит {tt_dp} предложить; другая сторона должна принять.',
+  tt_nap_n: 'Пакт о ненападении',
+  tt_nap_b: 'Обещание не нападать друг на друга в течение определённого числа ходов. Легче {tt_ally} — без обязательства вступать в войну.',
+  tt_vassal_n: 'Вассал',
+  tt_vassal_b: 'Подчинённое государство. Вассалы платят дань и сражаются в ваших {tt_war}, но сохраняют собственные границы. Побеждённая держава может принять вассалитет вместо полной аннексии.',
+  tt_era_n: 'Эпоха',
+  tt_era_b: 'Технологический век, в котором вы живёте. Переход в новую эпоху открывает {tt_tech} и юниты, но сбрасывает часть прогресса и требует достаточного развития.',
+  tt_tech_n: 'Технология',
+  tt_tech_b: 'Изученные достижения в рамках вашей текущей {tt_era}. Усиливают экономику, бой или дипломатию. Каждая технология стоит {tt_gold} и хода исследований.',
+  tt_espionage_n: 'Шпионаж',
+  tt_espionage_b: 'Тайные операции против соперников — оплачиваются {tt_intel}. Включают слежку за армиями, фабрикацию претензий, подкуп генералов и сеяние коррупции.',
+  tt_warscore_n: 'Очки войны',
+  tt_warscore_b: 'Мера того, кто побеждает в {tt_war}, от −100 до +100. Победы в битвах и удержание вражеских провинций повышают их. Чем выше — тем жёстче условия мира.',
+
   hud_diplo: 'ДИПЛО',
   diff_label: 'СЛОЖНОСТЬ',
   diff_easy: 'ЛЁГКАЯ',
@@ -3190,7 +3294,7 @@ ru: [
     highlight: '#end-turn', side: 'left' },
   { title: 'ЭКОНОМИКА',
     text: 'Доход золота = <b>доходы провинций + торговые пути − содержание армий</b>.<br><br>При уходе в минус берутся <b>экстренные займы</b> — с процентами. Слишком много займов подорвут экономику.<br><br>Нажмите <b>РАЗВИТЬ</b> на провинции для постоянного роста дохода (стоит ОД + золото).',
-    highlight: '.chip[title="Gold"]', side: 'bottom' },
+    highlight: '.chip[data-tt="gold"]', side: 'bottom' },
   { title: 'ПРОДВИЖЕНИЕ СКВОЗЬ ЭПОХИ',
     text: 'Откройте <b>🏰 панель Империи</b> для смены эпохи при наличии достаточного золота.<br><br>Каждая эпоха даёт <b>более высокий боевой множитель</b> и открывает технологии. Отставание от соперников по эпохам — серьёзный военный недостаток.',
     highlight: '#empire-btn', side: 'bottom' },
@@ -3304,6 +3408,115 @@ function Tpl(key, vars) {
 function logT(key, vars, cls) {
   if (typeof log === 'function') log(Tpl(key, vars), cls);
 }
+
+// ── Nested tooltips (CK3-style) ───────────────────────────────────────────
+// TT_TERMS: registry of game-term explanations. Keys map to i18n keys for
+// `name` (short title) and `body` (1–3 sentence explanation). Terms inside
+// a body that are themselves registered become hoverable, recursively.
+//
+// Design intent (see references/design-principles.md): the interface IS the
+// gameplay — players who can't read the world can't strategize. Every stat
+// and core mechanic deserves a one-hover explanation, and explanations of
+// explanations stay one hover away. No modal walls, no help screen.
+const TT_TERMS = {
+  // Stats / resources
+  gold:        { name: 'tt_gold_n',        body: 'tt_gold_b'        },
+  manpower:    { name: 'tt_manpower_n',    body: 'tt_manpower_b'    },
+  mp:          { name: 'tt_mp_n',          body: 'tt_mp_b'          },
+  dp:          { name: 'tt_dp_n',          body: 'tt_dp_b'          },
+  intel:       { name: 'tt_intel_n',       body: 'tt_intel_b'       },
+  trade:       { name: 'tt_trade_n',       body: 'tt_trade_b'       },
+  territories: { name: 'tt_territories_n', body: 'tt_territories_b' },
+  armies:      { name: 'tt_armies_n',      body: 'tt_armies_b'      },
+  stability:   { name: 'tt_stability_n',   body: 'tt_stability_b'   },
+  // Mechanics
+  war:         { name: 'tt_war_n',         body: 'tt_war_b'         },
+  ally:        { name: 'tt_ally_n',        body: 'tt_ally_b'        },
+  nap:         { name: 'tt_nap_n',         body: 'tt_nap_b'         },
+  vassal:      { name: 'tt_vassal_n',      body: 'tt_vassal_b'      },
+  era:         { name: 'tt_era_n',         body: 'tt_era_b'         },
+  tech:        { name: 'tt_tech_n',        body: 'tt_tech_b'        },
+  espionage:   { name: 'tt_espionage_n',   body: 'tt_espionage_b'   },
+  warscore:    { name: 'tt_warscore_n',    body: 'tt_warscore_b'    },
+};
+
+// Wrap text as a hoverable term. Use `tt('gold')` for the term's own name,
+// or `tt('gold', '50g')` to display custom text but hover the gold concept.
+function tt(termKey, label) {
+  const text = (label != null) ? label : T((TT_TERMS[termKey] && TT_TERMS[termKey].name) || termKey);
+  return `<span class="tt-term" data-tt="${termKey}">${text}</span>`;
+}
+
+// Single floating tooltip element, lazy-created on first show.
+let _ttEl = null;
+let _ttHideTimer = null;
+function _ttGetEl() {
+  if (_ttEl) return _ttEl;
+  _ttEl = document.createElement('div');
+  _ttEl.id = 'tt';
+  document.body.appendChild(_ttEl);
+  // Keep tooltip alive while hovered (so terms inside can be clicked through to)
+  _ttEl.addEventListener('mouseenter', () => { if (_ttHideTimer) { clearTimeout(_ttHideTimer); _ttHideTimer = null; } });
+  _ttEl.addEventListener('mouseleave', () => _ttScheduleHide());
+  return _ttEl;
+}
+function _ttScheduleHide() {
+  if (_ttHideTimer) clearTimeout(_ttHideTimer);
+  _ttHideTimer = setTimeout(() => {
+    if (_ttEl) _ttEl.classList.remove('show');
+    _ttHideTimer = null;
+  }, 120);
+}
+function _ttShow(termKey, anchorEl) {
+  const term = TT_TERMS[termKey];
+  if (!term) return;
+  const el = _ttGetEl();
+  if (_ttHideTimer) { clearTimeout(_ttHideTimer); _ttHideTimer = null; }
+  // Build body. Body strings use {tt_termkey} placeholders for inner terms,
+  // which we expand here to <span class="tt-term" data-tt="termkey">...</span>.
+  // Event delegation picks those up too — that's the CK3-style recursion.
+  const name = T(term.name);
+  let body = T(term.body);
+  body = body.replace(/\{tt_([a-z_]+)\}/g, (_, k) => {
+    const sub = TT_TERMS[k];
+    if (!sub) return k;
+    return `<span class="tt-term" data-tt="${k}">${T(sub.name)}</span>`;
+  });
+  el.innerHTML = `<div class="tt-name">${name}</div><div class="tt-body">${body}</div>`;
+  el.classList.add('show');
+  // Position: prefer below-right of the anchor, flip if it'd go off-screen.
+  const r = anchorEl.getBoundingClientRect();
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let x = r.left;
+  let y = r.bottom + 6;
+  if (x + w + 8 > window.innerWidth)  x = window.innerWidth - w - 8;
+  if (y + h + 8 > window.innerHeight) y = r.top - h - 6;        // flip above
+  if (x < 8) x = 8;
+  if (y < 8) y = 8;
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+}
+
+// Event delegation — works for any [data-tt] element, INCLUDING those inside
+// the tooltip itself. That's the recursion: hovering a term inside a tooltip
+// just re-anchors the same element to the new term.
+function _ttInstall() {
+  document.addEventListener('mouseover', (e) => {
+    const t = e.target.closest('[data-tt]');
+    if (!t) return;
+    _ttShow(t.dataset.tt, t);
+  });
+  document.addEventListener('mouseout', (e) => {
+    const t = e.target.closest('[data-tt]');
+    if (!t) return;
+    // Only schedule hide if we're leaving the term entirely (not entering
+    // a child). The tooltip's own mouseenter cancels the hide.
+    const to = e.relatedTarget;
+    if (to && t.contains(to)) return;
+    _ttScheduleHide();
+  });
+}
+_ttInstall();
 
 function renderAll() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -9254,7 +9467,7 @@ const TUTORIAL_STEPS = [
   {
     title: 'ECONOMY',
     text: 'Your gold income = <b>province yields + trade routes − army upkeep</b>.<br><br>If you go into debt, you\'ll automatically take <b>emergency loans</b> — repaid over time with interest. Too many loans will cripple your economy.<br><br>Press <b>DEVELOP</b> on a province to boost its output permanently (costs MP + gold). Developing your homeland early pays off massively later.',
-    highlight: '.chip[title="Gold"]',
+    highlight: '.chip[data-tt="gold"]',
     side: 'bottom',
   },
   {
