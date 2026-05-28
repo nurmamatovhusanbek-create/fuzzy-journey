@@ -8678,23 +8678,29 @@ function mpLaunchGame(nationId, scenarioId, isHost) {
 
 // ── Host: apply all player queues then run normal endTurn ─────────────────────
 function mpHostResolveTurn(queues) {
-  // Apply non-host players' actions in turn order
-  for (const [pid, actions] of Object.entries(queues)) {
-    if (pid === MP.playerId) continue;          // host already acted
-    if (!actions || !actions.length) continue;
-    const savedHuman = S.humanId;
-    S.humanId = room_playerNationId(pid);       // temporarily become that player
-    if (!S.humanId) { S.humanId = savedHuman; continue; }
-    for (const action of actions) {
-      mpApplyAction(action);
+  try {
+    // Apply non-host players' actions in turn order
+    for (const [pid, actions] of Object.entries(queues)) {
+      if (pid === MP.playerId) continue;          // host already acted
+      if (!actions || !actions.length) continue;
+      const savedHuman = S.humanId;
+      S.humanId = room_playerNationId(pid);       // temporarily become that player
+      if (!S.humanId) { S.humanId = savedHuman; continue; }
+      for (const action of actions) {
+        mpApplyAction(action);
+      }
+      S.humanId = savedHuman;
     }
-    S.humanId = savedHuman;
+
+    // Run the normal endTurn (host's humanId is already correct)
+    endTurn();
+  } catch (e) {
+    // CRITICAL: never leave clients hanging on "resolving". Log and still
+    // broadcast whatever state we have so the turn completes.
+    console.error('mpHostResolveTurn error — broadcasting anyway:', e);
   }
 
-  // Run the normal endTurn (host's humanId is already correct)
-  endTurn();
-
-  // After endTurn, broadcast new S to server
+  // After endTurn, broadcast new S to server (always, even if something threw)
   const log_entries = S.log.slice(0, 30).map(l => ({ date: l.date, msg: l.msg, cls: l.cls }));
   mpSend({
     type:    'TURN_RESOLVED',
@@ -8934,15 +8940,19 @@ function mpDiploConsentGate(action, otherId) {
   return true;
 }
 
-// Wrap doDiplomacy (peace/ally/vassalize) — action is its 2nd arg
-_origDiploFns.doDiplomacy = window.doDiplomacy;
+// Wrap doDiplomacy (peace/ally/vassalize) — action is its 2nd arg.
+// Capture from the hoisted function declaration, NOT window.doDiplomacy — the
+// latter may be reassigned later in the script (a `window.doDiplomacy = doDiplomacy`
+// export runs after this point), which would clobber the wrapper and leave
+// _origDiploFns.doDiplomacy undefined → resolve-turn throws → game hangs.
+_origDiploFns.doDiplomacy = (typeof doDiplomacy === 'function') ? doDiplomacy : window.doDiplomacy;
 window.doDiplomacy = function(otherId, action) {
   if (mpDiploConsentGate(action, otherId)) return;
   return _origDiploFns.doDiplomacy.apply(this, arguments);
 };
 
 // Wrap doProposeMarriage — implicit action 'marriage', single arg
-_origDiploFns.doProposeMarriage = window.doProposeMarriage;
+_origDiploFns.doProposeMarriage = (typeof doProposeMarriage === 'function') ? doProposeMarriage : window.doProposeMarriage;
 if (typeof _origDiploFns.doProposeMarriage === 'function') {
   window.doProposeMarriage = function(otherId) {
     if (mpDiploConsentGate('marriage', otherId)) return;
@@ -8951,7 +8961,7 @@ if (typeof _origDiploFns.doProposeMarriage === 'function') {
 }
 
 // Wrap doProposeNAP — implicit action 'nap', single arg
-_origDiploFns.doProposeNAP = window.doProposeNAP;
+_origDiploFns.doProposeNAP = (typeof doProposeNAP === 'function') ? doProposeNAP : window.doProposeNAP;
 if (typeof _origDiploFns.doProposeNAP === 'function') {
   window.doProposeNAP = function(otherId) {
     if (mpDiploConsentGate('nap', otherId)) return;
@@ -9995,7 +10005,6 @@ window.enterMoveMode = function(fromId) {
 };
 
 window.doBuildArmy = doBuildArmy;
-window.doDiplomacy = doDiplomacy;
 window.doDevelop = doDevelop;
 window.openPeaceModal = openPeaceModal;
 window.closePeaceModal = closePeaceModal;
