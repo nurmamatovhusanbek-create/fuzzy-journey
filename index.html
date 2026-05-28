@@ -8560,18 +8560,16 @@ function mpHandleMessage(msg) {
       delete _pendingDiploRequests[key];
       if (msg.accepted) {
         // Apply via the correct underlying function (consent already granted).
-        // We call the captured original (queue-wrapped) fn directly AND queue it
-        // so the host applies it authoritatively at next turn-resolve.
+        // _origDiploFns.* is the QUEUE-WRAPPED version, so calling it both applies
+        // locally AND queues the action for the host to resolve authoritatively.
+        // Do NOT also call _mpQueueAction here — that would double-queue.
         const targetNationId = MP.allNations[msg.toPlayerId];
         if (targetNationId) {
           if (msg.action === 'marriage' && _origDiploFns.doProposeMarriage) {
-            _mpQueueAction('doProposeMarriage', [targetNationId]);
             _origDiploFns.doProposeMarriage(targetNationId);
           } else if (msg.action === 'nap' && _origDiploFns.doProposeNAP) {
-            _mpQueueAction('doProposeNAP', [targetNationId]);
             _origDiploFns.doProposeNAP(targetNationId);
           } else if (_origDiploFns.doDiplomacy) {
-            _mpQueueAction('doDiplomacy', [targetNationId, msg.action]);
             _origDiploFns.doDiplomacy(targetNationId, msg.action);
           }
         }
@@ -8617,10 +8615,10 @@ function mpHandleMessage(msg) {
       break;
 
     case 'TURN_RESOLVED':
-      // Non-host receives this
+      // Non-host receives this. mpApplyResolvedState already calls
+      // mpResetTurnState internally, so don't double-reset here.
       if (MP.isHost) return;
       mpApplyResolvedState(msg.S, msg.log, msg.turn);
-      if (!msg.gameOver) mpResetTurnState();
       break;
 
     case 'YOU_ARE_HOST':
@@ -8637,17 +8635,38 @@ function mpHandleMessage(msg) {
       if (msg.players) mpRenderPlayerList(msg.players);
       break;
 
-    case 'RECONNECTED':
+    case 'RECONNECTED': {
       MP.active     = true;
       MP.isHost     = msg.isHost;
       MP.myNationId = msg.nationId;
-      mpApplyResolvedState(msg.S, [], msg.turn);
-      mpShowHUD();
-      mpShowChat();
-      const msLeft = msg.msRemaining || 120000;
-      mpStartCountdown(msLeft);
-      logT('glog_109', null, 'good');
+      MP.allNations = msg.allNations || MP.allNations || {};
+      document.body.classList.add('mp-active');
+      if (typeof closeMPOverlay === 'function') closeMPOverlay();
+      // Rebuild the world first (the page was refreshed — S is empty), then
+      // overlay the cached authoritative state if the server had one.
+      if (!S.players || !S.players[msg.nationId]) {
+        mpLaunchGame(msg.nationId, msg.scenario, msg.isHost);
+      }
+      // Apply cached state after a tick so mpLaunchGame's async init can finish
+      const _applyReconnectState = () => {
+        if (msg.S) {
+          mpApplyResolvedState(msg.S, [], msg.turn);
+        } else {
+          // No turn resolved yet — just render the fresh world
+          try { updateHUD(); render(); } catch(e) {}
+        }
+        mpShowHUD();
+        mpShowChat();
+        mpStartCountdown(msg.msRemaining || 120000);
+        try { logT('glog_109', null, 'good'); } catch(e) {}
+      };
+      if (!S.players || !S.players[msg.nationId]) {
+        setTimeout(_applyReconnectState, 300);
+      } else {
+        _applyReconnectState();
+      }
       break;
+    }
 
     case 'CHAT':
       const isMe = msg.playerId === MP.playerId;
@@ -8836,7 +8855,9 @@ function mpShowChat() {
 }
 
 // ── Intercept endTurn for multiplayer ─────────────────────────────────────────
-const _origEndTurn = window.endTurn;
+// Capture the ORIGINAL from the hoisted declaration (window.endTurn was never
+// assigned, so reading it here would yield undefined and break the SP path).
+const _origEndTurn = (typeof endTurn === 'function') ? endTurn : window.endTurn;
 window.endTurn = function() {
   if (!MP.active) { _origEndTurn(); return; }
   if (MP.submitted) return;  // already submitted
@@ -8940,19 +8961,25 @@ function mpDiploConsentGate(action, otherId) {
   return true;
 }
 
-// Wrap doDiplomacy (peace/ally/vassalize) — action is its 2nd arg.
-// Capture from the hoisted function declaration, NOT window.doDiplomacy — the
-// latter may be reassigned later in the script (a `window.doDiplomacy = doDiplomacy`
-// export runs after this point), which would clobber the wrapper and leave
-// _origDiploFns.doDiplomacy undefined → resolve-turn throws → game hangs.
-_origDiploFns.doDiplomacy = (typeof doDiplomacy === 'function') ? doDiplomacy : window.doDiplomacy;
+// Wrap the diplomacy functions for MP consent. We capture window.X here, which
+// at this point is the QUEUE-WRAPPED version (the queue-interceptor loop above
+// already replaced window.doDiplomacy etc). That's intentional: on the receiver's
+// accept we call _origDiploFns.X, which must still queue the action for the host.
+// Fall back to the hoisted declaration if window.X somehow isn't set.
+// (mpApplyAction calls these too, but _mpQueueAction is a no-op for the host, so
+//  no double-queue occurs.)
+_origDiploFns.doDiplomacy = (typeof window.doDiplomacy === 'function')
+  ? window.doDiplomacy
+  : ((typeof doDiplomacy === 'function') ? doDiplomacy : null);
 window.doDiplomacy = function(otherId, action) {
   if (mpDiploConsentGate(action, otherId)) return;
   return _origDiploFns.doDiplomacy.apply(this, arguments);
 };
 
 // Wrap doProposeMarriage — implicit action 'marriage', single arg
-_origDiploFns.doProposeMarriage = (typeof doProposeMarriage === 'function') ? doProposeMarriage : window.doProposeMarriage;
+_origDiploFns.doProposeMarriage = (typeof window.doProposeMarriage === 'function')
+  ? window.doProposeMarriage
+  : ((typeof doProposeMarriage === 'function') ? doProposeMarriage : null);
 if (typeof _origDiploFns.doProposeMarriage === 'function') {
   window.doProposeMarriage = function(otherId) {
     if (mpDiploConsentGate('marriage', otherId)) return;
@@ -8961,7 +8988,9 @@ if (typeof _origDiploFns.doProposeMarriage === 'function') {
 }
 
 // Wrap doProposeNAP — implicit action 'nap', single arg
-_origDiploFns.doProposeNAP = (typeof doProposeNAP === 'function') ? doProposeNAP : window.doProposeNAP;
+_origDiploFns.doProposeNAP = (typeof window.doProposeNAP === 'function')
+  ? window.doProposeNAP
+  : ((typeof doProposeNAP === 'function') ? doProposeNAP : null);
 if (typeof _origDiploFns.doProposeNAP === 'function') {
   window.doProposeNAP = function(otherId) {
     if (mpDiploConsentGate('nap', otherId)) return;
@@ -10085,9 +10114,9 @@ function setupGameCanvas() {
     path = d3.geoPath(projection, ctx);
     render();
   });
-  document.getElementById('end-turn').addEventListener('click', endTurn);
-  document.getElementById('advance-era').addEventListener('click', doAdvanceEra);
-  document.getElementById('take-loan').addEventListener('click', doTakeLoan);
+  document.getElementById('end-turn').addEventListener('click', () => window.endTurn());
+  document.getElementById('advance-era').addEventListener('click', () => window.doAdvanceEra());
+  document.getElementById('take-loan').addEventListener('click', () => window.doTakeLoan());
 }
 
 function setupSetupCanvas() {
