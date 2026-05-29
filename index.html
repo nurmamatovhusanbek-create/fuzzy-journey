@@ -2530,6 +2530,13 @@ en: {
   mp_kick_confirm: 'Kick {name} from the room?',
   mp_you_were_kicked: 'You were kicked from the room by {by}.',
   mp_player_kicked: '{name} was kicked from the room.',
+  mp_connecting: 'Connecting to server…',
+  mp_coldstart_hint: '(the free server may take ~50s to wake up)',
+  mp_connect_failed: '✗ Connection failed — retrying…',
+  mp_conn_lost: 'Connection lost. Reconnecting…',
+  mp_reconnecting: 'Reconnecting… (attempt {n}/{max})',
+  mp_session_lost: 'Lost the multiplayer session — the server went to sleep and the room was cleared. Start or join a new game.',
+  mp_session_lost_reason: 'Multiplayer session ended: {reason}. Start or join a new game.',
   wa_multi: '{nations} and {last} have declared war on you!',
   log_war_decl:     '{attacker} declares war on {defender}.',
   log_peace_sued:   '{nation} sues for peace.',
@@ -3275,6 +3282,13 @@ ru: {
   mp_kick_confirm: 'Выгнать {name} из комнаты?',
   mp_you_were_kicked: '{by} выгнал(а) вас из комнаты.',
   mp_player_kicked: '{name} был(а) выгнан(а) из комнаты.',
+  mp_connecting: 'Подключение к серверу…',
+  mp_coldstart_hint: '(бесплатный сервер может «просыпаться» ~50 сек)',
+  mp_connect_failed: '✗ Не удалось подключиться — повтор…',
+  mp_conn_lost: 'Соединение потеряно. Переподключение…',
+  mp_reconnecting: 'Переподключение… (попытка {n}/{max})',
+  mp_session_lost: 'Сессия мультиплеера потеряна — сервер уснул и комната очищена. Создайте или присоединитесь к новой игре.',
+  mp_session_lost_reason: 'Сессия мультиплеера завершена: {reason}. Создайте или присоединитесь к новой игре.',
   wa_multi: '{nations} и {last} объявили вам войну!',
   log_war_decl:     '{attacker} объявляет войну {defender}.',
   log_peace_sued:   '{nation} просит мира.',
@@ -8656,8 +8670,29 @@ const MP = {
   timerEnd:     null,
   timerRaf:     null,
   waitingFor:   0,       // how many players haven't submitted
-  reconnectData: null    // { code, playerId } for reconnect attempts
+  reconnectData: null,   // { code, playerId } for reconnect attempts
+  // ── connection resilience (runtime-only, never serialised) ──
+  heartbeat:    null,    // setInterval id for keepalive PINGs
+  reconnectTimer: null,  // pending reconnect setTimeout id
+  reconnectTries: 0,     // consecutive reconnect attempts
+  maxReconnect: 8,       // give up after this many, then declare the session ended
+  connecting:   false,   // a connect attempt is in flight
+  sessionEnded: false    // true once we've stopped trying (room gone / exhausted)
 };
+const MP_HEARTBEAT_MS = 45000;   // ping cadence — keeps the free-tier relay warm + WS proxy alive
+const MP_CONNECT_TIMEOUT_MS = 60000;  // generous: a cold free-tier server can take ~50s to wake
+
+function mpStartHeartbeat() {
+  mpStopHeartbeat();
+  MP.heartbeat = setInterval(() => {
+    if (MP.ws && MP.ws.readyState === WebSocket.OPEN) {
+      try { MP.ws.send(JSON.stringify({ type: 'PING', t: Date.now() })); } catch (e) {}
+    }
+  }, MP_HEARTBEAT_MS);
+}
+function mpStopHeartbeat() {
+  if (MP.heartbeat) { clearInterval(MP.heartbeat); MP.heartbeat = null; }
+}
 
 // ── Overlay UI ────────────────────────────────────────────────────────────────
 function openMPOverlay() {
@@ -8679,31 +8714,81 @@ window.mpTab = mpTab;
 // ── WebSocket connection ──────────────────────────────────────────────────────
 function mpConnect(onOpen) {
   const statusEl = document.getElementById('mp-connecting-status');
-  statusEl.style.display = 'block';
-  statusEl.textContent = 'Connecting to server…';
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.textContent = (T('mp_connecting') || 'Connecting to server…')
+      + ' ' + (T('mp_coldstart_hint') || '(first connect can take ~50s)');
+  }
+  MP.connecting = true;
 
   // Close any existing connection
-  if (MP.ws) { try { MP.ws.close(); } catch {} }
+  if (MP.ws) { try { MP.ws.onclose = null; MP.ws.close(); } catch (e) {} }
 
+  let settled = false;
   MP.ws = new WebSocket(MP_SERVER_URL);
 
+  // Connect timeout — Render free tier cold-starts slowly; if the socket never
+  // opens, treat it as a failure rather than hanging forever.
+  const connectTimer = setTimeout(() => {
+    if (settled) return;
+    try { MP.ws && MP.ws.close(); } catch (e) {}
+  }, MP_CONNECT_TIMEOUT_MS);
+
   MP.ws.onopen = () => {
-    statusEl.style.display = 'none';
-    onOpen();
+    settled = true;
+    clearTimeout(connectTimer);
+    MP.connecting = false;
+    if (statusEl) statusEl.style.display = 'none';
+    mpStartHeartbeat();
+    try { onOpen(); } catch (e) { console.error('mp onOpen error:', e); }
   };
   MP.ws.onmessage = e => {
     let msg; try { msg = JSON.parse(e.data); } catch { return; }
     mpHandleMessage(msg);
   };
   MP.ws.onerror = () => {
-    statusEl.textContent = '✗ Connection failed. Check your internet connection.';
+    if (statusEl) statusEl.textContent = T('mp_connect_failed') || '✗ Connection failed. Retrying…';
   };
   MP.ws.onclose = () => {
-    if (MP.active) {
-      mpAppendChat('System', 'Connection lost. Attempting to reconnect…', true);
-      setTimeout(mpAttemptReconnect, 3000);
+    settled = true;
+    clearTimeout(connectTimer);
+    MP.connecting = false;
+    mpStopHeartbeat();
+    if (MP.active && !MP.sessionEnded) {
+      // Mid-game drop (often Render spin-down) — try to climb back in.
+      mpAppendChat('System', T('mp_conn_lost') || 'Connection lost. Reconnecting…', true);
+      mpScheduleReconnect();
+    } else if (!MP.active) {
+      // Still in the lobby — let the player retry from the menu.
+      const cb = document.getElementById('mp-create-btn'); if (cb) cb.disabled = false;
+      const jb = document.getElementById('mp-join-btn');   if (jb) jb.disabled = false;
     }
   };
+}
+
+// Reconnect with capped, backed-off attempts. Gives up cleanly if the room is
+// gone (free-tier spin-down wiped the in-memory state) instead of looping forever.
+function mpScheduleReconnect() {
+  if (MP.sessionEnded || MP.reconnectTimer) return;
+  if (MP.reconnectTries >= MP.maxReconnect) {
+    mpEndSession(T('mp_session_lost') || 'Lost connection to the game session.');
+    return;
+  }
+  MP.reconnectTries++;
+  const delay = Math.min(15000, Math.round(1500 * Math.pow(1.6, MP.reconnectTries - 1)));
+  mpAppendChat('System', Tpl('mp_reconnecting', { n: MP.reconnectTries, max: MP.maxReconnect }), true);
+  MP.reconnectTimer = setTimeout(() => { MP.reconnectTimer = null; mpAttemptReconnect(); }, delay);
+}
+
+// End the session for good — stop heartbeats/reconnects and tell the player.
+function mpEndSession(reason) {
+  MP.sessionEnded = true;
+  mpStopHeartbeat();
+  if (MP.reconnectTimer) { clearTimeout(MP.reconnectTimer); MP.reconnectTimer = null; }
+  try { if (MP.ws) { MP.ws.onclose = null; MP.ws.close(); } } catch (e) {}
+  const text = reason || T('mp_session_lost') || 'The multiplayer session has ended.';
+  if (typeof showDiploResult === 'function') showDiploResult('bad', text, 8000);
+  mpAppendChat('System', text, true);
 }
 
 function mpSend(msg) {
@@ -8740,6 +8825,9 @@ window.mpStartGame = mpStartGame;
 // ── Pick nation flow ──────────────────────────────────────────────────────────
 function mpPickNation() {
   MP.pickingNation = true;
+  // handleSelect's nation-pick branch only runs while S.setupPhase is true.
+  // Force it so the host (or anyone returning from a prior game) can always pick.
+  if (window.S) { S.setupPhase = true; S.gameOver = false; }
   document.getElementById('mp-overlay').classList.remove('open');
   ['#setup h1','#setup .tag','.setup-menu','#scenario-picker'].forEach(function(sel){
     var el = document.querySelector(sel); if (el) el.style.display = 'none';
@@ -8788,12 +8876,14 @@ function mpShowRoomLobby(code, players) {
 }
 
 function mpRenderPlayerList(players) {
+  players = Array.isArray(players) ? players : [];
   // Build a quick map of taken nations so the picker can block dupes
   MP.picksByNationId = {};
-  for (const p of (players || [])) {
+  for (const p of players) {
     if (p.nationId) MP.picksByNationId[p.nationId] = { name: p.name, id: p.id };
   }
   const el = document.getElementById('mp-player-list');
+  if (!el) return;
   el.innerHTML = players.map(p => {
     const isMe = p.id === MP.playerId;
     const nation = p.nationId
@@ -8851,6 +8941,7 @@ function mpHandleMessage(msg) {
 
     case 'GAME_START':
       MP.active     = true;
+      MP.reconnectTries = 0; MP.sessionEnded = false;
       MP.myNationId = msg.nationId;
       MP.isHost     = msg.isHost;
       MP.allNations = msg.allNations || {};
@@ -8990,6 +9081,7 @@ function mpHandleMessage(msg) {
 
     case 'RECONNECTED': {
       MP.active     = true;
+      MP.reconnectTries = 0; MP.sessionEnded = false;
       MP.isHost     = msg.isHost;
       MP.myNationId = msg.nationId;
       MP.allNations = msg.allNations || MP.allNations || {};
@@ -9026,12 +9118,20 @@ function mpHandleMessage(msg) {
       mpAppendChat(msg.name, msg.msg, false, isMe);
       break;
 
-    case 'ERROR':
-      alert(`Server: ${msg.message}`);
-      document.getElementById('mp-create-btn').disabled = false;
-      document.getElementById('mp-join-btn').disabled = false;
-      document.getElementById('mp-connecting-status').style.display = 'none';
+    case 'ERROR': {
+      const text = String(msg.message || '');
+      // A reconnect that fails because the room/slot is gone (free-tier spin-down
+      // wiped state) must NOT keep looping — end the session with a clear notice.
+      if ((MP.active || MP.reconnectTries > 0) && /room|slot|gone|expired|not found/i.test(text)) {
+        mpEndSession(Tpl('mp_session_lost_reason', { reason: text }));
+      } else {
+        alert(`Server: ${text}`);
+      }
+      const cb = document.getElementById('mp-create-btn'); if (cb) cb.disabled = false;
+      const jb = document.getElementById('mp-join-btn');   if (jb) jb.disabled = false;
+      const st = document.getElementById('mp-connecting-status'); if (st) st.style.display = 'none';
       break;
+    }
   }
 }
 
@@ -9429,7 +9529,8 @@ function mpAppendChat(name, text, isSystem, isMe) {
 
 // ── Reconnect ─────────────────────────────────────────────────────────────────
 function mpAttemptReconnect() {
-  if (!MP.roomCode || !MP.playerId) return;
+  if (MP.sessionEnded) return;
+  if (!MP.roomCode || !MP.playerId) { mpEndSession(T('mp_session_lost')); return; }
   mpConnect(() => {
     mpSend({ type: 'RECONNECT', code: MP.roomCode, playerId: MP.playerId });
   });
