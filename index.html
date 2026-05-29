@@ -2243,6 +2243,8 @@ en: {
   ui_choose_era:     'Choose Your Era',
   ui_guide:          'GUIDE',
   ui_skip_guide:     'SKIP GUIDE',
+  ui_next:           'NEXT →',
+  ui_finish:         'FINISH',
   ui_peace_title:    'PEACE NEGOTIATIONS',
   ui_turn_summary:   'TURN SUMMARY',
   ui_save_game:      'SAVE GAME',
@@ -2975,6 +2977,8 @@ ru: {
   ui_choose_era: 'Выберите эпоху',  /* RU done */
   ui_guide: 'РУКОВОДСТВО',  /* RU done */
   ui_skip_guide: 'ПРОПУСТИТЬ РУКОВОДСТВО',  /* RU done */
+  ui_next: 'ДАЛЕЕ →',  /* RU done */
+  ui_finish: 'ЗАВЕРШИТЬ',  /* RU done */
   ui_peace_title: 'МИРНЫЕ ПЕРЕГОВОРЫ',  /* RU done */
   ui_turn_summary: 'ИТОГИ ХОДА',  /* RU done */
   ui_save_game: 'СОХРАНИТЬ ИГРУ',  /* RU done */
@@ -3270,45 +3274,10 @@ ru: {
 },
 };
 
-// Tutorial steps — stored separately per language (full rich text)
-const TUTORIAL_TEXT = {
-en: null, // filled by TUTORIAL_STEPS already defined later
-ru: [
-  { title: 'ДОБРО ПОЖАЛОВАТЬ В TERRA BELLUM',
-    text: 'Вы — правитель восходящей нации в мире конкурирующих империй. <b>Расширяйте территории, стройте экономику, продвигайтесь сквозь эпохи и переживите своих соперников.</b><br><br>Это руководство охватывает основные механики. Займёт около 2 минут.',
-    highlight: null, btnNext: 'НАЧАТЬ ОБУЧЕНИЕ' },
-  { title: 'КАРТА МИРА',
-    text: '<b>Тяните</b> для вращения глобуса. <b>Нажмите на любую провинцию</b>, чтобы выбрать её.<br><br>Ваши провинции выделены вашим цветом. Вражеские провинции принадлежат ИИ-правителям, соперничающим с вами.',
-    highlight: '#globe', side: 'left' },
-  { title: 'ВЗГЛЯД НА ВАШУ ИМПЕРИЮ',
-    text: 'Верхняя панель показывает ключевые показатели:<br><b>⚜ Золото</b> — финансирует армии, постройки и дипломатию.<br><b>⚔ Людские ресурсы</b> — пул для вербовки войск.<br><b>★ ОД</b> — очки действий. Атака, вербовка и перемещение тратят ОД. Восстанавливаются каждый ход.<br><b>🤝 ДО</b> — дипломатические очки для войн, союзов и договоров.<br><b>🔍 Разведка</b> — для шпионских операций.',
-    highlight: '.hud-chips', side: 'bottom' },
-  { title: 'ПРОВИНЦИИ И АРМИИ',
-    text: 'Нажмите на одну из ваших провинций. Панель справа покажет:<br>• <b>Армия</b> — гарнизон провинции<br>• <b>Стабильность</b> — влияет на боевой дух<br>• <b>Развитие</b> — продуктивность земли (1–5)<br><br>Нажмите <b>НАБРАТЬ ВОЙСКА</b> для вербовки. Нужно минимум <b>10 войск</b> для атаки.',
-    highlight: '#country-float', side: 'left' },
-  { title: 'АТАКА',
-    text: 'Нажмите на <b>соседнюю вражескую провинцию</b> и нажмите <b>АТАКОВАТЬ</b>. Война объявляется автоматически (стоит 3 ДО).<br><br>Боевой расчёт учитывает силу армий, боевой множитель эпохи, технологические бонусы, стабильность и бросок кубика.<br><br><b>Победа</b> → провинция ваша. <b>Поражение</b> → понесёте потери.',
-    highlight: '#globe', side: 'left' },
-  { title: 'КОНЕЦ ХОДА',
-    text: 'Когда действия использованы, нажмите <b>КОНЕЦ ХОДА ▸</b>.<br><br>Каждый ход:<br>• Собирается доход золота (минус содержание)<br>• ОД и ДО восстанавливаются<br>• Стабильность провинций немного восстанавливается<br>• Все нации ИИ делают ход — вербуют, атакуют, ведут переговоры<br>• Могут произойти исторические события',
-    highlight: '#end-turn', side: 'left' },
-  { title: 'ЭКОНОМИКА',
-    text: 'Доход золота = <b>доходы провинций + торговые пути − содержание армий</b>.<br><br>При уходе в минус берутся <b>экстренные займы</b> — с процентами. Слишком много займов подорвут экономику.<br><br>Нажмите <b>РАЗВИТЬ</b> на провинции для постоянного роста дохода (стоит ОД + золото).',
-    highlight: '.chip[data-tt="gold"]', side: 'bottom' },
-  { title: 'ПРОДВИЖЕНИЕ СКВОЗЬ ЭПОХИ',
-    text: 'Откройте <b>🏰 панель Империи</b> для смены эпохи при наличии достаточного золота.<br><br>Каждая эпоха даёт <b>более высокий боевой множитель</b> и открывает технологии. Отставание от соперников по эпохам — серьёзный военный недостаток.',
-    highlight: '#empire-btn', side: 'bottom' },
-  { title: 'ДИПЛОМАТИЯ',
-    text: 'Откройте <b>⚔ ДИПЛО</b> для просмотра отношений. Из панели провинции предложите:<br><b>• ДНА</b> — Договор о ненападении: 8 ходов взаимного мира<br><b>• Союз</b> — взаимная оборона<br><b>• Королевский брак</b> — бонусы к доходу и ДО<br><br>Принятие зависит от <b>личности ИИ</b>, активных войн и баланса сил.',
-    highlight: '#diplo-btn', side: 'bottom' },
-  { title: 'ШПИОНАЖ И ТОРГОВЛЯ',
-    text: '<b>📜 Хроника</b> фиксирует все события. Используйте <b>Разведку</b> для шпионских операций — саботаж, кража золота, создание поводов для войны.<br><br><b>Торговые пути</b> приносят пассивный доход. Управляйте ими в 🏰 Империи.',
-    highlight: '#log-btn', side: 'left' },
-  { title: 'КАК ПОБЕДИТЬ',
-    text: 'Победа достигается через:<br><b>• Господство</b> — владение 40%+ провинций<br><b>• Цели эпохи</b> — выполнение особых задач текущей эпохи<br><b>• Выживание</b> — быть последней нацией<br><br>Балансируйте военную экспансию с экономикой и дипломатией. <b>Удачи, канцлер.</b>',
-    highlight: null, btnNext: 'НАЧАТЬ ИГРУ' },
-],
-};
+// The in-game guide now lives in a single bilingual data structure,
+// `TUTORIAL_STEPS` (with `TUT_CHAPTERS`), defined down in the TUTORIAL SYSTEM
+// section. Each step carries its own en/ru text — there is no separate
+// per-language array to keep in sync. See references/tutorial-guide.md.
 
 function T(key) {
   const dict = TB_LANG[_lang];
@@ -3385,14 +3354,10 @@ function setLang(lang) {
   // Update End Turn button text
   const et = document.getElementById('end-turn');
   if (et) et.textContent = T('hud_end_turn');
-  // Update tutorial steps if running Russian
-  if (typeof TUTORIAL_STEPS !== 'undefined' && TUTORIAL_TEXT[lang]) {
-    TUTORIAL_STEPS.forEach((s, i) => {
-      if (TUTORIAL_TEXT[lang][i]) Object.assign(s, TUTORIAL_TEXT[lang][i]);
-    });
-  } else if (typeof TUTORIAL_STEPS !== 'undefined' && lang === 'en' && TUTORIAL_TEXT._en_orig) {
-    TUTORIAL_STEPS.forEach((s, i) => { Object.assign(s, TUTORIAL_TEXT._en_orig[i]); });
-  }
+  // If the guide overlay is open, re-render the current step in the new language.
+  // (The guide is a single bilingual data structure now — see TUTORIAL_STEPS.)
+  const tutOv = document.getElementById('tut-overlay');
+  if (tutOv && !tutOv.hidden && typeof _renderTutStep === 'function') _renderTutStep();
 }
 
 function getLang() { return _lang; }
@@ -9427,73 +9392,163 @@ window.clearSelection = clearSelection;
 //  TUTORIAL SYSTEM
 // ════════════════════════════════════════════════════════
 
+// Chapter labels shown in the guide's step badge (bilingual). See tutorial-guide.md.
+const TUT_CHAPTERS = {
+  BASICS:    { en: 'BASICS',    ru: 'ОСНОВЫ' },
+  PROVINCES: { en: 'PROVINCES', ru: 'ПРОВИНЦИИ' },
+  WARFARE:   { en: 'WARFARE',   ru: 'ВОЙНА' },
+  ECONOMY:   { en: 'ECONOMY',   ru: 'ЭКОНОМИКА' },
+  DIPLOMACY: { en: 'DIPLOMACY', ru: 'ДИПЛОМАТИЯ' },
+  INTRIGUE:  { en: 'INTRIGUE',  ru: 'ИНТРИГИ' },
+  WORLD:     { en: 'THE WORLD', ru: 'МИР ЖИВЁТ' },
+  VICTORY:   { en: 'VICTORY',   ru: 'ПОБЕДА' },
+};
+
+// ── The guide. SINGLE SOURCE OF TRUTH, bilingual. ────────────────────────────
+// Each step: { chapter, highlight (CSS selector or null=centered), side, en, ru }.
+// Per-language block holds { title, text, btnNext? }. To add a step for a new
+// feature, drop one object into the right chapter — both languages together.
+// Only spotlight elements that are VISIBLE during the first-run tour
+// (#globe, the .hud-chips, #end-turn, #stats-btn, #settings-btn); panels are
+// hidden until a province is selected, so use null (centered) for panel topics.
 const TUTORIAL_STEPS = [
-  {
-    title: 'WELCOME TO TERRA BELLUM',
-    text: 'You are the ruler of a rising nation in a world of competing empires. <b>Expand your territory, build your economy, advance through the ages, and outlast your rivals.</b><br><br>This guide covers the core mechanics. It takes about 2 minutes.',
-    highlight: null,
-    btnNext: 'BEGIN GUIDE',
-  },
-  {
-    title: 'THE WORLD MAP',
-    text: '<b>Drag</b> to rotate the globe. <b>Click any province</b> to select it and see its details in the panel on the right.<br><br>Your nation\'s provinces are highlighted in your colour. Enemy provinces belong to the AI rulers competing against you.',
-    highlight: '#globe',
-    side: 'left',
-  },
-  {
-    title: 'YOUR EMPIRE AT A GLANCE',
-    text: 'The top bar shows your empire\'s key stats at all times:<br><b>⚜ Gold</b> — your treasury. Funds armies, buildings, and diplomacy.<br><b>⚔ Manpower</b> — pool for recruiting new troops.<br><b>★ MP</b> — action points. Every attack, recruit, and move costs MP. Refills each turn.<br><b>🤝 DP</b> — diplomacy points. Declare wars, forge alliances, sign treaties.<br><b>🔍 Intel</b> — powers espionage operations.',
-    highlight: '.hud-chips',
-    side: 'bottom',
-  },
-  {
-    title: 'PROVINCES & ARMIES',
-    text: 'Click one of your own provinces on the globe. The <b>selection panel</b> on the right shows:<br>• <b>Army</b> — troops garrisoned there<br>• <b>Stability</b> — high stability improves combat; low stability hurts income<br>• <b>Development</b> — how productive the land is (1–5)<br><br>Press <b>RECRUIT</b> to raise troops. You need <b>at least 10 troops</b> to attack from a province.',
-    highlight: '#country-float',
-    side: 'left',
-  },
-  {
-    title: 'ATTACKING',
-    text: 'Click a <b>neighbouring enemy province</b> and press <b>ATTACK</b>. War is declared automatically (costs 3 DP).<br><br>Combat compares your army\'s strength against the defender\'s, modified by:<br>• Era tier combat multiplier<br>• Technology bonuses<br>• Province stability and development<br>• A randomised dice roll<br><br><b>Win</b> → you take the province. <b>Lose</b> → you suffer casualties.',
-    highlight: '#globe',
-    side: 'left',
-  },
-  {
-    title: 'ENDING YOUR TURN',
-    text: 'When you\'ve used your actions, press <b>END TURN ▸</b>.<br><br>Each turn:<br>• Gold income is collected (minus upkeep)<br>• MP and DP refill<br>• Province stability recovers slightly<br>• All AI nations take their turns — they recruit, attack, and negotiate<br>• Random historical events may fire',
-    highlight: '#end-turn',
-    side: 'left',
-  },
-  {
-    title: 'ECONOMY',
-    text: 'Your gold income = <b>province yields + trade routes − army upkeep</b>.<br><br>If you go into debt, you\'ll automatically take <b>emergency loans</b> — repaid over time with interest. Too many loans will cripple your economy.<br><br>Press <b>DEVELOP</b> on a province to boost its output permanently (costs MP + gold). Developing your homeland early pays off massively later.',
-    highlight: '.chip[data-tt="gold"]',
-    side: 'bottom',
-  },
-  {
-    title: 'ADVANCING THROUGH THE AGES',
-    text: 'Open the <b>🏰 Empire panel</b> to advance your ERA when you have enough gold.<br><br>Each era grants a <b>stronger combat multiplier</b> and unlocks new technologies. Falling behind rivals in eras is a serious military disadvantage — a Stone Age army cannot withstand an Industrial one.',
-    highlight: '#empire-btn',
-    side: 'bottom',
-  },
-  {
-    title: 'DIPLOMACY',
-    text: 'Open <b>⚔ DIPLO</b> to see your relations. From an enemy\'s province panel you can propose:<br><b>• NAP</b> — Non-Aggression Pact: 8 turns of mutual peace<br><b>• Alliance</b> — mutual defence; your ally fights alongside you<br><b>• Royal Marriage</b> — income + DP bonuses, strong political bond<br><br>Each proposal has a DP cost and an acceptance probability based on the AI\'s <b>personality</b> (Conqueror, Diplomat, Merchant, Guardian, Opportunist), current wars, and power balance.',
-    highlight: '#diplo-btn',
-    side: 'bottom',
-  },
-  {
-    title: 'ESPIONAGE & TRADE',
-    text: 'The <b>📜 Chronicle</b> records all major events. Check it to track wars, alliances, and crises.<br><br>Use <b>Intel</b> to run spy operations against enemies — sabotage armies, steal gold, or forge territorial claims.<br><br><b>Trade routes</b> connect your provinces to partners for passive gold income. Manage them in the 🏰 Empire panel.',
-    highlight: '#log-btn',
-    side: 'left',
-  },
-  {
-    title: 'HOW TO WIN',
-    text: 'Victory comes through:<br><b>• Domination</b> — own 40%+ of all provinces<br><b>• Era objectives</b> — complete the special goal shown in the 🏰 Empire panel for your current age<br><b>• Survival</b> — be the last nation eliminated<br><br>Balance military expansion with economic development and smart diplomacy. <b>Good luck, Chancellor.</b>',
-    highlight: null,
-    btnNext: 'START PLAYING',
-  },
+  // ── BASICS ──────────────────────────────────────────────────────────────
+  { chapter: 'BASICS', highlight: null,
+    en: { title: 'WELCOME TO TERRA BELLUM',
+      text: 'You rule a rising nation on a living globe of competing empires. Your goal: <b>expand your realm, grow your economy, advance through the ages, and outlast every rival.</b><br><br>This guide walks through every system you will use, grouped into short chapters. You can press <b>SKIP GUIDE</b> any time, and replay it later from <b>⚙ Settings → How to Play</b>.',
+      btnNext: 'BEGIN GUIDE' },
+    ru: { title: 'ДОБРО ПОЖАЛОВАТЬ В TERRA BELLUM',
+      text: 'Вы правите восходящей нацией на живом глобусе соперничающих империй. Ваша цель — <b>расширять державу, развивать экономику, продвигаться сквозь эпохи и пережить всех соперников.</b><br><br>Это руководство охватывает все системы игры и разбито на короткие главы. Вы можете нажать <b>ПРОПУСТИТЬ</b> в любой момент и пройти его снова через <b>⚙ Настройки → Как играть</b>.',
+      btnNext: 'НАЧАТЬ ОБУЧЕНИЕ' } },
+
+  { chapter: 'BASICS', highlight: '#globe', side: 'left',
+    en: { title: 'THE WORLD MAP',
+      text: '<b>Drag</b> to rotate the globe and <b>scroll</b> to zoom. <b>Click any province</b> to select it.<br><br>Provinces in <b>your colour</b> are yours; every other colour is a rival nation run by the AI. Each province is a piece of land with its own army, people and development.<br><br>Prefer a flat map? Switch between globe and flat view in <b>⚙ Settings → Map View</b>.' },
+    ru: { title: 'КАРТА МИРА',
+      text: '<b>Тяните</b>, чтобы вращать глобус, и <b>прокручивайте колесо</b> для масштаба. <b>Нажмите на любую провинцию</b>, чтобы выбрать её.<br><br>Провинции <b>вашего цвета</b> принадлежат вам; любой другой цвет — соперник под управлением ИИ. Каждая провинция — это земля со своей армией, населением и развитием.<br><br>Предпочитаете плоскую карту? Переключайте вид в <b>⚙ Настройки → Вид карты</b>.' } },
+
+  { chapter: 'BASICS', highlight: '.hud-chips', side: 'bottom',
+    en: { title: 'YOUR RESOURCES',
+      text: 'The top bar tracks everything you spend:<br><b>⚜ Gold</b> — pays for armies, buildings, tech and diplomacy.<br><b>⚔ Manpower</b> — the pool you draw from to recruit troops.<br><b>★ MP (Movement Points)</b> — your turn\'s action budget: attacking, recruiting, moving and developing all cost MP. Refills each turn.<br><b>🤝 DP (Diplomacy Points)</b> — spent on wars, alliances, pacts and marriages.<br><b>🔍 Intel</b> — fuels espionage. <b>Trade</b>, <b>Lands</b> and <b>Armies</b> show your totals.' },
+    ru: { title: 'ВАШИ РЕСУРСЫ',
+      text: 'Верхняя панель отслеживает всё, что вы тратите:<br><b>⚜ Золото</b> — оплачивает армии, постройки, технологии и дипломатию.<br><b>⚔ Людские ресурсы</b> — запас для вербовки войск.<br><b>★ ОД (очки действий)</b> — бюджет действий на ход: атака, вербовка, перемещение и развитие тратят ОД. Пополняются каждый ход.<br><b>🤝 ДО (очки дипломатии)</b> — на войны, союзы, пакты и браки.<br><b>🔍 Разведка</b> — питает шпионаж. <b>Торговля</b>, <b>Земли</b> и <b>Армии</b> показывают итоги.' } },
+
+  // ── PROVINCES ───────────────────────────────────────────────────────────
+  { chapter: 'PROVINCES', highlight: '#globe', side: 'left',
+    en: { title: 'YOUR PROVINCES',
+      text: 'Click one of <b>your own</b> provinces. The panel on the right opens with its details:<br>• <b>Army</b> — troops stationed there<br>• <b>Stability</b> — high stability boosts combat and income; low stability invites revolt<br>• <b>Development (1–5)</b> — how much gold the land yields<br>• <b>Terrain & General</b> — battle modifiers<br><br>The tab strip at the top-right switches between <b>Selection</b>, <b>🏰 Empire</b>, <b>⚔ Diplomacy</b> and <b>📜 Chronicle</b>.' },
+    ru: { title: 'ВАШИ ПРОВИНЦИИ',
+      text: 'Нажмите на одну из <b>своих</b> провинций. Справа откроется панель с её данными:<br>• <b>Армия</b> — войска в провинции<br>• <b>Стабильность</b> — высокая усиливает бой и доход; низкая ведёт к бунтам<br>• <b>Развитие (1–5)</b> — сколько золота даёт земля<br>• <b>Местность и генерал</b> — модификаторы боя<br><br>Полоса вкладок справа вверху переключает <b>Выбор</b>, <b>🏰 Империю</b>, <b>⚔ Дипломатию</b> и <b>📜 Хронику</b>.' } },
+
+  { chapter: 'PROVINCES', highlight: '#globe', side: 'left',
+    en: { title: 'RECRUIT & DEVELOP',
+      text: 'With one of your provinces selected:<br>• <b>RECRUIT</b> raises new troops (spends gold, manpower and MP).<br>• <b>DEVELOP</b> permanently raises the province\'s development, increasing its gold income forever (spends gold + MP).<br><br>Developing your capital early is one of the strongest long-term moves. A province needs <b>at least 10 troops</b> before it can attack.' },
+    ru: { title: 'ВЕРБОВКА И РАЗВИТИЕ',
+      text: 'Выбрав свою провинцию:<br>• <b>НАБРАТЬ ВОЙСКА</b> — вербует новые войска (тратит золото, людские ресурсы и ОД).<br>• <b>РАЗВИТЬ</b> — навсегда повышает развитие провинции, увеличивая её доход золота (тратит золото + ОД).<br><br>Раннее развитие столицы — один из сильнейших долгосрочных ходов. Для атаки в провинции нужно <b>не менее 10 войск</b>.' } },
+
+  { chapter: 'PROVINCES', highlight: '#globe', side: 'left',
+    en: { title: 'MOVING ARMIES',
+      text: 'Press <b>↻ MOVE ARMY</b> on a province, then click an <b>adjacent province you own</b> to send troops there. Use the amount buttons to choose how much of the garrison marches.<br><br>Concentrate armies on your borders before a war, and pull them back to calm provinces that are close to revolt.' },
+    ru: { title: 'ПЕРЕМЕЩЕНИЕ АРМИЙ',
+      text: 'Нажмите <b>↻ ПЕРЕМЕСТИТЬ АРМИЮ</b> на провинции, затем кликните по <b>соседней своей провинции</b>, чтобы перебросить войска. Кнопками доли выберите, какую часть гарнизона отправить.<br><br>Сосредотачивайте армии на границах перед войной и оттягивайте их в спокойные провинции, близкие к бунту.' } },
+
+  { chapter: 'PROVINCES', highlight: null,
+    en: { title: 'BUILDINGS',
+      text: 'Each province can hold <b>one building</b>, constructed from its panel (costs gold + MP):<br>• <b>🏰 Fortress</b> — defence in battle<br>• <b>🏪 Market</b> — extra gold income<br>• <b>⚔ Barracks</b> — more troops per recruit<br>• <b>🎓 Academy</b> — faster development & stability<br><br>Match buildings to each province\'s role — fortresses on the front line, markets in the safe interior.' },
+    ru: { title: 'ПОСТРОЙКИ',
+      text: 'В каждой провинции может быть <b>одна постройка</b>, возводимая из её панели (стоит золото + ОД):<br>• <b>🏰 Крепость</b> — защита в бою<br>• <b>🏪 Рынок</b> — дополнительный доход золота<br>• <b>⚔ Казармы</b> — больше войск за вербовку<br>• <b>🎓 Академия</b> — быстрее развитие и стабильность<br><br>Подбирайте постройки под роль провинции: крепости на передовой, рынки в спокойном тылу.' } },
+
+  // ── WARFARE ─────────────────────────────────────────────────────────────
+  { chapter: 'WARFARE', highlight: '#globe', side: 'left',
+    en: { title: 'DECLARING WAR & ATTACKING',
+      text: 'Select a province with <b>10+ troops</b>, then click a <b>bordering enemy province</b> and press <b>⚔ ATTACK</b>. If you are not already at war, war is declared automatically (costs DP).<br><br>Battle weighs both armies, then modifies by <b>era, technology, stability, terrain, the general\'s traits</b> and a dice roll.<br><br><b>Win</b> → the province becomes yours. <b>Lose</b> → heavy casualties.' },
+    ru: { title: 'ОБЪЯВЛЕНИЕ ВОЙНЫ И АТАКА',
+      text: 'Выберите провинцию с <b>10+ войсками</b>, затем кликните по <b>граничащей вражеской провинции</b> и нажмите <b>⚔ АТАКОВАТЬ</b>. Если вы ещё не в войне, она объявляется автоматически (стоит ОД).<br><br>Бой учитывает обе армии, а затем модифицируется <b>эпохой, технологиями, стабильностью, местностью, чертами генерала</b> и броском кубика.<br><br><b>Победа</b> → провинция ваша. <b>Поражение</b> → тяжёлые потери.' } },
+
+  { chapter: 'WARFARE', highlight: null,
+    en: { title: 'WAR SCORE, PEACE & TRUCES',
+      text: 'Every battle shifts the <b>war score</b> between you and your enemy. The side that is winning can demand more at the table.<br><br>From an enemy\'s panel you can <b>propose white peace</b> (end the war as-is), <b>negotiate terms</b>, or — if you dominate — <b>dictate peace</b> and seize provinces.<br><br>Signing peace creates a <b>truce</b>: neither side can attack the other for several turns.' },
+    ru: { title: 'ВОЕННЫЙ СЧЁТ, МИР И ПЕРЕМИРИЕ',
+      text: 'Каждый бой меняет <b>военный счёт</b> между вами и врагом. Сторона, что побеждает, может требовать большего за столом переговоров.<br><br>Из панели врага можно <b>предложить белый мир</b> (завершить войну как есть), <b>обсудить условия</b> или — при превосходстве — <b>продиктовать мир</b> и забрать провинции.<br><br>Заключённый мир создаёт <b>перемирие</b>: стороны не могут нападать друг на друга несколько ходов.' } },
+
+  // ── ECONOMY ─────────────────────────────────────────────────────────────
+  { chapter: 'ECONOMY', highlight: '.chip[data-tt="gold"]', side: 'bottom',
+    en: { title: 'GOLD, UPKEEP & LOANS',
+      text: 'Each turn you collect <b>province income + trade − army upkeep</b>. Big armies are expensive — don\'t raise more than you can feed.<br><br>If your treasury goes negative, you automatically take an <b>emergency loan</b>, repaid over several turns <b>with interest</b>. A few loans are fine; piling them up will strangle your economy. You can also borrow deliberately from the <b>🏰 Empire</b> panel.' },
+    ru: { title: 'ЗОЛОТО, СОДЕРЖАНИЕ И ЗАЙМЫ',
+      text: 'Каждый ход вы получаете <b>доход провинций + торговлю − содержание армий</b>. Большие армии дороги — не набирайте больше, чем можете прокормить.<br><br>Если казна уходит в минус, автоматически берётся <b>экстренный заём</b>, выплачиваемый несколько ходов <b>с процентами</b>. Пара займов не страшна; их нагромождение задушит экономику. Заём можно взять и осознанно в панели <b>🏰 Империя</b>.' } },
+
+  { chapter: 'ECONOMY', highlight: '.chip[data-tt="trade"]', side: 'bottom',
+    en: { title: 'TRADE ROUTES',
+      text: '<b>Trade routes</b> link two of your provinces (or a partner\'s) for steady passive gold every turn — build and manage them in the <b>🏰 Empire</b> panel.<br><br>Routes can be <b>disrupted</b> by nearby wars, cutting their income until peace returns. More developed provinces and higher eras raise how many routes you can run.' },
+    ru: { title: 'ТОРГОВЫЕ ПУТИ',
+      text: '<b>Торговые пути</b> связывают две ваши провинции (или партнёра), принося стабильное пассивное золото каждый ход — стройте и управляйте ими в панели <b>🏰 Империя</b>.<br><br>Пути могут быть <b>нарушены</b> близкими войнами, теряя доход до возвращения мира. Более развитые провинции и высокие эпохи повышают число доступных путей.' } },
+
+  { chapter: 'ECONOMY', highlight: null,
+    en: { title: 'TECHNOLOGY',
+      text: 'In the <b>🏰 Empire</b> panel you research three tech branches with gold:<br>• <b>⚔ Martial</b> — stronger armies<br>• <b>⚖ Treasury</b> — more income<br>• <b>🏛 Statecraft</b> — stability & diplomacy<br><br>Each level grants a permanent bonus. Steady research keeps you competitive even when a rival holds more land.' },
+    ru: { title: 'ТЕХНОЛОГИИ',
+      text: 'В панели <b>🏰 Империя</b> вы исследуете три ветви технологий за золото:<br>• <b>⚔ Военное дело</b> — сильнее армии<br>• <b>⚖ Казна</b> — больше дохода<br>• <b>🏛 Управление</b> — стабильность и дипломатия<br><br>Каждый уровень даёт постоянный бонус. Постоянные исследования держат вас в строю, даже когда у соперника больше земель.' } },
+
+  { chapter: 'ECONOMY', highlight: null,
+    en: { title: 'ADVANCING THROUGH THE AGES',
+      text: 'From the <b>🏰 Empire</b> panel, spend gold to <b>advance your era</b>: Ancient → Classical → Medieval → Industrial → Modern.<br><br>Each era raises your <b>combat multiplier</b> and unlocks more. Falling an era behind a neighbour is dangerous — their troops simply hit harder.<br><br>The same panel lists your <b>era objectives</b>: small goals (claim N lands, win N battles…) that grant gold, manpower or points when met.' },
+    ru: { title: 'ПРОДВИЖЕНИЕ СКВОЗЬ ЭПОХИ',
+      text: 'В панели <b>🏰 Империя</b> тратьте золото, чтобы <b>сменить эпоху</b>: Античность → Классика → Средневековье → Индустриальная → Новое время.<br><br>Каждая эпоха повышает ваш <b>боевой множитель</b> и открывает новое. Отставание на эпоху от соседа опасно — его войска бьют сильнее.<br><br>Там же показаны <b>цели эпохи</b>: небольшие задачи (захватить N земель, выиграть N битв…), дающие золото, людей или очки.' } },
+
+  // ── DIPLOMACY ───────────────────────────────────────────────────────────
+  { chapter: 'DIPLOMACY', highlight: null,
+    en: { title: 'PACTS, ALLIANCES & MARRIAGES',
+      text: 'Open the <b>⚔ Diplomacy</b> tab to see your standing with every nation. From a rival\'s panel you can offer:<br>• <b>🕊 NAP</b> — a non-aggression pact: mutual peace for several turns<br>• <b>⚐ Alliance</b> — mutual defence; allies join your wars<br>• <b>💍 Royal Marriage</b> — income and DP bonuses plus a strong bond<br><br>Each costs DP. You can also <b>declare war</b> here directly.' },
+    ru: { title: 'ПАКТЫ, СОЮЗЫ И БРАКИ',
+      text: 'Откройте вкладку <b>⚔ Дипломатия</b>, чтобы видеть отношения со всеми нациями. Из панели соперника можно предложить:<br>• <b>🕊 ДНА</b> — договор о ненападении: взаимный мир на несколько ходов<br>• <b>⚐ Союз</b> — взаимная оборона; союзники вступают в ваши войны<br>• <b>💍 Королевский брак</b> — бонусы к доходу и ОД плюс прочная связь<br><br>Всё стоит ОД. Здесь же можно прямо <b>объявить войну</b>.' } },
+
+  { chapter: 'DIPLOMACY', highlight: null,
+    en: { title: 'AI PERSONALITIES & COALITIONS',
+      text: 'Every AI ruler has a <b>personality</b> — Conqueror, Merchant, Diplomat, Guardian or Opportunist — that shapes whether they accept your offers, and when they strike.<br><br>Beware growing too fast: if one nation becomes dominant, the others may form a <b>coalition</b> and declare war together. Friends and marriages secured early are your insurance against that day.' },
+    ru: { title: 'ХАРАКТЕРЫ ИИ И КОАЛИЦИИ',
+      text: 'У каждого правителя ИИ есть <b>характер</b> — Завоеватель, Купец, Дипломат, Хранитель или Оппортунист — он определяет, примет ли он ваши предложения и когда ударит.<br><br>Опасайтесь слишком быстрого роста: если одна нация станет доминирующей, остальные могут собрать <b>коалицию</b> и объявить войну сообща. Друзья и браки, заключённые заранее, — ваша страховка на этот случай.' } },
+
+  // ── INTRIGUE ────────────────────────────────────────────────────────────
+  { chapter: 'INTRIGUE', highlight: '.chip[data-tt="intel"]', side: 'bottom',
+    en: { title: 'ESPIONAGE',
+      text: '<b>🔍 Intel</b> builds up each turn and pays for covert operations against rivals (from their province panel):<br>• <b>Intelligence report</b> — reveal their true strength<br>• <b>Sabotage garrison</b> / <b>Rob treasury</b> / <b>Incite unrest</b><br>• <b>Forge casus belli</b> — a free, truce-ignoring war justification<br>• <b>Bribe the general</b> — weaken them in battle<br><br>Each op carries a <b>detection risk</b>; getting caught angers the target.' },
+    ru: { title: 'ШПИОНАЖ',
+      text: '<b>🔍 Разведка</b> накапливается каждый ход и оплачивает тайные операции против соперников (из их панели провинции):<br>• <b>Разведдоклад</b> — раскрыть истинную силу<br>• <b>Саботаж гарнизона</b> / <b>Ограбить казну</b> / <b>Разжечь волнения</b><br>• <b>Сфабриковать повод к войне</b> — бесплатное обоснование войны без учёта перемирия<br>• <b>Подкупить генерала</b> — ослабить врага в бою<br><br>У каждой операции есть <b>риск обнаружения</b>; разоблачение злит цель.' } },
+
+  // ── THE WORLD ───────────────────────────────────────────────────────────
+  { chapter: 'WORLD', highlight: '#end-turn', side: 'left',
+    en: { title: 'ENDING YOUR TURN',
+      text: 'When you have spent your actions, press <b>END TURN ▸</b>. Then the world moves:<br>• Income is collected and loans repaid<br>• MP and DP refill; stability slowly recovers<br>• Trade pays out<br>• <b>Every AI nation takes its turn</b> — recruiting, attacking, scheming<br>• Random and historical events may fire<br><br>A <b>turn summary</b> shows what changed while you weren\'t looking.' },
+    ru: { title: 'ЗАВЕРШЕНИЕ ХОДА',
+      text: 'Потратив действия, нажмите <b>КОНЕЦ ХОДА ▸</b>. После этого мир движется:<br>• Собирается доход и выплачиваются займы<br>• Пополняются ОД и ДО; стабильность медленно восстанавливается<br>• Выплачивается торговля<br>• <b>Каждая нация ИИ делает ход</b> — вербует, атакует, строит козни<br>• Могут произойти случайные и исторические события<br><br><b>Сводка хода</b> покажет, что изменилось, пока вы не смотрели.' } },
+
+  { chapter: 'WORLD', highlight: null,
+    en: { title: 'EVENTS & THE CHRONICLE',
+      text: 'Sometimes a <b>random event</b> asks you to make a choice with real consequences — weigh the options.<br><br><b>Historical events</b> (plagues, revolutions, discoveries) reshape the world on their own.<br><br>The <b>📜 Chronicle</b> tab is your history book — every war, treaty and crisis is logged there. Use its filter tabs (Empire, Crisis, Good, History) to find what matters.' },
+    ru: { title: 'СОБЫТИЯ И ХРОНИКА',
+      text: 'Иногда <b>случайное событие</b> предлагает сделать выбор с реальными последствиями — взвешивайте варианты.<br><br><b>Исторические события</b> (эпидемии, революции, открытия) сами меняют облик мира.<br><br>Вкладка <b>📜 Хроника</b> — ваша книга истории: каждая война, договор и кризис записаны там. Пользуйтесь фильтрами (Империя, Кризис, Благо, История), чтобы найти нужное.' } },
+
+  { chapter: 'WORLD', highlight: '#stats-btn', side: 'bottom',
+    en: { title: 'WORLD STATISTICS',
+      text: 'The <b>📊 Stats</b> button opens a world overview: <b>rankings</b> of every nation by territory, army, gold and prestige, plus the current <b>alliances</b>, <b>wars</b> and <b>economy</b>.<br><br>Check it often to spot the rising threat before it becomes the coalition leader — and to see where you place among the powers.' },
+    ru: { title: 'МИРОВАЯ СТАТИСТИКА',
+      text: 'Кнопка <b>📊 Статистика</b> открывает обзор мира: <b>рейтинги</b> всех наций по территории, армии, золоту и престижу, а также текущие <b>союзы</b>, <b>войны</b> и <b>экономику</b>.<br><br>Заглядывайте чаще, чтобы заметить растущую угрозу прежде, чем она возглавит коалицию, — и увидеть своё место среди держав.' } },
+
+  // ── VICTORY ─────────────────────────────────────────────────────────────
+  { chapter: 'VICTORY', highlight: null,
+    en: { title: 'HOW TO WIN',
+      text: 'There are four roads to victory — reach any one and the game is yours (<b>and an AI can win the same way, so watch the rankings</b>):<br>• <b>⚔ Domination</b> — control 65% of all territories<br>• <b>⚖ Economic</b> — hold 2,500 gold in your treasury<br>• <b>📜 Technological</b> — reach the Modern era and max all three tech branches<br>• <b>🕊 Diplomatic</b> — maintain 10 alliances at once<br><br>Track your progress on the bars in the <b>🏰 Empire</b> panel.' },
+    ru: { title: 'КАК ПОБЕДИТЬ',
+      text: 'К победе ведут четыре пути — достигните любого, и игра ваша (<b>а ИИ может победить так же, поэтому следите за рейтингами</b>):<br>• <b>⚔ Господство</b> — контроль 65% всех территорий<br>• <b>⚖ Экономика</b> — накопить 2 500 золота в казне<br>• <b>📜 Технологии</b> — достичь Нового времени и развить все три ветви до максимума<br>• <b>🕊 Дипломатия</b> — удерживать 10 союзов одновременно<br><br>Следите за прогрессом по шкалам в панели <b>🏰 Империя</b>.' } },
+
+  { chapter: 'VICTORY', highlight: '#settings-btn', side: 'bottom',
+    en: { title: 'LAST STAND, SAVING & SETTINGS',
+      text: 'If you are beaten down to your <b>final province</b>, a <b>Last Stand</b> appears: submit as a <b>vassal</b> to survive, raise a <b>desperate levy</b>, or <b>fight to the last</b>.<br><br>Your game <b>autosaves every turn</b>, and the <b>⚙ Settings</b> menu lets you save to a slot, change language or map view, and replay this guide.<br><br>The throne is yours, Chancellor. <b>Good luck.</b>',
+      btnNext: 'START PLAYING' },
+    ru: { title: 'ПОСЛЕДНИЙ РУБЕЖ, СОХРАНЕНИЯ И НАСТРОЙКИ',
+      text: 'Если вас собьют до <b>последней провинции</b>, появится <b>Последний рубеж</b>: покориться как <b>вассал</b>, чтобы выжить, поднять <b>отчаянный призыв</b> или <b>стоять до конца</b>.<br><br>Игра <b>автосохраняется каждый ход</b>, а меню <b>⚙ Настройки</b> позволяет сохранить в слот, сменить язык или вид карты и пройти это руководство заново.<br><br>Трон ваш, канцлер. <b>Удачи.</b>',
+      btnNext: 'НАЧАТЬ ИГРУ' } },
 ];
 
 let _tutStep = 0;
@@ -9532,10 +9587,17 @@ function _renderTutStep() {
   const isFirst = _tutStep === 0;
   const isLast  = _tutStep === total - 1;
 
-  // Update card content
-  document.getElementById('tut-label').textContent = `GUIDE  ${_tutStep + 1} / ${total}`;
-  document.getElementById('tut-title').textContent = step.title;
-  document.getElementById('tut-text').innerHTML = step.text;
+  // Pick the current language's content (fall back to English).
+  const lang = (typeof getLang === 'function') ? getLang() : 'en';
+  const L = step[lang] || step.en;
+  const chap = TUT_CHAPTERS[step.chapter];
+  const chapName = chap ? (chap[lang] || chap.en) : '';
+
+  // Update card content — badge shows the chapter + position
+  document.getElementById('tut-label').textContent =
+    (chapName ? chapName + '  ·  ' : '') + `${_tutStep + 1} / ${total}`;
+  document.getElementById('tut-title').textContent = L.title;
+  document.getElementById('tut-text').innerHTML = L.text;
 
   // Progress pips
   const pips = document.getElementById('tut-pips');
@@ -9551,9 +9613,10 @@ function _renderTutStep() {
   const nextBtn = document.getElementById('tut-next');
   const backBtn = document.getElementById('tut-back');
   const skipBtn = document.getElementById('tut-skip');
-  nextBtn.textContent = (step.btnNext || (isLast ? 'FINISH' : 'NEXT →'));
+  nextBtn.textContent = (L.btnNext || (isLast ? T('ui_finish') : T('ui_next')));
   backBtn.style.display = isFirst ? 'none' : '';
-  skipBtn.textContent = isLast ? '' : 'SKIP GUIDE';
+  backBtn.textContent = T('setup_back');
+  skipBtn.textContent = isLast ? '' : T('ui_skip_guide');
   skipBtn.style.visibility = isLast ? 'hidden' : 'visible';
 
   // Position spotlight + card
