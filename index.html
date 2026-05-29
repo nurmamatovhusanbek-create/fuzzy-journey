@@ -180,9 +180,83 @@
   #globe { width: 100%; height: 100%; cursor: grab; touch-action: none; display: block; }
   #globe:active { cursor: grabbing; }
   .globe-hint {
-    position: absolute; bottom: 12px; left: 12px; font-size: 10px;
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    font-size: 10px;
     color: var(--ink-dim); letter-spacing: 0.15em; pointer-events: none;
   }
+
+  /* ===== Map overlay lens picker (bottom-left of globe) ===== */
+  .map-lens {
+    position: absolute; left: 12px; bottom: 14px; z-index: 6;
+    display: flex; flex-direction: column; gap: 3px;
+    background: rgba(10, 14, 24, 0.72); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212, 160, 23, 0.22); border-radius: 8px;
+    padding: 6px; user-select: none;
+  }
+  .map-lens .lens-title {
+    font: 700 8.5px/1 'JetBrains Mono', monospace; letter-spacing: 1px;
+    color: var(--ink-dim); padding: 1px 4px 3px; opacity: 0.7;
+  }
+  .lens-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: transparent; border: 1px solid transparent; border-radius: 5px;
+    color: var(--ink-dim); cursor: pointer;
+    font: 600 10px/1 'JetBrains Mono', monospace; letter-spacing: 0.4px;
+    padding: 4px 7px; text-align: left; transition: background .12s, color .12s;
+  }
+  .lens-btn .lens-ic { font-size: 11px; width: 14px; text-align: center; }
+  .lens-btn:hover { background: rgba(212, 160, 23, 0.10); color: var(--ink); }
+  .lens-btn.active {
+    background: rgba(212, 160, 23, 0.18); color: #f3c552;
+    border-color: rgba(212, 160, 23, 0.40);
+  }
+  body.flatmap-full .map-lens { bottom: 48px; }
+
+  /* ===== Notification queue (persistent left rail, below topbar) ===== */
+  #notif-rail {
+    position: absolute; top: 90px; left: 12px; z-index: 14;
+    width: 212px; max-height: calc(100% - 320px); overflow-y: auto;
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: none;                 /* empty area passes clicks to the globe */
+  }
+  #notif-rail[hidden] { display: none; }
+  #notif-rail::-webkit-scrollbar { width: 4px; }
+  #notif-rail::-webkit-scrollbar-thumb { background: rgba(212,160,23,0.3); border-radius: 2px; }
+  #notif-rail .notif-head {
+    pointer-events: auto;
+    display: flex; align-items: center; justify-content: space-between;
+    font: 700 9px/1 'JetBrains Mono', monospace; letter-spacing: 1.2px;
+    color: var(--ink-dim); padding: 0 2px 1px;
+  }
+  #notif-rail .notif-clear {
+    background: transparent; border: none; color: var(--ink-dim); cursor: pointer;
+    font-size: 11px; line-height: 1; padding: 2px 4px; border-radius: 4px;
+  }
+  #notif-rail .notif-clear:hover { color: var(--ink); background: rgba(255,255,255,0.08); }
+  .notif-card {
+    pointer-events: auto; position: relative; cursor: pointer;
+    display: flex; gap: 8px; align-items: flex-start;
+    background: rgba(12,17,28,0.92); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,160,23,0.22); border-left-width: 3px;
+    border-radius: 7px; padding: 7px 22px 7px 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    transition: border-color .12s, transform .08s;
+  }
+  .notif-card:hover { border-color: rgba(212,160,23,0.5); transform: translateX(2px); }
+  .notif-card.crit { border-left-color: #e85d4a; }
+  .notif-card.warn { border-left-color: #d4a017; }
+  .notif-card.good { border-left-color: #6ba368; }
+  .notif-card .notif-ic { font-size: 14px; line-height: 1.2; }
+  .notif-card .notif-txt { flex: 1; min-width: 0; }
+  .notif-card .notif-title { font: 700 10.5px/1.25 'JetBrains Mono', monospace; color: var(--ink); }
+  .notif-card .notif-body { font-size: 10px; line-height: 1.3; color: var(--ink-dim); margin-top: 2px; }
+  .notif-card .notif-x {
+    position: absolute; top: 3px; right: 3px;
+    background: transparent; border: none; color: var(--ink-dim);
+    cursor: pointer; font-size: 11px; line-height: 1; padding: 2px 4px; border-radius: 4px;
+  }
+  .notif-card .notif-x:hover { color: var(--ink); }
+  body.flatmap-full #notif-rail { top: 64px; }
 
   /* ===== Old HUD sidebar — hidden, kept for DOM structure ===== */
   .hud { display: none !important; }
@@ -1844,6 +1918,15 @@
     <canvas id="globe"></canvas>
     <div id="move-banner" class="move-mode-banner" hidden></div>
     <div class="globe-hint" data-i18n="globe_hint">DRAG TO ROTATE · TAP TO SELECT</div>
+    <div id="notif-rail" hidden></div>
+    <div class="map-lens" id="map-lens">
+      <div class="lens-title" data-i18n="overlay_title">MAP VIEW</div>
+      <button class="lens-btn active" data-lens="political" onclick="setOverlayMode('political')"><span class="lens-ic">🗺</span><span data-i18n="overlay_political">Political</span></button>
+      <button class="lens-btn" data-lens="diplomatic" onclick="setOverlayMode('diplomatic')"><span class="lens-ic">🤝</span><span data-i18n="overlay_diplomatic">Diplomatic</span></button>
+      <button class="lens-btn" data-lens="economic" onclick="setOverlayMode('economic')"><span class="lens-ic">💰</span><span data-i18n="overlay_economic">Economic</span></button>
+      <button class="lens-btn" data-lens="military" onclick="setOverlayMode('military')"><span class="lens-ic">⚔</span><span data-i18n="overlay_military">Military</span></button>
+      <button class="lens-btn" data-lens="terrain" onclick="setOverlayMode('terrain')"><span class="lens-ic">⛰</span><span data-i18n="overlay_terrain">Terrain</span></button>
+    </div>
   </div>
 
   <!-- ── FLOATING PANELS (absolute-positioned over globe) ── -->
@@ -2157,6 +2240,22 @@ en: {
   sdd_mapmode: 'MAP VIEW',
   mapmode_globe: '🌐 GLOBE',
   mapmode_flat: '🗺 FLAT',
+  overlay_title: 'MAP VIEW',
+  overlay_political: 'Political',
+  overlay_diplomatic: 'Diplomatic',
+  overlay_economic: 'Economic',
+  overlay_military: 'Military',
+  overlay_terrain: 'Terrain',
+  notif_alerts: 'ALERTS',
+  notif_clear: 'Clear all',
+  notif_war_t: '{nation} declares war!',
+  notif_war_b: 'A province of yours is under threat — review your defenses.',
+  notif_lowgar_t: '{prov}: weak garrison',
+  notif_lowgar_b: 'Borders an enemy at war. Reinforce it.',
+  notif_deficit_t: 'Treasury in deficit',
+  notif_deficit_b: 'Your net income is negative.',
+  notif_obj_t: 'Objective complete',
+  notif_obj_b: 'View your objectives.',
   ls_last_stand: '⚔ LAST STAND',
   ls_choose_fate: '▸ CHOOSE YOUR FATE',
   ls_btn_vassal: '👑 OFFER VASSALAGE',
@@ -2401,7 +2500,7 @@ en: {
   hud_lands:        'LANDS',
   hud_armies:       'ARMIES',
   hud_end_turn:     'END TURN ▸',
-  globe_hint:       'DRAG TO ROTATE · TAP TO SELECT',
+  globe_hint:       'DRAG ROTATE · TAP SELECT · RIGHT-CLICK MOVE · SPACE END TURN · TAB CYCLE · ESC CLOSE',
   // ── Country card ─────────────────────────────────────────────────────────
   sel_title:        'SELECTION',
   sel_empty:        'No country selected. Tap one on the globe.',
@@ -2606,6 +2705,22 @@ ru: {
   sdd_mapmode: 'ВИД КАРТЫ',
   mapmode_globe: '🌐 ГЛОБУС',
   mapmode_flat: '🗺 ПЛОСКАЯ',
+  overlay_title: 'ВИД КАРТЫ',
+  overlay_political: 'Политика',
+  overlay_diplomatic: 'Дипломатия',
+  overlay_economic: 'Экономика',
+  overlay_military: 'Армия',
+  overlay_terrain: 'Рельеф',
+  notif_alerts: 'ОПОВЕЩЕНИЯ',
+  notif_clear: 'Очистить всё',
+  notif_war_t: '{nation} объявляет войну!',
+  notif_war_b: 'Ваша провинция под угрозой — проверьте оборону.',
+  notif_lowgar_t: '{prov}: слабый гарнизон',
+  notif_lowgar_b: 'Граничит с врагом в состоянии войны. Усильте гарнизон.',
+  notif_deficit_t: 'Казна в дефиците',
+  notif_deficit_b: 'Ваш чистый доход отрицательный.',
+  notif_obj_t: 'Цель выполнена',
+  notif_obj_b: 'Откройте список целей.',
   ls_last_stand: '⚔ ПОСЛЕДНИЙ РУБЕЖ',
   ls_choose_fate: '▸ ВЫБЕРИТЕ СВОЮ СУДЬБУ',
   ls_btn_vassal: '👑 ПРЕДЛОЖИТЬ ВАССАЛИТЕТ',
@@ -3153,7 +3268,7 @@ ru: {
   hud_lands:        'ЗЕМЛИ',
   hud_armies:       'АРМИИ',
   hud_end_turn:     'КОНЕЦ ХОДА ▸',
-  globe_hint:       'ТЯНИ ДЛЯ ВРАЩЕНИЯ · НАЖМИ ДЛЯ ВЫБОРА',
+  globe_hint:       'ВРАЩАТЬ · ВЫБОР · ПКМ — ХОД ВОЙСК · ПРОБЕЛ — КОНЕЦ ХОДА · TAB — ПРОВИНЦИИ · ESC — ЗАКРЫТЬ',
   // ── Country card ─────────────────────────────────────────────────────────
   sel_title:        'ВЫБОР',
   sel_empty:        'Страна не выбрана. Нажмите на глобус.',
@@ -3565,6 +3680,24 @@ function setMapMode(mode) {
   });
 }
 window.setMapMode = setMapMode;
+
+// ── Map overlay lenses (political / diplomatic / economic / military / terrain) ──
+// Client-local view state (deliberately NOT in S): it must never sync between
+// players in multiplayer nor persist into saves — each player reads the world
+// through their own chosen lens. Default: political (owner colours).
+let _overlayMode = 'political';
+let _overlayMaxArmy = 1;   // recomputed per draw for the military heatmap
+const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'terrain'];
+function setOverlayMode(mode) {
+  if (!OVERLAY_MODES.includes(mode)) return;
+  _overlayMode = mode;
+  document.querySelectorAll('.lens-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lens === mode);
+  });
+  if (typeof render === 'function') render();
+}
+window.setOverlayMode = setOverlayMode;
+
 window.sddSetLang = sddSetLang;
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -6222,6 +6355,110 @@ function showTurnSummary() {
   setTimeout(() => { if (el) el.hidden = true; }, 6000);
 }
 
+// ── Notification queue (persistent left rail) ───────────────────────────────
+// Dismissible, clickable cards for things needing attention — unlike toasts
+// (which fade) these persist until acted on or cleared, and clicking one routes
+// to the relevant province/panel. Client-local (NOT in S): never synced in MP,
+// never persisted to saves — each player has their own attention list.
+// Keys starting 'warn:' are "standing" warnings, rebuilt each turn so they
+// self-resolve; other keys are one-shot event alerts.
+let _notifs = [];
+let _notifSeq = 1;
+
+function pushNotif(opts) {
+  if (!S.humanId || S.setupPhase) return;
+  if (opts.key && _notifs.some(n => n.key === opts.key)) return;  // dedupe
+  _notifs.push({
+    id: _notifSeq++, key: opts.key || null,
+    icon: opts.icon || '•', title: opts.title || '', body: opts.body || '',
+    cls: opts.cls || '', route: opts.route || null
+  });
+  if (_notifs.length > 8) _notifs = _notifs.slice(-8);   // keep the 8 newest
+  renderNotifRail();
+}
+function dismissNotif(id) { _notifs = _notifs.filter(n => n.id !== id); renderNotifRail(); }
+function clearNotifs()    { _notifs = []; renderNotifRail(); }
+window.dismissNotif = dismissNotif;
+window.clearNotifs  = clearNotifs;
+
+function notifAct(id) {
+  const n = _notifs.find(x => x.id === id);
+  if (!n) return;
+  routeNotif(n.route);
+  dismissNotif(id);
+}
+window.notifAct = notifAct;
+
+// Single delegated handler for a card: the close-× dismisses, the rest routes.
+function notifClick(e, id) {
+  if (e && e.target && e.target.closest && e.target.closest('.notif-x')) { dismissNotif(id); return; }
+  notifAct(id);
+}
+window.notifClick = notifClick;
+
+function routeNotif(r) {
+  if (!r) return;
+  if (r.kind === 'province' && S.countries[r.id]) {
+    S.selectedId = r.id; updateHUD(); render();
+    if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+  } else if (r.kind === 'stats') {
+    const ov = document.getElementById('stats-overlay');
+    if (ov && !ov.classList.contains('open') && typeof toggleStatsPanel === 'function') toggleStatsPanel();
+  } else if (r.kind === 'event') {
+    if (S.eventState && S.eventState.pendingEvent) {
+      const em = document.getElementById('event-modal'); if (em) em.hidden = false;
+    }
+  }
+}
+
+function renderNotifRail() {
+  const el = document.getElementById('notif-rail');
+  if (!el) return;
+  if (!_notifs.length || S.setupPhase || S.gameOver) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML =
+    `<div class="notif-head"><span>${T('notif_alerts')}</span>` +
+    `<button class="notif-clear" title="${T('notif_clear')}" onclick="clearNotifs()">✕</button></div>` +
+    _notifs.slice().reverse().map(n =>
+      `<div class="notif-card ${n.cls}" onclick="notifClick(event, ${n.id})">
+        <button class="notif-x" type="button">✕</button>
+        <div class="notif-ic">${n.icon}</div>
+        <div class="notif-txt"><div class="notif-title">${n.title}</div><div class="notif-body">${n.body}</div></div>
+      </div>`
+    ).join('');
+}
+
+// Rebuild "standing" warnings (weak frontier garrisons, treasury deficit) at the
+// start of the human's turn. One-shot event alerts are left untouched.
+function refreshNotifs() {
+  if (!S.humanId || S.setupPhase || S.gameOver) return;
+  _notifs = _notifs.filter(n => !(n.key && n.key.indexOf('warn:') === 0));
+  const me = S.players[S.humanId];
+  if (!me) { renderNotifRail(); return; }
+  // Weak garrison on a province bordering an enemy you are at war with
+  for (const pid of playerOwned(S.humanId)) {
+    const c = S.countries[pid];
+    if (!c) continue;
+    const exposed = (c.neighbors || []).some(nid => {
+      const nc = S.countries[nid];
+      return nc && nc.ownerId && nc.ownerId !== S.humanId && me.rel && me.rel[nc.ownerId] === 'war';
+    });
+    if (exposed && (c.army || 0) <= 5) {
+      pushNotif({ key: 'warn:gar:' + pid, icon: '⚠', cls: 'warn',
+        title: Tpl('notif_lowgar_t', { prov: c.name }), body: T('notif_lowgar_b'),
+        route: { kind: 'province', id: pid } });
+    }
+  }
+  // Treasury deficit (net income below zero)
+  const inc = (typeof calculateIncome === 'function') ? calculateIncome(S.humanId) : null;
+  if (inc && (inc.gold - inc.upkeep) < 0) {
+    pushNotif({ key: 'warn:income', icon: '💸', cls: 'warn',
+      title: T('notif_deficit_t'), body: T('notif_deficit_b'),
+      route: { kind: 'stats' } });
+  }
+  renderNotifRail();
+}
+
 // ── Patch renderLog for filter support ───────────────────────────────────────
 function renderLog() {
   const el = document.getElementById('log-content');
@@ -6622,6 +6859,46 @@ const _STARS = (() => {
   return stars;
 })();
 
+// ── Overlay-lens fill helpers ───────────────────────────────────────────────
+// Linear-interpolate two #rrggbb colours → 'rgb(...)'. t is clamped to 0..1.
+function _lerpColor(a, b, t) {
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ar = pa >> 16, ag = (pa >> 8) & 255, ab = pa & 255;
+  const br = pb >> 16, bg = (pb >> 8) & 255, bb = pb & 255;
+  return `rgb(${Math.round(ar + (br - ar) * t)},${Math.round(ag + (bg - ag) * t)},${Math.round(ab + (bb - ab) * t)})`;
+}
+// Fill colour for one province under the active overlay lens.
+function _overlayFill(c, owner) {
+  const dead = !owner || owner.eliminated;
+  switch (_overlayMode) {
+    case 'terrain':
+      return '#6f6750';                                  // uniform land — read geography
+    case 'economic': {
+      if (dead) return '#23281c';
+      const dev = Math.max(1, Math.min(6, c.development || 1));
+      return _lerpColor('#2c3320', '#ecc63c', (dev - 1) / 5);
+    }
+    case 'military': {
+      if (dead) return '#241c1c';
+      return _lerpColor('#2a1d1d', '#e8552f', Math.min(1, (c.army || 0) / _overlayMaxArmy));
+    }
+    case 'diplomatic': {
+      if (dead) return '#1e2438';
+      if (!S.humanId || c.ownerId === S.humanId) return '#3a6fd8';   // you
+      const me = S.players[S.humanId];
+      const rel = me && me.rel ? me.rel[c.ownerId] : null;
+      if (rel === 'war')  return '#d4493c';
+      if (rel === 'ally') return '#3fb56b';
+      if (rel === 'nap')  return '#3aa9b8';
+      return '#566079';                                  // neutral
+    }
+    case 'political':
+    default:
+      return dead ? '#1e2438' : owner.color;
+  }
+}
+
 function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true, targetProj = null, noClear = false) {
   _p8Clock = (Date.now() / 900) % (Math.PI * 2);
   const rect  = targetCanvas.getBoundingClientRect();
@@ -6703,15 +6980,23 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   // MP setup phase: precompute taken nations so the picker can mark them visually
   const _mpTaken = (S.setupPhase && window.MP && MP.pickingNation && MP.picksByNationId)
     ? MP.picksByNationId : null;
+  // Military lens: normalise army density against the largest stack in play.
+  if (_overlayMode === 'military') {
+    _overlayMaxArmy = 1;
+    for (const f of S.features) {
+      const cc = S.countries[f.id];
+      if (cc && cc.army > _overlayMaxArmy) _overlayMaxArmy = cc.army;
+    }
+  }
   for (const f of S.features) {
     const c = S.countries[f.id];
     if (!c) continue;
     const owner = S.players[c.ownerId];
-    const baseColor = owner && !owner.eliminated ? owner.color : '#1e2438';
-    targetCtx.fillStyle = baseColor;
+    targetCtx.fillStyle = _overlayFill(c, owner);
     targetCtx.beginPath(); targetPath(f); targetCtx.fill();
     // Enemy-at-war: overlay a clear red wash so hostile nations are unmistakable
-    if (_warSet.has(c.ownerId)) {
+    // (only in the political lens — the diplomatic lens already encodes war as red).
+    if (_overlayMode === 'political' && _warSet.has(c.ownerId)) {
       targetCtx.fillStyle = 'rgba(220,60,45,0.42)';
       targetCtx.fill();
     }
@@ -6945,6 +7230,17 @@ function attachGlobeInteraction(targetCanvas, onClick, redrawFn, getProj) {
   let pointerDown = false;
   let movedDist = 0;
 
+  // Province under a screen point (shared by left-click select and right-click).
+  function featureIdAt(clientX, clientY) {
+    const rect = targetCanvas.getBoundingClientRect();
+    const proj = getProj();
+    const coords = proj.invert([clientX - rect.left, clientY - rect.top]);
+    if (!coords || !isFinite(coords[0])) return null;
+    if (S.mapMode === 'flat') coords[0] = ((coords[0] + 180) % 360 + 360) % 360 - 180;
+    for (const f of S.features) if (d3.geoContains(f, coords)) return f.id;
+    return null;
+  }
+
   targetCanvas.addEventListener('pointerdown', e => {
     pointerDown = true;
     movedDist = 0;
@@ -6988,27 +7284,21 @@ function attachGlobeInteraction(targetCanvas, onClick, redrawFn, getProj) {
     if (!pointerDown) return;
     pointerDown = false;
     if (movedDist < 6) {
-      const rect = targetCanvas.getBoundingClientRect();
-      const proj = getProj();
-      const coords = proj.invert([e.clientX - rect.left, e.clientY - rect.top]);
-      if (coords && isFinite(coords[0])) {
-        // Flat mode tiles the world horizontally — normalize longitude into
-        // [-180,180] so clicks on a wrapped copy map back to the real country.
-        if (S.mapMode === 'flat') {
-          coords[0] = ((coords[0] + 180) % 360 + 360) % 360 - 180;
-        }
-        for (const f of S.features) {
-          if (d3.geoContains(f, coords)) {
-            onClick(f.id);
-            return;
-          }
-        }
-      }
+      const id = featureIdAt(e.clientX, e.clientY);
+      if (id != null) { onClick(id); return; }
     }
     dragStart = null;
   };
   targetCanvas.addEventListener('pointerup', endDrag);
   targetCanvas.addEventListener('pointercancel', endDrag);
+
+  // Right-click a province for a quick action (in-game only; see handleRightClick).
+  targetCanvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (!S.humanId || S.setupPhase || S.gameOver) return;
+    const id = featureIdAt(e.clientX, e.clientY);
+    if (id != null && typeof handleRightClick === 'function') handleRightClick(id);
+  });
 
   // Mouse wheel zoom (subtle)
   targetCanvas.addEventListener('wheel', e => {
@@ -7217,6 +7507,7 @@ function startGame(humanCountryId) {
   updateHUD();
   document.body.classList.toggle('flatmap-full', S.mapMode === 'flat');
   render();
+  clearNotifs(); refreshNotifs();
 
   // Show tutorial on first play; afterwards accessible via ❓
   if (!localStorage.getItem('tb_tutorial_seen')) {
@@ -7954,6 +8245,9 @@ function aiTurn(pid) {
           logT('log_war_decl_you', {nation: p.name}, 'crit');
           log(`↳ ${p.name} ${reason}.`, 'crit');
           showWarAlert(p.name);
+          pushNotif({ key: 'war:' + pid, icon: '⚔', cls: 'crit',
+            title: Tpl('notif_war_t', { nation: p.name }), body: T('notif_war_b'),
+            route: { kind: 'province', id: cand.toId } });
         }
       }
       p.mp -= P1.MP_COST.attack;
@@ -8171,6 +8465,7 @@ function endTurn() {
       render();
       checkVictory();
       showTurnSummary();
+      refreshNotifs();
       autosave();
       document.getElementById('end-turn').disabled = false;
     }
@@ -8330,6 +8625,9 @@ function checkEraObjectives() {
       S.eraObjectives[key] = { completed: true, turn: S.turn };
       obj.reward();
       renderEraObjectives();
+      pushNotif({ key: 'obj:' + key, icon: obj.icon || '🏅', cls: 'good',
+        title: T('notif_obj_t'), body: T('notif_obj_b'),
+        route: { kind: 'stats' } });
     }
   }
 }
@@ -10648,6 +10946,105 @@ function handleSelect(id) {
 }
 
 // ============================================================================
+// KEYBOARD HOTKEYS & RIGHT-CLICK QUICK ACTIONS (A3)
+// ============================================================================
+// Right-click a province: select it, and if it's one of yours with movable
+// troops, drop straight into move mode (quick-move). While move mode is active,
+// a right-click behaves like a left-click so it can complete or cancel the move.
+function handleRightClick(id) {
+  if (!S.humanId || S.setupPhase || S.gameOver) return;
+  const c = S.countries[id];
+  if (!c) return;
+  if (S.moveMode) { handleSelect(id); return; }
+  S.selectedId = id;
+  updateHUD(); render();
+  if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+  if (c.ownerId === S.humanId) {
+    const me = S.players[S.humanId];
+    const ownNeighbors = (c.neighbors || []).filter(nid => S.countries[nid] && S.countries[nid].ownerId === S.humanId);
+    if (ownNeighbors.length > 0 && c.army > 15 && me && me.mp >= P1.MP_COST.move) {
+      enterMoveMode(id);
+    }
+  }
+}
+
+// Rotate the globe so a province faces front (no-op in flat mode).
+function focusGlobeOn(id) {
+  const f = S.featureById && S.featureById[id];
+  if (!f || S.mapMode === 'flat') return;
+  try {
+    const ctr = d3.geoCentroid(f);
+    if (ctr && isFinite(ctr[0]) && isFinite(ctr[1])) S.rotation = [-ctr[0], -ctr[1], 0];
+  } catch (_) {}
+}
+
+// Tab / Shift+Tab: step through your own provinces in a stable order.
+function cycleOwnProvince(dir) {
+  const owned = playerOwned(S.humanId);
+  if (!owned.length) return;
+  owned.sort();
+  const cur = owned.indexOf(S.selectedId);
+  let idx;
+  if (cur === -1) idx = dir > 0 ? 0 : owned.length - 1;
+  else idx = (cur + dir + owned.length) % owned.length;
+  S.selectedId = owned[idx];
+  focusGlobeOn(owned[idx]);
+  updateHUD(); render();
+  if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+}
+
+// Esc: close the topmost open thing (modal → menu → overlay → move mode →
+// selection). Returns true if it consumed the key. The event modal is skipped
+// on purpose — it demands a choice.
+function handleEscape() {
+  const peace = document.getElementById('peace-modal');
+  if (peace && !peace.hidden) { closePeaceModal(); return true; }
+  const save = document.getElementById('save-modal');
+  if (save && !save.hidden) { closeSaveModal(); return true; }
+  const load = document.getElementById('load-modal');
+  if (load && !load.hidden) { closeLoadModal(); return true; }
+  const dd = document.getElementById('settings-dropdown');
+  if (dd && dd.classList.contains('open')) { toggleSettingsMenu(); return true; }
+  const stats = document.getElementById('stats-overlay');
+  if (stats && stats.classList.contains('open') && typeof toggleStatsPanel === 'function') { toggleStatsPanel(); return true; }
+  if (S.moveMode) {
+    S.moveMode = false; S.moveFromId = null;
+    const mb = document.getElementById('move-banner'); if (mb) mb.hidden = true;
+    render(); return true;
+  }
+  if (S.selectedId) {
+    S.selectedId = null; render();
+    if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+    return true;
+  }
+  return false;
+}
+
+// Global key handler. Space = end turn, Esc = close, Tab = cycle provinces.
+function onGameKey(e) {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (!S.humanId || S.setupPhase || S.gameOver) return;
+  const ev = document.getElementById('event-modal');
+  const evOpen = ev && !ev.hidden;
+  if (e.key === 'Escape') {
+    if (handleEscape()) e.preventDefault();
+    return;
+  }
+  if (evOpen) return;   // a pending event blocks the other shortcuts
+  if (e.key === ' ' || e.code === 'Space') {
+    const et = document.getElementById('end-turn');
+    if (et && !et.disabled) { e.preventDefault(); window.endTurn(); }
+    return;
+  }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    cycleOwnProvince(e.shiftKey ? -1 : 1);
+    return;
+  }
+}
+
+// ============================================================================
 // SETUP & BOOT
 // ============================================================================
 function setupGameCanvas() {
@@ -10669,6 +11066,7 @@ function setupGameCanvas() {
   document.getElementById('end-turn').addEventListener('click', () => window.endTurn());
   document.getElementById('advance-era').addEventListener('click', () => window.doAdvanceEra());
   document.getElementById('take-loan').addEventListener('click', () => window.doTakeLoan());
+  window.addEventListener('keydown', onGameKey);   // A3: Space / Esc / Tab hotkeys
 }
 
 function setupSetupCanvas() {
