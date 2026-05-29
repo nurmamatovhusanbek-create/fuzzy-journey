@@ -316,6 +316,7 @@
   .stat-row .lbl { color: var(--ink-dim); letter-spacing: 0.1em; }
   .stat-row .val { color: var(--ink); font-weight: 500; }
   .stat-row .val.gold-v { color: var(--gold-bright); }
+  .stat-row .val.val-hidden { color: var(--ink-dim); font-style: italic; font-weight: 400; opacity: 0.75; }
 
   .btn {
     width: 100%; padding: 8px 10px; margin-top: 6px;
@@ -2286,7 +2287,7 @@ en: {
   glog_013: 'A trade route already exists between {v0} and {v1}.',
   glog_014: 'Trade route established: {v0} ↔ {v1} (+{v2}g/turn).',
   glog_015: 'Trade route {v0} ↔ {v1} dissolved.',
-  glog_016: 'Intel on {v0}: {v1}g · {v2} troops · {v3}% stability · {v4}.',
+  glog_016: 'Intel on {v0}: {v1}g · {v2} troops · {v5} pop · {v3}% stability · {v4}.',
   glog_017: 'Saboteurs eliminate {v0} troops in {v1}.',
   glog_018: 'Agents steal {v0}g from {v1}.',
   glog_019: 'Agents foment unrest in {v0} — stability −{v1}.',
@@ -2298,6 +2299,10 @@ en: {
   glog_025: 'Cannot run this operation against an ally.',
   glog_026: '{v0}\'s agents steal {v1}g from your treasury!',
   glog_027: 'Enemy bribe effect on your general has expired.',
+  glog_ci_block: 'Counter-intelligence uncovered and stopped {v0}\'s {v1} against {v2} cold.',
+  glog_ci_up: 'Counter-intelligence network expanded to level {v0} — hostile covert ops are now intercepted up to {v1}% of the time.',
+  glog_ci_maxed: 'Your counter-intelligence is as deep as this era allows. Advance an era to expand it further.',
+  glog_ci_poor: 'The counter-intelligence service needs {v0}g to expand its network.',
   glog_028: 'A bountiful harvest — granaries overflow with plenty.',
   glog_029: 'Trade investment: a windfall of coin fills the treasury.',
   glog_030: 'The merchant windfall brings 80g to the royal coffers.',
@@ -2442,6 +2447,13 @@ en: {
   spy_intel:        'INTEL',
   spy_cb:           '⚑ CB ACTIVE',
   spy_compromised:  '🎭 GENERAL COMPROMISED',
+  stat_hidden:      '🔒 unknown',
+  ci_title:         'COUNTER-INTELLIGENCE',
+  ci_upgrade:       'EXPAND NETWORK',
+  ci_bonus:         '{pct}% chance to detect & block hostile ops',
+  ci_maxed_era:     '✓ MAXED FOR THIS ERA',
+  ci_toast_atk:     'Your operation against {target} ({op}) was detected and failed.',
+  ci_toast_def:     'Counter-intelligence foiled {attacker}\'s {op} against you.',
   // ── Empire panel ─────────────────────────────────────────────────────────
   emp_title:        'YOUR EMPIRE',
   emp_advance_era:  'ADVANCE ERA →',
@@ -3020,7 +3032,7 @@ ru: {
   glog_013: 'Торговый путь между {v0} и {v1} уже существует.',  /* RU done */
   glog_014: 'Торговый путь установлен: {v0} ↔ {v1} (+{v2}з/ход).',  /* RU done */
   glog_015: 'Торговый путь {v0} ↔ {v1} распущен.',  /* RU done */
-  glog_016: 'Разведданные о {v0}: {v1}з · {v2} войск · {v3}% стабильности · {v4}.',  /* RU done */
+  glog_016: 'Разведданные о {v0}: {v1}з · {v2} войск · {v5} нас. · {v3}% стабильности · {v4}.',  /* RU done */
   glog_017: 'Диверсанты уничтожают {v0} войск в {v1}.',  /* RU done */
   glog_018: 'Агенты похищают {v0}з из {v1}.',  /* RU done */
   glog_019: 'Агенты разжигают волнения в {v0} — стабильность −{v1}.',  /* RU done */
@@ -3032,6 +3044,10 @@ ru: {
   glog_025: 'Нельзя проводить эту операцию против союзника.',  /* RU done */
   glog_026: 'Агенты {v0} похищают {v1}з из вашей казны!',  /* RU done */
   glog_027: 'Эффект подкупа вражеским агентом вашего генерала истёк.',  /* RU done */
+  glog_ci_block: 'Контрразведка раскрыла и сорвала операцию «{v1}» ({v0}) против {v2}.',  /* RU done */
+  glog_ci_up: 'Сеть контрразведки расширена до уровня {v0} — вражеские операции теперь перехватываются до {v1}% случаев.',  /* RU done */
+  glog_ci_maxed: 'Ваша контрразведка достигла предела для этой эпохи. Перейдите в следующую эпоху, чтобы усилить её.',  /* RU done */
+  glog_ci_poor: 'Службе контрразведки требуется {v0}з для расширения сети.',  /* RU done */
   glog_028: 'Щедрый урожай — амбары переполнены изобилием.',  /* RU done */
   glog_029: 'Торговые вложения: монеты рекой наполняют казну.',  /* RU done */
   glog_030: 'Торговая удача приносит 80з в королевскую казну.',  /* RU done */
@@ -3176,6 +3192,13 @@ ru: {
   spy_intel:        'РАЗВЕДКА',
   spy_cb:           '⚑ КБ АКТИВЕН',
   spy_compromised:  '🎭 ГЕНЕРАЛ СКОМПРОМЕТИРОВАН',
+  stat_hidden:      '🔒 неизвестно',
+  ci_title:         'КОНТРРАЗВЕДКА',
+  ci_upgrade:       'РАСШИРИТЬ СЕТЬ',
+  ci_bonus:         '{pct}% шанс обнаружить и сорвать вражескую операцию',
+  ci_maxed_era:     '✓ МАКСИМУМ ДЛЯ ЭПОХИ',
+  ci_toast_atk:     'Ваша операция против {target} ({op}) обнаружена и провалена.',
+  ci_toast_def:     'Контрразведка сорвала операцию {attacker} против вас: {op}.',
   // ── Empire panel ─────────────────────────────────────────────────────────
   emp_title:        'ВАША ИМПЕРИЯ',
   emp_advance_era:  'ПЕРЕЙТИ В СЛЕДУЮЩУЮ ЭПОХУ →',
@@ -3958,6 +3981,34 @@ function renderTechPanel() {
     if (key !== 'statecraft') html += '<div class="tech-divider"></div>';
   }
 
+  // ── Counter-intelligence — national security investment (defends covert ops) ──
+  const ciLvl  = me.counterIntel || 0;
+  const ciMax  = ciMaxLevel(S.humanId);
+  const ciCost = ciUpgradeCost(S.humanId);
+  const ciPct  = Math.round(ciDetectChance(S.humanId, { detection: 0.3 }) * 100);
+  const ciPips = Array.from({ length: Math.max(ciMax, ciLvl) }, (_, i) =>
+    `<div class="tech-pip ${i < ciLvl ? 'filled statecraft' : ''}"></div>`).join('');
+  let ciBtn;
+  if (ciLvl >= ciMax) {
+    ciBtn = `<button class="tech-btn maxed" disabled>${T('ci_maxed_era')}</button>`;
+  } else {
+    const ciAfford = me.gold >= ciCost;
+    ciBtn = `<button class="tech-btn" onclick="doUpgradeCounterIntel()" ${ciAfford ? '' : 'disabled'}>
+      <span>▸ ${T('ci_upgrade')}</span>
+      <span class="tbcost" style="color:${ciAfford ? 'var(--gold-bright)' : 'var(--red-warn)'}">${ciCost}g</span>
+    </button>`;
+  }
+  html += `<div class="tech-divider"></div>
+    <div class="tech-branch">
+      <div class="tech-branch-head">
+        <span class="tech-branch-name">${icon('eye', 15)} ${T('ci_title')}</span>
+        <span class="tech-level-tag">L${ciLvl}/${ciMax}</span>
+      </div>
+      <div class="tech-pips">${ciPips}</div>
+      <div class="tech-bonus-text"><span class="bonus-val">${Tpl('ci_bonus', { pct: ciPct })}</span></div>
+      ${ciBtn}
+    </div>`;
+
   body.innerHTML = html;
 }
 window.renderTechPanel = renderTechPanel;
@@ -4205,7 +4256,8 @@ const SPY_OPS = [
     effect(tid) {
       const c = S.countries[tid], op = S.players[tid];
       if (!c || !op) return;
-      logT('glog_016', {v0: c.name, v1: op.gold, v2: c.army, v3: Math.round(c.stability), v4: ERAS[op.era].name}, 'self');
+      const popStr = c.population >= 1000 ? (c.population / 1000).toFixed(1) + 'M' : c.population + 'K';
+      logT('glog_016', {v0: c.name, v1: op.gold, v2: c.army, v3: Math.round(c.stability), v4: T(ERAS[op.era].name), v5: popStr}, 'self');
     }
   },
   {
@@ -4264,10 +4316,11 @@ const SPY_OPS = [
   }
 ];
 
-function handleDetection(targetPid, op) {
-  if (op.detection === 0 || Math.random() >= op.detection) return false;
+// Diplomatic fallout when an espionage attempt by S.humanId is traced back to
+// them by `targetPid` — either war (40%) or a protest costing 1 DP.
+function espionageBacklash(targetPid) {
   const target = S.players[targetPid];
-  if (!target || target.eliminated) return false;
+  if (!target || target.eliminated) return;
   if (relation(S.humanId, targetPid) !== 'war' && Math.random() < 0.4) {
     setRelation(S.humanId, targetPid, 'war');
     const me = S.players[S.humanId];
@@ -4280,8 +4333,107 @@ function handleDetection(targetPid, op) {
     S.players[S.humanId].dp = Math.max(0, S.players[S.humanId].dp - 1);
     logT('glog_023', {v0: target.name}, 'crit');
   }
+}
+
+function handleDetection(targetPid, op) {
+  if (op.detection === 0 || Math.random() >= op.detection) return false;
+  const target = S.players[targetPid];
+  if (!target || target.eliminated) return false;
+  espionageBacklash(targetPid);
   return true;
 }
+
+// ============================================================================
+// COUNTER-INTELLIGENCE — a national security service the player invests gold in.
+// Each level raises the chance to DETECT and BLOCK an incoming covert op before
+// it lands (the mission fails with no effect). Detection scales with the op's
+// own "noise" (its detection rating) plus the defender's counter-intel level.
+// The max level is tied to the era, so the service grows in step with your
+// development; the cost rises per level AND per era, making it a serious, fair
+// investment. AI nations gain a passive level from their era so late-game
+// espionage is never risk-free.
+// ============================================================================
+const COUNTER_INTEL = {
+  baseCost:     140,   // gold for the first level
+  costGrowth:   110,   // extra gold per level already owned
+  eraCostScale: 0.5,   // +50% cost per era index
+  perLevel:     0.13,  // +13% detection per counter-intel level
+  cap:          0.85,  // detection chance never exceeds 85%
+};
+function ciMaxLevel(pid) {
+  const p = S.players[pid];
+  return (p ? (p.era || 0) : 0) + 1;            // era 0 → 1 … era 4 → 5
+}
+function ciPassive(pid) {
+  const p = S.players[pid];
+  return Math.floor((p ? (p.era || 0) : 0) / 2); // +1 passive level every 2 eras
+}
+function ciLevel(pid) {
+  const p = S.players[pid];
+  if (!p || p.eliminated) return 0;
+  return Math.min(ciMaxLevel(pid), Math.max(p.counterIntel || 0, ciPassive(pid)));
+}
+function ciUpgradeCost(pid) {
+  const p = S.players[pid];
+  const lvl = p ? (p.counterIntel || 0) : 0;
+  const era = p ? (p.era || 0) : 0;
+  return Math.round((COUNTER_INTEL.baseCost + lvl * COUNTER_INTEL.costGrowth) * (1 + era * COUNTER_INTEL.eraCostScale));
+}
+function ciDetectChance(targetPid, op) {
+  const lvl = ciLevel(targetPid);
+  if (lvl <= 0) return 0;
+  const noise = 0.04 + (op && op.detection ? op.detection : 0) * 0.5; // louder ops are easier to catch
+  return Math.min(COUNTER_INTEL.cap, noise + lvl * COUNTER_INTEL.perLevel);
+}
+// Roll the target's counter-intelligence against an incoming op.
+// Returns true if the op is detected and should be blocked.
+function ciIntercept(targetPid, op) {
+  const chance = ciDetectChance(targetPid, op);
+  return chance > 0 && Math.random() < chance;
+}
+// Inform both sides that an op was intercepted. Chronicle entry syncs in MP;
+// the toast pops for the local human whether they were the spy or the target.
+function ciNotify(attackerPid, targetPid, op) {
+  const atk = S.players[attackerPid], tgt = S.players[targetPid];
+  const atkName = atk ? atk.name : '?', tgtName = tgt ? tgt.name : '?';
+  const opKey = op.label;                       // bilingual i18n key (e.g. 'SABOTAGE GARRISON')
+  logT('glog_ci_block', {v0: atkName, v1: T(opKey), v2: tgtName}, 'crit');
+
+  if (typeof MP !== 'undefined' && MP.active) {
+    // Multiplayer: the host (authoritative) routes a pop-up to each human party
+    // through the relay, carrying i18n KEYS so every client renders it in its
+    // own language. The host receives its own pop-up via the round-trip too.
+    if (MP.isHost && typeof mpSend === 'function' && typeof mpPlayerOfNation === 'function') {
+      const atkPlayer = mpPlayerOfNation(attackerPid);
+      const defPlayer = mpPlayerOfNation(targetPid);
+      if (atkPlayer) mpSend({ type: 'CI_POPUP', toPlayerId: atkPlayer, kind: 'bad', tkey: 'ci_toast_atk', opKey, names: { target: tgtName } });
+      if (defPlayer) mpSend({ type: 'CI_POPUP', toPlayerId: defPlayer, kind: 'ok',  tkey: 'ci_toast_def', opKey, names: { attacker: atkName } });
+    }
+    return;
+  }
+  // Single-player: show the pop-up to whichever side the human is on.
+  if (S.humanId === attackerPid) {
+    showDiploResult('bad', Tpl('ci_toast_atk', { target: tgtName, op: T(opKey) }), 6000);
+  } else if (S.humanId === targetPid) {
+    showDiploResult('ok', Tpl('ci_toast_def', { attacker: atkName, op: T(opKey) }), 6000);
+  }
+}
+function doUpgradeCounterIntel() {
+  if (S.gameOver) return;
+  const me = S.players[S.humanId];
+  if (!me) return;
+  const lvl = me.counterIntel || 0;
+  if (lvl >= ciMaxLevel(S.humanId)) { logT('glog_ci_maxed', null, 'crit'); return; }
+  const cost = ciUpgradeCost(S.humanId);
+  if ((me.gold || 0) < cost) { logT('glog_ci_poor', {v0: cost}, 'crit'); return; }
+  me.gold -= cost;
+  me.counterIntel = lvl + 1;
+  logT('glog_ci_up', {v0: me.counterIntel, v1: Math.round(ciDetectChance(S.humanId, {detection: 0.3}) * 100)}, 'good');
+  updateHUD(); render();
+  if (typeof renderTechPanel === 'function') renderTechPanel();
+  checkVictory();
+}
+window.doUpgradeCounterIntel = doUpgradeCounterIntel;
 
 function doSpyOp(targetId, opId) {
   if (S.gameOver) return;
@@ -4300,6 +4452,13 @@ function doSpyOp(targetId, opId) {
     logT('glog_025', null, 'crit'); return;
   }
   me.intel -= op.cost;
+  // The target's counter-intelligence may detect and block the op before it lands.
+  if (ciIntercept(tc.ownerId, op)) {
+    ciNotify(S.humanId, tc.ownerId, op);
+    espionageBacklash(tc.ownerId);   // caught in the act → diplomatic fallout
+    updateHUD(); render(); checkVictory();
+    return;
+  }
   op.effect(targetId);
   handleDetection(tc.ownerId, op);
   updateHUD(); render(); checkVictory();
@@ -4329,6 +4488,13 @@ function aiSpyActions(pid) {
       if (!nc || nc.ownerId === pid || relation(pid, nc.ownerId) === 'ally') continue;
       const tgt = S.players[nc.ownerId];
       if (!tgt || tgt.eliminated || tgt.gold < 5) continue;
+      // The target's counter-intelligence may catch the heist before it happens.
+      const stealOp = SPY_OPS.find(o => o.id === 'steal_gold') || { label: 'ROB THE TREASURY', detection: 0.30 };
+      if (ciIntercept(nc.ownerId, stealOp)) {
+        p.intel -= 5;                 // a foiled attempt still costs the AI its intel
+        ciNotify(pid, nc.ownerId, stealOp);
+        return;
+      }
       const stolen = Math.min(tgt.gold, 8 + Math.floor(Math.random() * 10));
       tgt.gold = Math.max(0, tgt.gold - stolen);
       p.gold += stolen;
@@ -8763,6 +8929,17 @@ function mpHandleMessage(msg) {
       break;
     }
 
+    case 'CI_POPUP': {
+      // Counter-intelligence intercepted an op — render the toast in our language.
+      const opLabel = T(msg.opKey);
+      const names = msg.names || {};
+      const vars = (msg.tkey === 'ci_toast_atk')
+        ? { target: names.target || '?', op: opLabel }
+        : { attacker: names.attacker || '?', op: opLabel };
+      if (typeof showDiploResult === 'function') showDiploResult(msg.kind || 'ok', Tpl(msg.tkey, vars), 6000);
+      break;
+    }
+
     case 'KICKED': {
       // The host kicked us — show a notice and bail back to the menu
       const by = msg.byName || 'Host';
@@ -8918,7 +9095,7 @@ function mpApplyAction(action) {
   const allowed = ['doAttack','doBuildArmy','doMoveArmy','doDevelop',
                    'doAdvanceEra','doTakeLoan','doDiplomacy','doBuild',
                    'doResearchTech','doProposeNAP','doProposeMarriage',
-                   'doSpyOp'];
+                   'doSpyOp','doUpgradeCounterIntel'];
   if (!allowed.includes(action.fn)) return;
   // Use the ORIGINAL (non-consent-wrapped) fn for diplomacy actions. The queued
   // action already passed consent on the requester's client; calling the wrapped
@@ -9060,7 +9237,7 @@ const _mpQueueAction = (fn, args) => {
 
 ['doAttack','doBuildArmy','doMoveArmy','doDevelop','doAdvanceEra',
  'doTakeLoan','doDiplomacy','doBuild','doResearchTech',
- 'doProposeNAP','doProposeMarriage','doSpyOp'].forEach(fnName => {
+ 'doProposeNAP','doProposeMarriage','doSpyOp','doUpgradeCounterIntel'].forEach(fnName => {
   const orig = window[fnName];
   if (typeof orig !== 'function') return;
   window[fnName] = function() {
@@ -9510,9 +9687,9 @@ const TUTORIAL_STEPS = [
   // ── INTRIGUE ────────────────────────────────────────────────────────────
   { chapter: 'INTRIGUE', highlight: '.chip[data-tt="intel"]', side: 'bottom',
     en: { title: 'ESPIONAGE',
-      text: '<b>🔍 Intel</b> builds up each turn and pays for covert operations against rivals (from their province panel):<br>• <b>Intelligence report</b> — reveal their true strength<br>• <b>Sabotage garrison</b> / <b>Rob treasury</b> / <b>Incite unrest</b><br>• <b>Forge casus belli</b> — a free, truce-ignoring war justification<br>• <b>Bribe the general</b> — weaken them in battle<br><br>Each op carries a <b>detection risk</b>; getting caught angers the target.' },
+      text: '<b>🔍 Intel</b> builds up each turn and pays for covert operations against rivals (from their province panel):<br>• <b>Intelligence report</b> — reveal their true strength<br>• <b>Sabotage garrison</b> / <b>Rob treasury</b> / <b>Incite unrest</b><br>• <b>Forge casus belli</b> — a free, truce-ignoring war justification<br>• <b>Bribe the general</b> — weaken them in battle<br><br>A rival\'s army, population, stability and era stay <b>hidden</b> until an intelligence report reveals them. Each op also carries a <b>detection risk</b>; getting caught angers the target.<br><br>🛡 Invest gold in <b>Counter-Intelligence</b> (Technology panel) to detect and <b>block</b> hostile ops aimed at you — it deepens as you advance through the eras.' },
     ru: { title: 'ШПИОНАЖ',
-      text: '<b>🔍 Разведка</b> накапливается каждый ход и оплачивает тайные операции против соперников (из их панели провинции):<br>• <b>Разведдоклад</b> — раскрыть истинную силу<br>• <b>Саботаж гарнизона</b> / <b>Ограбить казну</b> / <b>Разжечь волнения</b><br>• <b>Сфабриковать повод к войне</b> — бесплатное обоснование войны без учёта перемирия<br>• <b>Подкупить генерала</b> — ослабить врага в бою<br><br>У каждой операции есть <b>риск обнаружения</b>; разоблачение злит цель.' } },
+      text: '<b>🔍 Разведка</b> накапливается каждый ход и оплачивает тайные операции против соперников (из их панели провинции):<br>• <b>Разведдоклад</b> — раскрыть истинную силу<br>• <b>Саботаж гарнизона</b> / <b>Ограбить казну</b> / <b>Разжечь волнения</b><br>• <b>Сфабриковать повод к войне</b> — бесплатное обоснование войны без учёта перемирия<br>• <b>Подкупить генерала</b> — ослабить врага в бою<br><br>Армия, население, стабильность и эпоха соперника <b>скрыты</b>, пока их не раскроет разведдоклад. У каждой операции также есть <b>риск обнаружения</b>; разоблачение злит цель.<br><br>🛡 Вкладывайте золото в <b>Контрразведку</b> (панель технологий), чтобы обнаруживать и <b>срывать</b> вражеские операции против вас — она усиливается по мере перехода между эпохами.' } },
 
   // ── THE WORLD ───────────────────────────────────────────────────────────
   { chapter: 'WORLD', highlight: '#end-turn', side: 'left',
@@ -10150,7 +10327,7 @@ function renderSelectedPanel() {
       const list = attackNeighbors.map(nid => {
         const nc = S.countries[nid];
         const trc = hasTruce(S.humanId, nc.ownerId) ? ` (${T('act_truce')})` : '';
-        return `<option value="${nid}">${nc.name} (${nc.army})${trc}</option>`;
+        return `<option value="${nid}">${nc.name}${trc}</option>`;
       }).join('');
       actions += `<select id="atk-target" style="width:100%;margin-top:6px;padding:7px;background:#0a0e1a;color:#e8dccc;border:1px solid var(--border);font-family:inherit;font-size:10.5px;letter-spacing:0.1em;">${list}</select>`;
       const canAtk = me.mp >= P1.MP_COST.attack;
@@ -10234,11 +10411,11 @@ function renderSelectedPanel() {
         <span class="relation-tag ${relTagClass}">${relLabel}</span>
       </div>
     </div>
-    <div class="stat-row"><span class="lbl">${T('stat_army')}</span><span class="val">${c.army}</span></div>
-    <div class="stat-row"><span class="lbl">${T('stat_population')}</span><span class="val pop-num">${popDisplay}</span></div>
+    <div class="stat-row"><span class="lbl">${T('stat_army')}</span>${isOwn ? `<span class="val">${c.army}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
+    <div class="stat-row"><span class="lbl">${T('stat_population')}</span>${isOwn ? `<span class="val pop-num">${popDisplay}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_development')}</span><span class="val"><span class="dev-stars">${stars(c.development, 5)}</span></span></div>
-    <div class="stat-row stab-row"><span class="lbl">${T('stat_stability')}</span><span class="val">${stabBar(c.stability)}</span></div>
-    <div class="stat-row"><span class="lbl">${T('stat_era')}</span><span class="val">${T(ERAS[owner.era].name)}</span></div>
+    <div class="stat-row stab-row"><span class="lbl">${T('stat_stability')}</span>${isOwn ? `<span class="val">${stabBar(c.stability)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
+    <div class="stat-row"><span class="lbl">${T('stat_era')}</span>${isOwn ? `<span class="val">${T(ERAS[owner.era].name)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_terrain')}</span><span class="val" style="font-size:9.5px">${getTerrain(c.id).icon} ${getTerrain(c.id).name}</span></div>
     ${(() => { const g = generalFor(owner.id); const bribed = S.corruptedGenerals && S.corruptedGenerals[owner.id]; return `<div class="stat-row"><span class="lbl">${T('stat_general')}</span><span class="val" style="font-size:9.5px;color:${bribed ? 'var(--red-warn)' : 'var(--ink-dim)'}">${g.icon} ${g.name}${bribed ? ' ⚠' : ''}</span></div>`; })()}
     ${!isOwn && owner.personality ? `<div class="stat-row"><span class="lbl">${T('stat_disposition')}</span><span class="val" style="font-size:9.5px;color:var(--ink-dim)">${owner.personality.toUpperCase()}</span></div>` : ''}
