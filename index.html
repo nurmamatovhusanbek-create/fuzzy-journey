@@ -739,18 +739,16 @@
 
   /* ─── Diplomacy request modal (receiver sees this) ─────────────────────── */
   #diplo-request-modal {
-    position: fixed; inset: 0; z-index: 9998; display: none;
-    align-items: center; justify-content: center;
-    background: rgba(4,8,16,0.72); backdrop-filter: blur(4px);
+    position: fixed; top: 84px; left: 14px; z-index: 9998; display: none;
   }
-  #diplo-request-modal.show { display: flex; }
+  #diplo-request-modal.show { display: block; }
   #diplo-request-modal .drm-box {
     background: rgba(8, 13, 26, 0.97);
     border: 1px solid var(--border); border-radius: 6px;
-    padding: 26px 30px; max-width: 440px; width: 90%;
+    padding: 16px 18px; width: 300px; max-width: calc(100vw - 28px);
     box-shadow: 0 16px 48px rgba(0,0,0,0.7); backdrop-filter: blur(10px);
     color: var(--ink); font-family: 'JetBrains Mono', monospace;
-    text-align: center;
+    text-align: left;
   }
   #diplo-request-modal .drm-tag {
     font-family: 'Cinzel', serif; font-weight: 700;
@@ -762,7 +760,7 @@
     letter-spacing: 0.04em; color: var(--ink);
   }
   #diplo-request-modal .drm-msg b { color: var(--gold-bright); font-weight: 700; }
-  #diplo-request-modal .drm-buttons { display: flex; gap: 10px; justify-content: center; }
+  #diplo-request-modal .drm-buttons { display: flex; gap: 10px; justify-content: flex-start; }
   #diplo-request-modal .drm-btn {
     flex: 1; max-width: 150px; padding: 10px 16px; cursor: pointer;
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
