@@ -143,7 +143,7 @@
   /* ===== Shared docked-panel tab strip ===== */
   #panel-tabs {
     position: fixed; top: 48px; right: 0; z-index: 26;
-    display: flex; gap: 0; width: 300px;
+    display: flex; gap: 0; width: 384px;
     background: rgba(8,13,26,0.95); border: 1px solid var(--border);
     border-right: none; border-bottom: 1px solid var(--border);
     backdrop-filter: blur(8px);
@@ -215,7 +215,7 @@
   /* ===== Notification queue (persistent left rail, below topbar) ===== */
   #notif-rail {
     position: absolute; top: 90px; left: 12px; z-index: 14;
-    width: 212px; max-height: calc(100% - 320px); overflow-y: auto;
+    width: 248px; max-height: calc(100% - 170px); overflow-y: auto;
     display: flex; flex-direction: column; gap: 6px;
     pointer-events: none;                 /* empty area passes clicks to the globe */
   }
@@ -248,8 +248,8 @@
   .notif-card.good { border-left-color: #6ba368; }
   .notif-card .notif-ic { font-size: 14px; line-height: 1.2; }
   .notif-card .notif-txt { flex: 1; min-width: 0; }
-  .notif-card .notif-title { font: 700 10.5px/1.25 'JetBrains Mono', monospace; color: var(--ink); }
-  .notif-card .notif-body { font-size: 10px; line-height: 1.3; color: var(--ink-dim); margin-top: 2px; }
+  .notif-card .notif-title { font: 700 11.5px/1.3 'JetBrains Mono', monospace; color: var(--ink); }
+  .notif-card .notif-body { font-size: 10.5px; line-height: 1.4; color: var(--ink-dim); margin-top: 3px; }
   .notif-card .notif-x {
     position: absolute; top: 3px; right: 3px;
     background: transparent; border: none; color: var(--ink-dim);
@@ -264,7 +264,7 @@
   /* ===== Floating Country Card (top-right) ===== */
   #country-float {
     position: fixed; top: 82px; right: 0; bottom: 0;
-    width: 300px; z-index: 25;
+    width: 384px; z-index: 25;
     background: rgba(8, 13, 26, 0.95);
     border: 1px solid var(--border); border-top: none;
     backdrop-filter: blur(8px);
@@ -293,7 +293,7 @@
   /* ===== Floating Empire Panel ===== */
   #empire-float {
     position: fixed; top: 82px; right: 0; bottom: 0;
-    width: 300px; z-index: 25;
+    width: 384px; z-index: 25;
     flex-direction: column;
     background: rgba(8, 13, 26, 0.95);
     border: 1px solid var(--border); border-top: none;
@@ -319,7 +319,7 @@
   /* ===== Collapsible Diplomacy Panel ===== */
   #diplo-float {
     position: fixed; right: 0; top: 82px; bottom: 0;
-    width: 300px; z-index: 25;
+    width: 384px; z-index: 25;
     flex-direction: column;
     background: rgba(8, 13, 26, 0.95);
     border: 1px solid var(--border); border-top: none;
@@ -342,10 +342,36 @@
   #diplo-float .df-close:hover { color: var(--ink); }
   #diplo-float #diplomacy-list { padding: 10px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; }
 
+  /* ===== Technology & Intrigue Panel ===== */
+  #tech-float {
+    position: fixed; right: 0; top: 82px; bottom: 0;
+    width: 384px; z-index: 25;
+    flex-direction: column;
+    background: rgba(8, 13, 26, 0.95);
+    border: 1px solid var(--border); border-top: none;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    display: none;
+  }
+  #tech-float .tf2-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px 6px;
+    border-bottom: 1px solid rgba(212,160,23,0.12);
+  }
+  #tech-float .tf2-title {
+    font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.3em; color: var(--gold);
+  }
+  #tech-float .tf2-close {
+    background: none; border: none; color: var(--ink-dim); cursor: pointer;
+    font-size: 14px; padding: 0 2px; line-height: 1;
+  }
+  #tech-float .tf2-close:hover { color: var(--ink); }
+  #tech-float #tech-body { padding: 10px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; }
+
   /* ===== Floating Log Panel ===== */
   #log-float {
     position: fixed; top: 82px; right: 0; bottom: 0;
-    width: 300px; z-index: 25;
+    width: 384px; z-index: 25;
     background: rgba(8, 13, 26, 0.95);
     border: 1px solid var(--border); border-top: none;
     backdrop-filter: blur(8px);
@@ -773,7 +799,7 @@
     position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
     background: var(--bg-1); border: 1px solid var(--gold);
     color: var(--gold-bright); font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 0.2em; padding: 9px 20px;
+    font-size: 12.5px; letter-spacing: 0.2em; padding: 11px 24px;
     box-shadow: 0 4px 20px rgba(212,160,23,0.25); z-index: 45;
     pointer-events: none; opacity: 0; transition: opacity 0.3s;
   }
@@ -895,10 +921,10 @@
   #diplo-result {
     position: fixed; top: 84px; left: 50%; transform: translateX(-50%) translateY(-12px);
     display: none; align-items: center; gap: 11px;
-    border: 1px solid; border-radius: 4px; padding: 10px 16px;
+    border: 1px solid; border-radius: 4px; padding: 12px 20px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; letter-spacing: 0.08em; z-index: 9999;
-    max-width: 520px; line-height: 1.45; opacity: 0; pointer-events: none;
+    font-size: 13px; letter-spacing: 0.08em; z-index: 9999;
+    max-width: 560px; line-height: 1.5; opacity: 0; pointer-events: none;
     transition: opacity .25s, transform .25s;
     box-shadow: 0 6px 28px rgba(0,0,0,0.6); backdrop-filter: blur(8px);
     color: var(--ink);
@@ -1982,6 +2008,9 @@
     <button class="ptab" data-panel="empire" onclick="showPanel('empire')" title="Empire">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10l2 1V8l2 1V6l3-2 3 2v3l2-1v3l2-1v11M10 21v-4a2 2 0 0 1 4 0v4"/></svg>
     </button>
+    <button class="ptab" data-panel="tech" onclick="showPanel('tech')" title="Technology">
+      <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v5.5L4.8 17a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 8.5V3M8 14h8"/></svg>
+    </button>
     <button class="ptab" data-panel="diplo" onclick="showPanel('diplo')" title="Diplomacy">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 21 11l-2-2-6.5 6.5M9.5 6.5 3 13l2 2 6.5-6.5M14.5 6.5 21 13l-2 2M9.5 17.5 3 11l2-2"/></svg>
     </button>
@@ -2026,6 +2055,15 @@
     <div id="diplomacy-panel" hidden></div>
   </div>
 
+  <!-- Technology & Intrigue panel: research trees + counter-intelligence -->
+  <div id="tech-float">
+    <div class="tf2-head">
+      <span class="tf2-title" data-i18n="tech_panel_title">TECHNOLOGY &amp; INTRIGUE</span>
+      <button class="tf2-close" onclick="showPanel('tech')" title="Close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div id="tech-body"></div>
+  </div>
+
   <!-- Log panel: bottom-right, toggled by 📜 button -->
   <div id="log-float" style="display:none;flex-direction:column">
     <div class="lf-head">
@@ -2047,7 +2085,7 @@
   <aside class="hud" style="display:none!important">
     <section class="panel" id="my-empire"></section>
     <section class="panel" id="selected-panel"></section>
-    <section class="panel" id="tech-panel"><div id="tech-body"></div></section>
+    <section class="panel" id="tech-panel"></section>
     <section class="panel" id="trade-panel"><div id="trade-body"></div></section>
   </aside>
 
@@ -2652,6 +2690,7 @@ en: {
   // ── Diplomacy panel ──────────────────────────────────────────────────────
   diplo_title:      'DIPLOMATIC STANDING',
   diplo_empty:      'No active relations.',
+  tech_panel_title: 'TECHNOLOGY & INTRIGUE',
   diplo_war:        'AT WAR',
   diplo_ally:       'ALLY',
   diplo_marriage:   'ROYAL MARRIAGE',
@@ -3459,6 +3498,7 @@ ru: {
   // ── Diplomacy panel ──────────────────────────────────────────────────────
   diplo_title:      'ДИПЛОМАТИЯ',
   diplo_empty:      'Нет активных отношений.',
+  tech_panel_title: 'ТЕХНОЛОГИИ И ИНТРИГИ',
   diplo_war:        'В ВОЙНЕ',
   diplo_ally:       'СОЮЗНИК',
   diplo_marriage:   'КОРОЛЕВСКИЙ БРАК',
@@ -6503,13 +6543,19 @@ let _notifSeq = 1;
 function pushNotif(opts) {
   if (!S.humanId || S.setupPhase) return;
   if (opts.key && _notifs.some(n => n.key === opts.key)) return;  // dedupe
+  const id = _notifSeq++;
   _notifs.push({
-    id: _notifSeq++, key: opts.key || null,
+    id, key: opts.key || null,
     icon: opts.icon || '•', title: opts.title || '', body: opts.body || '',
     cls: opts.cls || '', route: opts.route || null
   });
   if (_notifs.length > 8) _notifs = _notifs.slice(-8);   // keep the 8 newest
   renderNotifRail();
+  // One-shot event alerts auto-expire after 10s; standing 'warn:' cards persist
+  // (they self-rebuild each turn via refreshNotifs) so they're not timed out.
+  if (!(opts.key && opts.key.indexOf('warn:') === 0)) {
+    setTimeout(() => dismissNotif(id), 10000);
+  }
 }
 function dismissNotif(id) { _notifs = _notifs.filter(n => n.id !== id); renderNotifRail(); }
 function clearNotifs()    { _notifs = []; renderNotifRail(); }
@@ -6539,6 +6585,11 @@ function routeNotif(r) {
   } else if (r.kind === 'stats') {
     const ov = document.getElementById('stats-overlay');
     if (ov && !ov.classList.contains('open') && typeof toggleStatsPanel === 'function') toggleStatsPanel();
+  } else if (r.kind === 'empire') {
+    // Open the Empire panel, where era objectives + victory progress live.
+    const el = document.getElementById('empire-float');
+    const alreadyOpen = el && el.style.display && el.style.display !== 'none';
+    if (!alreadyOpen && typeof showPanel === 'function') showPanel('empire');
   } else if (r.kind === 'event') {
     if (S.eventState && S.eventState.pendingEvent) {
       const em = document.getElementById('event-modal'); if (em) em.hidden = false;
@@ -8919,7 +8970,7 @@ function checkEraObjectives() {
       renderEraObjectives();
       pushNotif({ key: 'obj:' + key, icon: obj.icon || '🏅', cls: 'good',
         title: T('notif_obj_t'), body: T('notif_obj_b'),
-        route: { kind: 'stats' } });
+        route: { kind: 'empire' } });
     }
   }
 }
@@ -10187,6 +10238,7 @@ window.toggleStatsPanel = toggleStatsPanel;
 const PANEL_IDS = {
   empire:    'empire-float',
   selection: 'country-float',
+  tech:      'tech-float',
   diplo:     'diplo-float',
   log:       'log-float',
 };
