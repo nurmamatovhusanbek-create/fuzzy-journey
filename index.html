@@ -215,7 +215,7 @@
   /* ===== Notification queue (persistent left rail, below topbar) ===== */
   #notif-rail {
     position: absolute; top: 90px; left: 12px; z-index: 14;
-    width: 248px; max-height: calc(100% - 170px); overflow-y: auto;
+    width: 248px; max-height: calc(100% - 170px); overflow-y: auto; overflow-x: hidden;
     display: flex; flex-direction: column; gap: 6px;
     pointer-events: none;                 /* empty area passes clicks to the globe */
   }
@@ -1512,8 +1512,8 @@
                        background: rgba(212,160,23,0.08); }
 
   #stats-overlay {
-    position: fixed; top: 56px; right: 0; bottom: 0;
-    width: 420px; max-width: 100vw;
+    position: fixed; top: 48px; right: 0; bottom: 0;   /* flush under the 48px topbar, like #panel-tabs */
+    width: 384px; max-width: 100vw;                    /* match the docked panel dock width */
     background: rgba(8,8,18,0.97); backdrop-filter: blur(12px);
     border-left: 1px solid var(--border);
     z-index: 30; overflow-y: auto;
@@ -1638,7 +1638,7 @@
   }
 
   @media (max-width: 720px) {
-    #stats-overlay { width: 100vw; top: 56px; }
+    #stats-overlay { width: 100vw; top: 48px; }
   }
 
 
@@ -11397,15 +11397,21 @@ function stabBar(value) {
   return `<div class="stab-track"><div class="stab-fill ${cls}" style="width:${value}%"></div></div><span style="font-size:10px;min-width:32px;text-align:right">${value}%</span>`;
 }
 
+// Tracks which province the dock last switched focus for, so a passive re-render
+// (updateHUD on end-turn, after actions, etc.) doesn't yank the player back to the
+// selection tab when they've opened tech/diplo/log. Only a genuine NEW selection
+// steals focus to the selection tab.
+let _lastSelForPanel = null;
 function renderSelectedPanel() {
   const body = document.getElementById('selected-body');
   const float = document.getElementById('country-float');
   if (!S.selectedId) {
     body.innerHTML = `<div class="selected-empty">${T('sel_empty')}</div>`;
     if (float) float.classList.add('hidden-float');
+    _lastSelForPanel = null;
     return;
   }
-  if (float) {
+  if (float && S.selectedId !== _lastSelForPanel) {
     if (typeof hideAllPanels === 'function') hideAllPanels();
     float.classList.remove('hidden-float');
     const tabs = document.getElementById('panel-tabs');
@@ -11415,6 +11421,7 @@ function renderSelectedPanel() {
         t.classList.toggle('active', t.getAttribute('data-panel') === 'selection'));
     }
   }
+  _lastSelForPanel = S.selectedId;
   const c = S.countries[S.selectedId];
   const owner = S.players[c.ownerId];
   if (!owner) {
