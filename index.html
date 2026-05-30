@@ -1992,9 +1992,9 @@
     </div>
     <div class="topbar-right">
       <div class="date"><span id="date-text">JAN 1450</span><span class="era" id="era-text">· ANCIENT</span></div>
-      <button class="topbar-btn" id="stats-btn" onclick="toggleStatsPanel()" title="Statistics"><svg class="tb-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-8"/></svg></button>
+      <button class="topbar-btn" id="stats-btn" onclick="toggleStatsPanel()" data-i18n-title="tip_stats"><svg class="tb-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-8"/></svg></button>
       <div id="settings-wrap">
-        <button id="settings-btn" onclick="toggleSettingsMenu(event)" title="Settings"><svg class="tb-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M5 5l2 2M17 17l2 2M2 12h3M19 12h3M5 19l2-2M17 7l2-2"/></svg></button>
+        <button id="settings-btn" onclick="toggleSettingsMenu(event)" data-i18n-title="tip_settings"><svg class="tb-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M5 5l2 2M17 17l2 2M2 12h3M19 12h3M5 19l2-2M17 7l2-2"/></svg></button>
       </div>
       <button id="end-turn" data-i18n="hud_end_turn">END TURN ▸</button>
     </div>
@@ -2019,19 +2019,19 @@
 
   <!-- Shared tab strip — sits atop the docked panel slot, switches panels in place -->
   <div id="panel-tabs" style="display:none">
-    <button class="ptab" data-panel="selection" onclick="showPanel('selection')" title="Selection">
+    <button class="ptab" data-panel="selection" onclick="showPanel('selection')" data-i18n-title="tip_tab_selection">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>
     </button>
-    <button class="ptab" data-panel="empire" onclick="showPanel('empire')" title="Empire">
+    <button class="ptab" data-panel="empire" onclick="showPanel('empire')" data-i18n-title="tip_tab_empire">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10l2 1V8l2 1V6l3-2 3 2v3l2-1v3l2-1v11M10 21v-4a2 2 0 0 1 4 0v4"/></svg>
     </button>
-    <button class="ptab" data-panel="tech" onclick="showPanel('tech')" title="Technology">
+    <button class="ptab" data-panel="tech" onclick="showPanel('tech')" data-i18n-title="tip_tab_tech">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v5.5L4.8 17a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 8.5V3M8 14h8"/></svg>
     </button>
-    <button class="ptab" data-panel="diplo" onclick="showPanel('diplo')" title="Diplomacy">
+    <button class="ptab" data-panel="diplo" onclick="showPanel('diplo')" data-i18n-title="tip_tab_diplo">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 21 11l-2-2-6.5 6.5M9.5 6.5 3 13l2 2 6.5-6.5M14.5 6.5 21 13l-2 2M9.5 17.5 3 11l2-2"/></svg>
     </button>
-    <button class="ptab" data-panel="log" onclick="showPanel('log')" title="Chronicle">
+    <button class="ptab" data-panel="log" onclick="showPanel('log')" data-i18n-title="tip_tab_log">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v12a2 2 0 0 0 2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 0-2-2zM9 8h6M9 12h6"/></svg>
     </button>
   </div>
@@ -2040,7 +2040,7 @@
   <div id="country-float" class="hidden-float">
     <div class="cf-head">
       <span class="cf-title" data-i18n="sel_title">SELECTION</span>
-      <button class="cf-close" onclick="clearSelection()" title="Close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="cf-close" onclick="clearSelection()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div id="selected-body">
       <div class="selected-empty" data-i18n="sel_empty">No country selected.</div>
@@ -2051,7 +2051,7 @@
   <div id="empire-float">
     <div class="ef-head">
       <span class="ef-title" data-i18n="emp_title">YOUR EMPIRE</span> — <span id="my-name" style="color:var(--ink);font-family:inherit">—</span>
-      <button class="ef-close" onclick="toggleEmpireFloat()" title="Close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="ef-close" onclick="toggleEmpireFloat()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="ef-body">
       <button class="btn" id="advance-era" data-i18n="emp_advance_era">ADVANCE ERA →</button>
@@ -2066,7 +2066,7 @@
   <div id="diplo-float">
     <div class="df-head">
       <span class="df-title" data-i18n="diplo_title">DIPLOMATIC STANDING</span>
-      <button class="df-close" onclick="toggleDiploFloat()" title="Close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="df-close" onclick="toggleDiploFloat()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div id="diplomacy-list" class="log-feed" style="padding:10px 12px;max-height:320px;overflow-y:auto" data-i18n="diplo_empty">No active relations.</div>
     <div id="diplomacy-panel" hidden></div>
@@ -2076,7 +2076,7 @@
   <div id="tech-float">
     <div class="tf2-head">
       <span class="tf2-title" data-i18n="tech_panel_title">TECHNOLOGY &amp; INTRIGUE</span>
-      <button class="tf2-close" onclick="showPanel('tech')" title="Close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="tf2-close" onclick="showPanel('tech')" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div id="tech-body"></div>
   </div>
@@ -2085,7 +2085,7 @@
   <div id="log-float" style="display:none;flex-direction:column">
     <div class="lf-head">
       <span class="lf-title" data-i18n="chron_title">WAR CHRONICLE</span>
-      <button class="lf-close" onclick="toggleLogFloat()" title="Close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="lf-close" onclick="toggleLogFloat()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="chron-tabs" id="chron-tabs" style="padding:6px 10px 0;display:flex;gap:4px;flex-shrink:0">
       <button class="chron-tab active" onclick="setChronFilter('all')" data-i18n="chron_all">ALL</button>
@@ -2646,6 +2646,38 @@ en: {
   ult_ai_refuse: 'REFUSE',
   ult_ai_paid: 'You pay {v1}g to {v0} — war averted, for now.',
   ult_ai_refused: 'You defy the ultimatum of {v0} — they declare war!',
+  // i18n audit fixes (session 4) — AI war reasons, tooltips, banner, MP, UI
+  warreason_betray_ally: 'betrayed an alliance',
+  warreason_broke_nap: 'tore up a non-aggression pact',
+  warreason_coalition: 'joined the coalition against you',
+  warreason_old_grudge: 'has not forgotten old wrongs',
+  warreason_resents: 'still resents you',
+  warreason_weakness: 'senses weakness',
+  warreason_covets: 'covets your lands',
+  warreason_opportunity: 'sees opportunity',
+  tip_stats: 'Statistics',
+  tip_settings: 'Settings',
+  tip_tab_selection: 'Selection',
+  tip_tab_empire: 'Empire',
+  tip_tab_tech: 'Technology',
+  tip_tab_diplo: 'Diplomacy',
+  tip_tab_log: 'Chronicle',
+  tip_close: 'Close',
+  tip_upkeep: 'upkeep',
+  tip_delete_save: 'Delete save',
+  tip_dissolve_route: 'Dissolve route',
+  tip_resentment: 'Resentment toward you',
+  move_banner: '▸ MOVING {pct}% FROM {country} — TAP DESTINATION OR SAME COUNTRY TO CANCEL',
+  mp_err_room_code: 'Enter a room code',
+  mp_server_prefix: 'Server: {text}',
+  mp_waiting_players: 'Waiting for other players…',
+  mp_planning_phase: 'PLANNING PHASE · {mm}:{ss}',
+  mp_reconnect_confirm: 'Reconnect to room {code}?',
+  mp_ph_your_name: 'Enter your name',
+  mp_ph_room_code: 'XXXXXX',
+  mp_ph_chat: 'Chat…',
+  ui_era_max: 'MODERN ERA — MAXIMUM',
+  toast_loaded: 'LOADED — {nation} · {date}',
   glog_088: 'Treasury bankrupt — {v0} troops desert across the empire.',
   glog_089: '{v0} rebels and declares independence!',
   glog_090: '+{v0}g {v1}{v2}· +{v3}mp · +{v4} MP · +{v5} DP.',
@@ -3483,6 +3515,38 @@ ru: {
   ult_ai_refuse: 'ОТКАЗАТЬ',
   ult_ai_paid: 'Вы платите {v1}з. {v0} — война пока предотвращена.',
   ult_ai_refused: 'Вы отвергаете ультиматум {v0} — они объявляют войну!',
+  // i18n audit fixes (session 4) — AI war reasons, tooltips, banner, MP, UI
+  warreason_betray_ally: 'предало союз',
+  warreason_broke_nap: 'разорвало пакт о ненападении',
+  warreason_coalition: 'вступило в коалицию против вас',
+  warreason_old_grudge: 'не забыло старых обид',
+  warreason_resents: 'по-прежнему питает к вам неприязнь',
+  warreason_weakness: 'чует слабость',
+  warreason_covets: 'жаждет ваших земель',
+  warreason_opportunity: 'видит удобный момент',
+  tip_stats: 'Статистика',
+  tip_settings: 'Настройки',
+  tip_tab_selection: 'Выбор',
+  tip_tab_empire: 'Империя',
+  tip_tab_tech: 'Технологии',
+  tip_tab_diplo: 'Дипломатия',
+  tip_tab_log: 'Хроника',
+  tip_close: 'Закрыть',
+  tip_upkeep: 'содержание',
+  tip_delete_save: 'Удалить сохранение',
+  tip_dissolve_route: 'Распустить маршрут',
+  tip_resentment: 'Неприязнь к вам',
+  move_banner: '▸ ПЕРЕМЕЩЕНИЕ {pct}% ИЗ {country} — НАЖМИТЕ НА ЦЕЛЬ ИЛИ НА ТУ ЖЕ СТРАНУ ДЛЯ ОТМЕНЫ',
+  mp_err_room_code: 'Введите код комнаты',
+  mp_server_prefix: 'Сервер: {text}',
+  mp_waiting_players: 'Ожидание других игроков…',
+  mp_planning_phase: 'ФАЗА ПЛАНИРОВАНИЯ · {mm}:{ss}',
+  mp_reconnect_confirm: 'Переподключиться к комнате {code}?',
+  mp_ph_your_name: 'Введите ваше имя',
+  mp_ph_room_code: 'XXXXXX',
+  mp_ph_chat: 'Чат…',
+  ui_era_max: 'СОВРЕМЕННАЯ ЭПОХА — МАКСИМУМ',
+  toast_loaded: 'ЗАГРУЖЕНО — {nation} · {date}',
   glog_088: 'Казна банкрот — {v0} войск дезертируют по всей империи.',  /* RU done */
   glog_089: '{v0} восстаёт и провозглашает независимость!',  /* RU done */
   glog_090: '+{v0}з {v1}{v2}· +{v3}лр · +{v4} ОП · +{v5} ОД.',  /* RU done */
@@ -3904,6 +3968,9 @@ function renderAll() {
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     el.placeholder = T(el.getAttribute('data-i18n-placeholder'));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = T(el.getAttribute('data-i18n-title'));
   });
 }
 
@@ -4592,7 +4659,7 @@ function renderTradePanel() {
           ${r.disrupted
             ? `<span class="route-disrupted">${T('ui_disrupted')}</span>`
             : `<span class="route-income">+${inc}g/t</span>`}
-          <button class="btn" style="padding:1px 6px;font-size:8.5px;margin-left:4px;border-color:rgba(232,93,74,0.3);color:var(--red-warn)" onclick="doDestroyTradeRoute(${i})" title="Dissolve route">✕</button>
+          <button class="btn" style="padding:1px 6px;font-size:8.5px;margin-left:4px;border-color:rgba(232,93,74,0.3);color:var(--red-warn)" onclick="doDestroyTradeRoute(${i})" title="${T('tip_dissolve_route')}">✕</button>
         </span>
       </div>`;
     });
@@ -7065,7 +7132,7 @@ function renderDiplomacy() {
         ? `<span style="color:var(--ink-dim);font-size:8.5px"> ${S.napExpiry[`${S.humanId}-${oid}`] - S.turn}t</span>` : '';
       // Resentment: how much this nation holds against you (their memory of your offenses)
       const gr = getGrudge(oid, S.humanId);
-      const grStr = gr >= 10 ? `<span title="Resentment toward you" style="color:#d98c3a;font-size:8.5px"> 😠${Math.round(gr)}</span>` : '';
+      const grStr = gr >= 10 ? `<span title="${T('tip_resentment')}" style="color:#d98c3a;font-size:8.5px"> 😠${Math.round(gr)}</span>` : '';
       html += `<div class="diplo-item">
         <span class="diplo-name">
           <span class="ownerpill" style="background:${other.color}"></span>
@@ -8721,20 +8788,21 @@ function personalityBadge(pid) {
 
 // ── AI intent feedback: explain WHY this nation declared war on you ───────────
 // Uses the same legible signals the AI decided on, so the reason is truthful.
+// Returns an i18n KEY (translated at the call site) so the reason localises.
 function aiWarReason(pid, targetId, wasNAP, wasAlly) {
   const pers = getPersonality(pid);
   const grudge = getGrudge(pid, targetId);
-  if (wasAlly) return 'betrayed an alliance';
-  if (wasNAP)  return 'tore up a non-aggression pact';
+  if (wasAlly) return 'warreason_betray_ally';
+  if (wasNAP)  return 'warreason_broke_nap';
   if (S.coalition && S.coalition.against === targetId &&
-      (S.coalition.members || []).includes(pid)) return 'joined the coalition against you';
-  if (grudge >= 40) return 'has not forgotten old wrongs';
-  if (grudge >= 18) return 'still resents you';
+      (S.coalition.members || []).includes(pid)) return 'warreason_coalition';
+  if (grudge >= 40) return 'warreason_old_grudge';
+  if (grudge >= 18) return 'warreason_resents';
   const myArmy = playerOwned(pid).reduce((s, id) => s + S.countries[id].army, 0);
   const yourArmy = playerOwned(targetId).reduce((s, id) => s + S.countries[id].army, 0);
-  if (myArmy > yourArmy * 1.4) return 'senses weakness';
-  if (pers && pers.aggr >= 0.7) return 'covets your lands';
-  return 'sees opportunity';
+  if (myArmy > yourArmy * 1.4) return 'warreason_weakness';
+  if (pers && pers.aggr >= 0.7) return 'warreason_covets';
+  return 'warreason_opportunity';
 }
 
 // ── Threat scoring ────────────────────────────────────────────────────────────
@@ -8975,7 +9043,7 @@ function aiTurn(pid) {
           const reason = aiWarReason(pid, cand.defPid, wasNAP, wasAlly);
           const _aiGoal = getWarGoal(pid, cand.defPid);
           logT('log_war_decl_you', {nation: p.name}, 'crit');
-          log(`↳ ${p.name} ${reason}.`, 'crit');
+          log(`↳ ${p.name} ${T(reason)}.`, 'crit');
           if (_aiGoal) log(`↳ ${Tpl('wgoal_ai_intent', {goal: warGoalLabel(_aiGoal.type)})}`, 'crit');
           showWarAlert(p.name);
           pushNotif({ key: 'war:' + pid, icon: '⚔', cls: 'crit',
@@ -9844,7 +9912,7 @@ window.mpCreateRoom = mpCreateRoom;
 function mpJoinRoom() {
   const name = document.getElementById('mp-join-name').value.trim() || 'Player';
   const code = document.getElementById('mp-join-code').value.trim().toUpperCase();
-  if (code.length < 4) { alert('Enter a room code'); return; }
+  if (code.length < 4) { alert(T('mp_err_room_code')); return; }
   document.getElementById('mp-join-btn').disabled = true;
   mpConnect(() => mpSend({ type: 'JOIN_ROOM', playerName: name, code }));
 }
@@ -10159,7 +10227,7 @@ function mpHandleMessage(msg) {
       if ((MP.active || MP.reconnectTries > 0) && /room|slot|gone|expired|not found/i.test(text)) {
         mpEndSession(Tpl('mp_session_lost_reason', { reason: text }));
       } else {
-        alert(`Server: ${text}`);
+        alert(Tpl('mp_server_prefix', {text}));
       }
       const cb = document.getElementById('mp-create-btn'); if (cb) cb.disabled = false;
       const jb = document.getElementById('mp-join-btn');   if (jb) jb.disabled = false;
@@ -10330,7 +10398,7 @@ function mpTickTimer() {
     bar.style.width = pct + '%';
     bar.classList.toggle('urgent', pct < 20);
   }
-  if (lbl) lbl.textContent = `PLANNING PHASE · ${mm}:${ss}`;
+  if (lbl) lbl.textContent = Tpl('mp_planning_phase', {mm, ss});
   if (remaining > 0) MP.timerRaf = requestAnimationFrame(mpTickTimer);
 }
 
@@ -10351,7 +10419,7 @@ window.endTurn = function() {
   MP.submitted = true;
   document.getElementById('end-turn').disabled = true;
   document.getElementById('end-turn').textContent = '⏳ SUBMITTED';
-  document.getElementById('mp-waiting-label').textContent = 'Waiting for other players…';
+  document.getElementById('mp-waiting-label').textContent = T('mp_waiting_players');
   // Centered overlay so the player can't miss the wait state
   const ov = document.getElementById('mp-waiting-overlay');
   if (ov) ov.classList.add('show');
@@ -10588,7 +10656,7 @@ window.addEventListener('load', () => {
         MP.reconnectData = d;
         sessionStorage.removeItem('tb_mp_reconnect');
         // Ask user if they want to reconnect
-        if (confirm(`Reconnect to room ${d.code}?`)) {
+        if (confirm(Tpl('mp_reconnect_confirm', {code: d.code}))) {
           mpConnect(() => mpSend({ type: 'RECONNECT', code: d.code, playerId: d.playerId }));
         }
       }
@@ -10602,7 +10670,7 @@ window.updateHUD = function() {
   _origUpdateHUD.apply(this, arguments);
   if (MP.active && !MP.submitted) {
     const btn = document.getElementById('end-turn');
-    if (btn) btn.textContent = 'END TURN ▸';
+    if (btn) btn.textContent = T('hud_end_turn');
   }
 };
 
@@ -11312,7 +11380,7 @@ function updateHUD() {
   goldEl.innerHTML = `${me.gold} <span class="gain">+${inc.net}/t</span>`;
   manEl.innerHTML = `${me.manpower} <span class="gain">+${inc.manpower}/t</span>`;
   if (inc.upkeep > 0) {
-    goldEl.innerHTML = `${me.gold} <span class="gain">+${inc.net}/t</span> <span class="upkeep-tag" title="upkeep">-${inc.upkeep}</span>`;
+    goldEl.innerHTML = `${me.gold} <span class="gain">+${inc.net}/t</span> <span class="upkeep-tag" title="${T('tip_upkeep')}">-${inc.upkeep}</span>`;
   }
   // Breakdown tooltip: answers "why is my income this number?"
   const goldTip =
@@ -11369,7 +11437,7 @@ function updateHUD() {
   // Era
   const eraBtn = document.getElementById('advance-era');
   if (me.era >= ERAS.length - 1) {
-    eraBtn.textContent = 'MODERN ERA — MAXIMUM';
+    eraBtn.textContent = T('ui_era_max');
     eraBtn.disabled = true;
   } else {
     const cost = ERAS[me.era + 1].cost;
@@ -11682,7 +11750,7 @@ window.enterMoveMode = function(fromId) {
   S.moveFromId = fromId;
   const pct = Math.round(S.moveFraction * 100);
   document.getElementById('move-banner').hidden = false;
-  document.getElementById('move-banner').textContent = `▸ MOVING ${pct}% FROM ${S.countries[fromId].name.toUpperCase()} — TAP DESTINATION OR SAME COUNTRY TO CANCEL`;
+  document.getElementById('move-banner').textContent = Tpl('move_banner', {pct, country: S.countries[fromId].name.toUpperCase()});
   updateHUD();
   render();
 };
@@ -11713,7 +11781,7 @@ window.setMoveFraction = function(f) {
   const banner = document.getElementById('move-banner');
   if (banner && !banner.hidden && S.moveFromId) {
     const pct = Math.round(f * 100);
-    banner.textContent = `▸ MOVING ${pct}% FROM ${S.countries[S.moveFromId].name.toUpperCase()} — TAP DESTINATION OR SAME COUNTRY TO CANCEL`;
+    banner.textContent = Tpl('move_banner', {pct, country: S.countries[S.moveFromId].name.toUpperCase()});
   }
 };
 
@@ -12061,7 +12129,7 @@ function loadFromSlot(slot) {
     updateHUD();
     render();
     closeLoadModal();
-    showToast(`LOADED — ${data.meta.nation.toUpperCase()} · ${data.meta.date}`);
+    showToast(Tpl('toast_loaded', {nation: data.meta.nation.toUpperCase(), date: data.meta.date}));
     logT('glog_110', {v0: data.meta.nation, v1: data.meta.date, v2: data.meta.territories}, 'self');
   } catch(e) {
     showToast(Tpl('toast_load_failed', {err: e.message || 'corrupted save'}));
@@ -12157,7 +12225,7 @@ function slotHTML(slot, forLoad) {
     const actionBtn = forLoad
       ? `<button class="sl-act act-load" onclick="loadFromSlot(${sq})">${T('ui_load')}</button>`
       : `<button class="sl-act" onclick="saveToSlot(${sq})">${T('ui_overwrite')}</button>`;
-    const delBtn = `<button class="sl-act act-del" onclick="deleteSlot(${sq})" title="Delete save">✕</button>`;
+    const delBtn = `<button class="sl-act act-del" onclick="deleteSlot(${sq})" title="${T('tip_delete_save')}">✕</button>`;
     return `<div class="sl-slot occupied">
       <div class="sl-slot-num">${label}</div>
       <div class="sl-info">
@@ -12197,7 +12265,7 @@ function renderLoadSlots() {
 
 // ---- Modal open/close ------------------------------------------------------
 function openSaveModal() {
-  document.getElementById('save-modal-title').textContent = 'SAVE GAME';
+  document.getElementById('save-modal-title').textContent = T('save_title');
   renderSaveSlots();
   document.getElementById('save-modal').hidden = false;
 }
@@ -12269,7 +12337,7 @@ function _closeSettings() {
 function sddSave() {
   _closeSettings();
   _exitAfterSave = false;
-  document.getElementById('save-modal-title').textContent = 'SAVE GAME';
+  document.getElementById('save-modal-title').textContent = T('save_title');
   renderSaveSlots();
   document.getElementById('save-modal').hidden = false;
 }
@@ -12284,7 +12352,7 @@ window.sddTutorial = sddTutorial;
 function sddExit() {
   _closeSettings();
   _exitAfterSave = true;
-  document.getElementById('save-modal-title').textContent = 'SAVE & EXIT — Choose a slot';
+  document.getElementById('save-modal-title').textContent = T('save_exit_title');
   renderSaveSlots();
   document.getElementById('save-modal').hidden = false;
 }
@@ -12368,7 +12436,7 @@ boot();
 
         <div class="mp-section active" id="mps-create">
           <div class="mp-label" data-i18n="mp_your_name">YOUR NAME</div>
-          <input class="mp-input" id="mp-create-name" placeholder="Enter your name" maxlength="20">
+          <input class="mp-input" id="mp-create-name" data-i18n-placeholder="mp_ph_your_name" placeholder="Enter your name" maxlength="20">
           <div class="mp-label" style="margin-top:8px" data-i18n="mp_scenario">SCENARIO</div>
           <select class="mp-input" id="mp-create-scenario" style="cursor:pointer">
             <option value="sandbox">🌐 Sandbox (1450 AD)</option>
@@ -12384,9 +12452,9 @@ boot();
 
         <div class="mp-section" id="mps-join">
           <div class="mp-label" data-i18n="mp_your_name">YOUR NAME</div>
-          <input class="mp-input" id="mp-join-name" placeholder="Enter your name" maxlength="20">
+          <input class="mp-input" id="mp-join-name" data-i18n-placeholder="mp_ph_your_name" placeholder="Enter your name" maxlength="20">
           <div class="mp-label" style="margin-top:8px" data-i18n="mp_room_code">ROOM CODE</div>
-          <input class="mp-input code-input" id="mp-join-code" placeholder="XXXXXX" maxlength="6">
+          <input class="mp-input code-input" id="mp-join-code" data-i18n-placeholder="mp_ph_room_code" placeholder="XXXXXX" maxlength="6">
           <button class="mp-btn" id="mp-join-btn" onclick="mpJoinRoom()">↗ JOIN ROOM</button>
         </div>
       </div>
@@ -12420,7 +12488,7 @@ boot();
 <div id="mp-waiting-overlay" role="status" aria-live="polite">
   <div class="mw-spinner" aria-hidden="true"></div>
   <div class="mw-text">
-    <div id="mp-waiting-main">Waiting for other players…</div>
+    <div id="mp-waiting-main" data-i18n="mp_waiting_players">Waiting for other players…</div>
     <div class="mw-sub" id="mp-waiting-sub">Your turn is locked in.</div>
   </div>
 </div>
@@ -12444,7 +12512,7 @@ boot();
 <div id="mp-chat">
   <div id="mp-chat-log"></div>
   <div id="mp-chat-form">
-    <input id="mp-chat-input" placeholder="Chat…" maxlength="200"
+    <input id="mp-chat-input" data-i18n-placeholder="mp_ph_chat" placeholder="Chat…" maxlength="200"
            onkeydown="if(event.key==='Enter')mpSendChat()">
     <button id="mp-chat-send" onclick="mpSendChat()">▸</button>
   </div>
