@@ -604,6 +604,23 @@
   .wgoal-btn .wg-text { display: flex; flex-direction: column; gap: 2px; }
   .wgoal-btn .wg-name { font-size: 11px; letter-spacing: 0.14em; color: var(--gold-bright); }
   .wgoal-btn .wg-desc { font-size: 9.5px; color: var(--ink-dim); line-height: 1.4; }
+  /* S1b ultimatum modal */
+  .ult-types { display: flex; gap: 6px; margin-bottom: 12px; }
+  .ult-type {
+    flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 9px 6px; background: transparent; border: 1px solid var(--border);
+    color: var(--ink); font-family: 'JetBrains Mono', monospace; cursor: pointer;
+    font-size: 10px; letter-spacing: 0.08em; transition: all 0.12s;
+  }
+  .ult-type .wg-icon { font-size: 18px; }
+  .ult-type:hover:not(:disabled) { border-color: var(--gold); background: rgba(212,160,23,0.08); }
+  .ult-type.active { border-color: var(--gold-bright); background: rgba(212,160,23,0.16); color: var(--gold-bright); }
+  .ult-type:disabled { opacity: 0.35; cursor: default; }
+  .ult-odds {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 12px 0; padding: 8px 11px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02); font-size: 10.5px; letter-spacing: 0.05em;
+  }
   .peace-goal-banner {
     display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 12px;
     border: 1px solid var(--border); background: rgba(255,255,255,0.02); font-size: 10px;
@@ -2168,6 +2185,25 @@
   </div>
 </div>
 
+<div id="ultimatum-modal" class="peace-modal" hidden>
+  <div class="peace-card" style="max-width:540px">
+    <div class="peace-head">
+      <div class="peace-title" data-i18n="ult_title">ULTIMATUM</div>
+      <button class="peace-close" onclick="closeUltimatum()">✕</button>
+    </div>
+    <div id="ultimatum-body"></div>
+  </div>
+</div>
+
+<div id="ai-ult-modal" class="peace-modal" hidden>
+  <div class="peace-card" style="max-width:480px">
+    <div class="peace-head">
+      <div class="peace-title" data-i18n="ult_ai_title">A DEMAND</div>
+    </div>
+    <div id="ai-ult-body"></div>
+  </div>
+</div>
+
 <div id="event-modal" class="event-modal" hidden>
   <div class="event-card" id="event-card">
     <!-- populated by renderEventModal() -->
@@ -2581,6 +2617,35 @@ en: {
   peace_subjugate_on: 'SUBJUGATE',
   peace_subjugate_off: 'CANCEL',
   peace_subjugate_do: '⛓ IMPOSE SUBMISSION',
+  // S1b ultimatums
+  act_ultimatum: '⚖ ISSUE ULTIMATUM',
+  ult_title: 'ULTIMATUM',
+  ult_prompt: 'Coerce <b>{nation}</b> under the threat of war. What do you demand?',
+  ult_tribute: 'Tribute',
+  ult_tribute_d: 'Demand a one-time gold payment.',
+  ult_cede: 'Cede land',
+  ult_cede_d: 'Demand they hand over a border province.',
+  ult_submit: 'Submit',
+  ult_submit_d: 'Demand total submission — annex the whole nation (small nations only).',
+  ult_submit_note: 'Demand the total submission of {nation} — all {lands} provinces absorbed without a fight.',
+  ult_response: 'Likely response',
+  ult_odds_likely: 'Likely to comply',
+  ult_odds_uncertain: 'Uncertain',
+  ult_odds_unlikely: 'Likely to refuse',
+  ult_issue: 'ISSUE ULTIMATUM',
+  ult_cd_msg: '{v0} will not entertain another ultimatum for {v1}t.',
+  ult_comply_tribute: '{v0} yields to your ultimatum — {v1}g paid in tribute.',
+  ult_comply_cede: '{v0} yields to your ultimatum — {v1} ceded without a fight.',
+  ult_comply_submit: '{v0} submits to your ultimatum — the entire nation is absorbed.',
+  ult_refused: '{v0} defies your ultimatum — war begins. War goal: {v1}.',
+  ult_toast_comply: '{nation} bows to your demand.',
+  ult_toast_refuse: '{nation} calls your bluff — to war!',
+  ult_ai_title: 'A DEMAND',
+  ult_ai_prompt: '<b>{nation}</b> masses troops on your border and demands {gold}g — pay, or face war.',
+  ult_ai_pay: 'PAY {gold}g',
+  ult_ai_refuse: 'REFUSE',
+  ult_ai_paid: 'You pay {v1}g to {v0} — war averted, for now.',
+  ult_ai_refused: 'You defy the ultimatum of {v0} — they declare war!',
   glog_088: 'Treasury bankrupt — {v0} troops desert across the empire.',
   glog_089: '{v0} rebels and declares independence!',
   glog_090: '+{v0}g {v1}{v2}· +{v3}mp · +{v4} MP · +{v5} DP.',
@@ -3389,6 +3454,35 @@ ru: {
   peace_subjugate_on: 'ПОКОРИТЬ',
   peace_subjugate_off: 'ОТМЕНА',
   peace_subjugate_do: '⛓ ПРИНУДИТЬ К ПОКОРНОСТИ',
+  // S1b ultimatums
+  act_ultimatum: '⚖ ВЫДВИНУТЬ УЛЬТИМАТУМ',
+  ult_title: 'УЛЬТИМАТУМ',
+  ult_prompt: 'Принудить <b>{nation}</b> под угрозой войны. Что вы требуете?',
+  ult_tribute: 'Дань',
+  ult_tribute_d: 'Потребовать разовую выплату золота.',
+  ult_cede: 'Уступка земель',
+  ult_cede_d: 'Потребовать передать приграничную провинцию.',
+  ult_submit: 'Покорность',
+  ult_submit_d: 'Потребовать полной покорности — присоединить всё государство (только малые страны).',
+  ult_submit_note: 'Потребовать полной покорности {nation} — все {lands} провинций присоединены без боя.',
+  ult_response: 'Вероятный ответ',
+  ult_odds_likely: 'Скорее подчинится',
+  ult_odds_uncertain: 'Неопределённо',
+  ult_odds_unlikely: 'Скорее откажет',
+  ult_issue: 'ВЫДВИНУТЬ УЛЬТИМАТУМ',
+  ult_cd_msg: '{v0} не примет новый ультиматум ещё {v1}х.',
+  ult_comply_tribute: '{v0} уступает вашему ультиматуму — выплачено {v1}з. дани.',
+  ult_comply_cede: '{v0} уступает вашему ультиматуму — {v1} отдана без боя.',
+  ult_comply_submit: '{v0} покоряется вашему ультиматуму — всё государство поглощено.',
+  ult_refused: '{v0} отвергает ваш ультиматум — начинается война. Цель войны: {v1}.',
+  ult_toast_comply: '{nation} склоняется перед вашим требованием.',
+  ult_toast_refuse: '{nation} не дрогнул — война!',
+  ult_ai_title: 'ТРЕБОВАНИЕ',
+  ult_ai_prompt: '<b>{nation}</b> стягивает войска к вашей границе и требует {gold}з. — заплатите или будет война.',
+  ult_ai_pay: 'ЗАПЛАТИТЬ {gold}з.',
+  ult_ai_refuse: 'ОТКАЗАТЬ',
+  ult_ai_paid: 'Вы платите {v1}з. {v0} — война пока предотвращена.',
+  ult_ai_refused: 'Вы отвергаете ультиматум {v0} — они объявляют войну!',
   glog_088: 'Казна банкрот — {v0} войск дезертируют по всей империи.',  /* RU done */
   glog_089: '{v0} восстаёт и провозглашает независимость!',  /* RU done */
   glog_090: '+{v0}з {v1}{v2}· +{v3}лр · +{v4} ОП · +{v5} ОД.',  /* RU done */
@@ -3945,7 +4039,11 @@ const P1 = {
   // S1 war goals — gold tribute & subjugation in negotiated peace
   TRIBUTE_STEP: 25,                  // gold per +/- click in the peace modal
   WAR_SCORE_PER_TRIBUTE_STEP: 6,     // war-score cost per TRIBUTE_STEP of gold demanded
-  WAR_SCORE_VASSALIZE: 80            // war score needed to subjugate a nation at the table
+  WAR_SCORE_VASSALIZE: 80,           // war score needed to subjugate a nation at the table
+  // S1b ultimatums — pre-war troop-threat coercion
+  ULTIMATUM_DP: 2,                   // DP to issue an ultimatum (stands in for the war DP if it's refused)
+  ULTIMATUM_COOLDOWN: 6,             // turns before you may coerce the same nation again
+  ULTIMATUM_SUBMIT_MAXLANDS: 3       // a nation this small (or smaller) can be coerced into total submission
 };
 
 // ============================================================================
@@ -7647,6 +7745,7 @@ function initWorld(topo) {
       warTurns: {},          // warTurns[otherId] = turns spent at war
       warScore: {},          // warScore[otherId] = -100..+100
       warGoal: {},           // S1: warGoal[otherId] = { type, set } — this player's goal vs otherId
+      ultimatumCD: {},       // S1b: ultimatumCD[otherId] = turn until you may coerce them again
       tradeRoutes: [],       // [{ fromId, toId, disrupted }]
       grudges: {},           // grudges[otherId] = 0..100, memory of offenses; decays over time
       personality: null      // assigned by assignPersonality()
@@ -8265,6 +8364,293 @@ function pickWarGoal(otherId, type) {
   (window.doDiplomacy || doDiplomacy)(otherId, 'declare-war', type);
 }
 
+// ── S1b: ULTIMATUMS — pre-war troop-threat coercion ───────────────────────────
+// A demand backed by your armies. If the target judges your threat credible they
+// capitulate (you gain without a shot); if they call the bluff, war is declared
+// with the matching goal — the threat had teeth. The accept/refuse calculation
+// reuses the AI temperament model, so the odds read truthfully off the same
+// disposition badge the player can already see on the nation.
+let _ultModal = { open: false, targetId: null, type: 'tribute', gold: 0, provId: null };
+let _pendingUlt = null;   // AI→human ultimatum awaiting the player's answer (SP only)
+
+// Each demand type maps onto a war goal, so a refused ultimatum starts the right war.
+const ULT_GOAL = { tribute: 'tribute', cede: 'conquest', submit: 'subjugate' };
+
+function ultCooldownLeft(targetId) {
+  const me = S.players[S.humanId];
+  const cd = me && me.ultimatumCD ? me.ultimatumCD[targetId] : 0;
+  return cd && cd > S.turn ? cd - S.turn : 0;
+}
+function ultCanSubmit(targetId) {
+  return playerOwned(targetId).length <= P1.ULTIMATUM_SUBMIT_MAXLANDS;
+}
+
+// Probability the target capitulates. Driven first by how threatening YOU look to
+// THEM (size + army + adjacency), then bent by their temperament, their situation,
+// and the weight of the demand.
+function ultimatumChance(targetId, type, payload) {
+  const other = S.players[targetId];
+  if (!other) return 0;
+  const pers = getPersonality(targetId);
+  const threat = threatScore(targetId, S.humanId);     // how dangerous you are to them
+  let prob = (threat - 0.9) * 0.6;                      // parity ≈ 0, dominance climbs fast
+  prob -= pers.def  * 0.20;                             // proud guardians dig in
+  prob -= pers.aggr * 0.15;                             // conquerors call bluffs
+  prob += pers.dipl * 0.12;                             // diplomats fold to avoid war
+  const wars   = Object.values(other.rel || {}).filter(r => r === 'war').length;
+  prob += wars * 0.12;                                  // overstretched → concede
+  const allies = Object.values(other.rel || {}).filter(r => r === 'ally' || r === 'marriage').length;
+  prob -= allies * 0.10;                                // strong friends stiffen the spine
+  if (type === 'tribute') {
+    prob -= ((payload.gold || 0) / Math.max(1, other.gold || 1)) * 0.8;
+  } else if (type === 'cede') {
+    prob -= 0.20;
+    const c = S.countries[payload.provId];
+    if (c) prob -= (c.development || 0) * 0.012;        // developed land = stiffer resistance
+  } else if (type === 'submit') {
+    prob -= 0.55;                                       // total submission is the hardest sell
+  }
+  return Math.max(0.02, Math.min(0.95, prob));
+}
+function ultimatumOdds(prob) {
+  if (prob >= 0.66) return { key: 'ult_odds_likely',    col: 'var(--green)' };
+  if (prob >= 0.34) return { key: 'ult_odds_uncertain', col: 'var(--gold)' };
+  return { key: 'ult_odds_unlikely', col: 'var(--red-warn)' };
+}
+
+function openUltimatum(otherId) {
+  const me = S.players[S.humanId];
+  const other = S.players[otherId];
+  if (!me || !other || other.eliminated) return;
+  const rel = relation(S.humanId, otherId);
+  if (rel === 'war' || rel === 'ally' || rel === 'marriage') return;
+  if (hasTruce(S.humanId, otherId)) { logT('glog_080', {v0: other.name}, 'crit'); return; }
+  if (me.dp < P1.ULTIMATUM_DP) { logT('glog_079', {v0: P1.ULTIMATUM_DP}, 'crit'); return; }
+  const cd = ultCooldownLeft(otherId);
+  if (cd > 0) { logT('ult_cd_msg', {v0: other.name, v1: cd}, 'crit'); return; }
+  _ultModal = { open: true, targetId: otherId, type: 'tribute', gold: P1.TRIBUTE_STEP, provId: null };
+  renderUltimatum();
+  document.getElementById('ultimatum-modal').hidden = false;
+}
+function closeUltimatum() {
+  _ultModal.open = false;
+  document.getElementById('ultimatum-modal').hidden = true;
+}
+function setUltType(type) {
+  if (!_ultModal.open) return;
+  _ultModal.type = type;
+  if (type === 'tribute' && !_ultModal.gold) _ultModal.gold = P1.TRIBUTE_STEP;
+  renderUltimatum();
+}
+function adjustUltGold(delta) {
+  if (!_ultModal.open) return;
+  const other = S.players[_ultModal.targetId];
+  const cap = other ? Math.floor(other.gold || 0) : 0;
+  _ultModal.gold = Math.max(0, Math.min((_ultModal.gold || 0) + delta * P1.TRIBUTE_STEP, cap));
+  renderUltimatum();
+}
+function pickUltProv(provId) {
+  if (!_ultModal.open) return;
+  _ultModal.provId = (_ultModal.provId === provId) ? null : provId;
+  renderUltimatum();
+}
+function renderUltimatum() {
+  const m = _ultModal;
+  if (!m.open) return;
+  const other = S.players[m.targetId];
+  if (!other) { closeUltimatum(); return; }
+  const body = document.getElementById('ultimatum-body');
+  const canSubmit = ultCanSubmit(m.targetId);
+  const types = [
+    { id: 'tribute', icon: '💰' },
+    { id: 'cede',    icon: '⚔' },
+    { id: 'submit',  icon: '⛓', disabled: !canSubmit },
+  ];
+  const typeBtns = types.map(t => `
+    <button class="ult-type ${m.type === t.id ? 'active' : ''}" ${t.disabled ? 'disabled' : ''}
+      onclick="setUltType('${t.id}')" title="${T('ult_' + t.id + '_d')}">
+      <span class="wg-icon">${t.icon}</span><span class="ult-type-name">${T('ult_' + t.id)}</span>
+    </button>`).join('');
+
+  let payload = {}, ctrl = '', ready = false;
+  if (m.type === 'tribute') {
+    const treasury = Math.floor(other.gold || 0);
+    const gold = Math.max(0, Math.min(m.gold || 0, treasury));
+    payload = { gold }; ready = gold > 0;
+    ctrl = `<div class="peace-tribute">
+        <span>${T('peace_tribute_label')} <span style="color:var(--ink-dim);font-size:9px">(${T('peace_tribute_treasury')} ${treasury}g)</span></span>
+        <span class="pt-controls">
+          <button class="pt-step" onclick="adjustUltGold(-1)" ${gold <= 0 ? 'disabled' : ''}>−</button>
+          <span class="pt-amount">${gold}g</span>
+          <button class="pt-step" onclick="adjustUltGold(1)" ${gold >= treasury ? 'disabled' : ''}>+</button>
+        </span></div>`;
+  } else if (m.type === 'cede') {
+    payload = { provId: m.provId }; ready = !!m.provId;
+    const myLandSet = new Set(playerOwned(S.humanId));
+    const lands = playerOwned(m.targetId).sort((a, b) => {
+      const aB = S.countries[a].neighbors.some(n => myLandSet.has(n));
+      const bB = S.countries[b].neighbors.some(n => myLandSet.has(n));
+      return (bB ? 1 : 0) - (aB ? 1 : 0);
+    });
+    const provHtml = lands.map(id => {
+      const c = S.countries[id];
+      return `<button class="peace-prov-btn ${m.provId === id ? 'selected' : ''}" onclick="pickUltProv('${id}')">
+        <span><span class="ps-flag">${flagEmoji(c.code)}</span>${c.name}</span>
+        <span class="ps-army">dev ${c.development}</span></button>`;
+    }).join('');
+    ctrl = `<div class="peace-provs">${provHtml || `<div class="selected-empty">${T('ui_no_provinces_claim')}</div>`}</div>`;
+  } else { // submit
+    ready = canSubmit;
+    ctrl = `<div class="peace-subjugate active"><span>${Tpl('ult_submit_note', {nation: other.name, lands: playerOwned(m.targetId).length})}</span></div>`;
+  }
+
+  const prob = ultimatumChance(m.targetId, m.type, payload);
+  const odds = ultimatumOdds(prob);
+  const oddsHtml = `<div class="ult-odds" style="border-color:${odds.col}55">
+      <span>${T('ult_response')}</span>
+      <span style="color:${odds.col};font-weight:600">${T(odds.key)} · ${Math.round(prob * 100)}%</span>
+    </div>`;
+
+  body.innerHTML = `
+    <div class="peace-summary">${Tpl('ult_prompt', {nation: other.name})} ${personalityBadge(m.targetId)}</div>
+    <div class="ult-types">${typeBtns}</div>
+    ${ctrl}
+    ${oddsHtml}
+    <div class="peace-foot">
+      <button class="btn" onclick="closeUltimatum()">${T('ui_cancel')}</button>
+      <button class="btn confirm" onclick="confirmUltimatum()" ${ready ? '' : 'disabled'}>${T('ult_issue')} <span class="ap-cost">(${P1.ULTIMATUM_DP}DP)</span></button>
+    </div>`;
+}
+function confirmUltimatum() {
+  const m = _ultModal;
+  if (!m.open) return;
+  const targetId = m.targetId, type = m.type;
+  const other = S.players[targetId];
+  const gold = type === 'tribute' ? Math.max(0, Math.min(m.gold || 0, Math.floor((other && other.gold) || 0))) : 0;
+  const provId = type === 'cede' ? m.provId : null;
+  closeUltimatum();
+  // (MP-wrapped) global so the action queues for host resolution online.
+  (window.doUltimatum || doUltimatum)(targetId, type, gold, provId);
+}
+
+// Authoritative resolver. Mirrors doDiplomacy: uses S.humanId for "me" (the host
+// swaps S.humanId to the acting player before applying queued MP actions).
+function doUltimatum(otherId, type, gold, provId) {
+  const me = S.players[S.humanId];
+  const other = S.players[otherId];
+  if (!me || !other || other.eliminated) return;
+  const rel = relation(S.humanId, otherId);
+  if (rel === 'war' || rel === 'ally' || rel === 'marriage') return;
+  if (hasTruce(S.humanId, otherId)) return;
+  if (me.dp < P1.ULTIMATUM_DP) return;
+  if (ultCooldownLeft(otherId) > 0) return;
+  if (type === 'tribute') { gold = Math.max(0, Math.min(gold || 0, Math.floor(other.gold || 0))); if (gold <= 0) return; }
+  else if (type === 'cede') { if (!provId || !S.countries[provId] || S.countries[provId].ownerId !== otherId) return; }
+  else if (type === 'submit') { if (!ultCanSubmit(otherId)) return; }
+  else return;
+
+  spendDP(S.humanId, P1.ULTIMATUM_DP);
+  if (!me.ultimatumCD) me.ultimatumCD = {};
+  me.ultimatumCD[otherId] = S.turn + P1.ULTIMATUM_COOLDOWN;
+
+  const prob = ultimatumChance(otherId, type, { gold, provId });
+  const accept = Math.random() < prob;
+  addGrudge(otherId, S.humanId, GRUDGE.ATTACKED_US);   // coercion is resented either way
+
+  if (accept) {
+    if (type === 'tribute') {
+      const take = Math.max(0, Math.min(gold, Math.floor(other.gold || 0)));
+      other.gold = Math.max(0, (other.gold || 0) - take); me.gold += take;
+      logT('ult_comply_tribute', {v0: other.name, v1: take}, 'good');
+    } else if (type === 'cede') {
+      const c = S.countries[provId];
+      if (c && c.ownerId === otherId) { c.ownerId = S.humanId; c.stability = 22 + Math.floor(Math.random() * 12); }
+      logT('ult_comply_cede', {v0: other.name, v1: c ? c.name : '?'}, 'good');
+      if (playerOwned(otherId).length === 0) { other.eliminated = true; logT('glog_087', {v0: other.name}, 'good'); }
+    } else { // submit
+      for (const id of playerOwned(otherId)) {
+        const cc = S.countries[id]; cc.ownerId = S.humanId; cc.stability = 22 + Math.floor(Math.random() * 14);
+      }
+      other.eliminated = true;
+      logT('ult_comply_submit', {v0: other.name}, 'good');
+    }
+    if (!MP.active) showDiploResult('ok', Tpl('ult_toast_comply', {nation: other.name}));
+  } else {
+    // Bluff called → war, with the matching goal.
+    setRelation(S.humanId, otherId, 'war');
+    me.warScore[otherId] = 0; other.warScore[S.humanId] = 0;
+    me.warTurns[otherId] = 0; other.warTurns[S.humanId] = 0;
+    setWarGoal(S.humanId, otherId, ULT_GOAL[type] || 'conquest');
+    const wg = getWarGoal(S.humanId, otherId);
+    logT('ult_refused', {v0: other.name, v1: warGoalLabel(wg.type)}, 'crit');
+    if (!MP.active) showDiploResult('bad', Tpl('ult_toast_refuse', {nation: other.name}));
+  }
+  updateHUD(); render(); checkVictory();
+}
+
+// ── AI → human ultimatums (single-player) ─────────────────────────────────────
+// A strong, aggressive AI on the verge of war may coerce the human first. We store
+// the demand and prompt at the start of the human's turn (the AI loop can't block).
+function aiTryUltimatum(pid) {
+  const pers = getPersonality(pid);
+  if (pers.aggr < 0.5) return null;
+  const threat = threatScore(S.humanId, pid);   // how dangerous the AI is to the human
+  if (threat < 1.25) return null;
+  if (Math.random() > 0.45) return null;
+  const human = S.players[S.humanId];
+  const cap = Math.floor(human.gold || 0);
+  if (cap < 40) return null;
+  const raw = cap * (0.25 + (threat - 1.25) * 0.2);
+  const demand = Math.min(cap, Math.max(P1.TRIBUTE_STEP, Math.round(raw / P1.TRIBUTE_STEP) * P1.TRIBUTE_STEP));
+  return { fromPid: pid, type: 'tribute', gold: demand };
+}
+function maybePromptPendingUlt() {
+  if (!_pendingUlt) return;
+  const u = _pendingUlt;
+  const from = S.players[u.fromPid];
+  if (!from || from.eliminated || relation(S.humanId, u.fromPid) === 'war') { _pendingUlt = null; return; }
+  renderAiUltimatum();
+  document.getElementById('ai-ult-modal').hidden = false;
+}
+function renderAiUltimatum() {
+  const u = _pendingUlt;
+  if (!u) return;
+  const from = S.players[u.fromPid];
+  const human = S.players[S.humanId];
+  const canPay = (human.gold || 0) >= u.gold;
+  document.getElementById('ai-ult-body').innerHTML = `
+    <div class="peace-summary">${Tpl('ult_ai_prompt', {nation: from.name, gold: u.gold})} ${personalityBadge(u.fromPid)}</div>
+    <div class="peace-foot">
+      <button class="btn danger" onclick="respondAiUltimatum(false)">${T('ult_ai_refuse')}</button>
+      <button class="btn confirm" onclick="respondAiUltimatum(true)" ${canPay ? '' : 'disabled'}>${Tpl('ult_ai_pay', {gold: u.gold})}</button>
+    </div>`;
+}
+function respondAiUltimatum(pay) {
+  const u = _pendingUlt;
+  if (!u) return;
+  _pendingUlt = null;
+  document.getElementById('ai-ult-modal').hidden = true;
+  const from = S.players[u.fromPid];
+  const human = S.players[S.humanId];
+  if (!from || from.eliminated) { updateHUD(); render(); return; }
+  if (pay && (human.gold || 0) >= u.gold) {
+    human.gold -= u.gold; from.gold = (from.gold || 0) + u.gold;
+    logT('ult_ai_paid', {v0: from.name, v1: u.gold}, null);
+  } else {
+    if (from.dp >= P1.DP_COST.war) from.dp -= P1.DP_COST.war;
+    setRelation(u.fromPid, S.humanId, 'war');
+    from.warScore = from.warScore || {}; human.warScore = human.warScore || {};
+    from.warTurns = from.warTurns || {}; human.warTurns = human.warTurns || {};
+    from.warScore[S.humanId] = 0; human.warScore[u.fromPid] = 0;
+    from.warTurns[S.humanId] = 0; human.warTurns[u.fromPid] = 0;
+    setWarGoal(u.fromPid, S.humanId, 'tribute');
+    addGrudge(S.humanId, u.fromPid, GRUDGE.ATTACKED_US);
+    logT('ult_ai_refused', {v0: from.name}, 'crit');
+    showWarAlert(from.name);
+  }
+  updateHUD(); render(); checkVictory();
+}
+
 // ----- AI -----
 // ============================================================================
 // PHASE 11 — AI INTELLIGENCE OVERHAUL
@@ -8566,6 +8952,12 @@ function aiTurn(pid) {
         // Record the offense in the victim's memory BEFORE the relation flips.
         const wasNAP = isNAP(pid, cand.defPid);
         const wasAlly = relation(pid, cand.defPid) === 'ally' || relation(pid, cand.defPid) === 'marriage';
+        // S1b: a credible aggressor may coerce the human with an ultimatum first,
+        // holding the war until they answer next turn (single-player only).
+        if (cand.defPid === S.humanId && (typeof MP === 'undefined' || !MP.active) && !_pendingUlt && !wasNAP && !wasAlly) {
+          const u = aiTryUltimatum(pid);
+          if (u) { _pendingUlt = u; continue; }
+        }
         addGrudge(cand.defPid, pid, GRUDGE.ATTACKED_US);
         if (wasNAP)  addGrudge(cand.defPid, pid, GRUDGE.BROKE_NAP);
         if (wasAlly) addGrudge(cand.defPid, pid, GRUDGE.ATTACKED_ALLY);
@@ -8809,6 +9201,7 @@ function endTurn() {
       checkVictory();
       showTurnSummary();
       refreshNotifs();
+      maybePromptPendingUlt();   // S1b: surface any AI ultimatum awaiting the human
       autosave();
       document.getElementById('end-turn').disabled = false;
     }
@@ -9836,7 +10229,7 @@ function mpApplyAction(action) {
   const allowed = ['doAttack','doBuildArmy','doMoveArmy','doDevelop',
                    'doAdvanceEra','doTakeLoan','doDiplomacy','doBuild',
                    'doResearchTech','doProposeNAP','doProposeMarriage',
-                   'doSpyOp','doUpgradeCounterIntel'];
+                   'doSpyOp','doUpgradeCounterIntel','doUltimatum'];
   if (!allowed.includes(action.fn)) return;
   // Use the ORIGINAL (non-consent-wrapped) fn for diplomacy actions. The queued
   // action already passed consent on the requester's client; calling the wrapped
@@ -9978,7 +10371,7 @@ const _mpQueueAction = (fn, args) => {
 
 ['doAttack','doBuildArmy','doMoveArmy','doDevelop','doAdvanceEra',
  'doTakeLoan','doDiplomacy','doBuild','doResearchTech',
- 'doProposeNAP','doProposeMarriage','doSpyOp','doUpgradeCounterIntel'].forEach(fnName => {
+ 'doProposeNAP','doProposeMarriage','doSpyOp','doUpgradeCounterIntel','doUltimatum'].forEach(fnName => {
   const orig = window[fnName];
   if (typeof orig !== 'function') return;
   window[fnName] = function() {
@@ -11113,6 +11506,13 @@ function renderSelectedPanel() {
       if (relation(S.humanId, c.ownerId) !== 'marriage')
         actions += `<button class="btn marriage" onclick="doProposeMarriage('${c.ownerId}')" ${me.dp >= P1.DP_COST.marriage ? '' : 'disabled'}>${T('act_marriage')} <span class="ap-cost">(${P1.DP_COST.marriage}DP)</span></button>`;
       if (!truced) {
+        // S1b: coerce before the cannons — hidden against human-run MP nations.
+        const tgtHuman = (typeof MP !== 'undefined' && MP.active && typeof mpPlayerOfNation === 'function' && mpPlayerOfNation(c.ownerId));
+        if (!tgtHuman) {
+          const ultCd = ultCooldownLeft(c.ownerId);
+          const ultOk = me.dp >= P1.ULTIMATUM_DP && ultCd === 0;
+          actions += `<button class="btn" onclick="openUltimatum('${c.ownerId}')" ${ultOk ? '' : 'disabled'} title="${ultCd > 0 ? Tpl('ult_cd_msg', {v0: c.name, v1: ultCd}) : ''}">${T('act_ultimatum')} <span class="ap-cost">(${P1.ULTIMATUM_DP}DP)</span></button>`;
+        }
         actions += `<button class="btn danger" onclick="openWarGoalPicker('${c.ownerId}')" ${me.dp >= P1.DP_COST.war ? '' : 'disabled'}>${T('act_declare_war')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
       }
     }
@@ -11291,6 +11691,15 @@ window.toggleSubjugate = toggleSubjugate;
 window.openWarGoalPicker = openWarGoalPicker;
 window.closeWarGoalPicker = closeWarGoalPicker;
 window.pickWarGoal = pickWarGoal;
+// S1b ultimatums (doUltimatum is intentionally NOT re-exported — the MP queue
+// interceptor owns window.doUltimatum; clobbering it would break MP routing).
+window.openUltimatum = openUltimatum;
+window.closeUltimatum = closeUltimatum;
+window.setUltType = setUltType;
+window.adjustUltGold = adjustUltGold;
+window.pickUltProv = pickUltProv;
+window.confirmUltimatum = confirmUltimatum;
+window.respondAiUltimatum = respondAiUltimatum;
 window.setMoveFraction = function(f) {
   S.moveFraction = f;
   updateHUD();
@@ -11539,6 +11948,7 @@ function deserializeState(snap) {
     if (!S.players[pid].tradeRoutes) S.players[pid].tradeRoutes = [];
     if (!S.players[pid].grudges) S.players[pid].grudges = {};
     if (!S.players[pid].warGoal) S.players[pid].warGoal = {};
+    if (!S.players[pid].ultimatumCD) S.players[pid].ultimatumCD = {};
     if (!S.players[pid].personality) assignPersonality(pid);
   }
   for (const cid in S.countries) {
