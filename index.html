@@ -246,6 +246,7 @@
   .notif-card.crit { border-left-color: #e85d4a; }
   .notif-card.warn { border-left-color: #d4a017; }
   .notif-card.good { border-left-color: #6ba368; }
+  .notif-card.tip  { border-left-color: #4ab8c1; }
   .notif-card .notif-ic { font-size: 14px; line-height: 1.2; }
   .notif-card .notif-txt { flex: 1; min-width: 0; }
   .notif-card .notif-title { font: 700 11.5px/1.3 'JetBrains Mono', monospace; color: var(--ink); }
@@ -2293,6 +2294,20 @@
         data-i18n="mapmode_flat">🗺 FLAT</button>
     </div>
   </div>
+  <div class="sdd-section">
+    <div class="sdd-item" style="cursor:default;gap:10px;padding-bottom:4px">
+      <span class="sdd-icon">💡</span>
+      <div><div class="sdd-label" data-i18n="sdd_tips">GAMEPLAY TIPS</div><div class="sdd-sub" data-i18n="sdd_tips_sub">Just-in-time hints as you play</div></div>
+    </div>
+    <div style="display:flex;gap:6px;padding:4px 16px 10px">
+      <button class="sdd-lang-btn tips-btn active" data-tips="on" onclick="setTipsEnabled(true)"
+        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
+        data-i18n="tips_on">ON</button>
+      <button class="sdd-lang-btn tips-btn" data-tips="off" onclick="setTipsEnabled(false)"
+        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
+        data-i18n="tips_off">OFF</button>
+    </div>
+  </div>
   <div class="sdd-section sp-only">
     <button class="sdd-item danger" onclick="sddExit()">
       <span class="sdd-icon">🚪</span>
@@ -2962,6 +2977,18 @@ en: {
   ui_target: 'Target', ui_unknown: 'Unknown', ui_casus_belli: '(casus belli)',
   ui_bonus_n: '(+{n} bonus)', ui_autosave: '⟳ AUTO', ui_turn_date: 'TURN {n} · {month} {year}',
   aria_dismiss: 'Dismiss', ui_building_fallback: 'Building', boot_js_error: 'JS ERROR:', boot_at_line: '@ line',
+  // ── A4 contextual tips ───────────────────────────────────────────────────
+  sdd_tips: 'GAMEPLAY TIPS', sdd_tips_sub: 'Just-in-time hints as you play', tips_on: 'ON', tips_off: 'OFF',
+  coach_endturn_t: 'Ending a turn', coach_endturn_b: 'Press <b>Space</b> or the <b>END TURN</b> button to advance time. Then every nation acts.',
+  coach_war_t: 'You are at war', coach_war_b: 'Win battles to raise <b>war score</b>, then negotiate peace from the enemy province panel.',
+  coach_recruit_t: 'Exposed frontier', coach_recruit_b: 'A border province is weakly held. Select it and <b>Recruit</b> troops before a rival strikes.',
+  coach_diplo_t: 'Use diplomacy', coach_diplo_b: 'Spend <b>DP</b> to forge alliances or non-aggression pacts with neighbours before conflict.',
+  coach_develop_t: 'Develop your land', coach_develop_b: 'Select a province and <b>Develop</b> it to raise income, defence and stability.',
+  coach_build_t: 'Construct buildings', coach_build_b: 'Build in your provinces for economic and military bonuses — select one to see options.',
+  coach_tech_t: 'Invest in technology', coach_tech_b: 'Open the <b>Technology</b> tab and spend gold to unlock combat, economy and statecraft bonuses.',
+  coach_espionage_t: 'Run covert ops', coach_espionage_b: 'You have <b>Intel</b> to spend. Open an enemy province to launch espionage operations.',
+  coach_lens_t: 'Map lenses', coach_lens_b: 'Use the lens buttons (bottom-left) to view diplomacy, economy, military and terrain overlays.',
+  coach_hotkeys_t: 'Quick controls', coach_hotkeys_b: '<b>Space</b> ends turn · <b>Tab</b> cycles your provinces · <b>right-click</b> a province to move armies.',
   // ── Tutorial (full translated steps) — stored separately below ───────────
 },
 ru: {
@@ -3891,6 +3918,18 @@ ru: {
   ui_target: 'Цель', ui_unknown: 'Неизвестно', ui_casus_belli: '(казус белли)',
   ui_bonus_n: '(+{n} бонус)', ui_autosave: '⟳ АВТО', ui_turn_date: 'ХОД {n} · {month} {year}',
   aria_dismiss: 'Закрыть', ui_building_fallback: 'Постройка', boot_js_error: 'ОШИБКА JS:', boot_at_line: '@ строка',
+  // ── A4 contextual tips ───────────────────────────────────────────────────
+  sdd_tips: 'ИГРОВЫЕ ПОДСКАЗКИ', sdd_tips_sub: 'Подсказки по ходу игры', tips_on: 'ВКЛ', tips_off: 'ВЫКЛ',
+  coach_endturn_t: 'Завершение хода', coach_endturn_b: 'Нажмите <b>Пробел</b> или кнопку <b>ЗАВЕРШИТЬ ХОД</b>, чтобы продвинуть время. Затем ходят все державы.',
+  coach_war_t: 'Вы в состоянии войны', coach_war_b: 'Побеждайте в битвах, чтобы поднять <b>очки войны</b>, затем заключайте мир в панели вражеской провинции.',
+  coach_recruit_t: 'Уязвимая граница', coach_recruit_b: 'Пограничная провинция слабо защищена. Выберите её и <b>наберите</b> войска, пока враг не ударил.',
+  coach_diplo_t: 'Используйте дипломатию', coach_diplo_b: 'Тратьте <b>ДО</b> на союзы или пакты о ненападении с соседями до начала конфликта.',
+  coach_develop_t: 'Развивайте земли', coach_develop_b: 'Выберите провинцию и <b>развейте</b> её, чтобы поднять доход, оборону и стабильность.',
+  coach_build_t: 'Стройте здания', coach_build_b: 'Стройте в провинциях ради экономических и военных бонусов — выберите провинцию, чтобы увидеть варианты.',
+  coach_tech_t: 'Вкладывайтесь в технологии', coach_tech_b: 'Откройте вкладку <b>Технологии</b> и тратьте золото на бонусы боя, экономики и управления.',
+  coach_espionage_t: 'Тайные операции', coach_espionage_b: 'У вас есть <b>Разведка</b>. Откройте вражескую провинцию, чтобы начать шпионские операции.',
+  coach_lens_t: 'Линзы карты', coach_lens_b: 'Кнопки линз (внизу слева) показывают дипломатию, экономику, военную мощь и рельеф.',
+  coach_hotkeys_t: 'Быстрое управление', coach_hotkeys_b: '<b>Пробел</b> — конец хода · <b>Tab</b> — обход провинций · <b>правый клик</b> по провинции — движение армий.',
 },
 };
 
@@ -6957,6 +6996,106 @@ function refreshNotifs() {
   renderNotifRail();
 }
 
+// ============================================================================
+// A4 — CONTEXTUAL TUTORIAL TIPS
+// ----------------------------------------------------------------------------
+// Just-in-time coaching hints surfaced through the notification rail as a
+// distinct 'tip' card. Each tip fires at most ONCE EVER (persisted in
+// localStorage 'tb_tips_seen'), and at most one new tip is shown per turn so
+// the rail never floods. Toggleable from Settings; on by default. Replaying
+// the in-game guide (Settings → How to Play) re-arms them. Client-local only —
+// no S state, no MP message, no save coupling.
+// ============================================================================
+let _tipsEnabled = localStorage.getItem('tb_tips') !== 'off';
+let _tipsSeen = (() => { try { return JSON.parse(localStorage.getItem('tb_tips_seen') || '{}') || {}; } catch (e) { return {}; } })();
+
+function _persistTipsSeen() { try { localStorage.setItem('tb_tips_seen', JSON.stringify(_tipsSeen)); } catch (e) {} }
+
+function syncTipsToggle() {
+  document.querySelectorAll('.tips-btn').forEach(b => {
+    b.classList.toggle('active', (b.dataset.tips === 'on') === _tipsEnabled);
+  });
+}
+function setTipsEnabled(on) {
+  _tipsEnabled = !!on;
+  localStorage.setItem('tb_tips', _tipsEnabled ? 'on' : 'off');
+  syncTipsToggle();
+  if (!_tipsEnabled) {                       // hide any tip cards currently up
+    _notifs = _notifs.filter(n => !(n.key && n.key.indexOf('tip:') === 0));
+    renderNotifRail();
+  }
+}
+window.setTipsEnabled = setTipsEnabled;
+
+// Re-arm every contextual tip (used when the player replays the guide).
+function resetTipsSeen() { _tipsSeen = {}; _persistTipsSeen(); }
+window.resetTipsSeen = resetTipsSeen;
+
+// Push one tip if enabled and not yet seen. Returns true if it fired.
+function maybeTip(id, icon, route) {
+  if (!_tipsEnabled || _tipsSeen[id]) return false;
+  _tipsSeen[id] = 1; _persistTipsSeen();
+  pushNotif({ key: 'tip:' + id, icon: icon || '💡', cls: 'tip',
+    title: T('coach_' + id + '_t'), body: T('coach_' + id + '_b'),
+    route: route || null });
+  return true;
+}
+
+// Ordered by priority. checkTips() fires the FIRST eligible+unseen rule, once
+// per turn. `when(me, ctx)` returns true when the teachable moment applies.
+const TIP_RULES = [
+  { id: 'endturn', icon: '⏭', when: () => S.turn <= 1 },
+  { id: 'war', icon: '⚔', route: { kind: 'empire' },
+    when: (me) => Object.values(me.rel || {}).some(r => r === 'war') },
+  { id: 'recruit', icon: '🛡',
+    when: (me, ctx) => (me.mp || 0) >= 1 && (me.gold || 0) >= 30 && ctx.exposedProv != null,
+    route: (ctx) => ({ kind: 'province', id: ctx.exposedProv }) },
+  { id: 'diplo', icon: '🕊',
+    when: (me, ctx) => (me.dp || 0) >= 1 && ctx.neutralNeighbor },
+  { id: 'develop', icon: '📈',
+    when: (me, ctx) => (me.gold || 0) >= 40 && ctx.lowDevProv != null,
+    route: (ctx) => ({ kind: 'province', id: ctx.lowDevProv }) },
+  { id: 'build', icon: '🏛',
+    when: (me, ctx) => S.turn >= 3 && (me.gold || 0) >= 60 && !ctx.hasBuilding },
+  { id: 'tech', icon: '🔬',
+    when: (me, ctx) => S.turn >= 2 && (me.gold || 0) >= 80 && ctx.techAllZero },
+  { id: 'espionage', icon: '🔍',
+    when: (me) => (me.intel || 0) >= 10 },
+  { id: 'lens', icon: '🗺', when: () => S.turn >= 2 },
+  { id: 'hotkeys', icon: '⌨', when: () => S.turn >= 3 },
+];
+
+function checkTips() {
+  if (!_tipsEnabled || !S.humanId || S.setupPhase || S.gameOver) return;
+  const me = S.players[S.humanId];
+  if (!me) return;
+  // Precompute context the rules read (kept cheap; one pass over owned provs).
+  const owned = playerOwned(S.humanId);
+  let exposedProv = null, lowDevProv = null, hasBuilding = false, neutralNeighbor = false;
+  for (const pid of owned) {
+    const c = S.countries[pid];
+    if (!c) continue;
+    if (c.building) hasBuilding = true;
+    if (lowDevProv == null && (c.development || 0) < 2) lowDevProv = pid;
+    for (const nid of (c.neighbors || [])) {
+      const nc = S.countries[nid];
+      if (!nc || !nc.ownerId || nc.ownerId === S.humanId) continue;
+      const rel = me.rel && me.rel[nc.ownerId];
+      if (rel === 'war' && (c.army || 0) <= 5 && exposedProv == null) exposedProv = pid;
+      if (!rel || rel === 'neutral') neutralNeighbor = true;
+    }
+  }
+  const t = S.tech || {};
+  const techAllZero = !(t.martial || t.treasury || t.statecraft);
+  const ctx = { exposedProv, lowDevProv, hasBuilding, neutralNeighbor, techAllZero };
+  for (const rule of TIP_RULES) {
+    if (_tipsSeen[rule.id]) continue;
+    if (!rule.when(me, ctx)) continue;
+    const route = typeof rule.route === 'function' ? rule.route(ctx) : (rule.route || null);
+    if (maybeTip(rule.id, rule.icon, route)) break;   // one tip per turn
+  }
+}
+
 // ── Patch renderLog for filter support ───────────────────────────────────────
 function renderLog() {
   const el = document.getElementById('log-content');
@@ -8011,11 +8150,14 @@ function startGame(humanCountryId) {
   render();
   clearNotifs(); refreshNotifs();
   checkMission();           // A2: seed the first directive immediately
+  syncTipsToggle();         // A4: reflect saved tips on/off in settings
 
   // Show tutorial on first play; afterwards accessible via ❓
   if (!localStorage.getItem('tb_tutorial_seen')) {
     setTimeout(() => showTutorial(), 600);
   }
+  // A4: seed the first contextual tip after the boot/guide settles
+  setTimeout(() => checkTips(), 1400);
 }
 
 function updateDate() {
@@ -9420,6 +9562,7 @@ function endTurn() {
       checkVictory();
       showTurnSummary();
       refreshNotifs();
+      checkTips();               // A4: surface one contextual coaching tip
       maybePromptPendingUlt();   // S1b: surface any AI ultimatum awaiting the human
       autosave();
       document.getElementById('end-turn').disabled = false;
@@ -12735,6 +12878,7 @@ function toggleSettingsMenu(e) {
     document.querySelectorAll('.mapmode-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.mode === (S.mapMode || 'globe'));
     });
+    syncTipsToggle();   // A4: reflect tips on/off
   }
   if (e) e.stopPropagation();
 }
@@ -12767,6 +12911,7 @@ window.sddSave = sddSave;
 
 function sddTutorial() {
   _closeSettings();
+  resetTipsSeen();   // A4: replaying the guide re-arms the contextual tips
   showTutorial();
 }
 window.sddTutorial = sddTutorial;
