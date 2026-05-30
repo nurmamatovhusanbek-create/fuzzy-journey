@@ -1169,6 +1169,11 @@
   .diplo-badge.marriage { background: rgba(220,130,190,0.15); color: #e090c8; border: 1px solid rgba(220,130,190,0.3); }
   .diplo-badge.ally  { background: rgba(107,163,104,0.15); color: var(--green); border: 1px solid rgba(107,163,104,0.3); }
   .diplo-badge.war   { background: rgba(232,93,74,0.15); color: var(--red-warn); border: 1px solid rgba(232,93,74,0.25); }
+  .pers-badge {
+    font-size: 8px; padding: 1px 5px; letter-spacing: 0.08em;
+    border-radius: 2px; margin-left: 4px; border: 1px solid;
+    white-space: nowrap;
+  }
   .coalition-banner {
     background: rgba(232,93,74,0.1); border: 1px solid rgba(232,93,74,0.35);
     padding: 7px 10px; margin-bottom: 7px; font-size: 9.5px; color: var(--ink);
@@ -2518,6 +2523,17 @@ en: {
   stat_terrain:     '▸ TERRAIN',
   stat_general:     '▸ GENERAL',
   stat_disposition: '▸ DISPOSITION',
+  // ── AI leader temperaments (S5) ───────────────────────────────────────────
+  pers_conqueror:    'Conqueror',
+  pers_conqueror_d:  'Expands by force — quick to threaten and to war.',
+  pers_merchant:     'Merchant',
+  pers_merchant_d:   'Builds wealth — prefers trade and pacts to war.',
+  pers_diplomat:     'Diplomat',
+  pers_diplomat_d:   'Plays the long game — alliances, marriages, kingmaking.',
+  pers_guardian:     'Guardian',
+  pers_guardian_d:   'Entrenches and defends — slow to attack, hard to break.',
+  pers_opportunist:  'Opportunist',
+  pers_opportunist_d:'Strikes the weak when the moment is right.',
   stat_war_score:   '▸ WAR SCORE',
   stat_nap:         '▸ NAP',
   stat_truce:       '▸ TRUCE',
@@ -3286,6 +3302,17 @@ ru: {
   stat_terrain:     '▸ МЕСТНОСТЬ',
   stat_general:     '▸ ПОЛКОВОДЕЦ',
   stat_disposition: '▸ НРАВ',
+  // ── Нравы правителей ИИ (S5) ──────────────────────────────────────────────
+  pers_conqueror:    'Завоеватель',
+  pers_conqueror_d:  'Расширяется силой — быстр на угрозы и войну.',
+  pers_merchant:     'Торговец',
+  pers_merchant_d:   'Копит богатство — предпочитает торговлю и пакты войне.',
+  pers_diplomat:     'Дипломат',
+  pers_diplomat_d:   'Играет вдолгую — союзы, браки, делание королей.',
+  pers_guardian:     'Страж',
+  pers_guardian_d:   'Укрепляется и обороняется — медлит с атакой, его трудно сломить.',
+  pers_opportunist:  'Оппортунист',
+  pers_opportunist_d:'Бьёт по слабым в удобный момент.',
   stat_war_score:   '▸ ВОЕННЫЙ СЧЁТ',
   stat_nap:         '▸ ДНА',
   stat_truce:       '▸ ПЕРЕМИРИЕ',
@@ -6787,6 +6814,7 @@ function renderDiplomacy() {
           <span class="ownerpill" style="background:${other.color}"></span>
           ${flagEmoji(S.countries[oid]?.code || '')} ${other.name}
           <span class="diplo-badge ${t.key}">${t.key.toUpperCase()}</span>
+          ${personalityBadge(oid)}
           ${napExp}${grStr}
         </span>
         <span style="color:var(--ink-dim);font-size:9px">${lands}🏴${wsStr}</span>
@@ -7973,11 +8001,11 @@ window.setDifficulty = setDifficulty;
 // The turn loop runs a priority queue of scored actions instead of flat randoms.
 
 const AI_PERSONALITIES = [
-  { id: 'conqueror',  label: 'Conqueror',  aggr: 0.85, econ: 0.40, dipl: 0.20, def: 0.55 },
-  { id: 'merchant',   label: 'Merchant',   aggr: 0.25, econ: 0.90, dipl: 0.55, def: 0.50 },
-  { id: 'diplomat',   label: 'Diplomat',   aggr: 0.20, econ: 0.50, dipl: 0.95, def: 0.45 },
-  { id: 'guardian',   label: 'Guardian',   aggr: 0.35, econ: 0.55, dipl: 0.50, def: 0.90 },
-  { id: 'opportunist',label: 'Opportunist',aggr: 0.60, econ: 0.65, dipl: 0.45, def: 0.45 },
+  { id: 'conqueror',  label: 'Conqueror',  icon: '⚔', col: '#d65b4a', aggr: 0.85, econ: 0.40, dipl: 0.20, def: 0.55 },
+  { id: 'merchant',   label: 'Merchant',   icon: '💰', col: '#d9a441', aggr: 0.25, econ: 0.90, dipl: 0.55, def: 0.50 },
+  { id: 'diplomat',   label: 'Diplomat',   icon: '🕊', col: '#4ab8c1', aggr: 0.20, econ: 0.50, dipl: 0.95, def: 0.45 },
+  { id: 'guardian',   label: 'Guardian',   icon: '🛡', col: '#5aa45e', aggr: 0.35, econ: 0.55, dipl: 0.50, def: 0.90 },
+  { id: 'opportunist',label: 'Opportunist',icon: '🎭', col: '#a07cc5', aggr: 0.60, econ: 0.65, dipl: 0.45, def: 0.45 },
 ];
 
 function assignPersonality(pid) {
@@ -7993,6 +8021,17 @@ function getPersonality(pid) {
   const p = S.players[pid];
   if (!p) return AI_PERSONALITIES[0];
   return AI_PERSONALITIES.find(x => x.id === p.personality) || AI_PERSONALITIES[0];
+}
+
+// S5: a small readable "leader temperament" badge — icon + localized label,
+// coloured by archetype, with a one-line behaviour tagline on hover.
+function personalityBadge(pid) {
+  const p = S.players[pid];
+  if (!p || !p.personality) return '';
+  const pers = getPersonality(pid);
+  const name = T('pers_' + pers.id) || pers.label;
+  const desc = T('pers_' + pers.id + '_d') || '';
+  return `<span class="pers-badge" style="color:${pers.col};border-color:${pers.col}55;background:${pers.col}1f" title="${name} — ${desc}">${pers.icon} ${name.toUpperCase()}</span>`;
 }
 
 // ── AI intent feedback: explain WHY this nation declared war on you ───────────
@@ -10817,7 +10856,7 @@ function renderSelectedPanel() {
     <div class="stat-row"><span class="lbl">${T('stat_era')}</span>${isOwn ? `<span class="val">${T(ERAS[owner.era].name)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_terrain')}</span><span class="val" style="font-size:9.5px">${getTerrain(c.id).icon} ${getTerrain(c.id).name}</span></div>
     ${(() => { const g = generalFor(owner.id); const bribed = S.corruptedGenerals && S.corruptedGenerals[owner.id]; return `<div class="stat-row"><span class="lbl">${T('stat_general')}</span><span class="val" style="font-size:9.5px;color:${bribed ? 'var(--red-warn)' : 'var(--ink-dim)'}">${g.icon} ${g.name}${bribed ? ' ⚠' : ''}</span></div>`; })()}
-    ${!isOwn && owner.personality ? `<div class="stat-row"><span class="lbl">${T('stat_disposition')}</span><span class="val" style="font-size:9.5px;color:var(--ink-dim)">${owner.personality.toUpperCase()}</span></div>` : ''}
+    ${!isOwn && owner.personality ? `<div class="stat-row"><span class="lbl">${T('stat_disposition')}</span><span class="val">${personalityBadge(owner.id)}</span></div>` : ''}
     ${actions}
     ${isOwn ? renderBuildingSection(c) : ''}
     ${isOwn ? renderQuickTradeBtn(c.id) : ''}
