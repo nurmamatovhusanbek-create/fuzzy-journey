@@ -517,10 +517,12 @@
     padding: 20px;
   }
   .peace-card {
-    width: 100%; max-width: 520px; max-height: 86vh;
+    width: 100%; max-width: 640px; max-height: 94vh;
     background: var(--bg-1); border: 1px solid var(--gold);
     box-shadow: 0 4px 60px rgba(212,160,23,0.25);
     display: flex; flex-direction: column;
+    /* user-adjustable: drag the bottom-right corner to resize */
+    resize: both; overflow: hidden; min-width: 380px; min-height: 260px;
   }
   .peace-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -535,12 +537,12 @@
     font-family: inherit; font-size: 14px; padding: 4px 10px; cursor: pointer;
   }
   .peace-close:hover { color: var(--red-warn); border-color: var(--red-warn); }
-  #peace-body { padding: 14px 18px; overflow-y: auto; }
+  #peace-body { padding: 14px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
   .peace-summary { font-size: 11px; line-height: 1.6; color: var(--ink); margin-bottom: 12px; }
   .peace-summary .num { color: var(--gold-bright); font-weight: 700; }
   .peace-provs {
     display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px;
-    max-height: 40vh; overflow-y: auto;
+    max-height: 56vh; overflow-y: auto;
   }
   .peace-prov-btn {
     display: flex; justify-content: space-between; align-items: center;
@@ -563,6 +565,42 @@
     font-weight: 700;
   }
   .peace-foot .btn.confirm:disabled { background: rgba(212,160,23,0.2); color: var(--ink-dim); }
+  #wargoal-body { padding: 14px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .wgoal-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .wgoal-btn {
+    display: flex; align-items: center; gap: 10px; text-align: left;
+    padding: 10px 12px; background: transparent; border: 1px solid var(--border);
+    color: var(--ink); font-family: 'JetBrains Mono', monospace; cursor: pointer;
+    transition: all 0.12s;
+  }
+  .wgoal-btn:hover { border-color: var(--gold); background: rgba(212,160,23,0.08); }
+  .wgoal-btn .wg-icon { font-size: 20px; width: 24px; text-align: center; flex: none; }
+  .wgoal-btn .wg-text { display: flex; flex-direction: column; gap: 2px; }
+  .wgoal-btn .wg-name { font-size: 11px; letter-spacing: 0.14em; color: var(--gold-bright); }
+  .wgoal-btn .wg-desc { font-size: 9.5px; color: var(--ink-dim); line-height: 1.4; }
+  .peace-goal-banner {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 12px;
+    border: 1px solid var(--border); background: rgba(255,255,255,0.02); font-size: 10px;
+  }
+  .peace-goal-banner .pg-icon { font-size: 15px; }
+  .peace-goal-banner .pg-label { letter-spacing: 0.12em; color: var(--gold-bright); }
+  .peace-tribute, .peace-subjugate {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 10.5px;
+  }
+  .peace-tribute .pt-controls { display: flex; align-items: center; gap: 8px; }
+  .peace-tribute .pt-step {
+    width: 24px; height: 24px; border: 1px solid var(--border); background: transparent;
+    color: var(--gold-bright); font-size: 14px; cursor: pointer; line-height: 1;
+  }
+  .peace-tribute .pt-step:hover { border-color: var(--gold); }
+  .peace-tribute .pt-amount { min-width: 64px; text-align: center; color: var(--gold-bright); font-weight: 700; }
+  .peace-subjugate.active { border-color: #a07cc5; background: rgba(160,124,197,0.12); }
+  .peace-subjugate .ps-toggle {
+    border: 1px solid var(--border); background: transparent; color: var(--ink);
+    font-family: inherit; font-size: 9.5px; letter-spacing: 0.1em; padding: 5px 10px; cursor: pointer;
+  }
+  .peace-subjugate.active .ps-toggle { border-color: #a07cc5; color: #c9aef0; }
 
   .game-over {
     position: fixed; inset: 0; z-index: 40;
@@ -2082,6 +2120,16 @@
   </div>
 </div>
 
+<div id="wargoal-modal" class="peace-modal" hidden>
+  <div class="peace-card" style="max-width:500px">
+    <div class="peace-head">
+      <div class="peace-title" data-i18n="wgoal_title">WAR GOAL</div>
+      <button class="peace-close" onclick="closeWarGoalPicker()">✕</button>
+    </div>
+    <div id="wargoal-body"></div>
+  </div>
+</div>
+
 <div id="event-modal" class="event-modal" hidden>
   <div class="event-card" id="event-card">
     <!-- populated by renderEventModal() -->
@@ -2467,6 +2515,34 @@ en: {
   glog_085: '{v0} rejects your harsh terms.',
   glog_086: 'Peace dictated to {v0}: {v1} provinces ceded. Truce {v2}t.',
   glog_087: '{v0} ceased to exist.',
+  // ── S1 war goals ──────────────────────────────────────────────────────────
+  glog_081_goal: 'You declare war on {v0} — war goal: {v1}.',
+  glog_peace_tribute: 'Peace dictated to {v0}: {v1} provinces ceded, {v2}g tribute extracted. Truce {v3}t.',
+  glog_subjugated: '{v0} submits — the entire nation is absorbed into your empire.',
+  glog_subjugate_refuse: '{v0} will not submit until your war score reaches {v1}.',
+  wgoal_title: 'WAR GOAL',
+  wgoal_label: 'War goal',
+  wgoal_prompt: 'Declare war on <b>{nation}</b>. What is your aim in this war?',
+  wgoal_conquest: 'Conquest',
+  wgoal_conquest_d: 'An open-ended war — seize border provinces at the peace table.',
+  wgoal_tribute: 'Tribute',
+  wgoal_tribute_d: 'Force a one-time gold payment. A lower bar to achieve.',
+  wgoal_subjugate: 'Subjugation',
+  wgoal_subjugate_d: 'Break them utterly and annex the whole nation. Demands total victory.',
+  wgoal_yours: 'Your war goal',
+  wgoal_theirs: 'Their war goal',
+  wgoal_ai_intent: 'Their aim: {goal}.',
+  notif_war_goal_b: 'Their war goal: {goal}. Review your defenses.',
+  peace_score: 'War with <strong>{nation}</strong>. Your war score: <span class="num">{score}</span>.',
+  peace_summary: 'War with <strong>{nation}</strong>. War score <span class="num">{score}</span> · demands cost <span class="num">{cost}</span>.',
+  peace_buffer: 'Remaining buffer:',
+  peace_tribute_label: '💰 Gold tribute',
+  peace_tribute_treasury: 'treasury',
+  peace_subjugate_offer: '⛓ Subjugate — annex the entire nation (needs war score {n}).',
+  peace_subjugate_need: 'Annex all {lands} provinces of {nation}. Requires war score {n}.',
+  peace_subjugate_on: 'SUBJUGATE',
+  peace_subjugate_off: 'CANCEL',
+  peace_subjugate_do: '⛓ IMPOSE SUBMISSION',
   glog_088: 'Treasury bankrupt — {v0} troops desert across the empire.',
   glog_089: '{v0} rebels and declares independence!',
   glog_090: '+{v0}g {v1}{v2}· +{v3}mp · +{v4} MP · +{v5} DP.',
@@ -3246,6 +3322,34 @@ ru: {
   glog_085: '{v0} отвергает ваши суровые условия.',  /* RU done */
   glog_086: 'Мир продиктован {v0}: {v1} провинций уступлено. Перемирие {v2}х.',  /* RU done */
   glog_087: '{v0} прекратило существование.',  /* RU done */
+  // ── S1 цели войны ─────────────────────────────────────────────────────────
+  glog_081_goal: 'Вы объявляете войну {v0} — цель войны: {v1}.',
+  glog_peace_tribute: 'Мир продиктован {v0}: {v1} провинций уступлено, {v2}з. дани взято. Перемирие {v3}х.',
+  glog_subjugated: '{v0} покоряется — всё государство поглощено вашей империей.',
+  glog_subjugate_refuse: '{v0} не покорится, пока ваш военный счёт не достигнет {v1}.',
+  wgoal_title: 'ЦЕЛЬ ВОЙНЫ',
+  wgoal_label: 'Цель войны',
+  wgoal_prompt: 'Объявить войну <b>{nation}</b>. Какова ваша цель в этой войне?',
+  wgoal_conquest: 'Завоевание',
+  wgoal_conquest_d: 'Война без чётких границ — отнимайте приграничные провинции за столом мира.',
+  wgoal_tribute: 'Дань',
+  wgoal_tribute_d: 'Вынудить разовую выплату золота. Более низкая планка для победы.',
+  wgoal_subjugate: 'Покорение',
+  wgoal_subjugate_d: 'Сломить полностью и присоединить всё государство. Требует полной победы.',
+  wgoal_yours: 'Ваша цель войны',
+  wgoal_theirs: 'Их цель войны',
+  wgoal_ai_intent: 'Их цель: {goal}.',
+  notif_war_goal_b: 'Их цель войны: {goal}. Проверьте оборону.',
+  peace_score: 'Война с <strong>{nation}</strong>. Ваш военный счёт: <span class="num">{score}</span>.',
+  peace_summary: 'Война с <strong>{nation}</strong>. Военный счёт <span class="num">{score}</span> · требования стоят <span class="num">{cost}</span>.',
+  peace_buffer: 'Остаток запаса:',
+  peace_tribute_label: '💰 Золотая дань',
+  peace_tribute_treasury: 'казна',
+  peace_subjugate_offer: '⛓ Покорить — присоединить всё государство (нужен военный счёт {n}).',
+  peace_subjugate_need: 'Присоединить все {lands} провинций {nation}. Требуется военный счёт {n}.',
+  peace_subjugate_on: 'ПОКОРИТЬ',
+  peace_subjugate_off: 'ОТМЕНА',
+  peace_subjugate_do: '⛓ ПРИНУДИТЬ К ПОКОРНОСТИ',
   glog_088: 'Казна банкрот — {v0} войск дезертируют по всей империи.',  /* RU done */
   glog_089: '{v0} восстаёт и провозглашает независимость!',  /* RU done */
   glog_090: '+{v0}з {v1}{v2}· +{v3}лр · +{v4} ОП · +{v5} ОД.',  /* RU done */
@@ -3797,7 +3901,11 @@ const P1 = {
   WAR_SCORE_CONQUEST: 22,
   WAR_SCORE_BATTLE_WIN: 5,
   WAR_SCORE_BATTLE_LOSS: -4,
-  WAR_SCORE_PER_PROVINCE_DEMAND: 25
+  WAR_SCORE_PER_PROVINCE_DEMAND: 25,
+  // S1 war goals — gold tribute & subjugation in negotiated peace
+  TRIBUTE_STEP: 25,                  // gold per +/- click in the peace modal
+  WAR_SCORE_PER_TRIBUTE_STEP: 6,     // war-score cost per TRIBUTE_STEP of gold demanded
+  WAR_SCORE_VASSALIZE: 80            // war score needed to subjugate a nation at the table
 };
 
 // ============================================================================
@@ -5351,7 +5459,7 @@ const S = {
   width: 0, height: 0,
   log: [],
   truces: {},            // truces[a][b] = turn when truce expires
-  peaceModal: { open: false, againstId: null, demanded: [] },
+  peaceModal: { open: false, againstId: null, demanded: [], goldDemand: 0, vassalize: false },
   moveMode: false,       // when true, next click on adjacent own country reinforces
   moveFromId: null,
   moveFraction: 0.5,     // how much of the source army to move
@@ -6815,6 +6923,7 @@ function renderDiplomacy() {
           ${flagEmoji(S.countries[oid]?.code || '')} ${other.name}
           <span class="diplo-badge ${t.key}">${t.key.toUpperCase()}</span>
           ${personalityBadge(oid)}
+          ${t.key === 'war' ? (warGoalChip(S.humanId, oid, 'wgoal_yours') || warGoalChip(oid, S.humanId, 'wgoal_theirs')) : ''}
           ${napExp}${grStr}
         </span>
         <span style="color:var(--ink-dim);font-size:9px">${lands}🏴${wsStr}</span>
@@ -7486,6 +7595,7 @@ function initWorld(topo) {
       loans: [],             // [{ remaining, turnsLeft, payment }]
       warTurns: {},          // warTurns[otherId] = turns spent at war
       warScore: {},          // warScore[otherId] = -100..+100
+      warGoal: {},           // S1: warGoal[otherId] = { type, set } — this player's goal vs otherId
       tradeRoutes: [],       // [{ fromId, toId, disrupted }]
       grudges: {},           // grudges[otherId] = 0..100, memory of offenses; decays over time
       personality: null      // assigned by assignPersonality()
@@ -7792,7 +7902,52 @@ function doAdvanceEra() {
   updateHUD(); updateDate(); render();
 }
 
-function doDiplomacy(otherId, action) {
+// ── S1: WAR GOALS ─────────────────────────────────────────────────────────────
+// A declared intent that frames a war and shapes its acceptable peace terms.
+// Stored on the AGGRESSOR as p.warGoal[defenderId] = { type, set: turn }.
+// 'conquest' is the open-ended default (cede provinces — the original flow);
+// 'tribute' extracts gold at a low war-score bar; 'subjugate' vassalizes at a high one.
+const WAR_GOALS = {
+  conquest:  { id: 'conquest',  icon: '⚔', col: '#d65b4a' },
+  tribute:   { id: 'tribute',   icon: '💰', col: '#d9a441' },
+  subjugate: { id: 'subjugate', icon: '⛓', col: '#a07cc5' },
+};
+function setWarGoal(aId, bId, type) {
+  const p = S.players[aId];
+  if (!p) return;
+  if (!p.warGoal) p.warGoal = {};
+  p.warGoal[bId] = { type: WAR_GOALS[type] ? type : 'conquest', set: S.turn };
+}
+function getWarGoal(aId, bId) {
+  const p = S.players[aId];
+  if (!p || !p.warGoal) return null;
+  return p.warGoal[bId] || null;
+}
+function clearWarGoal(aId, bId) {
+  const p = S.players[aId];
+  if (p && p.warGoal) delete p.warGoal[bId];
+}
+function warGoalLabel(type) { return T('wgoal_' + type) || type; }
+// Small readable chip for a war's declared goal (reuses the .pers-badge style).
+function warGoalChip(aId, bId, dirKey) {
+  const g = getWarGoal(aId, bId);
+  if (!g) return '';
+  const def = WAR_GOALS[g.type] || WAR_GOALS.conquest;
+  const title = T(dirKey) + ': ' + warGoalLabel(g.type);
+  return `<span class="pers-badge" style="color:${def.col};border-color:${def.col}55;background:${def.col}1f" title="${title}">${def.icon} ${warGoalLabel(g.type).toUpperCase()}</span>`;
+}
+// AI picks a war goal by temperament: aggressive subjugates weak rivals, merchants
+// extort gold, everyone else fights an open-ended conquest.
+function aiChooseWarGoal(pid, targetId) {
+  const pers = getPersonality(pid);
+  const myLands = playerOwned(pid).length;
+  const theirLands = playerOwned(targetId).length;
+  if (pers.aggr >= 0.6 && theirLands <= 3 && myLands > theirLands) return 'subjugate';
+  if (pers.econ >= 0.7 && pers.aggr < 0.5) return 'tribute';
+  return 'conquest';
+}
+
+function doDiplomacy(otherId, action, goalType) {
   const me = S.players[S.humanId];
   const other = S.players[otherId];
   if (!other || other.eliminated) return;
@@ -7823,7 +7978,9 @@ function doDiplomacy(otherId, action) {
     other.warScore[S.humanId] = 0;
     me.warTurns[otherId] = 0;
     other.warTurns[S.humanId] = 0;
-    logT('glog_081', {v0: other.name}, 'self');
+    setWarGoal(S.humanId, otherId, goalType);   // S1: record the declared war goal
+    const _wg = getWarGoal(S.humanId, otherId);
+    logT('glog_081_goal', {v0: other.name, v1: warGoalLabel(_wg.type)}, 'self');
   } else if (action === 'ally') {
     if (curRel === 'war') return;
     spendDP(S.humanId, P1.DP_COST.ally);
@@ -7883,6 +8040,7 @@ function doDiplomacy(otherId, action) {
       delete other.warScore[S.humanId];
       delete me.warTurns[otherId];
       delete other.warTurns[S.humanId];
+      clearWarGoal(S.humanId, otherId); clearWarGoal(otherId, S.humanId);
       logT('log_peace_acc', {nation: other.name, turns: P1.TRUCE_TURNS}, 'good');
     } else {
       logT('log_peace_ref', {nation: other.name}, 'crit');
@@ -7905,6 +8063,7 @@ function doDiplomacy(otherId, action) {
       }
       other.eliminated = true;
       setRelation(S.humanId, otherId, 'peace');
+      clearWarGoal(S.humanId, otherId); clearWarGoal(otherId, S.humanId);
       logT('glog_084', {v0: other.name}, 'good');
     }
   }
@@ -7919,7 +8078,35 @@ function doNegotiatedPeace() {
   const other = S.players[m.againstId];
   if (!other || other.eliminated) { closePeaceModal(); return; }
   const myScore = getWarScore(S.humanId, m.againstId);
-  const cost = m.demanded.length * P1.WAR_SCORE_PER_PROVINCE_DEMAND;
+
+  // Subjugation: a single decisive demand that annexes the whole nation.
+  // Gated purely by war score — you must have won the war outright.
+  if (m.vassalize) {
+    if (myScore < P1.WAR_SCORE_VASSALIZE) {
+      logT('glog_subjugate_refuse', {v0: other.name, v1: P1.WAR_SCORE_VASSALIZE}, 'crit');
+      return;
+    }
+    spendDP(S.humanId, P1.DP_COST.peace);
+    for (const id of playerOwned(m.againstId)) {
+      const c = S.countries[id];
+      c.ownerId = S.humanId;
+      c.stability = 22 + Math.floor(Math.random() * 14);
+    }
+    other.eliminated = true;
+    setRelation(S.humanId, m.againstId, 'peace');
+    clearWarGoal(S.humanId, m.againstId); clearWarGoal(m.againstId, S.humanId);
+    delete me.warScore[m.againstId]; delete other.warScore[S.humanId];
+    delete me.warTurns[m.againstId]; delete other.warTurns[S.humanId];
+    logT('glog_subjugated', {v0: other.name}, 'good');
+    closePeaceModal();
+    updateHUD(); render(); checkVictory();
+    return;
+  }
+
+  const gold = Math.max(0, Math.min(m.goldDemand || 0, Math.floor(other.gold || 0)));
+  const tributeSteps = Math.ceil(gold / P1.TRIBUTE_STEP);
+  const cost = m.demanded.length * P1.WAR_SCORE_PER_PROVINCE_DEMAND
+             + tributeSteps * P1.WAR_SCORE_PER_TRIBUTE_STEP;
   // AI accepts only if war score covers demands (small leeway)
   if (myScore < cost - 10) {
     logT('glog_085', {v0: other.name}, 'crit');
@@ -7933,13 +8120,16 @@ function doNegotiatedPeace() {
       c.stability = 25 + Math.floor(Math.random() * 12);
     }
   }
+  if (gold > 0) { other.gold = Math.max(0, (other.gold || 0) - gold); me.gold += gold; }
   setRelation(S.humanId, m.againstId, 'peace');
   setTruce(S.humanId, m.againstId, P1.TRUCE_TURNS);
+  clearWarGoal(S.humanId, m.againstId); clearWarGoal(m.againstId, S.humanId);
   delete me.warScore[m.againstId];
   delete other.warScore[S.humanId];
   delete me.warTurns[m.againstId];
   delete other.warTurns[S.humanId];
-  logT('glog_086', {v0: other.name, v1: m.demanded.length, v2: P1.TRUCE_TURNS}, 'good');
+  if (gold > 0) logT('glog_peace_tribute', {v0: other.name, v1: m.demanded.length, v2: gold, v3: P1.TRUCE_TURNS}, 'good');
+  else logT('glog_086', {v0: other.name, v1: m.demanded.length, v2: P1.TRUCE_TURNS}, 'good');
   closePeaceModal();
   if (playerOwned(other.id).length === 0) {
     other.eliminated = true;
@@ -7948,13 +8138,29 @@ function doNegotiatedPeace() {
   updateHUD(); render(); checkVictory();
 }
 
+// S1 peace-modal controls for gold tribute & subjugation.
+function adjustTribute(delta) {
+  const m = S.peaceModal;
+  if (!m.open) return;
+  const other = S.players[m.againstId];
+  const cap = other ? Math.floor(other.gold || 0) : 0;
+  m.goldDemand = Math.max(0, Math.min((m.goldDemand || 0) + delta * P1.TRIBUTE_STEP, cap));
+  renderPeaceModal();
+}
+function toggleSubjugate() {
+  const m = S.peaceModal;
+  if (!m.open) return;
+  m.vassalize = !m.vassalize;
+  renderPeaceModal();
+}
+
 function openPeaceModal(againstId) {
-  S.peaceModal = { open: true, againstId, demanded: [] };
+  S.peaceModal = { open: true, againstId, demanded: [], goldDemand: 0, vassalize: false };
   renderPeaceModal();
   document.getElementById('peace-modal').hidden = false;
 }
 function closePeaceModal() {
-  S.peaceModal = { open: false, againstId: null, demanded: [] };
+  S.peaceModal = { open: false, againstId: null, demanded: [], goldDemand: 0, vassalize: false };
   document.getElementById('peace-modal').hidden = true;
 }
 function togglePeaceDemand(pid) {
@@ -7964,6 +8170,48 @@ function togglePeaceDemand(pid) {
   if (i >= 0) m.demanded.splice(i, 1);
   else m.demanded.push(pid);
   renderPeaceModal();
+}
+
+// ── S1: war-goal picker (shown when the human declares war) ───────────────────
+let _wgPickTarget = null;
+function openWarGoalPicker(otherId) {
+  const me = S.players[S.humanId];
+  const other = S.players[otherId];
+  if (!me || !other || other.eliminated) return;
+  if (relation(S.humanId, otherId) === 'war') return;
+  if (me.dp < P1.DP_COST.war) { logT('glog_079', {v0: P1.DP_COST.war}, 'crit'); return; }
+  if (hasTruce(S.humanId, otherId)) { logT('glog_080', {v0: other.name}, 'crit'); return; }
+  _wgPickTarget = otherId;
+  renderWarGoalPicker(otherId);
+  document.getElementById('wargoal-modal').hidden = false;
+}
+function closeWarGoalPicker() {
+  _wgPickTarget = null;
+  document.getElementById('wargoal-modal').hidden = true;
+}
+function renderWarGoalPicker(otherId) {
+  const other = S.players[otherId];
+  if (!other) { closeWarGoalPicker(); return; }
+  const body = document.getElementById('wargoal-body');
+  const btns = ['conquest', 'tribute', 'subjugate'].map(g => {
+    const def = WAR_GOALS[g];
+    return `<button class="wgoal-btn" onclick="pickWarGoal('${otherId}','${g}')">
+      <span class="wg-icon" style="color:${def.col}">${def.icon}</span>
+      <span class="wg-text">
+        <span class="wg-name">${warGoalLabel(g).toUpperCase()}</span>
+        <span class="wg-desc">${T('wgoal_' + g + '_d')}</span>
+      </span>
+    </button>`;
+  }).join('');
+  body.innerHTML = `
+    <div class="peace-summary">${Tpl('wgoal_prompt', {nation: other.name})}</div>
+    <div class="wgoal-list">${btns}</div>
+    <div class="peace-foot"><button class="btn" onclick="closeWarGoalPicker()">${T('ui_cancel')}</button></div>`;
+}
+function pickWarGoal(otherId, type) {
+  closeWarGoalPicker();
+  // Use the (MP-wrapped) global so the action queues for host resolution online.
+  (window.doDiplomacy || doDiplomacy)(otherId, 'declare-war', type);
 }
 
 // ----- AI -----
@@ -8275,17 +8523,21 @@ function aiTurn(pid) {
         if (!p.warScore) p.warScore = {};
         if (!p.warTurns) p.warTurns = {};
         p.warScore[cand.defPid] = 0; p.warTurns[cand.defPid] = 0;
+        setWarGoal(pid, cand.defPid, aiChooseWarGoal(pid, cand.defPid));   // S1: AI war goal
         if (S.players[cand.defPid]) {
           S.players[cand.defPid].warScore = S.players[cand.defPid].warScore || {};
           S.players[cand.defPid].warScore[pid] = 0;
         }
         if (cand.defPid === S.humanId) {
           const reason = aiWarReason(pid, cand.defPid, wasNAP, wasAlly);
+          const _aiGoal = getWarGoal(pid, cand.defPid);
           logT('log_war_decl_you', {nation: p.name}, 'crit');
           log(`↳ ${p.name} ${reason}.`, 'crit');
+          if (_aiGoal) log(`↳ ${Tpl('wgoal_ai_intent', {goal: warGoalLabel(_aiGoal.type)})}`, 'crit');
           showWarAlert(p.name);
           pushNotif({ key: 'war:' + pid, icon: '⚔', cls: 'crit',
-            title: Tpl('notif_war_t', { nation: p.name }), body: T('notif_war_b'),
+            title: Tpl('notif_war_t', { nation: p.name }),
+            body: _aiGoal ? Tpl('notif_war_goal_b', {goal: warGoalLabel(_aiGoal.type)}) : T('notif_war_b'),
             route: { kind: 'province', id: cand.toId } });
         }
       }
@@ -8352,6 +8604,7 @@ function aiTurn(pid) {
       setRelation(pid, otherId, 'peace');
       setTruce(pid, otherId, P1.TRUCE_TURNS);
       delete p.warScore[otherId]; delete p.warTurns[otherId];
+      clearWarGoal(pid, otherId); clearWarGoal(otherId, pid);
       if (S.players[otherId]) {
         delete S.players[otherId].warScore[pid];
         delete S.players[otherId].warTurns[pid];
@@ -10789,14 +11042,14 @@ function renderSelectedPanel() {
       }
     } else if (rel === 'marriage') {
       actions += `<button class="btn" onclick="doBreakMarriage('${c.ownerId}')">${T('act_dissolve_m')} <span class="ap-cost">(-2 DP)</span></button>`;
-      actions += `<button class="btn danger" onclick="doDiplomacy('${c.ownerId}','declare-war')" ${me.dp >= P1.DP_COST.war ? '' : 'disabled'}>${T('act_declare_war_m')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+      actions += `<button class="btn danger" onclick="openWarGoalPicker('${c.ownerId}')" ${me.dp >= P1.DP_COST.war ? '' : 'disabled'}>${T('act_declare_war_m')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
     } else if (rel === 'nap') {
       const napTurns = S.napExpiry && S.napExpiry[`${S.humanId}-${c.ownerId}`] ? S.napExpiry[`${S.humanId}-${c.ownerId}`] - S.turn : '?';
       actions += `<div class="stat-row"><span class="lbl">${T('stat_nap')}</span><span class="val"><span class="truce-badge">${napTurns}${T('stat_left')}</span></span></div>`;
       actions += `<button class="btn ally" onclick="doDiplomacy('${c.ownerId}','ally')" ${me.dp >= P1.DP_COST.ally ? '' : 'disabled'}>${T('act_upgrade_ally')} <span class="ap-cost">(${P1.DP_COST.ally}DP)</span></button>`;
     } else if (rel === 'ally') {
       actions += `<button class="btn" onclick="doDiplomacy('${c.ownerId}','break-ally')">${T('act_break_ally')} <span class="ap-cost">(${P1.DP_COST.breakAlly}DP)</span></button>`;
-      actions += `<button class="btn danger" onclick="doDiplomacy('${c.ownerId}','declare-war')" ${me.dp >= P1.DP_COST.war ? '' : 'disabled'}>${T('act_declare_war_a')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+      actions += `<button class="btn danger" onclick="openWarGoalPicker('${c.ownerId}')" ${me.dp >= P1.DP_COST.war ? '' : 'disabled'}>${T('act_declare_war_a')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
     } else {
       if (truced) {
         const remaining = S.truces[S.humanId][c.ownerId] - S.turn;
@@ -10808,7 +11061,7 @@ function renderSelectedPanel() {
       if (relation(S.humanId, c.ownerId) !== 'marriage')
         actions += `<button class="btn marriage" onclick="doProposeMarriage('${c.ownerId}')" ${me.dp >= P1.DP_COST.marriage ? '' : 'disabled'}>${T('act_marriage')} <span class="ap-cost">(${P1.DP_COST.marriage}DP)</span></button>`;
       if (!truced) {
-        actions += `<button class="btn danger" onclick="doDiplomacy('${c.ownerId}','declare-war')" ${me.dp >= P1.DP_COST.war ? '' : 'disabled'}>${T('act_declare_war')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+        actions += `<button class="btn danger" onclick="openWarGoalPicker('${c.ownerId}')" ${me.dp >= P1.DP_COST.war ? '' : 'disabled'}>${T('act_declare_war')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
       }
     }
   }
@@ -10864,6 +11117,17 @@ function renderSelectedPanel() {
   `;
 }
 
+// S1: banner showing the human's declared war goal against this enemy.
+function goalBannerHtml(goal) {
+  if (!goal) return '';
+  const def = WAR_GOALS[goal.type] || WAR_GOALS.conquest;
+  return `<div class="peace-goal-banner">
+    <span class="pg-icon" style="color:${def.col}">${def.icon}</span>
+    <span><span class="pg-label">${T('wgoal_label')}: ${warGoalLabel(goal.type).toUpperCase()}</span><br>
+    <span style="color:var(--ink-dim);font-size:9px">${T('wgoal_' + goal.type + '_d')}</span></span>
+  </div>`;
+}
+
 function renderPeaceModal() {
   const m = S.peaceModal;
   if (!m.open) return;
@@ -10871,7 +11135,31 @@ function renderPeaceModal() {
   const other = S.players[m.againstId];
   if (!other) { closePeaceModal(); return; }
   const wScore = getWarScore(S.humanId, m.againstId);
-  const cost = m.demanded.length * P1.WAR_SCORE_PER_PROVINCE_DEMAND;
+  const goal = getWarGoal(S.humanId, m.againstId);
+  const enemyTreasury = Math.floor(other.gold || 0);
+  const body = document.getElementById('peace-body');
+
+  // ── Subjugation mode: one all-or-nothing demand, gated only by war score ──
+  if (m.vassalize) {
+    const ok = wScore >= P1.WAR_SCORE_VASSALIZE;
+    body.innerHTML = `
+      ${goalBannerHtml(goal)}
+      <div class="peace-summary">${Tpl('peace_score', {nation: other.name, score: (wScore > 0 ? '+' : '') + Math.round(wScore)})}</div>
+      <div class="peace-subjugate active">
+        <span>${Tpl('peace_subjugate_need', {lands: playerOwned(m.againstId).length, nation: other.name, n: P1.WAR_SCORE_VASSALIZE})}</span>
+        <button class="ps-toggle" onclick="toggleSubjugate()">${T('peace_subjugate_off')}</button>
+      </div>
+      <div class="peace-foot">
+        <button class="btn" onclick="closePeaceModal()">${T('ui_cancel')}</button>
+        <button class="btn confirm" onclick="doNegotiatedPeace()" ${ok ? '' : 'disabled'}>${T('peace_subjugate_do')}</button>
+      </div>`;
+    return;
+  }
+
+  const gold = Math.max(0, Math.min(m.goldDemand || 0, enemyTreasury));
+  const tributeSteps = Math.ceil(gold / P1.TRIBUTE_STEP);
+  const cost = m.demanded.length * P1.WAR_SCORE_PER_PROVINCE_DEMAND
+             + tributeSteps * P1.WAR_SCORE_PER_TRIBUTE_STEP;
   const remaining = wScore - cost;
   const enemyLands = playerOwned(m.againstId);
   // Sort: enemy lands bordering yours first
@@ -10891,14 +11179,32 @@ function renderPeaceModal() {
     </button>`;
   }).join('');
 
-  const body = document.getElementById('peace-body');
+  const tributeHtml = `
+    <div class="peace-tribute">
+      <span>${T('peace_tribute_label')} <span style="color:var(--ink-dim);font-size:9px">(${T('peace_tribute_treasury')} ${enemyTreasury}g)</span></span>
+      <span class="pt-controls">
+        <button class="pt-step" onclick="adjustTribute(-1)" ${gold <= 0 ? 'disabled' : ''}>−</button>
+        <span class="pt-amount">${gold}g</span>
+        <button class="pt-step" onclick="adjustTribute(1)" ${gold >= enemyTreasury ? 'disabled' : ''}>+</button>
+      </span>
+    </div>`;
+
+  // Offer subjugation once the war is decisively won (or nearly so).
+  const subjugateHtml = wScore >= P1.WAR_SCORE_VASSALIZE - 25 ? `
+    <div class="peace-subjugate">
+      <span>${Tpl('peace_subjugate_offer', {n: P1.WAR_SCORE_VASSALIZE})}</span>
+      <button class="ps-toggle" onclick="toggleSubjugate()">${T('peace_subjugate_on')}</button>
+    </div>` : '';
+
   body.innerHTML = `
+    ${goalBannerHtml(goal)}
     <div class="peace-summary">
-      War with <strong>${other.name}</strong>.<br>
-      Your war score: <span class="num">${wScore > 0 ? '+' : ''}${Math.round(wScore)}</span> · Selected demands cost <span class="num">${cost}</span> (each province = ${P1.WAR_SCORE_PER_PROVINCE_DEMAND}).<br>
-      Remaining buffer: <span class="num" style="color:${remaining < -10 ? 'var(--red-warn)' : 'var(--green)'}">${remaining}</span>
+      ${Tpl('peace_summary', {nation: other.name, score: (wScore > 0 ? '+' : '') + Math.round(wScore), cost: cost})}<br>
+      ${T('peace_buffer')} <span class="num" style="color:${remaining < -10 ? 'var(--red-warn)' : 'var(--green)'}">${remaining}</span>
     </div>
     <div class="peace-provs">${provHtml || `<div class="selected-empty">${T('ui_no_provinces_claim')}</div>`}</div>
+    ${tributeHtml}
+    ${subjugateHtml}
     <div class="peace-foot">
       <button class="btn" onclick="closePeaceModal()">${T('ui_cancel')}</button>
       <button class="btn confirm" onclick="doNegotiatedPeace()" ${remaining < -10 ? 'disabled' : ''}>${T('ui_dictate_peace')}</button>
@@ -10928,6 +11234,11 @@ window.openPeaceModal = openPeaceModal;
 window.closePeaceModal = closePeaceModal;
 window.togglePeaceDemand = togglePeaceDemand;
 window.doNegotiatedPeace = doNegotiatedPeace;
+window.adjustTribute = adjustTribute;
+window.toggleSubjugate = toggleSubjugate;
+window.openWarGoalPicker = openWarGoalPicker;
+window.closeWarGoalPicker = closeWarGoalPicker;
+window.pickWarGoal = pickWarGoal;
 window.setMoveFraction = function(f) {
   S.moveFraction = f;
   updateHUD();
@@ -11175,6 +11486,7 @@ function deserializeState(snap) {
     if (!S.players[pid].intel) S.players[pid].intel = 0;
     if (!S.players[pid].tradeRoutes) S.players[pid].tradeRoutes = [];
     if (!S.players[pid].grudges) S.players[pid].grudges = {};
+    if (!S.players[pid].warGoal) S.players[pid].warGoal = {};
     if (!S.players[pid].personality) assignPersonality(pid);
   }
   for (const cid in S.countries) {
