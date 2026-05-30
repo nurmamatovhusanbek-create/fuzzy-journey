@@ -1471,6 +1471,16 @@
   }
   .era-obj-claim-btn:hover { background: rgba(212,160,23,0.1); }
 
+  /* ── A2 DYNAMIC MISSION (DIRECTIVE) PANEL ────────────────── */
+  .mission-panel {
+    margin-top: 10px; border-top: 1px solid rgba(212,160,23,0.15);
+    padding-top: 8px;
+  }
+  .mission-meta {
+    font-size: 9px; color: var(--ink-dim); opacity: .75;
+    padding: 2px 0 0 0; letter-spacing: .04em;
+  }
+
   /* ── RICH DEFEAT SCREEN additions ───────────────────────── */
   .go-conqueror-block {
     padding: 12px 20px; background: rgba(100,20,20,0.13);
@@ -2059,6 +2069,7 @@
       <div id="loan-list"></div>
       <div class="vc-panel" id="vc-progress"></div>
       <div class="era-obj-panel" id="era-obj-panel"></div>
+      <div class="mission-panel" id="mission-panel"></div>
     </div>
   </div>
 
@@ -2691,6 +2702,28 @@ en: {
   glog_098: 'Era objective: Industrialist. +100mp',
   glog_099: 'Era objective: World power. +300g +6MP',
   glog_100: 'Era objective: Technological supremacy. +250g',
+  // ── A2 dynamic missions (rolling directives) ──
+  mission_head: '▸ DIRECTIVE',
+  mission_none: 'Next directive incoming…',
+  mission_turns_left: '{n}t',
+  mission_reward: 'Reward',
+  mission_expand: 'Control {n} territories',
+  mission_economy: 'Amass {n} gold',
+  mission_conquer: 'Seize a province from {rival}',
+  mission_survive: 'Endure {n} turns of war',
+  mission_era: 'Advance to the {era} era',
+  mission_develop: 'Develop {n} provinces to level {d}+',
+  mission_ally: 'Forge a new alliance',
+  rwg: 'g', rwmp: 'mp', rwMP: 'MP', rwdp: 'DP',
+  gmission_new: '📋 New directive: {label}.',
+  gmission_done: '✅ Directive complete: {label}. {reward}',
+  gmission_fail: '⌛ Directive expired: {label}.',
+  notif_mission_t: 'New Directive',
+  notif_mission_b: 'A fresh objective awaits.',
+  notif_mdone_t: 'Directive Complete',
+  notif_mdone_b: 'Objective met — reward claimed.',
+  notif_mfail_t: 'Directive Expired',
+  notif_mfail_b: 'Time ran out on your objective.',
   glog_101: '{v0} submits to {v1} as a vassal state. Sovereignty is lost — but the flame endures.',
   glog_102: 'You must pay tribute: -15g/turn for {v0} turns. Fight back and reclaim independence.',
   glog_103: 'DESPERATE LEVY — Every soul capable of holding a weapon is conscripted. +60 army, −45 stability, −40 manpower.',
@@ -3560,6 +3593,28 @@ ru: {
   glog_098: 'Задача эпохи: Индустриалист. +100лр',  /* RU done */
   glog_099: 'Задача эпохи: Мировая держава. +300з +6ОП',  /* RU done */
   glog_100: 'Задача эпохи: Технологическое превосходство. +250з',  /* RU done */
+  // ── A2 dynamic missions (rolling directives) ──
+  mission_head: '▸ ДИРЕКТИВА',
+  mission_none: 'Новая директива скоро…',
+  mission_turns_left: '{n}х',
+  mission_reward: 'Награда',
+  mission_expand: 'Контролируйте {n} территорий',
+  mission_economy: 'Накопите {n} золота',
+  mission_conquer: 'Захватите провинцию у {rival}',
+  mission_survive: 'Продержитесь {n} ходов войны',
+  mission_era: 'Достигните эпохи «{era}»',
+  mission_develop: 'Развейте {n} провинций до уровня {d}+',
+  mission_ally: 'Заключите новый союз',
+  rwg: 'з', rwmp: 'лр', rwMP: 'ОП', rwdp: 'ОД',
+  gmission_new: '📋 Новая директива: {label}.',
+  gmission_done: '✅ Директива выполнена: {label}. {reward}',
+  gmission_fail: '⌛ Директива истекла: {label}.',
+  notif_mission_t: 'Новая директива',
+  notif_mission_b: 'Ждёт свежая цель.',
+  notif_mdone_t: 'Директива выполнена',
+  notif_mdone_b: 'Цель достигнута — награда получена.',
+  notif_mfail_t: 'Директива истекла',
+  notif_mfail_b: 'Время на выполнение вышло.',
   glog_101: '{v0} склоняется перед {v1} как вассальное государство. Суверенитет утрачен — но огонь не угас.',  /* RU done */
   glog_102: 'Вы обязаны выплачивать дань: -15з/ход на {v0} ходов. Сражайтесь и верните независимость.',  /* RU done */
   glog_103: 'ОТЧАЯННЫЙ ПРИЗЫВ — Каждый, способный держать оружие, призван под знамёна. +60 армии, −45 стабильности, −40 людских ресурсов.',  /* RU done */
@@ -5685,7 +5740,12 @@ const S = {
   lastStandFired:   false,
   vassalOf:         null,
   vassalTurnsLeft:  0,
-  eraObjectives:    {}
+  eraObjectives:    {},
+  // ── A2 dynamic missions (rolling directives) ──
+  mission:          null,   // active directive: {type, params, snap, reward, start, deadline}
+  missionCD:        0,      // turn until the next directive may be generated
+  missionsDone:     0,      // count of completed directives
+  lastMissionType:  null    // last directive type (to vary the next pick)
 };
 
 let canvas, ctx, projection, path;
@@ -7863,6 +7923,7 @@ function startGame(humanCountryId) {
   document.body.classList.toggle('flatmap-full', S.mapMode === 'flat');
   render();
   clearNotifs(); refreshNotifs();
+  checkMission();           // A2: seed the first directive immediately
 
   // Show tutorial on first play; afterwards accessible via ❓
   if (!localStorage.getItem('tb_tutorial_seen')) {
@@ -9236,9 +9297,12 @@ function endTurn() {
   checkHistoricalEvents();
   // ---- Era objectives ----
   checkEraObjectives();
+  // ---- A2 dynamic missions ----
+  checkMission();
   // ---- Stats panel auto-refresh ----
   renderStatsPanel();
   renderEraObjectives();
+  renderMissionPanel();
   // ---- Last stand check ----
   checkLastStand();
   // ---- Vassal tribute ----
@@ -9463,6 +9527,215 @@ function renderEraObjectives() {
   el.innerHTML = `<div class="era-obj-head"><span>▸ ERA OBJECTIVES</span><span style="color:#555">${done.length}/${relevant.length}</span></div>${rows}`;
 }
 window.renderEraObjectives = renderEraObjectives;
+
+// ============================================================================
+// A2 — DYNAMIC MISSIONS (rolling per-nation directives)
+// ----------------------------------------------------------------------------
+// One active directive at a time, themed to the human's situation. On
+// completion → reward + notif + short cooldown, then a new one is generated;
+// on expiry → it fades and a fresh directive rolls. State lives in S
+// (S.mission/missionCD/missionsDone/lastMissionType) — plain serialisable
+// objects, mirroring S.eraObjectives — so it survives save/load & MP sync
+// with no new message type. The MISSION_TYPES registry holds the (non-
+// serialised) logic; the mission object only stores data.
+// ============================================================================
+const MISSION_TYPES = {
+  expand: {
+    icon: '🗺',
+    weight(c) { return c.atWar ? 0.6 : 1.4; },
+    gen(c)    { const t = c.owned.length + 2 + Math.floor(Math.random() * 2);
+                return { params: { target: t }, reward: { gold: 120, manpower: 60 }, turns: 12 }; },
+    label(m)  { return Tpl('mission_expand', { n: m.params.target }); },
+    progress(m){ return { cur: playerOwned(S.humanId).length, max: m.params.target }; },
+    check(m)  { return playerOwned(S.humanId).length >= m.params.target; },
+  },
+  economy: {
+    icon: '💰',
+    weight(c) { return c.me.gold < 300 ? 1.3 : 0.7; },
+    gen(c)    { const t = Math.ceil((c.me.gold + 250) / 50) * 50;
+                return { params: { target: t }, reward: { dp: 4, manpower: 80 }, turns: 12 }; },
+    label(m)  { return Tpl('mission_economy', { n: m.params.target }); },
+    progress(m){ return { cur: S.players[S.humanId].gold, max: m.params.target }; },
+    check(m)  { return S.players[S.humanId].gold >= m.params.target; },
+  },
+  conquer: {
+    icon: '⚔',
+    weight(c) { return c.rival ? (c.atWar ? 2.2 : 1.0) : 0; },
+    gen(c)    { const rid = c.rival; const snap = playerOwned(rid);
+                return { params: { rivalId: rid, rival: S.players[rid].name }, snap, reward: { gold: 150, manpower: 100 }, turns: 14 }; },
+    label(m)  { return Tpl('mission_conquer', { rival: m.params.rival }); },
+    progress() { return null; },
+    check(m)  { return Array.isArray(m.snap) && m.snap.some(id => S.countries[id] && S.countries[id].ownerId === S.humanId); },
+  },
+  survive: {
+    icon: '🛡',
+    weight(c) { return c.atWar ? 1.8 : 0; },
+    gen()     { const n = 5; return { params: { n, endTurn: S.turn + n }, reward: { gold: 120, manpower: 80 }, turns: n }; },
+    label(m)  { return Tpl('mission_survive', { n: m.params.n }); },
+    progress(m){ return { cur: Math.max(0, m.params.n - (m.params.endTurn - S.turn)), max: m.params.n }; },
+    check(m)  { return S.turn >= m.params.endTurn; },
+  },
+  reach_era: {
+    icon: '🔬',
+    weight(c) { return c.me.era < c.maxEra ? 1.4 : (c.me.era < 4 ? 0.7 : 0); },
+    gen(c)    { const t = Math.min(c.me.era + 1, 4); return { params: { target: t }, reward: { gold: 150, dp: 4 }, turns: 14 }; },
+    label(m)  { return Tpl('mission_era', { era: T(ERAS[m.params.target].name) }); },
+    progress(m){ return { cur: S.players[S.humanId].era, max: m.params.target }; },
+    check(m)  { return S.players[S.humanId].era >= m.params.target; },
+  },
+  develop: {
+    icon: '🏛',
+    weight(c) { return c.atWar ? 0.5 : 1.0; },
+    gen(c)    { const d = 3; const cur = c.owned.filter(id => S.countries[id].development >= d).length;
+                return { params: { d, target: cur + 2 }, reward: { gold: 160 }, turns: 12 }; },
+    label(m)  { return Tpl('mission_develop', { n: m.params.target, d: m.params.d }); },
+    progress(m){ return { cur: playerOwned(S.humanId).filter(id => S.countries[id].development >= m.params.d).length, max: m.params.target }; },
+    check(m)  { return playerOwned(S.humanId).filter(id => S.countries[id].development >= m.params.d).length >= m.params.target; },
+  },
+  ally: {
+    icon: '🤝',
+    weight(c) { return c.allies === 0 ? 1.6 : (c.allies < 2 ? 0.7 : 0.2); },
+    gen(c)    { return { params: { target: c.allies + 1 }, reward: { dp: 6, gold: 80 }, turns: 12 }; },
+    label()   { return T('mission_ally'); },
+    progress(m){ return { cur: Object.values(S.players[S.humanId].rel || {}).filter(r => r === 'ally').length, max: m.params.target }; },
+    check(m)  { return Object.values(S.players[S.humanId].rel || {}).filter(r => r === 'ally').length >= m.params.target; },
+  },
+};
+
+// Pick the most relevant hostile, bordering, non-allied nation for a conquest directive.
+function _missionRival() {
+  const myLands = playerOwned(S.humanId);
+  const borderers = {};
+  for (const id of myLands) {
+    for (const nid of (S.countries[id].neighbors || [])) {
+      const c = S.countries[nid];
+      if (!c || c.ownerId === S.humanId) continue;
+      const o = c.ownerId;
+      if (!S.players[o] || S.players[o].eliminated) continue;
+      const r = relation(S.humanId, o);
+      if (r === 'ally' || r === 'marriage') continue;
+      borderers[o] = (borderers[o] || 0) + 1;
+    }
+  }
+  const ids = Object.keys(borderers);
+  if (!ids.length) return null;
+  const atWarIds = ids.filter(o => relation(S.humanId, o) === 'war');
+  const pool = atWarIds.length ? atWarIds : ids;
+  pool.sort((a, b) => borderers[b] - borderers[a]);
+  return pool[0];
+}
+
+function missionLabel(m) {
+  const def = MISSION_TYPES[m && m.type];
+  return def ? def.label(m) : '';
+}
+
+// Compact bilingual reward string, e.g. "+120g +60mp" / "+120з +60лр".
+function fmtReward(r) {
+  if (!r) return '';
+  const parts = [];
+  if (r.gold)     parts.push('+' + r.gold + T('rwg'));
+  if (r.manpower) parts.push('+' + r.manpower + T('rwmp'));
+  if (r.mp)       parts.push('+' + r.mp + T('rwMP'));
+  if (r.dp)       parts.push('+' + r.dp + T('rwdp'));
+  return parts.join(' ');
+}
+
+function grantMissionReward(r) {
+  const me = S.players[S.humanId];
+  if (!me || !r) return;
+  if (r.gold)     me.gold     += r.gold;
+  if (r.manpower) me.manpower += r.manpower;
+  if (r.dp)       me.dp       += r.dp;
+  if (r.mp)       me.mp = Math.min(P1.MP_CAP, (me.mp || 0) + r.mp);
+}
+
+function genMission() {
+  const me = S.players[S.humanId];
+  if (!me) return;
+  const ctx = {
+    me,
+    owned: playerOwned(S.humanId),
+    atWar: isAtWar(S.humanId),
+    allies: Object.values(me.rel || {}).filter(r => r === 'ally').length,
+    maxEra: Math.max(0, ...Object.values(S.players).filter(p => !p.eliminated).map(p => p.era || 0)),
+    rival: _missionRival(),
+  };
+  const cands = [];
+  for (const type in MISSION_TYPES) {
+    let w = MISSION_TYPES[type].weight(ctx);
+    if (w <= 0) continue;
+    if (type === S.lastMissionType) w *= 0.2;   // vary the next directive
+    cands.push({ type, w });
+  }
+  if (!cands.length) { S.missionCD = S.turn + 2; return; }
+  const tot = cands.reduce((s, c) => s + c.w, 0);
+  let r = Math.random() * tot, pick = cands[0].type;
+  for (const c of cands) { r -= c.w; if (r <= 0) { pick = c.type; break; } }
+  const def = MISSION_TYPES[pick];
+  const data = def.gen(ctx);
+  S.mission = {
+    type: pick, params: data.params || {}, snap: data.snap || null,
+    reward: data.reward || {}, start: S.turn, deadline: S.turn + (data.turns || 12),
+  };
+  S.lastMissionType = pick;
+  renderMissionPanel();
+  logT('gmission_new', { label: missionLabel(S.mission) }, 'good');
+  pushNotif({ key: 'mission:new:' + S.turn, icon: def.icon || '📋', cls: '',
+    title: T('notif_mission_t'), body: T('notif_mission_b'), route: { kind: 'empire' } });
+}
+
+function checkMission() {
+  if (!S.humanId || S.setupPhase || S.gameOver) return;
+  const me = S.players[S.humanId];
+  if (!me) return;
+  if (S.mission) {
+    const def = MISSION_TYPES[S.mission.type];
+    if (!def) { S.mission = null; S.missionCD = S.turn + 2; }       // unknown type from a newer save
+    else if (def.check(S.mission)) {
+      const m = S.mission;
+      grantMissionReward(m.reward);
+      S.missionsDone = (S.missionsDone || 0) + 1;
+      logT('gmission_done', { label: missionLabel(m), reward: fmtReward(m.reward) }, 'good');
+      pushNotif({ key: 'mission:done:' + m.start, icon: def.icon || '🏅', cls: 'good',
+        title: T('notif_mdone_t'), body: T('notif_mdone_b'), route: { kind: 'empire' } });
+      S.mission = null; S.missionCD = S.turn + 2;
+      renderMissionPanel();
+    } else if (S.turn >= S.mission.deadline) {
+      const m = S.mission;
+      logT('gmission_fail', { label: missionLabel(m) }, 'bad');
+      pushNotif({ key: 'mission:fail:' + m.start, icon: '⌛', cls: '',
+        title: T('notif_mfail_t'), body: T('notif_mfail_b'), route: { kind: 'empire' } });
+      S.mission = null; S.missionCD = S.turn + 2;
+      renderMissionPanel();
+    }
+  }
+  if (!S.mission && S.turn >= (S.missionCD || 0)) genMission();
+}
+
+function renderMissionPanel() {
+  const el = document.getElementById('mission-panel');
+  if (!el) return;
+  const me = S.players[S.humanId];
+  if (!me) { el.innerHTML = ''; return; }
+  const m = S.mission;
+  let body;
+  if (m) {
+    const def = MISSION_TYPES[m.type] || {};
+    const left = Math.max(0, m.deadline - S.turn);
+    const prog = def.progress ? def.progress(m) : null;
+    const progTxt = prog ? ` <span style="color:#555">(${prog.cur}/${prog.max})</span>` : '';
+    body = `<div class="era-obj-row era-obj-active">
+        <span class="era-obj-text">${def.icon || '📋'} ${missionLabel(m)}${progTxt}</span>
+        <span class="era-obj-status era-obj-active">${Tpl('mission_turns_left', { n: left })}</span>
+      </div>
+      <div class="mission-meta">${T('mission_reward')}: ${fmtReward(m.reward)}</div>`;
+  } else {
+    body = `<div class="era-obj-row"><span class="era-obj-text" style="opacity:.5">${T('mission_none')}</span></div>`;
+  }
+  el.innerHTML = `<div class="era-obj-head"><span>${T('mission_head')}</span><span style="color:#555">${S.missionsDone || 0}✓</span></div>${body}`;
+}
+window.renderMissionPanel = renderMissionPanel;
 
 // ============================================================================
 // LAST STAND — fires when player is down to 1 province
@@ -11422,6 +11695,8 @@ function updateHUD() {
 
   // Era objectives
   renderEraObjectives();
+  // A2 dynamic missions
+  renderMissionPanel();
 
   // Loans
   const loanEl = document.getElementById('loan-list');
@@ -12016,6 +12291,10 @@ function deserializeState(snap) {
   if (!S.firedHistEvents) S.firedHistEvents = {};
   if (!S.globalModifiers) S.globalModifiers = {};
   if (!S.difficulty) S.difficulty = 'normal';
+  if (S.mission === undefined) S.mission = null;
+  if (S.missionCD === undefined) S.missionCD = 0;
+  if (S.missionsDone === undefined) S.missionsDone = 0;
+  if (S.lastMissionType === undefined) S.lastMissionType = null;
   if (!S.mapMode) S.mapMode = 'globe';
   document.body.classList.toggle('flatmap-full', S.mapMode === 'flat');
   for (const pid in S.players) {
