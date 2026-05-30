@@ -392,7 +392,7 @@
   }
   #log-float .lf-close:hover { color: var(--ink); }
   #log-float .chron-tabs { flex-shrink: 0; padding: 6px 10px 0; display: flex; gap: 4px; flex-wrap: wrap; }
-  #log-float #log-content { overflow-y: auto; padding: 8px 12px; flex: 1; }
+  #log-float #log-content { overflow-y: auto; padding: 8px 12px; flex: 1; max-height: none; }
 
   /* move-mode banner */
   .move-mode-banner {
@@ -1113,10 +1113,20 @@
     padding: 24px; overflow-y: auto;
   }
   .go-card {
-    width: 100%; max-width: 560px;
+    width: 100%; max-width: 960px;
     max-height: calc(100vh - 48px); overflow-y: auto;
     background: var(--bg-1); border: 1px solid var(--border);
     box-shadow: 0 0 80px rgba(212,160,23,0.12);
+  }
+  /* Horizontal two-column body: banner spans top, stats/chronicle | leaderboard side by side */
+  .go-cols { display: flex; align-items: stretch; }
+  .go-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+  .go-col-left { border-right: 1px solid var(--border); }
+  .go-col-left .go-stats { margin-top: auto; }
+  .go-col-right .go-leaderboard { flex: 1; border-bottom: none; }
+  @media (max-width: 720px) {
+    .go-cols { flex-direction: column; }
+    .go-col-left { border-right: none; border-bottom: 1px solid var(--border); }
   }
   .go-banner {
     padding: 24px 28px 18px;
@@ -2430,6 +2440,7 @@ en: {
   go_war_much: 'fought wars across much of their reign',
   go_war_balanced: 'balanced war and peace',
   go_play_again: '▸ PLAY AGAIN',
+  go_continue: '⏵ CONTINUE PLAYING',
   go_save_final: '💾 SAVE FINAL STATE',
   go_ms_world_power: '🌐 World Power',
   go_ms_empire: '⚔ Empire',
@@ -3018,6 +3029,7 @@ ru: {
   go_war_much: 'воевавший большую часть своего правления',
   go_war_balanced: 'умело сочетавший войну и мир',
   go_play_again: '▸ ИГРАТЬ СНОВА',
+  go_continue: '⏵ ПРОДОЛЖИТЬ ИГРУ',
   go_save_final: '💾 СОХРАНИТЬ ФИНАЛЬНОЕ СОСТОЯНИЕ',
   go_ms_world_power: '🌐 Мировая держава',
   go_ms_empire: '⚔ Империя',
@@ -5741,6 +5753,7 @@ const S = {
   vassalOf:         null,
   vassalTurnsLeft:  0,
   eraObjectives:    {},
+  endlessMode:      false,  // set true when the player continues past a victory
   // ── A2 dynamic missions (rolling directives) ──
   mission:          null,   // active directive: {type, params, snap, reward, start, deadline}
   missionCD:        0,      // turn until the next directive may be generated
@@ -9841,6 +9854,9 @@ function checkVictory() {
     showGameOver('eliminated', null, null);
     return;
   }
+  // Endless mode: the player chose to keep playing past a victory — only
+  // elimination (handled above) ends the game now. Keep the progress bars live.
+  if (S.endlessMode) { renderVCProgress(); return; }
   // Check all victory conditions for every player
   for (const vc of VICTORY_CONDITIONS) {
     for (const pid in S.players) {
@@ -10001,25 +10017,49 @@ function showGameOver(outcome, victor, vc) {
     </div>`;
   }).join('');
 
+  // On a human victory, let the player keep going instead of ending the game.
+  const continueBtn = (outcome === 'won')
+    ? `<button class="btn-secondary" onclick="continuePlaying()">${T('go_continue')}</button>`
+    : '';
+
   card.innerHTML = `
     <div class="go-banner">
       <div class="go-condition">${conditionLine}</div>
       <div class="go-title ${titleClass}">${titleText}</div>
       <div class="go-subtitle">${subtitleText}</div>
     </div>
-    ${conquerorHtml}
-    ${chronicleHtml}
-    ${milestonesHtml}
-    ${statsHtml}
-    <div class="go-leaderboard">
-      <div class="go-lb-title" data-i18n="ui_final_standings">FINAL STANDINGS</div>
-      ${lbRows}
+    <div class="go-cols">
+      <div class="go-col go-col-left">
+        ${conquerorHtml}
+        ${chronicleHtml}
+        ${milestonesHtml}
+        ${statsHtml}
+      </div>
+      <div class="go-col go-col-right">
+        <div class="go-leaderboard">
+          <div class="go-lb-title" data-i18n="ui_final_standings">FINAL STANDINGS</div>
+          ${lbRows}
+        </div>
+      </div>
     </div>
     <div class="go-actions">
       <button class="btn-primary" onclick="location.reload()">${T('go_play_again')}</button>
+      ${continueBtn}
       <button class="btn-secondary" onclick="openSaveModal()">${T('go_save_final')}</button>
     </div>`;
 }
+
+// A2/endgame: dismiss the victory screen and play on. Suppresses future
+// victory-triggered game-overs (the empire panel keeps showing dominance);
+// only elimination remains terminal.
+function continuePlaying() {
+  S.gameOver = false;
+  S.endlessMode = true;
+  const el = document.getElementById('game-over');
+  if (el) el.hidden = true;
+  if (typeof updateHUD === 'function') updateHUD();
+}
+window.continuePlaying = continuePlaying;
 
 
 
@@ -12173,6 +12213,23 @@ function handleEscape() {
     const mb = document.getElementById('move-banner'); if (mb) mb.hidden = true;
     render(); return true;
   }
+  // Close any open docked side-panel (empire / selection / tech / diplo / chronicle),
+  // even when no province is selected — otherwise Esc "refuses to close" them.
+  if (typeof PANEL_IDS !== 'undefined') {
+    let panelOpen = false;
+    for (const k in PANEL_IDS) {
+      const pe = document.getElementById(PANEL_IDS[k]);
+      if (!pe) continue;
+      if (k === 'selection') { if (!pe.classList.contains('hidden-float')) panelOpen = true; }
+      else if (pe.style.display && pe.style.display !== 'none') panelOpen = true;
+    }
+    if (panelOpen) {
+      hideAllPanels();
+      if (S.selectedId) { S.selectedId = null; render(); }
+      if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+      return true;
+    }
+  }
   if (S.selectedId) {
     S.selectedId = null; render();
     if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
@@ -12291,6 +12348,7 @@ function deserializeState(snap) {
   if (!S.firedHistEvents) S.firedHistEvents = {};
   if (!S.globalModifiers) S.globalModifiers = {};
   if (!S.difficulty) S.difficulty = 'normal';
+  if (S.endlessMode === undefined) S.endlessMode = false;
   if (S.mission === undefined) S.mission = null;
   if (S.missionCD === undefined) S.missionCD = 0;
   if (S.missionsDone === undefined) S.missionsDone = 0;
