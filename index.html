@@ -562,6 +562,8 @@
   .arch-open-row { cursor:pointer; transition:background .15s; }
   .arch-open-row:hover { background:rgba(212,160,23,0.10); }
   .arch-open-row .val { text-decoration:underline dotted rgba(212,160,23,0.5); text-underline-offset:2px; }
+  /* Intelligence-report freshness tag on a revealed rival stat. */
+  .intel-fresh { font-size:8px; color:var(--gold-bright); margin-left:4px; vertical-align:middle; letter-spacing:0; }
   .arch-card {
     display:flex; flex-direction:column; align-items:center;
     background:#0b0f1e; border:1px solid rgba(255,255,255,0.06); border-radius:4px;
@@ -588,6 +590,9 @@
     font-size:10px; color:#6b6352; text-align:center; line-height:1.6; letter-spacing:.02em;
     width:100%; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);
   }
+  /* Footer pinned to the bottom so the bonus tag + APPOINT button line up across
+     all five cards regardless of how many lines the lore wraps to. */
+  .arch-foot { margin-top:auto; width:100%; display:flex; flex-direction:column; align-items:center; padding-top:10px; }
   /* appointment */
   .arch-appoint {
     max-width:640px; margin:0 auto 4px; padding:12px 16px; border-radius:4px;
@@ -600,7 +605,7 @@
   .arch-ap-bonus { font-size:10px; color:var(--green); letter-spacing:.02em; }
   .arch-ap-meta { font-size:9px; letter-spacing:.06em; color:#8a8270; text-align:right; }
   .arch-ap-meta .warn { color:var(--gold-bright); }
-  .arch-bonus-tag { font-size:9px; color:var(--green); letter-spacing:.02em; margin-top:8px; text-align:center; min-height:11px; }
+  .arch-bonus-tag { font-size:9px; color:var(--green); letter-spacing:.02em; margin-top:0; text-align:center; min-height:11px; }
   .arch-appoint-btn {
     margin-top:8px; width:100%; padding:6px 8px; cursor:pointer;
     font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
@@ -2906,6 +2911,8 @@ en: {
   stat_era:         '▸ ERA',
   stat_terrain:     '▸ TERRAIN',
   stat_general:     '▸ GENERAL',
+  stat_commander:   '▸ COMMANDER',
+  intel_revealed:   'Revealed by Intelligence Report — turns left',
   stat_disposition: '▸ DISPOSITION',
   // ── AI leader temperaments (S5) ───────────────────────────────────────────
   pers_conqueror:    'Conqueror',
@@ -3879,6 +3886,8 @@ ru: {
   stat_era:         '▸ ЭПОХА',
   stat_terrain:     '▸ МЕСТНОСТЬ',
   stat_general:     '▸ ПОЛКОВОДЕЦ',
+  stat_commander:   '▸ КОМАНДУЮЩИЙ',
+  intel_revealed:   'Раскрыто разведдокладом — осталось ходов',
   stat_disposition: '▸ НРАВ',
   // ── Нравы правителей ИИ (S5) ──────────────────────────────────────────────
   pers_conqueror:    'Завоеватель',
@@ -5087,6 +5096,7 @@ function renderQuickTradeBtn(provinceId) {
 // ============================================================================
 const INTEL_CAP = 20;
 const INTEL_REGEN_BASE = 2;
+const INTEL_REVEAL_TURNS = 3;   // turns an Intelligence Report keeps a rival's stats visible in the panel
 
 function calcIntelRegen() {
   const p = S.players[S.humanId];
@@ -5106,6 +5116,10 @@ const SPY_OPS = [
       if (!c || !op) return;
       const popStr = c.population >= 1000 ? (c.population / 1000).toFixed(1) + 'M' : c.population + 'K';
       logT('glog_016', {v0: c.name, v1: op.gold, v2: c.army, v3: Math.round(c.stability), v4: T(ERAS[op.era].name), v5: popStr}, 'self');
+      // Persist the reveal so the province panel shows the real stats (not 🔒)
+      // for a few turns — the intel only goes stale, it doesn't vanish at turn end.
+      if (!S.revealedIntel) S.revealedIntel = {};
+      S.revealedIntel[tid] = S.turn + INTEL_REVEAL_TURNS;
     }
   },
   {
@@ -8321,6 +8335,7 @@ function startGame(humanCountryId) {
   _turnSummaryQueue = [];
   S.forgeClaims = {};
   S.corruptedGenerals = {};
+  S.revealedIntel = {};   // countryId → turn until an Intelligence Report's reveal goes stale
   // Apply historical scenario (runs after all state initialised)
   if (S.activeScenario) applyScenario(S.activeScenario, humanCountryId);
   document.getElementById('setup').hidden = true;
@@ -9323,11 +9338,25 @@ function _archRadar(series, size){
 // ── State + lifecycle ──────────────────────────────────────────────────────
 const _archSel = new Set();   // selected archetype ids (client-local, not in S)
 let _archRAF = null, _archStart = null, _archHot = {};
+let _archReference = false;    // true = reference-only view (no appoint controls)
 
 function archStats(p){ return { aggr:p.aggr, econ:p.econ, dipl:p.dipl, def:p.def }; }
 
-function openArchetypes(focusId){
+// Appointed-commander badge for the selection panel (the player's own nation).
+function commanderBadge(pid){
+  const p = S.players[pid];
+  if (!p || !p.commander) {
+    return `<span class="pers-badge" style="color:var(--ink-dim);border-color:var(--border);background:transparent">${T('arch_none')}</span>`;
+  }
+  const a = AI_PERSONALITIES.find(x => x.id === p.commander);
+  if (!a) return '';
+  const nm = T('pers_' + a.id) || a.label;
+  return `<span class="pers-badge" style="color:${a.col};border-color:${a.col}55;background:${a.col}1f">${a.icon} ${nm.toUpperCase()}</span>`;
+}
+
+function openArchetypes(focusId, referenceOnly){
   _closeSettings();
+  _archReference = !!referenceOnly;   // opened from an enemy badge → reference only (no appointing)
   _archSel.clear(); _archHot = {};
   if (focusId && AI_PERSONALITIES.some(p => p.id === focusId)) _archSel.add(focusId);
   document.getElementById('archetypes-modal').hidden = false;
@@ -9340,9 +9369,10 @@ function closeArchetypes(){
   document.getElementById('archetypes-modal').hidden = true;
   if (_archRAF){ cancelAnimationFrame(_archRAF); _archRAF = null; }
 }
-function archBadgeClick(e, id){ if (e) e.stopPropagation(); openArchetypes(id); }
-// Opened from the GENERAL row in the selection panel.
-function archOpenRow(e){ if (e) e.stopPropagation(); openArchetypes(); }
+// Clicking another nation's temperament badge opens the REFERENCE (no appointing).
+function archBadgeClick(e, id){ if (e) e.stopPropagation(); openArchetypes(id, true); }
+// Opened from the player's own COMMANDER row → appointment view.
+function archOpenRow(e){ if (e) e.stopPropagation(); openArchetypes(null, false); }
 window.openArchetypes = openArchetypes;
 window.closeArchetypes = closeArchetypes;
 window.archBadgeClick = archBadgeClick;
@@ -9375,8 +9405,7 @@ function _archBuildGrid(){
       `<span class="arch-name" style="color:${hex};border-color:${hex}44;background:${hex}22">${p.icon} ${name}</span>` +
       `<div class="arch-radar"></div>` +
       `<div class="arch-lore">${lore}</div>` +
-      `<div class="arch-bonus-tag">${T('arch_bonus_' + p.id)}</div>` +
-      _archBtnHTML(p.id);
+      `<div class="arch-foot"><div class="arch-bonus-tag">${T('arch_bonus_' + p.id)}</div>${_archBtnHTML(p.id)}</div>`;
     card.querySelector('.arch-radar').appendChild(_archRadar([{ stats: archStats(p), col: hex }], 132));
     const fr = card.querySelector('.arch-frame');
     fr.addEventListener('mouseenter', () => { _archHot[p.id] = true; });
@@ -9517,8 +9546,9 @@ function archAppointClick(e, id){
   if (modal && !modal.hidden){ _archBuildGrid(); _archRenderAppoint(); _archRenderCompare(); }
 }
 
-// Per-card appoint button (reference-only when no game is running).
+// Per-card appoint button (omitted in reference-only mode or with no game running).
 function _archBtnHTML(id){
+  if (_archReference) return '';
   const me = (S.players && S.humanId) ? S.players[S.humanId] : null;
   if (!me) return '';
   if (me.commander === id) return `<button class="arch-appoint-btn active" disabled>${T('arch_active')}</button>`;
@@ -9534,7 +9564,7 @@ function _archRenderAppoint(){
   const box = document.getElementById('arch-appoint');
   if (!box) return;
   const me = (S.players && S.humanId) ? S.players[S.humanId] : null;
-  if (!me){ box.style.display = 'none'; return; }
+  if (!me || _archReference){ box.style.display = 'none'; return; }
   box.style.display = '';
   let lead;
   if (me.commander){
@@ -11427,6 +11457,7 @@ function mpSerialiseS() {
     delete clone.rotation;      // YOUR globe rotation — per-client
     delete clone.scale;         // YOUR zoom — per-client
     delete clone.setupPhase;    // local UI flag, always false post-launch
+    delete clone.revealedIntel; // YOUR intel reveals — per-client, must not leak to rivals
     return clone;
   } catch(e) { console.error('mpSerialiseS error:', e); return {}; }
 }
@@ -12691,6 +12722,13 @@ function renderSelectedPanel() {
       ${spyBtns}`;
   }
 
+  // An active Intelligence Report unlocks the hidden stats in-panel for a few
+  // turns (persists past turn end; the data only goes stale, it doesn't vanish).
+  const intelRevealed = !isOwn && S.revealedIntel && S.revealedIntel[c.id] > S.turn;
+  const showStats = isOwn || intelRevealed;
+  const revealLeft = intelRevealed ? (S.revealedIntel[c.id] - S.turn) : 0;
+  const revealTag = intelRevealed ? ` <span class="intel-fresh" title="${T('intel_revealed')}">🔍${revealLeft}</span>` : '';
+
   body.innerHTML = `
     <div class="selected-head">
       <div class="selected-flag">${flagEmoji(c.code)}</div>
@@ -12700,14 +12738,16 @@ function renderSelectedPanel() {
         <span class="relation-tag ${relTagClass}">${relLabel}</span>
       </div>
     </div>
-    <div class="stat-row"><span class="lbl">${T('stat_army')}</span>${isOwn ? `<span class="val">${c.army}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
-    <div class="stat-row"><span class="lbl">${T('stat_population')}</span>${isOwn ? `<span class="val pop-num">${popDisplay}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
+    <div class="stat-row"><span class="lbl">${T('stat_army')}</span>${showStats ? `<span class="val">${c.army}${isOwn ? '' : revealTag}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
+    <div class="stat-row"><span class="lbl">${T('stat_population')}</span>${showStats ? `<span class="val pop-num">${popDisplay}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_development')}</span><span class="val"><span class="dev-stars">${stars(c.development, 5)}</span></span></div>
-    <div class="stat-row stab-row"><span class="lbl">${T('stat_stability')}</span>${isOwn ? `<span class="val">${stabBar(c.stability)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
-    <div class="stat-row"><span class="lbl">${T('stat_era')}</span>${isOwn ? `<span class="val">${T(ERAS[owner.era].name)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
+    <div class="stat-row stab-row"><span class="lbl">${T('stat_stability')}</span>${showStats ? `<span class="val">${stabBar(c.stability)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
+    <div class="stat-row"><span class="lbl">${T('stat_era')}</span>${showStats ? `<span class="val">${T(ERAS[owner.era].name)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_terrain')}</span><span class="val" style="font-size:9.5px">${getTerrain(c.id).icon} ${T('terrain_' + terrainFor(c.id))}</span></div>
-    ${(() => { const g = generalFor(owner.id); const bribed = S.corruptedGenerals && S.corruptedGenerals[owner.id]; return `<div class="stat-row arch-open-row" onclick="archOpenRow(event)" title="${T('arch_title')}"><span class="lbl">${T('stat_general')}</span><span class="val" style="font-size:9.5px;color:${bribed ? 'var(--red-warn)' : 'var(--ink-dim)'}">${g.icon} ${T(g.nameKey)}${bribed ? ' ⚠' : ''}</span></div>`; })()}
-    ${!isOwn && owner.personality ? `<div class="stat-row"><span class="lbl">${T('stat_disposition')}</span><span class="val">${personalityBadge(owner.id)}</span></div>` : ''}
+    ${(() => { const g = generalFor(owner.id); const bribed = S.corruptedGenerals && S.corruptedGenerals[owner.id]; return `<div class="stat-row"><span class="lbl">${T('stat_general')}</span><span class="val" style="font-size:9.5px;color:${bribed ? 'var(--red-warn)' : 'var(--ink-dim)'}">${g.icon} ${T(g.nameKey)}${bribed ? ' ⚠' : ''}</span></div>`; })()}
+    ${isOwn
+      ? `<div class="stat-row arch-open-row" onclick="archOpenRow(event)" title="${T('arch_title')}"><span class="lbl">${T('stat_commander')}</span><span class="val">${commanderBadge(S.humanId)}</span></div>`
+      : (owner.personality ? `<div class="stat-row"><span class="lbl">${T('stat_disposition')}</span><span class="val">${personalityBadge(owner.id)}</span></div>` : '')}
     ${actions}
     ${isOwn ? renderBuildingSection(c) : ''}
     ${isOwn ? renderQuickTradeBtn(c.id) : ''}
@@ -13101,6 +13141,7 @@ function deserializeState(snap) {
   if (!S.tech) S.tech = { martial: 0, treasury: 0, statecraft: 0 };
   if (!S.forgeClaims) S.forgeClaims = {};
   if (!S.corruptedGenerals) S.corruptedGenerals = {};
+  if (!S.revealedIntel) S.revealedIntel = {};
   if (!S.napExpiry) S.napExpiry = {};
   if (S.coalition === undefined) S.coalition = null;
   if (!S.firedHistEvents) S.firedHistEvents = {};
