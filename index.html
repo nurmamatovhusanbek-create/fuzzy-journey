@@ -537,6 +537,18 @@
   .ap-cost { font-size: 9.5px; color: var(--ink-dim); margin-left: 4px; }
 
   /* Peace modal */
+  /* ── Reconnect status banner (visible feedback during MP reconnect) ── */
+  #mp-reconnect-banner {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 60;
+    display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+    background: rgba(11,15,30,0.96); border: 1px solid var(--gold); border-radius: 4px;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .06em; color: var(--gold-bright);
+  }
+  #mp-reconnect-banner[hidden] { display: none; }
+  #mp-reconnect-banner .mrb-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold-bright); animation: mrbpulse 1s ease-in-out infinite; }
+  @keyframes mrbpulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+
   /* ── Commander Archetypes showcase (AI behaviour reference) ── */
   #archetypes-modal .peace-card { max-width: 940px; }
   #archetypes-body { padding: 4px 18px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
@@ -3052,6 +3064,7 @@ en: {
   mp_coldstart_hint: '(the free server may take ~50s to wake up)',
   mp_connect_failed: '✗ Connection failed — retrying…',
   mp_conn_lost: 'Connection lost. Reconnecting…',
+  mp_reconnect_to: 'Reconnecting to room {code}…',
   mp_reconnecting: 'Reconnecting… (attempt {n}/{max})',
   mp_session_lost: 'Lost the multiplayer session — the server went to sleep and the room was cleared. Start or join a new game.',
   mp_session_lost_reason: 'Multiplayer session ended: {reason}. Start or join a new game.',
@@ -4024,6 +4037,7 @@ ru: {
   mp_coldstart_hint: '(бесплатный сервер может «просыпаться» ~50 сек)',
   mp_connect_failed: '✗ Не удалось подключиться — повтор…',
   mp_conn_lost: 'Соединение потеряно. Переподключение…',
+  mp_reconnect_to: 'Переподключение к комнате {code}…',
   mp_reconnecting: 'Переподключение… (попытка {n}/{max})',
   mp_session_lost: 'Сессия мультиплеера потеряна — сервер уснул и комната очищена. Создайте или присоединитесь к новой игре.',
   mp_session_lost_reason: 'Сессия мультиплеера завершена: {reason}. Создайте или присоединитесь к новой игре.',
@@ -10864,6 +10878,10 @@ function mpConnect(onOpen) {
       // Mid-game drop (often Render spin-down) — try to climb back in.
       mpAppendChat(T('mp_sender_system'), T('mp_conn_lost') || 'Connection lost. Reconnecting…', true);
       mpScheduleReconnect();
+    } else if (MP.reconnectData && !MP.sessionEnded) {
+      // A page-reload reconnect attempt whose socket closed before RECONNECTED
+      // (e.g. a Render cold start aborted it) — keep retrying with backoff.
+      mpScheduleReconnect();
     } else if (!MP.active) {
       // Still in the lobby — let the player retry from the menu.
       const cb = document.getElementById('mp-create-btn'); if (cb) cb.disabled = false;
@@ -10882,7 +10900,9 @@ function mpScheduleReconnect() {
   }
   MP.reconnectTries++;
   const delay = Math.min(15000, Math.round(1500 * Math.pow(1.6, MP.reconnectTries - 1)));
-  mpAppendChat('System', Tpl('mp_reconnecting', { n: MP.reconnectTries, max: MP.maxReconnect }), true);
+  const note = Tpl('mp_reconnecting', { n: MP.reconnectTries, max: MP.maxReconnect });
+  mpAppendChat('System', note, true);
+  mpShowReconnectBanner(note);
   MP.reconnectTimer = setTimeout(() => { MP.reconnectTimer = null; mpAttemptReconnect(); }, delay);
 }
 
@@ -10891,10 +10911,27 @@ function mpEndSession(reason) {
   MP.sessionEnded = true;
   mpStopHeartbeat();
   if (MP.reconnectTimer) { clearTimeout(MP.reconnectTimer); MP.reconnectTimer = null; }
+  MP.reconnectData = null;
+  try { sessionStorage.removeItem('tb_mp_reconnect'); } catch (e) {}
+  mpHideReconnectBanner();
   try { if (MP.ws) { MP.ws.onclose = null; MP.ws.close(); } } catch (e) {}
   const text = reason || T('mp_session_lost') || 'The multiplayer session has ended.';
   if (typeof showDiploResult === 'function') showDiploResult('bad', text, 8000);
   mpAppendChat('System', text, true);
+}
+
+// Visible reconnect feedback. The lobby's #mp-connecting-status is hidden when
+// the overlay is closed (e.g. the page-reload reconnect), so this banner is the
+// one indicator the player can always see while a (re)connect is in flight.
+function mpShowReconnectBanner(text) {
+  const b = document.getElementById('mp-reconnect-banner');
+  const t = document.getElementById('mp-reconnect-text');
+  if (t) t.textContent = text || (T('mp_conn_lost') || 'Connection lost. Reconnecting…');
+  if (b) b.hidden = false;
+}
+function mpHideReconnectBanner() {
+  const b = document.getElementById('mp-reconnect-banner');
+  if (b) b.hidden = true;
 }
 
 function mpSend(msg) {
@@ -11188,33 +11225,53 @@ function mpHandleMessage(msg) {
     case 'RECONNECTED': {
       MP.active     = true;
       MP.reconnectTries = 0; MP.sessionEnded = false;
+      if (MP.reconnectTimer) { clearTimeout(MP.reconnectTimer); MP.reconnectTimer = null; }
       MP.isHost     = msg.isHost;
       MP.myNationId = msg.nationId;
       MP.allNations = msg.allNations || MP.allNations || {};
-      document.body.classList.add('mp-active');
-      if (typeof closeMPOverlay === 'function') closeMPOverlay();
-      // Rebuild the world first (the page was refreshed — S is empty), then
-      // overlay the cached authoritative state if the server had one.
-      if (!S.players || !S.players[msg.nationId]) {
-        mpLaunchGame(msg.nationId, msg.scenario, msg.isHost);
+      // Restore session identity. The server's RECONNECTED carries no playerId,
+      // and on a page reload MP.playerId/roomCode were wiped — recover them from
+      // the reconnect data we sent, or nothing else (chat id, future reconnects)
+      // will work.
+      if (MP.reconnectData) {
+        MP.roomCode = MP.roomCode || MP.reconnectData.code;
+        MP.playerId = MP.playerId || MP.reconnectData.playerId;
       }
-      // Apply cached state after a tick so mpLaunchGame's async init can finish
-      const _applyReconnectState = () => {
+      document.body.classList.add('mp-active');
+      mpHideReconnectBanner();
+      if (typeof closeMPOverlay === 'function') closeMPOverlay();
+
+      if (!msg.nationId) {
+        // Reconnected before any nation was picked — nothing to resume cleanly.
+        mpEndSession(T('mp_session_lost'));
+        break;
+      }
+
+      // The GAME must actually be started for THIS client. On a page reload the
+      // world exists (boot ran initWorld → S.players is full) but startGame never
+      // did, so S.humanId is null. The old guard checked S.players[nationId],
+      // which is ALWAYS truthy post-boot, so it skipped the launch and left a
+      // dead, empty game ("reconnect does nothing"). The real test is whether we
+      // are already playing AS this nation.
+      const needLaunch = (S.humanId !== msg.nationId);
+      const applyReconnectState = () => {
         if (msg.S) {
-          mpApplyResolvedState(msg.S, [], msg.turn);
+          mpApplyResolvedState(msg.S, [], msg.turn);   // adopt host's authoritative state
         } else {
-          // No turn resolved yet — just render the fresh world
-          try { updateHUD(); render(); } catch(e) {}
+          try { updateHUD(); render(); } catch (e) {}   // no turn resolved yet
         }
         mpShowHUD();
         mpShowChat();
-        mpStartCountdown(msg.msRemaining || 120000);
-        try { logT('glog_109', null, 'good'); } catch(e) {}
+        mpStartCountdown(msg.msRemaining || MP.turnMs || 120000);
+        MP.reconnectData = null;
+        try { sessionStorage.removeItem('tb_mp_reconnect'); } catch (e) {}
+        try { logT('glog_109', null, 'good'); } catch (e) {}
       };
-      if (!S.players || !S.players[msg.nationId]) {
-        setTimeout(_applyReconnectState, 300);
+      if (needLaunch) {
+        mpLaunchGame(msg.nationId, msg.scenario, msg.isHost);  // runs startGame → sets S.humanId
+        setTimeout(applyReconnectState, 300);                  // let async init settle
       } else {
-        _applyReconnectState();
+        applyReconnectState();
       }
       break;
     }
@@ -11228,7 +11285,9 @@ function mpHandleMessage(msg) {
       const text = String(msg.message || '');
       // A reconnect that fails because the room/slot is gone (free-tier spin-down
       // wiped state) must NOT keep looping — end the session with a clear notice.
-      if ((MP.active || MP.reconnectTries > 0) && /room|slot|gone|expired|not found/i.test(text)) {
+      // MP.reconnectData covers the page-reload path, where MP.active is still
+      // false and reconnectTries is 0 when the server reports the room is gone.
+      if ((MP.active || MP.reconnectTries > 0 || MP.reconnectData) && /room|slot|gone|expired|not found/i.test(text)) {
         mpEndSession(Tpl('mp_session_lost_reason', { reason: text }));
       } else {
         alert(Tpl('mp_server_prefix', {text}));
@@ -11637,6 +11696,7 @@ function mpAppendChat(name, text, isSystem, isMe) {
 function mpAttemptReconnect() {
   if (MP.sessionEnded) return;
   if (!MP.roomCode || !MP.playerId) { mpEndSession(T('mp_session_lost')); return; }
+  mpShowReconnectBanner(Tpl('mp_reconnect_to', { code: MP.roomCode }));
   mpConnect(() => {
     mpSend({ type: 'RECONNECT', code: MP.roomCode, playerId: MP.playerId });
   });
@@ -11650,21 +11710,24 @@ window.addEventListener('beforeunload', () => {
     }));
   }
 });
-// On load: check for reconnect
+// On load: offer to reconnect to the room the player was in before the reload.
 window.addEventListener('load', () => {
   const saved = sessionStorage.getItem('tb_mp_reconnect');
-  if (saved) {
-    try {
-      const d = JSON.parse(saved);
-      if (d.code && d.playerId) {
-        MP.reconnectData = d;
-        sessionStorage.removeItem('tb_mp_reconnect');
-        // Ask user if they want to reconnect
-        if (confirm(Tpl('mp_reconnect_confirm', {code: d.code}))) {
-          mpConnect(() => mpSend({ type: 'RECONNECT', code: d.code, playerId: d.playerId }));
-        }
-      }
-    } catch {}
+  if (!saved) return;
+  let d; try { d = JSON.parse(saved); } catch { return; }
+  if (!d || !d.code || !d.playerId) { try { sessionStorage.removeItem('tb_mp_reconnect'); } catch (e) {} return; }
+  if (confirm(Tpl('mp_reconnect_confirm', { code: d.code }))) {
+    // Restore the session identity FIRST so the RECONNECTED handler, ERROR guard,
+    // and any cold-start retries all have roomCode/playerId. Then use the single
+    // canonical reconnect path (which sends RECONNECT once the socket opens).
+    MP.reconnectData  = d;
+    MP.roomCode       = d.code;
+    MP.playerId       = d.playerId;
+    MP.sessionEnded   = false;
+    MP.reconnectTries = 0;
+    mpAttemptReconnect();
+  } else {
+    try { sessionStorage.removeItem('tb_mp_reconnect'); } catch (e) {}
   }
 });
 
@@ -13517,6 +13580,13 @@ boot();
   <div id="mp-timer-label">PLANNING PHASE · 2:00</div>
   <div id="mp-timer-bar-wrap"><div id="mp-timer-bar"></div></div>
   <div id="mp-waiting-label"></div>
+</div>
+
+<!-- Reconnect status banner — visible feedback while (re)connecting to a room,
+     including the page-reload path where the lobby overlay is closed. -->
+<div id="mp-reconnect-banner" hidden>
+  <span class="mrb-dot" aria-hidden="true"></span>
+  <span id="mp-reconnect-text"></span>
 </div>
 
 <!-- Centered waiting overlay shown while other players finish their turn -->
