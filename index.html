@@ -550,11 +550,18 @@
   @keyframes mrbpulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
 
   /* ── Commander Archetypes showcase (AI behaviour reference) ── */
-  #archetypes-modal .peace-card { max-width: 940px; }
+  /* Wide enough that all 5 archetypes sit on one row. */
+  #archetypes-modal .peace-card { max-width: 1120px; }
   #archetypes-body { padding: 4px 18px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
   .arch-modebar { text-align:center; padding:2px 0 18px; font-size:9px; letter-spacing:.2em; color:#6b6352; text-transform:uppercase; }
   .arch-modebar .lnk { cursor:pointer; text-decoration:underline; }
-  .arch-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(176px,1fr)); gap:16px; max-width:1100px; margin:0 auto; }
+  .arch-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:14px; max-width:1100px; margin:0 auto; }
+  /* Below the comfortable 5-up width, let the cards wrap instead of clipping. */
+  @media (max-width: 1080px) { .arch-grid { grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); } }
+  /* GENERAL row in the selection panel doubles as the Commander Archetypes opener. */
+  .arch-open-row { cursor:pointer; transition:background .15s; }
+  .arch-open-row:hover { background:rgba(212,160,23,0.10); }
+  .arch-open-row .val { text-decoration:underline dotted rgba(212,160,23,0.5); text-underline-offset:2px; }
   .arch-card {
     display:flex; flex-direction:column; align-items:center;
     background:#0b0f1e; border:1px solid rgba(255,255,255,0.06); border-radius:4px;
@@ -2369,12 +2376,6 @@
     <button class="sdd-item" onclick="sddTutorial()">
       <span class="sdd-icon">❓</span>
       <div><div class="sdd-label" data-i18n="sdd_tutorial">HOW TO PLAY</div><div class="sdd-sub" data-i18n="sdd_tutorial_sub">Replay the guide</div></div>
-    </button>
-  </div>
-  <div class="sdd-section">
-    <button class="sdd-item" onclick="sddArchetypes()">
-      <span class="sdd-icon">⚔</span>
-      <div><div class="sdd-label" data-i18n="sdd_archetypes">COMMANDER ARCHETYPES</div><div class="sdd-sub" data-i18n="sdd_archetypes_sub">AI temperament reference</div></div>
     </button>
   </div>
   <div class="sdd-section">
@@ -9340,11 +9341,12 @@ function closeArchetypes(){
   if (_archRAF){ cancelAnimationFrame(_archRAF); _archRAF = null; }
 }
 function archBadgeClick(e, id){ if (e) e.stopPropagation(); openArchetypes(id); }
+// Opened from the GENERAL row in the selection panel.
+function archOpenRow(e){ if (e) e.stopPropagation(); openArchetypes(); }
 window.openArchetypes = openArchetypes;
 window.closeArchetypes = closeArchetypes;
 window.archBadgeClick = archBadgeClick;
-function sddArchetypes(){ openArchetypes(); }
-window.sddArchetypes = sddArchetypes;
+window.archOpenRow = archOpenRow;
 
 function _archTick(ts){
   if (!_archStart) _archStart = ts;
@@ -12704,7 +12706,7 @@ function renderSelectedPanel() {
     <div class="stat-row stab-row"><span class="lbl">${T('stat_stability')}</span>${isOwn ? `<span class="val">${stabBar(c.stability)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_era')}</span>${isOwn ? `<span class="val">${T(ERAS[owner.era].name)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_terrain')}</span><span class="val" style="font-size:9.5px">${getTerrain(c.id).icon} ${T('terrain_' + terrainFor(c.id))}</span></div>
-    ${(() => { const g = generalFor(owner.id); const bribed = S.corruptedGenerals && S.corruptedGenerals[owner.id]; return `<div class="stat-row"><span class="lbl">${T('stat_general')}</span><span class="val" style="font-size:9.5px;color:${bribed ? 'var(--red-warn)' : 'var(--ink-dim)'}">${g.icon} ${T(g.nameKey)}${bribed ? ' ⚠' : ''}</span></div>`; })()}
+    ${(() => { const g = generalFor(owner.id); const bribed = S.corruptedGenerals && S.corruptedGenerals[owner.id]; return `<div class="stat-row arch-open-row" onclick="archOpenRow(event)" title="${T('arch_title')}"><span class="lbl">${T('stat_general')}</span><span class="val" style="font-size:9.5px;color:${bribed ? 'var(--red-warn)' : 'var(--ink-dim)'}">${g.icon} ${T(g.nameKey)}${bribed ? ' ⚠' : ''}</span></div>`; })()}
     ${!isOwn && owner.personality ? `<div class="stat-row"><span class="lbl">${T('stat_disposition')}</span><span class="val">${personalityBadge(owner.id)}</span></div>` : ''}
     ${actions}
     ${isOwn ? renderBuildingSection(c) : ''}
