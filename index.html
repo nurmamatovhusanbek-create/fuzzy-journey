@@ -537,6 +537,85 @@
   .ap-cost { font-size: 9.5px; color: var(--ink-dim); margin-left: 4px; }
 
   /* Peace modal */
+  /* ── Commander Archetypes showcase (AI behaviour reference) ── */
+  #archetypes-modal .peace-card { max-width: 940px; }
+  #archetypes-body { padding: 4px 18px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .arch-modebar { text-align:center; padding:2px 0 18px; font-size:9px; letter-spacing:.2em; color:#6b6352; text-transform:uppercase; }
+  .arch-modebar .lnk { cursor:pointer; text-decoration:underline; }
+  .arch-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(176px,1fr)); gap:16px; max-width:1100px; margin:0 auto; }
+  .arch-card {
+    display:flex; flex-direction:column; align-items:center;
+    background:#0b0f1e; border:1px solid rgba(255,255,255,0.06); border-radius:4px;
+    padding:18px 14px; cursor:pointer; position:relative; user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    transition:border-color .25s, background .25s, transform .2s;
+  }
+  .arch-card:hover { background:#0d1222; border-color:rgba(255,255,255,0.12); }
+  .arch-card.selected { background:#0d1222; }
+  .arch-badge2 {
+    position:absolute; top:8px; right:8px; font-size:8px; font-weight:700;
+    padding:1px 6px; border-radius:2px; border:1px solid; opacity:0; transition:opacity .15s;
+  }
+  .arch-card.selected .arch-badge2 { opacity:1; }
+  .arch-frame { position:relative; width:150px; height:150px; border-radius:2px; overflow:hidden; flex-shrink:0; }
+  .arch-frame canvas { display:block; width:150px; height:150px; }
+  .arch-name {
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.2em; text-transform:uppercase;
+    padding:4px 12px; border:1px solid; border-radius:2px; font-weight:700; white-space:nowrap; margin-top:12px;
+  }
+  .arch-radar { margin-top:10px; display:flex; justify-content:center; }
+  .arch-radar svg, .arch-cv-radar svg { overflow:visible; }
+  .arch-lore {
+    font-size:10px; color:#6b6352; text-align:center; line-height:1.6; letter-spacing:.02em;
+    width:100%; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);
+  }
+  /* appointment */
+  .arch-appoint {
+    max-width:640px; margin:0 auto 4px; padding:12px 16px; border-radius:4px;
+    background:#0b0f1e; border:1px solid rgba(255,255,255,0.08);
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  .arch-ap-lead { display:flex; align-items:center; gap:10px; min-width:0; }
+  .arch-ap-cap { font-size:8px; letter-spacing:.2em; color:#6b6352; text-transform:uppercase; }
+  .arch-ap-cur { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; }
+  .arch-ap-bonus { font-size:10px; color:var(--green); letter-spacing:.02em; }
+  .arch-ap-meta { font-size:9px; letter-spacing:.06em; color:#8a8270; text-align:right; }
+  .arch-ap-meta .warn { color:var(--gold-bright); }
+  .arch-bonus-tag { font-size:9px; color:var(--green); letter-spacing:.02em; margin-top:8px; text-align:center; min-height:11px; }
+  .arch-appoint-btn {
+    margin-top:8px; width:100%; padding:6px 8px; cursor:pointer;
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    border:1px solid var(--gold); background:rgba(212,160,23,0.12); color:var(--gold-bright);
+    border-radius:2px; transition:background .15s, border-color .15s, color .15s;
+  }
+  .arch-appoint-btn:hover:not(:disabled) { background:rgba(212,160,23,0.22); }
+  .arch-appoint-btn:disabled { cursor:default; opacity:0.5; border-color:var(--border); background:transparent; color:#6b6352; }
+  .arch-appoint-btn.active { border-color:var(--green); background:rgba(107,163,104,0.18); color:var(--green); opacity:1; cursor:default; }
+  .arch-cv {
+    max-width:560px; margin:0 auto; max-height:0; opacity:0; overflow:hidden;
+    transition:max-height .45s ease, opacity .35s ease, margin .3s ease;
+  }
+  .arch-cv.show { max-height:860px; opacity:1; margin:0 auto 28px; }
+  .arch-cv-card {
+    background:#0b0f1e; border:1px solid rgba(255,255,255,0.08); border-radius:4px;
+    padding:20px 18px; display:flex; flex-direction:column; align-items:center;
+  }
+  .arch-cv-title {
+    font-family:'Cinzel',serif; font-size:13px; font-weight:700; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--gold-bright);
+  }
+  .arch-cv-radar { margin:12px 0 4px; display:flex; justify-content:center; }
+  .arch-cv-legend { width:100%; max-width:400px; margin-top:12px; font-size:10px; }
+  .arch-cv-lrow {
+    display:grid; grid-template-columns:1.7fr repeat(4,1fr); align-items:center; gap:4px;
+    padding:5px 0; border-top:1px solid rgba(255,255,255,0.04);
+  }
+  .arch-cv-lrow span { text-align:center; letter-spacing:.02em; }
+  .arch-cv-lhead { border-top:none; color:#6b6352; }
+  .arch-cv-lhead span { font-size:8px; letter-spacing:.12em; }
+  .arch-cv-name { text-align:left !important; white-space:nowrap; font-weight:600; }
+  .arch-cv-hint { font-size:8px; letter-spacing:.14em; color:#4a4436; text-transform:uppercase; margin-top:14px; text-align:center; }
+
   .peace-modal {
     position: fixed; inset: 0; z-index: 35;
     background: rgba(6,10,20,0.86); backdrop-filter: blur(6px);
@@ -2226,6 +2305,22 @@
   </div>
 </div>
 
+<!-- Commander Archetypes — AI behaviour reference (with overlay comparison) -->
+<div id="archetypes-modal" class="peace-modal" hidden>
+  <div class="peace-card">
+    <div class="peace-head">
+      <div class="peace-title" data-i18n="arch_title">COMMANDER ARCHETYPES</div>
+      <button class="peace-close" onclick="closeArchetypes()">✕</button>
+    </div>
+    <div id="archetypes-body">
+      <div class="arch-appoint" id="arch-appoint"></div>
+      <div class="arch-modebar" id="arch-modebar"></div>
+      <div class="arch-cv" id="arch-cv"></div>
+      <div class="arch-grid" id="arch-grid"></div>
+    </div>
+  </div>
+</div>
+
 <div id="event-modal" class="event-modal" hidden>
   <div class="event-card" id="event-card">
     <!-- populated by renderEventModal() -->
@@ -2262,6 +2357,12 @@
     <button class="sdd-item" onclick="sddTutorial()">
       <span class="sdd-icon">❓</span>
       <div><div class="sdd-label" data-i18n="sdd_tutorial">HOW TO PLAY</div><div class="sdd-sub" data-i18n="sdd_tutorial_sub">Replay the guide</div></div>
+    </button>
+  </div>
+  <div class="sdd-section">
+    <button class="sdd-item" onclick="sddArchetypes()">
+      <span class="sdd-icon">⚔</span>
+      <div><div class="sdd-label" data-i18n="sdd_archetypes">COMMANDER ARCHETYPES</div><div class="sdd-sub" data-i18n="sdd_archetypes_sub">AI temperament reference</div></div>
     </button>
   </div>
   <div class="sdd-section">
@@ -2804,6 +2905,37 @@ en: {
   pers_guardian_d:   'Entrenches and defends — slow to attack, hard to break.',
   pers_opportunist:  'Opportunist',
   pers_opportunist_d:'Strikes the weak when the moment is right.',
+  // Commander Archetypes showcase
+  sdd_archetypes:    'COMMANDER ARCHETYPES',
+  sdd_archetypes_sub:'AI temperament reference',
+  arch_title:        'COMMANDER ARCHETYPES',
+  arch_sub:          'AI Behaviour Reference',
+  arch_hint_select:  'Click to select',
+  arch_hint_compare: 'click two or more to compare',
+  arch_compare_all:  'compare all',
+  arch_clear:        'clear',
+  arch_selected:     'selected · pick more to overlay',
+  arch_overlaying:   'Overlaying {n} archetypes',
+  arch_overlay_title:'Overlay Comparison',
+  arch_overlay_hint: '▲ leads that stat · brighter regions = where shapes overlap',
+  arch_stat_aggr:    'AGGR',
+  arch_stat_econ:    'ECON',
+  arch_stat_dipl:    'DIPL',
+  arch_stat_defn:    'DEFN',
+  arch_your_commander:'YOUR COMMANDER',
+  arch_none:         'None appointed',
+  arch_appoint:      'APPOINT',
+  arch_active:       'SERVING',
+  arch_avail_in:     'AVAILABLE IN {n}',
+  arch_cost_note:    'Next appointment: {gold}g',
+  arch_cooldown_note:'Change again in {n} turn(s)',
+  arch_bonus_conqueror:  '+12% attack strength',
+  arch_bonus_merchant:   '+15% gold income',
+  arch_bonus_diplomat:   '+0.6 diplomacy / turn',
+  arch_bonus_guardian:   '+15% defence',
+  arch_bonus_opportunist:'+6% attack & +7% gold',
+  arch_toast_appointed:  '{name} now commands your nation',
+  glog_commander:    '{v0} appointed as your commander (−{v1}g).',
   stat_war_score:   '▸ WAR SCORE',
   stat_nap:         '▸ NAP',
   stat_truce:       '▸ TRUCE',
@@ -3745,6 +3877,37 @@ ru: {
   pers_guardian_d:   'Укрепляется и обороняется — медлит с атакой, его трудно сломить.',
   pers_opportunist:  'Оппортунист',
   pers_opportunist_d:'Бьёт по слабым в удобный момент.',
+  // Архетипы полководцев
+  sdd_archetypes:    'АРХЕТИПЫ ПОЛКОВОДЦЕВ',
+  sdd_archetypes_sub:'Справочник темперамента ИИ',
+  arch_title:        'АРХЕТИПЫ ПОЛКОВОДЦЕВ',
+  arch_sub:          'Справочник поведения ИИ',
+  arch_hint_select:  'Нажмите, чтобы выбрать',
+  arch_hint_compare: 'выберите два и более для сравнения',
+  arch_compare_all:  'сравнить все',
+  arch_clear:        'сброс',
+  arch_selected:     'выбран · добавьте ещё для наложения',
+  arch_overlaying:   'Наложение: {n} архетипов',
+  arch_overlay_title:'Наложенное сравнение',
+  arch_overlay_hint: '▲ лидирует по стату · яркие зоны = где фигуры совпадают',
+  arch_stat_aggr:    'АГР',
+  arch_stat_econ:    'ЭКО',
+  arch_stat_dipl:    'ДИП',
+  arch_stat_defn:    'ОБО',
+  arch_your_commander:'ВАШ ПОЛКОВОДЕЦ',
+  arch_none:         'Не назначен',
+  arch_appoint:      'НАЗНАЧИТЬ',
+  arch_active:       'НА СЛУЖБЕ',
+  arch_avail_in:     'ДОСТУПНО ЧЕРЕЗ {n}',
+  arch_cost_note:    'Следующее назначение: {gold}з',
+  arch_cooldown_note:'Сменить можно через {n} ход(ов)',
+  arch_bonus_conqueror:  '+12% к силе атаки',
+  arch_bonus_merchant:   '+15% к доходу золота',
+  arch_bonus_diplomat:   '+0.6 дипломатии / ход',
+  arch_bonus_guardian:   '+15% к обороне',
+  arch_bonus_opportunist:'+6% атака и +7% золото',
+  arch_toast_appointed:  '{name} теперь командует вашей нацией',
+  glog_commander:    '{v0} назначен вашим полководцем (−{v1}з).',
   stat_war_score:   '▸ ВОЕННЫЙ СЧЁТ',
   stat_nap:         '▸ ДНА',
   stat_truce:       '▸ ПЕРЕМИРИЕ',
@@ -4017,6 +4180,9 @@ function setLang(lang) {
   // (The guide is a single bilingual data structure now — see TUTORIAL_STEPS.)
   const tutOv = document.getElementById('tut-overlay');
   if (tutOv && !tutOv.hidden && typeof _renderTutStep === 'function') _renderTutStep();
+  // If the Commander Archetypes reference is open, rebuild its JS-built content.
+  const archOv = document.getElementById('archetypes-modal');
+  if (archOv && !archOv.hidden && typeof _archBuildGrid === 'function') { _archBuildGrid(); _archRenderAppoint(); _archRenderCompare(); }
 }
 
 function getLang() { return _lang; }
@@ -5979,7 +6145,7 @@ function calcDpRegen(p) {
   const techDP = (p.isHuman && S.tech) ? getTechBonuses().dpRegenBonus : 0;
   const marriageDP = p.isHuman ? getMarriageDPBonus(S.humanId) : 0;
   const explorationDP = (p.isHuman && S.eventState) ? (S.eventState.dpRegenBonus || 0) : 0;
-  return P1.DP_REGEN_BASE + p.era * P1.DP_PER_ERA + techDP + marriageDP + explorationDP;
+  return P1.DP_REGEN_BASE + p.era * P1.DP_PER_ERA + techDP + marriageDP + explorationDP + commanderDpFlat(p);
 }
 function addWarScore(attackerPid, defenderPid, delta) {
   const a = S.players[attackerPid], d = S.players[defenderPid];
@@ -8035,6 +8201,8 @@ function calculateIncome(pid) {
   const manCapPenalty = (pid === S.humanId && S.eventState) ? (S.eventState.manCapPenalty || 0) : 0;
   // Manpower cap scales with territories AND era; min floor ensures scenario nations never overflow instantly
   const manCap = Math.max(120 + p.era * 50, owned.length * 30 + p.era * 35 + (tb.manCapBonus || 0) - manCapPenalty);
+  // Appointed commander: Merchant (and partly Opportunist) raise gold income
+  gold = Math.floor(gold * commanderGoldMul(pid));
   // Difficulty: AI nations earn a scaled income (human always 1.0)
   if (pid !== S.humanId) gold = Math.floor(gold * getDiff().aiIncome);
   return { gold, manpower, upkeep, loanPay, net: gold - upkeep - loanPay, manCap };
@@ -8101,7 +8269,10 @@ function initWorld(topo) {
       ultimatumCD: {},       // S1b: ultimatumCD[otherId] = turn until you may coerce them again
       tradeRoutes: [],       // [{ fromId, toId, disrupted }]
       grudges: {},           // grudges[otherId] = 0..100, memory of offenses; decays over time
-      personality: null      // assigned by assignPersonality()
+      personality: null,     // assigned by assignPersonality()
+      commander: null,       // Commander: appointed archetype id (human-only); grants a themed passive bonus
+      commanderSwaps: 0,     // Commander: number of appointments made (drives escalating swap cost)
+      commanderCD: 0         // Commander: turn until next re-appointment is allowed (cooldown)
     };
     assignPersonality(f.id);  // Phase 11
   }
@@ -8205,8 +8376,11 @@ function resolveCombat(fromId, toId, attackerPlayerId) {
   // Generals: each side's commander modifies their own roll (suppressed if bribed)
   const atkGenMul = generalCombatMul(attackerPlayerId, 'atk');
   const defGenMul = defPlayer ? generalCombatMul(defPlayer.id, 'def') : 1.0;
-  const atkRoll = from.army * atkMul * atkTechMul * atkStabF * doctrineBonus * terr.atkMul * atkGenMul * (0.75 + Math.random() * 0.55);
-  const defRoll = (to.army + 10) * defMul * defTechMul * defStabF * defDevF * corruptPenalty * buildingDefMul * terr.defMul * defGenMul * 1.15 * (0.8 + Math.random() * 0.45);
+  // Appointed commander: Conqueror aids the attacker, Guardian the defender
+  const atkCmdMul = commanderCombatMul(attackerPlayerId, 'atk');
+  const defCmdMul = defPlayer ? commanderCombatMul(defPlayer.id, 'def') : 1.0;
+  const atkRoll = from.army * atkMul * atkTechMul * atkStabF * doctrineBonus * terr.atkMul * atkGenMul * atkCmdMul * (0.75 + Math.random() * 0.55);
+  const defRoll = (to.army + 10) * defMul * defTechMul * defStabF * defDevF * corruptPenalty * buildingDefMul * terr.defMul * defGenMul * defCmdMul * 1.15 * (0.8 + Math.random() * 0.45);
 
   const attackerName = atkPlayer.name;
   const defenderName = defPlayer ? defPlayer.name : 'free folk';
@@ -9073,8 +9247,297 @@ function personalityBadge(pid) {
   const pers = getPersonality(pid);
   const name = T('pers_' + pers.id) || pers.label;
   const desc = T('pers_' + pers.id + '_d') || '';
-  return `<span class="pers-badge" style="color:${pers.col};border-color:${pers.col}55;background:${pers.col}1f" title="${name} — ${desc}">${pers.icon} ${name.toUpperCase()}</span>`;
+  return `<span class="pers-badge" onclick="archBadgeClick(event,'${pers.id}')" style="cursor:pointer;color:${pers.col};border-color:${pers.col}55;background:${pers.col}1f" title="${name} — ${desc}">${pers.icon} ${name.toUpperCase()}</span>`;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMMANDER ARCHETYPES — AI behaviour reference + overlay comparison.
+   A client-local showcase (no S state, no MP message): the 5 AI temperaments
+   drawn as animated procedural portraits, each with a stat radar; selecting
+   two or more overlays their radars on one shared grid so you can read where
+   one archetype outperforms another. Data is driven by AI_PERSONALITIES, so
+   stats/colours/icons stay in lockstep with the actual AI behaviour weights.
+   ══════════════════════════════════════════════════════════════════════════ */
+const ARCH_STAT_KEYS = ['aggr', 'econ', 'dipl', 'def'];
+const ARCH_STAT_LK   = { aggr:'arch_stat_aggr', econ:'arch_stat_econ', dipl:'arch_stat_dipl', def:'arch_stat_defn' };
+
+// ── Procedural canvas portraits (ctx, t-seconds, W, hot) ───────────────────
+const ARCH_DRAW = {
+  conqueror(ctx,t,W,hot){const cx=W/2,cy=W/2,intensity=hot?1.3:1;ctx.fillStyle='#060a14';ctx.fillRect(0,0,W,W);const n=14;for(let i=0;i<n;i++){const spread=hot?Math.PI*0.55:Math.PI*0.42;const angle=-Math.PI/2+(i/(n-1)-0.5)*spread*2+Math.sin(t*2.1+i*0.7)*0.12;const len=(52+Math.sin(t*2.8+i*0.9)*16)*intensity;const w=2.2+Math.sin(t*1.4+i*1.1)*1;const alpha=(0.45+Math.sin(t*2.2+i)*0.3)*intensity;ctx.save();ctx.translate(cx,cy);ctx.rotate(angle);ctx.beginPath();ctx.moveTo(0,6);ctx.lineTo(-w,len*0.35);ctx.lineTo(0,len);ctx.lineTo(w,len*0.35);ctx.closePath();ctx.fillStyle=`rgba(214,91,74,${Math.min(1,alpha)})`;ctx.fill();ctx.restore();}const n2=8;for(let i=0;i<n2;i++){const angle=-Math.PI/2+(i/(n2-1)-0.5)*Math.PI*1.1+t*0.3;const len=(30+Math.sin(t*1.8+i)*10)*intensity;ctx.save();ctx.translate(cx,cy);ctx.rotate(angle);ctx.beginPath();ctx.moveTo(0,4);ctx.lineTo(-1.2,len);ctx.lineTo(0,len+4);ctx.lineTo(1.2,len);ctx.closePath();ctx.fillStyle=`rgba(255,160,140,${0.18*intensity})`;ctx.fill();ctx.restore();}ctx.save();ctx.globalAlpha=hot?0.22:0.09;ctx.font=`bold ${W*0.46}px serif`;ctx.fillStyle='#ff9980';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('⚔',cx,cy+4);ctx.restore();const pr=hot?16:11,pulse=pr+Math.sin(t*(hot?5:3.5))*3;const g=ctx.createRadialGradient(cx,cy,0,cx,cy,pulse);g.addColorStop(0,'rgba(255,220,200,0.95)');g.addColorStop(0.4,'rgba(214,91,74,0.75)');g.addColorStop(1,'rgba(214,91,74,0)');ctx.beginPath();ctx.arc(cx,cy,pulse,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();if(hot){ctx.strokeStyle=`rgba(214,91,74,${0.5+Math.sin(t*4)*0.3})`;ctx.lineWidth=1.5;ctx.strokeRect(1,1,W-2,W-2);}_archVignette(ctx,cx,cy,W);},
+  merchant(ctx,t,W,hot){const cx=W/2,cy=W/2,intensity=hot?1.35:1;ctx.fillStyle='#060a14';ctx.fillRect(0,0,W,W);const rings=5;for(let r=0;r<rings;r++){const radius=18+r*15;const dir=r%2===0?1:-1;const spd=hot?(0.5+r*0.14):(0.28+r*0.1);const offset=dir*t*spd;const n=5+r*2;for(let i=0;i<n;i++){const angle=(i/n)*Math.PI*2+offset;const x=cx+Math.cos(angle)*radius;const y=cy+Math.sin(angle)*radius;const size=Math.max(0.5,2.2-r*0.2);const alpha=(0.38+Math.sin(t*1.4+i+r)*0.28)*intensity;ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.fillStyle=`rgba(217,164,65,${Math.min(1,alpha)})`;ctx.fill();}ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.strokeStyle=`rgba(217,164,65,${0.05+r*0.02})`;ctx.lineWidth=0.4;ctx.stroke();}ctx.save();ctx.globalAlpha=hot?0.2:0.08;ctx.font=`bold ${W*0.44}px serif`;ctx.fillStyle='#ffe090';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('💰',cx,cy+2);ctx.restore();const pr=hot?15:11,pulse=pr+Math.sin(t*1.6)*2.5;const g=ctx.createRadialGradient(cx,cy,0,cx,cy,pulse);g.addColorStop(0,'rgba(255,240,180,0.92)');g.addColorStop(0.5,'rgba(217,164,65,0.6)');g.addColorStop(1,'rgba(217,164,65,0)');ctx.beginPath();ctx.arc(cx,cy,pulse,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();if(hot){ctx.strokeStyle=`rgba(217,164,65,${0.45+Math.sin(t*2.5)*0.3})`;ctx.lineWidth=1.5;ctx.strokeRect(1,1,W-2,W-2);}_archVignette(ctx,cx,cy,W);},
+  diplomat(ctx,t,W,hot){const cx=W/2,cy=W/2,intensity=hot?1.3:1;ctx.fillStyle='#060a14';ctx.fillRect(0,0,W,W);const waves=hot?8:6;for(let i=0;i<waves;i++){const phase=(i/waves+t*(hot?0.32:0.22))%1;const radius=phase*88;const alpha=(1-phase)*(hot?0.4:0.28);ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.strokeStyle=`rgba(74,184,193,${alpha})`;ctx.lineWidth=1.2-phase*0.8;ctx.stroke();}const arcs=hot?6:4;for(let i=0;i<arcs;i++){const base=(i/arcs)*Math.PI*2+t*(hot?0.55:0.35);const r=32+i*7;ctx.beginPath();ctx.arc(cx,cy,r,base,base+Math.PI*0.55);ctx.strokeStyle=`rgba(74,184,193,${(0.38+i*0.07)*intensity})`;ctx.lineWidth=0.9;ctx.stroke();}ctx.save();ctx.globalAlpha=hot?0.2:0.08;ctx.font=`bold ${W*0.44}px serif`;ctx.fillStyle='#aaf0ff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🕊',cx,cy+2);ctx.restore();const pr=hot?16:12,pulse=pr+Math.sin(t*(hot?1.2:0.8))*2;const g=ctx.createRadialGradient(cx,cy,0,cx,cy,pulse);g.addColorStop(0,'rgba(200,248,255,0.9)');g.addColorStop(0.5,'rgba(74,184,193,0.6)');g.addColorStop(1,'rgba(74,184,193,0)');ctx.beginPath();ctx.arc(cx,cy,pulse,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();if(hot){ctx.strokeStyle=`rgba(74,184,193,${0.4+Math.sin(t*1.8)*0.25})`;ctx.lineWidth=1.5;ctx.strokeRect(1,1,W-2,W-2);}_archVignette(ctx,cx,cy,W);},
+  guardian(ctx,t,W,hot){const cx=W/2,cy=W/2,intensity=hot?1.3:1;ctx.fillStyle='#060a14';ctx.fillRect(0,0,W,W);const layers=hot?6:5;for(let l=0;l<layers;l++){const r=18+l*13;const spd=hot?0.22:0.14;const rot=t*spd*(l%2===0?1:-1);const alpha=(0.18+(layers-l)*0.06)*intensity;ctx.beginPath();for(let v=0;v<6;v++){const a=(v/6)*Math.PI*2+rot+Math.PI/6;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;v===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.closePath();ctx.strokeStyle=`rgba(90,164,94,${alpha})`;ctx.lineWidth=l===0?1.6:0.7;ctx.stroke();if(l===0){ctx.fillStyle='rgba(90,164,94,0.05)';ctx.fill();}}const outerR=18+(layers-1)*13;for(let v=0;v<6;v++){const a=(v/6)*Math.PI*2+t*(hot?0.22:0.14)+Math.PI/6;const x=cx+Math.cos(a)*outerR,y=cy+Math.sin(a)*outerR;ctx.beginPath();ctx.arc(x,y,hot?3.2:2.2,0,Math.PI*2);ctx.fillStyle=`rgba(90,164,94,${hot?0.9:0.65})`;ctx.fill();}ctx.save();ctx.globalAlpha=hot?0.22:0.09;ctx.font=`bold ${W*0.44}px serif`;ctx.fillStyle='#aaffaa';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🛡',cx,cy+2);ctx.restore();const pr=hot?14:10,pulse=pr+Math.sin(t*(hot?1.0:0.65))*1.5;const g=ctx.createRadialGradient(cx,cy,0,cx,cy,pulse);g.addColorStop(0,'rgba(200,255,200,0.88)');g.addColorStop(0.5,'rgba(90,164,94,0.6)');g.addColorStop(1,'rgba(90,164,94,0)');ctx.beginPath();ctx.arc(cx,cy,pulse,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();if(hot){ctx.strokeStyle=`rgba(90,164,94,${0.45+Math.sin(t*1.4)*0.28})`;ctx.lineWidth=1.5;ctx.strokeRect(1,1,W-2,W-2);}_archVignette(ctx,cx,cy,W);},
+  opportunist(ctx,t,W,hot){const cx=W/2,cy=W/2,intensity=hot?1.4:1;ctx.fillStyle='#060a14';ctx.fillRect(0,0,W,W);const n=hot?36:26;for(let i=0;i<n;i++){const a=1+(i%3)*0.73,b=1+(i%4)*0.51,phase=i*0.44,rx=26+(i%5)*10,ry=20+(i%4)*12;const x=cx+Math.cos(a*t*0.88+phase)*rx;const y=cy+Math.sin(b*t*0.72+phase)*ry;const blink=Math.sin(t*9.1+i*2.3)>0.3?1:0;if(!blink)continue;const alpha=(0.28+Math.sin(t*2.2+i*0.9)*0.45)*intensity;const size=1.4+Math.sin(t*3.1+i)*0.9;ctx.beginPath();ctx.arc(x,y,Math.max(0.4,size),0,Math.PI*2);ctx.fillStyle=`rgba(160,124,197,${Math.min(1,Math.max(0,alpha))})`;ctx.fill();}for(let i=0;i<(hot?10:6);i++){const a=1+(i%3)*0.73,b=1+(i%4)*0.51,phase=i*0.44,rx=26+(i%5)*10,ry=20+(i%4)*12;ctx.beginPath();const steps=14;for(let s=0;s<steps;s++){const st=t*0.88-s*0.04;const x=cx+Math.cos(a*st+phase)*rx;const y=cy+Math.sin(b*st*0.82+phase)*ry;s===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.strokeStyle='rgba(160,124,197,0.1)';ctx.lineWidth=0.6;ctx.stroke();}ctx.save();ctx.globalAlpha=hot?0.22:0.08;ctx.font=`bold ${W*0.44}px serif`;ctx.fillStyle='#d4b8ff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🎭',cx,cy+2);ctx.restore();const flicker=0.55+Math.sin(t*(hot?11:7.3))*0.45;const pr=hot?18:9;const pulse=(pr+Math.sin(t*(hot?7:5.1))*5)*flicker;const g=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(1,pulse));g.addColorStop(0,'rgba(230,200,255,0.95)');g.addColorStop(0.5,'rgba(160,124,197,0.65)');g.addColorStop(1,'rgba(160,124,197,0)');ctx.beginPath();ctx.arc(cx,cy,Math.max(1,pulse),0,Math.PI*2);ctx.fillStyle=g;ctx.fill();if(hot){const bb=Math.sin(t*13.7)>0?`rgba(160,124,197,${0.3+Math.random()*0.4})`:'rgba(160,124,197,0.05)';ctx.strokeStyle=bb;ctx.lineWidth=1.5;ctx.strokeRect(1,1,W-2,W-2);}_archVignette(ctx,cx,cy,W);}
+};
+function _archVignette(ctx,cx,cy,W){
+  ctx.globalAlpha=0.045;for(let y=0;y<W;y+=3){ctx.fillStyle='#000';ctx.fillRect(0,y,W,1);}ctx.globalAlpha=1;
+  const vg=ctx.createRadialGradient(cx,cy,W*0.28,cx,cy,W*0.72);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.72)');ctx.fillStyle=vg;ctx.fillRect(0,0,W,W);
+}
+
+// ── Radar — one or many overlaid stat polygons on a shared grid ────────────
+function _archRadar(series, size){
+  size = size || 132;
+  const cx=50, cy=50, R=28, LR=R+14, keys=ARCH_STAT_KEYS, n=keys.length;
+  const ang=i=>(i/n)*Math.PI*2 - Math.PI/2;
+  const px=(r,i)=>cx+Math.cos(ang(i))*r, py=(r,i)=>cy+Math.sin(ang(i))*r;
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 100 100'); svg.setAttribute('width',size); svg.setAttribute('height',size);
+  svg.style.display='block'; svg.style.overflow='visible';
+  const el=(tag,attrs)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));svg.appendChild(e);return e;};
+  [0.25,0.5,0.75,1].forEach(frac=>{
+    const pts=keys.map((_,i)=>`${px(R*frac,i)},${py(R*frac,i)}`).join(' ');
+    el('polygon',{points:pts,fill:'none',stroke:`rgba(255,255,255,${frac===1?0.1:0.04})`,'stroke-width':'0.4','stroke-linejoin':'round'});
+  });
+  keys.forEach((_,i)=>el('line',{x1:cx,y1:cy,x2:px(R,i),y2:py(R,i),stroke:'rgba(255,255,255,0.05)','stroke-width':'0.4'}));
+  const multi=series.length>1, fillOp=series.length>2?0.09:0.13;
+  series.forEach(s=>{
+    const statPts=keys.map((_,i)=>`${px(R*s.stats[keys[i]],i)},${py(R*s.stats[keys[i]],i)}`).join(' ');
+    el('polygon',{points:statPts,fill:s.col,'fill-opacity':fillOp,stroke:s.col,'stroke-width':multi?'1.1':'1','stroke-opacity':multi?'0.85':'0.75','stroke-linejoin':'round'});
+    keys.forEach((_,i)=>el('circle',{cx:px(R*s.stats[keys[i]],i),cy:py(R*s.stats[keys[i]],i),r:'1.6',fill:s.col}));
+  });
+  keys.forEach((key,i)=>{
+    const lx=px(LR,i), ly=py(LR,i);
+    const anchor=lx<cx-2?'end':lx>cx+2?'start':'middle';
+    const dy=ly<cy-2?'-0.5':ly>cy+2?'1':'0.35';
+    el('text',{x:lx,y:ly,'text-anchor':anchor,'dominant-baseline':'auto',dy:dy+'em',fill:'rgba(140,128,110,0.9)','font-family':"'JetBrains Mono',monospace",'font-size':'7','font-weight':'600','letter-spacing':'0.04em'}).textContent=T(ARCH_STAT_LK[key]);
+  });
+  return svg;
+}
+
+// ── State + lifecycle ──────────────────────────────────────────────────────
+const _archSel = new Set();   // selected archetype ids (client-local, not in S)
+let _archRAF = null, _archStart = null, _archHot = {};
+
+function archStats(p){ return { aggr:p.aggr, econ:p.econ, dipl:p.dipl, def:p.def }; }
+
+function openArchetypes(focusId){
+  _closeSettings();
+  _archSel.clear(); _archHot = {};
+  if (focusId && AI_PERSONALITIES.some(p => p.id === focusId)) _archSel.add(focusId);
+  document.getElementById('archetypes-modal').hidden = false;
+  _archBuildGrid();
+  _archRenderAppoint();
+  _archRenderCompare();
+  if (!_archRAF){ _archStart = null; _archRAF = requestAnimationFrame(_archTick); }
+}
+function closeArchetypes(){
+  document.getElementById('archetypes-modal').hidden = true;
+  if (_archRAF){ cancelAnimationFrame(_archRAF); _archRAF = null; }
+}
+function archBadgeClick(e, id){ if (e) e.stopPropagation(); openArchetypes(id); }
+window.openArchetypes = openArchetypes;
+window.closeArchetypes = closeArchetypes;
+window.archBadgeClick = archBadgeClick;
+function sddArchetypes(){ openArchetypes(); }
+window.sddArchetypes = sddArchetypes;
+
+function _archTick(ts){
+  if (!_archStart) _archStart = ts;
+  const t = (ts - _archStart) / 1000, W = 300;
+  document.querySelectorAll('#arch-grid .arch-frame canvas').forEach(cv=>{
+    const id = cv.dataset.type, draw = ARCH_DRAW[id];
+    if (draw) draw(cv.getContext('2d'), t, W, !!_archHot[id]);
+  });
+  _archRAF = requestAnimationFrame(_archTick);
+}
+
+function _archBuildGrid(){
+  const grid = document.getElementById('arch-grid');
+  grid.innerHTML = '';
+  AI_PERSONALITIES.forEach(p=>{
+    const hex = p.col;
+    const name = (T('pers_' + p.id) || p.label).toUpperCase();
+    const lore = T('pers_' + p.id + '_d') || '';
+    const card = document.createElement('div');
+    card.className = 'arch-card' + (_archSel.has(p.id) ? ' selected' : '');
+    card.dataset.type = p.id;
+    if (_archSel.has(p.id)) card.style.borderColor = hex + '66';
+    card.innerHTML =
+      `<div class="arch-badge2" style="color:${hex};border-color:${hex}55;background:${hex}18">✓</div>` +
+      `<div class="arch-frame"><canvas width="300" height="300" data-type="${p.id}"></canvas></div>` +
+      `<span class="arch-name" style="color:${hex};border-color:${hex}44;background:${hex}22">${p.icon} ${name}</span>` +
+      `<div class="arch-radar"></div>` +
+      `<div class="arch-lore">${lore}</div>` +
+      `<div class="arch-bonus-tag">${T('arch_bonus_' + p.id)}</div>` +
+      _archBtnHTML(p.id);
+    card.querySelector('.arch-radar').appendChild(_archRadar([{ stats: archStats(p), col: hex }], 132));
+    const fr = card.querySelector('.arch-frame');
+    fr.addEventListener('mouseenter', () => { _archHot[p.id] = true; });
+    fr.addEventListener('mouseleave', () => { _archHot[p.id] = false; });
+    card.addEventListener('click', () => _archToggle(p.id));
+    grid.appendChild(card);
+  });
+}
+
+function _archToggle(id){
+  _archSel.has(id) ? _archSel.delete(id) : _archSel.add(id);
+  const card = document.querySelector(`#arch-grid .arch-card[data-type="${id}"]`);
+  if (card){
+    const on = _archSel.has(id);
+    card.classList.toggle('selected', on);
+    const p = AI_PERSONALITIES.find(x => x.id === id);
+    card.style.borderColor = on ? p.col + '66' : '';
+  }
+  _archRenderCompare();
+}
+function archSelectAll(){
+  AI_PERSONALITIES.forEach(p=>{
+    _archSel.add(p.id);
+    const card = document.querySelector(`#arch-grid .arch-card[data-type="${p.id}"]`);
+    if (card){ card.classList.add('selected'); card.style.borderColor = p.col + '66'; }
+  });
+  _archRenderCompare();
+}
+function archClear(){
+  _archSel.clear();
+  document.querySelectorAll('#arch-grid .arch-card').forEach(c => { c.classList.remove('selected'); c.style.borderColor = ''; });
+  _archRenderCompare();
+}
+window.archSelectAll = archSelectAll;
+window.archClear = archClear;
+
+function _archRenderCompare(){
+  const sel = AI_PERSONALITIES.filter(p => _archSel.has(p.id));
+  const bar = document.getElementById('arch-modebar');
+  const cv  = document.getElementById('arch-cv');
+  if (sel.length === 0){
+    bar.innerHTML = `${T('arch_hint_select')} &nbsp;·&nbsp; ${T('arch_hint_compare')} &nbsp;·&nbsp; <span class="lnk" onclick="archSelectAll()">${T('arch_compare_all')}</span>`;
+  } else if (sel.length === 1){
+    const c = sel[0], nm = T('pers_' + c.id) || c.label;
+    bar.innerHTML = `<span style="color:${c.col}">${nm}</span> ${T('arch_selected')} &nbsp;·&nbsp; <span class="lnk" onclick="archClear()">${T('arch_clear')}</span>`;
+  } else {
+    bar.innerHTML = `${Tpl('arch_overlaying', { n: sel.length })} &nbsp;·&nbsp; <span class="lnk" onclick="archClear()">${T('arch_clear')}</span>`;
+  }
+  if (sel.length < 2){ cv.classList.remove('show'); cv.innerHTML = ''; return; }
+  const winners = {};
+  ARCH_STAT_KEYS.forEach(k=>{
+    let best = -1, bi = 0;
+    sel.forEach((s, si) => { if (archStats(s)[k] > best){ best = archStats(s)[k]; bi = si; } });
+    winners[k] = bi;
+  });
+  const head = '<div class="arch-cv-lrow arch-cv-lhead"><span></span>'
+    + ARCH_STAT_KEYS.map(k => `<span>${T(ARCH_STAT_LK[k])}</span>`).join('') + '</div>';
+  const rows = sel.map((s, si)=>{
+    const st = archStats(s);
+    const cells = ARCH_STAT_KEYS.map(k=>{
+      const win = winners[k] === si, val = Math.round(st[k] * 100);
+      return `<span style="${win ? `color:${s.col};font-weight:700` : 'color:#6a6252'}">${val}${win ? ' ▲' : ''}</span>`;
+    }).join('');
+    const nm = T('pers_' + s.id) || s.label;
+    return `<div class="arch-cv-lrow"><span class="arch-cv-name" style="color:${s.col}">${s.icon} ${nm}</span>${cells}</div>`;
+  }).join('');
+  cv.innerHTML =
+    `<div class="arch-cv-card">` +
+    `<div class="arch-cv-title">${T('arch_overlay_title')}</div>` +
+    `<div class="arch-cv-radar" id="arch-cv-radar"></div>` +
+    `<div class="arch-cv-legend">${head}${rows}</div>` +
+    `<div class="arch-cv-hint">${T('arch_overlay_hint')}</div>` +
+    `</div>`;
+  document.getElementById('arch-cv-radar').appendChild(
+    _archRadar(sel.map(s => ({ stats: archStats(s), col: s.col })), 220)
+  );
+  cv.classList.add('show');
+}
+
+/* ── Commander appointment — paid, era-scaling, anti-abuse (cooldown + swap cost) ──
+   Appointing a commander grants the human nation a passive bonus themed to the
+   archetype's strongest trait. It costs gold that GROWS with your era (so it stays
+   a real decision late-game) and rises with each prior appointment; a cooldown
+   blocks rapid swapping. AI nations keep their innate personality and never pay. */
+const COMMANDER = {
+  BASE:     90,   // base gold cost of an appointment
+  PER_ERA:  70,   // + this much × current era (cost grows as development eras change)
+  SWAP_STEP:60,   // + this much per prior appointment (escalating swap cost)
+  COOLDOWN: 4     // turns you must wait before re-appointing
+};
+// Each archetype's passive bonus, themed to its strongest stat.
+const COMMANDER_BONUS = {
+  conqueror:   { atkMul: 0.12 },                  // attack strength
+  merchant:    { goldMul: 0.15 },                 // gold income
+  diplomat:    { dpFlat: 0.6 },                   // diplomacy points / turn
+  guardian:    { defMul: 0.15 },                  // defence
+  opportunist: { atkMul: 0.06, goldMul: 0.07 }    // flexible: a little of both
+};
+function commanderOf(pid){ const p = S.players[pid]; return (p && p.commander) ? p.commander : null; }
+function commanderGoldMul(pid){ const b = COMMANDER_BONUS[commanderOf(pid)]; return 1 + ((b && b.goldMul) || 0); }
+function commanderDpFlat(p){ if (!p || !p.commander) return 0; const b = COMMANDER_BONUS[p.commander]; return (b && b.dpFlat) || 0; }
+function commanderCombatMul(pid, side){
+  const b = COMMANDER_BONUS[commanderOf(pid)]; if (!b) return 1.0;
+  return 1 + (side === 'atk' ? (b.atkMul || 0) : (b.defMul || 0));
+}
+function commanderCost(pid){
+  const p = S.players[pid]; if (!p) return COMMANDER.BASE;
+  return COMMANDER.BASE + (p.era || 0) * COMMANDER.PER_ERA + (p.commanderSwaps || 0) * COMMANDER.SWAP_STEP;
+}
+
+// Authoritative resolver. Mirrors doUltimatum: uses S.humanId for "me" (the host
+// swaps S.humanId to the acting player before applying queued MP actions). Routed
+// via the MP action queue + mpApplyAction allowlist below → no server.js change.
+function doAppointCommander(archId){
+  const me = S.players[S.humanId];
+  if (!me) return;
+  if (!AI_PERSONALITIES.some(a => a.id === archId)) return;
+  if (me.commander === archId) return;                 // already serving
+  if ((me.commanderCD || 0) > S.turn) return;          // cooldown active
+  const cost = commanderCost(S.humanId);
+  if ((me.gold || 0) < cost) return;                   // can't afford
+  me.gold -= cost;
+  me.commander = archId;
+  me.commanderSwaps = (me.commanderSwaps || 0) + 1;
+  me.commanderCD = S.turn + COMMANDER.COOLDOWN;
+  const pers = AI_PERSONALITIES.find(a => a.id === archId);
+  const nm = T('pers_' + archId) || pers.label;
+  logT('glog_commander', { v0: nm, v1: cost }, 'good');
+  if (!MP.active && typeof showDiploResult === 'function') showDiploResult('ok', Tpl('arch_toast_appointed', { name: nm }));
+  if (typeof updateHUD === 'function') updateHUD();
+}
+
+// Local UI click → route through the MP-wrapped global, then refresh the modal.
+function archAppointClick(e, id){
+  if (e) e.stopPropagation();
+  window.doAppointCommander(id);
+  const modal = document.getElementById('archetypes-modal');
+  if (modal && !modal.hidden){ _archBuildGrid(); _archRenderAppoint(); _archRenderCompare(); }
+}
+
+// Per-card appoint button (reference-only when no game is running).
+function _archBtnHTML(id){
+  const me = (S.players && S.humanId) ? S.players[S.humanId] : null;
+  if (!me) return '';
+  if (me.commander === id) return `<button class="arch-appoint-btn active" disabled>${T('arch_active')}</button>`;
+  const cd = (me.commanderCD || 0) - S.turn;
+  if (cd > 0) return `<button class="arch-appoint-btn" disabled>${Tpl('arch_avail_in', { n: cd })}</button>`;
+  const cost = commanderCost(S.humanId);
+  const afford = (me.gold || 0) >= cost;
+  return `<button class="arch-appoint-btn"${afford ? '' : ' disabled'} onclick="archAppointClick(event,'${id}')">${T('arch_appoint')} · ${cost}g</button>`;
+}
+
+// "YOUR COMMANDER" header inside the modal.
+function _archRenderAppoint(){
+  const box = document.getElementById('arch-appoint');
+  if (!box) return;
+  const me = (S.players && S.humanId) ? S.players[S.humanId] : null;
+  if (!me){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  let lead;
+  if (me.commander){
+    const pers = AI_PERSONALITIES.find(a => a.id === me.commander);
+    const nm = T('pers_' + me.commander) || pers.label;
+    lead = `<span class="arch-ap-cap">${T('arch_your_commander')}</span>`
+      + `<span class="arch-ap-cur" style="color:${pers.col}">${pers.icon} ${nm}</span>`
+      + `<span class="arch-ap-bonus">${T('arch_bonus_' + me.commander)}</span>`;
+  } else {
+    lead = `<span class="arch-ap-cap">${T('arch_your_commander')}</span>`
+      + `<span class="arch-ap-cur" style="color:#6b6352">${T('arch_none')}</span>`;
+  }
+  const cd = (me.commanderCD || 0) - S.turn;
+  let meta = Tpl('arch_cost_note', { gold: commanderCost(S.humanId) });
+  if (cd > 0) meta += `<br><span class="warn">${Tpl('arch_cooldown_note', { n: cd })}</span>`;
+  box.innerHTML = `<div class="arch-ap-lead">${lead}</div><div class="arch-ap-meta">${meta}</div>`;
+}
+window.doAppointCommander = doAppointCommander;
+window.archAppointClick = archAppointClick;
 
 // ── AI intent feedback: explain WHY this nation declared war on you ───────────
 // Uses the same legible signals the AI decided on, so the reason is truthful.
@@ -10838,7 +11301,7 @@ function mpApplyAction(action) {
   const allowed = ['doAttack','doBuildArmy','doMoveArmy','doDevelop',
                    'doAdvanceEra','doTakeLoan','doDiplomacy','doBuild',
                    'doResearchTech','doProposeNAP','doProposeMarriage',
-                   'doSpyOp','doUpgradeCounterIntel','doUltimatum'];
+                   'doSpyOp','doUpgradeCounterIntel','doUltimatum','doAppointCommander'];
   if (!allowed.includes(action.fn)) return;
   // Use the ORIGINAL (non-consent-wrapped) fn for diplomacy actions. The queued
   // action already passed consent on the requester's client; calling the wrapped
@@ -10980,7 +11443,7 @@ const _mpQueueAction = (fn, args) => {
 
 ['doAttack','doBuildArmy','doMoveArmy','doDevelop','doAdvanceEra',
  'doTakeLoan','doDiplomacy','doBuild','doResearchTech',
- 'doProposeNAP','doProposeMarriage','doSpyOp','doUpgradeCounterIntel','doUltimatum'].forEach(fnName => {
+ 'doProposeNAP','doProposeMarriage','doSpyOp','doUpgradeCounterIntel','doUltimatum','doAppointCommander'].forEach(fnName => {
   const orig = window[fnName];
   if (typeof orig !== 'function') return;
   window[fnName] = function() {
@@ -12426,6 +12889,8 @@ function cycleOwnProvince(dir) {
 // selection). Returns true if it consumed the key. The event modal is skipped
 // on purpose — it demands a choice.
 function handleEscape() {
+  const arch = document.getElementById('archetypes-modal');
+  if (arch && !arch.hidden) { closeArchetypes(); return true; }
   const peace = document.getElementById('peace-modal');
   if (peace && !peace.hidden) { closePeaceModal(); return true; }
   const save = document.getElementById('save-modal');
@@ -12589,6 +13054,9 @@ function deserializeState(snap) {
     if (!S.players[pid].grudges) S.players[pid].grudges = {};
     if (!S.players[pid].warGoal) S.players[pid].warGoal = {};
     if (!S.players[pid].ultimatumCD) S.players[pid].ultimatumCD = {};
+    if (S.players[pid].commander === undefined) S.players[pid].commander = null;
+    if (S.players[pid].commanderSwaps === undefined) S.players[pid].commanderSwaps = 0;
+    if (S.players[pid].commanderCD === undefined) S.players[pid].commanderCD = 0;
     if (!S.players[pid].personality) assignPersonality(pid);
   }
   for (const cid in S.countries) {
