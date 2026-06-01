@@ -573,8 +573,23 @@
     -webkit-tap-highlight-color:transparent;
     transition:border-color .25s, background .25s, transform .2s;
   }
-  .arch-card:hover { background:#0d1222; border-color:rgba(255,255,255,0.12); }
+  .arch-card:hover { background:#0d1222; border-color:rgba(255,255,255,0.12); transform:translateY(-3px); box-shadow:0 12px 30px -8px var(--acc, rgba(255,255,255,0.16)); }
   .arch-card.selected { background:#0d1222; }
+  /* Lively entrance: each card slides up (uses the independent `translate`
+     property so it never fights the hover `transform`). Staggered via inline
+     animation-delay in _archBuildGrid. */
+  @keyframes archCardIn { from { opacity:0; translate:0 18px; } to { opacity:1; translate:0 0; } }
+  .arch-card { animation: archCardIn .42s ease both; }
+  .arch-radar svg { animation: archRadarIn .5s .18s ease both; }
+  @keyframes archRadarIn { from { opacity:0; transform:scale(.72); } to { opacity:1; transform:scale(1); } }
+  /* Your currently-serving commander: a gentle pulsing ring + always-animated portrait. */
+  @keyframes archServingPulse { 0%,100% { box-shadow:0 0 0 1px var(--acc), 0 0 12px -6px var(--acc); } 50% { box-shadow:0 0 0 1px var(--acc), 0 0 22px -2px var(--acc); } }
+  .arch-card.serving { animation: archCardIn .42s ease both, archServingPulse 2.6s ease-in-out infinite; }
+  .arch-card.serving:hover { transform:translateY(-3px); }
+  .arch-card.serving .arch-frame { box-shadow:0 0 0 1px var(--acc) inset; }
+  /* Appointment ceremony: an expanding ring bursts from the chosen portrait. */
+  .arch-burst { position:absolute; left:50%; top:70px; width:10px; height:10px; border-radius:50%; border:2px solid var(--acc, var(--gold)); transform:translate(-50%,-50%); pointer-events:none; z-index:5; animation:archBurst .9s ease-out forwards; }
+  @keyframes archBurst { 0% { opacity:.85; width:14px; height:14px; } 100% { opacity:0; width:250px; height:250px; border-width:1px; } }
   .arch-badge2 {
     position:absolute; top:8px; right:8px; font-size:8px; font-weight:700;
     padding:1px 6px; border-radius:2px; border:1px solid; opacity:0; transition:opacity .15s;
@@ -1371,6 +1386,60 @@
     border-radius: 2px; margin-left: 4px; border: 1px solid;
     white-space: nowrap;
   }
+  /* ─── B3 general row + biography + naming ─── */
+  .gen-open-row { cursor: pointer; }
+  .gen-open-row:hover { background: rgba(212,160,23,0.06); }
+  .gen-val { display: inline-flex; align-items: center; gap: 4px; }
+  .gen-ttl { font-style: italic; opacity: 0.85; }
+  .gst-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .gst-active  { background: #5aa45e; }
+  .gst-wounded { background: #d9a441; }
+  .gst-retired { background: #6b6356; }
+  .gst-dead    { background: #d65b4a; }
+  .gen-bio-card { max-width: 460px; }
+  #gen-bio-body { padding: 4px 2px; }
+  .gbio-head { border-bottom: 1px solid var(--border); padding-bottom: 9px; margin-bottom: 9px; }
+  .gbio-name { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: #e8dcc8; letter-spacing: 0.04em; display: flex; align-items: center; gap: 8px; }
+  .gbio-rename { font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; background: none; border: 1px solid var(--border); color: var(--ink-dim); padding: 2px 7px; border-radius: 3px; cursor: pointer; }
+  .gbio-rename:hover { border-color: var(--gold); color: var(--gold); }
+  .gbio-title { font-style: italic; font-size: 12px; margin-top: 3px; }
+  .gbio-title.untit { color: #5e5848; }
+  .gbio-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 7px; font-size: 9.5px; color: var(--ink-dim); }
+  .gbio-status { display: inline-flex; align-items: center; gap: 4px; }
+  .gbio-theatre { opacity: 0.8; }
+  .gbio-record { font-size: 12px; letter-spacing: 0.05em; margin-bottom: 9px; }
+  .gbio-record .gw { color: #5aa45e; } .gbio-record .gl { color: #d65b4a; } .gbio-record .gd { color: var(--ink-dim); }
+  .gbio-traits { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 11px; }
+  .gbio-trait { font-size: 8.5px; padding: 2px 7px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: var(--ink-dim); letter-spacing: 0.04em; }
+  .gbio-sec { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); margin: 4px 0 7px; }
+  .gbio-chron { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .gbio-batt { display: flex; gap: 8px; align-items: flex-start; }
+  .gbio-bdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .gbio-bdot.win { background: #5aa45e; } .gbio-bdot.loss { background: #d65b4a; } .gbio-bdot.draw { background: #d9a441; } .gbio-bdot.story { background: #5e5848; }
+  .gbio-bres { font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .gbio-bres.win { color: #5aa45e; } .gbio-bres.loss { color: #d65b4a; } .gbio-bres.draw { color: #d9a441; } .gbio-bres.pre { color: #5e5848; }
+  .gbio-btext { font-size: 10px; color: var(--ink-dim); line-height: 1.4; }
+  .gbio-btext.story { font-style: italic; color: #5e5848; }
+  .gbio-hall-row { font-size: 10px; color: var(--ink-dim); padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+  .gbio-hall-rec { margin-left: auto; opacity: 0.75; }
+  .gen-name-card { max-width: 380px; }
+  .gen-name-body { padding: 6px 2px; }
+  .gen-name-sub { font-size: 10.5px; color: var(--ink-dim); line-height: 1.5; margin-bottom: 11px; }
+  .gen-name-input { width: 100%; background: var(--bg-2); border: 1px solid var(--border); color: var(--ink); font-family: inherit; font-size: 13px; padding: 8px 10px; border-radius: 4px; outline: none; }
+  .gen-name-input:focus { border-color: var(--gold); }
+  .gen-name-sugg-row { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 10.5px; color: var(--ink-dim); }
+  .gen-name-sugg { color: var(--gold); cursor: pointer; border-bottom: 1px dotted var(--gold); }
+  .gen-name-sugg:hover { opacity: 0.85; }
+  .gen-reroll { background: none; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; font-size: 11px; padding: 1px 5px; }
+  .gen-reroll:hover { border-color: var(--gold); }
+  .gen-name-btns { display: flex; gap: 8px; margin-top: 15px; justify-content: flex-end; }
+  .gen-name-skip, .gen-name-ok { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 7px 14px; border-radius: 4px; cursor: pointer; border: 1px solid; }
+  .gen-name-skip { background: none; border-color: var(--border); color: var(--ink-dim); }
+  .gen-name-skip:hover { border-color: var(--ink-dim); color: var(--ink); }
+  .gen-name-ok { background: rgba(212,160,23,0.15); border-color: var(--gold); color: var(--gold); }
+  .gen-name-ok:hover { background: rgba(212,160,23,0.25); }
+  .arch-ap-genlink { margin-top: 7px; font-size: 10px; color: var(--gold); cursor: pointer; border-top: 1px solid var(--border); padding-top: 7px; }
+  .arch-ap-genlink:hover { color: var(--gold-bright); }
   .coalition-banner {
     background: rgba(232,93,74,0.1); border: 1px solid rgba(232,93,74,0.35);
     padding: 7px 10px; margin-bottom: 7px; font-size: 9.5px; color: var(--ink);
@@ -2347,6 +2416,40 @@
   </div>
 </div>
 
+<!-- B3: general biography -->
+<div id="gen-bio-modal" class="peace-modal" hidden>
+  <div class="peace-card gen-bio-card">
+    <div class="peace-head">
+      <div class="peace-title" data-i18n="gen_bio_title">GENERAL</div>
+      <button class="peace-close" onclick="closeGenBio()">✕</button>
+    </div>
+    <div id="gen-bio-body"></div>
+  </div>
+</div>
+
+<!-- B3: name your general (single-player) -->
+<div id="gen-name-modal" class="peace-modal" hidden>
+  <div class="peace-card gen-name-card">
+    <div class="peace-head">
+      <div class="peace-title" data-i18n="gen_name_title">NAME YOUR GENERAL</div>
+      <button class="peace-close" onclick="genNameSkip()">✕</button>
+    </div>
+    <div class="gen-name-body">
+      <div id="gen-name-sub" class="gen-name-sub"></div>
+      <input id="gen-name-input" type="text" maxlength="24" class="gen-name-input" data-i18n-placeholder="gen_name_ph" onkeydown="if(event.key==='Enter')genNameConfirm()">
+      <div class="gen-name-sugg-row">
+        <span data-i18n="gen_suggestion">Suggestion:</span>
+        <span id="gen-name-sugg" class="gen-name-sugg" onclick="genNameUseSuggestion()"></span>
+        <button class="gen-reroll" onclick="genNameReroll()">🎲</button>
+      </div>
+      <div class="gen-name-btns">
+        <button class="gen-name-skip" onclick="genNameSkip()" data-i18n="gen_name_skip">Keep suggestion</button>
+        <button class="gen-name-ok" onclick="genNameConfirm()" data-i18n="gen_name_confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="event-modal" class="event-modal" hidden>
   <div class="event-card" id="event-card">
     <!-- populated by renderEventModal() -->
@@ -3121,6 +3224,29 @@ en: {
   vc_conq_label: 'TOTAL CONQUEST',
   vc_conq_desc: 'Control every territory on the map.',
   vc_conq_flavor: '{name} has subjugated the entire world. Not one free banner remains — every land, every people, every throne now answers to {name} alone.',
+  gen_view_bio: 'View biography',
+  gen_bio_title: 'GENERAL',
+  gen_name_title: 'NAME YOUR GENERAL',
+  gen_name_sub_first: 'A commander steps forward to lead your armies. What is their name?',
+  gen_name_sub_succ: "A new commander rises to take the fallen one's place. Name them:",
+  gen_name_ph: 'Enter a name…',
+  gen_suggestion: 'Suggestion:',
+  gen_name_skip: 'Keep suggestion',
+  gen_name_confirm: 'Confirm',
+  gen_untitled: 'Awaiting first battle…',
+  gen_rename: 'Rename',
+  gen_chronicle: 'Chronicle',
+  gen_hall: 'Hall of Generals',
+  gen_pre_campaign: 'Pre-Campaign',
+  gen_victory: 'Victory',
+  gen_loss: 'Defeat',
+  gen_draw: 'Draw',
+  gen_engagement: 'Unknown Engagement',
+  gen_w: 'W', gen_l: 'L', gen_d: 'D',
+  gst_active: 'Active', gst_wounded: 'Wounded', gst_retired: 'Retired', gst_dead: 'Killed in Action',
+  arch_view_general: '⚔ {name} commands your armies →',
+  glog_gen_fallen: '✝ {name} has fallen in battle — a successor takes command.',
+  glog_gen_retired: '{name} retires from service — a successor takes command.',
   eraobj_header: '▸ ERA OBJECTIVES',
   eraobj_claim4: 'Claim 4 territories', eraobj_stab80: 'Hold 80+ stability', eraobj_ally1: 'Form 1 alliance',
   eraobj_dev3: 'Develop 3 provinces', eraobj_win5: 'Win 5 battles', eraobj_trade2: 'Open 2 trade routes',
@@ -4102,6 +4228,29 @@ ru: {
   vc_conq_label: 'ПОЛНОЕ ЗАВОЕВАНИЕ',
   vc_conq_desc: 'Контролируйте все территории на карте.',
   vc_conq_flavor: '{name} покорил весь мир. Не осталось ни одного свободного знамени — каждая земля, каждый народ, каждый трон теперь подчиняются лишь {name}.',
+  gen_view_bio: 'Биография',
+  gen_bio_title: 'ПОЛКОВОДЕЦ',
+  gen_name_title: 'ИМЯ ВАШЕГО ПОЛКОВОДЦА',
+  gen_name_sub_first: 'Полководец выходит вперёд, чтобы вести ваши армии. Как его зовут?',
+  gen_name_sub_succ: 'Новый полководец занимает место павшего. Назовите его:',
+  gen_name_ph: 'Введите имя…',
+  gen_suggestion: 'Предложение:',
+  gen_name_skip: 'Оставить предложенное',
+  gen_name_confirm: 'Подтвердить',
+  gen_untitled: 'Ждёт первой битвы…',
+  gen_rename: 'Переименовать',
+  gen_chronicle: 'Хроника',
+  gen_hall: 'Зал полководцев',
+  gen_pre_campaign: 'До кампании',
+  gen_victory: 'Победа',
+  gen_loss: 'Поражение',
+  gen_draw: 'Ничья',
+  gen_engagement: 'Неизвестное сражение',
+  gen_w: 'В', gen_l: 'П', gen_d: 'Н',
+  gst_active: 'Активен', gst_wounded: 'Ранен', gst_retired: 'В отставке', gst_dead: 'Погиб в бою',
+  arch_view_general: '⚔ {name} ведёт ваши армии →',
+  glog_gen_fallen: '✝ {name} пал в бою — командование принимает преемник.',
+  glog_gen_retired: '{name} уходит в отставку — командование принимает преемник.',
   eraobj_header: '▸ ЦЕЛИ ЭПОХИ',
   eraobj_claim4: 'Захватить 4 территории', eraobj_stab80: 'Удерживать стабильность 80+', eraobj_ally1: 'Заключить 1 союз',
   eraobj_dev3: 'Развить 3 провинции', eraobj_win5: 'Выиграть 5 сражений', eraobj_trade2: 'Открыть 2 торговых пути',
@@ -5442,12 +5591,306 @@ function generalFor(pid) {
   let hash = 0; for (const ch of String(pid)) hash = (hash * 17 + ch.charCodeAt(0) + 7) | 0;
   return GENERAL_TRAITS[Math.abs(hash) % GENERAL_TRAITS.length];
 }
-// A bribed/compromised general loses their trait bonus (returns neutral 1.0).
+
+// ════════════════════════════════════════════════════════════════════════
+// B3 — PERSISTENT NAMED GENERALS (biographies / titles / records / status)
+// ------------------------------------------------------------------------
+// Every nation has one living general (S.generals[pid]); fallen/retired ones
+// are sealed in S.hallOfGenerals[pid]. A general's ARCHETYPE is drawn from the
+// nation's temperament (appointed commander, else personality) — tying this to
+// the Commander Archetypes system. It earns an evolving TITLE from its W/L
+// record + the nation's era/region THEATRE, gains TRAITS, and can be wounded,
+// killed or retire (each with real combat impact). The human names their own
+// general (single-player); AI + MP auto-name from a nation-flavoured pool.
+//
+// FLAVOUR LOCALISATION: titles, theatres, traits and backstories are stored in
+// English in the GEN_* tables and rendered through GL(). To translate, fill the
+// GEN_RU map below (englishString -> russian). Structural UI strings use the
+// normal TB_LANG keys. (Per the project owner: EN now, they translate RU later.)
+// ════════════════════════════════════════════════════════════════════════
+const GEN = {
+  TRAIT_AT_WINS: 5, TRAIT2_AT_WINS: 12,   // earn a 3rd / 4th trait at these win counts
+  WOUND_PENALTY: 0.82, WOUND_TURNS: 3,    // wounded → combat suppressed for N turns
+  CRUSH_RATIO: 0.55,                       // a loss is "crushing" if >55% of the army died
+  KIA_CHANCE: 0.14,                        // chance a crushing defeat KILLS the general
+  RETIRE_AGE: 26, RETIRE_CHANCE: 0.22,     // age-retirement once they've served this long
+  CHRON_CAP: 22,                           // chronicle battle entries kept (+ backstory)
+  HALL_CAP: 8,
+};
+// Archetype → combat multipliers (replaces the old hash trait once a general exists)
+const GEN_ARCH_MUL = {
+  conqueror:{atk:1.18,def:1.00}, guardian:{atk:1.00,def:1.18},
+  opportunist:{atk:1.12,def:1.05}, merchant:{atk:1.00,def:1.10}, diplomat:{atk:1.00,def:1.05}
+};
+// Region → theatre name by era bucket [early(0-1), mid(2-3), late(4)]
+const GEN_THEATRE = {
+  weur:['the Gallic Frontier','the Rhine Marches','the Western Front'],
+  brit:['the Isles','the British Isles','the Channel Front'],
+  iber:['the Iberian Coast','Iberia','the Iberian Front'],
+  ital:['the Mediterranean Coast','the Italian Peninsula','the Mediterranean Front'],
+  eeur:['the Steppe','the Carpathian Basin','the Eastern Front'],
+  scan:['the Northern Reaches','the Baltic Shore','the Arctic Front'],
+  levant:['the Fertile Crescent','the Holy Land','the Desert Front'],
+  persia:['the Persian Heartland','the Caucasus','the Caspian Front'],
+  casia:['the Silk Road','the Khanates','the Central Asian Front'],
+  easia:['the Yellow River Basin','the Middle Kingdom','the Pacific Theatre'],
+  sasia:['the Indus Valley','the Deccan Plateau','the Burma Front'],
+  seasia:['the Spice Coast','the Indian Ocean','the Pacific Islands'],
+  nafr:['Carthage','the Saharan Edge','the Desert War'],
+  ssafr:['Nubia','the Ivory Coast','the Colonial Theatre'],
+  amer:['the Far Shore','the New World','the Atlantic Theatre'],
+  ocea:['the Southern Seas','the Coral Coast','the Pacific Front'],
+  frontier:['the Contested Frontier','the Contested Frontier','the Contested Frontier']
+};
+const GEN_REGION_GROUPS = {
+  weur:['FR','DE','NL','BE','CH','AT','LU'], brit:['GB','IE','IS'], iber:['ES','PT'],
+  ital:['IT','GR','MT'], eeur:['PL','CZ','SK','HU','RO','BG','RS','HR','BA','SI','AL','MK','MD','UA','BY','RU','LT','LV','EE','FI'],
+  scan:['SE','NO','DK'], levant:['TR','SY','IL','JO','LB','IQ','SA','YE','AE','KW','QA','BH','OM','EG'],
+  persia:['IR','AF','GE','AM','AZ'], casia:['UZ','KZ','TM','TJ','KG','MN'],
+  easia:['CN','JP','KR','KP','TW'], sasia:['IN','PK','BD','LK','NP'],
+  seasia:['MM','TH','VN','ID','PH','MY','SG','KH','LA'], nafr:['LY','TN','DZ','MA','SD'],
+  ssafr:['NG','ET','KE','TZ','UG','GH','CI','CM','AO','MZ','ZA','ZW','ZM','SN','ML','BF','NE','TD','SS','SO','CD','MG'],
+  amer:['US','CA','MX','BR','AR','CL','CO','VE','PE','CU','GT','HN','NI','CR','PA','EC','BO','PY','UY'],
+  ocea:['AU','NZ','FJ']
+};
+const GEN_REGION = (() => { const m = {}; for (const r in GEN_REGION_GROUPS) for (const iso of GEN_REGION_GROUPS[r]) m[iso] = r; return m; })();
+const GEN_NAMES = {
+  weur:['Karl','Heinrich','Otto','Pierre','Louis','Anselm','Konrad','Lothar'],
+  brit:['Edmund','Alfred','Hugh','Godwin','Cedric','Oswin','Reginald','Percival'],
+  iber:['Rodrigo','Alfonso','Diego','Fernando','Ramiro','Sancho','García','Lope'],
+  ital:['Marco','Lucio','Aurelio','Cosimo','Enrico','Dario','Valerio','Silvio'],
+  eeur:['Boris','Stefan','Vladislav','János','Mircea','Radomir','Tomasz','Kazimir'],
+  scan:['Harald','Sigurd','Bjorn','Magnus','Erik','Leif','Halfdan','Ragnar'],
+  levant:['Tariq','Khalid','Faisal','Nasir','Rashid','Yusuf','Salim','Omar'],
+  persia:['Darius','Cyrus','Kaveh','Bahram','Rostam','Shapur','Arman','Farzin'],
+  casia:['Timur','Bek','Alp','Toqtamish','Berke','Kasym','Almas','Sanjar'],
+  easia:['Li Wei','Zhao','Hiro','Renji','Jin','Takeshi','Min-jun','Bao'],
+  sasia:['Arjun','Vikram','Raghav','Devraj','Aditya','Pratap','Surya','Kiran'],
+  seasia:['Bayin','Naresuan','Hamzah','Rama','Dipa','Kusu','Anwar','Surya'],
+  nafr:['Hannibal','Massinissa','Idris','Yahya','Ziyad','Hamid','Karim','Jugurtha'],
+  ssafr:['Shaka','Mansa','Kofi','Oba','Tafari','Sefu','Jabari','Kwame'],
+  amer:['William','Santiago','Mateo','Tomás','Joaquín','Emiliano','Lincoln','Hudson'],
+  ocea:['James','Tane','Manu','Kauri','Rangi','Cooper','Flynn','Tama'],
+  default:['Alex','Jordan','Sasha','Morgan','Ravi','Nikola','Dorian','Casimir']
+};
+const GEN_TITLES = {
+  conqueror:{ high:['Scourge of {theatre}','Hammer of {theatre}','Terror of the {era}'], mid:['Blade of {theatre}','Warlord of {theatre}','Sword of the {era}'], low:['The Stubborn','Who Would Not Break','Last Stand of {theatre}'] },
+  merchant:{ high:['Master of {theatre}','Gold Hand of {theatre}','Broker of {theatre}'], mid:['Trader of {theatre}','The Resourceful','Keeper of {theatre}'], low:['The Calculating','Who Counted the Cost','Survivor of {theatre}'] },
+  diplomat:{ high:['Peacemaker of {theatre}','Architect of {theatre}','Voice of {theatre}'], mid:['Negotiator of {theatre}','Bridge of {theatre}','The Patient of the {era}'], low:['The Persistent','Who Sought the Table','Exile of {theatre}'] },
+  guardian:{ high:['Shield of {theatre}','Wall of {theatre}','Bulwark of the {era}'], mid:['Defender of {theatre}','Guardian of {theatre}','The Steadfast'], low:['The Unyielding','Who Held the Line','Last Wall of {theatre}'] },
+  opportunist:{ high:['Shadow of {theatre}','Kingmaker of {theatre}','Ghost of {theatre}'], mid:['Schemer of {theatre}','Wildcard of {theatre}','The Cunning'], low:['The Elusive','Who Slipped the Net','The Changeling'] }
+};
+const GEN_TRAITS = {
+  conqueror:['Iron Discipline','Siege Mastery','Blitz Doctrine','No Quarter','Vanguard','Shock Trooper','Relentless Drive','Breach Specialist'],
+  merchant:['Supply Chain','War Profiteer','Logistics Master','Attrition Expert','Strategic Reserve','Economic Warfare','Mercenary Contracts','Adaptive Supply'],
+  diplomat:['Alliance Builder','Ceasefire Broker','Spy Network','Propaganda Master','Coalition Warfare','Soft Power','Treaty Architect','Hearts and Minds'],
+  guardian:['Fortress Builder','Last Stand','Depth Defence','Attrition Master','Minefield Doctrine','Fortified Lines','Strategic Withdrawal','Iron Bunker'],
+  opportunist:['False Flag','Momentum Shift','Turncoat','Shadow Operations','Flanking Master','Deception Veil','Double Cross','Unpredictable Strike']
+};
+const GEN_BACK = [
+  'Rose through the ranks amid the wars of {theatre}.',
+  'Earned their name in the campaigns across {theatre}.',
+  'Forged in the long sieges of {theatre}.',
+  'Decorated through the industrial wars of {theatre}.',
+  'Hardened in the modern engagements across {theatre}.'
+];
+const GEN_RU = {}; // user fills: 'English flavour string' -> 'Russian'. See note above.
+function GL(s){ try { return (typeof getLang === 'function' && getLang() === 'ru' && GEN_RU[s]) ? GEN_RU[s] : s; } catch(e){ return s; } }
+function genEsc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function sanitizeGenName(s){ const t = String(s == null ? '' : s).replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,24); return t; }
+
+function genEraBucket(e){ e = e|0; return e <= 1 ? 0 : e <= 3 ? 1 : 2; }
+function genRegionOf(pid){ const c = S.countries[pid]; return (c && GEN_REGION[c.code]) || 'frontier'; }
+function genTheatreOf(pid){ const r = genRegionOf(pid); const p = S.players[pid]; return (GEN_THEATRE[r] || GEN_THEATRE.frontier)[genEraBucket(p ? p.era : 0)]; }
+function genArchOf(pid){ const p = S.players[pid]; if (p && p.commander) return p.commander; if (p && p.personality) return p.personality; return 'guardian'; }
+function genEraLabel(pid){ const p = S.players[pid]; const e = Math.max(0, Math.min(4, p ? (p.era|0) : 0)); return T(ERAS[e].name); }
+function suggestGenName(pid){ const pool = GEN_NAMES[genRegionOf(pid)] || GEN_NAMES.default; return pool[Math.floor(Math.random() * pool.length)]; }
+function rollGenTraits(arch, n){ const pool = [...(GEN_TRAITS[arch] || GEN_TRAITS.guardian)]; const out = []; for (let i = 0; i < n && pool.length; i++) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); return out; }
+function genAddTrait(g){ const avail = (GEN_TRAITS[g.archetype] || []).filter(t => !g.traits.includes(t)); if (avail.length) g.traits.push(avail[Math.floor(Math.random() * avail.length)]); }
+function genPickTitleTpl(arch, tier){ const pools = GEN_TITLES[arch] || GEN_TITLES.guardian; const pool = pools[tier] || pools.mid; return pool[Math.floor(Math.random() * pool.length)]; }
+function genTitleText(g, pid){ if (!g || !g.titleTpl) return ''; return GL(g.titleTpl).replace('{theatre}', GL(g.theatre || '')).replace('{era}', genEraLabel(pid)); }
+function genBackText(g){ if (!g || !g.backTpl) return ''; return GL(g.backTpl).replace('{theatre}', GL(g.theatre || '')); }
+
+function createGeneral(pid){
+  const p = S.players[pid];
+  const arch = genArchOf(pid);
+  return {
+    name: suggestGenName(pid), auto: true,
+    archetype: arch, region: genRegionOf(pid),
+    theatre: genTheatreOf(pid),
+    backTpl: GEN_BACK[Math.max(0, Math.min(4, p ? (p.era|0) : 0))],
+    titleTpl: null, tier: null,
+    traits: rollGenTraits(arch, 2),
+    record: { w:0, l:0, d:0 },
+    status: 'active', woundedUntil: 0,
+    born: S.turn || 1,
+    battles: [{ type:'backstory' }],
+  };
+}
+function getGeneral(pid){
+  if (!S.generals) S.generals = {};
+  if (!pid || !S.players[pid]) return null;
+  if (!S.generals[pid]) S.generals[pid] = createGeneral(pid);
+  return S.generals[pid];
+}
+function sealGeneral(pid){
+  const g = S.generals && S.generals[pid]; if (!g) return;
+  if (!S.hallOfGenerals) S.hallOfGenerals = {};
+  if (!S.hallOfGenerals[pid]) S.hallOfGenerals[pid] = [];
+  S.hallOfGenerals[pid].unshift({ name: g.name, titleText: genTitleText(g, pid), archetype: g.archetype, record: g.record, status: g.status, traits: g.traits, theatre: g.theatre });
+  if (S.hallOfGenerals[pid].length > GEN.HALL_CAP) S.hallOfGenerals[pid].length = GEN.HALL_CAP;
+}
+// Record one battle outcome for a nation's general. result: 'victory'|'loss'.
+// opts: { crushing, eliminated }. Sets status; sealing + successors happen in
+// processGeneralLifecycle() at end of turn so a death is felt next turn.
+function recordGenBattle(pid, result, provName, opts){
+  if (!pid || !S.players[pid]) return;
+  opts = opts || {};
+  const g = getGeneral(pid);
+  if (!g || g.status === 'dead') return;
+  if (result === 'victory') g.record.w++; else if (result === 'loss') g.record.l++; else g.record.d++;
+  g.battles.push({ type:'battle', name: sanitizeGenName(provName) || '', result });
+  // keep backstory (index 0) + last CHRON_CAP battles
+  if (g.battles.length > GEN.CHRON_CAP + 1) g.battles.splice(1, g.battles.length - (GEN.CHRON_CAP + 1));
+  const net = g.record.w - g.record.l;
+  const tier = net >= 5 ? 'high' : net >= 0 ? 'mid' : 'low';
+  if (tier !== g.tier || !g.titleTpl){ g.tier = tier; g.titleTpl = genPickTitleTpl(g.archetype, tier); }
+  if (g.record.w >= GEN.TRAIT_AT_WINS && g.traits.length < 3) genAddTrait(g);
+  if (g.record.w >= GEN.TRAIT2_AT_WINS && g.traits.length < 4) genAddTrait(g);
+  if (result === 'loss'){
+    if (opts.eliminated){ g.status = 'dead'; g.diedTurn = S.turn; }
+    else if (opts.crushing){
+      if (Math.random() < GEN.KIA_CHANCE){ g.status = 'dead'; g.diedTurn = S.turn; }
+      else { g.status = 'wounded'; g.woundedUntil = (S.turn || 0) + GEN.WOUND_TURNS; }
+    }
+  }
+}
+let _genNamePending = false; // SP: a human successor rose and may be (re)named
+function processGeneralLifecycle(){
+  if (!S.generals) S.generals = {};
+  if (!S.hallOfGenerals) S.hallOfGenerals = {};
+  for (const pid in S.generals){
+    const g = S.generals[pid]; if (!g) continue;
+    const p = S.players[pid];
+    const alive = p && !p.eliminated && playerOwned(pid).length > 0;
+    if (g.status === 'wounded' && (g.woundedUntil || 0) <= S.turn) g.status = 'active';
+    if (g.status === 'active' && alive && (S.turn - (g.born || S.turn)) >= GEN.RETIRE_AGE && Math.random() < GEN.RETIRE_CHANCE){
+      g.status = 'retired'; g.retiredTurn = S.turn;
+    }
+    if (g.status === 'dead' || g.status === 'retired'){
+      const wasDead = g.status === 'dead';
+      sealGeneral(pid);
+      if (alive){
+        S.generals[pid] = createGeneral(pid);
+        if (pid === S.humanId){
+          logT(wasDead ? 'glog_gen_fallen' : 'glog_gen_retired', { name: genEsc(g.name) }, wasDead ? 'crit' : null);
+          if (!MP.active) _genNamePending = true;
+        }
+      } else {
+        delete S.generals[pid];
+      }
+    }
+  }
+}
+// A bribed/compromised general loses their bonus (1.0); wounded ones are suppressed.
 function generalCombatMul(pid, side /* 'atk' | 'def' */) {
   if (S.corruptedGenerals && S.corruptedGenerals[pid]) return 1.0;
-  const g = generalFor(pid);
-  return side === 'atk' ? g.atkMul : g.defMul;
+  const g = (S.generals && S.generals[pid]) ? S.generals[pid] : null;
+  if (!g){ const t = generalFor(pid); return side === 'atk' ? t.atkMul : t.defMul; }
+  if (g.status === 'dead') return 1.0;  // leaderless until a successor rises
+  const base = GEN_ARCH_MUL[g.archetype] || { atk:1.05, def:1.05 };
+  let m = side === 'atk' ? base.atk : base.def;
+  if (g.status === 'wounded' && (g.woundedUntil || 0) > S.turn) m *= GEN.WOUND_PENALTY;
+  return m;
 }
+
+// ----- B3 general UI: player naming prompt + biography modal -----
+function maybePromptNameGeneral(){
+  if (_genNamePending && !MP.active){ _genNamePending = false; try { promptNameGeneral(S.humanId, false); } catch(e){} }
+}
+let _genNameTarget = null;
+function promptNameGeneral(pid, isFirst){
+  if (MP.active) return;                 // MP: generals are auto-named, no prompt
+  const g = getGeneral(pid); if (!g) return;
+  _genNameTarget = pid;
+  const m = document.getElementById('gen-name-modal'); if (!m) return;
+  const sub = document.getElementById('gen-name-sub');
+  const inp = document.getElementById('gen-name-input');
+  if (sub) sub.textContent = isFirst ? T('gen_name_sub_first') : T('gen_name_sub_succ');
+  if (inp){ inp.value = ''; inp.placeholder = g.name; }
+  _genNameSuggest();
+  m.hidden = false;
+  setTimeout(() => { try { inp && inp.focus(); } catch(e){} }, 30);
+}
+function _genNameSuggest(){
+  const el = document.getElementById('gen-name-sugg');
+  if (el && _genNameTarget) el.textContent = suggestGenName(_genNameTarget);
+}
+function genNameReroll(){ _genNameSuggest(); }
+function genNameUseSuggestion(){
+  const el = document.getElementById('gen-name-sugg');
+  const inp = document.getElementById('gen-name-input');
+  if (el && inp){ inp.value = el.textContent; inp.focus(); }
+}
+function genNameConfirm(){
+  const pid = _genNameTarget; const g = pid && getGeneral(pid); if (!g){ closeGenName(); return; }
+  const inp = document.getElementById('gen-name-input');
+  let nm = sanitizeGenName(inp ? inp.value : '');
+  if (!nm){ const s = document.getElementById('gen-name-sugg'); nm = sanitizeGenName(s ? s.textContent : '') || g.name; }
+  g.name = nm; g.auto = false;
+  closeGenName(); updateHUD(); try { renderSelectedPanel(); } catch(e){}
+}
+function genNameSkip(){ closeGenName(); }
+function closeGenName(){ const m = document.getElementById('gen-name-modal'); if (m) m.hidden = true; _genNameTarget = null; }
+
+function openGeneralBio(pid){
+  const g = getGeneral(pid); if (!g) return;
+  const m = document.getElementById('gen-bio-modal'); const body = document.getElementById('gen-bio-body');
+  if (!m || !body) return;
+  body.innerHTML = renderGenBio(pid);
+  m.hidden = false;
+}
+function closeGenBio(){ const m = document.getElementById('gen-bio-modal'); if (m) m.hidden = true; }
+function renderGenBio(pid){
+  const g = getGeneral(pid); if (!g) return '';
+  const arch = AI_PERSONALITIES.find(a => a.id === g.archetype) || AI_PERSONALITIES[0];
+  const isOwn = pid === S.humanId;
+  const ttl = genTitleText(g, pid);
+  const r = g.record || { w:0, l:0, d:0 };
+  const traits = (g.traits || []).map(t => `<span class="gbio-trait">${genEsc(GL(t))}</span>`).join('');
+  const ch = (g.battles || []).slice().reverse().map(b => {
+    if (b.type === 'backstory') return `<div class="gbio-batt"><span class="gbio-bdot story"></span><div><div class="gbio-bres pre">${T('gen_pre_campaign')}</div><div class="gbio-btext story">${genEsc(genBackText(g))}</div></div></div>`;
+    const cls = b.result === 'victory' ? 'win' : b.result === 'loss' ? 'loss' : 'draw';
+    const lbl = b.result === 'victory' ? T('gen_victory') : b.result === 'loss' ? T('gen_loss') : T('gen_draw');
+    return `<div class="gbio-batt"><span class="gbio-bdot ${cls}"></span><div><div class="gbio-bres ${cls}">${lbl}</div><div class="gbio-btext">${genEsc(b.name) || T('gen_engagement')}</div></div></div>`;
+  }).join('');
+  const hall = (S.hallOfGenerals && S.hallOfGenerals[pid]) || [];
+  const hallHtml = hall.length ? `<div class="gbio-sec">${T('gen_hall')}</div>` + hall.map(h => {
+    const ha = AI_PERSONALITIES.find(a => a.id === h.archetype) || AI_PERSONALITIES[0];
+    return `<div class="gbio-hall-row"><span class="gst-dot gst-${h.status}"></span>${ha.icon} ${genEsc(h.name)}${h.titleText ? ` <span class="gen-ttl">«${genEsc(h.titleText)}»</span>` : ''} <span class="gbio-hall-rec">${h.record.w}–${h.record.l}–${h.record.d}</span></div>`;
+  }).join('') : '';
+  const rename = isOwn && !MP.active ? `<button class="gbio-rename" onclick="promptNameGeneral('${pid}', false)">${T('gen_rename')}</button>` : '';
+  return `
+    <div class="gbio-head">
+      <div class="gbio-name">${arch.icon} ${genEsc(g.name)} ${rename}</div>
+      ${ttl ? `<div class="gbio-title" style="color:${arch.col}">«${genEsc(ttl)}»</div>` : `<div class="gbio-title untit">${T('gen_untitled')}</div>`}
+      <div class="gbio-meta">
+        <span class="pers-badge" style="border-color:${arch.col};color:${arch.col}">${arch.icon} ${T('pers_' + arch.id)}</span>
+        <span class="gbio-status"><span class="gst-dot gst-${g.status}"></span>${T('gst_' + g.status)}</span>
+        <span class="gbio-theatre">${genEsc(GL(g.theatre))}</span>
+      </div>
+    </div>
+    <div class="gbio-record"><span class="gw">${r.w}${T('gen_w')}</span> · <span class="gl">${r.l}${T('gen_l')}</span> · <span class="gd">${r.d}${T('gen_d')}</span></div>
+    <div class="gbio-traits">${traits}</div>
+    <div class="gbio-sec">${T('gen_chronicle')}</div>
+    <div class="gbio-chron">${ch}</div>
+    ${hallHtml}
+  `;
+}
+window.openGeneralBio = openGeneralBio; window.closeGenBio = closeGenBio;
+window.promptNameGeneral = promptNameGeneral; window.genNameReroll = genNameReroll;
+window.genNameUseSuggestion = genNameUseSuggestion; window.genNameConfirm = genNameConfirm;
+window.genNameSkip = genNameSkip; window.closeGenName = closeGenName;
 
 
 const P23 = {
@@ -8350,12 +8793,18 @@ function startGame(humanCountryId) {
   S.forgeClaims = {};
   S.corruptedGenerals = {};
   S.revealedIntel = {};   // countryId → turn until an Intelligence Report's reveal goes stale
+  S.generals = {};        // B3: pid → living named general
+  S.hallOfGenerals = {};  // B3: pid → [sealed fallen/retired generals]
   // Apply historical scenario (runs after all state initialised)
   if (S.activeScenario) applyScenario(S.activeScenario, humanCountryId);
   document.getElementById('setup').hidden = true;
   document.getElementById('game').hidden = false;
 
   logT('log_flag_rises', {nation: S.countries[humanCountryId].name}, 'self');
+
+  // B3: the human's first general takes command — let the player name them (SP only)
+  getGeneral(humanCountryId);
+  if (!MP.active) setTimeout(() => { try { promptNameGeneral(humanCountryId, true); } catch(e){} }, 900);
 
   setupGameCanvas(); // sets _canvasSetup = true internally
   S.turn = 1;
@@ -8469,6 +8918,10 @@ function resolveCombat(fromId, toId, attackerPlayerId) {
       if (defPlayer.id === S.humanId) S.eliminatedBy = attackerPlayerId;
       logT('log_defeated', {nation: defenderName}, wasHuman ? 'good' : 'crit');
     }
+    // B3: generals record the engagement (attacker triumphs; defender loses the
+    // province — a crushing loss that may wound or kill, or end the line if eliminated)
+    recordGenBattle(attackerPlayerId, 'victory', to.name, {});
+    if (defPlayer) recordGenBattle(defPlayer.id, 'loss', to.name, { crushing: true, eliminated: !!defPlayer.eliminated });
     return 'win';
   } else {
     // Defender wins
@@ -8484,6 +8937,11 @@ function resolveCombat(fromId, toId, attackerPlayerId) {
     logT('log_repelled', {defender: defenderName, attacker: attackerName, province: to.name},
         attackerPlayerId === S.humanId ? 'crit' : null);
     if (defPlayer) addWarScore(attackerPlayerId, defPlayer.id, P1.WAR_SCORE_BATTLE_LOSS);
+    // B3: generals record the engagement (attacker repelled — a crushing rout may
+    // wound/kill their commander; the defender's general earns a victory)
+    const _genCrush = (losses / Math.max(1, from.army + losses)) > GEN.CRUSH_RATIO;
+    recordGenBattle(attackerPlayerId, 'loss', to.name, { crushing: _genCrush });
+    if (defPlayer) recordGenBattle(defPlayer.id, 'victory', to.name, {});
     return 'lose';
   }
 }
@@ -9395,9 +9853,11 @@ window.archOpenRow = archOpenRow;
 function _archTick(ts){
   if (!_archStart) _archStart = ts;
   const t = (ts - _archStart) / 1000, W = 300;
+  const me = (S.players && S.humanId) ? S.players[S.humanId] : null;
   document.querySelectorAll('#arch-grid .arch-frame canvas').forEach(cv=>{
     const id = cv.dataset.type, draw = ARCH_DRAW[id];
-    if (draw) draw(cv.getContext('2d'), t, W, !!_archHot[id]);
+    // Your serving commander's portrait stays animated ("hot") so it stands out.
+    if (draw) draw(cv.getContext('2d'), t, W, !!_archHot[id] || !!(me && me.commander === id));
   });
   _archRAF = requestAnimationFrame(_archTick);
 }
@@ -9405,13 +9865,17 @@ function _archTick(ts){
 function _archBuildGrid(){
   const grid = document.getElementById('arch-grid');
   grid.innerHTML = '';
-  AI_PERSONALITIES.forEach(p=>{
+  const me = (S.players && S.humanId) ? S.players[S.humanId] : null;
+  AI_PERSONALITIES.forEach((p, i)=>{
     const hex = p.col;
     const name = (T('pers_' + p.id) || p.label).toUpperCase();
     const lore = T('pers_' + p.id + '_d') || '';
+    const serving = !!(me && me.commander === p.id);
     const card = document.createElement('div');
-    card.className = 'arch-card' + (_archSel.has(p.id) ? ' selected' : '');
+    card.className = 'arch-card' + (_archSel.has(p.id) ? ' selected' : '') + (serving ? ' serving' : '');
     card.dataset.type = p.id;
+    card.style.setProperty('--acc', hex);
+    card.style.animationDelay = (i * 0.06) + 's';
     if (_archSel.has(p.id)) card.style.borderColor = hex + '66';
     card.innerHTML =
       `<div class="arch-badge2" style="color:${hex};border-color:${hex}55;background:${hex}18">✓</div>` +
@@ -9555,9 +10019,23 @@ function doAppointCommander(archId){
 // Local UI click → route through the MP-wrapped global, then refresh the modal.
 function archAppointClick(e, id){
   if (e) e.stopPropagation();
+  const me = (S.players && S.humanId) ? S.players[S.humanId] : null;
+  const wasServing = !!(me && me.commander === id);
   window.doAppointCommander(id);
   const modal = document.getElementById('archetypes-modal');
-  if (modal && !modal.hidden){ _archBuildGrid(); _archRenderAppoint(); _archRenderCompare(); }
+  if (modal && !modal.hidden){
+    _archBuildGrid(); _archRenderAppoint(); _archRenderCompare();
+    // Ceremony: if the appointment took, burst a ring from the chosen card + flare its portrait.
+    const nowServing = !!(S.players && S.humanId && S.players[S.humanId].commander === id);
+    if (nowServing && !wasServing){
+      const card = document.querySelector(`#arch-grid .arch-card[data-type="${id}"]`);
+      if (card){
+        const b = document.createElement('div'); b.className = 'arch-burst';
+        card.appendChild(b); setTimeout(() => { try { b.remove(); } catch(err){} }, 950);
+        _archHot[id] = true; setTimeout(() => { _archHot[id] = false; }, 1400);
+      }
+    }
+  }
 }
 
 // Per-card appoint button (omitted in reference-only mode or with no game running).
@@ -9594,7 +10072,11 @@ function _archRenderAppoint(){
   const cd = (me.commanderCD || 0) - S.turn;
   let meta = Tpl('arch_cost_note', { gold: commanderCost(S.humanId) });
   if (cd > 0) meta += `<br><span class="warn">${Tpl('arch_cooldown_note', { n: cd })}</span>`;
-  box.innerHTML = `<div class="arch-ap-lead">${lead}</div><div class="arch-ap-meta">${meta}</div>`;
+  // B3 tie-in: your appointed archetype is embodied by your living general
+  const g = (S.humanId) ? getGeneral(S.humanId) : null;
+  const genLink = g
+    ? `<div class="arch-ap-genlink" onclick="openGeneralBio('${S.humanId}')">${Tpl('arch_view_general', { name: genEsc(g.name) })}</div>` : '';
+  box.innerHTML = `<div class="arch-ap-lead">${lead}</div><div class="arch-ap-meta">${meta}</div>${genLink}`;
 }
 window.doAppointCommander = doAppointCommander;
 window.archAppointClick = archAppointClick;
@@ -10079,6 +10561,7 @@ function endTurn() {
     } else {
       S.turn++;
       advanceTime();
+      processGeneralLifecycle(); // B3: heal wounds, retire veterans, raise successors
       updateDate();
       updateHUD();
       render();
@@ -10087,6 +10570,7 @@ function endTurn() {
       refreshNotifs();
       checkTips();               // A4: surface one contextual coaching tip
       maybePromptPendingUlt();   // S1b: surface any AI ultimatum awaiting the human
+      maybePromptNameGeneral();  // B3: name a freshly-risen human successor (SP)
       autosave();
       document.getElementById('end-turn').disabled = false;
     }
@@ -12795,7 +13279,15 @@ function renderSelectedPanel() {
     <div class="stat-row stab-row"><span class="lbl">${T('stat_stability')}</span>${showStats ? `<span class="val">${stabBar(c.stability)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_era')}</span>${showStats ? `<span class="val">${T(ERAS[owner.era].name)}</span>` : `<span class="val val-hidden">${T('stat_hidden')}</span>`}</div>
     <div class="stat-row"><span class="lbl">${T('stat_terrain')}</span><span class="val" style="font-size:9.5px">${getTerrain(c.id).icon} ${T('terrain_' + terrainFor(c.id))}</span></div>
-    ${(() => { const g = generalFor(owner.id); const bribed = S.corruptedGenerals && S.corruptedGenerals[owner.id]; return `<div class="stat-row"><span class="lbl">${T('stat_general')}</span><span class="val" style="font-size:9.5px;color:${bribed ? 'var(--red-warn)' : 'var(--ink-dim)'}">${g.icon} ${T(g.nameKey)}${bribed ? ' ⚠' : ''}</span></div>`; })()}
+    ${(() => {
+      const g = getGeneral(owner.id);
+      if (!g) return '';
+      const bribed = S.corruptedGenerals && S.corruptedGenerals[owner.id];
+      const arch = AI_PERSONALITIES.find(a => a.id === g.archetype) || AI_PERSONALITIES[0];
+      const ttl = genTitleText(g, owner.id);
+      const col = bribed ? 'var(--red-warn)' : (g.status === 'dead' ? '#5e5848' : 'var(--ink-dim)');
+      return `<div class="stat-row gen-open-row" onclick="openGeneralBio('${owner.id}')" title="${T('gen_view_bio')}"><span class="lbl">${T('stat_general')}</span><span class="val gen-val" style="font-size:9.5px;color:${col}"><span class="gst-dot gst-${g.status}"></span>${arch.icon} ${genEsc(g.name)}${ttl ? ` <span class="gen-ttl">«${genEsc(ttl)}»</span>` : ''}${bribed ? ' ⚠' : ''}</span></div>`;
+    })()}
     ${isOwn
       ? `<div class="stat-row arch-open-row" onclick="archOpenRow(event)" title="${T('arch_title')}"><span class="lbl">${T('stat_commander')}</span><span class="val">${commanderBadge(S.humanId)}</span></div>`
       : (owner.personality ? `<div class="stat-row"><span class="lbl">${T('stat_disposition')}</span><span class="val">${personalityBadge(owner.id)}</span></div>` : '')}
@@ -13045,6 +13537,10 @@ function cycleOwnProvince(dir) {
 // selection). Returns true if it consumed the key. The event modal is skipped
 // on purpose — it demands a choice.
 function handleEscape() {
+  const genName = document.getElementById('gen-name-modal');
+  if (genName && !genName.hidden) { genNameSkip(); return true; }
+  const genBio = document.getElementById('gen-bio-modal');
+  if (genBio && !genBio.hidden) { closeGenBio(); return true; }
   const arch = document.getElementById('archetypes-modal');
   if (arch && !arch.hidden) { closeArchetypes(); return true; }
   const peace = document.getElementById('peace-modal');
@@ -13193,6 +13689,8 @@ function deserializeState(snap) {
   if (!S.forgeClaims) S.forgeClaims = {};
   if (!S.corruptedGenerals) S.corruptedGenerals = {};
   if (!S.revealedIntel) S.revealedIntel = {};
+  if (!S.generals) S.generals = {};
+  if (!S.hallOfGenerals) S.hallOfGenerals = {};
   if (!S.napExpiry) S.napExpiry = {};
   if (S.coalition === undefined) S.coalition = null;
   if (!S.firedHistEvents) S.firedHistEvents = {};
