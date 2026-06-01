@@ -554,8 +554,8 @@
   /* ── Commander Archetypes showcase (AI behaviour reference) ── */
   /* Wide enough that all 5 archetypes sit on one row. */
   #archetypes-modal .peace-card { max-width: 1120px; }
-  #archetypes-body { padding: 4px 18px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
-  .arch-modebar { text-align:center; padding:2px 0 18px; font-size:9px; letter-spacing:.2em; color:#6b6352; text-transform:uppercase; }
+  #archetypes-body { padding: 2px 18px 14px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .arch-modebar { text-align:center; padding:2px 0 10px; font-size:9px; letter-spacing:.2em; color:#6b6352; text-transform:uppercase; }
   .arch-modebar .lnk { cursor:pointer; text-decoration:underline; }
   .arch-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:14px; max-width:1100px; margin:0 auto; }
   /* Below the comfortable 5-up width, let the cards wrap instead of clipping. */
@@ -569,11 +569,11 @@
   .arch-card {
     display:flex; flex-direction:column; align-items:center;
     background:#0b0f1e; border:1px solid rgba(255,255,255,0.06); border-radius:4px;
-    padding:18px 14px; cursor:pointer; position:relative; user-select:none;
+    padding:12px 12px; cursor:pointer; position:relative; user-select:none;
     -webkit-tap-highlight-color:transparent;
-    transition:border-color .25s, background .25s, transform .2s;
+    transition:border-color .25s, background .25s, transform .2s, box-shadow .25s;
   }
-  .arch-card:hover { background:#0d1222; border-color:rgba(255,255,255,0.12); transform:translateY(-3px); box-shadow:0 12px 30px -8px var(--acc, rgba(255,255,255,0.16)); }
+  .arch-card:hover { background:#0d1222; border-color:rgba(255,255,255,0.12); transform:translateY(-2px); box-shadow:0 4px 14px -10px var(--acc, rgba(255,255,255,0.12)); }
   .arch-card.selected { background:#0d1222; }
   /* Lively entrance: each card slides up (uses the independent `translate`
      property so it never fights the hover `transform`). Staggered via inline
@@ -595,31 +595,31 @@
     padding:1px 6px; border-radius:2px; border:1px solid; opacity:0; transition:opacity .15s;
   }
   .arch-card.selected .arch-badge2 { opacity:1; }
-  .arch-frame { position:relative; width:150px; height:150px; border-radius:2px; overflow:hidden; flex-shrink:0; }
-  .arch-frame canvas { display:block; width:150px; height:150px; }
+  .arch-frame { position:relative; width:118px; height:118px; border-radius:2px; overflow:hidden; flex-shrink:0; }
+  .arch-frame canvas { display:block; width:118px; height:118px; }
   .arch-name {
-    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.2em; text-transform:uppercase;
-    padding:4px 12px; border:1px solid; border-radius:2px; font-weight:700; white-space:nowrap; margin-top:12px;
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.18em; text-transform:uppercase;
+    padding:3px 10px; border:1px solid; border-radius:2px; font-weight:700; white-space:nowrap; margin-top:8px;
   }
-  .arch-radar { margin-top:10px; display:flex; justify-content:center; }
+  .arch-radar { margin-top:6px; display:flex; justify-content:center; }
   .arch-radar svg, .arch-cv-radar svg { overflow:visible; }
   .arch-lore {
-    font-size:10px; color:#6b6352; text-align:center; line-height:1.6; letter-spacing:.02em;
-    width:100%; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);
+    font-size:9.5px; color:#6b6352; text-align:center; line-height:1.5; letter-spacing:.02em;
+    width:100%; margin-top:8px; padding-top:7px; border-top:1px solid rgba(255,255,255,0.05);
   }
   /* Footer pinned to the bottom so the bonus tag + APPOINT button line up across
      all five cards regardless of how many lines the lore wraps to. */
-  .arch-foot { margin-top:auto; width:100%; display:flex; flex-direction:column; align-items:center; padding-top:10px; }
-  /* appointment */
+  .arch-foot { margin-top:auto; width:100%; display:flex; flex-direction:column; align-items:center; padding-top:8px; }
+  /* appointment — kept compact so the modal needs no scrolling */
   .arch-appoint {
-    max-width:640px; margin:0 auto 4px; padding:12px 16px; border-radius:4px;
+    max-width:760px; margin:0 auto 6px; padding:7px 14px; border-radius:4px;
     background:#0b0f1e; border:1px solid rgba(255,255,255,0.08);
-    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
   }
-  .arch-ap-lead { display:flex; align-items:center; gap:10px; min-width:0; }
-  .arch-ap-cap { font-size:8px; letter-spacing:.2em; color:#6b6352; text-transform:uppercase; }
-  .arch-ap-cur { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; }
-  .arch-ap-bonus { font-size:10px; color:var(--green); letter-spacing:.02em; }
+  .arch-ap-lead { display:flex; align-items:center; gap:8px; min-width:0; }
+  .arch-ap-cap { font-size:7.5px; letter-spacing:.18em; color:#6b6352; text-transform:uppercase; }
+  .arch-ap-cur { font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700; }
+  .arch-ap-bonus { font-size:9.5px; color:var(--green); letter-spacing:.02em; }
   .arch-ap-meta { font-size:9px; letter-spacing:.06em; color:#8a8270; text-align:right; }
   .arch-ap-meta .warn { color:var(--gold-bright); }
   .arch-bonus-tag { font-size:9px; color:var(--green); letter-spacing:.02em; margin-top:0; text-align:center; min-height:11px; }
@@ -712,7 +712,7 @@
     font-weight: 700;
   }
   .peace-foot .btn.confirm:disabled { background: rgba(212,160,23,0.2); color: var(--ink-dim); }
-  #wargoal-body { padding: 14px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  #wargoal-body, #ultimatum-body, #ai-ult-body { padding: 16px 20px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
   .wgoal-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
   .wgoal-btn {
     display: flex; align-items: center; gap: 10px; text-align: left;
@@ -1396,8 +1396,8 @@
   .gst-wounded { background: #d9a441; }
   .gst-retired { background: #6b6356; }
   .gst-dead    { background: #d65b4a; }
-  .gen-bio-card { max-width: 460px; }
-  #gen-bio-body { padding: 4px 2px; }
+  .gen-bio-card { max-width: 560px; }
+  #gen-bio-body { padding: 16px 22px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
   .gbio-head { border-bottom: 1px solid var(--border); padding-bottom: 9px; margin-bottom: 9px; }
   .gbio-name { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: #e8dcc8; letter-spacing: 0.04em; display: flex; align-items: center; gap: 8px; }
   .gbio-rename { font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; background: none; border: 1px solid var(--border); color: var(--ink-dim); padding: 2px 7px; border-radius: 3px; cursor: pointer; }
@@ -1422,8 +1422,8 @@
   .gbio-btext.story { font-style: italic; color: #5e5848; }
   .gbio-hall-row { font-size: 10px; color: var(--ink-dim); padding: 3px 0; display: flex; align-items: center; gap: 6px; }
   .gbio-hall-rec { margin-left: auto; opacity: 0.75; }
-  .gen-name-card { max-width: 380px; }
-  .gen-name-body { padding: 6px 2px; }
+  .gen-name-card { max-width: 460px; }
+  .gen-name-body { padding: 18px 24px 20px; }
   .gen-name-sub { font-size: 10.5px; color: var(--ink-dim); line-height: 1.5; margin-bottom: 11px; }
   .gen-name-input { width: 100%; background: var(--bg-2); border: 1px solid var(--border); color: var(--ink); font-family: inherit; font-size: 13px; padding: 8px 10px; border-radius: 4px; outline: none; }
   .gen-name-input:focus { border-color: var(--gold); }
@@ -1438,7 +1438,7 @@
   .gen-name-skip:hover { border-color: var(--ink-dim); color: var(--ink); }
   .gen-name-ok { background: rgba(212,160,23,0.15); border-color: var(--gold); color: var(--gold); }
   .gen-name-ok:hover { background: rgba(212,160,23,0.25); }
-  .arch-ap-genlink { margin-top: 7px; font-size: 10px; color: var(--gold); cursor: pointer; border-top: 1px solid var(--border); padding-top: 7px; }
+  .arch-ap-genlink { margin-top: 5px; font-size: 9.5px; color: var(--gold); cursor: pointer; border-top: 1px solid var(--border); padding-top: 5px; width:100%; }
   .arch-ap-genlink:hover { color: var(--gold-bright); }
   .coalition-banner {
     background: rgba(232,93,74,0.1); border: 1px solid rgba(232,93,74,0.35);
@@ -2235,7 +2235,7 @@
   <div id="country-float" class="hidden-float">
     <div class="cf-head">
       <span class="cf-title" data-i18n="sel_title">SELECTION</span>
-      <button class="cf-close" onclick="clearSelection()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="cf-close" onclick="closeSelectionPanel()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div id="selected-body">
       <div class="selected-empty" data-i18n="sel_empty">No country selected.</div>
@@ -2246,7 +2246,7 @@
   <div id="empire-float">
     <div class="ef-head">
       <span class="ef-title" data-i18n="emp_title">YOUR EMPIRE</span> — <span id="my-name" style="color:var(--ink);font-family:inherit">—</span>
-      <button class="ef-close" onclick="toggleEmpireFloat()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="ef-close" onclick="closePanelDock()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="ef-body">
       <button class="btn" id="advance-era" data-i18n="emp_advance_era">ADVANCE ERA →</button>
@@ -2262,7 +2262,7 @@
   <div id="diplo-float">
     <div class="df-head">
       <span class="df-title" data-i18n="diplo_title">DIPLOMATIC STANDING</span>
-      <button class="df-close" onclick="toggleDiploFloat()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="df-close" onclick="closePanelDock()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div id="diplomacy-list" class="log-feed" style="padding:10px 12px;max-height:320px;overflow-y:auto" data-i18n="diplo_empty">No active relations.</div>
     <div id="diplomacy-panel" hidden></div>
@@ -2272,7 +2272,7 @@
   <div id="tech-float">
     <div class="tf2-head">
       <span class="tf2-title" data-i18n="tech_panel_title">TECHNOLOGY &amp; INTRIGUE</span>
-      <button class="tf2-close" onclick="showPanel('tech')" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="tf2-close" onclick="closePanelDock()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div id="tech-body"></div>
   </div>
@@ -2281,7 +2281,7 @@
   <div id="log-float" style="display:none;flex-direction:column">
     <div class="lf-head">
       <span class="lf-title" data-i18n="chron_title">WAR CHRONICLE</span>
-      <button class="lf-close" onclick="toggleLogFloat()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button class="lf-close" onclick="closePanelDock()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="chron-tabs" id="chron-tabs" style="padding:6px 10px 0;display:flex;gap:4px;flex-shrink:0">
       <button class="chron-tab active" onclick="setChronFilter('all')" data-i18n="chron_all">ALL</button>
@@ -2382,7 +2382,7 @@
 </div>
 
 <div id="ultimatum-modal" class="peace-modal" hidden>
-  <div class="peace-card" style="max-width:540px">
+  <div class="peace-card" style="max-width:680px">
     <div class="peace-head">
       <div class="peace-title" data-i18n="ult_title">ULTIMATUM</div>
       <button class="peace-close" onclick="closeUltimatum()">✕</button>
@@ -2392,7 +2392,7 @@
 </div>
 
 <div id="ai-ult-modal" class="peace-modal" hidden>
-  <div class="peace-card" style="max-width:480px">
+  <div class="peace-card" style="max-width:560px">
     <div class="peace-head">
       <div class="peace-title" data-i18n="ult_ai_title">A DEMAND</div>
     </div>
@@ -5694,7 +5694,86 @@ const GEN_BACK = [
   'Decorated through the industrial wars of {theatre}.',
   'Hardened in the modern engagements across {theatre}.'
 ];
-const GEN_RU = {}; // user fills: 'English flavour string' -> 'Russian'. See note above.
+// Russian flavour overrides for general titles/theatres/traits/backstories.
+// Keyed by the exact English string; {theatre}/{era} tokens are preserved.
+const GEN_RU = {
+  // theatres
+  'the Gallic Frontier':'Галльский рубеж','the Rhine Marches':'Рейнские марки','the Western Front':'Западный фронт',
+  'the Isles':'Острова','the British Isles':'Британские острова','the Channel Front':'Фронт Ла-Манша',
+  'the Iberian Coast':'Иберийское побережье','Iberia':'Иберия','the Iberian Front':'Иберийский фронт',
+  'the Mediterranean Coast':'Средиземноморское побережье','the Italian Peninsula':'Апеннинский полуостров','the Mediterranean Front':'Средиземноморский фронт',
+  'the Steppe':'Степь','the Carpathian Basin':'Карпатский бассейн','the Eastern Front':'Восточный фронт',
+  'the Northern Reaches':'Северные пределы','the Baltic Shore':'Балтийское побережье','the Arctic Front':'Арктический фронт',
+  'the Fertile Crescent':'Плодородный полумесяц','the Holy Land':'Святая земля','the Desert Front':'Пустынный фронт',
+  'the Persian Heartland':'Сердце Персии','the Caucasus':'Кавказ','the Caspian Front':'Каспийский фронт',
+  'the Silk Road':'Шёлковый путь','the Khanates':'Ханства','the Central Asian Front':'Центральноазиатский фронт',
+  'the Yellow River Basin':'Бассейн Хуанхэ','the Middle Kingdom':'Срединное государство','the Pacific Theatre':'Тихоокеанский театр',
+  'the Indus Valley':'Долина Инда','the Deccan Plateau':'Плато Декан','the Burma Front':'Бирманский фронт',
+  'the Spice Coast':'Берег пряностей','the Indian Ocean':'Индийский океан','the Pacific Islands':'Тихоокеанские острова',
+  'Carthage':'Карфаген','the Saharan Edge':'Окраина Сахары','the Desert War':'Война в пустыне',
+  'Nubia':'Нубия','the Ivory Coast':'Берег Слоновой Кости','the Colonial Theatre':'Колониальный театр',
+  'the Far Shore':'Дальний берег','the New World':'Новый Свет','the Atlantic Theatre':'Атлантический театр',
+  'the Southern Seas':'Южные моря','the Coral Coast':'Коралловое побережье','the Pacific Front':'Тихоокеанский фронт',
+  'the Contested Frontier':'Спорное пограничье',
+  // titles
+  'Scourge of {theatre}':'Бич {theatre}','Hammer of {theatre}':'Молот {theatre}','Terror of the {era}':'Ужас {era}',
+  'Blade of {theatre}':'Клинок {theatre}','Warlord of {theatre}':'Военачальник {theatre}','Sword of the {era}':'Меч {era}',
+  'The Stubborn':'Упрямый','Who Would Not Break':'Непокорённый','Last Stand of {theatre}':'Последний рубеж {theatre}',
+  'Master of {theatre}':'Владыка {theatre}','Gold Hand of {theatre}':'Золотая рука {theatre}','Broker of {theatre}':'Посредник {theatre}',
+  'Trader of {theatre}':'Торговец {theatre}','The Resourceful':'Находчивый','Keeper of {theatre}':'Хранитель {theatre}',
+  'The Calculating':'Расчётливый','Who Counted the Cost':'Знавший цену','Survivor of {theatre}':'Последний из {theatre}',
+  'Peacemaker of {theatre}':'Миротворец {theatre}','Architect of {theatre}':'Архитектор {theatre}','Voice of {theatre}':'Голос {theatre}',
+  'Negotiator of {theatre}':'Переговорщик {theatre}','Bridge of {theatre}':'Мост {theatre}','The Patient of the {era}':'Терпеливый {era}',
+  'The Persistent':'Настойчивый','Who Sought the Table':'Искавший путь к переговорам','Exile of {theatre}':'Изгнанник {theatre}',
+  'Shield of {theatre}':'Щит {theatre}','Wall of {theatre}':'Стена {theatre}','Bulwark of the {era}':'Оплот {era}',
+  'Defender of {theatre}':'Защитник {theatre}','Guardian of {theatre}':'Страж {theatre}','The Steadfast':'Непоколебимый',
+  'The Unyielding':'Несгибаемый','Who Held the Line':'Удержавший рубеж','Last Wall of {theatre}':'Последняя стена {theatre}',
+  'Shadow of {theatre}':'Тень {theatre}','Kingmaker of {theatre}':'Творец королей {theatre}','Ghost of {theatre}':'Призрак {theatre}',
+  'Schemer of {theatre}':'Интриган {theatre}','Wildcard of {theatre}':'Тёмная лошадка {theatre}','The Cunning':'Хитрый',
+  'The Elusive':'Неуловимый','Who Slipped the Net':'Ускользнувший из сети','The Changeling':'Оборотень',
+  // traits
+  'Iron Discipline':'Железная дисциплина','Siege Mastery':'Мастер осады','Blitz Doctrine':'Доктрина блицкрига','No Quarter':'Без пощады',
+  'Vanguard':'Авангард','Shock Trooper':'Ударник','Relentless Drive':'Неумолимый натиск','Breach Specialist':'Специалист по прорыву',
+  'Supply Chain':'Цепочка снабжения','War Profiteer':'Военный спекулянт','Logistics Master':'Мастер логистики','Attrition Expert':'Эксперт по войне на истощение',
+  'Strategic Reserve':'Стратегический резерв','Economic Warfare':'Экономическая война','Mercenary Contracts':'Контракты с наёмниками','Adaptive Supply':'Гибкое снабжение',
+  'Alliance Builder':'Создатель союзов','Ceasefire Broker':'Посредник перемирия','Spy Network':'Шпионская сеть','Propaganda Master':'Мастер пропаганды',
+  'Coalition Warfare':'Коалиционная война','Soft Power':'Мягкая сила','Treaty Architect':'Архитектор договоров','Hearts and Minds':'Сердца и умы',
+  'Fortress Builder':'Строитель крепостей','Last Stand':'Последний рубеж','Depth Defence':'Эшелонированная оборона','Attrition Master':'Мастер истощения',
+  'Minefield Doctrine':'Доктрина минных полей','Fortified Lines':'Укреплённые рубежи','Strategic Withdrawal':'Стратегическое отступление','Iron Bunker':'Железный бункер',
+  'False Flag':'Операция под чужим флагом','Momentum Shift':'Перехват инициативы','Turncoat':'Перебежчик','Shadow Operations':'Теневые операции',
+  'Flanking Master':'Мастер обходного манёвра','Deception Veil':'Завеса обмана','Double Cross':'Двойная игра','Unpredictable Strike':'Непредсказуемый удар',
+  // backstories
+  'Rose through the ranks amid the wars of {theatre}.':'Поднялся по службе в годы войн {theatre}.',
+  'Earned their name in the campaigns across {theatre}.':'Заслужил своё имя в кампаниях {theatre}.',
+  'Forged in the long sieges of {theatre}.':'Закалён в долгих осадах {theatre}.',
+  'Decorated through the industrial wars of {theatre}.':'Удостоен наград за участие в индустриальных войнах {theatre}.',
+  'Hardened in the modern engagements across {theatre}.':'Закалён в современных конфликтах {theatre}.'
+};
+// Genitive ("чего?") theatre forms — slotted into RU titles & backstories so they
+// read grammatically ("Молот Иберии", not "Молот Иберия"). Standalone theatre
+// labels still use the nominative form in GEN_RU above. (Drafts — verify in
+// gen-ru-grammar.md.)
+const GEN_RU_GEN = {
+  'the Gallic Frontier':'Галльского рубежа','the Rhine Marches':'Рейнских марок','the Western Front':'Западного фронта',
+  'the Isles':'Островов','the British Isles':'Британских островов','the Channel Front':'фронта Ла-Манша',
+  'the Iberian Coast':'Иберийского побережья','Iberia':'Иберии','the Iberian Front':'Иберийского фронта',
+  'the Mediterranean Coast':'Средиземноморского побережья','the Italian Peninsula':'Апеннинского полуострова','the Mediterranean Front':'Средиземноморского фронта',
+  'the Steppe':'Степи','the Carpathian Basin':'Карпатского бассейна','the Eastern Front':'Восточного фронта',
+  'the Northern Reaches':'Северных пределов','the Baltic Shore':'Балтийского побережья','the Arctic Front':'Арктического фронта',
+  'the Fertile Crescent':'Плодородного полумесяца','the Holy Land':'Святой земли','the Desert Front':'Пустынного фронта',
+  'the Persian Heartland':'сердца Персии','the Caucasus':'Кавказа','the Caspian Front':'Каспийского фронта',
+  'the Silk Road':'Шёлкового пути','the Khanates':'Ханств','the Central Asian Front':'Центральноазиатского фронта',
+  'the Yellow River Basin':'бассейна Хуанхэ','the Middle Kingdom':'Срединного государства','the Pacific Theatre':'Тихоокеанского театра',
+  'the Indus Valley':'долины Инда','the Deccan Plateau':'плато Декан','the Burma Front':'Бирманского фронта',
+  'the Spice Coast':'Берега пряностей','the Indian Ocean':'Индийского океана','the Pacific Islands':'Тихоокеанских островов',
+  'Carthage':'Карфагена','the Saharan Edge':'окраины Сахары','the Desert War':'войны в пустыне',
+  'Nubia':'Нубии','the Ivory Coast':'Берега Слоновой Кости','the Colonial Theatre':'Колониального театра',
+  'the Far Shore':'Дальнего берега','the New World':'Нового Света','the Atlantic Theatre':'Атлантического театра',
+  'the Southern Seas':'Южных морей','the Coral Coast':'Кораллового побережья','the Pacific Front':'Тихоокеанского фронта',
+  'the Contested Frontier':'спорного пограничья'
+};
+// Genitive era forms for the "X of the {era}" titles, by game-era index 0–4.
+const GEN_RU_ERA_GEN = ['Античности','Классической эпохи','Средневековья','Индустриальной эпохи','Нового времени'];
 function GL(s){ try { return (typeof getLang === 'function' && getLang() === 'ru' && GEN_RU[s]) ? GEN_RU[s] : s; } catch(e){ return s; } }
 function genEsc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function sanitizeGenName(s){ const t = String(s == null ? '' : s).replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,24); return t; }
@@ -5708,8 +5787,13 @@ function suggestGenName(pid){ const pool = GEN_NAMES[genRegionOf(pid)] || GEN_NA
 function rollGenTraits(arch, n){ const pool = [...(GEN_TRAITS[arch] || GEN_TRAITS.guardian)]; const out = []; for (let i = 0; i < n && pool.length; i++) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); return out; }
 function genAddTrait(g){ const avail = (GEN_TRAITS[g.archetype] || []).filter(t => !g.traits.includes(t)); if (avail.length) g.traits.push(avail[Math.floor(Math.random() * avail.length)]); }
 function genPickTitleTpl(arch, tier){ const pools = GEN_TITLES[arch] || GEN_TITLES.guardian; const pool = pools[tier] || pools.mid; return pool[Math.floor(Math.random() * pool.length)]; }
-function genTitleText(g, pid){ if (!g || !g.titleTpl) return ''; return GL(g.titleTpl).replace('{theatre}', GL(g.theatre || '')).replace('{era}', genEraLabel(pid)); }
-function genBackText(g){ if (!g || !g.backTpl) return ''; return GL(g.backTpl).replace('{theatre}', GL(g.theatre || '')); }
+// In RU, titles/backstories slot the GENITIVE theatre/era form so they decline
+// correctly; in EN (and as a fallback) they use the plain nominative string.
+function _genIsRU(){ try { return typeof getLang === 'function' && getLang() === 'ru'; } catch(e){ return false; } }
+function genTheatreForm(theatre){ return _genIsRU() ? (GEN_RU_GEN[theatre] || GL(theatre)) : (theatre || ''); }
+function genEraForm(pid){ const p = S.players[pid]; const e = Math.max(0, Math.min(4, p ? (p.era|0) : 0)); return _genIsRU() ? (GEN_RU_ERA_GEN[e] || genEraLabel(pid)) : genEraLabel(pid); }
+function genTitleText(g, pid){ if (!g || !g.titleTpl) return ''; return GL(g.titleTpl).replace('{theatre}', genTheatreForm(g.theatre || '')).replace('{era}', genEraForm(pid)); }
+function genBackText(g){ if (!g || !g.backTpl) return ''; return GL(g.backTpl).replace('{theatre}', genTheatreForm(g.theatre || '')); }
 
 function createGeneral(pid){
   const p = S.players[pid];
@@ -8802,9 +8886,10 @@ function startGame(humanCountryId) {
 
   logT('log_flag_rises', {nation: S.countries[humanCountryId].name}, 'self');
 
-  // B3: the human's first general takes command — let the player name them (SP only)
+  // B3: the human's first general takes command (auto-named; the player renames
+  // them whenever they like from the GENERAL row → biography panel, not via a
+  // launch popup).
   getGeneral(humanCountryId);
-  if (!MP.active) setTimeout(() => { try { promptNameGeneral(humanCountryId, true); } catch(e){} }, 900);
 
   setupGameCanvas(); // sets _canvasSetup = true internally
   S.turn = 1;
@@ -9884,10 +9969,11 @@ function _archBuildGrid(){
       `<div class="arch-radar"></div>` +
       `<div class="arch-lore">${lore}</div>` +
       `<div class="arch-foot"><div class="arch-bonus-tag">${T('arch_bonus_' + p.id)}</div>${_archBtnHTML(p.id)}</div>`;
-    card.querySelector('.arch-radar').appendChild(_archRadar([{ stats: archStats(p), col: hex }], 132));
-    const fr = card.querySelector('.arch-frame');
-    fr.addEventListener('mouseenter', () => { _archHot[p.id] = true; });
-    fr.addEventListener('mouseleave', () => { _archHot[p.id] = false; });
+    card.querySelector('.arch-radar').appendChild(_archRadar([{ stats: archStats(p), col: hex }], 112));
+    // Hover anywhere on the CARD plays the portrait animation; leaving its
+    // border stops it (was wired only to the portrait frame before).
+    card.addEventListener('mouseenter', () => { _archHot[p.id] = true; });
+    card.addEventListener('mouseleave', () => { _archHot[p.id] = false; });
     card.addEventListener('click', () => _archToggle(p.id));
     grid.appendChild(card);
   });
@@ -12361,25 +12447,28 @@ function hideAllPanels() {
 function showPanel(name) {
   const el = document.getElementById(PANEL_IDS[name]);
   if (!el) return;
-  // Is this panel already open? then toggle it closed.
-  const isOpen = (name === 'selection')
-    ? !el.classList.contains('hidden-float')
-    : (el.style.display && el.style.display !== 'none');
+  // Tabs only OPEN / SWITCH — they never toggle-close (clicking the active tab
+  // again just keeps it open). Closing is the X button's job (closePanelDock /
+  // closeSelectionPanel), so the two no longer collide.
   hideAllPanels();
-  if (!isOpen) {
-    if (name === 'selection') el.classList.remove('hidden-float');
-    else el.style.display = 'flex';  // all docked panels use column flex layout
-    const b = document.getElementById(PANEL_BTNS[name]);
-    if (b) b.classList.add('active');
-    const tabs = document.getElementById('panel-tabs');
-    if (tabs) {
-      tabs.style.display = 'flex';
-      tabs.querySelectorAll('.ptab').forEach(t =>
-        t.classList.toggle('active', t.getAttribute('data-panel') === name));
-    }
+  if (name === 'selection') el.classList.remove('hidden-float');
+  else el.style.display = 'flex';  // all docked panels use column flex layout
+  const b = document.getElementById(PANEL_BTNS[name]);
+  if (b) b.classList.add('active');
+  const tabs = document.getElementById('panel-tabs');
+  if (tabs) {
+    tabs.style.display = 'flex';
+    tabs.querySelectorAll('.ptab').forEach(t =>
+      t.classList.toggle('active', t.getAttribute('data-panel') === name));
   }
 }
 window.showPanel = showPanel;
+// Single, consistent close for the docked panels (used by every panel's X).
+function closePanelDock(){ hideAllPanels(); }
+window.closePanelDock = closePanelDock;
+// Selection panel's X: also drop the province selection (clears the map highlight).
+function closeSelectionPanel(){ S.selectedId = null; hideAllPanels(); if (typeof render === 'function') render(); }
+window.closeSelectionPanel = closeSelectionPanel;
 
 // ── Floating panel toggles (now route through the docked coordinator) ──
 function toggleEmpireFloat() { showPanel('empire'); }
