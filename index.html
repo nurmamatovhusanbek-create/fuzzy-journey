@@ -3113,6 +3113,8 @@ en: {
   vc_tech_flavor: '{name} stands at the apex of human knowledge. Its scholars, engineers and generals have no equal on earth.',
   vc_dip_label: 'DIPLOMATIC HEGEMONY', vc_dip_desc: 'Hold 10+ active alliances simultaneously.',
   vc_dip_flavor: '{name} has woven a web of alliances spanning the globe. By law and treaty, the world answers to one voice.',
+  vc_all_label: 'TOTAL DOMINANCE',
+  vc_all_flavor: '{name} has achieved every form of supremacy at once — military, economic, technological and diplomatic. No power on earth stands as its equal. The age belongs to {name}.',
   eraobj_header: '▸ ERA OBJECTIVES',
   eraobj_claim4: 'Claim 4 territories', eraobj_stab80: 'Hold 80+ stability', eraobj_ally1: 'Form 1 alliance',
   eraobj_dev3: 'Develop 3 provinces', eraobj_win5: 'Win 5 battles', eraobj_trade2: 'Open 2 trade routes',
@@ -4088,6 +4090,8 @@ ru: {
   vc_tech_flavor: '{name} стоит на вершине человеческого знания. Учёные, инженеры и полководцы {name} не знают равных на земле.',
   vc_dip_label: 'ДИПЛОМАТИЧЕСКАЯ ГЕГЕМОНИЯ', vc_dip_desc: 'Поддерживайте 10 и более активных союзов одновременно.',
   vc_dip_flavor: '{name} сплёл сеть союзов, охватившую весь мир. По закону и договору мир отвечает единому голосу.',
+  vc_all_label: 'ПОЛНОЕ ГОСПОДСТВО',
+  vc_all_flavor: '{name} достиг всех форм превосходства разом — военного, экономического, технологического и дипломатического. Ни одна держава на земле не сравнится с ним. Эпоха принадлежит {name}.',
   eraobj_header: '▸ ЦЕЛИ ЭПОХИ',
   eraobj_claim4: 'Захватить 4 территории', eraobj_stab80: 'Удерживать стабильность 80+', eraobj_ally1: 'Заключить 1 союз',
   eraobj_dev3: 'Развить 3 провинции', eraobj_win5: 'Выиграть 5 сражений', eraobj_trade2: 'Открыть 2 торговых пути',
@@ -10594,16 +10598,14 @@ function checkVictory() {
   // Endless mode: the player chose to keep playing past a victory — only
   // elimination (handled above) ends the game now. Keep the progress bars live.
   if (S.endlessMode) { renderVCProgress(); return; }
-  // Check all victory conditions for every player
-  for (const vc of VICTORY_CONDITIONS) {
-    for (const pid in S.players) {
-      const p = S.players[pid];
-      if (!p || p.eliminated) continue;
-      if (vc.check(pid)) {
-        showGameOver(pid === S.humanId ? 'won' : 'lost', S.players[pid], vc);
-        return;
-      }
-    }
+  // The player triumphs only by holding ALL FOUR forms of dominance at once
+  // (military, economic, technological, diplomatic). An AI reaching any — or
+  // all — of the victory conditions NO LONGER ends the game: rivals can surpass
+  // the player on any axis and play simply continues. Only the player's own
+  // grand-slam (or their elimination, handled above) ends it.
+  if (VICTORY_CONDITIONS.every(vc => vc.check(S.humanId))) {
+    showGameOver('won', S.players[S.humanId], { id: 'all', icon: '👑', tk: 'vc_all' });
+    return;
   }
   // Update progress bars each turn (non-terminal)
   renderVCProgress();
@@ -12017,9 +12019,9 @@ const TUTORIAL_STEPS = [
   // ── VICTORY ─────────────────────────────────────────────────────────────
   { chapter: 'VICTORY', highlight: null,
     en: { title: 'HOW TO WIN',
-      text: 'There are four roads to victory — reach any one and the game is yours (<b>and an AI can win the same way, so watch the rankings</b>):<br>• <b>⚔ Domination</b> — control 65% of all territories<br>• <b>⚖ Economic</b> — hold 2,500 gold in your treasury<br>• <b>📜 Technological</b> — reach the Modern era and max all three tech branches<br>• <b>🕊 Diplomatic</b> — maintain 10 alliances at once<br><br>Track your progress on the bars in the <b>🏰 Empire</b> panel.' },
+      text: 'True victory means <b>total dominance</b> — you must hold <b>all four</b> forms of supremacy <b>at once</b>:<br>• <b>⚔ Domination</b> — control 65% of all territories<br>• <b>⚖ Economic</b> — hold 2,500 gold in your treasury<br>• <b>📜 Technological</b> — reach the Modern era and max all three tech branches<br>• <b>🕊 Diplomatic</b> — maintain 10 alliances at once<br><br>A rival AI can lead you on any single axis — that no longer ends the game, so press on. Track all four bars in the <b>🏰 Empire</b> panel.' },
     ru: { title: 'КАК ПОБЕДИТЬ',
-      text: 'К победе ведут четыре пути — достигните любого, и игра ваша (<b>а ИИ может победить так же, поэтому следите за рейтингами</b>):<br>• <b>⚔ Господство</b> — контроль 65% всех территорий<br>• <b>⚖ Экономика</b> — накопить 2 500 золота в казне<br>• <b>📜 Технологии</b> — достичь Нового времени и развить все три ветви до максимума<br>• <b>🕊 Дипломатия</b> — удерживать 10 союзов одновременно<br><br>Следите за прогрессом по шкалам в панели <b>🏰 Империя</b>.' } },
+      text: 'Настоящая победа — это <b>полное господство</b>: нужно удерживать <b>все четыре</b> формы превосходства <b>одновременно</b>:<br>• <b>⚔ Господство</b> — контроль 65% всех территорий<br>• <b>⚖ Экономика</b> — накопить 2 500 золота в казне<br>• <b>📜 Технологии</b> — достичь Нового времени и развить все три ветви до максимума<br>• <b>🕊 Дипломатия</b> — удерживать 10 союзов одновременно<br><br>Соперник-ИИ может опережать вас по любому отдельному показателю — это больше не завершает игру, так что продолжайте. Следите за всеми четырьмя шкалами в панели <b>🏰 Империя</b>.' } },
 
   { chapter: 'VICTORY', highlight: '#settings-btn', side: 'bottom',
     en: { title: 'LAST STAND, SAVING & SETTINGS',
