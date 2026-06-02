@@ -1446,6 +1446,41 @@
     letter-spacing: 0.08em; line-height: 1.5;
   }
   .coalition-banner strong { color: var(--red-warn); }
+  /* ─── Coalition peace ─── */
+  .coal-peace-btn {
+    margin-top: 8px; width: 100%; padding: 6px 8px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase; border-radius: 3px;
+    border: 1px solid var(--gold); background: rgba(212,160,23,0.14); color: var(--gold-bright);
+  }
+  .coal-peace-btn:hover { background: rgba(212,160,23,0.26); }
+  .coal-peace-locked { margin-top: 7px; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.04em; }
+  #coal-peace-body { padding: 16px 20px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .cp-intro { font-size: 10.5px; color: var(--ink-dim); line-height: 1.5; margin-bottom: 12px; }
+  .cp-gauge { background: #0b0f1e; border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; margin-bottom: 10px; }
+  .cp-gauge-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-dim); letter-spacing: 0.04em; }
+  .cp-idx { color: var(--ink); font-weight: 700; }
+  .cp-eff.ok { color: var(--green); font-weight: 700; } .cp-eff.no { color: var(--red-warn); font-weight: 700; }
+  .cp-bar { position: relative; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.06); margin: 7px 0; overflow: visible; }
+  .cp-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); transition: width .25s; }
+  .cp-bar-need { position: absolute; top: -2px; width: 2px; height: 12px; background: var(--green); }
+  .cp-parts { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; margin-bottom: 12px; }
+  .cp-part { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--ink-dim); }
+  .cp-part .pos { color: var(--green); } .cp-part .neg { color: var(--red-warn); }
+  .cp-sec { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); margin: 4px 0 8px; }
+  .cp-tribute { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink); margin-bottom: 10px; }
+  .cp-gold { min-width: 52px; text-align: center; color: var(--gold-bright); font-weight: 700; }
+  .cp-bonus { color: var(--green); font-size: 9.5px; }
+  .cp-cede-label { font-size: 10.5px; color: var(--ink); margin-bottom: 6px; }
+  .cp-cede { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; max-height: 22vh; overflow-y: auto; }
+  .cp-none { font-size: 9.5px; color: var(--ink-dim); font-style: italic; }
+  .cp-confirm {
+    width: 100%; padding: 9px; cursor: pointer; border-radius: 4px; border: 1px solid var(--gold);
+    background: rgba(212,160,23,0.16); color: var(--gold-bright);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .cp-confirm:hover:not(:disabled) { background: rgba(212,160,23,0.28); }
+  .cp-confirm.locked, .cp-confirm:disabled { opacity: 0.5; cursor: default; border-color: var(--border); background: transparent; color: var(--ink-dim); }
   .btn.marriage { border-color: rgba(220,130,190,0.35); color: #e090c8; }
   .btn.marriage:hover:not(:disabled) { background: rgba(220,130,190,0.1); border-color: #e090c8; }
   .btn.nap { border-color: rgba(74,184,193,0.35); color: #4ab8c1; }
@@ -2416,6 +2451,17 @@
   </div>
 </div>
 
+<!-- Coalition peace -->
+<div id="coal-peace-modal" class="peace-modal" hidden>
+  <div class="peace-card" style="max-width:560px">
+    <div class="peace-head">
+      <div class="peace-title" data-i18n="coalpeace_title">SUE FOR COALITION PEACE</div>
+      <button class="peace-close" onclick="closeCoalitionPeace()">✕</button>
+    </div>
+    <div id="coal-peace-body"></div>
+  </div>
+</div>
+
 <!-- B3: general biography -->
 <div id="gen-bio-modal" class="peace-modal" hidden>
   <div class="peace-card gen-bio-card">
@@ -3247,6 +3293,28 @@ en: {
   arch_view_general: '⚔ {name} commands your armies →',
   glog_gen_fallen: '✝ {name} has fallen in battle — a successor takes command.',
   glog_gen_retired: '{name} retires from service — a successor takes command.',
+  coalpeace_title: 'SUE FOR COALITION PEACE',
+  coalpeace_banner: '{n} nations have formed a war bloc. Cut your land below {pct}% to break it — or sue for bloc-wide terms.',
+  coalpeace_btn: '⚖ SUE FOR COALITION PEACE · {idx}',
+  coalpeace_locked: '⚖ Bloc peace available in {n} turn(s)',
+  coalpeace_intro: 'Offer a single settlement to all {n} coalition members at once. Their willingness must clear the mark — endure longer, or sweeten the deal with gold and land.',
+  coalpeace_index: 'Base willingness',
+  coalpeace_eff: 'With concessions',
+  coalpeace_part_wear: 'War weariness',
+  coalpeace_part_resil: 'Your resilience',
+  coalpeace_part_moment: 'War momentum',
+  coalpeace_part_goal: 'Bloc goal met',
+  coalpeace_part_distract: 'Their distraction',
+  coalpeace_part_resist: 'Resentment',
+  coalpeace_concessions: 'Sweeten the deal',
+  coalpeace_tribute: 'Gold tribute',
+  coalpeace_cede: 'Cede border provinces:',
+  coalpeace_no_cede: 'No borderlands to cede.',
+  coalpeace_confirm: '⚖ Conclude bloc peace',
+  coalpeace_need: 'Willingness too low',
+  coalpeace_done: 'The coalition against you dissolves — peace concluded with {v0} nations.',
+  coalpeace_toast: 'The coalition lays down its arms. The war bloc is broken.',
+  coalpeace_refused: 'The coalition refuses these terms — raise your offer or hold out longer.',
   eraobj_header: '▸ ERA OBJECTIVES',
   eraobj_claim4: 'Claim 4 territories', eraobj_stab80: 'Hold 80+ stability', eraobj_ally1: 'Form 1 alliance',
   eraobj_dev3: 'Develop 3 provinces', eraobj_win5: 'Win 5 battles', eraobj_trade2: 'Open 2 trade routes',
@@ -4251,6 +4319,28 @@ ru: {
   arch_view_general: '⚔ {name} ведёт ваши армии →',
   glog_gen_fallen: '✝ {name} пал в бою — командование принимает преемник.',
   glog_gen_retired: '{name} уходит в отставку — командование принимает преемник.',
+  coalpeace_title: 'ЗАКЛЮЧИТЬ МИР С КОАЛИЦИЕЙ',
+  coalpeace_banner: '{n} наций образовали военный блок. Сократите свои земли ниже {pct}%, чтобы разбить его, — или добейтесь общего мира.',
+  coalpeace_btn: '⚖ МИР СО ВСЕЙ КОАЛИЦИЕЙ · {idx}',
+  coalpeace_locked: '⚖ Мир с блоком доступен через {n} ход(ов)',
+  coalpeace_intro: 'Предложите единое урегулирование сразу всем {n} участникам коалиции. Их готовность должна превысить порог — продержитесь дольше или подсластите сделку золотом и землёй.',
+  coalpeace_index: 'Базовая готовность',
+  coalpeace_eff: 'С уступками',
+  coalpeace_part_wear: 'Усталость от войны',
+  coalpeace_part_resil: 'Ваша стойкость',
+  coalpeace_part_moment: 'Ход войны',
+  coalpeace_part_goal: 'Цель блока достигнута',
+  coalpeace_part_distract: 'Их отвлечённость',
+  coalpeace_part_resist: 'Озлобленность',
+  coalpeace_concessions: 'Подсластить сделку',
+  coalpeace_tribute: 'Золотая дань',
+  coalpeace_cede: 'Уступить приграничные провинции:',
+  coalpeace_no_cede: 'Нет приграничных земель для уступки.',
+  coalpeace_confirm: '⚖ Заключить мир с блоком',
+  coalpeace_need: 'Готовность слишком низка',
+  coalpeace_done: 'Коалиция против вас распадается — мир заключён с {v0} нациями.',
+  coalpeace_toast: 'Коалиция складывает оружие. Военный блок разбит.',
+  coalpeace_refused: 'Коалиция отвергает эти условия — увеличьте предложение или продержитесь дольше.',
   eraobj_header: '▸ ЦЕЛИ ЭПОХИ',
   eraobj_claim4: 'Захватить 4 территории', eraobj_stab80: 'Удерживать стабильность 80+', eraobj_ally1: 'Заключить 1 союз',
   eraobj_dev3: 'Развить 3 провинции', eraobj_win5: 'Выиграть 5 сражений', eraobj_trade2: 'Открыть 2 торговых пути',
@@ -7879,6 +7969,18 @@ function getTradeHalvedMul() {
 
 const COALITION_THRESHOLD = 0.22;  // trigger at 40% of territories
 const COALITION_DISSOLVE = 0.14;  // dissolve when dominant drops below 35%
+// Coalition peace: once you've endured the bloc war for MIN_TURNS turns you may
+// sue for a single bloc-wide peace, gated by a willingness "likelihood index"
+// (0–100). At/above THRESHOLD the deal lands; concessions (gold/land) raise it.
+const COAL_PEACE = {
+  MIN_TURNS: 30,        // avg turns at war with the coalition before the option unlocks
+  THRESHOLD: 70,        // effective index needed for the bloc to accept
+  GOLD_PER_PT: 15,      // gold per +1 index point (tribute concession)
+  GOLD_CAP_PT: 20,      // max index from gold
+  CEDE_PER_PT: 10,      // index per ceded border province
+  CEDE_CAP_PT: 24,      // max index from ceded land
+  TRUCE: 8              // truce length granted to every member on success
+};
 const NAP_DURATION          = 8;     // turns
 
 // ── Relation helpers ─────────────────────────────────────────────────────────
@@ -8108,6 +8210,178 @@ function checkCoalition() {
   }
 }
 
+// ══ COALITION PEACE — sue for a single bloc-wide peace ════════════════════════
+// The only old exit from a coalition war was shrinking below COALITION_DISSOLVE.
+// Now, after enduring MIN_TURNS, the player can settle with the WHOLE bloc at
+// once if the willingness "likelihood index" (≥ THRESHOLD) is met — patience or
+// concessions (gold/land) get you there. Mirrors doUltimatum (MP-queued).
+function coalitionPeaceMembers(){
+  if (!S.coalition || S.coalition.against !== S.humanId) return [];
+  return (S.coalition.members || []).filter(pid => {
+    const p = S.players[pid];
+    return p && !p.eliminated && relation(pid, S.humanId) === 'war';
+  });
+}
+// Returns { index, parts, base, avgTurns, members, eligible }. index is the
+// coalition's base willingness to accept a status-quo peace (before concessions).
+function coalitionPeaceIndex(){
+  const cl = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const me = S.players[S.humanId];
+  const members = coalitionPeaceMembers();
+  if (!me || members.length === 0) return { index:0, parts:{}, base:0, avgTurns:0, members:[], eligible:false };
+  const n = members.length;
+  const armyOf = pid => playerOwned(pid).reduce((s,id)=> s + (S.countries[id].army||0), 0);
+  const avgTurns = members.reduce((s,m)=> s + (me.warTurns[m]||0), 0) / n;
+  const myArmy   = armyOf(S.humanId);
+  const coalArmy = members.reduce((s,m)=> s + armyOf(m), 0);
+  const resil    = myArmy / (myArmy + coalArmy + 1);                 // 0..1, your share of the force
+  const wsAvg    = members.reduce((s,m)=> s + getWarScore(S.humanId, m), 0) / n;   // -100..100
+  const total    = Object.keys(S.countries).length;
+  const domFrac  = playerOwned(S.humanId).length / Math.max(1,total);
+  const goalGap  = cl((COALITION_THRESHOLD - domFrac) / (COALITION_THRESHOLD - COALITION_DISSOLVE), 0, 1);
+  let distractSum = 0;
+  for (const m of members){
+    const p = S.players[m];
+    let otherWars = 0;
+    for (const oid in (p.rel||{})) if (p.rel[oid] === 'war' && oid !== S.humanId) otherWars++;
+    const owned = playerOwned(m);
+    const stab = owned.length ? owned.reduce((a,id)=> a + (S.countries[id].stability||0), 0)/owned.length : 50;
+    distractSum += 0.5*(otherWars>0?1:0) + 0.5*(1 - cl(stab/100,0,1));
+  }
+  const distract  = distractSum / n;
+  const grudgeAvg = members.reduce((s,m)=> s + getGrudge(m, S.humanId), 0) / n / 100;   // 0..1
+  const aggrAvg   = members.reduce((s,m)=> s + getPersonality(m).aggr, 0) / n;            // 0..1
+  const parts = {
+    wear:     Math.round(cl(avgTurns/80,0,1) * 28),    // long war exhausts the bloc
+    resil:    Math.round(cl((resil-0.18)/0.5,0,1) * 22), // if they can't finish you, they settle
+    moment:   Math.round(cl(wsAvg/50,-1,1) * 18),       // you winning → they cut losses
+    goal:     Math.round(goalGap * 16),                 // they formed to cut you down — near-done?
+    distract: Math.round(distract * 12),                // overstretched / unstable members want out
+    resist:  -Math.round(grudgeAvg*16 + aggrAvg*8)      // grudges + aggression keep them fighting
+  };
+  const base = 18;
+  let index = base + parts.wear + parts.resil + parts.moment + parts.goal + parts.distract + parts.resist;
+  index = Math.max(0, Math.min(100, Math.round(index)));
+  return { index, parts, base, avgTurns, members, eligible: avgTurns >= COAL_PEACE.MIN_TURNS };
+}
+function coalitionConcessionBonus(gold, provIds){
+  const goldPart = Math.min(COAL_PEACE.GOLD_CAP_PT, Math.floor((gold||0) / COAL_PEACE.GOLD_PER_PT));
+  const cedePart = Math.min(COAL_PEACE.CEDE_CAP_PT, (provIds||[]).length * COAL_PEACE.CEDE_PER_PT);
+  return goldPart + cedePart;
+}
+// Player's own provinces that border a coalition member (the cede candidates).
+function coalitionCedeOptions(){
+  const members = coalitionPeaceMembers();
+  if (!members.length) return [];
+  return playerOwned(S.humanId).filter(id =>
+    (S.countries[id].neighbors||[]).some(nb => S.countries[nb] && members.includes(S.countries[nb].ownerId)));
+}
+
+let _coalModal = { open:false, gold:0, cede:[] };
+function openCoalitionPeace(){
+  const info = coalitionPeaceIndex();
+  if (!info.eligible) return;
+  _coalModal = { open:true, gold:0, cede:[] };
+  document.getElementById('coal-peace-modal').hidden = false;
+  renderCoalitionPeace();
+}
+function closeCoalitionPeace(){ _coalModal.open = false; const m = document.getElementById('coal-peace-modal'); if (m) m.hidden = true; }
+function adjustCoalGold(delta){
+  if (!_coalModal.open) return;
+  const cap = Math.floor(S.players[S.humanId].gold||0);
+  _coalModal.gold = Math.max(0, Math.min((_coalModal.gold||0) + delta * COAL_PEACE.GOLD_PER_PT, cap));
+  renderCoalitionPeace();
+}
+function toggleCoalCede(id){
+  if (!_coalModal.open) return;
+  const i = _coalModal.cede.indexOf(id);
+  if (i >= 0) _coalModal.cede.splice(i,1); else _coalModal.cede.push(id);
+  renderCoalitionPeace();
+}
+function renderCoalitionPeace(){
+  const body = document.getElementById('coal-peace-body');
+  if (!body) return;
+  const info = coalitionPeaceIndex();
+  const bonus = coalitionConcessionBonus(_coalModal.gold, _coalModal.cede);
+  const eff = Math.min(100, info.index + bonus);
+  const ok = eff >= COAL_PEACE.THRESHOLD;
+  const P = info.parts;
+  const partRow = (k, v) => `<div class="cp-part"><span>${T('coalpeace_part_'+k)}</span><span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v}</span></div>`;
+  const cedeOpts = coalitionCedeOptions();
+  const cedeHtml = cedeOpts.length ? cedeOpts.map(id => {
+    const sel = _coalModal.cede.includes(id);
+    return `<button class="peace-prov-btn${sel?' sel':''}" onclick="toggleCoalCede('${id}')">${sel?'✓ ':''}${S.countries[id].name}</button>`;
+  }).join('') : `<div class="cp-none">${T('coalpeace_no_cede')}</div>`;
+  body.innerHTML = `
+    <div class="cp-intro">${Tpl('coalpeace_intro', { n: info.members.length })}</div>
+    <div class="cp-gauge">
+      <div class="cp-gauge-row"><span>${T('coalpeace_index')}</span><span class="cp-idx">${info.index}</span></div>
+      <div class="cp-bar"><div class="cp-bar-fill" style="width:${eff}%"></div><div class="cp-bar-need" style="left:${COAL_PEACE.THRESHOLD}%"></div></div>
+      <div class="cp-gauge-row"><span>${T('coalpeace_eff')}</span><span class="cp-eff ${ok?'ok':'no'}">${eff} / ${COAL_PEACE.THRESHOLD}</span></div>
+    </div>
+    <div class="cp-parts">${partRow('wear',P.wear)}${partRow('resil',P.resil)}${partRow('moment',P.moment)}${partRow('goal',P.goal)}${partRow('distract',P.distract)}${partRow('resist',P.resist)}</div>
+    <div class="cp-sec">${T('coalpeace_concessions')}</div>
+    <div class="cp-tribute">
+      <span>${T('coalpeace_tribute')}</span>
+      <button class="step-btn" onclick="adjustCoalGold(-1)">−</button>
+      <span class="cp-gold">${_coalModal.gold}g</span>
+      <button class="step-btn" onclick="adjustCoalGold(1)">+</button>
+      <span class="cp-bonus">+${Math.min(COAL_PEACE.GOLD_CAP_PT, Math.floor(_coalModal.gold/COAL_PEACE.GOLD_PER_PT))}</span>
+    </div>
+    <div class="cp-cede-label">${T('coalpeace_cede')} <span class="cp-bonus">+${Math.min(COAL_PEACE.CEDE_CAP_PT, _coalModal.cede.length*COAL_PEACE.CEDE_PER_PT)}</span></div>
+    <div class="cp-cede">${cedeHtml}</div>
+    <button class="cp-confirm ${ok?'':'locked'}" ${ok?'':'disabled'} onclick="confirmCoalitionPeace()">${ok ? T('coalpeace_confirm') : T('coalpeace_need')}</button>
+  `;
+}
+function confirmCoalitionPeace(){
+  (window.doCoalitionPeace || doCoalitionPeace)(_coalModal.gold, _coalModal.cede.slice());
+}
+// Authoritative resolver (mirrors doUltimatum; host swaps S.humanId per actor in MP).
+function doCoalitionPeace(gold, provIds){
+  const me = S.players[S.humanId];
+  if (!me) return;
+  const info = coalitionPeaceIndex();
+  if (!info.eligible || info.members.length === 0) return;
+  gold = Math.max(0, Math.min(gold||0, Math.floor(me.gold||0)));
+  provIds = (provIds||[]).filter(id => S.countries[id] && S.countries[id].ownerId === S.humanId);
+  const eff = Math.min(100, info.index + coalitionConcessionBonus(gold, provIds));
+  if (eff < COAL_PEACE.THRESHOLD){ if (!MP.active) showDiploResult('bad', T('coalpeace_refused')); return; }
+  const members = info.members;
+  // tribute, split evenly
+  if (gold > 0){
+    me.gold = Math.max(0, me.gold - gold);
+    const share = Math.floor(gold / members.length);
+    for (const m of members) S.players[m].gold = (S.players[m].gold||0) + share;
+  }
+  // ceded land → a bordering member (else the first member)
+  for (const id of provIds){
+    const c = S.countries[id]; if (!c || c.ownerId !== S.humanId) continue;
+    const tgt = members.find(m => (c.neighbors||[]).some(nb => S.countries[nb] && S.countries[nb].ownerId === m)) || members[0];
+    c.ownerId = tgt; c.stability = 22 + Math.floor(Math.random()*12);
+  }
+  // peace + truce with every member; clear war bookkeeping; dissolve the bloc
+  for (const m of members){
+    setRelation(S.humanId, m, 'peace');
+    setTruce(S.humanId, m, COAL_PEACE.TRUCE);
+    if (me.warScore) delete me.warScore[m];
+    if (S.players[m].warScore) delete S.players[m].warScore[S.humanId];
+    if (me.warTurns) delete me.warTurns[m];
+    if (S.players[m].warTurns) delete S.players[m].warTurns[S.humanId];
+    clearWarGoal(S.humanId, m); clearWarGoal(m, S.humanId);
+  }
+  S.coalition = null;
+  logT('coalpeace_done', {v0: members.length}, 'good');
+  if (!MP.active) showDiploResult('ok', T('coalpeace_toast'), 5000);
+  closeCoalitionPeace();
+  updateHUD(); render(); checkVictory();
+}
+window.openCoalitionPeace = openCoalitionPeace;
+window.closeCoalitionPeace = closeCoalitionPeace;
+window.adjustCoalGold = adjustCoalGold;
+window.toggleCoalCede = toggleCoalCede;
+window.confirmCoalitionPeace = confirmCoalitionPeace;
+window.doCoalitionPeace = doCoalitionPeace;
+
 // ── Render updated diplomacy panel ────────────────────────────────────────────
 function renderDiplomacy() {
   const me = S.players[S.humanId];
@@ -8117,10 +8391,15 @@ function renderDiplomacy() {
   // Coalition warning banner
   let bannerHtml = '';
   if (S.coalition && S.coalition.against === S.humanId) {
+    const cp = coalitionPeaceIndex();
+    const turnsLeft = Math.max(0, Math.ceil(COAL_PEACE.MIN_TURNS - cp.avgTurns));
+    const action = cp.eligible
+      ? `<button class="coal-peace-btn" onclick="openCoalitionPeace()">${Tpl('coalpeace_btn', { idx: cp.index })}</button>`
+      : `<div class="coal-peace-locked">${Tpl('coalpeace_locked', { n: turnsLeft })}</div>`;
     bannerHtml = `<div class="coalition-banner">
-      <strong>⚔ COALITION AGAINST YOU</strong><br>
-      ${(S.coalition.members || []).length} nations have formed a war bloc.<br>
-      Reduce your territory below ${Math.round(COALITION_DISSOLVE*100)}% to dissolve it.
+      <strong>${T('diplo_coalition')}</strong><br>
+      ${Tpl('coalpeace_banner', { n: (S.coalition.members || []).length, pct: Math.round(COALITION_DISSOLVE*100) })}
+      ${action}
     </div>`;
   }
 
@@ -12013,7 +12292,7 @@ function mpApplyAction(action) {
   const allowed = ['doAttack','doBuildArmy','doMoveArmy','doDevelop',
                    'doAdvanceEra','doTakeLoan','doDiplomacy','doBuild',
                    'doResearchTech','doProposeNAP','doProposeMarriage',
-                   'doSpyOp','doUpgradeCounterIntel','doUltimatum','doAppointCommander'];
+                   'doSpyOp','doUpgradeCounterIntel','doUltimatum','doAppointCommander','doCoalitionPeace'];
   if (!allowed.includes(action.fn)) return;
   // Use the ORIGINAL (non-consent-wrapped) fn for diplomacy actions. The queued
   // action already passed consent on the requester's client; calling the wrapped
@@ -12156,7 +12435,7 @@ const _mpQueueAction = (fn, args) => {
 
 ['doAttack','doBuildArmy','doMoveArmy','doDevelop','doAdvanceEra',
  'doTakeLoan','doDiplomacy','doBuild','doResearchTech',
- 'doProposeNAP','doProposeMarriage','doSpyOp','doUpgradeCounterIntel','doUltimatum','doAppointCommander'].forEach(fnName => {
+ 'doProposeNAP','doProposeMarriage','doSpyOp','doUpgradeCounterIntel','doUltimatum','doAppointCommander','doCoalitionPeace'].forEach(fnName => {
   const orig = window[fnName];
   if (typeof orig !== 'function') return;
   window[fnName] = function() {
@@ -13626,6 +13905,8 @@ function cycleOwnProvince(dir) {
 // selection). Returns true if it consumed the key. The event modal is skipped
 // on purpose — it demands a choice.
 function handleEscape() {
+  const coalPeace = document.getElementById('coal-peace-modal');
+  if (coalPeace && !coalPeace.hidden) { closeCoalitionPeace(); return true; }
   const genName = document.getElementById('gen-name-modal');
   if (genName && !genName.hidden) { genNameSkip(); return true; }
   const genBio = document.getElementById('gen-bio-modal');
