@@ -2242,7 +2242,6 @@
       <button class="lens-btn" data-lens="economic" onclick="setOverlayMode('economic')"><span class="lens-ic">💰</span><span data-i18n="overlay_economic">Economic</span></button>
       <button class="lens-btn" data-lens="military" onclick="setOverlayMode('military')"><span class="lens-ic">⚔</span><span data-i18n="overlay_military">Military</span></button>
       <button class="lens-btn" data-lens="wars" onclick="setOverlayMode('wars')"><span class="lens-ic">🔥</span><span data-i18n="overlay_wars">Wars</span></button>
-      <button class="lens-btn" data-lens="terrain" onclick="setOverlayMode('terrain')"><span class="lens-ic">⛰</span><span data-i18n="overlay_terrain">Terrain</span></button>
     </div>
   </div>
 
@@ -2582,15 +2581,6 @@
         style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
         data-i18n="cam_off">OFF</button>
     </div>
-    <div class="sdd-label" style="padding:2px 16px 2px;opacity:.7" data-i18n="sdd_relief">MAP RELIEF</div>
-    <div style="display:flex;gap:6px;padding:4px 16px 10px">
-      <button class="sdd-lang-btn relief-btn active" data-relief="on" onclick="setReliefOn(true)"
-        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
-        data-i18n="cam_on">ON</button>
-      <button class="sdd-lang-btn relief-btn" data-relief="off" onclick="setReliefOn(false)"
-        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
-        data-i18n="cam_off">OFF</button>
-    </div>
   </div>
   <div class="sdd-section">
     <div class="sdd-item" style="cursor:default;gap:10px;padding-bottom:4px">
@@ -2712,9 +2702,49 @@ en: {
   theme_standard: '🌍 STANDARD',
   theme_parchment: '📜 PARCHMENT',
   sdd_camera: 'CAMERA FOLLOW',
-  sdd_relief: 'MAP RELIEF',
   cam_on: 'ON',
   cam_off: 'OFF',
+  wl_title: 'Chance of war',
+  wl_header: 'WAR LIKELIHOOD',
+  wl_allied: 'Bound by alliance',
+  wl_atwar: 'Already at war',
+  wl_superiority: 'Military superiority',
+  wl_inferiority: 'Militarily weaker',
+  wl_expansionist: 'Expansionist ambitions',
+  wl_grudge: 'Holds a grudge',
+  wl_nodirect: 'No shared border',
+  wl_claim: 'Pressing a claim',
+  wl_nap: 'Non-aggression pact',
+  wl_truce: 'Recent peace treaty',
+  wl_unstable: 'Internal instability',
+  wl_recentdefeat: 'Reeling from defeat',
+  wl_recovering: 'Recovering from occupation',
+  wl_envoy: 'Soothed by an envoy',
+  stat_war_dur: 'WAR DURATION',
+  peace_accept_label: 'WHITE PEACE',
+  act_send_envoy: '🕊 SEND ENVOY',
+  act_call_war: '⚔ CALL TO WAR',
+  envoy_tip: 'Improve relations & lower their war likelihood',
+  envoy_sent: '🕊 Envoy dispatched to {nation} — tensions ease.',
+  envoy_sent_log: 'Sent an envoy to {v0}.',
+  envoy_recv_log: '{v0} sent you an envoy.',
+  envoy_cd_msg: 'Another envoy available in {n}t',
+  notif_envoy_t: '{nation} sent an envoy',
+  notif_envoy_b: 'A goodwill gesture — tensions ease.',
+  ally_call_yes: '{ally} joins the war against {enemy}!',
+  ally_call_no: '{ally} declines your call to arms.',
+  ally_call_none: 'No eligible war to call your ally into.',
+  ally_call_yes_log: '{v0} answered your call to arms against {v1}.',
+  ally_call_no_log: '{v0} refused your call to arms.',
+  pa_losing: 'They are losing',
+  pa_winning: 'They are winning',
+  pa_weary: 'War weariness',
+  pa_unstable: 'Internal instability',
+  pa_outmatched: 'Outmatched militarily',
+  pa_dominant: 'Holds the upper hand',
+  pa_overstretched: 'Fighting on many fronts',
+  pa_broke: 'Treasury strained',
+  pa_vengeful: 'Bitter grudge',
   notif_alerts: 'ALERTS',
   notif_clear: 'Clear all',
   notif_war_t: '{nation} declares war!',
@@ -3150,6 +3180,10 @@ en: {
   // ── Action buttons ───────────────────────────────────────────────────────
   act_recruit:      '+ RECRUIT',
   act_develop:      '↑ DEVELOP',
+  act_reduce_army:  'REDUCE ARMY TO',
+  act_reduce_do:    '− DISBAND TROOPS',
+  reduce_army_log:  'Disbanded {v0} troops from {v1} — manpower recovered, upkeep eased.',
+  reduce_army_war:  'Cannot reduce the army while at war.',
   act_move:         '↻ MOVE ARMY →',
   act_attack:       '⚔ ATTACK',
   act_all:          'ALL',
@@ -3443,9 +3477,49 @@ ru: {
   theme_standard: '🌍 СТАНДАРТ',
   theme_parchment: '📜 ПЕРГАМЕНТ',
   sdd_camera: 'СЛЕЖЕНИЕ КАМЕРЫ',
-  sdd_relief: 'РЕЛЬЕФ КАРТЫ',
   cam_on: 'ВКЛ',
   cam_off: 'ВЫКЛ',
+  wl_title: 'Вероятность войны',
+  wl_header: 'ВЕРОЯТНОСТЬ ВОЙНЫ',
+  wl_allied: 'Связаны союзом',
+  wl_atwar: 'Уже в состоянии войны',
+  wl_superiority: 'Военное превосходство',
+  wl_inferiority: 'Слабее в военном плане',
+  wl_expansionist: 'Экспансионистские амбиции',
+  wl_grudge: 'Затаили обиду',
+  wl_nodirect: 'Нет общей границы',
+  wl_claim: 'Притязания на земли',
+  wl_nap: 'Пакт о ненападении',
+  wl_truce: 'Недавний мирный договор',
+  wl_unstable: 'Внутренняя нестабильность',
+  wl_recentdefeat: 'Оправляются от поражения',
+  wl_recovering: 'Восстановление после оккупации',
+  wl_envoy: 'Смягчены посланником',
+  stat_war_dur: 'ДЛИТЕЛЬНОСТЬ ВОЙНЫ',
+  peace_accept_label: 'БЕЛЫЙ МИР',
+  act_send_envoy: '🕊 ОТПРАВИТЬ ПОСЛАННИКА',
+  act_call_war: '⚔ ПРИЗВАТЬ К ВОЙНЕ',
+  envoy_tip: 'Улучшить отношения и снизить их склонность к войне',
+  envoy_sent: '🕊 Посланник направлен в {nation} — напряжённость спадает.',
+  envoy_sent_log: 'Отправлен посланник в {v0}.',
+  envoy_recv_log: '{v0} прислали вам посланника.',
+  envoy_cd_msg: 'Следующий посланник через {n} ход.',
+  notif_envoy_t: '{nation} прислали посланника',
+  notif_envoy_b: 'Жест доброй воли — напряжённость спадает.',
+  ally_call_yes: '{ally} вступает в войну против {enemy}!',
+  ally_call_no: '{ally} отклоняет ваш призыв к войне.',
+  ally_call_none: 'Нет подходящей войны, чтобы призвать союзника.',
+  ally_call_yes_log: '{v0} откликнулись на ваш призыв против {v1}.',
+  ally_call_no_log: '{v0} отказались от призыва к войне.',
+  pa_losing: 'Они проигрывают',
+  pa_winning: 'Они побеждают',
+  pa_weary: 'Усталость от войны',
+  pa_unstable: 'Внутренняя нестабильность',
+  pa_outmatched: 'Уступают в силе',
+  pa_dominant: 'Имеют преимущество',
+  pa_overstretched: 'Воюют на многих фронтах',
+  pa_broke: 'Казна истощена',
+  pa_vengeful: 'Жажда мести',
   notif_alerts: 'ОПОВЕЩЕНИЯ',
   notif_clear: 'Очистить всё',
   notif_war_t: '{nation} объявляет войну!',
@@ -4182,6 +4256,10 @@ ru: {
   stat_truce:       '▸ ПЕРЕМИРИЕ',
   stat_left:        'х. ОСТАЛОСЬ',
   // ── Action buttons ───────────────────────────────────────────────────────
+  act_reduce_army:  'СОКРАТИТЬ АРМИЮ ДО',
+  act_reduce_do:    '− РАСПУСТИТЬ ВОЙСКА',
+  reduce_army_log:  'Распущено {v0} войск в {v1} — людские ресурсы восстановлены, содержание снижено.',
+  reduce_army_war:  'Нельзя сокращать армию во время войны.',
   act_recruit:      '+ НАБРАТЬ ВОЙСКА',
   act_develop:      '↑ РАЗВИТЬ',
   act_move:         '↻ ПЕРЕМЕСТИТЬ АРМИЮ →',
@@ -4686,7 +4764,7 @@ window.setMapMode = setMapMode;
 // through their own chosen lens. Default: political (owner colours).
 let _overlayMode = 'political';
 let _overlayMaxArmy = 1;   // recomputed per draw for the military heatmap
-const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'wars', 'terrain'];
+const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'wars'];
 function setOverlayMode(mode) {
   if (!OVERLAY_MODES.includes(mode)) return;
   _overlayMode = mode;
@@ -4702,18 +4780,6 @@ window.setOverlayMode = setOverlayMode;
 // chooses their own map aesthetic & camera behaviour.
 let _mapTheme = (() => { try { return localStorage.getItem('tb_theme') === 'parchment' ? 'parchment' : 'standard'; } catch(_) { return 'standard'; } })();
 let _cameraFollow = (() => { try { return localStorage.getItem('tb_camera') !== 'off'; } catch(_) { return true; } })();  // default on
-// Hybrid terrain underlay: tint the political map by biome + reveal relief on zoom.
-let _reliefOn = (() => { try { return localStorage.getItem('tb_relief') !== 'off'; } catch(_) { return true; } })();  // default on
-// Real relief raster (Natural Earth HYP_HR_SR, downscaled to terrain.webp). Loaded
-// lazily; if it can't load (e.g. opened from file://) the map falls back to the
-// self-contained procedural relief — nothing breaks.
-const _terrainImg = (typeof Image !== 'undefined') ? new Image() : null;
-let _terrainReady = false, _terrainData = null;
-if (_terrainImg) {
-  _terrainImg.onload  = () => { _terrainReady = true; _terrainData = null; _baseKey = null; if (typeof render === 'function') render(); };
-  _terrainImg.onerror = () => { _terrainReady = false; };
-  _terrainImg.src = 'terrain.webp';
-}
 const MAP_THEMES = ['standard', 'parchment'];
 function setMapTheme(theme) {
   if (!MAP_THEMES.includes(theme)) return;
@@ -4727,22 +4793,13 @@ function setCameraFollow(on) {
   try { localStorage.setItem('tb_camera', on ? 'on' : 'off'); } catch(_) {}
   syncMapToggles();
 }
-function setReliefOn(on) {
-  _reliefOn = !!on;
-  try { localStorage.setItem('tb_relief', on ? 'on' : 'off'); } catch(_) {}
-  if (typeof _baseKey !== 'undefined') _baseKey = null;   // base look changed → recache
-  syncMapToggles();
-  if (typeof render === 'function') render();
-}
-// Reflect the active theme/camera/relief state on the settings-dropdown buttons.
+// Reflect the active theme/camera state on the settings-dropdown buttons.
 function syncMapToggles() {
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === _mapTheme));
   document.querySelectorAll('.cam-btn').forEach(b => b.classList.toggle('active', (b.dataset.cam === 'on') === _cameraFollow));
-  document.querySelectorAll('.relief-btn').forEach(b => b.classList.toggle('active', (b.dataset.relief === 'on') === _reliefOn));
 }
 window.setMapTheme = setMapTheme;
 window.setCameraFollow = setCameraFollow;
-window.setReliefOn = setReliefOn;
 
 window.sddSetLang = sddSetLang;
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4800,11 +4857,11 @@ const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV
 const P1 = {
   MP_REGEN_BASE: 3,
   MP_PER_LAND: 0.3,
-  MP_PER_ERA: 0.4,
-  MP_CAP: 18,
+  MP_PER_ERA: 0.8,    // P3 #4: strategic resources scale meaningfully with era (was 0.4)
+  MP_CAP: 26,         // P3 #4: was 18
   DP_REGEN_BASE: 2,
-  DP_PER_ERA: 0.3,
-  DP_CAP: 12,
+  DP_PER_ERA: 0.7,    // P3 #4: was 0.3
+  DP_CAP: 18,         // P3 #4: was 12
   TRUCE_TURNS: 8,
   LOAN_PRINCIPAL: 150,           // bigger loan injection
   LOAN_PAYMENT_PER_TURN: 12,    // 12 × 15 = 180 → ~20% interest — realistic sovereign debt
@@ -4812,7 +4869,7 @@ const P1 = {
   MAX_LOANS: 2,
   MP_COST: { attack: 2, move: 1, recruit: 1, develop: 2, build: 2 },
   DP_COST: { war: 3, peace: 2, ally: 4, breakAlly: 1, vassal: 3, nap: 2, marriage: 3 },
-  WAR_WEARINESS_STAB_PER_TURN: 1.5,  // each active war costs -1.5 stab/turn — now actually hurts
+  WAR_WEARINESS_STAB_PER_TURN: 1.0,  // P3 #11: each active war costs -1.0 stab/turn (was 1.5; recovery now offsets a single war)
   WAR_SCORE_CONQUEST: 22,
   WAR_SCORE_BATTLE_WIN: 5,
   WAR_SCORE_BATTLE_LOSS: -4,
@@ -5447,7 +5504,8 @@ function calcIntelRegen() {
   if (!p) return 0;
   const lands = playerOwned(S.humanId).length;
   const techBonus = S.tech ? (S.tech.statecraft || 0) : 0;
-  return Math.min(3, INTEL_REGEN_BASE + Math.floor(lands * 0.25) + techBonus);
+  // P3 #4: intel now scales with era too (and a higher cap) so late-game espionage keeps pace
+  return Math.min(6, INTEL_REGEN_BASE + Math.floor(lands * 0.25) + techBonus + Math.floor((p.era || 0) * 0.5));
 }
 
 const SPY_OPS = [
@@ -6818,8 +6876,19 @@ function relation(aId, bId) {
 }
 
 function setRelation(aId, bId, status) {
+  if (aId === bId) return;   // #17: a nation can never hold a relation with itself
+  const prevA = (S.players[aId] && S.players[aId].rel) ? S.players[aId].rel[bId] : null;
   if (S.players[aId]) S.players[aId].rel[bId] = status;
   if (S.players[bId]) S.players[bId].rel[aId] = status;
+  // P1: when a war ends, whichever side was losing (negative war score) records a
+  // recent defeat → it won't reflexively start a fresh war for a few turns.
+  if (prevA === 'war' && status === 'peace') {
+    for (const pair of [[aId, bId], [bId, aId]]) {
+      const px = S.players[pair[0]];
+      const ws = px && px.warScore ? px.warScore[pair[1]] : undefined;
+      if (px && typeof ws === 'number' && ws < -10) px.warLostTurn = S.turn;
+    }
+  }
   if (typeof markBordersDirty === 'function') markBordersDirty();   // war fronts may change
 }
 
@@ -8059,8 +8128,8 @@ function getTradeHalvedMul() {
 //   non-allied AI nations receive a coalition proposal. On acceptance they
 //   form a temporary war bloc until the dominant player drops below 35%.
 
-const COALITION_THRESHOLD = 0.22;  // trigger at 40% of territories
-const COALITION_DISSOLVE = 0.14;  // dissolve when dominant drops below 35%
+const COALITION_THRESHOLD = 0.30;  // a bloc forms only once a power truly dominates (P1 #12: was 0.22)
+const COALITION_DISSOLVE = 0.18;  // dissolve when the dominant power drops back down
 // Coalition peace: once you've endured the bloc war for MIN_TURNS turns you may
 // sue for a single bloc-wide peace, gated by a willingness "likelihood index"
 // (0–100). At/above THRESHOLD the deal lands; concessions (gold/land) raise it.
@@ -8278,11 +8347,20 @@ function checkCoalition() {
       relation(pid, dominant) !== 'marriage' &&
       relation(pid, dominant) !== 'war'
     );
-    // Join chance rises with a grudge against the dominant power: nations that
-    // remember being wronged are the readiest to join a war bloc against it.
+    // P1 #12 — graduated threat perception (no universal dogpile). A nation only
+    // joins the bloc if it actually FEELS threatened by the dominant power: weighted
+    // by how dangerous the dominant looks to it (threatScore already folds in size,
+    // power, adjacency, grudge), with a low base. Far, safe, stable nations mostly
+    // stay out; an already-overstretched or unstable nation is also reluctant.
     const members = candidates.filter(pid => {
-      const g = getGrudge(pid, dominant) / 100;     // 0..1
-      return Math.random() < (0.45 + g * 0.45);     // 0.45 base → up to 0.90 with max grudge
+      const g = getGrudge(pid, dominant) / 100;             // 0..1
+      const threat = threatScore(pid, dominant);            // ~0..3 (proximity+power+grudge)
+      const adj = sharesBorder(pid, dominant) ? 0.15 : 0;
+      let chance = 0.08 + g * 0.32 + Math.min(0.38, threat * 0.18) + adj;
+      const others = Object.values(S.players[pid].rel || {}).filter(r => r === 'war').length;
+      if (others > 0) chance *= 0.5;                         // already fighting → reluctant
+      if (avgStability(pid) < 35) chance *= 0.5;             // internally unstable → reluctant
+      return Math.random() < Math.min(0.85, chance);
     });
     if (members.length >= 2) {
       S.coalition = { against: dominant, members };
@@ -8535,7 +8613,44 @@ function renderDiplomacy() {
           ${t.key === 'war' ? (warGoalChip(S.humanId, oid, 'wgoal_yours') || warGoalChip(oid, S.humanId, 'wgoal_theirs')) : ''}
           ${napExp}${grStr}
         </span>
-        <span style="color:var(--ink-dim);font-size:9px">${lands}🏴${wsStr}</span>
+        <span style="color:var(--ink-dim);font-size:9px">${t.key === 'war' ? (T('stat_war_score') + ':' + wsStr) : ''}</span>
+      </div>`;
+    }
+  }
+
+  // P1 #2 — War Likelihood: bordering nations ranked by how likely they are to
+  // attack you, with a trend arrow and reason. Only direct neighbours can realistically
+  // open a war, so we only score those (cheap + relevant).
+  const borderOwners = new Set();
+  for (const id of playerOwned(S.humanId)) {
+    for (const nid of (S.countries[id].neighbors || [])) {
+      const nc = S.countries[nid];
+      if (nc && nc.ownerId !== S.humanId && S.players[nc.ownerId] && !S.players[nc.ownerId].eliminated)
+        borderOwners.add(nc.ownerId);
+    }
+  }
+  const threats = [];
+  borderOwners.forEach(oid => {
+    if (relation(S.humanId, oid) === 'war') return;   // already at war (listed above)
+    const wl = warLikelihood(oid, S.humanId);
+    if (!wl.block) threats.push({ oid, wl });
+  });
+  threats.sort((a, b) => b.wl.pct - a.wl.pct);
+  if (threats.length) {
+    hasAny = true;
+    html += `<div class="diplo-tier-head" style="color:#d98c3a">${T('wl_header')} <span style="color:var(--ink-dim)">(${threats.length})</span></div>`;
+    for (const { oid, wl } of threats) {
+      const o = S.players[oid];
+      const prev = _wlPrev[oid];
+      const trend = (prev == null) ? '' : (wl.pct > prev + 2 ? '↑' : wl.pct < prev - 2 ? '↓' : '→');
+      const col = wl.pct >= WAR_LIKELY.threshold ? 'var(--red-warn)' : wl.pct >= 30 ? '#d9a441' : 'var(--ink-dim)';
+      const top = wl.reasons.length ? T(wl.reasons[0].k) : '';
+      const reasons = wl.reasons.map(r => (r.s > 0 ? '+ ' : '− ') + T(r.k)).join('\n');
+      html += `<div class="diplo-item" title="${T('wl_title')}\n${reasons}">
+        <span class="diplo-name"><span class="ownerpill" style="background:${o.color}"></span>
+        ${flagEmoji(S.countries[oid]?.code || '')} ${o.name}
+        <span style="color:var(--ink-dim);font-size:8.5px">${top}</span></span>
+        <span style="color:${col};font-size:10px;font-weight:600;white-space:nowrap">⚔ ${wl.pct}%${trend}</span>
       </div>`;
     }
   }
@@ -8618,8 +8733,6 @@ function _lerpColor(a, b, t) {
 function _overlayFill(c, owner) {
   const dead = !owner || owner.eliminated;
   switch (_overlayMode) {
-    case 'terrain':
-      return TERRAIN_COL[terrainFor(c.id)] || '#9a9078'; // colour by terrain type (M4)
     case 'economic': {
       if (dead) return '#23281c';
       const dev = Math.max(1, Math.min(6, c.development || 1));
@@ -8691,7 +8804,8 @@ let _borderCache = { sig: null, natl: null, coast: null, front: null };
 // feature + relation each frame. markBordersDirty() is called from setRelation,
 // from conquests in resolveCombat, and at the end of endTurn (a catch-all).
 let _bordersDirty = true;
-function markBordersDirty() { _bordersDirty = true; }
+let _worldRev = 0;   // bumps on any ownership/relation change → invalidates the base cache
+function markBordersDirty() { _bordersDirty = true; _worldRev++; }
 function _ownerWarSig() {
   let s = '';
   for (const f of S.features) { const c = S.countries[f.id]; s += (c ? c.ownerId : '_') + '.'; }
@@ -8788,12 +8902,6 @@ const MAP_THEME_DEF = {
     wash:       'rgba(205,176,116,0.34)'   // aged-paper wash over every land fill
   }
 };
-// Per-terrain colour for the terrain lens (geographic, not ownership).
-const TERRAIN_COL = {
-  plains: '#cdb884', hills: '#a8925e', mountain: '#9b9088',
-  forest: '#6f9461', marsh: '#7c8a68', steppe: '#c4a868'
-};
-
 // ── M5: smooth ownership colour interpolation (political lens) ──────────────
 // Owner colours come as hex ('#e63946', the player) AND hsl() (genColor for AI),
 // so the blender parses any CSS colour the canvas understands.
@@ -8877,173 +8985,6 @@ function flyToFeature(id) {
 }
 window.flyToFeature = flyToFeature;
 
-// ── M4: terrain relief — area-aware procedural shading over the terrain lens ──
-// Scatters terrain-specific marks (shaded mountains, hill bumps, little trees,
-// dune/marsh strokes) across each country's projected extent for an old-atlas
-// "real relief" feel. Deterministic per country id (stable, no flicker). Lives in
-// the cached base layer, so the cost is paid only on a scene change, not per frame.
-function _terrRand(id) {
-  let h = 2166136261; const s = String(id);
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
-}
-function _drawTerrainTexture(ctx, proj, subtle) {
-  ctx.save();
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  if (subtle) ctx.globalAlpha = 0.55;   // hybrid political map: relief reads as faint texture
-  const flat = S.mapMode === 'flat';
-  const rect = canvas.getBoundingClientRect();
-  for (const f of S.features) {
-    if (!S.countries[f.id]) continue;
-    let x, y;
-    if (flat) {
-      const p = proj(d3.geoCentroid(f));
-      if (!p || !isFinite(p[0]) || !isFinite(p[1])) continue;
-      if (p[0] < -30 || p[0] > rect.width + 30) continue;   // off this tile
-      x = p[0]; y = p[1];
-    } else {
-      const r = projectCentroid(f, proj); if (!r) continue;
-      x = r.pt[0]; y = r.pt[1];
-    }
-    // Approximate the country's on-screen radius from its geographic bounds so
-    // big nations get a spread-out range and tiny ones a single mark.
-    let rad = 13;
-    try {
-      const gb = d3.geoBounds(f);          // [[lon0,lat0],[lon1,lat1]]
-      const c0 = proj([gb[0][0], gb[0][1]]), c1 = proj([gb[1][0], gb[1][1]]);
-      if (c0 && c1 && isFinite(c0[0]) && isFinite(c1[0])) {
-        rad = Math.max(8, Math.min(46, Math.hypot(c1[0] - c0[0], c1[1] - c0[1]) * 0.30));
-      }
-    } catch (_) {}
-    const t = terrainFor(f.id);
-    const rnd = _terrRand(f.id);
-    const n = Math.max(1, Math.min(9, Math.round(rad / 7)));   // mark count by size
-    const spread = rad * 0.62;
-    for (let k = 0; k < n; k++) {
-      const mx = x + (rnd() - 0.5) * 2 * spread;
-      const my = y + (rnd() - 0.5) * 2 * spread;
-      if (t === 'mountain' || t === 'hills') {
-        const big = t === 'mountain';
-        const s = (big ? 5.5 : 3.6) * (0.8 + rnd() * 0.5);
-        // shaded peak: dark right face + light left face + base line
-        ctx.beginPath();
-        ctx.moveTo(mx - s, my + s * 0.75); ctx.lineTo(mx, my - s * 0.85); ctx.lineTo(mx + s, my + s * 0.75); ctx.closePath();
-        ctx.fillStyle = big ? 'rgba(120,110,98,0.45)' : 'rgba(120,116,96,0.34)'; ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(mx, my - s * 0.85); ctx.lineTo(mx + s, my + s * 0.75); ctx.lineTo(mx + s * 0.18, my + s * 0.75); ctx.closePath();
-        ctx.fillStyle = 'rgba(40,32,24,0.40)'; ctx.fill();           // shadow side
-        ctx.strokeStyle = big ? 'rgba(45,36,28,0.65)' : 'rgba(60,52,40,0.5)'; ctx.lineWidth = 0.8;
-        ctx.beginPath(); ctx.moveTo(mx - s, my + s * 0.75); ctx.lineTo(mx, my - s * 0.85); ctx.lineTo(mx + s, my + s * 0.75); ctx.stroke();
-        if (big && rnd() > 0.6) { ctx.fillStyle = 'rgba(235,238,245,0.55)'; ctx.beginPath(); ctx.moveTo(mx, my - s*0.85); ctx.lineTo(mx - s*0.22, my - s*0.4); ctx.lineTo(mx + s*0.22, my - s*0.4); ctx.closePath(); ctx.fill(); } // snow cap
-      } else if (t === 'forest') {
-        const s = 2.6 + rnd() * 1.4;
-        ctx.fillStyle = 'rgba(34,64,36,0.55)';
-        ctx.beginPath(); ctx.moveTo(mx, my - s * 1.5); ctx.lineTo(mx - s * 0.8, my + s * 0.6); ctx.lineTo(mx + s * 0.8, my + s * 0.6); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = 'rgba(28,50,28,0.5)'; ctx.lineWidth = 0.7;
-        ctx.beginPath(); ctx.moveTo(mx, my + s * 0.6); ctx.lineTo(mx, my + s * 1.3); ctx.stroke();   // trunk
-      } else if (t === 'marsh') {
-        ctx.strokeStyle = 'rgba(60,80,72,0.5)'; ctx.lineWidth = 1;
-        for (const oy of [-2, 1.5]) { ctx.beginPath(); ctx.moveTo(mx - 4, my + oy); ctx.quadraticCurveTo(mx, my + oy - 2, mx + 4, my + oy); ctx.stroke(); }
-      } else if (t === 'steppe') {
-        ctx.strokeStyle = 'rgba(150,120,60,0.5)'; ctx.lineWidth = 0.9;
-        for (const ox of [-2.5, 0, 2.5]) { ctx.beginPath(); ctx.moveTo(mx + ox, my + 2.5); ctx.lineTo(mx + ox + (rnd() - 0.5) * 2, my - 2.5); ctx.stroke(); }   // grass tufts
-      } else { // plains — faint speckle
-        ctx.fillStyle = 'rgba(150,128,78,0.4)';
-        ctx.beginPath(); ctx.arc(mx, my, 1, 0, 6.283); ctx.fill();
-      }
-    }
-  }
-  ctx.restore();
-}
-
-// ── M4: real relief raster base (Natural Earth shaded relief, clipped to land) ──
-// Flat = a direct equirectangular drawImage onto the projected sphere box.
-// Globe = per-pixel reproject (sampled at 1/3 res, upscaled) — only ever runs on a
-// base-cache capture (scene change), never per frame, so the cost is amortised.
-let _reprojCanvas = null, _reprojCtx = null;
-let _reliefCache = null, _reliefCacheCtx = null, _reliefKey = null;
-function _ensureTerrainData() {
-  if (_terrainData || !_terrainReady || !_terrainImg) return;
-  try {
-    const c = document.createElement('canvas');
-    c.width = _terrainImg.naturalWidth; c.height = _terrainImg.naturalHeight;
-    const cc = c.getContext('2d'); cc.drawImage(_terrainImg, 0, 0);
-    _terrainData = cc.getImageData(0, 0, c.width, c.height);
-  } catch (_) { _terrainData = null; }
-}
-function _clipToLand(ctx, tpath) {
-  ctx.beginPath();
-  for (const f of S.features) if (S.countries[f.id]) tpath(f);
-  ctx.clip();
-}
-// Render the relief for ONE tile (current projection) into ctx, clipped to land.
-function _reliefTile(ctx, tpath, proj, rect, isGlobe) {
-  if (!isGlobe) {
-    let b; try { b = d3.geoPath(proj).bounds({ type: 'Sphere' }); } catch (_) { return; }
-    ctx.save(); _clipToLand(ctx, tpath);
-    ctx.drawImage(_terrainImg, b[0][0], b[0][1], b[1][0] - b[0][0], b[1][1] - b[0][1]);
-    ctx.restore();
-    return;
-  }
-  // Globe: per-pixel reproject at 1/3 res, then blit (upscaled) clipped to land.
-  _ensureTerrainData(); if (!_terrainData) return;
-  const SC = 3, w = Math.max(1, Math.ceil(rect.width / SC)), h = Math.max(1, Math.ceil(rect.height / SC));
-  if (!_reprojCanvas) _reprojCanvas = document.createElement('canvas');
-  if (_reprojCanvas.width !== w || _reprojCanvas.height !== h) { _reprojCanvas.width = w; _reprojCanvas.height = h; _reprojCtx = _reprojCanvas.getContext('2d'); }
-  const out = _reprojCtx.createImageData(w, h), od = out.data;
-  const sd = _terrainData.data, sw = _terrainData.width, sh = _terrainData.height;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const ll = proj.invert([x * SC, y * SC]);
-      if (!ll || !isFinite(ll[0]) || !isFinite(ll[1])) continue;
-      let sx = ((ll[0] + 180) / 360 * sw) | 0, sy = ((90 - ll[1]) / 180 * sh) | 0;
-      if (sx < 0) sx = 0; else if (sx >= sw) sx = sw - 1;
-      if (sy < 0) sy = 0; else if (sy >= sh) sy = sh - 1;
-      const si = (sy * sw + sx) * 4, oi = (y * w + x) * 4;
-      od[oi] = sd[si]; od[oi + 1] = sd[si + 1]; od[oi + 2] = sd[si + 2]; od[oi + 3] = 255;
-    }
-  }
-  _reprojCtx.putImageData(out, 0, 0);
-  ctx.save(); _clipToLand(ctx, tpath);
-  ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(_reprojCanvas, 0, 0, w, h, 0, 0, rect.width, rect.height);
-  ctx.restore();
-}
-// Land-masked relief is cached in its own offscreen, keyed by the projection. So
-// the costly clip+reproject runs ONLY when rotation/zoom/pan change — turn ticks,
-// selections and war-pulse frames just blit it. (Heavy work is gated off during
-// drag/zoom LOD anyway, so the rebuild only happens once on settle.)
-function _reliefSceneKey() {
-  const t = projection.translate(), r = S.rotation || [0,0,0];
-  return [S.mapMode, r[0]|0, r[1]|0, projection.scale()|0, t[0]|0, t[1]|0].join(',');
-}
-function _drawReliefBase(targetCtx, targetPath, proj, rect, isGlobe) {
-  if (!_terrainReady || !_terrainImg || !canvas) return;
-  if (!_reliefCache) _reliefCache = document.createElement('canvas');
-  if (_reliefCache.width !== canvas.width || _reliefCache.height !== canvas.height || !_reliefCacheCtx) {
-    _reliefCache.width = canvas.width; _reliefCache.height = canvas.height;
-    _reliefCacheCtx = _reliefCache.getContext('2d');
-    _reliefCacheCtx.setTransform(1, 0, 0, 1, 0, 0); _reliefCacheCtx.scale(_DPR, _DPR);
-    _reliefKey = null;
-  }
-  const key = _reliefSceneKey();
-  if (key !== _reliefKey) {
-    _reliefCacheCtx.clearRect(0, 0, rect.width, rect.height);
-    const rpath = d3.geoPath(projection, _reliefCacheCtx);
-    if (S.mapMode === 'flat') {
-      const ww = flatWorldWidth(projection); const baseT = projection.translate();
-      for (const dx of _visibleTileOffsets(ww, rect)) {
-        projection.translate([baseT[0] + dx, baseT[1]]);
-        _reliefTile(_reliefCacheCtx, rpath, projection, rect, false);
-      }
-      projection.translate(baseT);
-    } else {
-      _reliefTile(_reliefCacheCtx, rpath, projection, rect, true);
-    }
-    _reliefKey = key;
-  }
-  targetCtx.drawImage(_reliefCache, 0, 0, rect.width, rect.height);
-}
 
 // ── PERF: dynamic overlay layers (war fronts, move-mode, selection, battle FX) ──
 // These are the only things that animate while the map is otherwise static, so
@@ -9176,7 +9117,9 @@ function _visibleTileOffsets(ww, rect) {
 }
 function _sceneKey() {
   const t = projection.translate(), r = S.rotation || [0,0,0];
-  return [r[0]|0, r[1]|0, projection.scale()|0, t[0]|0, t[1]|0, _overlayMode, _mapTheme, S.mapMode, _interacting?1:0].join(',');
+  // _worldRev so the cached base recaptures after any conquest / relation change
+  // (fixes stale-fills / blank-after-conquest in the war-pulse loop). S.turn too.
+  return [r[0]|0, r[1]|0, projection.scale()|0, t[0]|0, t[1]|0, _overlayMode, _mapTheme, S.mapMode, _interacting?1:0, _worldRev, S.turn, S.selectedId||''].join(',');
 }
 function _captureBase() {
   _ensureBaseCanvas();
@@ -9295,14 +9238,6 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   targetCtx.lineWidth = 0.65;
   targetCtx.beginPath(); targetPath(d3.geoGraticule().extentMinor([[-180,-1],[180,1]]).step([360,1])()); targetCtx.stroke();
 
-  // ── M4: real relief raster base (Natural Earth shaded relief) ─────────────
-  // Active in the political + terrain lenses (standard theme), when the image has
-  // loaded and relief is on; skipped during drag LOD. On political it sits under
-  // translucent ownership fills; on the terrain lens it's the whole map.
-  const _raster = _terrainReady && _reliefOn && !S.setupPhase && !_lod && !_parch &&
-                  (_overlayMode === 'political' || _overlayMode === 'terrain');
-  if (_raster) _drawReliefBase(targetCtx, targetPath, _proj, rect, _isGlobe);
-
   // ── Country fills ─────────────────────────────────────────────────────────
   // Pre-compute which owners are at war with the player (for fill tinting).
   const _warSet = new Set();
@@ -9332,23 +9267,12 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     // M5: in the political lens, ease the fill from the old owner's colour to the
     // new one when a province changes hands (animated by the war-pulse loop).
     if (_overlayMode === 'political' && !S.setupPhase) {
+      // M5: ease the fill from the old owner's colour to the new one on conquest.
       fill = _animatedFill(f.id, fill);
-      // Hybrid biome underlay (only when the real relief raster ISN'T active):
-      // tint ownership toward the province's biome so the political map reads
-      // geography too (ownership still dominant at ~0.82).
-      if (_reliefOn && !_raster && owner && !owner.eliminated) fill = _blendColor(TERRAIN_COL[terrainFor(f.id)] || '#8a8068', fill, 0.82);
     }
-    targetCtx.beginPath(); targetPath(f);
-    if (_raster && _overlayMode === 'terrain') {
-      // raster IS the map on the terrain lens — no solid fill
-    } else if (_raster) {
-      // political: translucent ownership over the relief so both read (ownership
-      // leads, terrain shows through)
-      targetCtx.save(); targetCtx.globalAlpha = 0.62; targetCtx.fillStyle = fill; targetCtx.fill(); targetCtx.restore();
-    } else {
-      targetCtx.fillStyle = fill; targetCtx.fill();
-    }
-    // M4: aged-paper wash over every land fill (parchment theme)
+    targetCtx.fillStyle = fill;
+    targetCtx.beginPath(); targetPath(f); targetCtx.fill();
+    // Aged-paper wash over every land fill (parchment theme)
     if (TH.wash) { targetCtx.fillStyle = TH.wash; targetCtx.fill(); }
     // Enemy-at-war: overlay a clear red wash so hostile nations are unmistakable
     // (only in the political lens — the diplomatic lens already encodes war as red).
@@ -9366,16 +9290,6 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     targetCtx.strokeStyle = TH.internal;
     targetCtx.lineWidth = 0.3;
     targetCtx.stroke();
-  }
-
-  // ── M4: procedural relief glyphs (fallback when the raster isn't active) ──
-  // Full strength on the Terrain lens; subtle on the political map (hybrid), and
-  // only when zoomed in so the world view stays clean. Skipped during LOD and
-  // whenever the real relief raster is drawn (the raster supersedes the glyphs).
-  if (!_raster && targetCanvas !== setupCanvas && !S.setupPhase && !_lod) {
-    const _zr = _proj.scale() / (sz * 0.46);
-    if (_overlayMode === 'terrain') _drawTerrainTexture(targetCtx, _proj, false);
-    else if (_reliefOn && _overlayMode === 'political' && _zr > 1.25) _drawTerrainTexture(targetCtx, _proj, true);
   }
 
   // ── M1: coastline + dissolved national borders ────────────────────────────
@@ -9742,11 +9656,14 @@ function calculateIncome(pid) {
     const popBonus = Math.floor(c.population / 80);
     const baseG = 5 + devBonus + popBonus + era.incomeBonus + (tb.goldPerProv || 0) + getBuildingIncomeBonus(c);
     gold += Math.floor(baseG * stabMod);
-    const baseM = 2 + Math.floor(c.population / 100) + era.mpBonus + getBuildingManpowerBonus(c);
+    // P3 #15: manpower keeps scaling late-game (era + development add throughput)
+    const baseM = 2 + Math.floor(c.population / 90) + era.mpBonus + Math.floor(p.era * 1.5) + getBuildingManpowerBonus(c);
     manpower += Math.floor(baseM * stabMod);
-    // Organic population growth: +1/turn if stable, -1 if collapsing
-    if (c.population < 800 && c.stability > 65) {
-      c.population = Math.min(800, c.population + 1);
+    // P3 #15: organic population growth no longer stalls — the cap rises with era +
+    // development, growth is faster in developed lands, and the stability gate is gentler.
+    const popCap = 800 + p.era * 150 + effectiveDev * 40;
+    if (c.population < popCap && c.stability > 55) {
+      c.population = Math.min(popCap, c.population + 1 + Math.floor(effectiveDev / 2));
     } else if (c.stability < 30 && c.population > 50) {
       c.population = Math.max(50, c.population - 1);
     }
@@ -9759,7 +9676,7 @@ function calculateIncome(pid) {
   const loanPay = totalLoanPayment(pid);
   const manCapPenalty = (pid === S.humanId && S.eventState) ? (S.eventState.manCapPenalty || 0) : 0;
   // Manpower cap scales with territories AND era; min floor ensures scenario nations never overflow instantly
-  const manCap = Math.max(120 + p.era * 50, owned.length * 30 + p.era * 35 + (tb.manCapBonus || 0) - manCapPenalty);
+  const manCap = Math.max(150 + p.era * 80, owned.length * 35 + p.era * 60 + (tb.manCapBonus || 0) - manCapPenalty);  // P3 #15: scales for large late-game empires
   // Appointed commander: Merchant (and partly Opportunist) raise gold income
   gold = Math.floor(gold * commanderGoldMul(pid));
   // Difficulty: AI nations earn a scaled income (human always 1.0)
@@ -9828,6 +9745,10 @@ function initWorld(topo) {
       ultimatumCD: {},       // S1b: ultimatumCD[otherId] = turn until you may coerce them again
       tradeRoutes: [],       // [{ fromId, toId, disrupted }]
       grudges: {},           // grudges[otherId] = 0..100, memory of offenses; decays over time
+      conqueredTurn: -99,    // P1: turn this nation last lost a province (recovering-from-occupation block)
+      warLostTurn: -99,      // P1: turn this nation last ended a war on the losing side
+      envoyUntil: {},        // P2: envoyUntil[otherId] = turn until an envoy's goodwill lapses (lowers war likelihood)
+      envoyCD: {},           // P2: envoyCD[otherId] = turn until you may send another envoy
       personality: null,     // assigned by assignPersonality()
       commander: null,       // Commander: appointed archetype id (human-only); grants a themed passive bonus
       commanderSwaps: 0,     // Commander: number of appointments made (drives escalating swap cost)
@@ -9888,6 +9809,7 @@ function startGame(humanCountryId) {
   document.body.classList.toggle('flatmap-full', S.mapMode === 'flat');
   render();
   clearNotifs(); refreshNotifs();
+  updateWarLikelihoodTrend(); // P1: seed war-likelihood trend baseline
   checkMission();           // A2: seed the first directive immediately
   syncTipsToggle();         // A4: reflect saved tips on/off in settings
 
@@ -9960,6 +9882,7 @@ function resolveCombat(fromId, toId, attackerPlayerId) {
     from.army = Math.floor(survivors * 0.4); // garrison stays
     to.army = Math.floor(survivors * 0.6);   // bulk moves in
     to.ownerId = attackerPlayerId;
+    if (defPlayer) defPlayer.conqueredTurn = S.turn;   // P1: defender is recovering from occupation
     markBordersDirty();   // a province changed hands → rebuild border meshes
     // Newly conquered land has crashed stability
     const conquestStab = (attackerPlayerId === S.humanId) ? getTechBonuses().conquestStab : 18;
@@ -10103,6 +10026,24 @@ function doBuildArmy(countryId) {
   logT('glog_071', {v0: recruits + recruitBonus, v1: c.name, v2: bonusNote}, 'self');
   updateHUD(); render();
 }
+
+// P3 #14 — Reduce Army (peacetime): disband troops to recover manpower, cut upkeep
+// and ease stability. `newSize` = the army size to disband DOWN to (≥5 garrison).
+function doReduceArmy(provId, newSize) {
+  const c = S.countries[provId], me = S.players[S.humanId];
+  if (!c || !me || c.ownerId !== S.humanId) return;
+  if (Object.values(me.rel || {}).some(r => r === 'war')) { logT('reduce_army_war', null, 'crit'); return; }
+  newSize = Math.max(5, Math.min(c.army - 1, Math.floor(newSize || 0)));
+  const disbanded = c.army - newSize;
+  if (disbanded <= 0) return;
+  c.army = newSize;
+  const manCap = calculateIncome(S.humanId).manCap;
+  me.manpower = Math.min(manCap, me.manpower + Math.round(disbanded * 2));   // ~50% of recruit cost back
+  c.stability = Math.min(100, c.stability + Math.min(8, Math.round(disbanded / 10)));
+  logT('reduce_army_log', { v0: disbanded, v1: c.name }, 'self');
+  updateHUD(); render(); if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+}
+window.doReduceArmy = doReduceArmy;
 
 function doMoveArmy(fromId, toId, fraction) {
   const f = S.countries[fromId], t = S.countries[toId];
@@ -10293,9 +10234,9 @@ function doDiplomacy(otherId, action, goalType) {
   } else if (action === 'peace') {
     if (curRel !== 'war') return;
     spendDP(S.humanId, P1.DP_COST.peace);
-    // AI accepts based on war score: if their war score is bad they'll accept readily
-    const theirScore = getWarScore(otherId, S.humanId);
-    const accept = theirScore < -15 || Math.random() < 0.4;
+    // Phase 2 #8 — Peace Acceptance Score: war exhaustion, their losses, instability
+    // and being outmatched all raise willingness, so even a winner tires of a long war.
+    const accept = peaceAcceptance(S.humanId, otherId).score >= PEACE_ACCEPT.threshold;
     if (accept) {
       setRelation(S.humanId, otherId, 'peace');
       setTruce(S.humanId, otherId, P1.TRUCE_TURNS);
@@ -10332,6 +10273,95 @@ function doDiplomacy(otherId, action, goalType) {
   }
   updateHUD(); render(); checkVictory();
 }
+
+// ── Phase 2 — Peace Acceptance, Envoys, Call-Ally-to-War ────────────────────
+const PEACE_ACCEPT = { threshold: 50 };
+const ENVOY = { DP_COST: 1, GRUDGE_REDUCE: 22, TURNS: 6, COOLDOWN: 5 };
+
+// How willing `otherId` is to accept a WHITE peace proposed by `proposerId` (0–100).
+// War exhaustion (duration), their losses, instability and being outmatched all push
+// it up — so even a nominal winner tires of a long, costly war (fixes endless wars).
+function peaceAcceptance(proposerId, otherId) {
+  const o = S.players[otherId], pr = S.players[proposerId];
+  if (!o || !pr) return { score: 0, parts: [] };
+  const parts = [];
+  let v = 30;
+  const ws = getWarScore(otherId, proposerId);   // + = otherId is winning
+  v += -ws * 0.6;
+  if (ws < -15) parts.push({ k: 'pa_losing', s: 1 }); else if (ws > 15) parts.push({ k: 'pa_winning', s: -1 });
+  const dur = (o.warTurns && o.warTurns[proposerId]) || 0;
+  if (dur > 0) { v += Math.min(30, dur * 1.8); if (dur >= 7) parts.push({ k: 'pa_weary', s: 1 }); }
+  const stab = avgStability(otherId);
+  if (stab < 45) { v += Math.min(20, (45 - stab) * 0.6); parts.push({ k: 'pa_unstable', s: 1 }); }
+  const paArmy = armyOf(proposerId) || 1, oArmy = armyOf(otherId) || 1;
+  if (paArmy > oArmy * 1.3) { v += Math.min(20, (paArmy / oArmy - 1) * 22); parts.push({ k: 'pa_outmatched', s: 1 }); }
+  else if (oArmy > paArmy * 1.5) { v -= 15; parts.push({ k: 'pa_dominant', s: -1 }); }
+  const wars = Object.values(o.rel || {}).filter(r => r === 'war').length;
+  if (wars >= 2) { v += 14; parts.push({ k: 'pa_overstretched', s: 1 }); }
+  if ((o.gold || 0) < 0 || (o.loans && o.loans.length)) { v += 10; parts.push({ k: 'pa_broke', s: 1 }); }
+  const g = getGrudge(otherId, proposerId);
+  if (g >= 40) { v -= 12; parts.push({ k: 'pa_vengeful', s: -1 }); }
+  return { score: Math.max(0, Math.min(100, Math.round(v))), parts };
+}
+
+function envoyCooldownLeft(targetId) {
+  const me = S.players[S.humanId];
+  return (me && me.envoyCD && me.envoyCD[targetId]) ? Math.max(0, me.envoyCD[targetId] - S.turn) : 0;
+}
+// #3 — send an envoy: soothes the target (cuts their grudge + lowers their war
+// likelihood toward you for a few turns). Peace/NAP only, on a cooldown.
+function doSendEnvoy(targetId) {
+  const me = S.players[S.humanId], o = S.players[targetId];
+  if (!me || !o || o.eliminated) return;
+  if (relation(S.humanId, targetId) === 'war') return;
+  if (me.dp < ENVOY.DP_COST) { logT('glog_079', { v0: ENVOY.DP_COST }, 'crit'); return; }
+  if (envoyCooldownLeft(targetId) > 0) return;
+  spendDP(S.humanId, ENVOY.DP_COST);
+  o.grudges = o.grudges || {};
+  if (o.grudges[S.humanId]) o.grudges[S.humanId] = Math.max(0, o.grudges[S.humanId] - ENVOY.GRUDGE_REDUCE);
+  o.envoyUntil = o.envoyUntil || {}; o.envoyUntil[S.humanId] = S.turn + ENVOY.TURNS;
+  me.envoyCD = me.envoyCD || {}; me.envoyCD[targetId] = S.turn + ENVOY.COOLDOWN;
+  if (typeof MP === 'undefined' || !MP.active) showDiploResult('ok', Tpl('envoy_sent', { nation: o.name }), 3500);
+  logT('envoy_sent_log', { v0: o.name }, 'good');
+  updateHUD(); if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+}
+window.doSendEnvoy = doSendEnvoy;
+function envoyBtnHtml(oid, me) {
+  const cd = envoyCooldownLeft(oid);
+  const ok = me.dp >= ENVOY.DP_COST && cd === 0;
+  return `<button class="btn" onclick="doSendEnvoy('${oid}')" ${ok ? '' : 'disabled'} title="${cd > 0 ? Tpl('envoy_cd_msg', { n: cd }) : T('envoy_tip')}">${T('act_send_envoy')} <span class="ap-cost">(${ENVOY.DP_COST}DP)</span></button>`;
+}
+
+// #9 — call an ally into your war. The ally weighs its strength, current wars and
+// disposition before committing.
+function callAllyToWar(allyId) {
+  const me = S.players[S.humanId], ally = S.players[allyId];
+  if (!me || !ally || relation(S.humanId, allyId) !== 'ally') return;
+  const enemies = Object.keys(me.rel).filter(o =>
+    me.rel[o] === 'war' && S.players[o] && !S.players[o].eliminated && relation(allyId, o) !== 'war' && !hasTruce(allyId, o));
+  if (!enemies.length) { if (typeof MP === 'undefined' || !MP.active) showDiploResult('refused', T('ally_call_none'), 3500); return; }
+  enemies.sort((a, b) => threatScore(S.humanId, b) - threatScore(S.humanId, a));
+  const enemy = enemies[0];
+  const pers = getPersonality(allyId);
+  let prob = 0.35 + (pers ? pers.dipl * 0.30 - pers.aggr * 0.08 : 0);
+  if (armyOf(allyId) > armyOf(enemy)) prob += 0.20; else prob -= 0.22;
+  if (Object.values(ally.rel || {}).filter(r => r === 'war').length > 0) prob -= 0.25;
+  prob = Math.max(0.05, Math.min(0.9, prob));
+  if (Math.random() < prob) {
+    setRelation(allyId, enemy, 'war');
+    ally.warScore = ally.warScore || {}; ally.warScore[enemy] = 0;
+    ally.warTurns = ally.warTurns || {}; ally.warTurns[enemy] = 0;
+    if (S.players[enemy]) { S.players[enemy].warScore = S.players[enemy].warScore || {}; S.players[enemy].warScore[allyId] = 0; }
+    if (typeof MP === 'undefined' || !MP.active) showDiploResult('ok', Tpl('ally_call_yes', { ally: ally.name, enemy: S.players[enemy].name }), 4000);
+    logT('ally_call_yes_log', { v0: ally.name, v1: S.players[enemy].name }, 'good');
+    if (typeof startWarPulse === 'function') startWarPulse();
+  } else {
+    if (typeof MP === 'undefined' || !MP.active) showDiploResult('refused', Tpl('ally_call_no', { ally: ally.name }), 3500);
+    logT('ally_call_no_log', { v0: ally.name }, null);
+  }
+  updateHUD(); render(); if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+}
+window.callAllyToWar = callAllyToWar;
 
 function doNegotiatedPeace() {
   // Apply demands from the peace modal and end the war.
@@ -11208,6 +11238,96 @@ function threatScore(pid, otherId) {
   return (sizeThreat * 0.4 + powerThreat * 0.4 + adjacent * 0.2) * (1 + grudge);
 }
 
+// ── War Likelihood model (Phase 1) ──────────────────────────────────────────
+// A weighted, transparent 0–100 desire for `aId` to go to war with `tId`, built
+// from positive contributors (superiority, expansionism, grudges, claims, a shared
+// border) and negative ones (alliances/NAP, truce, inferiority, own instability,
+// recent defeat, recovering from a recent conquest). The AI only declares war when
+// this clears WAR_LIKELY.threshold and the mandatory restrictions pass; the player
+// sees the same number + reasons per nation in the diplomacy panel.
+const WAR_LIKELY = {
+  threshold: 55,       // AI declares only when likelihood ≥ this
+  recoverTurns: 8,     // no NEW wars while recovering from a recent conquest
+  defeatCooldown: 6,   // no NEW wars right after losing a war
+  minStability: 35     // too internally unstable to start a war
+};
+function avgStability(pid) {
+  const owned = playerOwned(pid);
+  if (!owned.length) return 0;
+  let s = 0; for (const id of owned) s += (S.countries[id].stability || 0);
+  return s / owned.length;
+}
+function sharesBorder(aId, tId) {
+  for (const id of playerOwned(aId)) {
+    for (const nid of (S.countries[id].neighbors || [])) {
+      const nc = S.countries[nid];
+      if (nc && nc.ownerId === tId) return true;
+    }
+  }
+  return false;
+}
+function armyOf(pid) { return playerOwned(pid).reduce((s, id) => s + S.countries[id].army, 0); }
+// Returns { pct, reasons:[{k,s}], block } — reasons keyed by i18n (wl_*), s = +1/-1.
+function warLikelihood(aId, tId) {
+  const a = S.players[aId], t = S.players[tId];
+  if (!a || !t || a.eliminated || t.eliminated || aId === tId) return { pct: 0, reasons: [], block: true };
+  const rel = relation(aId, tId);
+  if (rel === 'ally' || rel === 'marriage') return { pct: 0, reasons: [{ k: 'wl_allied', s: -1 }], block: true };
+  if (rel === 'war') return { pct: 100, reasons: [{ k: 'wl_atwar', s: 1 }], block: false, atwar: true };
+  const reasons = [];
+  let v = 8;  // baseline
+  const aArmy = armyOf(aId) || 1, tArmy = armyOf(tId) || 1, ratio = aArmy / tArmy;
+  if (ratio >= 1.15) { v += Math.min(34, (ratio - 1) * 42); reasons.push({ k: 'wl_superiority', s: 1 }); }
+  else { v -= Math.min(30, (1 - ratio) * 40); reasons.push({ k: 'wl_inferiority', s: -1 }); }
+  const pers = getPersonality(aId);
+  if (pers) { v += pers.aggr * 22; if (pers.aggr >= 0.6) reasons.push({ k: 'wl_expansionist', s: 1 }); }
+  const g = getGrudge(aId, tId);
+  if (g > 0) { v += Math.min(22, g * 0.22); if (g >= 18) reasons.push({ k: 'wl_grudge', s: 1 }); }
+  if (sharesBorder(aId, tId)) { v += 8; } else { v -= 16; reasons.push({ k: 'wl_nodirect', s: -1 }); }
+  if (aId === S.humanId && S.forgeClaims && S.forgeClaims[tId]) { v += 18; reasons.push({ k: 'wl_claim', s: 1 }); }
+  if (isNAP(aId, tId)) { v -= 55; reasons.push({ k: 'wl_nap', s: -1 }); }
+  if (hasTruce(aId, tId)) { v -= 50; reasons.push({ k: 'wl_truce', s: -1 }); }
+  const aStab = avgStability(aId);
+  if (aStab < 45) { v -= Math.min(25, (45 - aStab) * 0.8); reasons.push({ k: 'wl_unstable', s: -1 }); }
+  if (S.turn - (a.warLostTurn || -99) < WAR_LIKELY.defeatCooldown) { v -= 30; reasons.push({ k: 'wl_recentdefeat', s: -1 }); }
+  if (S.turn - (a.conqueredTurn || -99) < WAR_LIKELY.recoverTurns) { v -= 40; reasons.push({ k: 'wl_recovering', s: -1 }); }
+  if (a.envoyUntil && a.envoyUntil[tId] && a.envoyUntil[tId] > S.turn) { v -= 18; reasons.push({ k: 'wl_envoy', s: -1 }); }
+  return { pct: Math.max(0, Math.min(100, Math.round(v))), reasons, block: false };
+}
+// May `aId` declare a NEW war on `tId` right now? (mandatory restrictions + threshold)
+function aiMayDeclareWar(aId, tId) {
+  const a = S.players[aId]; if (!a) return false;
+  if (S.turn - (a.conqueredTurn || -99) < WAR_LIKELY.recoverTurns) return false;  // recovering from occupation
+  if (S.turn - (a.warLostTurn || -99) < WAR_LIKELY.defeatCooldown) return false;  // recent defeat
+  if (avgStability(aId) < WAR_LIKELY.minStability) return false;                  // too unstable
+  if (hasTruce(aId, tId)) return false;                                          // active peace treaty
+  const wl = warLikelihood(aId, tId);
+  return !wl.block && wl.pct >= WAR_LIKELY.threshold;
+}
+
+// #2 — visible War Likelihood chip (how likely `oid` is to attack the human),
+// with a turn-over-turn trend arrow and a reasons tooltip. _wlPrev snapshots last
+// turn's values (updated in endTurn) so the trend is meaningful.
+let _wlPrev = {};
+function updateWarLikelihoodTrend() {
+  if (!S.humanId) return;
+  const next = {};
+  for (const pid in S.players) {
+    if (pid === S.humanId || S.players[pid].eliminated) continue;
+    next[pid] = warLikelihood(pid, S.humanId).pct;
+  }
+  _wlPrev = next;
+}
+function warLikelihoodChip(oid) {
+  const wl = warLikelihood(oid, S.humanId);
+  if (wl.block || wl.atwar) return '';
+  const prev = _wlPrev[oid];
+  const trend = (prev == null) ? '' : (wl.pct > prev + 2 ? '↑' : wl.pct < prev - 2 ? '↓' : '→');
+  const col = wl.pct >= WAR_LIKELY.threshold ? 'var(--red-warn)' : wl.pct >= 30 ? '#d9a441' : 'var(--ink-dim)';
+  const reasons = wl.reasons.map(r => (r.s > 0 ? '+ ' : '− ') + T(r.k)).join('\n');
+  return `<span class="wl-chip" title="${T('wl_title')}: ${wl.pct}%${reasons ? '\n' + reasons : ''}" style="color:${col};font-size:8.5px"> ⚔${wl.pct}%${trend}</span>`;
+}
+
 // ── Target attractiveness for attack ─────────────────────────────────────────
 function attackScore(pid, fromId, toId, pers) {
   const from = S.countries[fromId], to = S.countries[toId];
@@ -11393,14 +11513,15 @@ function aiTurn(pid) {
         // unaffected (those are set at start, not declared here).
         if (S.turn < 6) continue;
         if (p.dp < P1.DP_COST.war) continue;
-        // Breathing room: each nation waits a few turns between *new* war
-        // declarations (continuing an existing war is unaffected), so the world
-        // isn't in perpetual fresh conflict and a conqueror can consolidate.
+        // Breathing room: each nation waits a few turns between *new* war declarations.
         if (S.turn - (p.lastWarDeclTurn || -99) < 6) continue;
-        // Only start a war from a real position of strength (a slim edge is enough
-        // to keep fighting an existing war, but not to open a new front).
+        // Phase 1 — weighted War Likelihood + mandatory restrictions decide whether
+        // this nation will actually open a new front (no more reflexive declarations
+        // by freshly-conquered / unstable / recently-beaten nations).
+        if (!aiMayDeclareWar(pid, cand.defPid)) continue;
+        // Still require a real military edge to commit to a fresh war.
         const _wf = S.countries[cand.fromId], _wt = S.countries[cand.toId];
-        if (!_wf || !_wt || _wf.army / Math.max(8, _wt.army + 10) < 1.5) continue;
+        if (!_wf || !_wt || _wf.army / Math.max(8, _wt.army + 10) < 1.4) continue;
         // Record the offense in the victim's memory BEFORE the relation flips.
         const wasNAP = isNAP(pid, cand.defPid);
         const wasAlly = relation(pid, cand.defPid) === 'ally' || relation(pid, cand.defPid) === 'marriage';
@@ -11481,6 +11602,23 @@ function aiTurn(pid) {
       if (bestNap === S.humanId) {
         logT('log_nap_you_acc', {nation: p.name}, null);
       }
+    }
+  }
+
+  // 5b. P2 #3 — a goodwill envoy to the human when wary-but-at-peace (de-escalates:
+  // lowers this nation's own war likelihood toward you + trims your grudge; you're notified).
+  if (p.dp >= ENVOY.DP_COST && S.humanId && relation(pid, S.humanId) !== 'war') {
+    const hid = S.humanId;
+    p.envoyCD = p.envoyCD || {};
+    const tension = threatScore(pid, hid) * 0.15 + (getGrudge(pid, hid) / 100) * 0.20;
+    if (!(p.envoyCD[hid] > S.turn) && Math.random() < (0.03 + pers.dipl * 0.10 + tension)) {
+      spendDP(pid, ENVOY.DP_COST);
+      p.envoyCD[hid] = S.turn + ENVOY.COOLDOWN;
+      p.envoyUntil = p.envoyUntil || {}; p.envoyUntil[hid] = S.turn + ENVOY.TURNS;
+      const meH = S.players[hid];
+      if (meH && meH.grudges && meH.grudges[pid]) meH.grudges[pid] = Math.max(0, meH.grudges[pid] - Math.round(ENVOY.GRUDGE_REDUCE / 2));
+      logT('envoy_recv_log', { v0: p.name }, null);
+      pushNotif({ key: 'envoy:' + pid, icon: '🕊', cls: '', title: Tpl('notif_envoy_t', { nation: p.name }), body: T('notif_envoy_b'), route: { kind: 'province', id: pid } });
     }
   }
 
@@ -11585,11 +11723,15 @@ function endTurn() {
   // At peace: natural +3/turn. At war: NO natural recovery (weariness actually bites).
   // Tech & buildings add on top either way.
   const techSR = getTechBonuses().stabRecovery;
-  const peaceRecovery = (activeWars === 0) ? 3 : 0;
+  // P3 #11: faster recovery; even at war stability isn't pure decay (a single
+  // defensive war nets roughly flat), and freshly-conquered / shaky provinces
+  // climb quicker (national unity) so one lost province can't trigger a collapse.
+  const peaceRecovery = (activeWars === 0) ? 5 : 1.5;
   for (const id of playerOwned(S.humanId)) {
     const c = S.countries[id];
-    c.stability = Math.min(100, c.stability + peaceRecovery + techSR + getBuildingStabBonus(c));
-    const rebelChance = 0.07 * (1 + ((S.eventState && S.eventState.rebelBoost) ? 0.5 : 0));
+    const catchUp = c.stability < 40 ? 2.5 : 0;
+    c.stability = Math.min(100, c.stability + peaceRecovery + techSR + getBuildingStabBonus(c) + catchUp);
+    const rebelChance = 0.05 * (1 + ((S.eventState && S.eventState.rebelBoost) ? 0.5 : 0));
     if (c.stability < 25 && Math.random() < rebelChance) {
       c.ownerId = c.id;
       const rebel = S.players[c.id];
@@ -11660,6 +11802,7 @@ function endTurn() {
       checkVictory();
       showTurnSummary();
       refreshNotifs();
+      updateWarLikelihoodTrend(); // P1: snapshot war-likelihood for the trend arrows
       checkTips();               // A4: surface one contextual coaching tip
       maybePromptPendingUlt();   // S1b: surface any AI ultimatum awaiting the human
       maybePromptNameGeneral();  // B3: name a freshly-risen human successor (SP)
@@ -14195,7 +14338,8 @@ function stars(level, max) {
 
 function stabBar(value) {
   const cls = value >= 60 ? 'stab-high' : value >= 30 ? 'stab-mid' : 'stab-low';
-  return `<div class="stab-track"><div class="stab-fill ${cls}" style="width:${value}%"></div></div><span style="font-size:10px;min-width:32px;text-align:right">${value}%</span>`;
+  const w = Math.max(0, Math.min(100, value));
+  return `<div class="stab-track"><div class="stab-fill ${cls}" style="width:${w}%"></div></div><span style="font-size:10px;min-width:32px;text-align:right">${Math.round(value)}%</span>`;
 }
 
 // Tracks which province the dock last switched focus for, so a passive re-render
@@ -14249,6 +14393,18 @@ function renderSelectedPanel() {
       actions += `<button class="btn" onclick="doDevelop('${c.id}')" ${canDev ? '' : 'disabled'}>${T('act_develop')} <span class="ap-cost">(${devCost}g · ${P1.MP_COST.develop}MP)</span></button>`;
     }
 
+    // P3 #14 — Reduce Army (peacetime only): a slider to disband down to a garrison,
+    // recovering manpower + easing stability.
+    const atPeace = !Object.values(me.rel || {}).some(r => r === 'war');
+    if (atPeace && c.army > 10) {
+      const def = Math.floor(c.army / 2);
+      actions += `<div class="reduce-army" style="margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:4px">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink-dim);letter-spacing:.08em"><span>${T('act_reduce_army')}</span><span id="ra-val">${def}</span></div>
+        <input type="range" id="ra-slider" min="5" max="${c.army - 1}" value="${def}" oninput="var v=document.getElementById('ra-val'); if(v) v.textContent=this.value" style="width:100%;margin:4px 0">
+        <button class="btn" onclick="doReduceArmy('${c.id}', +(document.getElementById('ra-slider')||{}).value)">${T('act_reduce_do')}</button>
+      </div>`;
+    }
+
     const ownNeighbors = c.neighbors.filter(nid => S.countries[nid] && S.countries[nid].ownerId === S.humanId);
     if (ownNeighbors.length > 0 && c.army > 15) {
       const canMove = me.mp >= P1.MP_COST.move;
@@ -14284,6 +14440,13 @@ function renderSelectedPanel() {
       const wScore = getWarScore(S.humanId, c.ownerId);
       const wsClass = wScore > 10 ? 'ws-pos' : wScore < -10 ? 'ws-neg' : 'ws-neutral';
       actions += `<div class="stat-row"><span class="lbl">${T('stat_war_score')}</span><span class="val"><span class="war-score-tag ${wsClass}">${wScore > 0 ? '+' : ''}${Math.round(wScore)}</span></span></div>`;
+      // P2 #8/#10 — war duration + visible White Peace Acceptance score
+      const wdur = (me.warTurns && me.warTurns[c.ownerId]) || 0;
+      actions += `<div class="stat-row"><span class="lbl">${T('stat_war_dur')}</span><span class="val">${wdur}t</span></div>`;
+      const acc = peaceAcceptance(S.humanId, c.ownerId);
+      const accCol = acc.score >= PEACE_ACCEPT.threshold ? 'var(--green)' : acc.score >= 35 ? '#d9a441' : 'var(--red-warn)';
+      const accReasons = acc.parts.map(p => (p.s > 0 ? '+ ' : '− ') + T(p.k)).join('\n');
+      actions += `<div class="stat-row" title="${accReasons}"><span class="lbl">${T('peace_accept_label')}</span><span class="val" style="color:${accCol};font-weight:600">${acc.score}/100</span></div>`;
       const peaceOk = me.dp >= P1.DP_COST.peace;
       actions += `<button class="btn ally" onclick="doDiplomacy('${c.ownerId}','peace')" ${peaceOk ? '' : 'disabled'}>${T('act_peace_white')} <span class="ap-cost">(${P1.DP_COST.peace}DP)</span></button>`;
       if (wScore >= 20) {
@@ -14300,7 +14463,11 @@ function renderSelectedPanel() {
       const napTurns = S.napExpiry && S.napExpiry[`${S.humanId}-${c.ownerId}`] ? S.napExpiry[`${S.humanId}-${c.ownerId}`] - S.turn : '?';
       actions += `<div class="stat-row"><span class="lbl">${T('stat_nap')}</span><span class="val"><span class="truce-badge">${napTurns}${T('stat_left')}</span></span></div>`;
       actions += `<button class="btn ally" onclick="doDiplomacy('${c.ownerId}','ally')" ${me.dp >= P1.DP_COST.ally ? '' : 'disabled'}>${T('act_upgrade_ally')} <span class="ap-cost">(${P1.DP_COST.ally}DP)</span></button>`;
+      actions += envoyBtnHtml(c.ownerId, me);
     } else if (rel === 'ally') {
+      const atWarSomewhere = Object.values(me.rel || {}).some(r => r === 'war');
+      if (atWarSomewhere)
+        actions += `<button class="btn danger" onclick="callAllyToWar('${c.ownerId}')">${T('act_call_war')}</button>`;
       actions += `<button class="btn" onclick="doDiplomacy('${c.ownerId}','break-ally')">${T('act_break_ally')} <span class="ap-cost">(${P1.DP_COST.breakAlly}DP)</span></button>`;
       actions += `<button class="btn danger" onclick="openWarGoalPicker('${c.ownerId}')" ${me.dp >= P1.DP_COST.war ? '' : 'disabled'}>${T('act_declare_war_a')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
     } else {
@@ -14309,6 +14476,7 @@ function renderSelectedPanel() {
         actions += `<div class="stat-row"><span class="lbl">${T('stat_truce')}</span><span class="val"><span class="truce-badge">${remaining}${T('stat_left')}</span></span></div>`;
       }
       actions += `<button class="btn ally" onclick="doDiplomacy('${c.ownerId}','ally')" ${me.dp >= P1.DP_COST.ally ? '' : 'disabled'}>${T('act_propose_ally')} <span class="ap-cost">(${P1.DP_COST.ally}DP)</span></button>`;
+      actions += envoyBtnHtml(c.ownerId, me);   // P2 #3: Send Envoy
       if (!isNAP(S.humanId, c.ownerId))
         actions += `<button class="btn nap" onclick="doProposeNAP('${c.ownerId}')" ${me.dp >= P1.DP_COST.nap ? '' : 'disabled'}>${T('act_propose_nap')} <span class="ap-cost">(${P1.DP_COST.nap}DP)</span></button>`;
       if (relation(S.humanId, c.ownerId) !== 'marriage')
@@ -14810,6 +14978,10 @@ function deserializeState(snap) {
     if (S.players[pid].commander === undefined) S.players[pid].commander = null;
     if (S.players[pid].commanderSwaps === undefined) S.players[pid].commanderSwaps = 0;
     if (S.players[pid].commanderCD === undefined) S.players[pid].commanderCD = 0;
+    if (S.players[pid].conqueredTurn === undefined) S.players[pid].conqueredTurn = -99;  // P1
+    if (S.players[pid].warLostTurn === undefined) S.players[pid].warLostTurn = -99;      // P1
+    if (!S.players[pid].envoyUntil) S.players[pid].envoyUntil = {};                      // P2
+    if (!S.players[pid].envoyCD) S.players[pid].envoyCD = {};                            // P2
     if (!S.players[pid].personality) assignPersonality(pid);
   }
   for (const cid in S.countries) {
