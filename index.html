@@ -2582,6 +2582,15 @@
         style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
         data-i18n="cam_off">OFF</button>
     </div>
+    <div class="sdd-label" style="padding:2px 16px 2px;opacity:.7" data-i18n="sdd_relief">MAP RELIEF</div>
+    <div style="display:flex;gap:6px;padding:4px 16px 10px">
+      <button class="sdd-lang-btn relief-btn active" data-relief="on" onclick="setReliefOn(true)"
+        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
+        data-i18n="cam_on">ON</button>
+      <button class="sdd-lang-btn relief-btn" data-relief="off" onclick="setReliefOn(false)"
+        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
+        data-i18n="cam_off">OFF</button>
+    </div>
   </div>
   <div class="sdd-section">
     <div class="sdd-item" style="cursor:default;gap:10px;padding-bottom:4px">
@@ -2703,6 +2712,7 @@ en: {
   theme_standard: '🌍 STANDARD',
   theme_parchment: '📜 PARCHMENT',
   sdd_camera: 'CAMERA FOLLOW',
+  sdd_relief: 'MAP RELIEF',
   cam_on: 'ON',
   cam_off: 'OFF',
   notif_alerts: 'ALERTS',
@@ -3433,6 +3443,7 @@ ru: {
   theme_standard: '🌍 СТАНДАРТ',
   theme_parchment: '📜 ПЕРГАМЕНТ',
   sdd_camera: 'СЛЕЖЕНИЕ КАМЕРЫ',
+  sdd_relief: 'РЕЛЬЕФ КАРТЫ',
   cam_on: 'ВКЛ',
   cam_off: 'ВЫКЛ',
   notif_alerts: 'ОПОВЕЩЕНИЯ',
@@ -4691,6 +4702,8 @@ window.setOverlayMode = setOverlayMode;
 // chooses their own map aesthetic & camera behaviour.
 let _mapTheme = (() => { try { return localStorage.getItem('tb_theme') === 'parchment' ? 'parchment' : 'standard'; } catch(_) { return 'standard'; } })();
 let _cameraFollow = (() => { try { return localStorage.getItem('tb_camera') !== 'off'; } catch(_) { return true; } })();  // default on
+// Hybrid terrain underlay: tint the political map by biome + reveal relief on zoom.
+let _reliefOn = (() => { try { return localStorage.getItem('tb_relief') !== 'off'; } catch(_) { return true; } })();  // default on
 const MAP_THEMES = ['standard', 'parchment'];
 function setMapTheme(theme) {
   if (!MAP_THEMES.includes(theme)) return;
@@ -4704,13 +4717,22 @@ function setCameraFollow(on) {
   try { localStorage.setItem('tb_camera', on ? 'on' : 'off'); } catch(_) {}
   syncMapToggles();
 }
-// Reflect the active theme/camera state on the settings-dropdown buttons.
+function setReliefOn(on) {
+  _reliefOn = !!on;
+  try { localStorage.setItem('tb_relief', on ? 'on' : 'off'); } catch(_) {}
+  if (typeof _baseKey !== 'undefined') _baseKey = null;   // base look changed → recache
+  syncMapToggles();
+  if (typeof render === 'function') render();
+}
+// Reflect the active theme/camera/relief state on the settings-dropdown buttons.
 function syncMapToggles() {
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === _mapTheme));
   document.querySelectorAll('.cam-btn').forEach(b => b.classList.toggle('active', (b.dataset.cam === 'on') === _cameraFollow));
+  document.querySelectorAll('.relief-btn').forEach(b => b.classList.toggle('active', (b.dataset.relief === 'on') === _reliefOn));
 }
 window.setMapTheme = setMapTheme;
 window.setCameraFollow = setCameraFollow;
+window.setReliefOn = setReliefOn;
 
 window.sddSetLang = sddSetLang;
 // ═══════════════════════════════════════════════════════════════════════════
@@ -8855,9 +8877,10 @@ function _terrRand(id) {
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
 }
-function _drawTerrainTexture(ctx, proj) {
+function _drawTerrainTexture(ctx, proj, subtle) {
   ctx.save();
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (subtle) ctx.globalAlpha = 0.55;   // hybrid political map: relief reads as faint texture
   const flat = S.mapMode === 'flat';
   const rect = canvas.getBoundingClientRect();
   for (const f of S.features) {
@@ -9201,7 +9224,12 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     let fill = _overlayFill(c, owner);
     // M5: in the political lens, ease the fill from the old owner's colour to the
     // new one when a province changes hands (animated by the war-pulse loop).
-    if (_overlayMode === 'political' && !S.setupPhase) fill = _animatedFill(f.id, fill);
+    if (_overlayMode === 'political' && !S.setupPhase) {
+      fill = _animatedFill(f.id, fill);
+      // Hybrid terrain underlay: tint ownership toward the province's biome so the
+      // political map reads geography too (ownership still dominant at ~0.82).
+      if (_reliefOn && owner && !owner.eliminated) fill = _blendColor(TERRAIN_COL[terrainFor(f.id)] || '#8a8068', fill, 0.82);
+    }
     targetCtx.fillStyle = fill;
     targetCtx.beginPath(); targetPath(f); targetCtx.fill();
     // M4: aged-paper wash over every land fill (parchment theme)
@@ -9224,9 +9252,13 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     targetCtx.stroke();
   }
 
-  // ── M4: terrain texture (terrain lens only; skipped during drag LOD) ──────
-  if (_overlayMode === 'terrain' && targetCanvas !== setupCanvas && !S.setupPhase && !_lod) {
-    _drawTerrainTexture(targetCtx, _proj);
+  // ── M4: terrain relief glyphs ─────────────────────────────────────────────
+  // Full strength on the Terrain lens; subtle on the political map (hybrid),
+  // and only when zoomed in so the world view stays clean. Skipped during LOD.
+  if (targetCanvas !== setupCanvas && !S.setupPhase && !_lod) {
+    const _zr = _proj.scale() / (sz * 0.46);
+    if (_overlayMode === 'terrain') _drawTerrainTexture(targetCtx, _proj, false);
+    else if (_reliefOn && _overlayMode === 'political' && _zr > 1.25) _drawTerrainTexture(targetCtx, _proj, true);
   }
 
   // ── M1: coastline + dissolved national borders ────────────────────────────
