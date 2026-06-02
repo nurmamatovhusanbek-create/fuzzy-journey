@@ -3213,7 +3213,7 @@ en: {
   slot_turn:        'Turn',
   // ── Toast / system messages ──────────────────────────────────────────────
   toast_saved:      'SAVED TO SLOT',
-  toast_saving_exit:'SAVING... CLOSING',
+  toast_saving_exit:'SAVED — RETURNING TO MENU',
   toast_save_fail:  'SAVE FAILED',
   // ── Log messages (template — use {var} for interpolation) ─────────────────
   log_flag_rises:   'The flag of {nation} rises. A new chronicler takes the throne.',
@@ -4246,7 +4246,7 @@ ru: {
   slot_turn:        'Ход',
   // ── Toast / system messages ──────────────────────────────────────────────
   toast_saved:      'СОХРАНЕНО В ЯЧЕЙКУ',
-  toast_saving_exit:'СОХРАНЕНИЕ... ЗАКРЫТИЕ',
+  toast_saving_exit:'СОХРАНЕНО — ВОЗВРАТ В МЕНЮ',
   toast_save_fail:  'ОШИБКА СОХРАНЕНИЯ',
   // ── Log messages ─────────────────────────────────────────────────────────
   log_flag_rises:   'Флаг {nation} поднят. Новый летописец взошёл на трон.',
@@ -6788,6 +6788,7 @@ function relation(aId, bId) {
 function setRelation(aId, bId, status) {
   if (S.players[aId]) S.players[aId].rel[bId] = status;
   if (S.players[bId]) S.players[bId].rel[aId] = status;
+  if (typeof markBordersDirty === 'function') markBordersDirty();   // war fronts may change
 }
 
 // ── Grudges: AI memory of offenses (0..100, decays over time) ─────────────────
@@ -8652,6 +8653,13 @@ function _computeWarsIndex() {
 // topojson.mesh and cached — only rebuilt when ownership or the set of active wars
 // changes (a cheap signature), so the war-pulse rAF loop stays light.
 let _borderCache = { sig: null, natl: null, coast: null, front: null };
+// Perf: only recompute the (cheap but per-frame) ownership/war signature when a
+// game event that can move a border has actually happened. The rAF animation loop
+// then hits the cache with a single boolean check instead of scanning every
+// feature + relation each frame. markBordersDirty() is called from setRelation,
+// from conquests in resolveCombat, and at the end of endTurn (a catch-all).
+let _bordersDirty = true;
+function markBordersDirty() { _bordersDirty = true; }
 function _ownerWarSig() {
   let s = '';
   for (const f of S.features) { const c = S.countries[f.id]; s += (c ? c.ownerId : '_') + '.'; }
@@ -8665,8 +8673,10 @@ function _ownerWarSig() {
 function _getBorders() {
   const topo = window.__TOPO__;
   if (!topo || typeof topojson === 'undefined' || !S.features || !S.features.length) return null;
+  // Fast path: nothing changed since the last build → reuse the cached meshes.
+  if (!_bordersDirty && _borderCache.natl) return _borderCache;
   const sig = _ownerWarSig();
-  if (_borderCache.sig === sig && _borderCache.natl) return _borderCache;
+  if (_borderCache.sig === sig && _borderCache.natl) { _bordersDirty = false; return _borderCache; }
   const obj = topo.objects.countries;
   const valid = id => id !== '010' && id !== '-99' && !!S.countries[id];
   const own = id => { const c = S.countries[id]; return c ? c.ownerId : id; };
@@ -8688,6 +8698,7 @@ function _getBorders() {
         : (valid(a.id) && valid(b.id) && (isMine(a.id) !== isMine(b.id)))
     ) : null;
     _borderCache = { sig, natl, coast, front, mine };
+    _bordersDirty = false;
   } catch (e) { return null; }
   return _borderCache;
 }
@@ -8711,10 +8722,10 @@ function pushBattleFx(fromId, toId, result, attackerId) {
   const ap = S.players[attackerId];
   const col = (ap && ap.color) ? ap.color : '#e85d4a';
   const now = performance.now();
-  const stagger = Math.min(_battleFx.length, 8) * 90;
-  _battleFx.push({ kind: 'atk', fromId, toId, t0: now + stagger, dur: 850, color: col, win: result === 'win' });
+  const stagger = Math.min(_battleFx.length, 8) * 120;
+  _battleFx.push({ kind: 'atk', fromId, toId, t0: now + stagger, dur: 1350, color: col, win: result === 'win' });
   if (result === 'win')
-    _battleFx.push({ kind: 'cap', toId, t0: now + stagger + 480, dur: 1100, color: col });
+    _battleFx.push({ kind: 'cap', toId, t0: now + stagger + 720, dur: 1600, color: col });
   if (_battleFx.length > 24) _battleFx.splice(0, _battleFx.length - 24);
   if (typeof startWarPulse === 'function') startWarPulse();
 }
@@ -8805,7 +8816,7 @@ function flyToFeature(id) {
   let ctr; try { ctr = d3.geoCentroid(f); } catch(_) { return; }
   if (!ctr || !isFinite(ctr[0]) || !isFinite(ctr[1])) return;
   if (_flyRAF) { cancelAnimationFrame(_flyRAF); _flyRAF = null; }
-  const t0 = performance.now(), dur = 750;
+  const t0 = performance.now(), dur = 1150;
   if (S.mapMode === 'flat') {
     const rect = canvas.getBoundingClientRect();
     const fromT = projection.translate();
@@ -8833,15 +8844,6 @@ function flyToFeature(id) {
   }
 }
 window.flyToFeature = flyToFeature;
-
-// ── M5: sub-solar point (drives the day/night terminator) ───────────────────
-function _subsolar() {
-  // longitude drifts ~17°/turn so the terminator visibly creeps; declination
-  // from the in-game month gives a seasonal tilt. Cosmetic, not astronomical.
-  const lon = ((S.turn || 0) * 17) % 360 - 180;
-  const lat = 23.4 * Math.sin(((S.monthIdx || 0) / 12) * Math.PI * 2);
-  return [lon, lat];
-}
 
 // ── M4: terrain texture marks (drawn over the terrain lens) ─────────────────
 function _drawTerrainTexture(ctx, proj) {
@@ -9042,24 +9044,6 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     }
   }
 
-  // ── M5: day/night terminator (globe + standard theme) ─────────────────────
-  // The night hemisphere is a 90°-radius geo-circle centred on the anti-solar
-  // point; clipped to the sphere and softly shaded. Cosmetic, low alpha so the
-  // map stays readable on the night side.
-  if (_isGlobe && !_parch && !S.setupPhase) {
-    const sun = _subsolar();
-    const anti = [sun[0] + 180, -sun[1]];
-    targetCtx.save();
-    targetCtx.beginPath(); targetPath({ type: 'Sphere' }); targetCtx.clip();
-    try {
-      targetCtx.beginPath(); targetPath(d3.geoCircle().center(anti).radius(96)());
-      targetCtx.fillStyle = 'rgba(6,10,26,0.16)'; targetCtx.fill();        // penumbra
-      targetCtx.beginPath(); targetPath(d3.geoCircle().center(anti).radius(90)());
-      targetCtx.fillStyle = 'rgba(6,10,26,0.26)'; targetCtx.fill();        // night
-    } catch(_) {}
-    targetCtx.restore();
-  }
-
   // ── War fronts — pulsing contact line between warring nations (M1/M2) ──────
   // Drawn along the true front (the shared edge between enemies) for every active
   // war in the world, not just the player's — so a war turn is legible at a glance.
@@ -9144,11 +9128,11 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   targetCtx.restore();
   }
 
-  // Edge dark vignette (limb darkening)
-  const limbGrad = targetCtx.createRadialGradient(cx, cy, R * 0.60, cx, cy, R * 1.01);
+  // Edge dark vignette (limb darkening) — kept light so the map doesn't read dim
+  const limbGrad = targetCtx.createRadialGradient(cx, cy, R * 0.66, cx, cy, R * 1.01);
   limbGrad.addColorStop(0,   'rgba(0,0,0,0)');
-  limbGrad.addColorStop(0.7, 'rgba(0,0,0,0.08)');
-  limbGrad.addColorStop(1,   'rgba(0,0,0,0.60)');
+  limbGrad.addColorStop(0.75,'rgba(0,0,0,0.05)');
+  limbGrad.addColorStop(1,   'rgba(0,0,0,0.42)');
   targetCtx.save();
   targetCtx.beginPath(); targetPath({ type: 'Sphere' }); targetCtx.clip();
   targetCtx.fillStyle = limbGrad;
@@ -9237,16 +9221,17 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
         const bow = Math.min(70, len * 0.22);
         const cxp = mx + (-dy / len) * bow, cyp = my + (dx / len) * bow;  // bowed control pt
         const qp = t => { const u = 1 - t; return [u*u*a[0] + 2*u*t*cxp + t*t*b[0], u*u*a[1] + 2*u*t*cyp + t*t*b[1]]; };
-        const grow = 1 - Math.pow(1 - p, 2);                  // ease-out advance
-        const fade = p > 0.7 ? 1 - (p - 0.7) / 0.3 : 1;
+        const grow = _easeInOut(p);                            // smooth accel/decel advance
+        const fade = p > 0.78 ? 1 - (p - 0.78) / 0.22 : 1;     // hold longer, then ease out
         targetCtx.save();
         targetCtx.globalAlpha = fade;
         targetCtx.lineCap = 'round';
+        targetCtx.lineJoin = 'round';
         targetCtx.strokeStyle = fx.win ? fx.color : 'rgba(205,205,215,0.92)';
         targetCtx.lineWidth = 2.6;
-        targetCtx.shadowColor = fx.color; targetCtx.shadowBlur = 6;
+        targetCtx.shadowColor = fx.color; targetCtx.shadowBlur = 8;
         targetCtx.beginPath(); targetCtx.moveTo(a[0], a[1]);
-        const N = 18;
+        const N = 28;
         for (let i = 1; i <= N; i++) { const pt = qp(grow * i / N); targetCtx.lineTo(pt[0], pt[1]); }
         targetCtx.stroke();
         // arrowhead at the advancing tip
@@ -9261,15 +9246,18 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
         targetCtx.fill();
         targetCtx.restore();
       } else {
-        // capture flash — expanding ring + crossed-swords floating up
+        // capture flash — expanding ring (eased) + crossed-swords floating up
         const at = _fxPt(fx.toId); if (!at) continue;
+        const er = _easeInOut(p);
         targetCtx.save();
         targetCtx.globalAlpha = (1 - p) * 0.9;
         targetCtx.strokeStyle = fx.color; targetCtx.lineWidth = 2.4;
-        targetCtx.beginPath(); targetCtx.arc(at[0], at[1], 6 + p * 22, 0, Math.PI * 2); targetCtx.stroke();
+        targetCtx.beginPath(); targetCtx.arc(at[0], at[1], 6 + er * 26, 0, Math.PI * 2); targetCtx.stroke();
+        targetCtx.globalAlpha = (1 - p) * 0.5;
+        targetCtx.beginPath(); targetCtx.arc(at[0], at[1], 3 + er * 14, 0, Math.PI * 2); targetCtx.stroke();
         targetCtx.globalAlpha = 1 - p;
-        targetCtx.font = '14px serif'; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
-        targetCtx.fillText('⚔', at[0], at[1] - p * 14);
+        targetCtx.font = '15px serif'; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+        targetCtx.fillText('⚔', at[0], at[1] - er * 16);
         targetCtx.restore();
       }
     }
@@ -9301,20 +9289,21 @@ function render() {
 
 // Phase 8: lightweight animation loop for war-front pulse (runs only when at war)
 let _p8AnimHandle = null;
+let _loopLastRender = 0;
 function startWarPulse() {
   if (_p8AnimHandle) return;
-  function loop() {
+  function loop(ts) {
     if (S.gameOver) { _p8AnimHandle = null; return; }
-    if (_battleFx.length) {
-      const now = performance.now();
-      _battleFx = _battleFx.filter(fx => now - fx.t0 <= fx.dur);
-    }
+    const now = ts || performance.now();
+    if (_battleFx.length) _battleFx = _battleFx.filter(fx => now - fx.t0 <= fx.dur);
     const me = S.players[S.humanId];
     const atWar = me && Object.values(me.rel || {}).some(r => r === 'war');
     // Keep animating while at war (front-line pulse), while battle FX play, or
     // while an ownership colour-fade is in flight (M5).
     if (!atWar && _battleFx.length === 0 && Object.keys(_ownerAnim).length === 0) { _p8AnimHandle = null; return; }
-    render();
+    // Throttle to ~30fps: the pulse/fades read fine at half the frame rate and it
+    // roughly halves the redraw cost of the (full-map) render each loop.
+    if (now - _loopLastRender >= 32) { _loopLastRender = now; render(); }
     _p8AnimHandle = requestAnimationFrame(loop);
   }
   _p8AnimHandle = requestAnimationFrame(loop);
@@ -9625,6 +9614,7 @@ function startGame(humanCountryId) {
   setupGameCanvas(); // sets _canvasSetup = true internally
   S.turn = 1;
   updateDate();
+  markBordersDirty();       // build border meshes for the fresh world
   updateHUD();
   document.body.classList.toggle('flatmap-full', S.mapMode === 'flat');
   render();
@@ -9701,6 +9691,7 @@ function resolveCombat(fromId, toId, attackerPlayerId) {
     from.army = Math.floor(survivors * 0.4); // garrison stays
     to.army = Math.floor(survivors * 0.6);   // bulk moves in
     to.ownerId = attackerPlayerId;
+    markBordersDirty();   // a province changed hands → rebuild border meshes
     // Newly conquered land has crashed stability
     const conquestStab = (attackerPlayerId === S.humanId) ? getTechBonuses().conquestStab : 18;
     to.stability = conquestStab + Math.floor(Math.random() * 12);
@@ -10514,9 +10505,9 @@ function respondAiUltimatum(pay) {
 // Stored on S.difficulty (back-compat default 'normal' in deserializeState).
 // ============================================================================
 const DIFFICULTY = {
-  easy:   { aiAggr: 0.75, aiCombat: 0.90, aiIncome: 0.90, startGold: 180, startManpower: 180, startArmy: 70, startStab: 95 },
-  normal: { aiAggr: 1.00, aiCombat: 1.00, aiIncome: 1.00, startGold: 120, startManpower: 130, startArmy: 50, startStab: 88 },
-  hard:   { aiAggr: 1.25, aiCombat: 1.15, aiIncome: 1.20, startGold: 80,  startManpower: 95,  startArmy: 38, startStab: 80 },
+  easy:   { aiAggr: 0.55, aiCombat: 0.90, aiIncome: 0.90, startGold: 180, startManpower: 180, startArmy: 70, startStab: 95 },
+  normal: { aiAggr: 0.80, aiCombat: 1.00, aiIncome: 1.00, startGold: 120, startManpower: 130, startArmy: 50, startStab: 88 },
+  hard:   { aiAggr: 1.10, aiCombat: 1.15, aiIncome: 1.20, startGold: 80,  startManpower: 95,  startArmy: 38, startStab: 80 },
 };
 function getDiff() { return DIFFICULTY[S.difficulty] || DIFFICULTY.normal; }
 function setDifficulty(level) {
@@ -10972,8 +10963,8 @@ function attackScore(pid, fromId, toId, pers) {
 
   const warBonus    = atWar ? 1.4 : 1.0;
   const devValue    = (to.development || 1) * 0.15;
-  const weakBonus   = to.stability < 40 ? 0.3 : 0;
-  const humanTarget = defPid === S.humanId ? pers.aggr * 0.5 : 0;
+  const weakBonus   = to.stability < 40 ? 0.18 : 0;   // less swarming of just-conquered land
+  const humanTarget = defPid === S.humanId ? pers.aggr * 0.35 : 0;
   const jitter      = (Math.random() - 0.5) * 0.3;
 
   return (advantage * 0.5 + devValue + weakBonus + humanTarget) * warBonus * terrainFactor * pers.aggr * getDiff().aiAggr + jitter;
@@ -11111,7 +11102,7 @@ function aiTurn(pid) {
   // 3. Attack (scored by personality)
   const maxAttacks = Math.min(2, Math.floor(p.mp / P1.MP_COST.attack));
   let attacksDone = 0;
-  if (maxAttacks > 0 && Math.random() < Math.min(1, pers.aggr * 0.7 * getDiff().aiAggr)) {
+  if (maxAttacks > 0 && Math.random() < Math.min(1, pers.aggr * 0.5 * getDiff().aiAggr)) {
     // Collect all candidate attack moves, pick best
     const candidates = [];
     for (const id of owned) {
@@ -11129,10 +11120,18 @@ function aiTurn(pid) {
       if (attacksDone >= maxAttacks || p.mp < P1.MP_COST.attack) break;
       if (relation(pid, cand.defPid) !== 'war') {
         // Early-game grace: AI doesn't initiate fresh wars in the opening turns,
-        // so the player isn't dogpiled on turn 1. Scenario-scripted wars are
+        // so the player isn't dogpiled at the start. Scenario-scripted wars are
         // unaffected (those are set at start, not declared here).
-        if (S.turn < 4) continue;
+        if (S.turn < 6) continue;
         if (p.dp < P1.DP_COST.war) continue;
+        // Breathing room: each nation waits a few turns between *new* war
+        // declarations (continuing an existing war is unaffected), so the world
+        // isn't in perpetual fresh conflict and a conqueror can consolidate.
+        if (S.turn - (p.lastWarDeclTurn || -99) < 6) continue;
+        // Only start a war from a real position of strength (a slim edge is enough
+        // to keep fighting an existing war, but not to open a new front).
+        const _wf = S.countries[cand.fromId], _wt = S.countries[cand.toId];
+        if (!_wf || !_wt || _wf.army / Math.max(8, _wt.army + 10) < 1.5) continue;
         // Record the offense in the victim's memory BEFORE the relation flips.
         const wasNAP = isNAP(pid, cand.defPid);
         const wasAlly = relation(pid, cand.defPid) === 'ally' || relation(pid, cand.defPid) === 'marriage';
@@ -11147,6 +11146,7 @@ function aiTurn(pid) {
         if (wasAlly) addGrudge(cand.defPid, pid, GRUDGE.ATTACKED_ALLY);
         p.dp -= P1.DP_COST.war;
         setRelation(pid, cand.defPid, 'war');
+        p.lastWarDeclTurn = S.turn;   // start the new-war cooldown for this nation
         if (!p.warScore) p.warScore = {};
         if (!p.warTurns) p.warTurns = {};
         p.warScore[cand.defPid] = 0; p.warTurns[cand.defPid] = 0;
@@ -11385,6 +11385,7 @@ function endTurn() {
       advanceTime();
       processGeneralLifecycle(); // B3: heal wounds, retire veterans, raise successors
       updateDate();
+      markBordersDirty();        // catch-all: any annex/vassal/cede this turn → refresh borders
       updateHUD();
       render();
       checkVictory();
@@ -12790,6 +12791,7 @@ function mpApplyResolvedState(newS, logEntries, turn) {
   if (S.log.length > 80) S.log.length = 80;
   renderLog();
   updateDate();
+  markBordersDirty();   // adopted host state may have new owners/wars
   updateHUD();
   render();
   mpResetTurnState();
@@ -14594,8 +14596,10 @@ function saveToSlot(slot) {
     };
     localStorage.setItem(SAVE_KEY_PREFIX + slot, JSON.stringify(data));
     if (_exitAfterSave) {
+      // Browsers block window.close() for tabs the user opened, so "exit" returns
+      // to the main menu (a fresh load) — the save is already written above.
       showToast(`${T('toast_saved')} ${slot} — ${T('toast_saving_exit')}`);
-      setTimeout(() => { try { window.close(); } catch(e) { window.location.href = 'about:blank'; } }, 900);
+      setTimeout(() => { location.reload(); }, 900);
     } else {
       showToast(`${T('toast_saved')} ${slot}`);
       closeSaveModal();
@@ -14624,6 +14628,7 @@ function loadFromSlot(slot) {
   if (!data || !data.state) { showToast(Tpl('toast_slot_empty', {slot})); return; }
   try {
     deserializeState(data.state);
+    markBordersDirty();   // loaded world has its own owners/wars
     // Rebuild features from embedded topo
     const topo = window.__TOPO__;
     if (topo) rebuildFeatures(topo);
