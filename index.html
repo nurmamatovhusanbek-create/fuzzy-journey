@@ -4704,6 +4704,16 @@ let _mapTheme = (() => { try { return localStorage.getItem('tb_theme') === 'parc
 let _cameraFollow = (() => { try { return localStorage.getItem('tb_camera') !== 'off'; } catch(_) { return true; } })();  // default on
 // Hybrid terrain underlay: tint the political map by biome + reveal relief on zoom.
 let _reliefOn = (() => { try { return localStorage.getItem('tb_relief') !== 'off'; } catch(_) { return true; } })();  // default on
+// Real relief raster (Natural Earth HYP_HR_SR, downscaled to terrain.webp). Loaded
+// lazily; if it can't load (e.g. opened from file://) the map falls back to the
+// self-contained procedural relief — nothing breaks.
+const _terrainImg = (typeof Image !== 'undefined') ? new Image() : null;
+let _terrainReady = false, _terrainData = null;
+if (_terrainImg) {
+  _terrainImg.onload  = () => { _terrainReady = true; _terrainData = null; _baseKey = null; if (typeof render === 'function') render(); };
+  _terrainImg.onerror = () => { _terrainReady = false; };
+  _terrainImg.src = 'terrain.webp';
+}
 const MAP_THEMES = ['standard', 'parchment'];
 function setMapTheme(theme) {
   if (!MAP_THEMES.includes(theme)) return;
@@ -8946,6 +8956,95 @@ function _drawTerrainTexture(ctx, proj, subtle) {
   ctx.restore();
 }
 
+// ── M4: real relief raster base (Natural Earth shaded relief, clipped to land) ──
+// Flat = a direct equirectangular drawImage onto the projected sphere box.
+// Globe = per-pixel reproject (sampled at 1/3 res, upscaled) — only ever runs on a
+// base-cache capture (scene change), never per frame, so the cost is amortised.
+let _reprojCanvas = null, _reprojCtx = null;
+let _reliefCache = null, _reliefCacheCtx = null, _reliefKey = null;
+function _ensureTerrainData() {
+  if (_terrainData || !_terrainReady || !_terrainImg) return;
+  try {
+    const c = document.createElement('canvas');
+    c.width = _terrainImg.naturalWidth; c.height = _terrainImg.naturalHeight;
+    const cc = c.getContext('2d'); cc.drawImage(_terrainImg, 0, 0);
+    _terrainData = cc.getImageData(0, 0, c.width, c.height);
+  } catch (_) { _terrainData = null; }
+}
+function _clipToLand(ctx, tpath) {
+  ctx.beginPath();
+  for (const f of S.features) if (S.countries[f.id]) tpath(f);
+  ctx.clip();
+}
+// Render the relief for ONE tile (current projection) into ctx, clipped to land.
+function _reliefTile(ctx, tpath, proj, rect, isGlobe) {
+  if (!isGlobe) {
+    let b; try { b = d3.geoPath(proj).bounds({ type: 'Sphere' }); } catch (_) { return; }
+    ctx.save(); _clipToLand(ctx, tpath);
+    ctx.drawImage(_terrainImg, b[0][0], b[0][1], b[1][0] - b[0][0], b[1][1] - b[0][1]);
+    ctx.restore();
+    return;
+  }
+  // Globe: per-pixel reproject at 1/3 res, then blit (upscaled) clipped to land.
+  _ensureTerrainData(); if (!_terrainData) return;
+  const SC = 3, w = Math.max(1, Math.ceil(rect.width / SC)), h = Math.max(1, Math.ceil(rect.height / SC));
+  if (!_reprojCanvas) _reprojCanvas = document.createElement('canvas');
+  if (_reprojCanvas.width !== w || _reprojCanvas.height !== h) { _reprojCanvas.width = w; _reprojCanvas.height = h; _reprojCtx = _reprojCanvas.getContext('2d'); }
+  const out = _reprojCtx.createImageData(w, h), od = out.data;
+  const sd = _terrainData.data, sw = _terrainData.width, sh = _terrainData.height;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const ll = proj.invert([x * SC, y * SC]);
+      if (!ll || !isFinite(ll[0]) || !isFinite(ll[1])) continue;
+      let sx = ((ll[0] + 180) / 360 * sw) | 0, sy = ((90 - ll[1]) / 180 * sh) | 0;
+      if (sx < 0) sx = 0; else if (sx >= sw) sx = sw - 1;
+      if (sy < 0) sy = 0; else if (sy >= sh) sy = sh - 1;
+      const si = (sy * sw + sx) * 4, oi = (y * w + x) * 4;
+      od[oi] = sd[si]; od[oi + 1] = sd[si + 1]; od[oi + 2] = sd[si + 2]; od[oi + 3] = 255;
+    }
+  }
+  _reprojCtx.putImageData(out, 0, 0);
+  ctx.save(); _clipToLand(ctx, tpath);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(_reprojCanvas, 0, 0, w, h, 0, 0, rect.width, rect.height);
+  ctx.restore();
+}
+// Land-masked relief is cached in its own offscreen, keyed by the projection. So
+// the costly clip+reproject runs ONLY when rotation/zoom/pan change — turn ticks,
+// selections and war-pulse frames just blit it. (Heavy work is gated off during
+// drag/zoom LOD anyway, so the rebuild only happens once on settle.)
+function _reliefSceneKey() {
+  const t = projection.translate(), r = S.rotation || [0,0,0];
+  return [S.mapMode, r[0]|0, r[1]|0, projection.scale()|0, t[0]|0, t[1]|0].join(',');
+}
+function _drawReliefBase(targetCtx, targetPath, proj, rect, isGlobe) {
+  if (!_terrainReady || !_terrainImg || !canvas) return;
+  if (!_reliefCache) _reliefCache = document.createElement('canvas');
+  if (_reliefCache.width !== canvas.width || _reliefCache.height !== canvas.height || !_reliefCacheCtx) {
+    _reliefCache.width = canvas.width; _reliefCache.height = canvas.height;
+    _reliefCacheCtx = _reliefCache.getContext('2d');
+    _reliefCacheCtx.setTransform(1, 0, 0, 1, 0, 0); _reliefCacheCtx.scale(_DPR, _DPR);
+    _reliefKey = null;
+  }
+  const key = _reliefSceneKey();
+  if (key !== _reliefKey) {
+    _reliefCacheCtx.clearRect(0, 0, rect.width, rect.height);
+    const rpath = d3.geoPath(projection, _reliefCacheCtx);
+    if (S.mapMode === 'flat') {
+      const ww = flatWorldWidth(projection); const baseT = projection.translate();
+      for (const dx of _visibleTileOffsets(ww, rect)) {
+        projection.translate([baseT[0] + dx, baseT[1]]);
+        _reliefTile(_reliefCacheCtx, rpath, projection, rect, false);
+      }
+      projection.translate(baseT);
+    } else {
+      _reliefTile(_reliefCacheCtx, rpath, projection, rect, true);
+    }
+    _reliefKey = key;
+  }
+  targetCtx.drawImage(_reliefCache, 0, 0, rect.width, rect.height);
+}
+
 // ── PERF: dynamic overlay layers (war fronts, move-mode, selection, battle FX) ──
 // These are the only things that animate while the map is otherwise static, so
 // they're factored out of drawGlobe's static "base" so the base can be cached to
@@ -9196,6 +9295,14 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   targetCtx.lineWidth = 0.65;
   targetCtx.beginPath(); targetPath(d3.geoGraticule().extentMinor([[-180,-1],[180,1]]).step([360,1])()); targetCtx.stroke();
 
+  // ── M4: real relief raster base (Natural Earth shaded relief) ─────────────
+  // Active in the political + terrain lenses (standard theme), when the image has
+  // loaded and relief is on; skipped during drag LOD. On political it sits under
+  // translucent ownership fills; on the terrain lens it's the whole map.
+  const _raster = _terrainReady && _reliefOn && !S.setupPhase && !_lod && !_parch &&
+                  (_overlayMode === 'political' || _overlayMode === 'terrain');
+  if (_raster) _drawReliefBase(targetCtx, targetPath, _proj, rect, _isGlobe);
+
   // ── Country fills ─────────────────────────────────────────────────────────
   // Pre-compute which owners are at war with the player (for fill tinting).
   const _warSet = new Set();
@@ -9226,12 +9333,21 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     // new one when a province changes hands (animated by the war-pulse loop).
     if (_overlayMode === 'political' && !S.setupPhase) {
       fill = _animatedFill(f.id, fill);
-      // Hybrid terrain underlay: tint ownership toward the province's biome so the
-      // political map reads geography too (ownership still dominant at ~0.82).
-      if (_reliefOn && owner && !owner.eliminated) fill = _blendColor(TERRAIN_COL[terrainFor(f.id)] || '#8a8068', fill, 0.82);
+      // Hybrid biome underlay (only when the real relief raster ISN'T active):
+      // tint ownership toward the province's biome so the political map reads
+      // geography too (ownership still dominant at ~0.82).
+      if (_reliefOn && !_raster && owner && !owner.eliminated) fill = _blendColor(TERRAIN_COL[terrainFor(f.id)] || '#8a8068', fill, 0.82);
     }
-    targetCtx.fillStyle = fill;
-    targetCtx.beginPath(); targetPath(f); targetCtx.fill();
+    targetCtx.beginPath(); targetPath(f);
+    if (_raster && _overlayMode === 'terrain') {
+      // raster IS the map on the terrain lens — no solid fill
+    } else if (_raster) {
+      // political: translucent ownership over the relief so both read (ownership
+      // leads, terrain shows through)
+      targetCtx.save(); targetCtx.globalAlpha = 0.62; targetCtx.fillStyle = fill; targetCtx.fill(); targetCtx.restore();
+    } else {
+      targetCtx.fillStyle = fill; targetCtx.fill();
+    }
     // M4: aged-paper wash over every land fill (parchment theme)
     if (TH.wash) { targetCtx.fillStyle = TH.wash; targetCtx.fill(); }
     // Enemy-at-war: overlay a clear red wash so hostile nations are unmistakable
@@ -9252,10 +9368,11 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     targetCtx.stroke();
   }
 
-  // ── M4: terrain relief glyphs ─────────────────────────────────────────────
-  // Full strength on the Terrain lens; subtle on the political map (hybrid),
-  // and only when zoomed in so the world view stays clean. Skipped during LOD.
-  if (targetCanvas !== setupCanvas && !S.setupPhase && !_lod) {
+  // ── M4: procedural relief glyphs (fallback when the raster isn't active) ──
+  // Full strength on the Terrain lens; subtle on the political map (hybrid), and
+  // only when zoomed in so the world view stays clean. Skipped during LOD and
+  // whenever the real relief raster is drawn (the raster supersedes the glyphs).
+  if (!_raster && targetCanvas !== setupCanvas && !S.setupPhase && !_lod) {
     const _zr = _proj.scale() / (sz * 0.46);
     if (_overlayMode === 'terrain') _drawTerrainTexture(targetCtx, _proj, false);
     else if (_reliefOn && _overlayMode === 'political' && _zr > 1.25) _drawTerrainTexture(targetCtx, _proj, true);
@@ -9557,9 +9674,17 @@ function attachGlobeInteraction(targetCanvas, onClick, redrawFn, getProj) {
     } else {
       proj.scale(Math.max(150, Math.min(2000, cur * factor)));
     }
+    // LOD while actively zooming (skip the costly relief/labels); a debounced
+    // full-quality redraw fires once the wheel settles.
+    if (targetCanvas === canvas) {
+      _interacting = true;
+      clearTimeout(_zoomSettleTimer);
+      _zoomSettleTimer = setTimeout(() => { _interacting = false; if (typeof render === 'function') render(); }, 180);
+    }
     redrawFn();
   }, { passive: false });
 }
+let _zoomSettleTimer = null;
 
 // ============================================================================
 // GAME LOGIC
