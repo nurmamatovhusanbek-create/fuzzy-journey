@@ -2564,6 +2564,24 @@
         style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
         data-i18n="mapmode_flat">🗺 FLAT</button>
     </div>
+    <div class="sdd-label" style="padding:2px 16px 2px;opacity:.7" data-i18n="sdd_theme">MAP STYLE</div>
+    <div style="display:flex;gap:6px;padding:4px 16px 8px">
+      <button class="sdd-lang-btn theme-btn active" data-theme="standard" onclick="setMapTheme('standard')"
+        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
+        data-i18n="theme_standard">🌍 STANDARD</button>
+      <button class="sdd-lang-btn theme-btn" data-theme="parchment" onclick="setMapTheme('parchment')"
+        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
+        data-i18n="theme_parchment">📜 PARCHMENT</button>
+    </div>
+    <div class="sdd-label" style="padding:2px 16px 2px;opacity:.7" data-i18n="sdd_camera">CAMERA FOLLOW</div>
+    <div style="display:flex;gap:6px;padding:4px 16px 10px">
+      <button class="sdd-lang-btn cam-btn active" data-cam="on" onclick="setCameraFollow(true)"
+        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
+        data-i18n="cam_on">ON</button>
+      <button class="sdd-lang-btn cam-btn" data-cam="off" onclick="setCameraFollow(false)"
+        style="flex:1;padding:6px 4px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s"
+        data-i18n="cam_off">OFF</button>
+    </div>
   </div>
   <div class="sdd-section">
     <div class="sdd-item" style="cursor:default;gap:10px;padding-bottom:4px">
@@ -2681,6 +2699,12 @@ en: {
   overlay_military: 'Military',
   overlay_wars: 'Wars',
   overlay_terrain: 'Terrain',
+  sdd_theme: 'MAP STYLE',
+  theme_standard: '🌍 STANDARD',
+  theme_parchment: '📜 PARCHMENT',
+  sdd_camera: 'CAMERA FOLLOW',
+  cam_on: 'ON',
+  cam_off: 'OFF',
   notif_alerts: 'ALERTS',
   notif_clear: 'Clear all',
   notif_war_t: '{nation} declares war!',
@@ -3405,6 +3429,12 @@ ru: {
   overlay_military: 'Армия',
   overlay_wars: 'Войны',
   overlay_terrain: 'Рельеф',
+  sdd_theme: 'СТИЛЬ КАРТЫ',
+  theme_standard: '🌍 СТАНДАРТ',
+  theme_parchment: '📜 ПЕРГАМЕНТ',
+  sdd_camera: 'СЛЕЖЕНИЕ КАМЕРЫ',
+  cam_on: 'ВКЛ',
+  cam_off: 'ВЫКЛ',
   notif_alerts: 'ОПОВЕЩЕНИЯ',
   notif_clear: 'Очистить всё',
   notif_war_t: '{nation} объявляет войну!',
@@ -4655,6 +4685,32 @@ function setOverlayMode(mode) {
   if (typeof render === 'function') render();
 }
 window.setOverlayMode = setOverlayMode;
+
+// ── M4/M5: map theme + camera motion (client-local view state, persisted locally) ──
+// Never in S → never syncs in MP, never persists into a save slot; each player
+// chooses their own map aesthetic & camera behaviour.
+let _mapTheme = (() => { try { return localStorage.getItem('tb_theme') === 'parchment' ? 'parchment' : 'standard'; } catch(_) { return 'standard'; } })();
+let _cameraFollow = (() => { try { return localStorage.getItem('tb_camera') !== 'off'; } catch(_) { return true; } })();  // default on
+const MAP_THEMES = ['standard', 'parchment'];
+function setMapTheme(theme) {
+  if (!MAP_THEMES.includes(theme)) return;
+  _mapTheme = theme;
+  try { localStorage.setItem('tb_theme', theme); } catch(_) {}
+  syncMapToggles();
+  if (typeof render === 'function') render();
+}
+function setCameraFollow(on) {
+  _cameraFollow = !!on;
+  try { localStorage.setItem('tb_camera', on ? 'on' : 'off'); } catch(_) {}
+  syncMapToggles();
+}
+// Reflect the active theme/camera state on the settings-dropdown buttons.
+function syncMapToggles() {
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === _mapTheme));
+  document.querySelectorAll('.cam-btn').forEach(b => b.classList.toggle('active', (b.dataset.cam === 'on') === _cameraFollow));
+}
+window.setMapTheme = setMapTheme;
+window.setCameraFollow = setCameraFollow;
 
 window.sddSetLang = sddSetLang;
 // ═══════════════════════════════════════════════════════════════════════════
@@ -8530,7 +8586,7 @@ function _overlayFill(c, owner) {
   const dead = !owner || owner.eliminated;
   switch (_overlayMode) {
     case 'terrain':
-      return '#6f6750';                                  // uniform land — read geography
+      return TERRAIN_COL[terrainFor(c.id)] || '#9a9078'; // colour by terrain type (M4)
     case 'economic': {
       if (dead) return '#23281c';
       const dev = Math.max(1, Math.min(6, c.development || 1));
@@ -8664,6 +8720,176 @@ function pushBattleFx(fromId, toId, result, attackerId) {
 }
 window.pushBattleFx = pushBattleFx;
 
+// ── M4: map theme palettes ─────────────────────────────────────────────────
+const MAP_THEME_DEF = {
+  standard: {
+    oceanGlobe: ['#1a3a5c', '#0d2240', '#060d1a'],
+    oceanFlat:  ['#091a30', '#143055', '#091a30'],
+    graticule:  'rgba(100,150,200,0.08)', graticuleFlat: 'rgba(100,150,200,0.14)',
+    equator:    'rgba(100,160,220,0.20)', equatorFlat:  'rgba(100,160,220,0.30)',
+    internal:   'rgba(0,0,0,0.16)',
+    coast:      'rgba(8,14,24,0.55)',
+    natlCasing: 'rgba(0,0,0,0.55)', natlInner: 'rgba(232,238,248,0.34)',
+    sphere:     'rgba(80,140,220,0.55)',
+    wash:       null
+  },
+  parchment: {
+    oceanGlobe: ['#cdb589', '#b89868', '#9a7c52'],
+    oceanFlat:  ['#c4a878', '#d6bf92', '#c4a878'],
+    graticule:  'rgba(120,90,50,0.12)', graticuleFlat: 'rgba(120,90,50,0.18)',
+    equator:    'rgba(120,85,45,0.22)', equatorFlat:  'rgba(120,85,45,0.30)',
+    internal:   'rgba(80,52,22,0.22)',
+    coast:      'rgba(72,46,20,0.62)',
+    natlCasing: 'rgba(60,38,16,0.70)', natlInner: 'rgba(250,240,215,0.30)',
+    sphere:     'rgba(110,80,45,0.60)',
+    wash:       'rgba(205,176,116,0.34)'   // aged-paper wash over every land fill
+  }
+};
+// Per-terrain colour for the terrain lens (geographic, not ownership).
+const TERRAIN_COL = {
+  plains: '#cdb884', hills: '#a8925e', mountain: '#9b9088',
+  forest: '#6f9461', marsh: '#7c8a68', steppe: '#c4a868'
+};
+
+// ── M5: smooth ownership colour interpolation (political lens) ──────────────
+// Owner colours come as hex ('#e63946', the player) AND hsl() (genColor for AI),
+// so the blender parses any CSS colour the canvas understands.
+let _lastFill = {};     // featureId -> last political fill colour
+let _ownerAnim = {};    // featureId -> { from, t0 }  (active fade)
+function _toRGB(str) {
+  if (typeof str !== 'string') return [128,128,128];
+  if (str[0] === '#') {
+    const n = parseInt(str.slice(1), 16);
+    return str.length >= 7 ? [n>>16 & 255, n>>8 & 255, n & 255] : [128,128,128];
+  }
+  let m = str.match(/rgba?\(([^)]+)\)/);
+  if (m) { const a = m[1].split(',').map(Number); return [a[0]||0, a[1]||0, a[2]||0]; }
+  m = str.match(/hsla?\(([^)]+)\)/);
+  if (m) {
+    const a = m[1].split(',');
+    const h = (parseFloat(a[0])||0)/360, s = (parseFloat(a[1])||0)/100, l = (parseFloat(a[2])||0)/100;
+    if (s === 0) { const v = Math.round(l*255); return [v,v,v]; }
+    const q = l < 0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+    const hue = t => { t=(t+1)%1; if(t<1/6) return p+(q-p)*6*t; if(t<1/2) return q; if(t<2/3) return p+(q-p)*(2/3-t)*6; return p; };
+    return [Math.round(hue(h+1/3)*255), Math.round(hue(h)*255), Math.round(hue(h-1/3)*255)];
+  }
+  return [128,128,128];
+}
+function _blendColor(a, b, t) {
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const ca = _toRGB(a), cb = _toRGB(b);
+  return `rgb(${Math.round(ca[0]+(cb[0]-ca[0])*t)},${Math.round(ca[1]+(cb[1]-ca[1])*t)},${Math.round(ca[2]+(cb[2]-ca[2])*t)})`;
+}
+function _animatedFill(id, target) {
+  const prev = _lastFill[id];
+  if (prev !== undefined && prev !== target && !_ownerAnim[id]) {
+    _ownerAnim[id] = { from: prev, t0: performance.now() };
+    if (typeof startWarPulse === 'function') startWarPulse();   // drive the fade even at peace
+  }
+  _lastFill[id] = target;
+  const an = _ownerAnim[id];
+  if (an) {
+    const p = (performance.now() - an.t0) / 700;
+    if (p >= 1) { delete _ownerAnim[id]; return target; }
+    return _blendColor(an.from, target, p < 0 ? 0 : p);
+  }
+  return target;
+}
+
+// ── M5: fly-to camera (eased pan to a province on key events) ───────────────
+let _flyRAF = null;
+function _easeInOut(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
+function flyToFeature(id) {
+  if (!_cameraFollow) return;
+  const f = S.featureById && S.featureById[id]; if (!f || !canvas) return;
+  let ctr; try { ctr = d3.geoCentroid(f); } catch(_) { return; }
+  if (!ctr || !isFinite(ctr[0]) || !isFinite(ctr[1])) return;
+  if (_flyRAF) { cancelAnimationFrame(_flyRAF); _flyRAF = null; }
+  const t0 = performance.now(), dur = 750;
+  if (S.mapMode === 'flat') {
+    const rect = canvas.getBoundingClientRect();
+    const fromT = projection.translate();
+    const cur = projection(ctr);
+    if (!cur) return;
+    const toT = [fromT[0] + (rect.width / 2 - cur[0]), fromT[1] + (rect.height / 2 - cur[1])];
+    const step = () => {
+      const e = _easeInOut(Math.min(1, (performance.now() - t0) / dur));
+      projection.translate([fromT[0] + (toT[0] - fromT[0]) * e, fromT[1] + (toT[1] - fromT[1]) * e]);
+      render();
+      _flyRAF = e < 1 ? requestAnimationFrame(step) : null;
+    };
+    _flyRAF = requestAnimationFrame(step);
+  } else {
+    const fromR = [...S.rotation];
+    let dl = -ctr[0] - fromR[0]; while (dl > 180) dl -= 360; while (dl < -180) dl += 360;
+    const dp = -ctr[1] - fromR[1];
+    const step = () => {
+      const e = _easeInOut(Math.min(1, (performance.now() - t0) / dur));
+      S.rotation = [fromR[0] + dl * e, fromR[1] + dp * e, 0];
+      render();
+      _flyRAF = e < 1 ? requestAnimationFrame(step) : null;
+    };
+    _flyRAF = requestAnimationFrame(step);
+  }
+}
+window.flyToFeature = flyToFeature;
+
+// ── M5: sub-solar point (drives the day/night terminator) ───────────────────
+function _subsolar() {
+  // longitude drifts ~17°/turn so the terminator visibly creeps; declination
+  // from the in-game month gives a seasonal tilt. Cosmetic, not astronomical.
+  const lon = ((S.turn || 0) * 17) % 360 - 180;
+  const lat = 23.4 * Math.sin(((S.monthIdx || 0) / 12) * Math.PI * 2);
+  return [lon, lat];
+}
+
+// ── M4: terrain texture marks (drawn over the terrain lens) ─────────────────
+function _drawTerrainTexture(ctx, proj) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  const flat = S.mapMode === 'flat';
+  const rect = canvas.getBoundingClientRect();
+  for (const f of S.features) {
+    if (!S.countries[f.id]) continue;
+    let x, y;
+    if (flat) {
+      const p = proj(d3.geoCentroid(f));
+      if (!p || !isFinite(p[0]) || !isFinite(p[1])) continue;
+      if (p[0] < -20 || p[0] > rect.width + 20) continue;   // off this tile
+      x = p[0]; y = p[1];
+    } else {
+      const r = projectCentroid(f, proj); if (!r) continue;
+      x = r.pt[0]; y = r.pt[1];
+    }
+    const t = terrainFor(f.id);
+    ctx.lineWidth = 1;
+    if (t === 'mountain' || t === 'hills') {
+      const big = t === 'mountain', s = big ? 5 : 3.5;
+      ctx.strokeStyle = big ? 'rgba(58,46,36,0.70)' : 'rgba(70,60,42,0.55)';
+      for (const ox of [-7, 0, 7]) {
+        ctx.beginPath();
+        ctx.moveTo(x + ox - s, y + s * 0.7);
+        ctx.lineTo(x + ox,     y - s * 0.7);
+        ctx.lineTo(x + ox + s, y + s * 0.7);
+        ctx.stroke();
+      }
+    } else if (t === 'forest') {
+      ctx.fillStyle = 'rgba(38,68,38,0.60)';
+      for (const o of [[-6,2],[0,-3],[6,2],[-3,5],[3,5]]) { ctx.beginPath(); ctx.arc(x+o[0], y+o[1], 1.4, 0, 6.283); ctx.fill(); }
+    } else if (t === 'marsh') {
+      ctx.strokeStyle = 'rgba(45,60,45,0.55)';
+      for (const oy of [-3,1,5]) { ctx.beginPath(); ctx.moveTo(x-6, y+oy); ctx.lineTo(x+6, y+oy); ctx.stroke(); }
+    } else if (t === 'steppe') {
+      ctx.strokeStyle = 'rgba(120,95,45,0.50)';
+      for (const oy of [-2,3]) { ctx.beginPath(); ctx.moveTo(x-7, y+oy); ctx.lineTo(x+1, y+oy); ctx.stroke(); }
+    } else { // plains
+      ctx.fillStyle = 'rgba(120,100,55,0.45)';
+      for (const o of [[-5,0],[5,0],[0,4]]) { ctx.beginPath(); ctx.arc(x+o[0], y+o[1], 1, 0, 6.283); ctx.fill(); }
+    }
+  }
+  ctx.restore();
+}
+
 function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true, targetProj = null, noClear = false) {
   _p8Clock = (Date.now() / 900) % (Math.PI * 2);
   const rect  = targetCanvas.getBoundingClientRect();
@@ -8676,6 +8902,8 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   const R     = (_proj && _proj.scale) ? _proj.scale() : sz * 0.46;
   if (!noClear) targetCtx.clearRect(0, 0, rect.width, rect.height);
   const _isGlobe = (S.mapMode !== 'flat');
+  const TH = MAP_THEME_DEF[_mapTheme] || MAP_THEME_DEF.standard;   // M4: active map theme
+  const _parch = _mapTheme === 'parchment';
 
   // ── Stars (globe only — they orbit the disc) ─────────────────────────────
   if (_isGlobe) {
@@ -8692,7 +8920,8 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   }
   targetCtx.restore();
 
-  // ── Atmosphere outer glow (globe only) ────────────────────────────────────
+  // ── Atmosphere outer glow (globe only; skipped on the paper theme) ────────
+  if (!_parch) {
   const atmoGrad = targetCtx.createRadialGradient(cx, cy, R * 0.88, cx, cy, R * 1.22);
   atmoGrad.addColorStop(0,   'rgba(70,120,220,0.28)');
   atmoGrad.addColorStop(0.4, 'rgba(40, 80,180,0.10)');
@@ -8700,37 +8929,38 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   targetCtx.fillStyle = atmoGrad;
   targetCtx.fillRect(0, 0, rect.width, rect.height);
   }
+  }
 
   // ── Ocean fill ────────────────────────────────────────────────────────────
   if (_isGlobe) {
   // Deep ocean — radial gradient for depth illusion
   const oceanGrad = targetCtx.createRadialGradient(cx - R*0.22, cy - R*0.18, R*0.04, cx, cy, R*1.05);
-  oceanGrad.addColorStop(0,    '#1a3a5c');   // lit centre
-  oceanGrad.addColorStop(0.55, '#0d2240');   // mid depth
-  oceanGrad.addColorStop(1,    '#060d1a');   // deep edge
+  oceanGrad.addColorStop(0,    TH.oceanGlobe[0]);   // lit centre
+  oceanGrad.addColorStop(0.55, TH.oceanGlobe[1]);   // mid depth
+  oceanGrad.addColorStop(1,    TH.oceanGlobe[2]);   // deep edge
   targetCtx.fillStyle = oceanGrad;
   targetCtx.beginPath(); targetPath({ type: 'Sphere' }); targetCtx.fill();
   } else {
   // Flat ocean — vertical gradient (lighter equator, darker poles) for a map-like feel
   const flatOcean = targetCtx.createLinearGradient(0, cy - R*0.9, 0, cy + R*0.9);
-  flatOcean.addColorStop(0,   '#091a30');   // top (poles) darker
-  flatOcean.addColorStop(0.5, '#143055');   // equator lighter
-  flatOcean.addColorStop(1,   '#091a30');   // bottom darker
+  flatOcean.addColorStop(0,   TH.oceanFlat[0]);   // top (poles) darker
+  flatOcean.addColorStop(0.5, TH.oceanFlat[1]);   // equator lighter
+  flatOcean.addColorStop(1,   TH.oceanFlat[2]);   // bottom darker
   targetCtx.fillStyle = flatOcean;
   targetCtx.beginPath(); targetPath({ type: 'Sphere' }); targetCtx.fill();
   // Framed border around the map outline
-  targetCtx.strokeStyle = 'rgba(120,160,220,0.30)';
+  targetCtx.strokeStyle = _parch ? 'rgba(110,80,45,0.45)' : 'rgba(120,160,220,0.30)';
   targetCtx.lineWidth = 1.2;
   targetCtx.beginPath(); targetPath({ type: 'Sphere' }); targetCtx.stroke();
   }
 
   // ── Graticule ─────────────────────────────────────────────────────────────
   // Fine 15° grid; a touch more visible on the flat map (reads as a world map)
-  targetCtx.strokeStyle = _isGlobe ? 'rgba(100,150,200,0.08)' : 'rgba(100,150,200,0.14)';
+  targetCtx.strokeStyle = _isGlobe ? TH.graticule : TH.graticuleFlat;
   targetCtx.lineWidth = 0.4;
   targetCtx.beginPath(); targetPath(d3.geoGraticule().step([15, 15])()); targetCtx.stroke();
   // Equator highlight
-  targetCtx.strokeStyle = _isGlobe ? 'rgba(100,160,220,0.20)' : 'rgba(100,160,220,0.30)';
+  targetCtx.strokeStyle = _isGlobe ? TH.equator : TH.equatorFlat;
   targetCtx.lineWidth = 0.65;
   targetCtx.beginPath(); targetPath(d3.geoGraticule().extentMinor([[-180,-1],[180,1]]).step([360,1])()); targetCtx.stroke();
 
@@ -8759,8 +8989,14 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     const c = S.countries[f.id];
     if (!c) continue;
     const owner = S.players[c.ownerId];
-    targetCtx.fillStyle = _overlayFill(c, owner);
+    let fill = _overlayFill(c, owner);
+    // M5: in the political lens, ease the fill from the old owner's colour to the
+    // new one when a province changes hands (animated by the war-pulse loop).
+    if (_overlayMode === 'political' && !S.setupPhase) fill = _animatedFill(f.id, fill);
+    targetCtx.fillStyle = fill;
     targetCtx.beginPath(); targetPath(f); targetCtx.fill();
+    // M4: aged-paper wash over every land fill (parchment theme)
+    if (TH.wash) { targetCtx.fillStyle = TH.wash; targetCtx.fill(); }
     // Enemy-at-war: overlay a clear red wash so hostile nations are unmistakable
     // (only in the political lens — the diplomatic lens already encodes war as red).
     if (_overlayMode === 'political' && _warSet.has(c.ownerId)) {
@@ -8774,9 +9010,14 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     }
     // Faint internal province edge — national borders are drawn separately,
     // stronger, so an empire reads as one bloc rather than a grid of tiles (M1).
-    targetCtx.strokeStyle = 'rgba(0,0,0,0.16)';
+    targetCtx.strokeStyle = TH.internal;
     targetCtx.lineWidth = 0.3;
     targetCtx.stroke();
+  }
+
+  // ── M4: terrain texture (terrain lens only) ───────────────────────────────
+  if (_overlayMode === 'terrain' && targetCanvas === canvas && !S.setupPhase) {
+    _drawTerrainTexture(targetCtx, _proj);
   }
 
   // ── M1: coastline + dissolved national borders ────────────────────────────
@@ -8785,20 +9026,38 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     if (borders) {
       // Coastline casing (land meets ocean) — gives continents a defined edge
       if (borders.coast) {
-        targetCtx.strokeStyle = 'rgba(8,14,24,0.55)';
+        targetCtx.strokeStyle = TH.coast;
         targetCtx.lineWidth = _isGlobe ? 1.3 : 1.1;
         targetCtx.beginPath(); targetPath(borders.coast); targetCtx.stroke();
       }
       // National borders — dark casing + light inner line (empires read as one shape)
       if (borders.natl) {
-        targetCtx.strokeStyle = 'rgba(0,0,0,0.55)';
+        targetCtx.strokeStyle = TH.natlCasing;
         targetCtx.lineWidth = 1.9;
         targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
-        targetCtx.strokeStyle = 'rgba(232,238,248,0.34)';
+        targetCtx.strokeStyle = TH.natlInner;
         targetCtx.lineWidth = 0.7;
         targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
       }
     }
+  }
+
+  // ── M5: day/night terminator (globe + standard theme) ─────────────────────
+  // The night hemisphere is a 90°-radius geo-circle centred on the anti-solar
+  // point; clipped to the sphere and softly shaded. Cosmetic, low alpha so the
+  // map stays readable on the night side.
+  if (_isGlobe && !_parch && !S.setupPhase) {
+    const sun = _subsolar();
+    const anti = [sun[0] + 180, -sun[1]];
+    targetCtx.save();
+    targetCtx.beginPath(); targetPath({ type: 'Sphere' }); targetCtx.clip();
+    try {
+      targetCtx.beginPath(); targetPath(d3.geoCircle().center(anti).radius(96)());
+      targetCtx.fillStyle = 'rgba(6,10,26,0.16)'; targetCtx.fill();        // penumbra
+      targetCtx.beginPath(); targetPath(d3.geoCircle().center(anti).radius(90)());
+      targetCtx.fillStyle = 'rgba(6,10,26,0.26)'; targetCtx.fill();        // night
+    } catch(_) {}
+    targetCtx.restore();
   }
 
   // ── War fronts — pulsing contact line between warring nations (M1/M2) ──────
@@ -8864,11 +9123,13 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   // ── Globe-only sphere lighting (edge, specular, limb) ─────────────────────
   if (_isGlobe) {
   // Globe edge outline
-  targetCtx.strokeStyle = 'rgba(80,140,220,0.55)';
+  targetCtx.strokeStyle = TH.sphere;
   targetCtx.lineWidth = 1.8;
   targetCtx.beginPath(); targetPath({ type: 'Sphere' }); targetCtx.stroke();
 
-  // Specular highlight (light from upper-left)
+  // Specular highlight (light from upper-left) — skipped on the paper theme,
+  // which should read flat rather than like a lit sphere.
+  if (!_parch) {
   const specGrad = targetCtx.createRadialGradient(
     cx - R * 0.30, cy - R * 0.28, R * 0.01,
     cx - R * 0.10, cy - R * 0.08, R * 0.75
@@ -8881,6 +9142,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   targetCtx.fillStyle = specGrad;
   targetCtx.fillRect(0, 0, rect.width, rect.height);
   targetCtx.restore();
+  }
 
   // Edge dark vignette (limb darkening)
   const limbGrad = targetCtx.createRadialGradient(cx, cy, R * 0.60, cx, cy, R * 1.01);
@@ -9049,8 +9311,9 @@ function startWarPulse() {
     }
     const me = S.players[S.humanId];
     const atWar = me && Object.values(me.rel || {}).some(r => r === 'war');
-    // Keep animating while at war (front-line pulse) or while battle FX are playing.
-    if (!atWar && _battleFx.length === 0) { _p8AnimHandle = null; return; }
+    // Keep animating while at war (front-line pulse), while battle FX play, or
+    // while an ownership colour-fade is in flight (M5).
+    if (!atWar && _battleFx.length === 0 && Object.keys(_ownerAnim).length === 0) { _p8AnimHandle = null; return; }
     render();
     _p8AnimHandle = requestAnimationFrame(loop);
   }
@@ -9476,6 +9739,8 @@ function resolveCombat(fromId, toId, attackerPlayerId) {
     recordGenBattle(attackerPlayerId, 'victory', to.name, {});
     if (defPlayer) recordGenBattle(defPlayer.id, 'loss', to.name, { crushing: true, eliminated: !!defPlayer.eliminated });
     pushBattleFx(fromId, toId, 'win', attackerPlayerId);   // M2: advance arrow + capture flash
+    // M5: pan to the action when an enemy seizes one of YOUR provinces (SP only)
+    if (wasAgainstHuman && !wasHuman && (typeof MP === 'undefined' || !MP.active)) flyToFeature(toId);
     return 'win';
   } else {
     // Defender wins
@@ -10901,6 +11166,7 @@ function aiTurn(pid) {
             title: Tpl('notif_war_t', { nation: p.name }),
             body: _aiGoal ? Tpl('notif_war_goal_b', {goal: warGoalLabel(_aiGoal.type)}) : T('notif_war_b'),
             route: { kind: 'province', id: cand.toId } });
+          if (typeof MP === 'undefined' || !MP.active) flyToFeature(pid);   // M5: pan to the aggressor
         }
       }
       p.mp -= P1.MP_COST.attack;
@@ -14562,6 +14828,7 @@ function toggleSettingsMenu(e) {
     document.querySelectorAll('.mapmode-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.mode === (S.mapMode || 'globe'));
     });
+    syncMapToggles();   // M4/M5: reflect theme + camera-follow state
     syncTipsToggle();   // A4: reflect tips on/off
   }
   if (e) e.stopPropagation();
