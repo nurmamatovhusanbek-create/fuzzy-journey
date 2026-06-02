@@ -8845,10 +8845,19 @@ function flyToFeature(id) {
 }
 window.flyToFeature = flyToFeature;
 
-// ── M4: terrain texture marks (drawn over the terrain lens) ─────────────────
+// ── M4: terrain relief — area-aware procedural shading over the terrain lens ──
+// Scatters terrain-specific marks (shaded mountains, hill bumps, little trees,
+// dune/marsh strokes) across each country's projected extent for an old-atlas
+// "real relief" feel. Deterministic per country id (stable, no flicker). Lives in
+// the cached base layer, so the cost is paid only on a scene change, not per frame.
+function _terrRand(id) {
+  let h = 2166136261; const s = String(id);
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
+}
 function _drawTerrainTexture(ctx, proj) {
   ctx.save();
-  ctx.lineCap = 'round';
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const flat = S.mapMode === 'flat';
   const rect = canvas.getBoundingClientRect();
   for (const f of S.features) {
@@ -8857,42 +8866,237 @@ function _drawTerrainTexture(ctx, proj) {
     if (flat) {
       const p = proj(d3.geoCentroid(f));
       if (!p || !isFinite(p[0]) || !isFinite(p[1])) continue;
-      if (p[0] < -20 || p[0] > rect.width + 20) continue;   // off this tile
+      if (p[0] < -30 || p[0] > rect.width + 30) continue;   // off this tile
       x = p[0]; y = p[1];
     } else {
       const r = projectCentroid(f, proj); if (!r) continue;
       x = r.pt[0]; y = r.pt[1];
     }
-    const t = terrainFor(f.id);
-    ctx.lineWidth = 1;
-    if (t === 'mountain' || t === 'hills') {
-      const big = t === 'mountain', s = big ? 5 : 3.5;
-      ctx.strokeStyle = big ? 'rgba(58,46,36,0.70)' : 'rgba(70,60,42,0.55)';
-      for (const ox of [-7, 0, 7]) {
-        ctx.beginPath();
-        ctx.moveTo(x + ox - s, y + s * 0.7);
-        ctx.lineTo(x + ox,     y - s * 0.7);
-        ctx.lineTo(x + ox + s, y + s * 0.7);
-        ctx.stroke();
+    // Approximate the country's on-screen radius from its geographic bounds so
+    // big nations get a spread-out range and tiny ones a single mark.
+    let rad = 13;
+    try {
+      const gb = d3.geoBounds(f);          // [[lon0,lat0],[lon1,lat1]]
+      const c0 = proj([gb[0][0], gb[0][1]]), c1 = proj([gb[1][0], gb[1][1]]);
+      if (c0 && c1 && isFinite(c0[0]) && isFinite(c1[0])) {
+        rad = Math.max(8, Math.min(46, Math.hypot(c1[0] - c0[0], c1[1] - c0[1]) * 0.30));
       }
-    } else if (t === 'forest') {
-      ctx.fillStyle = 'rgba(38,68,38,0.60)';
-      for (const o of [[-6,2],[0,-3],[6,2],[-3,5],[3,5]]) { ctx.beginPath(); ctx.arc(x+o[0], y+o[1], 1.4, 0, 6.283); ctx.fill(); }
-    } else if (t === 'marsh') {
-      ctx.strokeStyle = 'rgba(45,60,45,0.55)';
-      for (const oy of [-3,1,5]) { ctx.beginPath(); ctx.moveTo(x-6, y+oy); ctx.lineTo(x+6, y+oy); ctx.stroke(); }
-    } else if (t === 'steppe') {
-      ctx.strokeStyle = 'rgba(120,95,45,0.50)';
-      for (const oy of [-2,3]) { ctx.beginPath(); ctx.moveTo(x-7, y+oy); ctx.lineTo(x+1, y+oy); ctx.stroke(); }
-    } else { // plains
-      ctx.fillStyle = 'rgba(120,100,55,0.45)';
-      for (const o of [[-5,0],[5,0],[0,4]]) { ctx.beginPath(); ctx.arc(x+o[0], y+o[1], 1, 0, 6.283); ctx.fill(); }
+    } catch (_) {}
+    const t = terrainFor(f.id);
+    const rnd = _terrRand(f.id);
+    const n = Math.max(1, Math.min(9, Math.round(rad / 7)));   // mark count by size
+    const spread = rad * 0.62;
+    for (let k = 0; k < n; k++) {
+      const mx = x + (rnd() - 0.5) * 2 * spread;
+      const my = y + (rnd() - 0.5) * 2 * spread;
+      if (t === 'mountain' || t === 'hills') {
+        const big = t === 'mountain';
+        const s = (big ? 5.5 : 3.6) * (0.8 + rnd() * 0.5);
+        // shaded peak: dark right face + light left face + base line
+        ctx.beginPath();
+        ctx.moveTo(mx - s, my + s * 0.75); ctx.lineTo(mx, my - s * 0.85); ctx.lineTo(mx + s, my + s * 0.75); ctx.closePath();
+        ctx.fillStyle = big ? 'rgba(120,110,98,0.45)' : 'rgba(120,116,96,0.34)'; ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(mx, my - s * 0.85); ctx.lineTo(mx + s, my + s * 0.75); ctx.lineTo(mx + s * 0.18, my + s * 0.75); ctx.closePath();
+        ctx.fillStyle = 'rgba(40,32,24,0.40)'; ctx.fill();           // shadow side
+        ctx.strokeStyle = big ? 'rgba(45,36,28,0.65)' : 'rgba(60,52,40,0.5)'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(mx - s, my + s * 0.75); ctx.lineTo(mx, my - s * 0.85); ctx.lineTo(mx + s, my + s * 0.75); ctx.stroke();
+        if (big && rnd() > 0.6) { ctx.fillStyle = 'rgba(235,238,245,0.55)'; ctx.beginPath(); ctx.moveTo(mx, my - s*0.85); ctx.lineTo(mx - s*0.22, my - s*0.4); ctx.lineTo(mx + s*0.22, my - s*0.4); ctx.closePath(); ctx.fill(); } // snow cap
+      } else if (t === 'forest') {
+        const s = 2.6 + rnd() * 1.4;
+        ctx.fillStyle = 'rgba(34,64,36,0.55)';
+        ctx.beginPath(); ctx.moveTo(mx, my - s * 1.5); ctx.lineTo(mx - s * 0.8, my + s * 0.6); ctx.lineTo(mx + s * 0.8, my + s * 0.6); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(28,50,28,0.5)'; ctx.lineWidth = 0.7;
+        ctx.beginPath(); ctx.moveTo(mx, my + s * 0.6); ctx.lineTo(mx, my + s * 1.3); ctx.stroke();   // trunk
+      } else if (t === 'marsh') {
+        ctx.strokeStyle = 'rgba(60,80,72,0.5)'; ctx.lineWidth = 1;
+        for (const oy of [-2, 1.5]) { ctx.beginPath(); ctx.moveTo(mx - 4, my + oy); ctx.quadraticCurveTo(mx, my + oy - 2, mx + 4, my + oy); ctx.stroke(); }
+      } else if (t === 'steppe') {
+        ctx.strokeStyle = 'rgba(150,120,60,0.5)'; ctx.lineWidth = 0.9;
+        for (const ox of [-2.5, 0, 2.5]) { ctx.beginPath(); ctx.moveTo(mx + ox, my + 2.5); ctx.lineTo(mx + ox + (rnd() - 0.5) * 2, my - 2.5); ctx.stroke(); }   // grass tufts
+      } else { // plains — faint speckle
+        ctx.fillStyle = 'rgba(150,128,78,0.4)';
+        ctx.beginPath(); ctx.arc(mx, my, 1, 0, 6.283); ctx.fill();
+      }
     }
   }
   ctx.restore();
 }
 
-function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true, targetProj = null, noClear = false) {
+// ── PERF: dynamic overlay layers (war fronts, move-mode, selection, battle FX) ──
+// These are the only things that animate while the map is otherwise static, so
+// they're factored out of drawGlobe's static "base" so the base can be cached to
+// an offscreen canvas and merely blitted each animation frame.
+function _drawDynamic(targetCtx, targetCanvas, targetPath, _proj, highlightSelected) {
+  _p8Clock = (Date.now() / 900) % (Math.PI * 2);
+  // War fronts — pulsing contact line between warring nations
+  if (highlightSelected && !S.setupPhase) {
+    const borders = _getBorders();
+    if (borders && borders.front) {
+      const pulse = 0.40 + 0.50 * Math.sin(_p8Clock);
+      targetCtx.strokeStyle = 'rgba(40,0,0,0.55)';
+      targetCtx.lineWidth = 3.4;
+      targetCtx.beginPath(); targetPath(borders.front); targetCtx.stroke();
+      targetCtx.strokeStyle = `rgba(255,90,60,${(0.55 + pulse * 0.40).toFixed(2)})`;
+      targetCtx.lineWidth = 1.8;
+      targetCtx.shadowColor = 'rgba(232,93,74,0.8)';
+      targetCtx.shadowBlur = 7;
+      targetCtx.beginPath(); targetPath(borders.front); targetCtx.stroke();
+      targetCtx.shadowBlur = 0;
+    }
+  }
+  // Move-mode adjacency highlight
+  if (S.moveMode && S.moveFromId) {
+    const fromC = S.countries[S.moveFromId];
+    if (fromC) {
+      targetCtx.strokeStyle = 'rgba(212,160,23,0.95)';
+      targetCtx.lineWidth = 2;
+      for (const nid of fromC.neighbors) {
+        const f = S.featureById[nid];
+        const nc = S.countries[nid];
+        if (f && nc && nc.ownerId === S.humanId) {
+          targetCtx.beginPath(); targetPath(f); targetCtx.stroke();
+        }
+      }
+    }
+  }
+  // Selected highlight
+  if (highlightSelected && S.selectedId) {
+    const f = S.featureById[S.selectedId];
+    if (f) {
+      targetCtx.strokeStyle = '#f3c552';
+      targetCtx.lineWidth = 2.4;
+      targetCtx.shadowColor = 'rgba(243,197,82,0.65)';
+      targetCtx.shadowBlur = 10;
+      targetCtx.beginPath(); targetPath(f); targetCtx.stroke();
+      targetCtx.shadowBlur = 0;
+    }
+  }
+  // Battle FX (attack arrows + capture flash) — main canvas only
+  if (targetCanvas === canvas && _battleFx.length) {
+    const now = performance.now();
+    for (const fx of _battleFx) {
+      const p = (now - fx.t0) / fx.dur;
+      if (p < 0 || p > 1) continue;
+      if (fx.kind === 'atk') {
+        const a = _fxPt(fx.fromId), b = _fxPt(fx.toId);
+        if (!a || !b) continue;
+        const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+        const dx = b[0] - a[0], dy = b[1] - a[1];
+        const len = Math.hypot(dx, dy) || 1;
+        const bow = Math.min(70, len * 0.22);
+        const cxp = mx + (-dy / len) * bow, cyp = my + (dx / len) * bow;
+        const qp = t => { const u = 1 - t; return [u*u*a[0] + 2*u*t*cxp + t*t*b[0], u*u*a[1] + 2*u*t*cyp + t*t*b[1]]; };
+        const grow = _easeInOut(p);
+        const fade = p > 0.78 ? 1 - (p - 0.78) / 0.22 : 1;
+        targetCtx.save();
+        targetCtx.globalAlpha = fade;
+        targetCtx.lineCap = 'round'; targetCtx.lineJoin = 'round';
+        targetCtx.strokeStyle = fx.win ? fx.color : 'rgba(205,205,215,0.92)';
+        targetCtx.lineWidth = 2.6;
+        targetCtx.shadowColor = fx.color; targetCtx.shadowBlur = 8;
+        targetCtx.beginPath(); targetCtx.moveTo(a[0], a[1]);
+        const N = 28;
+        for (let i = 1; i <= N; i++) { const pt = qp(grow * i / N); targetCtx.lineTo(pt[0], pt[1]); }
+        targetCtx.stroke();
+        const tip = qp(grow), pre = qp(Math.max(0, grow - 0.04));
+        const ang = Math.atan2(tip[1] - pre[1], tip[0] - pre[0]), hs = 8;
+        targetCtx.beginPath();
+        targetCtx.moveTo(tip[0], tip[1]);
+        targetCtx.lineTo(tip[0] - hs * Math.cos(ang - 0.4), tip[1] - hs * Math.sin(ang - 0.4));
+        targetCtx.lineTo(tip[0] - hs * Math.cos(ang + 0.4), tip[1] - hs * Math.sin(ang + 0.4));
+        targetCtx.closePath();
+        targetCtx.fillStyle = fx.win ? fx.color : 'rgba(210,210,220,0.95)';
+        targetCtx.fill();
+        targetCtx.restore();
+      } else {
+        const at = _fxPt(fx.toId); if (!at) continue;
+        const er = _easeInOut(p);
+        targetCtx.save();
+        targetCtx.globalAlpha = (1 - p) * 0.9;
+        targetCtx.strokeStyle = fx.color; targetCtx.lineWidth = 2.4;
+        targetCtx.beginPath(); targetCtx.arc(at[0], at[1], 6 + er * 26, 0, Math.PI * 2); targetCtx.stroke();
+        targetCtx.globalAlpha = (1 - p) * 0.5;
+        targetCtx.beginPath(); targetCtx.arc(at[0], at[1], 3 + er * 14, 0, Math.PI * 2); targetCtx.stroke();
+        targetCtx.globalAlpha = 1 - p;
+        targetCtx.font = '15px serif'; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+        targetCtx.fillText('⚔', at[0], at[1] - er * 16);
+        targetCtx.restore();
+      }
+    }
+  }
+}
+
+// ── PERF: interaction LOD + offscreen base-layer cache ──────────────────────
+let _interacting = false;   // true while dragging/rotating/panning → cheaper frame
+const _DPR = Math.min(window.devicePixelRatio || 1, 2);
+let _baseCanvas = null, _baseCtx = null, _basePath = null, _baseKey = null;
+function _ensureBaseCanvas() {
+  if (!canvas) return;
+  if (!_baseCanvas) _baseCanvas = document.createElement('canvas');
+  if (_baseCanvas.width !== canvas.width || _baseCanvas.height !== canvas.height || !_baseCtx) {
+    _baseCanvas.width = canvas.width; _baseCanvas.height = canvas.height;
+    _baseCtx = _baseCanvas.getContext('2d');
+    _baseCtx.setTransform(1, 0, 0, 1, 0, 0); _baseCtx.scale(_DPR, _DPR);
+    _basePath = d3.geoPath(projection, _baseCtx);
+    _baseKey = null;
+  }
+}
+// Which of the 3 flat tiles actually intersect the viewport (cull the rest).
+function _visibleTileOffsets(ww, rect) {
+  const t = projection.translate();
+  const out = [];
+  for (const dx of [-ww, 0, ww]) {
+    const left = t[0] + dx - ww / 2, right = t[0] + dx + ww / 2;
+    if (right >= -2 && left <= rect.width + 2) out.push(dx);
+  }
+  return out.length ? out : [0];
+}
+function _sceneKey() {
+  const t = projection.translate(), r = S.rotation || [0,0,0];
+  return [r[0]|0, r[1]|0, projection.scale()|0, t[0]|0, t[1]|0, _overlayMode, _mapTheme, S.mapMode, _interacting?1:0].join(',');
+}
+function _captureBase() {
+  _ensureBaseCanvas();
+  const rect = canvas.getBoundingClientRect();
+  _baseCtx.clearRect(0, 0, rect.width, rect.height);
+  if (S.mapMode === 'flat') {
+    const ww = flatWorldWidth(projection); const baseT = projection.translate();
+    for (const dx of _visibleTileOffsets(ww, rect)) {
+      projection.translate([baseT[0] + dx, baseT[1]]);
+      drawGlobe(_baseCtx, _baseCanvas, _basePath, true, projection, true, false);   // drawDyn=false
+    }
+    projection.translate(baseT);
+  } else {
+    drawGlobe(_baseCtx, _baseCanvas, _basePath, true, projection, true, false);
+  }
+}
+// One animation-loop frame: reuse the cached static base + redraw only the
+// dynamic overlay. Falls back to a full render while a colour-fade is in flight.
+function renderLoopFrame() {
+  if (!canvas) return;
+  // While dragging (scene changes every frame) or during a colour-fade (fills
+  // animate), the cache is useless → fall back to a normal (LOD) render.
+  if (_interacting || Object.keys(_ownerAnim).length) { render(); return; }
+  _ensureBaseCanvas();
+  const key = _sceneKey();
+  if (key !== _baseKey) { _captureBase(); _baseKey = key; }
+  const rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  ctx.drawImage(_baseCanvas, 0, 0, rect.width, rect.height);
+  if (S.mapMode === 'flat') {
+    const ww = flatWorldWidth(projection); const baseT = projection.translate();
+    for (const dx of _visibleTileOffsets(ww, rect)) {
+      projection.translate([baseT[0] + dx, baseT[1]]);
+      _drawDynamic(ctx, canvas, path, projection, true);
+    }
+    projection.translate(baseT);
+  } else {
+    _drawDynamic(ctx, canvas, path, projection, true);
+  }
+}
+
+function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true, targetProj = null, noClear = false, drawDyn = true) {
   _p8Clock = (Date.now() / 900) % (Math.PI * 2);
   const rect  = targetCanvas.getBoundingClientRect();
   const cx    = rect.width  / 2;
@@ -8906,6 +9110,9 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   const _isGlobe = (S.mapMode !== 'flat');
   const TH = MAP_THEME_DEF[_mapTheme] || MAP_THEME_DEF.standard;   // M4: active map theme
   const _parch = _mapTheme === 'parchment';
+  // LOD: while actively dragging/rotating, skip the costliest base detail
+  // (terrain glyphs, army labels, the inner border line) for a smoother frame.
+  const _lod = _interacting && targetCanvas === canvas;
 
   // ── Stars (globe only — they orbit the disc) ─────────────────────────────
   if (_isGlobe) {
@@ -9017,8 +9224,8 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     targetCtx.stroke();
   }
 
-  // ── M4: terrain texture (terrain lens only) ───────────────────────────────
-  if (_overlayMode === 'terrain' && targetCanvas === canvas && !S.setupPhase) {
+  // ── M4: terrain texture (terrain lens only; skipped during drag LOD) ──────
+  if (_overlayMode === 'terrain' && targetCanvas !== setupCanvas && !S.setupPhase && !_lod) {
     _drawTerrainTexture(targetCtx, _proj);
   }
 
@@ -9037,33 +9244,16 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
         targetCtx.strokeStyle = TH.natlCasing;
         targetCtx.lineWidth = 1.9;
         targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
-        targetCtx.strokeStyle = TH.natlInner;
-        targetCtx.lineWidth = 0.7;
-        targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
+        if (!_lod) {   // inner highlight line — skipped during drag LOD
+          targetCtx.strokeStyle = TH.natlInner;
+          targetCtx.lineWidth = 0.7;
+          targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
+        }
       }
     }
   }
 
-  // ── War fronts — pulsing contact line between warring nations (M1/M2) ──────
-  // Drawn along the true front (the shared edge between enemies) for every active
-  // war in the world, not just the player's — so a war turn is legible at a glance.
-  if (highlightSelected && !S.setupPhase) {
-    const borders = _getBorders();
-    if (borders && borders.front) {
-      const pulse = 0.40 + 0.50 * Math.sin(_p8Clock);
-      // dark casing first
-      targetCtx.strokeStyle = 'rgba(40,0,0,0.55)';
-      targetCtx.lineWidth = 3.4;
-      targetCtx.beginPath(); targetPath(borders.front); targetCtx.stroke();
-      // hot pulsing line on top
-      targetCtx.strokeStyle = `rgba(255,90,60,${(0.55 + pulse * 0.40).toFixed(2)})`;
-      targetCtx.lineWidth = 1.8;
-      targetCtx.shadowColor = 'rgba(232,93,74,0.8)';
-      targetCtx.shadowBlur = 7;
-      targetCtx.beginPath(); targetPath(borders.front); targetCtx.stroke();
-      targetCtx.shadowBlur = 0;
-    }
-  }
+  // (War fronts moved to _drawDynamic — see the dynamic overlay pass.)
 
   // ── Player empire border — single white outline around the whole realm ─────
   if (S.humanId && highlightSelected) {
@@ -9075,34 +9265,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     }
   }
 
-  // ── Move-mode adjacency highlight ─────────────────────────────────────────
-  if (S.moveMode && S.moveFromId) {
-    const fromC = S.countries[S.moveFromId];
-    if (fromC) {
-      targetCtx.strokeStyle = 'rgba(212,160,23,0.95)';
-      targetCtx.lineWidth = 2;
-      for (const nid of fromC.neighbors) {
-        const f = S.featureById[nid];
-        const nc = S.countries[nid];
-        if (f && nc && nc.ownerId === S.humanId) {
-          targetCtx.beginPath(); targetPath(f); targetCtx.stroke();
-        }
-      }
-    }
-  }
-
-  // ── Selected highlight ────────────────────────────────────────────────────
-  if (highlightSelected && S.selectedId) {
-    const f = S.featureById[S.selectedId];
-    if (f) {
-      targetCtx.strokeStyle = '#f3c552';
-      targetCtx.lineWidth = 2.4;
-      targetCtx.shadowColor = 'rgba(243,197,82,0.65)';
-      targetCtx.shadowBlur = 10;
-      targetCtx.beginPath(); targetPath(f); targetCtx.stroke();
-      targetCtx.shadowBlur = 0;
-    }
-  }
+  // (Move-mode adjacency + selected highlight moved to _drawDynamic.)
 
   // ── Globe-only sphere lighting (edge, specular, limb) ─────────────────────
   if (_isGlobe) {
@@ -9141,8 +9304,8 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   }
 
   // ── Army labels + building icons (zoom-aware) ─────────────────────────────
-  if (highlightSelected && !S.setupPhase && targetCanvas === canvas) {
-    const proj = projection;
+  if (highlightSelected && !S.setupPhase && targetCanvas !== setupCanvas && !_lod) {
+    const proj = _proj;
     const curScale   = proj.scale();
     // "Default" scale = full-world view. Use canvas size to estimate.
     const defScale   = sz * 0.46;
@@ -9206,62 +9369,8 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     }
   }
 
-  // ── M2: battle FX overlay — attack arrows + capture flash (main canvas) ────
-  if (targetCanvas === canvas && _battleFx.length) {
-    const now = performance.now();
-    for (const fx of _battleFx) {
-      const p = (now - fx.t0) / fx.dur;
-      if (p < 0 || p > 1) continue;
-      if (fx.kind === 'atk') {
-        const a = _fxPt(fx.fromId), b = _fxPt(fx.toId);
-        if (!a || !b) continue;
-        const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
-        const dx = b[0] - a[0], dy = b[1] - a[1];
-        const len = Math.hypot(dx, dy) || 1;
-        const bow = Math.min(70, len * 0.22);
-        const cxp = mx + (-dy / len) * bow, cyp = my + (dx / len) * bow;  // bowed control pt
-        const qp = t => { const u = 1 - t; return [u*u*a[0] + 2*u*t*cxp + t*t*b[0], u*u*a[1] + 2*u*t*cyp + t*t*b[1]]; };
-        const grow = _easeInOut(p);                            // smooth accel/decel advance
-        const fade = p > 0.78 ? 1 - (p - 0.78) / 0.22 : 1;     // hold longer, then ease out
-        targetCtx.save();
-        targetCtx.globalAlpha = fade;
-        targetCtx.lineCap = 'round';
-        targetCtx.lineJoin = 'round';
-        targetCtx.strokeStyle = fx.win ? fx.color : 'rgba(205,205,215,0.92)';
-        targetCtx.lineWidth = 2.6;
-        targetCtx.shadowColor = fx.color; targetCtx.shadowBlur = 8;
-        targetCtx.beginPath(); targetCtx.moveTo(a[0], a[1]);
-        const N = 28;
-        for (let i = 1; i <= N; i++) { const pt = qp(grow * i / N); targetCtx.lineTo(pt[0], pt[1]); }
-        targetCtx.stroke();
-        // arrowhead at the advancing tip
-        const tip = qp(grow), pre = qp(Math.max(0, grow - 0.04));
-        const ang = Math.atan2(tip[1] - pre[1], tip[0] - pre[0]), hs = 8;
-        targetCtx.beginPath();
-        targetCtx.moveTo(tip[0], tip[1]);
-        targetCtx.lineTo(tip[0] - hs * Math.cos(ang - 0.4), tip[1] - hs * Math.sin(ang - 0.4));
-        targetCtx.lineTo(tip[0] - hs * Math.cos(ang + 0.4), tip[1] - hs * Math.sin(ang + 0.4));
-        targetCtx.closePath();
-        targetCtx.fillStyle = fx.win ? fx.color : 'rgba(210,210,220,0.95)';
-        targetCtx.fill();
-        targetCtx.restore();
-      } else {
-        // capture flash — expanding ring (eased) + crossed-swords floating up
-        const at = _fxPt(fx.toId); if (!at) continue;
-        const er = _easeInOut(p);
-        targetCtx.save();
-        targetCtx.globalAlpha = (1 - p) * 0.9;
-        targetCtx.strokeStyle = fx.color; targetCtx.lineWidth = 2.4;
-        targetCtx.beginPath(); targetCtx.arc(at[0], at[1], 6 + er * 26, 0, Math.PI * 2); targetCtx.stroke();
-        targetCtx.globalAlpha = (1 - p) * 0.5;
-        targetCtx.beginPath(); targetCtx.arc(at[0], at[1], 3 + er * 14, 0, Math.PI * 2); targetCtx.stroke();
-        targetCtx.globalAlpha = 1 - p;
-        targetCtx.font = '15px serif'; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
-        targetCtx.fillText('⚔', at[0], at[1] - er * 16);
-        targetCtx.restore();
-      }
-    }
-  }
+  // ── Dynamic overlay (war fronts, move-mode, selection, battle FX) ─────────
+  if (drawDyn) _drawDynamic(targetCtx, targetCanvas, targetPath, _proj, highlightSelected);
 }
 
 // World pixel-width for the current equirectangular projection (2π × scale).
@@ -9270,17 +9379,18 @@ function flatWorldWidth(proj) {
 }
 function render() {
   if (!canvas) return;
+  _baseKey = null;   // a full render invalidates the offscreen base cache (state may have changed)
   if (S.mapMode !== 'flat') {
     projection.rotate(S.rotation);
     drawGlobe(ctx, canvas, path, true, projection);
     return;
   }
-  // Flat mode: draw the world three times side-by-side so panning wraps infinitely.
+  // Flat mode: draw the world side-by-side (only the visible tiles) so panning wraps.
   const rect = canvas.getBoundingClientRect();
   const ww = flatWorldWidth(projection);
   const baseT = projection.translate();
   ctx.clearRect(0, 0, rect.width, rect.height);
-  for (const dx of [-ww, 0, ww]) {
+  for (const dx of _visibleTileOffsets(ww, rect)) {
     projection.translate([baseT[0] + dx, baseT[1]]);
     drawGlobe(ctx, canvas, path, true, projection, true);  // noClear = true
   }
@@ -9301,9 +9411,9 @@ function startWarPulse() {
     // Keep animating while at war (front-line pulse), while battle FX play, or
     // while an ownership colour-fade is in flight (M5).
     if (!atWar && _battleFx.length === 0 && Object.keys(_ownerAnim).length === 0) { _p8AnimHandle = null; return; }
-    // Throttle to ~30fps: the pulse/fades read fine at half the frame rate and it
-    // roughly halves the redraw cost of the (full-map) render each loop.
-    if (now - _loopLastRender >= 32) { _loopLastRender = now; render(); }
+    // Throttle to ~30fps and use the cached base + dynamic-only overlay so the
+    // whole map isn't re-tessellated every frame while a war/FX/fade animates.
+    if (now - _loopLastRender >= 32) { _loopLastRender = now; renderLoopFrame(); }
     _p8AnimHandle = requestAnimationFrame(loop);
   }
   _p8AnimHandle = requestAnimationFrame(loop);
@@ -9373,6 +9483,7 @@ function attachGlobeInteraction(targetCanvas, onClick, redrawFn, getProj) {
       S.rotation = [dragRot[0] + dx * sens, dragRot[1] - dy * sens, 0];
       S.rotation[1] = Math.max(-89, Math.min(89, S.rotation[1]));
     }
+    if (targetCanvas === canvas && movedDist >= 4) _interacting = true;   // LOD: cheaper frame while dragging
     redrawFn();
   });
   const endDrag = e => {
@@ -9380,9 +9491,10 @@ function attachGlobeInteraction(targetCanvas, onClick, redrawFn, getProj) {
     pointerDown = false;
     if (movedDist < 6) {
       const id = featureIdAt(e.clientX, e.clientY);
-      if (id != null) { onClick(id); return; }
+      if (id != null) { _interacting = false; onClick(id); return; }
     }
     dragStart = null;
+    if (_interacting) { _interacting = false; redrawFn(); }   // full-quality redraw once settled
   };
   targetCanvas.addEventListener('pointerup', endDrag);
   targetCanvas.addEventListener('pointercancel', endDrag);
