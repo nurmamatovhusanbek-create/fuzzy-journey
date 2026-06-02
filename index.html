@@ -2241,6 +2241,7 @@
       <button class="lens-btn" data-lens="diplomatic" onclick="setOverlayMode('diplomatic')"><span class="lens-ic">🤝</span><span data-i18n="overlay_diplomatic">Diplomatic</span></button>
       <button class="lens-btn" data-lens="economic" onclick="setOverlayMode('economic')"><span class="lens-ic">💰</span><span data-i18n="overlay_economic">Economic</span></button>
       <button class="lens-btn" data-lens="military" onclick="setOverlayMode('military')"><span class="lens-ic">⚔</span><span data-i18n="overlay_military">Military</span></button>
+      <button class="lens-btn" data-lens="wars" onclick="setOverlayMode('wars')"><span class="lens-ic">🔥</span><span data-i18n="overlay_wars">Wars</span></button>
       <button class="lens-btn" data-lens="terrain" onclick="setOverlayMode('terrain')"><span class="lens-ic">⛰</span><span data-i18n="overlay_terrain">Terrain</span></button>
     </div>
   </div>
@@ -2678,6 +2679,7 @@ en: {
   overlay_diplomatic: 'Diplomatic',
   overlay_economic: 'Economic',
   overlay_military: 'Military',
+  overlay_wars: 'Wars',
   overlay_terrain: 'Terrain',
   notif_alerts: 'ALERTS',
   notif_clear: 'Clear all',
@@ -3401,6 +3403,7 @@ ru: {
   overlay_diplomatic: 'Дипломатия',
   overlay_economic: 'Экономика',
   overlay_military: 'Армия',
+  overlay_wars: 'Войны',
   overlay_terrain: 'Рельеф',
   notif_alerts: 'ОПОВЕЩЕНИЯ',
   notif_clear: 'Очистить всё',
@@ -4642,7 +4645,7 @@ window.setMapMode = setMapMode;
 // through their own chosen lens. Default: political (owner colours).
 let _overlayMode = 'political';
 let _overlayMaxArmy = 1;   // recomputed per draw for the military heatmap
-const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'terrain'];
+const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'wars', 'terrain'];
 function setOverlayMode(mode) {
   if (!OVERLAY_MODES.includes(mode)) return;
   _overlayMode = mode;
@@ -8547,11 +8550,119 @@ function _overlayFill(c, owner) {
       if (rel === 'nap')  return '#3aa9b8';
       return '#566079';                                  // neutral
     }
+    case 'wars': {
+      // Wars lens: every active war (conflict) gets its own colour; nations at
+      // peace stay dim grey. War groups computed by _computeWarsIndex().
+      if (dead) return '#1c2030';
+      return _warsColors[c.ownerId] || '#363c4a';
+    }
     case 'political':
     default:
       return dead ? '#1e2438' : owner.color;
   }
 }
+
+// ── Wars lens: group nations by shared conflict (union-find over war relations) ──
+let _warsColors = {};
+function _computeWarsIndex() {
+  _warsColors = {};
+  const parent = {}, inWar = {};
+  const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  for (const pid in S.players) {
+    const p = S.players[pid];
+    if (!p || p.eliminated || !p.rel) continue;
+    for (const oid in p.rel) {
+      if (p.rel[oid] === 'war' && S.players[oid] && !S.players[oid].eliminated) {
+        if (!(pid in parent)) parent[pid] = pid;
+        if (!(oid in parent)) parent[oid] = oid;
+        parent[find(pid)] = find(oid);
+        inWar[pid] = 1; inWar[oid] = 1;
+      }
+    }
+  }
+  const palette = ['#e6432e','#e08a2a','#d8c83a','#5bbf4a','#3fae9c','#3a78d8','#7d5bd0','#c94fa8','#b5651d','#7a8aa0'];
+  const rootColor = {}; let next = 0;
+  for (const pid in inWar) {
+    const r = find(pid);
+    if (!(r in rootColor)) rootColor[r] = palette[(next++) % palette.length];
+    _warsColors[pid] = rootColor[r];
+  }
+}
+
+// ── M1: dissolved national borders, coastline & war fronts (cached meshes) ──────
+// Internal province edges are stroked faintly while *national* borders (where the
+// neighbour's owner differs) get a strong layered casing, so a multi-province empire
+// reads as one bloc instead of a grid of tiles. Built from the embedded TopoJSON via
+// topojson.mesh and cached — only rebuilt when ownership or the set of active wars
+// changes (a cheap signature), so the war-pulse rAF loop stays light.
+let _borderCache = { sig: null, natl: null, coast: null, front: null };
+function _ownerWarSig() {
+  let s = '';
+  for (const f of S.features) { const c = S.countries[f.id]; s += (c ? c.ownerId : '_') + '.'; }
+  s += '|';
+  for (const pid in S.players) {
+    const r = S.players[pid] && S.players[pid].rel; if (!r) continue;
+    for (const oid in r) if (r[oid] === 'war') s += pid + '>' + oid + ',';
+  }
+  return s;
+}
+function _getBorders() {
+  const topo = window.__TOPO__;
+  if (!topo || typeof topojson === 'undefined' || !S.features || !S.features.length) return null;
+  const sig = _ownerWarSig();
+  if (_borderCache.sig === sig && _borderCache.natl) return _borderCache;
+  const obj = topo.objects.countries;
+  const valid = id => id !== '010' && id !== '-99' && !!S.countries[id];
+  const own = id => { const c = S.countries[id]; return c ? c.ownerId : id; };
+  const atWar = (o1, o2) => {
+    if (!o1 || !o2 || o1 === o2) return false;
+    const p = S.players[o1]; return !!(p && p.rel && p.rel[o2] === 'war');
+  };
+  const hid = S.humanId;
+  const isMine = id => hid && own(id) === hid;
+  try {
+    const natl  = topojson.mesh(topo, obj, (a, b) => a !== b && valid(a.id) && valid(b.id) && own(a.id) !== own(b.id));
+    const coast = topojson.mesh(topo, obj, (a, b) => a === b && valid(a.id));
+    const front = topojson.mesh(topo, obj, (a, b) => a !== b && valid(a.id) && valid(b.id) && atWar(own(a.id), own(b.id)));
+    // Outer boundary of the player's realm only (land frontiers + own coastline) so
+    // the empire reads as one shape instead of a grid of per-province white outlines.
+    const mine = hid ? topojson.mesh(topo, obj, (a, b) =>
+      (a === b)
+        ? (valid(a.id) && isMine(a.id))
+        : (valid(a.id) && valid(b.id) && (isMine(a.id) !== isMine(b.id)))
+    ) : null;
+    _borderCache = { sig, natl, coast, front, mine };
+  } catch (e) { return null; }
+  return _borderCache;
+}
+
+// ── M2: battle FX (attack arrows + capture flash) — client-local, cosmetic ─────
+let _battleFx = [];
+function _fxPt(id) {
+  const f = S.featureById[id]; if (!f) return null;
+  if (S.mapMode === 'flat') {
+    const c = d3.geoCentroid(f), p = projection(c);
+    return (p && isFinite(p[0]) && isFinite(p[1])) ? p : null;
+  }
+  const r = projectCentroid(f, projection);
+  return r ? r.pt : null;
+}
+// Record an attack (curved "axis of advance" arrow) + capture flash on a win.
+// Fires for every combat (player and AI) so a war turn reads as a sweep of arrows;
+// staggered and capped so a busy turn cascades rather than flashing all at once.
+function pushBattleFx(fromId, toId, result, attackerId) {
+  if (!canvas || !S.featureById) return;
+  const ap = S.players[attackerId];
+  const col = (ap && ap.color) ? ap.color : '#e85d4a';
+  const now = performance.now();
+  const stagger = Math.min(_battleFx.length, 8) * 90;
+  _battleFx.push({ kind: 'atk', fromId, toId, t0: now + stagger, dur: 850, color: col, win: result === 'win' });
+  if (result === 'win')
+    _battleFx.push({ kind: 'cap', toId, t0: now + stagger + 480, dur: 1100, color: col });
+  if (_battleFx.length > 24) _battleFx.splice(0, _battleFx.length - 24);
+  if (typeof startWarPulse === 'function') startWarPulse();
+}
+window.pushBattleFx = pushBattleFx;
 
 function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true, targetProj = null, noClear = false) {
   _p8Clock = (Date.now() / 900) % (Math.PI * 2);
@@ -8642,6 +8753,8 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       if (cc && cc.army > _overlayMaxArmy) _overlayMaxArmy = cc.army;
     }
   }
+  // Wars lens: group nations into conflicts so each war gets its own colour.
+  if (_overlayMode === 'wars') _computeWarsIndex();
   for (const f of S.features) {
     const c = S.countries[f.id];
     if (!c) continue;
@@ -8659,45 +8772,63 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       targetCtx.fillStyle = 'rgba(212,160,23,0.55)';   // gold wash = claimed
       targetCtx.fill();
     }
-    // Crisp thin border between every country
-    targetCtx.strokeStyle = 'rgba(0,0,0,0.45)';
-    targetCtx.lineWidth = 0.35;
+    // Faint internal province edge — national borders are drawn separately,
+    // stronger, so an empire reads as one bloc rather than a grid of tiles (M1).
+    targetCtx.strokeStyle = 'rgba(0,0,0,0.16)';
+    targetCtx.lineWidth = 0.3;
     targetCtx.stroke();
   }
 
-  // ── War-front pulse borders ───────────────────────────────────────────────
-  if (highlightSelected && S.humanId && !S.setupPhase) {
-    const pulse = 0.40 + 0.50 * Math.sin(_p8Clock);
-    const warOwners = new Set();
-    const me = S.players[S.humanId];
-    if (me) {
-      for (const oid in me.rel)
-        if (me.rel[oid] === 'war' && S.players[oid] && !S.players[oid].eliminated)
-          warOwners.add(oid);
-    }
-    if (warOwners.size > 0) {
-      // Solid base outline (always visible) + pulsing glow on top
-      targetCtx.strokeStyle = 'rgba(255,80,60,0.85)';
-      targetCtx.lineWidth = 2.4;
-      targetCtx.shadowColor = `rgba(232,93,74,${(pulse * 0.7).toFixed(2)})`;
-      targetCtx.shadowBlur = 8;
-      for (const f of S.features) {
-        const c = S.countries[f.id];
-        if (c && warOwners.has(c.ownerId)) {
-          targetCtx.beginPath(); targetPath(f); targetCtx.stroke();
-        }
+  // ── M1: coastline + dissolved national borders ────────────────────────────
+  {
+    const borders = _getBorders();
+    if (borders) {
+      // Coastline casing (land meets ocean) — gives continents a defined edge
+      if (borders.coast) {
+        targetCtx.strokeStyle = 'rgba(8,14,24,0.55)';
+        targetCtx.lineWidth = _isGlobe ? 1.3 : 1.1;
+        targetCtx.beginPath(); targetPath(borders.coast); targetCtx.stroke();
       }
+      // National borders — dark casing + light inner line (empires read as one shape)
+      if (borders.natl) {
+        targetCtx.strokeStyle = 'rgba(0,0,0,0.55)';
+        targetCtx.lineWidth = 1.9;
+        targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
+        targetCtx.strokeStyle = 'rgba(232,238,248,0.34)';
+        targetCtx.lineWidth = 0.7;
+        targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
+      }
+    }
+  }
+
+  // ── War fronts — pulsing contact line between warring nations (M1/M2) ──────
+  // Drawn along the true front (the shared edge between enemies) for every active
+  // war in the world, not just the player's — so a war turn is legible at a glance.
+  if (highlightSelected && !S.setupPhase) {
+    const borders = _getBorders();
+    if (borders && borders.front) {
+      const pulse = 0.40 + 0.50 * Math.sin(_p8Clock);
+      // dark casing first
+      targetCtx.strokeStyle = 'rgba(40,0,0,0.55)';
+      targetCtx.lineWidth = 3.4;
+      targetCtx.beginPath(); targetPath(borders.front); targetCtx.stroke();
+      // hot pulsing line on top
+      targetCtx.strokeStyle = `rgba(255,90,60,${(0.55 + pulse * 0.40).toFixed(2)})`;
+      targetCtx.lineWidth = 1.8;
+      targetCtx.shadowColor = 'rgba(232,93,74,0.8)';
+      targetCtx.shadowBlur = 7;
+      targetCtx.beginPath(); targetPath(borders.front); targetCtx.stroke();
       targetCtx.shadowBlur = 0;
     }
   }
 
-  // ── Player empire border — stronger white outline ─────────────────────────
+  // ── Player empire border — single white outline around the whole realm ─────
   if (S.humanId && highlightSelected) {
-    targetCtx.strokeStyle = 'rgba(255,255,255,0.60)';
-    targetCtx.lineWidth = 1.2;
-    for (const id of playerOwned(S.humanId)) {
-      const f = S.featureById[id]; if (!f) continue;
-      targetCtx.beginPath(); targetPath(f); targetCtx.stroke();
+    const borders = _getBorders();
+    if (borders && borders.mine) {
+      targetCtx.strokeStyle = 'rgba(255,255,255,0.72)';
+      targetCtx.lineWidth = 1.5;
+      targetCtx.beginPath(); targetPath(borders.mine); targetCtx.stroke();
     }
   }
 
@@ -8828,6 +8959,59 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       targetCtx.restore();
     }
   }
+
+  // ── M2: battle FX overlay — attack arrows + capture flash (main canvas) ────
+  if (targetCanvas === canvas && _battleFx.length) {
+    const now = performance.now();
+    for (const fx of _battleFx) {
+      const p = (now - fx.t0) / fx.dur;
+      if (p < 0 || p > 1) continue;
+      if (fx.kind === 'atk') {
+        const a = _fxPt(fx.fromId), b = _fxPt(fx.toId);
+        if (!a || !b) continue;
+        const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+        const dx = b[0] - a[0], dy = b[1] - a[1];
+        const len = Math.hypot(dx, dy) || 1;
+        const bow = Math.min(70, len * 0.22);
+        const cxp = mx + (-dy / len) * bow, cyp = my + (dx / len) * bow;  // bowed control pt
+        const qp = t => { const u = 1 - t; return [u*u*a[0] + 2*u*t*cxp + t*t*b[0], u*u*a[1] + 2*u*t*cyp + t*t*b[1]]; };
+        const grow = 1 - Math.pow(1 - p, 2);                  // ease-out advance
+        const fade = p > 0.7 ? 1 - (p - 0.7) / 0.3 : 1;
+        targetCtx.save();
+        targetCtx.globalAlpha = fade;
+        targetCtx.lineCap = 'round';
+        targetCtx.strokeStyle = fx.win ? fx.color : 'rgba(205,205,215,0.92)';
+        targetCtx.lineWidth = 2.6;
+        targetCtx.shadowColor = fx.color; targetCtx.shadowBlur = 6;
+        targetCtx.beginPath(); targetCtx.moveTo(a[0], a[1]);
+        const N = 18;
+        for (let i = 1; i <= N; i++) { const pt = qp(grow * i / N); targetCtx.lineTo(pt[0], pt[1]); }
+        targetCtx.stroke();
+        // arrowhead at the advancing tip
+        const tip = qp(grow), pre = qp(Math.max(0, grow - 0.04));
+        const ang = Math.atan2(tip[1] - pre[1], tip[0] - pre[0]), hs = 8;
+        targetCtx.beginPath();
+        targetCtx.moveTo(tip[0], tip[1]);
+        targetCtx.lineTo(tip[0] - hs * Math.cos(ang - 0.4), tip[1] - hs * Math.sin(ang - 0.4));
+        targetCtx.lineTo(tip[0] - hs * Math.cos(ang + 0.4), tip[1] - hs * Math.sin(ang + 0.4));
+        targetCtx.closePath();
+        targetCtx.fillStyle = fx.win ? fx.color : 'rgba(210,210,220,0.95)';
+        targetCtx.fill();
+        targetCtx.restore();
+      } else {
+        // capture flash — expanding ring + crossed-swords floating up
+        const at = _fxPt(fx.toId); if (!at) continue;
+        targetCtx.save();
+        targetCtx.globalAlpha = (1 - p) * 0.9;
+        targetCtx.strokeStyle = fx.color; targetCtx.lineWidth = 2.4;
+        targetCtx.beginPath(); targetCtx.arc(at[0], at[1], 6 + p * 22, 0, Math.PI * 2); targetCtx.stroke();
+        targetCtx.globalAlpha = 1 - p;
+        targetCtx.font = '14px serif'; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+        targetCtx.fillText('⚔', at[0], at[1] - p * 14);
+        targetCtx.restore();
+      }
+    }
+  }
 }
 
 // World pixel-width for the current equirectangular projection (2π × scale).
@@ -8859,9 +9043,14 @@ function startWarPulse() {
   if (_p8AnimHandle) return;
   function loop() {
     if (S.gameOver) { _p8AnimHandle = null; return; }
+    if (_battleFx.length) {
+      const now = performance.now();
+      _battleFx = _battleFx.filter(fx => now - fx.t0 <= fx.dur);
+    }
     const me = S.players[S.humanId];
     const atWar = me && Object.values(me.rel || {}).some(r => r === 'war');
-    if (!atWar) { _p8AnimHandle = null; return; }
+    // Keep animating while at war (front-line pulse) or while battle FX are playing.
+    if (!atWar && _battleFx.length === 0) { _p8AnimHandle = null; return; }
     render();
     _p8AnimHandle = requestAnimationFrame(loop);
   }
@@ -9286,6 +9475,7 @@ function resolveCombat(fromId, toId, attackerPlayerId) {
     // province — a crushing loss that may wound or kill, or end the line if eliminated)
     recordGenBattle(attackerPlayerId, 'victory', to.name, {});
     if (defPlayer) recordGenBattle(defPlayer.id, 'loss', to.name, { crushing: true, eliminated: !!defPlayer.eliminated });
+    pushBattleFx(fromId, toId, 'win', attackerPlayerId);   // M2: advance arrow + capture flash
     return 'win';
   } else {
     // Defender wins
@@ -9306,6 +9496,7 @@ function resolveCombat(fromId, toId, attackerPlayerId) {
     const _genCrush = (losses / Math.max(1, from.army + losses)) > GEN.CRUSH_RATIO;
     recordGenBattle(attackerPlayerId, 'loss', to.name, { crushing: _genCrush });
     if (defPlayer) recordGenBattle(defPlayer.id, 'victory', to.name, {});
+    pushBattleFx(fromId, toId, 'lose', attackerPlayerId);   // M2: repelled advance arrow
     return 'lose';
   }
 }
