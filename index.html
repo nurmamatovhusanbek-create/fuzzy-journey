@@ -352,7 +352,7 @@
     font-size: 14px; padding: 0 2px; line-height: 1;
   }
   #diplo-float .df-close:hover { color: var(--ink); }
-  #diplo-float #diplomacy-list { padding: 10px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; }
+  #diplo-float #diplomacy-list { padding: 10px 12px; flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; overflow-x: hidden; }
 
   /* ===== Technology & Intrigue Panel ===== */
   #tech-float {
@@ -2310,7 +2310,7 @@
       <span class="df-title" data-i18n="diplo_title">DIPLOMATIC STANDING</span>
       <button class="df-close" onclick="closePanelDock()" data-i18n-title="tip_close"><svg class="tb-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <div id="diplomacy-list" class="log-feed" style="padding:10px 12px;max-height:320px;overflow-y:auto" data-i18n="diplo_empty">No active relations.</div>
+    <div id="diplomacy-list" data-i18n="diplo_empty">No active relations.</div>
     <div id="diplomacy-panel" hidden></div>
   </div>
 
