@@ -1378,10 +1378,12 @@
   .diplo-tier-head:first-child { border-top: none; margin-top: 0; }
   .diplo-item {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 3px 0; font-size: 9.5px; border-bottom: 1px solid rgba(255,255,255,0.03);
+    padding: 5px 0; font-size: 9.5px; border-bottom: 1px solid rgba(255,255,255,0.03);
   }
   .diplo-item:last-child { border-bottom: none; }
-  .diplo-name { display: flex; align-items: center; gap: 5px; flex: 1; }
+  .diplo-name { display: flex; align-items: center; gap: 5px; flex: 1;
+    cursor: pointer; border-radius: 4px; transition: color .12s; }
+  .diplo-name:hover { color: var(--gold-bright); }
   .diplo-badge {
     font-size: 8px; padding: 1px 5px; letter-spacing: 0.1em;
     border-radius: 2px; margin-left: 4px;
@@ -3053,6 +3055,7 @@ en: {
   tip_delete_save: 'Delete save',
   tip_dissolve_route: 'Dissolve route',
   tip_resentment: 'Resentment toward you',
+  tip_goto: 'Click to focus the map on this nation',
   move_banner: '▸ MOVING {pct}% FROM {country} — TAP DESTINATION OR SAME COUNTRY TO CANCEL',
   mp_err_room_code: 'Enter a room code',
   mp_server_prefix: 'Server: {text}',
@@ -4223,6 +4226,7 @@ ru: {
   tip_delete_save: 'Удалить сохранение',
   tip_dissolve_route: 'Распустить маршрут',
   tip_resentment: 'Неприязнь к вам',
+  tip_goto: 'Нажмите, чтобы навести карту на эту державу',
   move_banner: '▸ ПЕРЕМЕЩЕНИЕ {pct}% ИЗ {country} — НАЖМИТЕ НА ЦЕЛЬ ИЛИ НА ТУ ЖЕ СТРАНУ ДЛЯ ОТМЕНЫ',
   mp_err_room_code: 'Введите код комнаты',
   mp_server_prefix: 'Сервер: {text}',
@@ -9079,7 +9083,7 @@ function renderDiplomacy() {
       const gr = getGrudge(oid, S.humanId);
       const grStr = gr >= 10 ? `<span title="${T('tip_resentment')}" style="color:#d98c3a;font-size:8.5px"> 😠${Math.round(gr)}</span>` : '';
       html += `<div class="diplo-item">
-        <span class="diplo-name">
+        <span class="diplo-name" onclick="gotoCountry('${oid}')" title="${T('tip_goto')}">
           <span class="ownerpill" style="background:${other.color}"></span>
           ${flagEmoji(S.countries[oid]?.code || '')} ${other.name}
           <span class="diplo-badge ${t.key}">${t.key.toUpperCase()}</span>
@@ -9126,7 +9130,7 @@ function renderDiplomacy() {
       const top = wl.reasons.length ? T(wl.reasons[0].k) : '';
       const reasons = wl.reasons.map(r => (r.s > 0 ? '+ ' : '− ') + T(r.k)).join('\n');
       html += `<div class="diplo-item" title="${T('wl_title')}\n${reasons}">
-        <span class="diplo-name"><span class="ownerpill" style="background:${o.color}"></span>
+        <span class="diplo-name" onclick="gotoCountry('${oid}')"><span class="ownerpill" style="background:${o.color}"></span>
         ${flagEmoji(S.countries[oid]?.code || '')} ${o.name}
         ${personalityBadge(oid)}${envoyMark(oid)}
         <span style="color:var(--ink-dim);font-size:8.5px">${top}</span></span>
@@ -9147,7 +9151,7 @@ function renderDiplomacy() {
     .filter(oid => !shown.has(oid) && S.players[oid] && !S.players[oid].eliminated && playerOwned(oid).length > 0)
     .map(oid => ({ oid, lands: playerOwned(oid).length }))
     .sort((a, b) => b.lands - a.lands)
-    .slice(0, 10);
+    .slice(0, 20);   // a full world-standing list so the tab fills on tall screens
   if (powers.length) {
     hasAny = true;
     html += `<div class="diplo-tier-head" style="color:var(--gold)">${T('dip_great_powers')} <span style="color:var(--ink-dim)">(${powers.length})</span></div>`;
@@ -9157,7 +9161,7 @@ function renderDiplomacy() {
       const relStr = (rel && rel !== 'neutral' && relLabel[rel])
         ? `<span style="color:${relCol[rel]};font-size:8px;letter-spacing:.06em"> ${relLabel[rel]}</span>` : '';
       html += `<div class="diplo-item">
-        <span class="diplo-name"><span class="ownerpill" style="background:${o.color}"></span>
+        <span class="diplo-name" onclick="gotoCountry('${oid}')" title="${T('tip_goto')}"><span class="ownerpill" style="background:${o.color}"></span>
         ${flagEmoji(S.countries[oid]?.code || '')} ${o.name}
         ${personalityBadge(oid)}${envoyMark(oid)}${relStr}</span>
         <span style="color:var(--ink-dim);font-size:9px;white-space:nowrap">${lands} 🗺</span>
@@ -9465,8 +9469,8 @@ function _animatedFill(id, target) {
 // ── M5: fly-to camera (eased pan to a province on key events) ───────────────
 let _flyRAF = null;
 function _easeInOut(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
-function flyToFeature(id) {
-  if (!_cameraFollow) return;
+function flyToFeature(id, force) {
+  if (!_cameraFollow && !force) return;   // auto fly-on-events respects the setting; manual clicks pass force
   const f = S.featureById && S.featureById[id]; if (!f || !canvas) return;
   let ctr; try { ctr = d3.geoCentroid(f); } catch(_) { return; }
   if (!ctr || !isFinite(ctr[0]) || !isFinite(ctr[1])) return;
@@ -9904,9 +9908,11 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     const curScale   = proj.scale();
     // "Default" scale = full-world view. Use canvas size to estimate.
     const defScale   = sz * 0.46;
-    // Label fade: 0 at default, 1.0 at 1.8× zoom
+    // Army labels are tied to being zoomed IN: nothing below 1.3×, full by 1.7×,
+    // so a modest zoom-out clears them (not just a hover/drag). Buildings cut out
+    // earlier still (see the per-feature zoomRatio gate below).
     const zoomRatio  = curScale / defScale;
-    const labelAlpha = Math.max(0, Math.min(1, (zoomRatio - 1.15) / 0.55));
+    const labelAlpha = Math.max(0, Math.min(1, (zoomRatio - 1.30) / 0.40));
 
     if (labelAlpha > 0.01) {
       targetCtx.save();
@@ -9952,8 +9958,9 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
         }
 
         // Building icon — emoji above pill. Held to a tighter zoom than the army
-        // labels so it disappears soon after zooming out (low map-detail value).
-        if (c.building && BUILDINGS[c.building] && zoomRatio >= 1.6) {
+        // labels (1.75× vs 1.3×) so it disappears EARLIER than the army number
+        // when zooming out, and only returns when you zoom well in.
+        if (c.building && BUILDINGS[c.building] && zoomRatio >= 1.75) {
           targetCtx.font = '9px serif';
           targetCtx.textAlign = 'center';
           targetCtx.textBaseline = 'middle';
@@ -10289,6 +10296,51 @@ function initWorld(topo) {
       commanderCD: 0         // Commander: turn until next re-appointment is allowed (cooldown)
     };
     assignPersonality(f.id);  // Phase 11
+  }
+  addSeaNeighbors();   // give island nations naval crossings so they're reachable
+}
+
+// Island nations share no borders, so topojson.neighbors() leaves them with an
+// empty adjacency list — unreachable, and unable to attack out. We add SEA
+// crossings: every low-neighbour (island / near-island) nation links to its
+// nearest coasts by great-circle distance. Links are BIDIRECTIONAL, so the
+// mainland it reaches can also invade it. This only touches the attack/move
+// graph — the M1 border meshes are arc-based, so no ocean line is ever drawn.
+const SEA_LINK_MAX = 0.42;   // ~2700 km — a plausible sea-crossing range (radians)
+function _gcDist(a, b) {      // great-circle angular distance (radians), no d3 dep
+  const R = Math.PI / 180;
+  const la1 = a[1] * R, la2 = b[1] * R, dlo = (b[0] - a[0]) * R;
+  const v = Math.sin(la1) * Math.sin(la2) + Math.cos(la1) * Math.cos(la2) * Math.cos(dlo);
+  return Math.acos(Math.min(1, Math.max(-1, v)));
+}
+function addSeaNeighbors() {
+  if (typeof d3 === 'undefined' || !d3.geoCentroid) return;
+  const cen = {};
+  for (const id in S.countries) {
+    const f = S.featureById[id];
+    if (!f) continue;
+    try { const c = d3.geoCentroid(f); if (c && isFinite(c[0]) && isFinite(c[1])) cen[id] = c; } catch (_) {}
+  }
+  const ids = Object.keys(cen);
+  const link = (a, b) => {
+    const ca = S.countries[a], cb = S.countries[b];
+    if (ca && !ca.neighbors.includes(b)) ca.neighbors.push(b);
+    if (cb && !cb.neighbors.includes(a)) cb.neighbors.push(a);
+  };
+  for (const id of ids) {
+    const c = S.countries[id];
+    if (!c || (c.neighbors || []).length > 2) continue;   // already reachable by land → skip
+    const cand = ids
+      .filter(o => o !== id && !c.neighbors.includes(o))
+      .map(o => ({ o, d: _gcDist(cen[id], cen[o]) }))
+      .sort((x, y) => x.d - y.d);
+    let added = 0;
+    for (const x of cand) {
+      // Guarantee the 2 nearest (so no island is ever isolated), then add up to a
+      // 3rd only if it's within sea-crossing range.
+      if (added < 2 || (x.d < SEA_LINK_MAX && added < 3)) { link(id, x.o); added++; }
+      if (added >= 3) break;
+    }
   }
 }
 
@@ -15323,6 +15375,18 @@ function focusGlobeOn(id) {
   } catch (_) {}
 }
 
+// Click a country's name in any panel (diplomacy rows, etc.) → fly the camera to
+// it and highlight it with the selection glow. Does NOT switch panels, so you
+// keep your place in the current tab. Works for ANY country, globe or flat.
+function gotoCountry(id) {
+  if (!id || !S.countries[id]) return;
+  S.selectedId = id;                        // gold selection glow (drawn in _drawDynamic)
+  if (typeof flyToFeature === 'function') flyToFeature(id, true);
+  else { focusGlobeOn(id); }
+  render();
+}
+window.gotoCountry = gotoCountry;
+
 // Tab / Shift+Tab: step through your own provinces in a stable order.
 function cycleOwnProvince(dir) {
   const owned = playerOwned(S.humanId);
@@ -15614,6 +15678,7 @@ function loadFromSlot(slot) {
     // Rebuild features from embedded topo
     const topo = window.__TOPO__;
     if (topo) rebuildFeatures(topo);
+    addSeaNeighbors();   // ensure island sea-links exist (idempotent — fixes pre-fix saves too)
     // Switch UI
     document.getElementById('loading').hidden = true;
     document.getElementById('setup').hidden = true;
