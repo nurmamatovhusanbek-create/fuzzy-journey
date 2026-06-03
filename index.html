@@ -8859,6 +8859,11 @@ const _STARS = (() => {
   }
   return stars;
 })();
+// Ambient starfield rotation (WorldWarBot-style slow drift). The field is drawn in
+// the dynamic overlay (not the cached base) so it can animate; the war-pulse loop
+// stays alive in-game to advance this even at peace. ~1 revolution / 200s.
+let _starAngle = 0, _starLast = 0;
+const STAR_ROT_RATE = (Math.PI * 2) / 200000;   // radians per ms
 
 // ── Overlay-lens fill helpers ───────────────────────────────────────────────
 // Linear-interpolate two #rrggbb colours → 'rgb(...)'. t is clamped to 0..1.
@@ -9133,6 +9138,29 @@ window.flyToFeature = flyToFeature;
 // an offscreen canvas and merely blitted each animation frame.
 function _drawDynamic(targetCtx, targetCanvas, targetPath, _proj, highlightSelected) {
   _p8Clock = (Date.now() / 900) % (Math.PI * 2);
+  // Rotating starfield (globe only) — drawn here, not in the cached base, so it
+  // can slowly drift around the disc. Stars sit on a field wider than the viewport
+  // (×3.2 spread), so rotation keeps full coverage with no gaps. Culled inside the
+  // disc so they never overlap land.
+  if (S.mapMode !== 'flat') {
+    const rect = targetCanvas.getBoundingClientRect();
+    const cx = rect.width / 2, cy = rect.height / 2;
+    const R = (_proj && _proj.scale) ? _proj.scale() : Math.min(rect.width, rect.height) * 0.46;
+    const cosA = Math.cos(_starAngle), sinA = Math.sin(_starAngle);
+    const rr = (R * 0.96) * (R * 0.96);
+    targetCtx.save();
+    for (const s of _STARS) {
+      const rnx = s.nx * cosA - s.ny * sinA, rny = s.nx * sinA + s.ny * cosA;
+      const sx = (rnx * 0.5 + 0.5) * rect.width, sy = (rny * 0.5 + 0.5) * rect.height;
+      const dx = sx - cx, dy = sy - cy;
+      if (dx * dx + dy * dy < rr) continue;   // inside the globe disc → skip
+      targetCtx.beginPath();
+      targetCtx.arc(sx, sy, s.size, 0, Math.PI * 2);
+      targetCtx.fillStyle = `rgba(200,210,255,${s.bright})`;
+      targetCtx.fill();
+    }
+    targetCtx.restore();
+  }
   // War fronts — pulsing contact line between warring nations
   if (highlightSelected && !S.setupPhase) {
     const borders = _getBorders();
@@ -9320,27 +9348,17 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   // (terrain glyphs, army labels, the inner border line) for a smoother frame.
   const _lod = _interacting && targetCanvas === canvas;
 
-  // ── Stars (globe only — they orbit the disc) ─────────────────────────────
+  // ── Stars: now drawn in the dynamic overlay (_drawStars) so they can rotate;
+  //    only the atmosphere glow stays in the cached base here. ────────────────
   if (_isGlobe) {
-  targetCtx.save();
-  for (const s of _STARS) {
-    const sx = (s.nx * 0.5 + 0.5) * rect.width;
-    const sy = (s.ny * 0.5 + 0.5) * rect.height;
-    // Skip stars inside the globe disc
-    if ((sx - cx) * (sx - cx) + (sy - cy) * (sy - cy) < (R * 0.96) * (R * 0.96)) continue;
-    targetCtx.beginPath();
-    targetCtx.arc(sx, sy, s.size, 0, Math.PI * 2);
-    targetCtx.fillStyle = `rgba(200,210,255,${s.bright})`;
-    targetCtx.fill();
-  }
-  targetCtx.restore();
-
   // ── Atmosphere outer glow (globe only; skipped on the paper theme) ────────
+  // Lifted higher/wider so the halo reaches further out from the limb.
   if (!_parch) {
-  const atmoGrad = targetCtx.createRadialGradient(cx, cy, R * 0.88, cx, cy, R * 1.22);
-  atmoGrad.addColorStop(0,   'rgba(70,120,220,0.28)');
-  atmoGrad.addColorStop(0.4, 'rgba(40, 80,180,0.10)');
-  atmoGrad.addColorStop(1,   'rgba(0,  0,  0, 0)');
+  const atmoGrad = targetCtx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.40);
+  atmoGrad.addColorStop(0,    'rgba(70,120,220,0.30)');
+  atmoGrad.addColorStop(0.35, 'rgba(50, 95,195,0.14)');
+  atmoGrad.addColorStop(0.7,  'rgba(35, 70,165,0.05)');
+  atmoGrad.addColorStop(1,    'rgba(0,  0,  0, 0)');
   targetCtx.fillStyle = atmoGrad;
   targetCtx.fillRect(0, 0, rect.width, rect.height);
   }
@@ -9611,19 +9629,20 @@ let _loopLastRender = 0;
 function startWarPulse() {
   if (_p8AnimHandle) return;
   function loop(ts) {
-    if (S.gameOver) { _p8AnimHandle = null; return; }
+    if (S.gameOver || !S.humanId) { _p8AnimHandle = null; _starLast = 0; return; }
     const now = ts || performance.now();
+    // Advance the ambient starfield drift (time-based → frame-rate independent).
+    if (_starLast) _starAngle = (_starAngle + (now - _starLast) * STAR_ROT_RATE) % (Math.PI * 2);
+    _starLast = now;
     if (_battleFx.length) _battleFx = _battleFx.filter(fx => now - fx.t0 <= fx.dur);
-    const me = S.players[S.humanId];
-    const atWar = me && Object.values(me.rel || {}).some(r => r === 'war');
-    // Keep animating while at war (front-line pulse), while battle FX play, or
-    // while an ownership colour-fade is in flight (M5).
-    if (!atWar && _battleFx.length === 0 && Object.keys(_ownerAnim).length === 0) { _p8AnimHandle = null; return; }
-    // Throttle to ~30fps and use the cached base + dynamic-only overlay so the
-    // whole map isn't re-tessellated every frame while a war/FX/fade animates.
-    if (now - _loopLastRender >= 32) { _loopLastRender = now; renderLoopFrame(); }
+    // The loop now stays alive the whole game (for the ambient star drift), not
+    // just at war — it's cheap: cached base blit + dynamic-only overlay, ~30fps.
+    // Skip the redraw while the user is actively dragging (their move-handler
+    // already renders), but keep the loop scheduled so rotation continues.
+    if (!_interacting && now - _loopLastRender >= 32) { _loopLastRender = now; renderLoopFrame(); }
     _p8AnimHandle = requestAnimationFrame(loop);
   }
+  _starLast = 0;
   _p8AnimHandle = requestAnimationFrame(loop);
 }
 window.startWarPulse = startWarPulse;
@@ -9953,6 +9972,7 @@ function startGame(humanCountryId) {
   updateHUD();
   document.body.classList.toggle('flatmap-full', S.mapMode === 'flat');
   render();
+  startWarPulse();          // keep the ambient loop alive for the rotating starfield
   clearNotifs(); refreshNotifs();
   updateWarLikelihoodTrend(); // P1: seed war-likelihood trend baseline
   checkMission();           // A2: seed the first directive immediately
