@@ -217,8 +217,15 @@
   /* ===== Notification queue (persistent left rail, below topbar) ===== */
   #notif-rail {
     position: absolute; top: 90px; left: 12px; z-index: 14;
-    width: 248px; max-height: calc(100% - 170px); overflow-y: auto; overflow-x: hidden;
-    display: flex; flex-direction: column; gap: 6px;
+    width: 236px;
+    /* Bounded box: clears the bottom-left map-lens on real screens (≥~600px tall),
+       but never collapses below ~2 cards on a short viewport — alerts always show. */
+    max-height: max(116px, calc(100% - 280px)); min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 6px; border-radius: 9px;
+    border: 1px solid rgba(212,160,23,0.16);
+    background: rgba(8,12,22,0.42); backdrop-filter: blur(3px);
     pointer-events: none;                 /* empty area passes clicks to the globe */
   }
   #notif-rail[hidden] { display: none; }
@@ -237,10 +244,10 @@
   #notif-rail .notif-clear:hover { color: var(--ink); background: rgba(255,255,255,0.08); }
   .notif-card {
     pointer-events: auto; position: relative; cursor: pointer;
-    display: flex; gap: 8px; align-items: flex-start;
+    display: flex; gap: 7px; align-items: flex-start;
     background: rgba(12,17,28,0.92); backdrop-filter: blur(6px);
     border: 1px solid rgba(212,160,23,0.22); border-left-width: 3px;
-    border-radius: 7px; padding: 7px 22px 7px 8px;
+    border-radius: 6px; padding: 6px 19px 6px 7px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     transition: border-color .12s, transform .08s;
   }
@@ -249,10 +256,12 @@
   .notif-card.warn { border-left-color: #d4a017; }
   .notif-card.good { border-left-color: #6ba368; }
   .notif-card.tip  { border-left-color: #4ab8c1; }
-  .notif-card .notif-ic { font-size: 14px; line-height: 1.2; }
+  .notif-card .notif-ic { font-size: 13px; line-height: 1.2; }
   .notif-card .notif-txt { flex: 1; min-width: 0; }
-  .notif-card .notif-title { font: 700 11.5px/1.3 'JetBrains Mono', monospace; color: var(--ink); }
-  .notif-card .notif-body { font-size: 10.5px; line-height: 1.4; color: var(--ink-dim); margin-top: 3px; }
+  .notif-card .notif-title { font: 700 10.5px/1.25 'JetBrains Mono', monospace; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .notif-card .notif-body { font-size: 9.5px; line-height: 1.35; color: var(--ink-dim); margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .notif-card .notif-x {
     position: absolute; top: 3px; right: 3px;
     background: transparent; border: none; color: var(--ink-dim);
@@ -2749,6 +2758,10 @@ en: {
   notif_clear: 'Clear all',
   notif_war_t: '{nation} declares war!',
   notif_war_b: 'A province of yours is under threat — review your defenses.',
+  notif_war_multi_t: '{n} nations declared war on you',
+  notif_war_multi_b: 'Open Diplomacy to see who — and their war goals.',
+  notif_envoy_multi_t: '{n} envoys arrived',
+  notif_envoy_multi_b: 'Several powers extend goodwill — tensions ease.',
   notif_lowgar_t: '{prov}: weak garrison',
   notif_lowgar_b: 'Borders an enemy at war. Reinforce it.',
   notif_deficit_t: 'Treasury in deficit',
@@ -3119,7 +3132,11 @@ en: {
   sel_your_domain:  'YOUR DOMAIN',
   rel_ally:         'ALLY',
   rel_war:          'AT WAR',
+  rel_nap:          'NAP',
+  rel_marriage:     'MARRIAGE',
   rel_own:          'YOUR LAND',
+  dip_great_powers: 'GREAT POWERS',
+  dip_envoy_active: 'Envoy active — tensions eased',
   rel_neutral:      'NEUTRAL',
   stat_army:        '▸ ARMY',
   stat_population:  '▸ POPULATION',
@@ -3524,6 +3541,10 @@ ru: {
   notif_clear: 'Очистить всё',
   notif_war_t: '{nation} объявляет войну!',
   notif_war_b: 'Ваша провинция под угрозой — проверьте оборону.',
+  notif_war_multi_t: '{n} держав объявили вам войну',
+  notif_war_multi_b: 'Откройте дипломатию — кто и с какими целями.',
+  notif_envoy_multi_t: 'Прибыло посланников: {n}',
+  notif_envoy_multi_b: 'Несколько держав проявили добрую волю — напряжённость спадает.',
   notif_lowgar_t: '{prov}: слабый гарнизон',
   notif_lowgar_b: 'Граничит с врагом в состоянии войны. Усильте гарнизон.',
   notif_deficit_t: 'Казна в дефиците',
@@ -4197,7 +4218,11 @@ ru: {
   sel_your_domain:  'ВАШИ ЗЕМЛИ',
   rel_ally:         'СОЮЗНИК',
   rel_war:          'В ВОЙНЕ',
+  rel_nap:          'ПАКТ',
+  rel_marriage:     'БРАК',
   rel_own:          'ВАША ЗЕМЛЯ',
+  dip_great_powers: 'ВЕЛИКИЕ ДЕРЖАВЫ',
+  dip_envoy_active: 'Посланник прибыл — напряжённость спала',
   rel_neutral:      'НЕЙТРАЛ',
   stat_army:        '▸ АРМИЯ',
   stat_population:  '▸ НАСЕЛЕНИЕ',
@@ -6712,6 +6737,32 @@ function initEventState() {
   }
 }
 
+// P4 #16 — situational event gating. Some event categories only make sense in a
+// particular context, so they shouldn't fire "regardless of situation":
+//   MILITARY   → only while you're at war (mercenaries, new doctrine). The lone
+//                exception is the bankruptcy mutiny, an economic consequence that
+//                can strike in peacetime too.
+//   DIPLOMACY  → only when you actually have someone to deal with (a relation or
+//                a bordering foreign power).
+//   everything else (economic / domestic / trade / crisis / disaster) → anytime.
+function _hasDiploContext() {
+  const me = S.players[S.humanId];
+  if (me && me.rel) { for (const k in me.rel) { if (me.rel[k]) return true; } }
+  for (const id of playerOwned(S.humanId)) {
+    for (const nid of (S.countries[id].neighbors || [])) {
+      const nc = S.countries[nid];
+      if (nc && nc.ownerId && nc.ownerId !== S.humanId) return true;
+    }
+  }
+  return false;
+}
+function eventCategoryFits(ev) {
+  const cat = ev.category;
+  if (cat === 'MILITARY') return ev.id === 'military_mutiny' || isAtWar(S.humanId);
+  if (cat === 'DIPLOMACY') return _hasDiploContext();
+  return true;
+}
+
 function checkAndFireEvents() {
   initEventState();
   const es = S.eventState;
@@ -6740,6 +6791,7 @@ function checkAndFireEvents() {
   const eligible = EVENTS.filter(ev => {
     const lastTurn = es.lastFiredTurn[ev.id] || 0;
     if (S.turn - lastTurn < ev.cooldown) return false;
+    if (!eventCategoryFits(ev)) return false;   // P4 #16: situational gating by category
     try { return ev.trigger(me); } catch(e) { return false; }
   });
   if (!eligible.length) return;
@@ -7877,26 +7929,73 @@ function showTurnSummary() {
 // self-resolve; other keys are one-shot event alerts.
 let _notifs = [];
 let _notifSeq = 1;
+const NOTIF_TTL = 5000;   // P4 #7: one-shot alerts live 5s of REAL elapsed time
+let _notifTicker = null;
+// A single wall-clock ticker prunes expired one-shot cards. Using Date.now()
+// (not setTimeout) means a backgrounded/blurred tab doesn't freeze the timer —
+// when it regains focus, everything past its deadline is cleared at once.
+function _ensureNotifTicker() {
+  if (_notifTicker) return;
+  _notifTicker = setInterval(() => {
+    if (!_notifs.length) return;
+    const now = Date.now();
+    const before = _notifs.length;
+    _notifs = _notifs.filter(n => !n.expireAt || n.expireAt > now);
+    if (_notifs.length !== before) renderNotifRail();
+  }, 1000);
+}
 
 function pushNotif(opts) {
   if (!S.humanId || S.setupPhase) return;
   if (opts.key && _notifs.some(n => n.key === opts.key)) return;  // dedupe
   const id = _notifSeq++;
+  // Standing 'warn:' cards persist (they self-rebuild each turn via refreshNotifs);
+  // every other card is a one-shot that expires NOTIF_TTL ms after it appears.
+  const isStanding = !!(opts.key && opts.key.indexOf('warn:') === 0);
   _notifs.push({
     id, key: opts.key || null,
     icon: opts.icon || '•', title: opts.title || '', body: opts.body || '',
-    cls: opts.cls || '', route: opts.route || null
+    cls: opts.cls || '', route: opts.route || null,
+    expireAt: isStanding ? 0 : Date.now() + NOTIF_TTL
   });
-  if (_notifs.length > 8) _notifs = _notifs.slice(-8);   // keep the 8 newest
+  if (_notifs.length > 6) _notifs = _notifs.slice(-6);   // keep the 6 newest
   renderNotifRail();
-  // One-shot event alerts auto-expire after 10s; standing 'warn:' cards persist
-  // (they self-rebuild each turn via refreshNotifs) so they're not timed out.
-  if (!(opts.key && opts.key.indexOf('warn:') === 0)) {
-    setTimeout(() => dismissNotif(id), 10000);
-  }
+  _ensureNotifTicker();
 }
 function dismissNotif(id) { _notifs = _notifs.filter(n => n.id !== id); renderNotifRail(); }
 function clearNotifs()    { _notifs = []; renderNotifRail(); }
+
+// ---- Batched per-turn notifications -----------------------------------------
+// Many AI nations can each send an envoy or declare war in a single end-turn.
+// Rather than spamming the rail with one card per nation, the AI loop pushes
+// names into these accumulators; flushBatchedNotifs() (called once after the
+// whole AI batch resolves) collapses them into a single summary card:
+//   1 nation  → "{nation} declares war!" / "{nation} sent an envoy"
+//   N nations → "{n} nations declared war on you" / "{n} envoys arrived"
+// The player reviews the specifics in the Diplomacy panel.
+let _turnWarDecls = [];   // [{name, body, route}] AI war declarations on the human this turn
+let _turnEnvoys   = [];   // [name] AI goodwill envoys to the human this turn
+function resetBatchedNotifs() { _turnWarDecls = []; _turnEnvoys = []; }
+function flushBatchedNotifs() {
+  if (_turnWarDecls.length === 1) {
+    const w = _turnWarDecls[0];
+    pushNotif({ icon: '⚔', cls: 'crit', title: w.title, body: w.body, route: w.route });
+  } else if (_turnWarDecls.length > 1) {
+    pushNotif({ icon: '⚔', cls: 'crit',
+      title: Tpl('notif_war_multi_t', { n: _turnWarDecls.length }),
+      body: T('notif_war_multi_b'), route: { kind: 'diplo' } });
+  }
+  if (_turnEnvoys.length === 1) {
+    pushNotif({ icon: '🕊', cls: '',
+      title: Tpl('notif_envoy_t', { nation: _turnEnvoys[0] }),
+      body: T('notif_envoy_b'), route: { kind: 'diplo' } });
+  } else if (_turnEnvoys.length > 1) {
+    pushNotif({ icon: '🕊', cls: '',
+      title: Tpl('notif_envoy_multi_t', { n: _turnEnvoys.length }),
+      body: T('notif_envoy_multi_b'), route: { kind: 'diplo' } });
+  }
+  resetBatchedNotifs();
+}
 window.dismissNotif = dismissNotif;
 window.clearNotifs  = clearNotifs;
 
@@ -7928,6 +8027,11 @@ function routeNotif(r) {
     const el = document.getElementById('empire-float');
     const alreadyOpen = el && el.style.display && el.style.display !== 'none';
     if (!alreadyOpen && typeof showPanel === 'function') showPanel('empire');
+  } else if (r.kind === 'diplo') {
+    // Open the Diplomacy panel — the full ledger of wars, envoys and war-likelihood.
+    const el = document.getElementById('diplo-float');
+    const alreadyOpen = el && el.style.display && el.style.display !== 'none';
+    if (!alreadyOpen && typeof showPanel === 'function') showPanel('diplo');
   } else if (r.kind === 'event') {
     if (S.eventState && S.eventState.pendingEvent) {
       const em = document.getElementById('event-modal'); if (em) em.hidden = false;
@@ -8629,6 +8733,11 @@ function renderDiplomacy() {
         borderOwners.add(nc.ownerId);
     }
   }
+  // A goodwill envoy active toward you (de-escalation in flight) → small dove marker,
+  // so the player can see who reached out from the diplomacy ledger itself.
+  const envoyActive = (oid) => { const o = S.players[oid]; return !!(o && o.envoyUntil && o.envoyUntil[S.humanId] > S.turn); };
+  const envoyMark = (oid) => envoyActive(oid) ? `<span title="${T('dip_envoy_active')}" style="color:#4ab8c1;font-size:8.5px"> 🕊${(S.players[oid].envoyUntil[S.humanId] - S.turn)}t</span>` : '';
+
   const threats = [];
   borderOwners.forEach(oid => {
     if (relation(S.humanId, oid) === 'war') return;   // already at war (listed above)
@@ -8649,8 +8758,39 @@ function renderDiplomacy() {
       html += `<div class="diplo-item" title="${T('wl_title')}\n${reasons}">
         <span class="diplo-name"><span class="ownerpill" style="background:${o.color}"></span>
         ${flagEmoji(S.countries[oid]?.code || '')} ${o.name}
+        ${personalityBadge(oid)}${envoyMark(oid)}
         <span style="color:var(--ink-dim);font-size:8.5px">${top}</span></span>
         <span style="color:${col};font-size:10px;font-weight:600;white-space:nowrap">⚔ ${wl.pct}%${trend}</span>
+      </div>`;
+    }
+  }
+
+  // GREAT POWERS — a world-standing overview so the panel reads as a full ledger
+  // (not just the handful you border). Strongest surviving nations you don't already
+  // have listed above, with temperament + your relation + their reach.
+  const shown = new Set([S.humanId]);
+  for (const k in me.rel) if (me.rel[k]) shown.add(k);
+  threats.forEach(t => shown.add(t.oid));
+  const relLabel = { war: T('rel_war'), ally: T('rel_ally'), nap: T('rel_nap'), marriage: T('rel_marriage') };
+  const relCol = { war: 'var(--red-warn)', ally: 'var(--green)', nap: '#4ab8c1', marriage: '#e090c8' };
+  const powers = Object.keys(S.players)
+    .filter(oid => !shown.has(oid) && S.players[oid] && !S.players[oid].eliminated && playerOwned(oid).length > 0)
+    .map(oid => ({ oid, lands: playerOwned(oid).length }))
+    .sort((a, b) => b.lands - a.lands)
+    .slice(0, 10);
+  if (powers.length) {
+    hasAny = true;
+    html += `<div class="diplo-tier-head" style="color:var(--gold)">${T('dip_great_powers')} <span style="color:var(--ink-dim)">(${powers.length})</span></div>`;
+    for (const { oid, lands } of powers) {
+      const o = S.players[oid];
+      const rel = relation(S.humanId, oid);
+      const relStr = (rel && rel !== 'neutral' && relLabel[rel])
+        ? `<span style="color:${relCol[rel]};font-size:8px;letter-spacing:.06em"> ${relLabel[rel]}</span>` : '';
+      html += `<div class="diplo-item">
+        <span class="diplo-name"><span class="ownerpill" style="background:${o.color}"></span>
+        ${flagEmoji(S.countries[oid]?.code || '')} ${o.name}
+        ${personalityBadge(oid)}${envoyMark(oid)}${relStr}</span>
+        <span style="color:var(--ink-dim);font-size:9px;white-space:nowrap">${lands} 🗺</span>
       </div>`;
     }
   }
@@ -8886,7 +9026,7 @@ const MAP_THEME_DEF = {
     equator:    'rgba(100,160,220,0.20)', equatorFlat:  'rgba(100,160,220,0.30)',
     internal:   'rgba(0,0,0,0.16)',
     coast:      'rgba(8,14,24,0.55)',
-    natlCasing: 'rgba(0,0,0,0.55)', natlInner: 'rgba(232,238,248,0.34)',
+    natlCasing: 'rgba(0,0,0,0.40)', natlInner: 'rgba(232,238,248,0.30)',
     sphere:     'rgba(80,140,220,0.55)',
     wash:       null
   },
@@ -8957,17 +9097,18 @@ function flyToFeature(id) {
   if (!ctr || !isFinite(ctr[0]) || !isFinite(ctr[1])) return;
   if (_flyRAF) { cancelAnimationFrame(_flyRAF); _flyRAF = null; }
   const t0 = performance.now(), dur = 1150;
+  _interacting = true;   // LOD frames during the pan → each frame is cheap, so no stutter/flash
   if (S.mapMode === 'flat') {
     const rect = canvas.getBoundingClientRect();
     const fromT = projection.translate();
     const cur = projection(ctr);
-    if (!cur) return;
+    if (!cur) { _interacting = false; return; }
     const toT = [fromT[0] + (rect.width / 2 - cur[0]), fromT[1] + (rect.height / 2 - cur[1])];
     const step = () => {
       const e = _easeInOut(Math.min(1, (performance.now() - t0) / dur));
       projection.translate([fromT[0] + (toT[0] - fromT[0]) * e, fromT[1] + (toT[1] - fromT[1]) * e]);
-      render();
-      _flyRAF = e < 1 ? requestAnimationFrame(step) : null;
+      if (e < 1) { render(); _flyRAF = requestAnimationFrame(step); }
+      else { _interacting = false; render(); _flyRAF = null; }   // crisp full-quality settle
     };
     _flyRAF = requestAnimationFrame(step);
   } else {
@@ -8977,8 +9118,8 @@ function flyToFeature(id) {
     const step = () => {
       const e = _easeInOut(Math.min(1, (performance.now() - t0) / dur));
       S.rotation = [fromR[0] + dl * e, fromR[1] + dp * e, 0];
-      render();
-      _flyRAF = e < 1 ? requestAnimationFrame(step) : null;
+      if (e < 1) { render(); _flyRAF = requestAnimationFrame(step); }
+      else { _interacting = false; render(); _flyRAF = null; }   // crisp full-quality settle
     };
     _flyRAF = requestAnimationFrame(step);
   }
@@ -9270,6 +9411,9 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       // M5: ease the fill from the old owner's colour to the new one on conquest.
       fill = _animatedFill(f.id, fill);
     }
+    // Lift land fills toward a soft light so the map doesn't read as too dark
+    // against the deep ocean (the parchment theme has its own aged wash instead).
+    if (!_parch) fill = _blendColor(fill, '#e2e9f3', 0.16);
     targetCtx.fillStyle = fill;
     targetCtx.beginPath(); targetPath(f); targetCtx.fill();
     // Aged-paper wash over every land fill (parchment theme)
@@ -9305,11 +9449,11 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       // National borders — dark casing + light inner line (empires read as one shape)
       if (borders.natl) {
         targetCtx.strokeStyle = TH.natlCasing;
-        targetCtx.lineWidth = 1.9;
+        targetCtx.lineWidth = 1.2;
         targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
         if (!_lod) {   // inner highlight line — skipped during drag LOD
           targetCtx.strokeStyle = TH.natlInner;
-          targetCtx.lineWidth = 0.7;
+          targetCtx.lineWidth = 0.5;
           targetCtx.beginPath(); targetPath(borders.natl); targetCtx.stroke();
         }
       }
@@ -9419,8 +9563,9 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
           targetCtx.fillText(armyStr, px, py);
         }
 
-        // Building icon — emoji above pill
-        if (c.building && BUILDINGS[c.building]) {
+        // Building icon — emoji above pill. Held to a tighter zoom than the army
+        // labels so it disappears soon after zooming out (low map-detail value).
+        if (c.building && BUILDINGS[c.building] && zoomRatio >= 1.6) {
           targetCtx.font = '9px serif';
           targetCtx.textAlign = 'center';
           targetCtx.textBaseline = 'middle';
@@ -11552,11 +11697,14 @@ function aiTurn(pid) {
           log(`↳ ${p.name} ${T(reason)}.`, 'crit');
           if (_aiGoal) log(`↳ ${Tpl('wgoal_ai_intent', {goal: warGoalLabel(_aiGoal.type)})}`, 'crit');
           showWarAlert(p.name);
-          pushNotif({ key: 'war:' + pid, icon: '⚔', cls: 'crit',
+          // Accumulate; flushBatchedNotifs() collapses many declarations into one card.
+          _turnWarDecls.push({
             title: Tpl('notif_war_t', { nation: p.name }),
             body: _aiGoal ? Tpl('notif_war_goal_b', {goal: warGoalLabel(_aiGoal.type)}) : T('notif_war_b'),
             route: { kind: 'province', id: cand.toId } });
-          if (typeof MP === 'undefined' || !MP.active) flyToFeature(pid);   // M5: pan to the aggressor
+          // Only pan to the aggressor when it's the SOLE new war this turn — chaining
+          // multiple fly-tos in one batch makes the camera lurch (a flashing source).
+          if ((typeof MP === 'undefined' || !MP.active) && _turnWarDecls.length === 1) flyToFeature(pid);
         }
       }
       p.mp -= P1.MP_COST.attack;
@@ -11618,7 +11766,7 @@ function aiTurn(pid) {
       const meH = S.players[hid];
       if (meH && meH.grudges && meH.grudges[pid]) meH.grudges[pid] = Math.max(0, meH.grudges[pid] - Math.round(ENVOY.GRUDGE_REDUCE / 2));
       logT('envoy_recv_log', { v0: p.name }, null);
-      pushNotif({ key: 'envoy:' + pid, icon: '🕊', cls: '', title: Tpl('notif_envoy_t', { nation: p.name }), body: T('notif_envoy_b'), route: { kind: 'province', id: pid } });
+      _turnEnvoys.push(p.name);   // flushBatchedNotifs() collapses many envoys into one card
     }
   }
 
@@ -11778,6 +11926,7 @@ function endTurn() {
   if (activeWars > 0) startWarPulse();
 
   // ---- AI turns ----
+  resetBatchedNotifs();   // collect war/envoy alerts across the whole AI batch, summarise once
   const pids = Object.keys(S.players).filter(id => id !== S.humanId);
   for (let i = pids.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -11789,7 +11938,8 @@ function endTurn() {
     const end = Math.min(i + batchSize, pids.length);
     for (; i < end; i++) aiTurn(pids[i]);
     if (i < pids.length) {
-      render();
+      _worldRev++;                // ownership shifted → invalidate the cached base so fills refresh
+      renderLoopFrame();          // offscreen-cached blit (no clear-then-redraw blank flash)
       setTimeout(processBatch, 12);
     } else {
       S.turn++;
@@ -11798,9 +11948,10 @@ function endTurn() {
       updateDate();
       markBordersDirty();        // catch-all: any annex/vassal/cede this turn → refresh borders
       updateHUD();
-      render();
+      renderLoopFrame();         // offscreen-cached blit → no end-of-turn map flash
       checkVictory();
       showTurnSummary();
+      flushBatchedNotifs();      // collapse the turn's war/envoy alerts into summary cards
       refreshNotifs();
       updateWarLikelihoodTrend(); // P1: snapshot war-likelihood for the trend arrows
       checkTips();               // A4: surface one contextual coaching tip
