@@ -3730,6 +3730,21 @@ ru: {
   'Any invader of Russia suffers -25% combat and -30 manpower after turn 12.': 'Любой захватчик России несёт -25% в бою и -30 людских ресурсов после хода 12.',
   'Peninsular War': 'Пиренейская война',
   'Spain and Portugal gain +20% defence while resisting a French occupation.': 'Испания и Португалия получают +20% к обороне, сопротивляясь французской оккупации.',
+  // ---- timurid era (1400) ----
+  'TIMURID ERA': 'ЭПОХА ТИМУРИДОВ',
+  'MEDIEVAL · 1400 AD': 'СРЕДНЕВЕКОВЬЕ · 1400 Г. Н.Э.',
+  'Timurid Empire': 'Империя Тимуридов',
+  'Ottoman Beylik': 'Османский бейлик',
+  'Golden Horde': 'Золотая Орда',
+  'Timur (Tamerlane) forges the last great steppe empire from Samarkand — humbling the Golden Horde, Delhi and the Ottomans in turn — while Ming China and a fractured Europe look on.': 'Тимур (Тамерлан) куёт последнюю великую степную империю из Самарканда — поочерёдно смиряя Золотую Орду, Дели и Османов, — пока империя Мин и раздробленная Европа смотрят со стороны.',
+  'From Samarkand a lame conqueror carves an empire of terror and splendour across Persia and Central Asia; his cavalry has broken sultans and khans alike. But the realm is bound to one man — and the Ming, the Ottomans and rising Muscovy will inherit the world he leaves behind.': 'Из Самарканда хромой завоеватель вырезает империю ужаса и великолепия через Персию и Среднюю Азию; его конница ломала и султанов, и ханов. Но держава держится на одном человеке — и Мин, Османы и поднимающаяся Москва унаследуют мир, который он оставит.',
+  '1400 — Timur the Lame bestrides Asia from Samarkand, the mightiest conqueror since the Mongols. But an empire built on one man\'s genius rarely outlives him.': '1400 — Тимур Хромой властвует над Азией из Самарканда, могущественнейший завоеватель со времён монголов. Но империя, построенная на гении одного человека, редко переживает его.',
+  'The Scourge of God': 'Бич Божий',
+  'Timur\'s armies gain +25% combat strength in the first 8 turns of any war.': 'Армии Тимура получают +25% боевой мощи в первые 8 ходов любой войны.',
+  'Death of Timur': 'Смерть Тимура',
+  'After turn 20 the Timurid realm risks fragmenting into rival successor states.': 'После хода 20 держава Тимуридов рискует распасться на враждующие государства-преемники.',
+  'Rise of the Ming': 'Возвышение Мин',
+  'A unified China gains +4 trade income per route along the revived Silk Road.': 'Объединённый Китай получает +4 торгового дохода с маршрута вдоль возрождённого Шёлкового пути.',
   // ---- gunpowder empires (1700) ----
   'GUNPOWDER EMPIRES': 'ПОРОХОВЫЕ ИМПЕРИИ',
   'EARLY MODERN · 1700 AD': 'НОВОЕ ВРЕМЯ · 1700 Г. Н.Э.',
@@ -7233,6 +7248,7 @@ const SCENARIOS = [
   {
     id:'ancient',
     name:'ANCIENT WORLD',  year:-218, monthIdx:0, eraIndex:0,
+    eraMap:'maps/ancient.topojson',
     icon:'⚔️',             badge:'ANCIENT ERA · 218 BC',
     description:'The great empires of antiquity clash for supremacy. Rome marches on Carthage. Persia eyes the east. Han China unifies the Far East.',
     flavor:'From the Pillars of Hercules to the banks of the Ganges, civilization ignites. Legions, war elephants and bronze blades decide the fate of nations. The Silk Road is yet to be opened. History hangs in the balance.',
@@ -7274,6 +7290,7 @@ const SCENARIOS = [
   {
     id:'roman',
     name:'ROMAN EMPIRE', year:117, monthIdx:0, eraIndex:1,
+    eraMap:'maps/roman.topojson',
     icon:'🏛️',            badge:'CLASSICAL ERA · 117 AD',
     description:'Rome stands at its greatest extent under Trajan. From Britannia to Mesopotamia the legions hold a world — only Parthia in the east and the barbarian north remain unconquered.',
     flavor:'The Pax Romana is at its zenith. Roads, aqueducts and law bind three continents under the eagle. Yet the frontiers are restless — Germanic tribes mass beyond the Rhine, Parthia contests the east, and an empire this vast may prove too heavy to hold.',
@@ -7326,6 +7343,7 @@ const SCENARIOS = [
   {
     id:'medieval',
     name:'MEDIEVAL CHRISTENDOM', year:1096, monthIdx:6, eraIndex:1,
+    eraMap:'maps/medieval.topojson',
     icon:'✝️',              badge:'MEDIEVAL ERA · 1096 AD',
     description:'The Pope calls the faithful to arms. Christian kingdoms march on Jerusalem while Islamic caliphates stand firm. The Mongol storm looms from the east.',
     flavor:'Knights ride for glory and salvation. The great houses of Europe scheme and betray in equal measure. Meanwhile, the Byzantine Empire clings to its Roman legacy. In the east, a nomadic empire will soon dwarf them all.',
@@ -7380,6 +7398,7 @@ const SCENARIOS = [
   {
     id:'mongol',
     name:'MONGOL EMPIRE', year:1300, monthIdx:0, eraIndex:2,
+    eraMap:'maps/mongol.topojson',
     icon:'🏹',            badge:'MEDIEVAL ERA · 1300 AD',
     description:'The largest contiguous land empire in history sprawls from Korea to the gates of Europe. The Great Khan\'s successor khanates rule, while Mamluk Egypt and Delhi stand defiant.',
     flavor:'Genghis is two generations dead and his heirs have carved the world into khanates — the Yuan, the Golden Horde, the Ilkhanate, the Chagatai. The horse-archer reigns supreme. But the bonds between khanates fray, and the settled empires the Mongols failed to break are gathering their strength.',
@@ -7440,8 +7459,32 @@ const SCENARIOS = [
     startLog:'1300 AD — The Mongol khanates bestride Eurasia, the greatest land empire the world has ever seen. But the heirs of Genghis no longer ride as one.'
   },
   {
+    id:'timurid',
+    name:'TIMURID ERA', year:1400, monthIdx:0, eraIndex:2,
+    eraMap:'maps/timurid.topojson',
+    icon:'☄️',            badge:'MEDIEVAL · 1400 AD',
+    description:'Timur (Tamerlane) forges the last great steppe empire from Samarkand — humbling the Golden Horde, Delhi and the Ottomans in turn — while Ming China and a fractured Europe look on.',
+    flavor:'From Samarkand a lame conqueror carves an empire of terror and splendour across Persia and Central Asia; his cavalry has broken sultans and khans alike. But the realm is bound to one man — and the Ming, the Ottomans and rising Muscovy will inherit the world he leaves behind.',
+    factions:[
+      {label:'Timurid Empire', id:'timurid_empire', type:'ally'},
+      {label:'Ming China',     id:'ming_china',      type:'ally'},
+      {label:'Ottoman Beylik', id:'ottoman_beylik',  type:'war'},
+      {label:'Golden Horde',   id:'golden_horde',    type:'war'}
+    ],
+    globalEra:2,
+    relations:[],
+    boosts:{},
+    events:[
+      {title:'The Scourge of God',  desc:'Timur\'s armies gain +25% combat strength in the first 8 turns of any war.'},
+      {title:'Death of Timur',      desc:'After turn 20 the Timurid realm risks fragmenting into rival successor states.'},
+      {title:'Rise of the Ming',    desc:'A unified China gains +4 trade income per route along the revived Silk Road.'}
+    ],
+    startLog:'1400 — Timur the Lame bestrides Asia from Samarkand, the mightiest conqueror since the Mongols. But an empire built on one man\'s genius rarely outlives him.'
+  },
+  {
     id:'discovery',
     name:'AGE OF DISCOVERY', year:1492, monthIdx:7, eraIndex:2,
+    eraMap:'maps/discovery.topojson',
     icon:'⛵',            badge:'RENAISSANCE · 1492 AD',
     description:'Caravels push beyond the edge of the known world. Spain and Portugal race for sea routes and gold, the Ottomans tower over the Mediterranean, and Ming China rules the richest realm on Earth.',
     flavor:'Granada has fallen and Columbus sets sail west. The printing press spreads ideas faster than any army. Two small Iberian kingdoms are about to stumble onto two continents — and the Aztec and Inca have no idea the world is about to end. Gold, gunpowder and faith will redraw the map.',
@@ -7497,6 +7540,7 @@ const SCENARIOS = [
   {
     id:'gunpowder',
     name:'GUNPOWDER EMPIRES', year:1700, monthIdx:0, eraIndex:2,
+    eraMap:'maps/gunpowder.topojson',
     icon:'🕌',            badge:'EARLY MODERN · 1700 AD',
     description:'The age of the great land empires of Asia and Islam. The Mughals rule India, the Ottomans straddle three continents, Safavid Persia and Qing China tower over the East — while European trading companies probe every coast.',
     flavor:'Cannon and musket have made a handful of dynasties colossal. From the Bosphorus to Bengal, gunpowder empires command millions. But European ships are nibbling at the edges, and a different kind of power — trade, finance and the broadside — is already taking root.',
@@ -7549,6 +7593,7 @@ const SCENARIOS = [
   {
     id:'napoleonic',
     name:'NAPOLEONIC WARS', year:1804, monthIdx:11, eraIndex:3,
+    eraMap:'maps/napoleonic.topojson',
     icon:'🎖️',            badge:'INDUSTRIAL ERA · 1804 AD',
     description:'Napoleon crowns himself Emperor and France dominates the continent. A succession of coalitions — Britain, Austria, Russia, Prussia — form and shatter against the Grande Armée.',
     flavor:'One man has bent Europe to his will. The Grande Armée marches faster, fights harder and wins where it has no right to. But Britain rules the seas, Russia is vast and patient, and every victory makes new enemies. Empires are won at Austerlitz and lost in the Russian snow.',
@@ -7615,6 +7660,7 @@ const SCENARIOS = [
   {
     id:'victorian',
     name:'VICTORIAN ERA',  year:1850, monthIdx:0, eraIndex:3,
+    eraMap:'maps/victorian.topojson',
     icon:'🎩',              badge:'INDUSTRIAL ERA · 1850 AD',
     description:'Steam, steel and empire define the age. Britain rules the waves, Prussia eyes German unification, and the Ottoman Empire crumbles from within.',
     flavor:'Gas lamps flicker over cobbled streets. The telegraph shrinks the world. Across the oceans, colonial flags are planted with bayonets and speeches about civilization. The Crimean War reshapes European diplomacy. Japan opens its doors. America tears itself apart.',
@@ -7741,6 +7787,7 @@ const SCENARIOS = [
   {
     id:'ww2',
     name:'WORLD WAR II',  year:1939, monthIdx:8, eraIndex:4,
+    eraMap:'maps/ww2.topojson',
     icon:'💣',             badge:'MODERN ERA · SEP 1939',
     description:'Germany invades Poland. The Axis — Germany, Italy, Japan — face the Allied powers in the most destructive conflict in human history.',
     flavor:'Blitzkrieg. Dunkirk. Pearl Harbour. Stalingrad. The fate of civilization hangs in the balance as industrial empires throw their full might into total war. Entire peoples are erased. Cities are turned to dust. History will never recover what was lost.',
@@ -7821,6 +7868,7 @@ const SCENARIOS = [
   {
     id:'coldwar',
     name:'COLD WAR',      year:1947, monthIdx:0, eraIndex:4,
+    eraMap:'maps/coldwar.topojson',
     icon:'☢️',             badge:'MODERN ERA · 1947 AD',
     description:'The world divides into two armed camps. The USA and USSR face off across the Iron Curtain in a contest of ideology, proxy wars and nuclear brinkmanship.',
     flavor:'The atom bomb shadows every decision. Marshall Plan or Cominform — every nation must choose a side. The Cold War is fought in newspaper columns, coup attempts and jungle battlefields as much as on any conventional front.',
@@ -8070,6 +8118,9 @@ function applyEraSubjecto() {
 }
 function rebuildWorldFromTopo(topo) {
   window.__TOPO__ = topo;                 // _getBorders / rebuildFeatures read this
+  // initWorld populates but does NOT reset — clear so the era map fully REPLACES the
+  // previous world (otherwise the old map's nations linger and the player count balloons).
+  S.countries = {}; S.players = {}; S.featureById = {};
   initWorld(topo);                        // rebuild S.countries/S.players + land neighbours
   if (typeof addSeaNeighbors === 'function') addSeaNeighbors();
   applyEraSubjecto();                     // colonies → empires (era maps only; modern = no-op)
@@ -16228,6 +16279,7 @@ boot();
             <option value="roman">🏛️ Roman Empire (117 AD)</option>
             <option value="medieval">✝️ Medieval Christendom (1096 AD)</option>
             <option value="mongol">🏹 Mongol Empire (1300 AD)</option>
+            <option value="timurid">☄️ Timurid Era (1400 AD)</option>
             <option value="discovery">⛵ Age of Discovery (1492 AD)</option>
             <option value="gunpowder">🕌 Gunpowder Empires (1700 AD)</option>
             <option value="napoleonic">🎖️ Napoleonic Wars (1804 AD)</option>
