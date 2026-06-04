@@ -11151,7 +11151,8 @@ function enterProvinceModeSetup() {
   loadProvinceMap((ok, info) => {
     if (btn) { btn.disabled = false; btn.textContent = orig; }
     if (!ok) { alert('Province map failed to load. Check maps/provinces.topojson exists.'); return; }
-    designateNeutralsV2(0.15);   // seed ~15% neutral land for colonisation
+    // Neutrals are designated after nation pick (in startGameV2) so the setup
+    // globe shows a complete political map — no grey holes while choosing.
 
     // Enter the globe picker — same as the v1 flow but now S.v2 is true
     const chrome = document.getElementById('setup-chrome');
@@ -11159,7 +11160,19 @@ function enterProvinceModeSetup() {
     const picker = document.getElementById('scenario-picker');
     if (chrome) chrome.style.display = 'none';
     if (picker) picker.style.display = 'none';
-    if (prompt) { prompt.hidden = false; prompt.textContent = '▸ DRAG TO ROTATE · TAP A PROVINCE TO CLAIM ITS NATION AS YOUR HOMELAND'; }
+    if (prompt) {
+      prompt.hidden = false;
+      prompt.textContent = '▸ DRAG TO ROTATE · TAP A PROVINCE TO CLAIM ITS NATION AS YOUR HOMELAND';
+      // Overlay the hint at top-centre so it doesn't consume flex space
+      prompt.style.cssText += ';position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:40;white-space:nowrap';
+    }
+
+    // Full-viewport canvas: remove padding/gap from the setup flex container
+    // and stretch the canvas to fill the whole screen.
+    const setupDiv = document.getElementById('setup');
+    if (setupDiv) { setupDiv.style.padding = '0'; setupDiv.style.gap = '0'; setupDiv.style.alignItems = 'stretch'; }
+    const sg = document.getElementById('setup-globe');
+    if (sg) sg.style.cssText += ';max-width:none;flex:1;';
 
     S.setupPhase = true;   // keeps handleSelect in nation-pick mode
     S.year = 2024; S.monthIdx = 0;
@@ -11184,6 +11197,7 @@ function startGameV2(nid) {
   n.mp = 10; n.dp = 6;
 
   S.setupPhase = false;
+  designateNeutralsV2(0.10);   // 10% of each nation's provinces become neutral for colonisation
   S.turn = 1;
   S.eventState = {};
   S.globalModifiers = {};
@@ -15773,8 +15787,149 @@ function stabBar(value) {
 // (updateHUD on end-turn, after actions, etc.) doesn't yank the player back to the
 // selection tab when they've opened tech/diplo/log. Only a genuine NEW selection
 // steals focus to the selection tab.
+// ── v2 province UI actions (P7) ──────────────────────────────────────────────
+function doRecruitV2(pid) {
+  if (!S.v2) return;
+  const p = S.provinces[pid]; if (!p || p._bad) return;
+  if (p.nation !== S.humanId) return;
+  const n = S.nations[S.humanId]; if (!n || n.eliminated) return;
+  const armCost = p.building === 'armory' ? 15 : 30;
+  if ((n.gold||0) < armCost || (n.manpower||0) < 40 || (n.mp||0) < 1) return;
+  n.gold     = (n.gold||0) - armCost;
+  n.manpower = Math.max(0, (n.manpower||0) - 40);
+  n.mp       = Math.max(0, (n.mp||0) - 1);
+  p.army     = (p.army||0) + 20;
+  updateHUD(); render(); renderSelectedPanel();
+}
+function doBuildV2UI(pid, type) {
+  if (!S.v2) return;
+  if (!buildV2(S.humanId, pid, type)) return;
+  updateHUD(); render(); renderSelectedPanel();
+}
+function doRelocateCapitalUI(pid) {
+  if (!S.v2) return;
+  if (!relocateCapitalV2(S.humanId, pid)) return;
+  updateHUD(); render(); renderSelectedPanel();
+}
+function doColonizeV2UI(pid) {
+  if (!S.v2) return;
+  if (!doColonizeV2(S.humanId, pid)) return;
+  updateHUD(); render(); renderSelectedPanel();
+}
+function doAttackV2UI(fromPid) {
+  if (!S.v2) return;
+  const sel = document.getElementById('v2-atk-target');
+  const toPid = sel ? sel.value : null;
+  if (!toPid) return;
+  moveOrAttackV2(fromPid, toPid, null);
+  updateHUD(); markBordersDirty(); render(); renderSelectedPanel();
+}
+window.doRecruitV2         = doRecruitV2;
+window.doBuildV2UI         = doBuildV2UI;
+window.doRelocateCapitalUI = doRelocateCapitalUI;
+window.doColonizeV2UI      = doColonizeV2UI;
+window.doAttackV2UI        = doAttackV2UI;
+
+// ── v2 province info panel ────────────────────────────────────────────────────
+function renderSelectedPanelV2() {
+  const body  = document.getElementById('selected-body');
+  const float = document.getElementById('country-float');
+  if (!S.selectedId) {
+    if (body) body.innerHTML = `<div class="selected-empty">${T('sel_empty')}</div>`;
+    if (float) float.classList.add('hidden-float');
+    _lastSelForPanel = null;
+    return;
+  }
+  const p = S.provinces[S.selectedId];
+  if (!p) { if (body) body.innerHTML = '<div class="selected-empty">No province data.</div>'; return; }
+
+  if (float && S.selectedId !== _lastSelForPanel) {
+    if (typeof hideAllPanels === 'function') hideAllPanels();
+    float.classList.remove('hidden-float');
+    const tabs = document.getElementById('panel-tabs');
+    if (tabs) {
+      tabs.style.display = 'flex';
+      tabs.querySelectorAll('.ptab').forEach(t =>
+        t.classList.toggle('active', t.getAttribute('data-panel') === 'selection'));
+    }
+  }
+  _lastSelForPanel = S.selectedId;
+
+  const nid      = p.nation;
+  const nat      = nid ? S.nations[nid] : null;
+  const me       = S.nations[S.humanId];
+  const isOwn    = nid === S.humanId;
+  const isNeutral = !nid;
+  let rel = 'neutral';
+  if (isOwn) rel = 'self';
+  else if (nid && me && me.rel && me.rel[nid]) rel = me.rel[nid];
+  const relTagClass = rel === 'self' ? 'rel-self' : rel === 'ally' ? 'rel-ally' : rel === 'war' ? 'rel-war' : 'rel-peace';
+  const relLabel    = rel === 'self' ? T('rel_own') : rel === 'ally' ? T('rel_ally') : rel === 'war' ? T('rel_war') : isNeutral ? 'NEUTRAL' : T('rel_neutral');
+  const bldIcons    = { fortress:'🏯', armory:'⚔', port:'⚓', market:'🏪' };
+
+  let html = `
+    <div class="sel-name">${p.name||'?'}${(p.capital && p.capitalOf === nid) ? ' ⭐' : ''}</div>
+    <div class="sel-sub">
+      ${nat ? `<span style="cursor:pointer;color:var(--gold-bright)" onclick="gotoNationV2('${nid}')">${nat.name}</span>` : '<span style="color:var(--ink-dim)">Unclaimed Territory</span>'}
+      ${nid ? `<span class="rel-tag ${relTagClass}" style="margin-left:6px">${relLabel}</span>` : ''}
+    </div>
+    <div class="sel-stats">
+      <div class="stat-row"><span class="lbl">Army</span><span class="val">${p.army||0}</span></div>
+      <div class="stat-row"><span class="lbl">Stability</span><span class="val">${p.stability||70}/100</span></div>
+      <div class="stat-row"><span class="lbl">Development</span><span class="val">${p.dev||1}/5</span></div>
+      ${p.building ? `<div class="stat-row"><span class="lbl">Building</span><span class="val">${bldIcons[p.building]||''} ${V2_BUILDINGS[p.building]?V2_BUILDINGS[p.building].label:p.building}</span></div>` : ''}
+    </div>`;
+
+  if (isOwn && me) {
+    const armCost = p.building === 'armory' ? 15 : 30;
+    const canRec  = (me.gold||0) >= armCost && (me.manpower||0) >= 40 && (me.mp||0) >= 1;
+    html += `<button class="btn" onclick="doRecruitV2('${S.selectedId}')" ${canRec?'':'disabled'}>⚔ Recruit +20 <span class="ap-cost">(${armCost}g · 40mp · 1MP)</span></button>`;
+    if (!p.building) {
+      for (const [type, bld] of Object.entries(V2_BUILDINGS)) {
+        const canB = (me.gold||0) >= bld.cost.gold && (me.mp||0) >= bld.cost.mp;
+        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${type}')" ${canB?'':'disabled'}>${bldIcons[type]||''} Build ${bld.label} <span class="ap-cost">(${bld.cost.gold}g · ${bld.cost.mp}MP — ${bld.effect})</span></button>`;
+      }
+    }
+    if (S.selectedId !== me.capital) {
+      const canRel = (me.gold||0) >= 100 && (me.mp||0) >= 1;
+      html += `<button class="btn" onclick="doRelocateCapitalUI('${S.selectedId}')" ${canRel?'':'disabled'}>⭐ Set as Capital <span class="ap-cost">(100g · 1MP)</span></button>`;
+    } else {
+      html += `<div style="font-size:9px;color:var(--gold-bright);letter-spacing:.12em;padding:4px 0">⭐ CAPITAL PROVINCE</div>`;
+    }
+    const atkTargets = (p.neighbors||[]).filter(nb => {
+      const q = S.provinces[nb]; return q && !q._bad && q.nation !== S.humanId;
+    });
+    if (atkTargets.length && (p.army||0) >= 10) {
+      const opts = atkTargets.map(nb => {
+        const q = S.provinces[nb];
+        const qNat = q.nation ? S.nations[q.nation] : null;
+        return `<option value="${nb}">${q.name||nb}${qNat?' ('+qNat.name+')':' (Neutral)'}</option>`;
+      }).join('');
+      html += `<select id="v2-atk-target" style="width:100%;margin-top:6px;padding:7px;background:#0a0e1a;color:#e8dccc;border:1px solid var(--border);font-family:inherit;font-size:10.5px">${opts}</select>`;
+      html += `<button class="btn attack" onclick="doAttackV2UI('${S.selectedId}')">⚔ Attack</button>`;
+    }
+  } else if (isNeutral && me) {
+    const adjOwn = (p.neighbors||[]).some(nb => S.provinces[nb] && S.provinces[nb].nation === S.humanId);
+    if (adjOwn) {
+      const cost   = colonizeCostV2(S.selectedId);
+      const regime = V2_REGIMES[me.regime] || V2_REGIMES.monarchy;
+      const canCol = regime.colonyFree || ((me.gold||0) >= cost.gold && (me.mp||0) >= cost.mp);
+      const costStr = regime.colonyFree ? 'Free (Tribal)' : `${cost.gold}g · ${cost.mp}MP`;
+      html += `<button class="btn ally" onclick="doColonizeV2UI('${S.selectedId}')" ${canCol?'':'disabled'}>🏛 Colonize <span class="ap-cost">(${costStr})</span></button>`;
+    }
+  } else if (nat) {
+    const natProvs = nationProvinces(nid);
+    html += `<div class="stat-row"><span class="lbl">Nation Provinces</span><span class="val">${natProvs.length}</span></div>`;
+    html += `<div class="stat-row"><span class="lbl">Regime</span><span class="val">${(nat.regime||'monarchy').toUpperCase()}</span></div>`;
+    html += `<div class="stat-row"><span class="lbl">Relation</span><span class="val"><span class="rel-tag ${relTagClass}">${relLabel}</span></span></div>`;
+  }
+
+  if (body) body.innerHTML = html;
+}
+
 let _lastSelForPanel = null;
 function renderSelectedPanel() {
+  if (S.v2) { renderSelectedPanelV2(); return; }
   const body = document.getElementById('selected-body');
   const float = document.getElementById('country-float');
   if (!S.selectedId) {
@@ -16162,6 +16317,14 @@ function handleSelect(id) {
     startGame(id);
     return;
   }
+  // V2 province-mode gameplay: set selected province and show info panel
+  if (S.v2) {
+    S.selectedId = id;
+    updateHUD();
+    render();
+    if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+    return;
+  }
   // Move mode active
   if (S.moveMode && S.moveFromId) {
     const dest = S.countries[id];
@@ -16226,6 +16389,21 @@ function gotoCountry(id) {
   render();
 }
 window.gotoCountry = gotoCountry;
+
+// v2: pan to a nation's capital (or first province) and open its info panel.
+function gotoNationV2(nid) {
+  if (!S.v2 || !nid || !S.nations[nid]) return;
+  const n = S.nations[nid];
+  const provs = nationProvinces(nid);
+  const target = n.capital || (provs.length ? provs[0] : null);
+  if (!target) return;
+  S.selectedId = target;
+  if (typeof flyToFeature === 'function') flyToFeature(target, true);
+  else focusGlobeOn(target);
+  render();
+  if (typeof renderSelectedPanel === 'function') renderSelectedPanel();
+}
+window.gotoNationV2 = gotoNationV2;
 
 // Tab / Shift+Tab: step through your own provinces in a stable order.
 function cycleOwnProvince(dir) {
