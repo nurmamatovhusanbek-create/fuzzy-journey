@@ -2175,6 +2175,7 @@
   <div class="tag" data-i18n="setup_tag">A TURN-BASED CHRONICLE OF THE GLOBE</div>
   <div class="setup-menu">
     <button class="setup-menu-btn primary" id="new-game-btn" data-i18n="setup_new">▸ NEW GAME</button>
+    <button class="setup-menu-btn" id="province-mode-btn" onclick="enterProvinceModeSetup()" style="opacity:0.85">◎ PROVINCE MAP (BETA)</button>
     <button class="setup-menu-btn" id="multiplayer-btn" onclick="openMPOverlay()" data-i18n="setup_mp">⚔ MULTIPLAYER</button>
     <button class="setup-menu-btn" id="load-game-btn" onclick="openLoadModal()" data-i18n="setup_load">⬆ LOAD GAME</button>
   </div>
@@ -9586,6 +9587,15 @@ let _worldRev = 0;   // bumps on any ownership/relation change → invalidates t
 function markBordersDirty() { _bordersDirty = true; _worldRev++; }
 function _ownerWarSig() {
   let s = '';
+  if (S.v2) {
+    for (const f of S.features) { const p = S.provinces[f.id]; s += (p ? (p.nation || '_') : '_') + '.'; }
+    s += '|';
+    for (const nid in S.nations) {
+      const r = S.nations[nid] && S.nations[nid].rel; if (!r) continue;
+      for (const oid in r) if (r[oid] === 'war') s += nid + '>' + oid + ',';
+    }
+    return s;
+  }
   for (const f of S.features) { const c = S.countries[f.id]; s += (c ? c.ownerId : '_') + '.'; }
   s += '|';
   for (const pid in S.players) {
@@ -9602,12 +9612,15 @@ function _getBorders() {
   const sig = _ownerWarSig();
   if (_borderCache.sig === sig && _borderCache.natl) { _bordersDirty = false; return _borderCache; }
   const obj = topo.objects.countries;
-  const valid = id => id !== '010' && id !== '-99' && !!S.countries[id];
-  const own = id => { const c = S.countries[id]; return c ? c.ownerId : id; };
-  const atWar = (o1, o2) => {
-    if (!o1 || !o2 || o1 === o2) return false;
-    const p = S.players[o1]; return !!(p && p.rel && p.rel[o2] === 'war');
-  };
+  const valid = S.v2
+    ? id => !!S.provinces[id]
+    : id => id !== '010' && id !== '-99' && !!S.countries[id];
+  const own = S.v2
+    ? id => { const p = S.provinces[id]; return p ? (p.nation || ('~' + id)) : id; }  // neutral → unique sentinel so it border-separates
+    : id => { const c = S.countries[id]; return c ? c.ownerId : id; };
+  const atWar = S.v2
+    ? (o1, o2) => { if (!o1 || !o2 || o1 === o2) return false; const n = S.nations[o1]; return !!(n && n.rel && n.rel[o2] === 'war'); }
+    : (o1, o2) => { if (!o1 || !o2 || o1 === o2) return false; const p = S.players[o1]; return !!(p && p.rel && p.rel[o2] === 'war'); };
   const hid = S.humanId;
   const isMine = id => hid && own(id) === hid;
   try {
@@ -10052,6 +10065,21 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   // Wars lens: group nations into conflicts so each war gets its own colour.
   if (_overlayMode === 'wars') _computeWarsIndex();
   for (const f of S.features) {
+    if (S.v2) {                                   // ── province-grade fill: colour by owner NATION ──
+      const pr = S.provinces[f.id]; if (!pr || pr._bad) continue;   // skip globe-filling degenerate features
+      const nat = pr.nation ? S.nations[pr.nation] : null;
+      let fill = nat ? nat.color : '#39404e';     // neutral / unowned = grey
+      if (!_parch) fill = _blendColor(fill, '#e2e9f3', 0.16);
+      targetCtx.fillStyle = fill;
+      targetCtx.beginPath(); targetPath(f); targetCtx.fill();
+      if (TH.wash) { targetCtx.fillStyle = TH.wash; targetCtx.fill(); }
+      const me = S.humanId && S.nations[S.humanId];
+      if (me && nat && nat.id !== S.humanId && me.rel && me.rel[nat.id] === 'war') {
+        targetCtx.fillStyle = 'rgba(220,60,45,0.42)'; targetCtx.fill();   // enemy-at-war wash
+      }
+      targetCtx.strokeStyle = TH.internal; targetCtx.lineWidth = 0.3; targetCtx.stroke();
+      continue;
+    }
     const c = S.countries[f.id];
     if (!c) continue;
     const owner = S.players[c.ownerId];
@@ -10162,7 +10190,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   }
 
   // ── Army labels + building icons (zoom-aware) ─────────────────────────────
-  if (highlightSelected && !S.setupPhase && targetCanvas !== setupCanvas && !_lod) {
+  if (highlightSelected && !S.setupPhase && targetCanvas !== setupCanvas && !_lod && !S.v2) {
     const proj = _proj;
     const curScale   = proj.scale();
     // "Default" scale = full-world view. Use canvas size to estimate.
@@ -10422,6 +10450,181 @@ function computeCountryStats(feature) {
   };
 }
 
+// ============================================================================
+// PROVINCE-GRADE ENGINE (v2) — PARALLEL MODE (does NOT touch the v1 engine)
+// ----------------------------------------------------------------------------
+// Provinces are the map atoms; nations are the players. Built from
+// maps/provinces.topojson (Natural Earth Admin-1: ~4,594 provinces / ~251
+// nations; each province tagged with owner nation `nation` (adm0_a3) +
+// precomputed neighbour ids `nb`). P1 = state model + initWorldV2 only.
+//   S.provinces[pid] = { id,name,nation(owner|null=neutral),neighbors[],army,pop,
+//                        dev,stability,terrain,building,capital,lat,lon }
+//   S.nations[nid]   = { id,name,color,gold,manpower,era,tech,mp,dp,intel,rel,
+//                        grudges,capital(pid),regime,personality,isHuman,eliminated }
+// ============================================================================
+function nationProvinces(nid) {
+  const o = []; const P = S.provinces || {};
+  for (const pid in P) if (P[pid].nation === nid) o.push(pid);
+  return o;
+}
+function initWorldV2(topo) {
+  const fc = topojson.feature(topo, topo.objects.countries);
+  const feats = fc.features.filter(f => f.id);
+  window.__TOPO__ = topo;
+  S.v2 = true;
+  S.features = feats;
+  S.featureById = {};
+  S.provinces = {};
+  S.nations = {};
+  const natName = {};
+  for (const f of feats) {
+    S.featureById[f.id] = f;
+    const p = f.properties || {};
+    const nation = p.nation || null;
+    if (nation && !natName[nation]) natName[nation] = p.nationName || nation;
+    S.provinces[f.id] = {
+      id: f.id, name: p.name || '?',
+      nation: nation,                                  // owner nid (adm0_a3) | null = neutral
+      neighbors: Array.isArray(p.nb) ? p.nb : [],      // precomputed adjacency (no topojson.neighbors)
+      lat: p.lat, lon: p.lon,
+      army: startingArmy(),
+      pop: 80 + Math.floor(Math.random() * 120),
+      dev: 1 + Math.floor(Math.random() * 3),
+      stability: 70 + Math.floor(Math.random() * 22),
+      terrain: terrainFor(f.id),
+      building: null,
+      capital: false
+    };
+  }
+  let seed = 7;
+  for (const nid in natName) {
+    S.nations[nid] = {
+      id: nid, name: natName[nid], color: genColor(seed++),
+      gold: 45 + Math.floor(Math.random() * 35), manpower: 55 + Math.floor(Math.random() * 40),
+      era: 0, tech: { martial: 0, treasury: 0, statecraft: 0 },
+      mp: 6, dp: 4, intel: 0, rel: {}, grudges: {},
+      capital: null, regime: 'monarchy',
+      personality: (typeof AI_PERSONALITIES !== 'undefined' && AI_PERSONALITIES.length)
+        ? AI_PERSONALITIES[Math.floor(Math.random() * AI_PERSONALITIES.length)].id : 'guardian',
+      isHuman: false, eliminated: false,
+      warTurns: {}, warScore: {}, warGoal: {}
+    };
+  }
+  // Capital = each nation's most-connected province (a cheap centrality proxy; P5
+  // will use real capital cities). Nations with no land become eliminated stubs.
+  for (const nid in S.nations) {
+    const provs = nationProvinces(nid);
+    if (!provs.length) { S.nations[nid].eliminated = true; continue; }
+    let cap = provs[0], best = -1;
+    for (const pid of provs) { const d = (S.provinces[pid].neighbors || []).length; if (d > best) { best = d; cap = pid; } }
+    S.nations[nid].capital = cap;
+    S.provinces[cap].capital = true;
+  }
+  // Guard: a few provinces (antimeridian-crossing / degenerate winding from the
+  // simplify) project to the WHOLE globe and would paint over everything. Detect
+  // them with a fixed orthographic (d3's own path logic) and flag _bad → the
+  // renderer + gameplay skip them. ~one-time at load.
+  try {
+    // Equirectangular (no hemisphere clipping): world is 2π·100 wide (~628) × π·100
+    // tall (~314). A real province spans a small box; an antimeridian/pole/degenerate
+    // feature spans most of the width or height. Flag those.
+    const _tpath = d3.geoPath(d3.geoEquirectangular().scale(100).translate([0, 0]));
+    let bad = 0;
+    for (const f of feats) {
+      const pv = S.provinces[f.id]; if (!pv) continue;
+      let b; try { b = _tpath.bounds(f); } catch (e) { pv._bad = true; bad++; continue; }
+      const w = b[1][0] - b[0][0], h = b[1][1] - b[0][1];
+      if (!isFinite(w) || !isFinite(h) || w > 420 || h > 250) { pv._bad = true; bad++; }
+    }
+    S._v2bad = bad;
+  } catch (e) {}
+  addSeaNeighborsV2();   // coastal/island provinces → sea adjacency (overseas reachability)
+  return { provinces: feats.length, nations: Object.keys(S.nations).length, bad: S._v2bad || 0 };
+}
+
+// ── v2 sea adjacency ─────────────────────────────────────────────────────────
+// Province lat/lon (NE centroids) let us link low-neighbour (island/coastal)
+// provinces to their nearest coasts across water — same idea as v1 addSeaNeighbors,
+// but at province grade. Links flagged `sea` (overseas hops; later gated by Port).
+const SEA_LINK_MAX_V2 = 0.42;   // ~2700 km (radians)
+function addSeaNeighborsV2() {
+  const P = S.provinces;
+  const ids = Object.keys(P).filter(id => P[id].lat != null && P[id].lon != null && !P[id]._bad);
+  for (const id of ids) {
+    const p = P[id];
+    if ((p.neighbors || []).length > 2) continue;            // already reachable by land
+    const cand = [];
+    for (const o of ids) { if (o === id || p.neighbors.includes(o)) continue; cand.push({ o, d: _gcDist([p.lon, p.lat], [P[o].lon, P[o].lat]) }); }
+    cand.sort((a, b) => a.d - b.d);
+    let added = 0;
+    for (const x of cand) {
+      if (added < 2 || (x.d < SEA_LINK_MAX_V2 && added < 3)) {
+        if (!p.neighbors.includes(x.o)) { p.neighbors.push(x.o); (p.sea = p.sea || {})[x.o] = 1; }
+        const q = P[x.o]; if (!q.neighbors.includes(id)) { q.neighbors.push(id); (q.sea = q.sea || {})[id] = 1; }
+        added++;
+      }
+      if (added >= 3) break;
+    }
+  }
+}
+let _provinceTopoCache = null;
+function loadProvinceMap(cb) {
+  const done = (topo) => { try { const r = initWorldV2(topo); cb && cb(true, r); } catch (e) { console.error('initWorldV2 failed', e); cb && cb(false); } };
+  if (_provinceTopoCache) { done(_provinceTopoCache); return; }
+  fetch('maps/provinces.topojson').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(topo => { _provinceTopoCache = topo; done(topo); })
+    .catch(e => { console.error('province map fetch failed', e); cb && cb(false); });
+}
+window.loadProvinceMap = loadProvinceMap;
+
+// ── v2 combat & movement (province grade) ───────────────────────────────────
+// Armies live in provinces and hop between ADJACENT provinces (land or sea-link).
+// A friendly hop reinforces; an enemy hop attacks → conquest flips `province.nation`.
+function combatMulV2(nid) {
+  const n = S.nations[nid]; if (!n) return 1;
+  return (typeof ERAS !== 'undefined' && ERAS[n.era]) ? ERAS[n.era].combatMul : 1;
+}
+function provinceDefMulV2(pid) {
+  const p = S.provinces[pid]; if (!p) return 1;
+  let m = 1;
+  if (p.terrain === 'mountains') m += 0.30; else if (p.terrain === 'hills') m += 0.15; else if (p.terrain === 'forest') m += 0.10;
+  if (p.building === 'fortress') m += 0.50;
+  return m + (p.defense || 0) / 100;          // accrued province defence points (P3.x)
+}
+function resolveCombatV2(fromPid, toPid) {
+  const from = S.provinces[fromPid], to = S.provinces[toPid];
+  if (!from || !to) return null;
+  const atkNid = from.nation;
+  const atkArmy = from.army;
+  const atk = atkArmy * combatMulV2(atkNid);
+  const def = to.army * combatMulV2(to.nation) * provinceDefMulV2(toPid);
+  if (atk > def) {                              // attacker wins → occupy
+    const survivors = Math.max(1, Math.round((atk - def) / Math.max(0.01, combatMulV2(atkNid))));
+    const occupy = Math.min(atkArmy, survivors);
+    to.nation = atkNid; to.army = occupy; to.defense = 0; to.building = to.building;  // keep buildings
+    from.army = Math.max(0, atkArmy - occupy);
+    if (typeof markBordersDirty === 'function') markBordersDirty();
+    return 'win';
+  }
+  const atkLoss = Math.round(atkArmy * Math.min(0.9, def / (atk + def)));
+  from.army = Math.max(0, atkArmy - atkLoss);
+  to.army = Math.max(1, to.army - Math.round(to.army * (atk / (atk + def)) * 0.55));
+  return 'loss';
+}
+function moveOrAttackV2(fromPid, toPid, troops) {
+  const from = S.provinces[fromPid], to = S.provinces[toPid];
+  if (!from || !to || !(from.neighbors || []).includes(toPid)) return false;   // must be adjacent
+  if (from.army <= 1) return false;
+  if (from.sea && from.sea[toPid] && from.building !== 'port') return false;  // sea hop needs port
+  if (to.nation === from.nation) {             // reinforce a friendly province
+    const n = Math.min(troops || (from.army - 1), from.army - 1);
+    if (n <= 0) return false;
+    from.army -= n; to.army += n; return true;
+  }
+  return resolveCombatV2(fromPid, toPid);      // enemy → attack with the stack
+}
+window.moveOrAttackV2 = moveOrAttackV2;
+
 // Per-turn income/manpower/upkeep — fully additive, no compounding multipliers.
 //
 // Gold per province  = (base + devBonus + popBonus + eraBonus) × stabMod
@@ -10439,6 +10642,269 @@ function computeCountryStats(feature) {
 // Manpower cap = max(120 + era×50, lands×30 + era×35)
 //   Guarantees scenario-boosted nations (up to era 4) never immediately exceed cap.
 const DEV_INCOME = [0, 1, 3, 6, 10, 15]; // indexed by development 1–5 (index 0 unused)
+
+// ── v2 regimes (P5) ──────────────────────────────────────────────────────────
+// incMul:      gold income multiplier for nations of this regime
+// stabCeil:    maximum province stability (republic can't sustain 100)
+// colonyFree:  tribal nations pay no colonization cost
+// rebelChance: per-province per-turn probability a <30 stab province revolts
+const V2_REGIMES = {
+  tribal:   { incMul: 0.85, stabCeil: 75,  colonyFree: true,  rebelChance: 0    },
+  feudal:   { incMul: 0.95, stabCeil: 85,  colonyFree: false, rebelChance: 0.02 },
+  monarchy: { incMul: 1.00, stabCeil: 90,  colonyFree: false, rebelChance: 0.02 },
+  republic: { incMul: 1.20, stabCeil: 75,  colonyFree: false, rebelChance: 0    },
+  empire:   { incMul: 1.10, stabCeil: 100, colonyFree: false, rebelChance: 0.05 },
+};
+
+// ── v2 province buildings (P5) ───────────────────────────────────────────────
+// One building per province (p.building = key string).
+const V2_BUILDINGS = {
+  fortress: { cost: { gold: 150, mp: 1 }, label: 'Fortress', effect: '+50% province defense' },
+  armory:   { cost: { gold: 100, mp: 1 }, label: 'Armory',   effect: 'Halves recruit cost'   },
+  port:     { cost: { gold: 120, mp: 1 }, label: 'Port',     effect: 'Enables sea movement'  },
+  market:   { cost: { gold: 100, mp: 1 }, label: 'Market',   effect: '+2 gold income/turn'   },
+};
+
+// ── v2 income aggregation ─────────────────────────────────────────────────────
+function calculateIncomeV2(nid) {
+  const n = S.nations[nid];
+  if (!n) return { gold: 0, manpower: 0, upkeep: 0, net: 0, manCap: 120, lands: 0, capLost: false };
+  const provs = nationProvinces(nid);
+  if (!provs.length) return { gold: 0, manpower: 0, upkeep: 0, net: 0, manCap: 120, lands: 0, capLost: false };
+  const era       = (ERAS && ERAS[n.era]) ? ERAS[n.era] : { incomeBonus: 0, mpBonus: 0 };
+  const regime    = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  const capPid    = n.capital;
+  const capLost   = !!(capPid && S.provinces[capPid] && S.provinces[capPid].nation !== nid);
+  // Build set of capital-adjacent pids for the +1g radius bonus
+  const capAdjSet = new Set();
+  if (capPid && S.provinces[capPid] && !capLost) {
+    for (const nb of (S.provinces[capPid].neighbors || [])) capAdjSet.add(nb);
+  }
+  let gold = 0, manpower = 0, totalArmy = 0;
+  for (const pid of provs) {
+    const p = S.provinces[pid]; if (!p || p._bad) continue;
+    const stabMod  = 0.5 + (p.stability || 70) / 200;
+    const dev      = Math.min(5, Math.max(1, p.dev || 1));
+    const popBonus = Math.floor((p.pop || 80) / 80);
+    const mktBonus = (p.building === 'market') ? 2 : 0;
+    let pGold = Math.floor((3 + DEV_INCOME[dev] + popBonus + era.incomeBonus + mktBonus) * stabMod);
+    if (pid === capPid) pGold += 3;            // capital seat: +3g flat
+    else if (capAdjSet.has(pid)) pGold += 1;  // capital radius: +1g flat
+    gold += pGold;
+    manpower += Math.floor((2 + Math.floor((p.pop || 80) / 100) + era.mpBonus) * stabMod);
+    totalArmy += (p.army || 0);
+  }
+  if (capLost) gold = Math.floor(gold * 0.5);        // lost capital halves income
+  gold = Math.floor(gold * regime.incMul);            // regime multiplier
+  const upkeep = Math.floor(totalArmy * (0.25 + n.era * 0.05));
+  const lands  = provs.length;
+  const manCap = Math.max(120 + n.era * 50, lands * 30 + n.era * 35);
+  return { gold, manpower, upkeep, net: gold - upkeep, manCap, lands, capLost };
+}
+
+// ── v2 end-of-turn ───────────────────────────────────────────────────────────
+// Processes all nations: defence accrual, income, MP/DP, stability (regime-capped),
+// capital-loss shock, and regime-based rebellion.
+const V2_DEF_CAP = 50;      // max defence points per province
+const V2_DEF_ACCRUAL = 1;   // defence points gained per province per turn at peace
+function endTurnV2() {
+  if (!S.v2) return;
+  // Province defence accrual — independent of gold/mp
+  for (const pid in S.provinces) {
+    const p = S.provinces[pid]; if (!p || p._bad) continue;
+    const owner = p.nation ? S.nations[p.nation] : null;
+    const ownerAtWar = owner && Object.values(owner.rel || {}).some(r => r === 'war');
+    if (!ownerAtWar) p.defense = Math.min(V2_DEF_CAP, (p.defense || 0) + V2_DEF_ACCRUAL);
+  }
+  // Per-nation: income, MP/DP, stability with regime ceiling + capital-loss + rebellion
+  for (const nid in S.nations) {
+    const n = S.nations[nid]; if (!n || n.eliminated) continue;
+    const inc    = calculateIncomeV2(nid);
+    const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+    n.gold     = Math.max(0, (n.gold || 0) + inc.net);
+    n.manpower = Math.min(inc.manCap, (n.manpower || 0) + inc.manpower);
+    n.mp = Math.min(6 + n.era * 2, (n.mp || 0) + 1 + n.era * 0.4);
+    n.dp = Math.min(4 + n.era * 2, (n.dp || 0) + 1 + n.era * 0.3);
+    // Capital-loss shock: first turn the capital is held by an enemy → −20 stab everywhere
+    if (inc.capLost && !n._capWasLost) {
+      for (const pid of nationProvinces(nid)) {
+        const p = S.provinces[pid]; if (!p || p._bad) continue;
+        p.stability = Math.max(5, (p.stability || 70) - 20);
+      }
+    }
+    n._capWasLost = inc.capLost;
+    const atWar     = Object.values(n.rel || {}).some(r => r === 'war');
+    const stabDelta = atWar ? -0.5 : 2;
+    for (const pid of nationProvinces(nid)) {
+      const p = S.provinces[pid]; if (!p || p._bad) continue;
+      // Stability: regen + clamp to regime ceiling
+      p.stability = Math.max(5, Math.min(regime.stabCeil, (p.stability || 70) + stabDelta));
+      // Rebellion: very unstable provinces in risky regimes go neutral
+      if (regime.rebelChance > 0 && pid !== n.capital && (p.stability || 70) < 30 && Math.random() < regime.rebelChance) {
+        p.nation = null;
+      }
+    }
+  }
+  aiColonizeV2();
+}
+window.calculateIncomeV2 = calculateIncomeV2;
+window.endTurnV2 = endTurnV2;
+
+// ── v2 colonization (P4) ──────────────────────────────────────────────────────
+// Cost scales with province richness. Tribal regime ignores cost (P5 gate).
+const V2_COLONY_GOLD_BASE = 50;
+const V2_COLONY_MP_COST   = 1;
+
+function colonizeCostV2(pid) {
+  const p = S.provinces[pid];
+  if (!p) return { gold: 999, mp: 2 };
+  const dev  = Math.min(5, Math.max(1, p.dev || 1));
+  const gold = V2_COLONY_GOLD_BASE + dev * 15 + Math.floor((p.pop || 80) / 40);
+  return { gold, mp: V2_COLONY_MP_COST };
+}
+
+// Checks all conditions for nid to colonize pid (neutral adjacency + resources)
+function canColonizeV2(nid, pid) {
+  if (!S.v2) return false;
+  const p = S.provinces[pid]; if (!p || p._bad || p.wasteland) return false;
+  if (p.nation) return false;                                       // must be neutral
+  const adjacent = (p.neighbors || []).some(nbId => {
+    const nb = S.provinces[nbId];
+    return nb && nb.nation === nid;
+  });
+  if (!adjacent) return false;
+  const n = S.nations[nid]; if (!n || n.eliminated) return false;
+  const cost   = colonizeCostV2(pid);
+  const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  return regime.colonyFree || ((n.gold || 0) >= cost.gold && (n.mp || 0) >= cost.mp);
+}
+
+// Executes the colonize action; returns true on success
+function doColonizeV2(nid, pid) {
+  if (!canColonizeV2(nid, pid)) return false;
+  const p    = S.provinces[pid];
+  const n    = S.nations[nid];
+  const cost = colonizeCostV2(pid);
+  const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  if (!regime.colonyFree) {
+    n.gold = (n.gold || 0) - cost.gold;
+    n.mp   = Math.max(0, (n.mp || 0) - cost.mp);
+  }
+  p.nation    = nid;
+  p.army      = Math.max(1, p.army || 0);
+  p.stability = 50;   // new colony starts fragile
+  p.defense   = 0;    // no accrued defence yet
+  return true;
+}
+
+// Returns neutral pids adjacent to nid's territory, sorted by province value desc
+function neutralAdjacentV2(nid) {
+  const owned = new Set(nationProvinces(nid));
+  const seen  = new Set();
+  const result = [];
+  for (const pid of owned) {
+    const p = S.provinces[pid]; if (!p || p._bad) continue;
+    for (const nbId of (p.neighbors || [])) {
+      if (seen.has(nbId)) continue; seen.add(nbId);
+      const nb = S.provinces[nbId];
+      if (!nb || nb._bad || nb.wasteland || nb.nation) continue;   // occupied/bad → skip
+      result.push(nbId);
+    }
+  }
+  result.sort((a, b) => {
+    const pa = S.provinces[a], pb = S.provinces[b];
+    const va = (pa.dev || 1) * 5 + Math.floor((pa.pop || 80) / 80);
+    const vb = (pb.dev || 1) * 5 + Math.floor((pb.pop || 80) / 80);
+    return vb - va;
+  });
+  return result;
+}
+
+// AI: each non-human nation colonizes the best adjacent neutral it can afford (≤1/turn)
+function aiColonizeV2() {
+  if (!S.v2) return;
+  for (const nid in S.nations) {
+    const n = S.nations[nid];
+    if (!n || n.eliminated || n.isHuman) continue;
+    const candidates = neutralAdjacentV2(nid);
+    for (const pid of candidates) { if (doColonizeV2(nid, pid)) break; }
+  }
+}
+
+// Strips ownership from `fraction` of each nation's weakest provinces to create
+// colonizable land. Call once after initWorldV2 for a colonization-mode game.
+// The nation's capital province is always preserved.
+function designateNeutralsV2(fraction) {
+  if (!S.v2) return;
+  fraction = Math.max(0, Math.min(1, fraction || 0.15));
+  for (const nid in S.nations) {
+    const n = S.nations[nid]; if (!n) continue;
+    const provs = nationProvinces(nid);
+    const toNeutral = Math.floor(provs.length * fraction);
+    if (!toNeutral) continue;
+    provs.sort((a, b) => {
+      const pa = S.provinces[a], pb = S.provinces[b];
+      return ((pa.dev || 1) + (pa.army || 0)) - ((pb.dev || 1) + (pb.army || 0));
+    });
+    let stripped = 0;
+    for (const pid of provs) {
+      if (pid === n.capital) continue;
+      S.provinces[pid].nation = null;
+      if (++stripped >= toNeutral) break;
+    }
+  }
+}
+
+window.colonizeCostV2      = colonizeCostV2;
+window.canColonizeV2       = canColonizeV2;
+window.doColonizeV2        = doColonizeV2;
+window.neutralAdjacentV2   = neutralAdjacentV2;
+window.aiColonizeV2        = aiColonizeV2;
+window.designateNeutralsV2 = designateNeutralsV2;
+
+// ── v2 province buildings (P5) ───────────────────────────────────────────────
+// Build a province building (one per province). Returns true on success.
+function buildV2(nid, pid, type) {
+  if (!S.v2) return false;
+  const p = S.provinces[pid]; if (!p || p._bad) return false;
+  if (p.nation !== nid) return false;     // must own it
+  if (p.building) return false;           // one building per province
+  const bld = V2_BUILDINGS[type]; if (!bld) return false;
+  const n = S.nations[nid]; if (!n || n.eliminated) return false;
+  if ((n.gold || 0) < bld.cost.gold) return false;
+  if ((n.mp || 0)  < bld.cost.mp)   return false;
+  n.gold = (n.gold || 0) - bld.cost.gold;
+  n.mp   = Math.max(0, (n.mp || 0) - bld.cost.mp);
+  p.building = type;
+  return true;
+}
+
+// ── v2 capital relocation (P5) ───────────────────────────────────────────────
+const V2_RELOCATE_GOLD = 100;
+const V2_RELOCATE_MP   = 1;
+
+// Move nation capital to newPid (must be owned, not already capital). Returns true on success.
+function relocateCapitalV2(nid, newPid) {
+  if (!S.v2) return false;
+  const n = S.nations[nid]; if (!n || n.eliminated) return false;
+  const p = S.provinces[newPid]; if (!p || p._bad) return false;
+  if (p.nation !== nid) return false;
+  if (newPid === n.capital) return false;
+  if ((n.gold || 0) < V2_RELOCATE_GOLD) return false;
+  if ((n.mp || 0)  < V2_RELOCATE_MP)   return false;
+  n.gold = (n.gold || 0) - V2_RELOCATE_GOLD;
+  n.mp   = Math.max(0, (n.mp || 0) - V2_RELOCATE_MP);
+  const old = S.provinces[n.capital];
+  if (old) { old.capital = false; old.capitalOf = null; }
+  p.capital = true; p.capitalOf = nid;
+  n.capital = newPid;
+  return true;
+}
+
+window.buildV2            = buildV2;
+window.relocateCapitalV2  = relocateCapitalV2;
+window.V2_REGIMES         = V2_REGIMES;
+window.V2_BUILDINGS       = V2_BUILDINGS;
 
 function calculateIncome(pid) {
   const p = S.players[pid];
@@ -10673,12 +11139,87 @@ function startGame(humanCountryId) {
   setTimeout(() => checkTips(), 1400);
 }
 
+// ── Province mode entry point (P6) ───────────────────────────────────────────
+// Called from the setup screen's "PROVINCE MAP" button. Loads the province
+// topojson, designates neutral land, then hands control to the setup globe so
+// the player can click a province to pick their nation.
+function enterProvinceModeSetup() {
+  const btn  = document.getElementById('province-mode-btn');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '◌ LOADING…'; }
+
+  loadProvinceMap((ok, info) => {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+    if (!ok) { alert('Province map failed to load. Check maps/provinces.topojson exists.'); return; }
+    designateNeutralsV2(0.15);   // seed ~15% neutral land for colonisation
+
+    // Enter the globe picker — same as the v1 flow but now S.v2 is true
+    const chrome = document.getElementById('setup-chrome');
+    const prompt = document.getElementById('setup-prompt');
+    const picker = document.getElementById('scenario-picker');
+    if (chrome) chrome.style.display = 'none';
+    if (picker) picker.style.display = 'none';
+    if (prompt) { prompt.hidden = false; prompt.textContent = '▸ DRAG TO ROTATE · TAP A PROVINCE TO CLAIM ITS NATION AS YOUR HOMELAND'; }
+
+    S.setupPhase = true;   // keeps handleSelect in nation-pick mode
+    S.year = 2024; S.monthIdx = 0;
+    try { setupSetupCanvas(); } catch (e) {}
+    try { renderSetup(); } catch (e) {}
+  });
+}
+window.enterProvinceModeSetup = enterProvinceModeSetup;
+
+// Launches the v2 province-mode game for `nid`. Called by handleSelect when
+// the player taps a province during province-mode setup.
+function startGameV2(nid) {
+  const n = S.nations[nid]; if (!n) return;
+  S.humanId    = nid;
+  n.isHuman    = true;
+  n.color      = '#e63946';   // crimson
+
+  // Head start matching the chosen difficulty
+  const d     = getDiff();
+  n.gold      = d.startGold;
+  n.manpower  = d.startManpower;
+  n.mp = 10; n.dp = 6;
+
+  S.setupPhase = false;
+  S.turn = 1;
+  S.eventState = {};
+  S.globalModifiers = {};
+  _turnSummaryQueue = [];
+
+  // Override window.endTurn so the END TURN button/key runs the v2 loop
+  window.endTurn = function endTurnV2Wrapper() {
+    const btn = document.getElementById('end-turn');
+    if (btn) { btn.disabled = true; }
+    endTurnV2();
+    S.turn++;
+    advanceTime();
+    updateHUD();
+    markBordersDirty();
+    render();
+    if (btn) { btn.disabled = false; }
+  };
+
+  document.getElementById('setup').hidden = true;
+  document.getElementById('game').hidden  = false;
+
+  setupGameCanvas();
+  updateDate();
+  markBordersDirty();
+  updateHUD();
+  render();
+  startWarPulse();
+}
+window.startGameV2 = startGameV2;
+
 function updateDate() {
   const dateEl = document.getElementById('date-text');
-  const eraEl = document.getElementById('era-text');
+  const eraEl  = document.getElementById('era-text');
   dateEl.textContent = `${MONTHS[S.monthIdx]} ${S.year}`;
-  const me = S.players[S.humanId];
-  eraEl.textContent = `· ${T(ERAS[me.era].name)}`;
+  const era = S.v2 ? ((S.nations[S.humanId] || {}).era || 0) : ((S.players[S.humanId] || {}).era || 0);
+  eraEl.textContent = `· ${T((ERAS[era] || ERAS[0]).name)}`;
 }
 
 function advanceTime() {
@@ -15097,7 +15638,35 @@ window.renderStatsPanel = renderStatsPanel;
 // ============================================================================
 // HUD
 // ============================================================================
+
+// Lightweight HUD for province-mode (v2). Only populates elements that exist
+// and make sense without v1 structures (no intel, no trade, no loans).
+function updateHUDV2() {
+  const n = S.nations[S.humanId]; if (!n) return;
+  const provs = nationProvinces(S.humanId);
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const setHTML = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+  set('my-name', n.name.toUpperCase());
+  set('my-lands', provs.length);
+  set('my-armies', provs.reduce((s, pid) => s + ((S.provinces[pid] || {}).army || 0), 0));
+  const inc = calculateIncomeV2(S.humanId);
+  const capTag = inc.capLost ? ' <span style="color:var(--red-warn);font-size:9px">CAP LOST</span>' : '';
+  setHTML('my-gold', `${n.gold} <span class="gain">+${inc.net}/t</span>${capTag}`);
+  if (inc.upkeep > 0) {
+    const el = document.getElementById('my-gold');
+    if (el) el.innerHTML += ` <span class="upkeep-tag">-${inc.upkeep}</span>`;
+  }
+  setHTML('my-manpower', `${n.manpower} <span class="gain">+${inc.manpower}/t</span>`);
+  const mpCap = Math.round(6 + n.era * 2);
+  const dpCap = Math.round(4 + n.era * 2);
+  setHTML('my-mp', `<span class="ap-val ${n.mp < 2 ? 'ap-low' : ''}">${Math.floor(n.mp)}/${mpCap}</span>`);
+  setHTML('my-dp', `<span class="ap-val ${n.dp < 2 ? 'ap-low' : ''}">${Math.floor(n.dp)}/${dpCap}</span>`);
+  // Hide v1-only chips that have no v2 meaning yet
+  ['my-intel','my-trade'].forEach(id => { const el = document.getElementById(id); if (el && el.closest('.chip')) el.closest('.chip').style.display = 'none'; });
+}
+
 function updateHUD() {
+  if (S.v2) { updateHUDV2(); return; }
   const me = S.players[S.humanId];
   if (!me) return;
   const owned = playerOwned(S.humanId);
@@ -15569,6 +16138,12 @@ window.setMoveFraction = function(f) {
 function handleSelect(id) {
   if (S.gameOver) return;
   if (S.setupPhase) {
+    // Province-mode: id is a province id → resolve to nation
+    if (S.v2) {
+      const p = S.provinces[id]; if (!p || !p.nation) return;
+      startGameV2(p.nation);
+      return;
+    }
     // Pick starting country
     const c = S.countries[id];
     if (!c) return;
