@@ -3730,6 +3730,23 @@ ru: {
   'Any invader of Russia suffers -25% combat and -30 manpower after turn 12.': 'Любой захватчик России несёт -25% в бою и -30 людских ресурсов после хода 12.',
   'Peninsular War': 'Пиренейская война',
   'Spain and Portugal gain +20% defence while resisting a French occupation.': 'Испания и Португалия получают +20% к обороне, сопротивляясь французской оккупации.',
+  // ---- gunpowder empires (1700) ----
+  'GUNPOWDER EMPIRES': 'ПОРОХОВЫЕ ИМПЕРИИ',
+  'EARLY MODERN · 1700 AD': 'НОВОЕ ВРЕМЯ · 1700 Г. Н.Э.',
+  'Mughal Empire': 'Империя Великих Моголов',
+  'Safavid Persia': 'Сефевидская Персия',
+  'European Powers': 'Европейские державы',
+  'The age of the great land empires of Asia and Islam. The Mughals rule India, the Ottomans straddle three continents, Safavid Persia and Qing China tower over the East — while European trading companies probe every coast.': 'Эпоха великих сухопутных империй Азии и ислама. Моголы правят Индией, Османы раскинулись на трёх континентах, Сефевидская Персия и цинский Китай возвышаются над Востоком — а европейские торговые компании прощупывают каждый берег.',
+  'Cannon and musket have made a handful of dynasties colossal. From the Bosphorus to Bengal, gunpowder empires command millions. But European ships are nibbling at the edges, and a different kind of power — trade, finance and the broadside — is already taking root.': 'Пушка и мушкет сделали горстку династий колоссами. От Босфора до Бенгалии пороховые империи повелевают миллионами. Но европейские корабли откусывают по краям, и иная сила — торговля, финансы и бортовой залп — уже пускает корни.',
+  '1700 — Gunpowder empires bestride the Old World: Mughal, Ottoman, Safavid and Qing. But European sails are on every horizon, and the coming century belongs to whoever masters the new ways of war and trade.': '1700 — Пороховые империи господствуют над Старым Светом: Моголы, Османы, Сефевиды и Цин. Но европейские паруса на каждом горизонте, и грядущий век достанется тому, кто овладеет новыми способами войны и торговли.',
+  'Decline of the Mughals': 'Закат Великих Моголов',
+  'After turn 18 the Mughal Empire risks -20 stability as its provinces grow restless.': 'После хода 18 Империя Великих Моголов рискует потерять -20 стабильности, ведь её провинции становятся беспокойными.',
+  'European Trading Companies': 'Европейские торговые компании',
+  'Coastal European powers gain +4 trade income per route from the Indies.': 'Прибрежные европейские державы получают +4 торгового дохода с маршрута из Индий.',
+  'Ottoman–Habsburg Wars': 'Османо-габсбургские войны',
+  'The Ottomans and Austria gain +15% combat against each other for the first 8 turns.': 'Османы и Австрия получают +15% в бою друг против друга в первые 8 ходов.',
+  'Great Northern War': 'Великая Северная война',
+  'Sweden and Russia clash for the Baltic — both gain +20% combat in their first war.': 'Швеция и Россия сходятся в борьбе за Балтику — обе получают +20% в бою в своей первой войне.',
   // ---- current world (2025) ----
   'CURRENT WORLD': 'СОВРЕМЕННЫЙ МИР',
   'MODERN ERA · 2025 AD': 'СОВРЕМЕННАЯ ЭПОХА · 2025 Г. Н.Э.',
@@ -7267,8 +7284,10 @@ const SCENARIOS = [
       {label:'Han China',       id:'156', type:'ally'}
     ],
     globalEra:1,
+    // The provinces are MERGED into Rome (380) so the empire renders as one bloc.
+    groups:{ '380': ['250','724','826','818','300','792','788'] },
     relations:[
-      // Roman provinces as a great alliance bloc
+      // (provinces are now part of Rome; these allies are harmless no-ops post-merge)
       {a:'380',b:'250',rel:'ally'},
       {a:'380',b:'724',rel:'ally'},
       {a:'380',b:'826',rel:'ally'},
@@ -7317,6 +7336,16 @@ const SCENARIOS = [
       {label:'Fatimid Caliphate',   id:'818',type:'war'}
     ],
     globalEra:1,
+    // Era-accurate empire shapes — member lands merge into the empire (borders dissolve).
+    groups:{
+      '276':['040','203','756','528','056','442','705'],   // Holy Roman Empire
+      '300':['807','008'],                                  // Byzantine Empire
+      '643':['804','112'],                                  // Kievan Rus
+      '788':['504','012'],                                  // Almohad Caliphate
+      '792':['364','368','760','004'],                      // Seljuk Sultanate
+      '818':['434'],                                        // Fatimid Caliphate
+      '356':['586','050']                                   // Delhi Sultanate
+    },
     relations:[
       {a:'826',b:'792',rel:'war'},
       {a:'250',b:'792',rel:'war'},
@@ -7361,6 +7390,15 @@ const SCENARIOS = [
       {label:'Latin Christendom', id:'276', type:'war'}
     ],
     globalEra:2,
+    // Each khanate / sultanate renders as one bloc (Yuan China 156 is large on its own).
+    groups:{
+      '496':['408'],                        // Mongol heartland (+ Korea)
+      '643':['804','112'],                  // Golden Horde
+      '364':['368','004'],                  // Ilkhanate
+      '398':['860','762','417','795'],      // Chagatai Khanate
+      '818':['760','422','400','275','376'],// Mamluk Sultanate (Egypt + Levant)
+      '356':['586','050']                   // Delhi Sultanate
+    },
     relations:[
       // The khanates — a fracturing super-alliance
       {a:'496',b:'156',rel:'ally'},
@@ -7414,6 +7452,12 @@ const SCENARIOS = [
       {label:'New World Empires',  id:'484', type:'war'}
     ],
     globalEra:2,
+    groups:{
+      '792':['300','688','100','807','008','499','070'],  // Ottoman Empire (Anatolia + Balkans)
+      '604':['218','068'],                                 // Inca Empire
+      '484':['320'],                                       // Aztec Empire
+      '643':['804','112']                                  // Grand Duchy of Moscow
+    },
     relations:[
       {a:'724',b:'620',rel:'peace'},
       {a:'724',b:'792',rel:'war'},
@@ -7451,6 +7495,58 @@ const SCENARIOS = [
     startLog:'1492 — Granada falls and Columbus sails west into the unknown. The age of caravels, conquistadors and global empire begins.'
   },
   {
+    id:'gunpowder',
+    name:'GUNPOWDER EMPIRES', year:1700, monthIdx:0, eraIndex:2,
+    icon:'🕌',            badge:'EARLY MODERN · 1700 AD',
+    description:'The age of the great land empires of Asia and Islam. The Mughals rule India, the Ottomans straddle three continents, Safavid Persia and Qing China tower over the East — while European trading companies probe every coast.',
+    flavor:'Cannon and musket have made a handful of dynasties colossal. From the Bosphorus to Bengal, gunpowder empires command millions. But European ships are nibbling at the edges, and a different kind of power — trade, finance and the broadside — is already taking root.',
+    factions:[
+      {label:'Mughal Empire',   id:'356', type:'ally'},
+      {label:'Ottoman Empire',  id:'792', type:'war'},
+      {label:'Safavid Persia',  id:'364', type:'war'},
+      {label:'European Powers', id:'826', type:'ally'}
+    ],
+    globalEra:2,
+    groups:{
+      '356':['586','050','004'],                                                                                          // Mughal Empire
+      '792':['300','688','100','807','008','499','070','368','760','422','400','275','376','818','434','887','682','012','788'], // Ottoman Empire
+      '364':['031'],                                                                                                       // Safavid Persia
+      '156':['496'],                                                                                                       // Qing China
+      '643':['804','112','398']                                                                                            // Tsardom of Russia
+    },
+    relations:[
+      {a:'792',b:'364',rel:'war'},
+      {a:'356',b:'364',rel:'war'},
+      {a:'792',b:'040',rel:'war'},
+      {a:'826',b:'250',rel:'war'},
+      {a:'620',b:'528',rel:'war'},
+      {a:'826',b:'356',rel:'peace'},
+      {a:'792',b:'643',rel:'war'}
+    ],
+    boosts:{
+      '356':{name:'Mughal Empire',     gold:520,army:150,manpower:300,era:2,stability:80,development:7},
+      '792':{name:'Ottoman Empire',    gold:420,army:140,manpower:260,era:2,stability:78,development:7},
+      '364':{name:'Safavid Persia',    gold:300,army:110,manpower:200,era:2,stability:72,development:6},
+      '156':{name:'Qing China',        gold:560,army:160,manpower:320,era:2,stability:82,development:8},
+      '643':{name:'Tsardom of Russia', gold:280,army:120,manpower:220,era:2,stability:70,development:5},
+      '826':{name:'Kingdom of England',gold:300,army:80, manpower:150,era:2,stability:82,development:8},
+      '250':{name:'Kingdom of France', gold:340,army:100,manpower:190,era:2,stability:80,development:8},
+      '724':{name:'Kingdom of Spain',  gold:280,army:80, manpower:160,era:2,stability:72,development:7},
+      '620':{name:'Kingdom of Portugal',gold:240,army:60,manpower:120,era:2,stability:76,development:7},
+      '528':{name:'Dutch Republic',    gold:320,army:65, manpower:120,era:2,stability:84,development:9},
+      '040':{name:'Habsburg Austria',  gold:260,army:90, manpower:170,era:2,stability:74,development:7},
+      '752':{name:'Swedish Empire',    gold:220,army:85, manpower:150,era:2,stability:76,development:7},
+      '392':{name:'Tokugawa Japan',    gold:260,army:70, manpower:150,era:2,stability:88,development:7}
+    },
+    events:[
+      {title:'Decline of the Mughals',     desc:'After turn 18 the Mughal Empire risks -20 stability as its provinces grow restless.'},
+      {title:'European Trading Companies',  desc:'Coastal European powers gain +4 trade income per route from the Indies.'},
+      {title:'Ottoman–Habsburg Wars',       desc:'The Ottomans and Austria gain +15% combat against each other for the first 8 turns.'},
+      {title:'Great Northern War',          desc:'Sweden and Russia clash for the Baltic — both gain +20% combat in their first war.'}
+    ],
+    startLog:'1700 — Gunpowder empires bestride the Old World: Mughal, Ottoman, Safavid and Qing. But European sails are on every horizon, and the coming century belongs to whoever masters the new ways of war and trade.'
+  },
+  {
     id:'napoleonic',
     name:'NAPOLEONIC WARS', year:1804, monthIdx:11, eraIndex:3,
     icon:'🎖️',            badge:'INDUSTRIAL ERA · 1804 AD',
@@ -7463,6 +7559,13 @@ const SCENARIOS = [
       {label:'Austrian Empire',  id:'040', type:'war'}
     ],
     globalEra:3,
+    groups:{
+      '250':['056','442'],                                                       // French Empire core
+      '040':['348','203','705','191','703'],                                     // Austrian Empire
+      '643':['804','112','498','233','428','440','246','051','031','268'],        // Russian Empire
+      '792':['300','688','100','807','008','499','070','368','760','422','400','275','376','818','434','887','682'], // Ottoman Empire
+      '826':['372','356','124','036']                                            // British Empire
+    },
     relations:[
       // French Empire & satellites
       {a:'250',b:'380',rel:'ally'},
@@ -7522,6 +7625,13 @@ const SCENARIOS = [
       {label:'Ottoman Empire', id:'792',type:'war'}
     ],
     globalEra:3,
+    groups:{
+      '826':['372','356','586','050','104','124','036','554','710','458','288','566','404','800','716','144'], // British Empire
+      '643':['804','112','498','233','428','440','246','616','051','031','268','398','860','795','417','762'],  // Russian Empire
+      '040':['348','203','705','191','703'],                                                                    // Austrian Empire
+      '792':['368','760','422','400','275','376','434','887','682','100','070','008','807','499','688'],         // Ottoman Empire
+      '250':['012']                                                                                             // French (Algeria)
+    },
     relations:[
       {a:'826',b:'643',rel:'war'},
       {a:'250',b:'643',rel:'war'},
@@ -7555,6 +7665,7 @@ const SCENARIOS = [
   {
     id:'ww1',
     name:'WORLD WAR I',   year:1914, monthIdx:7, eraIndex:4,
+    eraMap:'maps/ww1.topojson',   // approach B: real 1914 borders (fetched; empires auto-group by SUBJECTO)
     icon:'🪖',             badge:'MODERN ERA · AUG 1914',
     description:'The assassination of Archduke Franz Ferdinand ignites a continent. The Triple Entente faces the Central Powers in the first industrial-scale war.',
     flavor:'The guns of August thunder across Europe. A generation that marched to war believing it would be home by Christmas instead drowns in the mud of the Western Front. Empires that stood for centuries will be erased before 1918.',
@@ -7565,6 +7676,14 @@ const SCENARIOS = [
       {label:'Ottoman Empire',    id:'792',type:'war'}
     ],
     globalEra:4,
+    groups:{
+      '826':['356','586','050','104','124','036','554','710','458','288','566','404','800','716','144','818','729'], // British Empire
+      '276':['516','834','120','768'],                                                                               // German Empire (+ colonies)
+      '040':['348','203','705','191','070','703'],                                                                   // Austria-Hungary
+      '643':['804','112','498','233','428','440','246','616','051','031','268','398','860','795','417','762'],        // Russian Empire
+      '792':['368','760','422','400','275','376','682','887'],                                                       // Ottoman Empire
+      '250':['012','504','788','466','562','148','686','384','854','704','418','116','450','266','178','140']         // French colonial empire
+    },
     relations:[
       // Central Powers alliance
       {a:'276',b:'040',rel:'ally'},
@@ -7632,6 +7751,14 @@ const SCENARIOS = [
       {label:'Fascist Italy',   id:'380',type:'war'}
     ],
     globalEra:4,
+    groups:{
+      '276':['040','203'],                                                                                          // Greater German Reich (annexed Austria + Czechia)
+      '826':['356','586','050','104','124','036','554','710','458','288','566','404','800','716','144','818','729'], // British Empire
+      '643':['804','112','498','233','428','440','268','051','031','398','860','795','417','762'],                   // Soviet Union
+      '392':['410','408','158'],                                                                                     // Imperial Japan (+ Korea, Taiwan)
+      '380':['434','706','232','231'],                                                                               // Italian Empire (Libya, Horn of Africa)
+      '250':['012','504','788','466','562','148','686','384','854','704','418','116','450','266','178','140']         // French colonial empire
+    },
     relations:[
       // Axis alliance
       {a:'276',b:'380',rel:'ally'},
@@ -7703,6 +7830,9 @@ const SCENARIOS = [
       {label:'Non-Aligned',   id:'356',type:'ally'}
     ],
     globalEra:4,
+    // The Soviet republics are MERGED into the USSR (643) so it renders as one bloc.
+    // (The Warsaw Pact satellites — Poland, Czechoslovakia, etc. — stay separate states.)
+    groups:{ '643': ['804','112','498','233','428','440','268','051','031','398','860','795','417','762'] },
     relations:[
       // NATO
       {a:'840',b:'826',rel:'ally'},
@@ -7866,6 +7996,30 @@ function applyScenario(scenarioId, humanId) {
     if (S.players[r.a] && S.players[r.b]) setRelation(r.a, r.b, r.rel);
   }
 
+  // Historical empire merge (groups): every member territory is reassigned to the
+  // union LEADER, so the bloc renders as ONE shape — the M1 border mesh dissolves
+  // any edge where both sides share an owner (so internal republic borders vanish,
+  // only the empire's outer frontier is drawn). The member nations are absorbed
+  // (no longer separate players). e.g. the USSR = Russia + all the Soviet republics.
+  if (sc.groups) {
+    const origHuman = humanId;
+    for (const leader in sc.groups) {
+      if (!S.countries[leader] || !S.players[leader]) continue;
+      for (const mid of sc.groups[leader]) {
+        if (mid === leader || !S.countries[mid]) continue;
+        if (origHuman === mid) humanId = leader;       // human picked a member → promote to the union
+        S.countries[mid].ownerId = leader;             // territory joins the union (border dissolves)
+        const mp = S.players[mid];
+        if (mp) { mp.eliminated = true; mp.isHuman = false; mp.rel = {}; }
+      }
+    }
+    if (humanId !== origHuman) {                        // the human was remapped to the union leader
+      S.humanId = humanId;
+      S.players[humanId].isHuman = true;
+      S.players[humanId].color = '#e63946';            // crimson player colour
+    }
+  }
+
   // Human player overrides
   const hb = sc.boosts[humanId];
   if (hb) {
@@ -7891,6 +8045,47 @@ function applyScenario(scenarioId, humanId) {
   S.countries[humanId].stability = Math.max(S.countries[humanId].stability || 60, 78);
 
   if (sc.startLog) log(T(sc.startLog), 'hist');
+}
+
+// ── Era-accurate maps (approach B) ──────────────────────────────────────────
+// A scenario may carry `eraMap:'maps/<id>.topojson'` — real period geometry from
+// aourednik/historical-basemaps (GPL-3.0; see maps/ATTRIBUTION). We fetch it,
+// rebuild the whole world via the existing initWorld(topo), and auto-group
+// colonies under their overlord (the SUBJECTO field) so empires render as one
+// bloc with no manual id lists. Non-era scenarios use the embedded modern map.
+let _eraMapCache = {};
+function _ensureModernTopoSaved() { if (!window._MODERN_TOPO) window._MODERN_TOPO = window.__TOPO__; }
+function applyEraSubjecto() {
+  // Map polity name → id, then fold every colony into its overlord's territory.
+  const byName = {};
+  for (const id in S.countries) { const c = S.countries[id]; if (c && c.name) byName[c.name] = id; }
+  for (const id in S.countries) {
+    const c = S.countries[id]; if (!c || !c.subjecto) continue;
+    const leader = byName[c.subjecto];
+    if (leader && leader !== id) {
+      c.ownerId = leader;                                 // colony joins the empire (border dissolves)
+      if (S.players[id]) S.players[id].eliminated = true; // absorbed as a separate player
+    }
+  }
+}
+function rebuildWorldFromTopo(topo) {
+  window.__TOPO__ = topo;                 // _getBorders / rebuildFeatures read this
+  initWorld(topo);                        // rebuild S.countries/S.players + land neighbours
+  if (typeof addSeaNeighbors === 'function') addSeaNeighbors();
+  applyEraSubjecto();                     // colonies → empires (era maps only; modern = no-op)
+  if (typeof markBordersDirty === 'function') markBordersDirty();
+}
+function loadEraMap(url, cb) {
+  _ensureModernTopoSaved();
+  const finish = (topo) => { try { rebuildWorldFromTopo(topo); cb && cb(true); } catch (e) { console.error('era rebuild failed', e); cb && cb(false); } };
+  if (_eraMapCache[url]) { finish(_eraMapCache[url]); return; }
+  fetch(url).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(topo => { _eraMapCache[url] = topo; finish(topo); })
+    .catch(e => { console.error('Era map fetch failed:', e); cb && cb(false); });
+}
+function restoreModernMap() {
+  _ensureModernTopoSaved();
+  if (window.__TOPO__ !== window._MODERN_TOPO && window._MODERN_TOPO) rebuildWorldFromTopo(window._MODERN_TOPO);
 }
 
 function showScenarioPicker() {
@@ -7940,8 +8135,21 @@ function showScenarioPicker() {
   confirm.onclick = () => {
     if (!chosen) return;
     S.activeScenario = chosen;
-    picker.style.display = 'none';
-    prompt.hidden = false;
+    const sc = SCENARIOS.find(s => s.id === chosen);
+    const proceed = () => { picker.style.display = 'none'; prompt.hidden = false; try { renderSetup(); } catch (e) {} };
+    if (sc && sc.eraMap) {
+      // Fetch the real period borders, rebuild the world, then pick a nation on it.
+      const orig = confirm.textContent;
+      confirm.disabled = true; confirm.textContent = T('boot_build_world') ? '◌ LOADING MAP…' : '◌ LOADING MAP…';
+      loadEraMap(sc.eraMap, (ok) => {
+        confirm.disabled = false; confirm.textContent = orig;
+        if (!ok) { restoreModernMap(); }   // fall back to the modern map on failure
+        proceed();
+      });
+    } else {
+      restoreModernMap();                   // switching back from an era map → modern
+      proceed();
+    }
   };
 
   document.getElementById('sp-back').onclick = () => {
@@ -10251,6 +10459,7 @@ function initWorld(topo) {
       id: f.id,
       name: (f.properties && f.properties.name) ? f.properties.name : T('ui_unknown'),
       code: ISO[f.id] || 'XX',
+      subjecto: (f.properties && f.properties.subjecto) || null,   // era maps only: colonial overlord
       ownerId: f.id,
       army: startingArmy(),
       neighbors,
@@ -10345,6 +10554,11 @@ function addSeaNeighbors() {
 }
 
 function startGame(humanCountryId) {
+  // Era maps: tapping a colony that was folded into an empire → play that empire.
+  if (S.countries[humanCountryId] && S.players[humanCountryId] && S.players[humanCountryId].eliminated
+      && S.countries[humanCountryId].ownerId && S.countries[humanCountryId].ownerId !== humanCountryId) {
+    humanCountryId = S.countries[humanCountryId].ownerId;
+  }
   S.humanId = humanCountryId;
   S.players[humanCountryId].isHuman = true;
   S.players[humanCountryId].name = S.countries[humanCountryId].name;
@@ -16015,6 +16229,7 @@ boot();
             <option value="medieval">✝️ Medieval Christendom (1096 AD)</option>
             <option value="mongol">🏹 Mongol Empire (1300 AD)</option>
             <option value="discovery">⛵ Age of Discovery (1492 AD)</option>
+            <option value="gunpowder">🕌 Gunpowder Empires (1700 AD)</option>
             <option value="napoleonic">🎖️ Napoleonic Wars (1804 AD)</option>
             <option value="victorian">🎩 Victorian Era (1850 AD)</option>
             <option value="ww1">🪖 World War I (1914)</option>
