@@ -11197,7 +11197,10 @@ function startGameV2(nid) {
   n.mp = 10; n.dp = 6;
 
   S.setupPhase = false;
-  designateNeutralsV2(0.10);   // 10% of each nation's provinces become neutral for colonisation
+  // Full political map: every province keeps its real country (all 2,066 are
+  // assigned in the source data). Colonisation now targets only genuinely-empty
+  // wasteland, so we no longer strip owned land to neutral at game start.
+  // (designateNeutralsV2 stays defined for optional sandbox use.)
   S.turn = 1;
   S.eventState = {};
   S.globalModifiers = {};
