@@ -10467,6 +10467,33 @@ function nationProvinces(nid) {
   for (const pid in P) if (P[pid].nation === nid) o.push(pid);
   return o;
 }
+// Rewrite a feature's geometry in place, keeping only sub-polygons whose outer
+// ring spans ≤180° of longitude. Drops antimeridian-straddling / pole-wrapping
+// rings (the ones that would paint over the whole globe) while preserving every
+// well-behaved island piece. Returns the number of polygons kept.
+function _dropStraddlingPolysV2(f) {
+  const g = f && f.geometry; if (!g) return 0;
+  let polys;
+  if (g.type === 'MultiPolygon') polys = g.coordinates;
+  else if (g.type === 'Polygon')  polys = [g.coordinates];
+  else return 0;
+  const kept = [];
+  for (const poly of polys) {
+    const outer = poly && poly[0];
+    if (!outer || !outer.length) continue;
+    let mn = 181, mx = -181;
+    for (let i = 0; i < outer.length; i++) {
+      const lon = outer[i][0];
+      if (lon < mn) mn = lon;
+      if (lon > mx) mx = lon;
+    }
+    if ((mx - mn) <= 180) kept.push(poly);   // sane piece → keep
+  }
+  if (!kept.length) return 0;
+  if (kept.length === 1) f.geometry = { type: 'Polygon', coordinates: kept[0] };
+  else                   f.geometry = { type: 'MultiPolygon', coordinates: kept };
+  return kept.length;
+}
 function initWorldV2(topo) {
   const fc = topojson.feature(topo, topo.objects.countries);
   const feats = fc.features.filter(f => f.id);
@@ -10520,21 +10547,30 @@ function initWorldV2(topo) {
     S.nations[nid].capital = cap;
     S.provinces[cap].capital = true;
   }
-  // Guard: a few provinces (antimeridian-crossing / degenerate winding from the
-  // simplify) project to the WHOLE globe and would paint over everything. Detect
-  // them with a fixed orthographic (d3's own path logic) and flag _bad → the
-  // renderer + gameplay skip them. ~one-time at load.
+  // Guard: a few provinces have a HUGE aggregate bounding box. Two very different
+  // causes hide behind that symptom:
+  //   (a) FALSE POSITIVE — the feature simply has islands on BOTH sides of the
+  //       antimeridian (Alaska mainland −150° + Aleutians +172°, Chukotka, Fiji,
+  //       Kiribati). Every individual ring is small and renders perfectly; only
+  //       the aggregate span looks globe-wide. These must NOT be skipped.
+  //   (b) GENUINELY BAD — a single ring that itself spans >180° (a pole-wrapping
+  //       or antimeridian-straddling outline, e.g. Antarctica). That one ring
+  //       would paint over the whole globe.
+  // Fix: drop only the straddling RINGS, keep every sane piece, then re-test. A
+  // province stays _bad only if nothing renderable remains.
   try {
-    // Equirectangular (no hemisphere clipping): world is 2π·100 wide (~628) × π·100
-    // tall (~314). A real province spans a small box; an antimeridian/pole/degenerate
-    // feature spans most of the width or height. Flag those.
     const _tpath = d3.geoPath(d3.geoEquirectangular().scale(100).translate([0, 0]));
     let bad = 0;
     for (const f of feats) {
       const pv = S.provinces[f.id]; if (!pv) continue;
       let b; try { b = _tpath.bounds(f); } catch (e) { pv._bad = true; bad++; continue; }
-      const w = b[1][0] - b[0][0], h = b[1][1] - b[0][1];
-      if (!isFinite(w) || !isFinite(h) || w > 420 || h > 250) { pv._bad = true; bad++; }
+      let w = b[1][0] - b[0][0], h = b[1][1] - b[0][1];
+      if (!isFinite(w) || !isFinite(h) || w > 420 || h > 250) {
+        // Salvage: remove any sub-polygon whose own ring straddles the antimeridian.
+        const kept = _dropStraddlingPolysV2(f);
+        if (kept > 0) { pv._bad = false; }   // sane pieces remain → render piece-by-piece
+        else { pv._bad = true; bad++; }      // nothing left to draw
+      }
     }
     S._v2bad = bad;
   } catch (e) {}
