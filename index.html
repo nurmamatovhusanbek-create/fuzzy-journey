@@ -429,6 +429,11 @@
   .stat-row .val { color: var(--ink); font-weight: 500; }
   .stat-row .val.gold-v { color: var(--gold-bright); }
   .stat-row .val.val-hidden { color: var(--ink-dim); font-style: italic; font-weight: 400; opacity: 0.75; }
+  .sel-section-title {
+    font-family: 'Cinzel', serif; font-weight: 700; font-size: 9px;
+    letter-spacing: 0.25em; color: var(--gold); margin: 10px 0 4px;
+    padding-bottom: 4px; border-bottom: 1px solid rgba(212,160,23,0.15);
+  }
 
   .btn {
     width: 100%; padding: 8px 10px; margin-top: 6px;
@@ -3201,6 +3206,21 @@ en: {
   stat_nap:         '▸ NAP',
   stat_truce:       '▸ TRUCE',
   stat_left:        't LEFT',
+  // ── P12: province economy ───────────────────────────────────────────────
+  stat_economy:     'Economy',
+  stat_happiness:   'Happiness',
+  sec_economy:      'NATIONAL ECONOMY',
+  lbl_tax:          'Tax',
+  lbl_production:   'Production',
+  lbl_admin:        'Admin upkeep',
+  lbl_upkeep:       'Army upkeep',
+  lbl_net:          'Net income',
+  lbl_happiness_avg:'Avg. happiness',
+  sec_budget:       'BUDGET ALLOCATION',
+  budget_tax:       'Tax',
+  budget_goods:     'Public goods',
+  budget_research:  'Research',
+  budget_investment:'Investment',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_recruit:      '+ RECRUIT',
   act_develop:      '↑ DEVELOP',
@@ -4405,6 +4425,21 @@ ru: {
   stat_nap:         '▸ ДНА',
   stat_truce:       '▸ ПЕРЕМИРИЕ',
   stat_left:        'х. ОСТАЛОСЬ',
+  // ── P12: экономика провинций ────────────────────────────────────────────
+  stat_economy:     'Экономика',
+  stat_happiness:   'Довольство',
+  sec_economy:      'ЭКОНОМИКА ГОСУДАРСТВА',
+  lbl_tax:          'Налоги',
+  lbl_production:   'Производство',
+  lbl_admin:        'Админ. расходы',
+  lbl_upkeep:       'Содержание армии',
+  lbl_net:          'Чистый доход',
+  lbl_happiness_avg:'Ср. довольство',
+  sec_budget:       'РАСПРЕДЕЛЕНИЕ БЮДЖЕТА',
+  budget_tax:       'Налоги',
+  budget_goods:     'Общ. блага',
+  budget_research:  'Наука',
+  budget_investment:'Инвестиции',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_reduce_army:  'СОКРАТИТЬ АРМИЮ ДО',
   act_reduce_do:    '− РАСПУСТИТЬ ВОЙСКА',
@@ -10606,6 +10641,8 @@ function initWorldV2(topo) {
       army: startingArmy(),
       pop: 80 + Math.floor(Math.random() * 120),
       dev: 1 + Math.floor(Math.random() * 3),
+      economy: 1 + Math.floor(Math.random() * 3),     // P12: production capacity, separate from dev
+      happiness: 55 + Math.floor(Math.random() * 20), // P12: 0-100, feeds tax efficiency + stability
       stability: 70 + Math.floor(Math.random() * 22),
       terrain: terrainFor(f.id),
       building: null,
@@ -10623,7 +10660,8 @@ function initWorldV2(topo) {
       personality: (typeof AI_PERSONALITIES !== 'undefined' && AI_PERSONALITIES.length)
         ? AI_PERSONALITIES[Math.floor(Math.random() * AI_PERSONALITIES.length)].id : 'guardian',
       isHuman: false, eliminated: false,
-      warTurns: {}, warScore: {}, warGoal: {}
+      warTurns: {}, warScore: {}, warGoal: {},
+      budget: { tax: 50, goods: 20, research: 15, investment: 15 }   // P12: % sliders, sum ~100
     };
   }
   // Capital = each nation's most-connected province (a cheap centrality proxy; P5
@@ -10773,12 +10811,20 @@ const DEV_INCOME = [0, 1, 3, 6, 10, 15]; // indexed by development 1–5 (index 
 // stabCeil:    maximum province stability (republic can't sustain 100)
 // colonyFree:  tribal nations pay no colonization cost
 // rebelChance: per-province per-turn probability a <30 stab province revolts
+// P12 additions: incTax/incProd scale the new tax/production income components;
+// adminMul scales distance-from-capital admin drain; budgetMin is the minimum
+// budget.tax % the regime tolerates (republics need gold, tribes don't tax much).
 const V2_REGIMES = {
-  tribal:   { incMul: 0.85, stabCeil: 75,  colonyFree: true,  rebelChance: 0    },
-  feudal:   { incMul: 0.95, stabCeil: 85,  colonyFree: false, rebelChance: 0.02 },
-  monarchy: { incMul: 1.00, stabCeil: 90,  colonyFree: false, rebelChance: 0.02 },
-  republic: { incMul: 1.20, stabCeil: 75,  colonyFree: false, rebelChance: 0    },
-  empire:   { incMul: 1.10, stabCeil: 100, colonyFree: false, rebelChance: 0.05 },
+  tribal:   { incMul: 0.85, stabCeil: 75,  colonyFree: true,  rebelChance: 0,
+              incTax: 0.70, incProd: 1.10, adminMul: 0.70, budgetMin: 20 },
+  feudal:   { incMul: 0.95, stabCeil: 85,  colonyFree: false, rebelChance: 0.02,
+              incTax: 1.00, incProd: 0.90, adminMul: 1.00, budgetMin: 30 },
+  monarchy: { incMul: 1.00, stabCeil: 90,  colonyFree: false, rebelChance: 0.02,
+              incTax: 1.00, incProd: 1.00, adminMul: 1.00, budgetMin: 30 },
+  republic: { incMul: 1.20, stabCeil: 75,  colonyFree: false, rebelChance: 0,
+              incTax: 1.25, incProd: 1.10, adminMul: 0.85, budgetMin: 40 },
+  empire:   { incMul: 1.10, stabCeil: 100, colonyFree: false, rebelChance: 0.05,
+              incTax: 1.05, incProd: 1.05, adminMul: 1.20, budgetMin: 35 },
 };
 
 // ── v2 province buildings (P5) ───────────────────────────────────────────────
@@ -10791,40 +10837,59 @@ const V2_BUILDINGS = {
 };
 
 // ── v2 income aggregation ─────────────────────────────────────────────────────
+// P12: gold per radian of great-circle distance from the capital, before regime.adminMul
+const ADMIN_DIST_FACTOR = 1.8;
 function calculateIncomeV2(nid, provs) {
   const n = S.nations[nid];
-  if (!n) return { gold: 0, manpower: 0, upkeep: 0, net: 0, manCap: 120, lands: 0, capLost: false };
+  const empty = { gold: 0, manpower: 0, upkeep: 0, tax: 0, production: 0, admin: 0, net: 0, manCap: 120, lands: 0, capLost: false, happinessAvg: 60 };
+  if (!n) return empty;
   provs = provs || nationProvinces(nid);
-  if (!provs.length) return { gold: 0, manpower: 0, upkeep: 0, net: 0, manCap: 120, lands: 0, capLost: false };
+  if (!provs.length) return empty;
   const era       = (ERAS && ERAS[n.era]) ? ERAS[n.era] : { incomeBonus: 0, mpBonus: 0 };
   const regime    = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  const budget    = n.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
   const capPid    = n.capital;
-  const capLost   = !!(capPid && S.provinces[capPid] && S.provinces[capPid].nation !== nid);
+  const capProv   = capPid && S.provinces[capPid];
+  const capLost   = !!(capProv && capProv.nation !== nid);
   // Build set of capital-adjacent pids for the +1g radius bonus
   const capAdjSet = new Set();
-  if (capPid && S.provinces[capPid] && !capLost) {
-    for (const nb of (S.provinces[capPid].neighbors || [])) capAdjSet.add(nb);
+  if (capProv && !capLost) {
+    for (const nb of (capProv.neighbors || [])) capAdjSet.add(nb);
   }
-  let gold = 0, manpower = 0, totalArmy = 0;
+  let production = 0, tax = 0, admin = 0, manpower = 0, totalArmy = 0, happinessSum = 0;
   for (const pid of provs) {
     const p = S.provinces[pid]; if (!p || p._bad) continue;
-    const stabMod  = 0.5 + (p.stability || 70) / 200;
-    const dev      = Math.min(5, Math.max(1, p.dev || 1));
+    const stabMod    = 0.5 + (p.stability || 70) / 200;
+    const dev        = Math.min(5, Math.max(1, p.dev || 1));
+    const economy    = Math.min(5, Math.max(1, p.economy || 1));
+    const happiness  = (p.happiness == null) ? 60 : p.happiness;
+    happinessSum += happiness;
     const popBonus = Math.floor((p.pop || 80) / 80);
     const mktBonus = (p.building === 'market') ? 2 : 0;
-    let pGold = Math.floor((3 + DEV_INCOME[dev] + popBonus + era.incomeBonus + mktBonus) * stabMod);
-    if (pid === capPid) pGold += 3;            // capital seat: +3g flat
-    else if (capAdjSet.has(pid)) pGold += 1;  // capital radius: +1g flat
-    gold += pGold;
+    // production = the old flat per-province formula (dev/era/market/capital bonuses),
+    // now also scaled by the province's economy rating and regime.incProd.
+    let pProd = Math.floor((3 + DEV_INCOME[dev] + popBonus + era.incomeBonus + mktBonus) * stabMod * regime.incProd);
+    pProd += Math.floor(economy * dev * 0.4 * stabMod);
+    if (pid === capPid) pProd += 3;            // capital seat: +3g flat
+    else if (capAdjSet.has(pid)) pProd += 1;  // capital radius: +1g flat
+    production += pProd;
+    // tax = population-driven, gated by the tax budget slider and local happiness
+    tax += Math.floor((p.pop || 80) / 20 * (budget.tax / 100) * (happiness / 100) * regime.incTax);
+    // admin = distance-from-capital drain (waived for the capital itself)
+    if (pid !== capPid && capProv && p.lat != null && p.lon != null && capProv.lat != null && capProv.lon != null) {
+      admin += Math.floor(_gcDist([capProv.lon, capProv.lat], [p.lon, p.lat]) * ADMIN_DIST_FACTOR * regime.adminMul);
+    }
     manpower += Math.floor((2 + Math.floor((p.pop || 80) / 100) + era.mpBonus) * stabMod);
     totalArmy += (p.army || 0);
   }
+  let gold = production + tax;
   if (capLost) gold = Math.floor(gold * 0.5);        // lost capital halves income
   gold = Math.floor(gold * regime.incMul);            // regime multiplier
   const upkeep = Math.floor(totalArmy * (0.25 + n.era * 0.05));
   const lands  = provs.length;
   const manCap = Math.max(120 + n.era * 50, lands * 30 + n.era * 35);
-  return { gold, manpower, upkeep, net: gold - upkeep, manCap, lands, capLost };
+  const happinessAvg = lands ? Math.round(happinessSum / lands) : 60;
+  return { gold, manpower, upkeep, tax, production, admin, net: gold - admin - upkeep, manCap, lands, capLost, happinessAvg };
 }
 
 // ── v2 diplomacy (P11) ────────────────────────────────────────────────────────
@@ -11020,6 +11085,13 @@ function endTurnV2() {
         }
       }
     }
+    // P12: budget-driven happiness target — generous public-goods spending and
+    // low taxes raise it, heavy taxation and war lower it. Provinces drift
+    // toward this target by up to 2 points/turn.
+    const budget = n.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
+    const happyTarget = Math.max(0, Math.min(100,
+      50 + (budget.goods - 20) * 0.6 - Math.max(0, budget.tax - 50) * 0.5 - (atWar ? 8 : 0)));
+    const investChance = (budget.investment || 0) / 100 * 0.05;   // P12: per-province/turn odds of +1 economy
     let rebels = null;
     for (let i = 0; i < provs.length; i++) {
       const pid = provs[i];
@@ -11027,6 +11099,16 @@ function endTurnV2() {
       if (capLossShock) p.stability = Math.max(5, (p.stability || 70) - 20);
       // Stability: regen + clamp to regime ceiling
       p.stability = Math.max(5, Math.min(regime.stabCeil, (p.stability || 70) + stabDelta));
+      // P12: happiness drifts toward the budget-driven target
+      const happiness = (p.happiness == null) ? 60 : p.happiness;
+      const diff = happyTarget - happiness;
+      p.happiness = Math.max(0, Math.min(100, happiness + Math.sign(diff) * Math.min(2, Math.abs(diff))));
+      // P12: population growth — faster when happy, stable, and not over-crowded
+      const stabMod = 0.5 + (p.stability || 70) / 200;
+      const growth = Math.floor((p.pop || 80) * 0.01 * (p.happiness / 100) * stabMod);
+      if (growth > 0) p.pop = Math.min(2000, (p.pop || 80) + growth);
+      // P12: investment budget occasionally upgrades a province's economy rating
+      if ((p.economy || 1) < 5 && Math.random() < investChance) p.economy = (p.economy || 1) + 1;
       // Rebellion: very unstable provinces in risky regimes go neutral
       if (regime.rebelChance > 0 && pid !== n.capital && (p.stability || 70) < 30 && Math.random() < regime.rebelChance) {
         (rebels || (rebels = [])).push(pid);
@@ -11038,6 +11120,21 @@ function endTurnV2() {
 }
 window.calculateIncomeV2 = calculateIncomeV2;
 window.endTurnV2 = endTurnV2;
+
+// P12: human budget-slider handler. `key` is one of tax/goods/research/investment;
+// `val` is the slider's 0-100 string. Tax is floored at the regime's budgetMin.
+function setBudgetV2(key, val) {
+  const n = S.nations[S.humanId]; if (!n) return;
+  n.budget = n.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
+  let v = Math.max(0, Math.min(100, Math.round(Number(val) || 0)));
+  if (key === 'tax') {
+    const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+    v = Math.max(regime.budgetMin || 0, v);
+  }
+  n.budget[key] = v;
+  if (typeof updateHUDV2 === 'function') updateHUDV2();
+}
+window.setBudgetV2 = setBudgetV2;
 
 // ── v2 colonization (P4) ──────────────────────────────────────────────────────
 // Cost scales with province richness. Tribal regime ignores cost (P5 gate).
@@ -15974,6 +16071,14 @@ function updateHUDV2() {
     const el = document.getElementById('my-gold');
     if (el) el.innerHTML += ` <span class="upkeep-tag">-${inc.upkeep}</span>`;
   }
+  // P12: income breakdown tooltip (tax/production/admin/upkeep)
+  {
+    const goldEl = document.getElementById('my-gold');
+    if (goldEl) goldEl.title =
+      `${T('lbl_tax')}: +${inc.tax}\n${T('lbl_production')}: +${inc.production}\n` +
+      `${T('lbl_admin')}: -${inc.admin}\n${T('lbl_upkeep')}: -${inc.upkeep}\n` +
+      `${T('lbl_net')}: ${inc.net >= 0 ? '+' : ''}${inc.net}\n${T('lbl_happiness_avg')}: ${inc.happinessAvg}/100`;
+  }
   setHTML('my-manpower', `${n.manpower} <span class="gain">+${inc.manpower}/t</span>`);
   const mpCap = Math.round(6 + n.era * 2);
   const dpCap = Math.round(4 + n.era * 2);
@@ -16181,10 +16286,41 @@ function renderSelectedPanelV2() {
       <div class="stat-row"><span class="lbl">Army</span><span class="val">${p.army||0}</span></div>
       <div class="stat-row"><span class="lbl">Stability</span><span class="val">${p.stability||70}/100</span></div>
       <div class="stat-row"><span class="lbl">Development</span><span class="val">${p.dev||1}/5</span></div>
+      <div class="stat-row"><span class="lbl">${T('stat_economy')}</span><span class="val">${p.economy||1}/5</span></div>
+      <div class="stat-row"><span class="lbl">${T('stat_happiness')}</span><span class="val">${p.happiness==null?60:p.happiness}/100</span></div>
       ${p.building ? `<div class="stat-row"><span class="lbl">Building</span><span class="val">${bldIcons[p.building]||''} ${V2_BUILDINGS[p.building]?V2_BUILDINGS[p.building].label:p.building}</span></div>` : ''}
     </div>`;
 
   if (isOwn && me) {
+    // P12: national economy breakdown + budget sliders (shown once, on any owned province)
+    const inc2 = calculateIncomeV2(S.humanId);
+    const budget = me.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
+    html += `
+      <div class="sel-section-title">${T('sec_economy')}</div>
+      <div class="sel-stats">
+        <div class="stat-row"><span class="lbl">${T('lbl_tax')}</span><span class="val">+${inc2.tax}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_production')}</span><span class="val">+${inc2.production}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_admin')}</span><span class="val">−${inc2.admin}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_upkeep')}</span><span class="val">−${inc2.upkeep}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_net')}</span><span class="val">${inc2.net>=0?'+':''}${inc2.net}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_happiness_avg')}</span><span class="val">${inc2.happinessAvg}/100</span></div>
+      </div>
+      <div class="sel-section-title">${T('sec_budget')}</div>
+      <div class="sel-stats">
+        ${['tax','goods','research','investment'].map(k => {
+          const minV = k === 'tax' ? ((V2_REGIMES[me.regime]||V2_REGIMES.monarchy).budgetMin || 0) : 0;
+          return `
+        <div class="stat-row">
+          <span class="lbl">${T('budget_'+k)}</span>
+          <span class="val">
+            <input type="range" min="${minV}" max="100" step="5" value="${budget[k]||0}"
+              oninput="setBudgetV2('${k}', this.value); this.nextElementSibling.textContent=this.value+'%'"
+              style="vertical-align:middle;width:70px">
+            <span style="display:inline-block;min-width:32px;text-align:right">${budget[k]||0}%</span>
+          </span>
+        </div>`;
+        }).join('')}
+      </div>`;
     const armCost = p.building === 'armory' ? 15 : 30;
     const canRec  = (me.gold||0) >= armCost && (me.manpower||0) >= 40 && (me.mp||0) >= 1;
     html += `<button class="btn" onclick="doRecruitV2('${S.selectedId}')" ${canRec?'':'disabled'}>⚔ Recruit +20 <span class="ap-cost">(${armCost}g · 40mp · 1MP)</span></button>`;
@@ -16931,6 +17067,20 @@ function deserializeState(snap) {
   if (S.lastMissionType === undefined) S.lastMissionType = null;
   if (!S.mapMode) S.mapMode = 'globe';
   document.body.classList.toggle('flatmap-full', S.mapMode === 'flat');
+  // P12 back-compat: province economy/happiness + nation budget defaults
+  if (S.v2 && S.provinces) {
+    for (const pid in S.provinces) {
+      const p = S.provinces[pid]; if (!p) continue;
+      if (p.economy == null) p.economy = 1 + Math.floor((p.dev || 1) / 2);
+      if (p.happiness == null) p.happiness = 60;
+    }
+  }
+  if (S.v2 && S.nations) {
+    for (const nid in S.nations) {
+      const n = S.nations[nid]; if (!n) continue;
+      if (!n.budget) n.budget = { tax: 50, goods: 20, research: 15, investment: 15 };
+    }
+  }
   for (const pid in S.players) {
     if (!S.players[pid].intel) S.players[pid].intel = 0;
     if (!S.players[pid].tradeRoutes) S.players[pid].tradeRoutes = [];
