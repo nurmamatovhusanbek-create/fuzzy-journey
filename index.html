@@ -3219,6 +3219,8 @@ en: {
   lbl_tech_level:   'Technology level',
   lbl_research:     'Research progress',
   lbl_tech_required:'Requires tech',
+  sec_construction: 'UNDER CONSTRUCTION',
+  lbl_turns_left:   '{n} turn(s) left',
   sec_budget:       'BUDGET ALLOCATION',
   budget_tax:       'Tax',
   budget_goods:     'Public goods',
@@ -4441,6 +4443,8 @@ ru: {
   lbl_tech_level:   'Уровень технологий',
   lbl_research:     'Прогресс исследований',
   lbl_tech_required:'Требуется технология',
+  sec_construction: 'СТРОИТСЯ',
+  lbl_turns_left:   'Осталось ходов: {n}',
   sec_budget:       'РАСПРЕДЕЛЕНИЕ БЮДЖЕТА',
   budget_tax:       'Налоги',
   budget_goods:     'Общ. блага',
@@ -10758,7 +10762,9 @@ function provinceDefMulV2(pid) {
   const p = S.provinces[pid]; if (!p) return 1;
   let m = 1;
   if (p.terrain === 'mountains') m += 0.30; else if (p.terrain === 'hills') m += 0.15; else if (p.terrain === 'forest') m += 0.10;
-  if (p.building === 'fortress') m += 0.50;
+  // P14: fortress II compounds the base fortress bonus; watchtower adds a small bonus.
+  if (p.building === 'fortress') m += ((p.buildingLevel || 1) >= 2 ? 0.80 : 0.50);
+  if (p.building === 'watchtower') m += 0.03;
   return m + (p.defense || 0) / 100;          // accrued province defence points (P3.x)
 }
 function resolveCombatV2(fromPid, toPid) {
@@ -10834,14 +10840,40 @@ const V2_REGIMES = {
               incTax: 1.05, incProd: 1.05, adminMul: 1.20, budgetMin: 35 },
 };
 
-// ── v2 province buildings (P5) ───────────────────────────────────────────────
-// One building per province (p.building = key string).
-// P13: `tech` = minimum n.techLevel required to construct (AoC2 §5.3 thresholds).
+// ── v2 province buildings (P5, expanded P14) ─────────────────────────────────
+// One building per province (p.building = key string), with levels for
+// multi-tier buildings (p.buildingLevel, 1-based). Each entry now carries
+// per-level cost/tech/build-time arrays so building AND upgrading share the
+// same buildV2 path. levelTech[i] = min n.techLevel to build/upgrade to level
+// i+1 (AoC2 §5.3 thresholds); buildTime[i] = turns to complete that level.
 const V2_BUILDINGS = {
-  fortress: { cost: { gold: 150, mp: 1 }, label: 'Fortress', effect: '+50% province defense', tech: 0.5 },
-  armory:   { cost: { gold: 100, mp: 1 }, label: 'Armory',   effect: 'Halves recruit cost',   tech: 0.4 },
-  port:     { cost: { gold: 120, mp: 1 }, label: 'Port',     effect: 'Enables sea movement'  },
-  market:   { cost: { gold: 100, mp: 1 }, label: 'Market',   effect: '+2 gold income/turn'   },
+  fortress:   { icon: '🏯', maxLevel: 2, buildTime: [3, 4],
+                levelCost: [{ gold: 150, mp: 1 }, { gold: 220, mp: 2 }], levelTech: [0.5, 1.5],
+                levelLabels: ['Fortress', 'Fortress II'], effect: '+ province defense (scales with level)' },
+  armory:     { icon: '⚔', maxLevel: 1, buildTime: [4],
+                levelCost: [{ gold: 100, mp: 1 }], levelTech: [0.4],
+                levelLabels: ['Armory'], effect: 'Halves recruit cost' },
+  port:       { icon: '⚓', maxLevel: 1, buildTime: [1],
+                levelCost: [{ gold: 120, mp: 1 }], levelTech: [0],
+                levelLabels: ['Port'], effect: 'Enables sea movement' },
+  market:     { icon: '🏪', maxLevel: 1, buildTime: [1],
+                levelCost: [{ gold: 100, mp: 1 }], levelTech: [0],
+                levelLabels: ['Market'], effect: '+2 gold income/turn' },
+  watchtower: { icon: '🗼', maxLevel: 1, buildTime: [1],
+                levelCost: [{ gold: 60, mp: 1 }], levelTech: [0],
+                levelLabels: ['Watchtower'], effect: '+3% defense, reveals borders' },
+  supplycamp: { icon: '⛺', maxLevel: 1, buildTime: [3],
+                levelCost: [{ gold: 90, mp: 1 }], levelTech: [0.3],
+                levelLabels: ['Supply Camp'], effect: '-20% army upkeep here' },
+  library:    { icon: '📚', maxLevel: 3, buildTime: [2, 3, 4],
+                levelCost: [{ gold: 90, mp: 1 }, { gold: 160, mp: 1 }, { gold: 260, mp: 2 }], levelTech: [0, 0.8, 2.0],
+                levelLabels: ['Library', 'University', 'Research Lab'], effect: '+research from population (scales with level)' },
+  farm:       { icon: '🌾', maxLevel: 5, buildTime: [1, 1, 2, 2, 3],
+                levelCost: [{ gold: 50, mp: 1 }, { gold: 70, mp: 1 }, { gold: 90, mp: 1 }, { gold: 110, mp: 1 }, { gold: 130, mp: 2 }], levelTech: [0, 0, 0.5, 1, 1.5],
+                levelLabels: ['Farm I', 'Farm II', 'Farm III', 'Farm IV', 'Farm V'], effect: '+5% pop growth per level' },
+  workshop:   { icon: '🏭', maxLevel: 3, buildTime: [4, 5, 6],
+                levelCost: [{ gold: 80, mp: 1 }, { gold: 140, mp: 1 }, { gold: 200, mp: 2 }], levelTech: [0, 0.6, 1.2],
+                levelLabels: ['Workshop I', 'Workshop II', 'Workshop III'], effect: '+5% production per level' },
 };
 
 // ── v2 income aggregation ─────────────────────────────────────────────────────
@@ -10849,7 +10881,7 @@ const V2_BUILDINGS = {
 const ADMIN_DIST_FACTOR = 1.8;
 function calculateIncomeV2(nid, provs) {
   const n = S.nations[nid];
-  const empty = { gold: 0, manpower: 0, upkeep: 0, tax: 0, production: 0, admin: 0, net: 0, manCap: 120, lands: 0, capLost: false, happinessAvg: 60, pop: 0, techLevel: 0 };
+  const empty = { gold: 0, manpower: 0, upkeep: 0, tax: 0, production: 0, admin: 0, net: 0, manCap: 120, lands: 0, capLost: false, happinessAvg: 60, pop: 0, techLevel: 0, researchBonus: 0 };
   if (!n) return empty;
   provs = provs || nationProvinces(nid);
   if (!provs.length) return empty;
@@ -10871,7 +10903,7 @@ function calculateIncomeV2(nid, provs) {
   if (capProv && !capLost) {
     for (const nb of (capProv.neighbors || [])) capAdjSet.add(nb);
   }
-  let production = 0, tax = 0, admin = 0, manpower = 0, totalArmy = 0, happinessSum = 0, totalPop = 0;
+  let production = 0, tax = 0, admin = 0, manpower = 0, upkeepBase = 0, happinessSum = 0, totalPop = 0, researchBonus = 0;
   for (const pid of provs) {
     const p = S.provinces[pid]; if (!p || p._bad) continue;
     const stabMod    = 0.5 + (p.stability || 70) / 200;
@@ -10888,6 +10920,8 @@ function calculateIncomeV2(nid, provs) {
     pProd += Math.floor(economy * dev * 0.4 * stabMod);
     if (pid === capPid) pProd += 3;            // capital seat: +3g flat
     else if (capAdjSet.has(pid)) pProd += 1;  // capital radius: +1g flat
+    // P14: workshop adds +5% production per level.
+    if (p.building === 'workshop') pProd = Math.floor(pProd * (1 + 0.05 * (p.buildingLevel || 1)));
     production += pProd;
     // tax = population-driven, gated by the tax budget slider and local happiness
     tax += Math.floor((p.pop || 80) / 20 * (budget.tax / 100) * (happiness / 100) * regime.incTax);
@@ -10896,17 +10930,20 @@ function calculateIncomeV2(nid, provs) {
       admin += Math.floor(_gcDist([capProv.lon, capProv.lat], [p.lon, p.lat]) * ADMIN_DIST_FACTOR * regime.adminMul);
     }
     manpower += Math.floor((2 + Math.floor((p.pop || 80) / 100) + era.mpBonus) * stabMod);
-    totalArmy += (p.army || 0);
+    // P14: supply camp cuts the upkeep contribution of armies stationed here by 20%.
+    upkeepBase += (p.army || 0) * (p.building === 'supplycamp' ? 0.8 : 1);
+    // P14: library/university/research lab adds research per 750 pop, scaled by level.
+    if (p.building === 'library') researchBonus += ((p.pop || 80) / 750) * (p.buildingLevel || 1);
   }
   let gold = production + tax;
   if (capLost) gold = Math.floor(gold * 0.5);        // lost capital halves income
   gold = Math.floor(gold * regime.incMul * techIncomeMul);   // regime + tech multipliers
   admin = Math.floor(admin * techAdminMul);                  // P13: tech reduces admin drain
-  const upkeep = Math.floor(totalArmy * (0.25 + n.era * 0.05) * techUpkeepMul); // P13: tech reduces upkeep
+  const upkeep = Math.floor(upkeepBase * (0.25 + n.era * 0.05) * techUpkeepMul); // P13: tech reduces upkeep; P14: supply camp discount
   const lands  = provs.length;
   const manCap = Math.max(120 + n.era * 50, lands * 30 + n.era * 35);
   const happinessAvg = lands ? Math.round(happinessSum / lands) : 60;
-  return { gold, manpower, upkeep, tax, production, admin, net: gold - admin - upkeep, manCap, lands, capLost, happinessAvg, pop: totalPop, techLevel };
+  return { gold, manpower, upkeep, tax, production, admin, net: gold - admin - upkeep, manCap, lands, capLost, happinessAvg, pop: totalPop, techLevel, researchBonus };
 }
 
 // ── v2 technology / research (P13) ────────────────────────────────────────────
@@ -11128,7 +11165,9 @@ function endTurnV2() {
     // P13: research accrues from budget.research scaled by total population.
     // At 100% progress, techLevel steps up (cost grows exponentially) and era
     // is re-derived from techLevel — feeds ERAS-based combat/MP/DP/income bonuses.
-    n.research = (n.research || 0) + techResearchGain(inc.pop, budget.research);
+    // P14: library/university/research lab buildings add a flat research bonus
+    // on top of the budget-driven base gain.
+    n.research = (n.research || 0) + techResearchGain(inc.pop, budget.research) + (inc.researchBonus || 0);
     let _techNeeded = techResearchNeeded(n.techLevel || 0);
     while (n.research >= _techNeeded) {
       n.research -= _techNeeded;
@@ -11150,13 +11189,24 @@ function endTurnV2() {
       const diff = happyTarget - happiness;
       p.happiness = Math.max(0, Math.min(100, happiness + Math.sign(diff) * Math.min(2, Math.abs(diff))));
       // P12: population growth — faster when happy, stable, and not over-crowded
+      // P14: farm levels add +5% growth per level on top of the base rate.
       const stabMod = 0.5 + (p.stability || 70) / 200;
-      const growth = Math.floor((p.pop || 80) * 0.01 * (p.happiness / 100) * stabMod);
+      const farmMul = (p.building === 'farm') ? (1 + 0.05 * (p.buildingLevel || 1)) : 1;
+      const growth = Math.floor((p.pop || 80) * 0.01 * (p.happiness / 100) * stabMod * farmMul);
       if (growth > 0) p.pop = Math.min(2000, (p.pop || 80) + growth);
       // P12: investment budget occasionally upgrades a province's economy rating
       if ((p.economy || 1) < 5 && Math.random() < investChance) p.economy = (p.economy || 1) + 1;
       // P13: investment also grows development, capped by the nation's tech level
       if ((p.dev || 1) < devCap && Math.random() < investChance * 0.5) p.dev = (p.dev || 1) + 1;
+      // P14: tick building construction — activate once turnsLeft hits 0.
+      if (p.construction) {
+        p.construction.turnsLeft--;
+        if (p.construction.turnsLeft <= 0) {
+          p.building = p.construction.type;
+          p.buildingLevel = p.construction.level;
+          p.construction = null;
+        }
+      }
       // Rebellion: very unstable provinces in risky regimes go neutral
       if (regime.rebelChance > 0 && pid !== n.capital && (p.stability || 70) < 30 && Math.random() < regime.rebelChance) {
         (rebels || (rebels = [])).push(pid);
@@ -11311,21 +11361,31 @@ window.neutralAdjacentV2   = neutralAdjacentV2;
 window.aiColonizeV2        = aiColonizeV2;
 window.designateNeutralsV2 = designateNeutralsV2;
 
-// ── v2 province buildings (P5) ───────────────────────────────────────────────
-// Build a province building (one per province). Returns true on success.
+// ── v2 province buildings (P5, build queue P14) ──────────────────────────────
+// Start construction of `type` (new build at level 1, or the next level if
+// `type` matches the existing building and it isn't maxed). Deducts cost
+// immediately; the building activates after `buildTime[level-1]` turns via
+// the construction tick in endTurnV2. Returns true on success.
 function buildV2(nid, pid, type) {
   if (!S.v2) return false;
   const p = S.provinces[pid]; if (!p || p._bad) return false;
   if (p.nation !== nid) return false;     // must own it
-  if (p.building) return false;           // one building per province
+  if (p.construction) return false;       // one construction at a time
   const bld = V2_BUILDINGS[type]; if (!bld) return false;
   const n = S.nations[nid]; if (!n || n.eliminated) return false;
-  if (bld.tech != null && (n.techLevel || 0) < bld.tech) return false; // P13: tech-gated buildings
-  if ((n.gold || 0) < bld.cost.gold) return false;
-  if ((n.mp || 0)  < bld.cost.mp)   return false;
-  n.gold = (n.gold || 0) - bld.cost.gold;
-  n.mp   = Math.max(0, (n.mp || 0) - bld.cost.mp);
-  p.building = type;
+  let level;
+  if (!p.building) level = 1;
+  else if (p.building === type && (p.buildingLevel || 1) < bld.maxLevel) level = (p.buildingLevel || 1) + 1;
+  else return false;                      // occupied by a different building, or maxed out
+  const idx = level - 1;
+  const techNeeded = bld.levelTech[idx];
+  if (techNeeded != null && (n.techLevel || 0) < techNeeded) return false; // P13: tech-gated buildings
+  const cost = bld.levelCost[idx];
+  if ((n.gold || 0) < cost.gold) return false;
+  if ((n.mp || 0)  < cost.mp)   return false;
+  n.gold = (n.gold || 0) - cost.gold;
+  n.mp   = Math.max(0, (n.mp || 0) - cost.mp);
+  p.construction = { type, level, turnsLeft: bld.buildTime[idx] };
   return true;
 }
 
@@ -16326,7 +16386,15 @@ function renderSelectedPanelV2() {
   else if (nid && me && me.rel && me.rel[nid]) rel = me.rel[nid];
   const relTagClass = rel === 'self' ? 'rel-self' : rel === 'ally' ? 'rel-ally' : rel === 'war' ? 'rel-war' : rel === 'nap' ? 'rel-nap' : 'rel-peace';
   const relLabel    = rel === 'self' ? T('rel_own') : rel === 'ally' ? T('rel_ally') : rel === 'war' ? T('rel_war') : rel === 'nap' ? T('rel_nap') : isNeutral ? 'NEUTRAL' : T('rel_neutral');
-  const bldIcons    = { fortress:'🏯', armory:'⚔', port:'⚓', market:'🏪' };
+  // P14: building row shows the active level label, or a construction countdown.
+  let bldRow = '';
+  if (p.construction) {
+    const cb = V2_BUILDINGS[p.construction.type];
+    bldRow = `<div class="stat-row"><span class="lbl">Building</span><span class="val">${cb.icon} ${cb.levelLabels[p.construction.level-1]} — ${Tpl('lbl_turns_left',{n:p.construction.turnsLeft})}</span></div>`;
+  } else if (p.building) {
+    const bb = V2_BUILDINGS[p.building];
+    bldRow = `<div class="stat-row"><span class="lbl">Building</span><span class="val">${bb?bb.icon:''} ${bb?bb.levelLabels[(p.buildingLevel||1)-1]:p.building}</span></div>`;
+  }
 
   let html = `
     <div class="sel-name">${p.name||'?'}${(p.capital && p.capitalOf === nid) ? ' ⭐' : ''}</div>
@@ -16340,7 +16408,7 @@ function renderSelectedPanelV2() {
       <div class="stat-row"><span class="lbl">Development</span><span class="val">${p.dev||1}/5</span></div>
       <div class="stat-row"><span class="lbl">${T('stat_economy')}</span><span class="val">${p.economy||1}/5</span></div>
       <div class="stat-row"><span class="lbl">${T('stat_happiness')}</span><span class="val">${p.happiness==null?60:p.happiness}/100</span></div>
-      ${p.building ? `<div class="stat-row"><span class="lbl">Building</span><span class="val">${bldIcons[p.building]||''} ${V2_BUILDINGS[p.building]?V2_BUILDINGS[p.building].label:p.building}</span></div>` : ''}
+      ${bldRow}
     </div>`;
 
   if (isOwn && me) {
@@ -16378,12 +16446,30 @@ function renderSelectedPanelV2() {
     const armCost = p.building === 'armory' ? 15 : 30;
     const canRec  = (me.gold||0) >= armCost && (me.manpower||0) >= 40 && (me.mp||0) >= 1;
     html += `<button class="btn" onclick="doRecruitV2('${S.selectedId}')" ${canRec?'':'disabled'}>⚔ Recruit +20 <span class="ap-cost">(${armCost}g · 40mp · 1MP)</span></button>`;
-    if (!p.building) {
+    // P14: construction queue — show countdown, an upgrade button for the
+    // existing building (if not maxed), or the full build menu for an empty plot.
+    if (p.construction) {
+      const cb = V2_BUILDINGS[p.construction.type];
+      html += `<div class="sel-section-title">${T('sec_construction')}</div>
+        <div style="font-size:10px;color:var(--ink-dim);padding:2px 0 6px">${cb.icon} ${cb.levelLabels[p.construction.level-1]} — ${Tpl('lbl_turns_left',{n:p.construction.turnsLeft})}</div>`;
+    } else if (p.building) {
+      const bld = V2_BUILDINGS[p.building];
+      const lvl = p.buildingLevel || 1;
+      if (bld && lvl < bld.maxLevel) {
+        const idx = lvl; // next level's index
+        const techLocked = bld.levelTech[idx] != null && (me.techLevel||0) < bld.levelTech[idx];
+        const cost = bld.levelCost[idx];
+        const canB = !techLocked && (me.gold||0) >= cost.gold && (me.mp||0) >= cost.mp;
+        const lockNote = techLocked ? ` <span class="ap-cost">— ${T('lbl_tech_required')} ${bld.levelTech[idx]}</span>` : '';
+        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${p.building}')" ${canB?'':'disabled'}>${bld.icon} Upgrade to ${bld.levelLabels[idx]} <span class="ap-cost">(${cost.gold}g · ${cost.mp}MP)</span>${lockNote}</button>`;
+      }
+    } else {
       for (const [type, bld] of Object.entries(V2_BUILDINGS)) {
-        const techLocked = bld.tech != null && (me.techLevel||0) < bld.tech;
-        const canB = !techLocked && (me.gold||0) >= bld.cost.gold && (me.mp||0) >= bld.cost.mp;
-        const lockNote = techLocked ? ` <span class="ap-cost">— ${T('lbl_tech_required')} ${bld.tech}</span>` : '';
-        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${type}')" ${canB?'':'disabled'}>${bldIcons[type]||''} Build ${bld.label} <span class="ap-cost">(${bld.cost.gold}g · ${bld.cost.mp}MP — ${bld.effect})</span>${lockNote}</button>`;
+        const techLocked = bld.levelTech[0] != null && (me.techLevel||0) < bld.levelTech[0];
+        const cost = bld.levelCost[0];
+        const canB = !techLocked && (me.gold||0) >= cost.gold && (me.mp||0) >= cost.mp;
+        const lockNote = techLocked ? ` <span class="ap-cost">— ${T('lbl_tech_required')} ${bld.levelTech[0]}</span>` : '';
+        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${type}')" ${canB?'':'disabled'}>${bld.icon} Build ${bld.levelLabels[0]} <span class="ap-cost">(${cost.gold}g · ${cost.mp}MP — ${bld.effect})</span>${lockNote}</button>`;
       }
     }
     if (S.selectedId !== me.capital) {
@@ -17129,6 +17215,9 @@ function deserializeState(snap) {
       const p = S.provinces[pid]; if (!p) continue;
       if (p.economy == null) p.economy = 1 + Math.floor((p.dev || 1) / 2);
       if (p.happiness == null) p.happiness = 60;
+      // P14: building levels + construction queue back-compat for older saves.
+      if (p.building && p.buildingLevel == null) p.buildingLevel = 1;
+      if (p.construction === undefined) p.construction = null;
     }
   }
   if (S.v2 && S.nations) {
@@ -17438,151 +17527,4 @@ function toggleSettingsMenu(e) {
     dd.classList.add('open');
     btn.classList.add('open');
     // Highlight active language (only buttons that actually have data-lang)
-    document.querySelectorAll('.sdd-lang-btn[data-lang], .menu-lang-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.lang === getLang());
-    });
-    // Highlight active map mode
-    document.querySelectorAll('.mapmode-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.mode === (S.mapMode || 'globe'));
-    });
-    syncMapToggles();   // M4/M5: reflect theme + camera-follow state
-    syncTipsToggle();   // A4: reflect tips on/off
-  }
-  if (e) e.stopPropagation();
-}
-window.toggleSettingsMenu = toggleSettingsMenu;
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-  const dd  = document.getElementById('settings-dropdown');
-  const btn = document.getElementById('settings-btn');
-  if (!dd || !btn) return;
-  if (!dd.contains(e.target) && e.target !== btn) {
-    dd.classList.remove('open');
-    btn.classList.remove('open');
-  }
-});
-
-function _closeSettings() {
-  document.getElementById('settings-dropdown').classList.remove('open');
-  document.getElementById('settings-btn').classList.remove('open');
-}
-
-function sddSave() {
-  _closeSettings();
-  _exitAfterSave = false;
-  document.getElementById('save-modal-title').textContent = T('save_title');
-  renderSaveSlots();
-  document.getElementById('save-modal').hidden = false;
-}
-window.sddSave = sddSave;
-
-function sddTutorial() {
-  _closeSettings();
-  resetTipsSeen();   // A4: replaying the guide re-arms the contextual tips
-  showTutorial();
-}
-window.sddTutorial = sddTutorial;
-
-function sddExit() {
-  _closeSettings();
-  _exitAfterSave = true;
-  document.getElementById('save-modal-title').textContent = T('save_exit_title');
-  renderSaveSlots();
-  document.getElementById('save-modal').hidden = false;
-}
-window.sddExit = sddExit;
-
-// ============================================================================
-// BOOT — patched to support load-on-start
-// ============================================================================
-function boot() {
-  renderAll(); // apply saved language to all data-i18n elements immediately
-  // set initial active state on main-menu language buttons
-  document.querySelectorAll('.menu-lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.lang === getLang());
-  });
-  try {
-    setStatus(T('boot_check_libs'));
-    if (typeof d3 === 'undefined') throw new Error('d3 library not loaded');
-    if (typeof topojson === 'undefined') throw new Error('topojson library not loaded');
-    setStatus(T('boot_check_data'));
-    var topo = window.__TOPO__;
-    if (!topo) throw new Error('__TOPO__ not defined');
-    if (!topo.objects || !topo.objects.countries) throw new Error('topology malformed');
-    setStatus(Tpl('boot_build_world', { n: (topo.objects.countries.geometries||[]).length }));
-    initWorld(topo);
-    setStatus(T('boot_prepare_globe'));
-    document.getElementById('loading').hidden = true;
-    document.getElementById('setup').hidden = false;
-
-    // Show Load Game button only if saves exist
-    var loadBtn = document.getElementById('load-game-btn');
-    if (loadBtn) loadBtn.style.display = hasAnySave() ? '' : 'none';
-
-    // NEW GAME button reveals the country-picker canvas
-    var newBtn = document.getElementById('new-game-btn');
-    var prompt = document.getElementById('setup-prompt');
-    if (newBtn) {
-      newBtn.addEventListener('click', function() {
-        const chrome = document.getElementById('setup-chrome');
-        if (chrome) chrome.style.display = 'none';
-        // Initialise the globe in the background, then show scenario picker
-        setTimeout(function() {
-          try {
-            setupSetupCanvas();
-            renderSetup();
-          } catch (e2) {
-            console.warn('Globe render warning:', e2.message);
-          }
-        }, 50);
-        // Show scenario picker (it will reveal the prompt after selection)
-        setTimeout(function() { showScenarioPicker(); }, 80);
-      });
-    }
-  } catch (e) {
-    setStatus('ERROR: ' + e.message, true);
-    console.error('[Terra Bellum boot error]', e);
-  }
-}
-
-window.addEventListener('error', function(ev) {
-  setStatus(T('boot_js_error') + ' ' + (ev.message || 'unknown') + ' ' + T('boot_at_line') + ' ' + (ev.lineno || '?'), true);
-});
-
-boot();
-</script>
-
-<!-- ── MULTIPLAYER LOBBY OVERLAY ── -->
-<div id="mp-overlay">
-  <div class="mp-card">
-    <div class="mp-card-head">
-      <span class="mp-card-title" data-i18n="setup_mp_title">MULTIPLAYER</span>
-      <button class="mp-close" onclick="closeMPOverlay()">✕</button>
-    </div>
-    <div class="mp-card-body">
-
-      <!-- Create / Join tabs -->
-      <div id="mp-lobby-tabs">
-        <div class="mp-tabs">
-          <button class="mp-tab active" id="mpt-create" onclick="mpTab('create')">▸ CREATE ROOM</button>
-          <button class="mp-tab"        id="mpt-join"   onclick="mpTab('join')">↗ JOIN ROOM</button>
-        </div>
-
-        <div class="mp-section active" id="mps-create">
-          <div class="mp-label" data-i18n="mp_your_name">YOUR NAME</div>
-          <input class="mp-input" id="mp-create-name" data-i18n-placeholder="mp_ph_your_name" placeholder="Enter your name" maxlength="20">
-          <div class="mp-label" style="margin-top:8px" data-i18n="mp_scenario">SCENARIO</div>
-          <select class="mp-input" id="mp-create-scenario" style="cursor:pointer">
-            <option value="sandbox">🌐 Sandbox (1450 AD)</option>
-            <option value="ancient">⚔️ Ancient World (218 BC)</option>
-            <option value="roman">🏛️ Roman Empire (117 AD)</option>
-            <option value="medieval">✝️ Medieval Christendom (1096 AD)</option>
-            <option value="mongol">🏹 Mongol Empire (1300 AD)</option>
-            <option value="timurid">☄️ Timurid Era (1400 AD)</option>
-            <option value="discovery">⛵ Age of Discovery (1492 AD)</option>
-            <option value="gunpowder">🕌 Gunpowder Empires (1700 AD)</option>
-            <option value="napoleonic">🎖️ Napoleonic Wars (1804 AD)</option>
-            <option value="victorian">🎩 Victorian Era (1850 AD)</option>
-            <option value="ww1">🪖 World War I (1914)</option>
-            <opti
+    document.querySelectorAll('.sdd-lang-btn[data-lang], .menu-lan
