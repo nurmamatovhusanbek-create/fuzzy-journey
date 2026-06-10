@@ -472,6 +472,7 @@
   .rel-war { background: rgba(232,93,74,0.18); color: var(--red-warn); border: 1px solid rgba(232,93,74,0.4); }
   .rel-peace { background: rgba(90,112,144,0.15); color: var(--steel); border: 1px solid rgba(90,112,144,0.3); }
   .rel-self { background: rgba(212,160,23,0.18); color: var(--gold); border: 1px solid rgba(212,160,23,0.4); }
+  .rel-nap { background: rgba(58,169,184,0.18); color: #3aa9b8; border: 1px solid rgba(58,169,184,0.4); }
 
   .diplo-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -10826,6 +10827,150 @@ function calculateIncomeV2(nid, provs) {
   return { gold, manpower, upkeep, net: gold - upkeep, manCap, lands, capLost };
 }
 
+// ── v2 diplomacy (P11) ────────────────────────────────────────────────────────
+// Generalised relation helpers operating on S.nations (mirrors relation()/setRelation()
+// from the v1 country-grade engine, kept separate per the "v1 stays untouched" rule).
+function relationV2(aId, bId) {
+  if (aId === bId) return 'self';
+  const a = S.nations && S.nations[aId]; if (!a) return 'peace';
+  return (a.rel && a.rel[bId]) || 'peace';
+}
+window.relationV2 = relationV2;
+
+function setRelationV2(aId, bId, status) {
+  if (aId === bId) return;
+  const a = S.nations && S.nations[aId];
+  const b = S.nations && S.nations[bId];
+  if (a) { a.rel = a.rel || {}; a.rel[bId] = status; }
+  if (b) { b.rel = b.rel || {}; b.rel[aId] = status; }
+}
+window.setRelationV2 = setRelationV2;
+
+function isNAPV2(aId, bId) { return relationV2(aId, bId) === 'nap'; }
+function isFriendlyV2(aId, bId) {
+  const r = relationV2(aId, bId);
+  return r === 'ally' || r === 'nap';
+}
+
+// Human-driven diplomacy actions: declare-war / ally / break-ally / peace (white peace).
+// DP costs are shared with v1 via P1.DP_COST. AI acceptance odds reuse AI_PERSONALITIES,
+// keyed off the target nation's `personality` field (set at world init like v1 players).
+function doDiplomacyV2(otherId, action) {
+  if (!S.v2) return;
+  const me = S.nations[S.humanId];
+  const other = S.nations[otherId];
+  if (!me || !other || other.eliminated) return;
+  me.rel = me.rel || {}; other.rel = other.rel || {};
+  const curRel = relationV2(S.humanId, otherId);
+
+  const dpNeeded = action === 'declare-war' ? P1.DP_COST.war
+    : action === 'ally'       ? P1.DP_COST.ally
+    : action === 'peace'      ? P1.DP_COST.peace
+    : action === 'break-ally' ? P1.DP_COST.breakAlly : 0;
+  if ((me.dp || 0) < dpNeeded) { log(`Not enough DP (need ${dpNeeded}).`, 'crit'); return; }
+
+  if (action === 'declare-war') {
+    if (curRel === 'war') return;
+    me.dp -= P1.DP_COST.war;
+    setRelationV2(S.humanId, otherId, 'war');
+    me.warScore = me.warScore || {}; other.warScore = other.warScore || {};
+    me.warScore[otherId] = 0; other.warScore[S.humanId] = 0;
+    me.warTurns = me.warTurns || {}; other.warTurns = other.warTurns || {};
+    me.warTurns[otherId] = 0; other.warTurns[S.humanId] = 0;
+    log(`War declared on ${other.name}.`, 'self');
+  } else if (action === 'ally') {
+    if (curRel === 'war') return;
+    me.dp -= P1.DP_COST.ally;
+    const pers = AI_PERSONALITIES.find(p => p.id === other.personality) || AI_PERSONALITIES[2];
+    let prob = 0.20 + pers.dipl * 0.28;
+    if (curRel === 'nap') prob += 0.15;
+    const theirWars = Object.values(other.rel || {}).filter(r => r === 'war').length;
+    if (theirWars >= 1) prob += 0.18;
+    prob -= pers.aggr * 0.22;
+    prob = Math.max(0.05, Math.min(0.88, prob));
+    if (Math.random() < prob) {
+      setRelationV2(S.humanId, otherId, 'ally');
+      log(`${other.name} accepts your alliance proposal.`, 'good');
+    } else {
+      log(`${other.name} rejects your alliance proposal.`, null);
+    }
+  } else if (action === 'break-ally') {
+    me.dp = Math.max(0, me.dp - P1.DP_COST.breakAlly);
+    setRelationV2(S.humanId, otherId, 'peace');
+    log(`Alliance with ${other.name} broken.`, 'self');
+  } else if (action === 'peace') {
+    if (curRel !== 'war') return;
+    me.dp -= P1.DP_COST.peace;
+    const myWS  = (me.warScore && me.warScore[otherId]) || 0;
+    const dur   = (me.warTurns && me.warTurns[otherId]) || 0;
+    let accept  = 0.35 - myWS * 0.01 + Math.min(0.3, dur * 0.03);
+    accept = Math.max(0.05, Math.min(0.9, accept));
+    if (Math.random() < accept) {
+      setRelationV2(S.humanId, otherId, 'peace');
+      if (me.warScore) delete me.warScore[otherId];
+      if (other.warScore) delete other.warScore[S.humanId];
+      if (me.warTurns) delete me.warTurns[otherId];
+      if (other.warTurns) delete other.warTurns[S.humanId];
+      log(`${other.name} accepts white peace.`, 'good');
+    } else {
+      log(`${other.name} rejects your peace offer.`, 'crit');
+    }
+  }
+  if (typeof updateHUDV2 === 'function') updateHUDV2();
+  if (typeof renderSelectedPanelV2 === 'function') renderSelectedPanelV2();
+  if (typeof render === 'function') render();
+}
+window.doDiplomacyV2 = doDiplomacyV2;
+
+// Non-Aggression Pact proposal — mirrors v1's doProposeNAP, scaled to S.nations.
+function doProposeNAPV2(otherId) {
+  if (!S.v2) return;
+  const me = S.nations[S.humanId];
+  const other = S.nations[otherId];
+  if (!me || !other || other.eliminated) return;
+  const cur = relationV2(S.humanId, otherId);
+  if (cur === 'war') { log('Cannot propose a Non-Aggression Pact during war.', 'crit'); return; }
+  if (cur === 'nap') { log('Already have a Non-Aggression Pact with this nation.', 'crit'); return; }
+  if ((me.dp || 0) < P1.DP_COST.nap) { log(`Need ${P1.DP_COST.nap} DP.`, 'crit'); return; }
+  me.dp -= P1.DP_COST.nap;
+
+  const pers = AI_PERSONALITIES.find(p => p.id === other.personality) || AI_PERSONALITIES[2];
+  let prob = 0.25 + pers.def * 0.25 + pers.dipl * 0.15 - pers.aggr * 0.25;
+  const theirWars = Object.values(other.rel || {}).filter(r => r === 'war').length;
+  if (theirWars >= 1) prob += 0.20;
+  prob = Math.max(0.05, Math.min(0.92, prob));
+  if (Math.random() < prob) {
+    setRelationV2(S.humanId, otherId, 'nap');
+    if (!S._napExpiryV2) S._napExpiryV2 = {};
+    S._napExpiryV2[`${S.humanId}-${otherId}`] = S.turn + NAP_DURATION;
+    S._napExpiryV2[`${otherId}-${S.humanId}`] = S.turn + NAP_DURATION;
+    log(`${other.name} accepts the Non-Aggression Pact (${NAP_DURATION} turns).`, 'good');
+  } else {
+    log(`${other.name} rejects the Non-Aggression Pact.`, null);
+  }
+  if (typeof updateHUDV2 === 'function') updateHUDV2();
+  if (typeof renderSelectedPanelV2 === 'function') renderSelectedPanelV2();
+}
+window.doProposeNAPV2 = doProposeNAPV2;
+
+// NAP expiry tick — relations drift back to peace once S._napExpiryV2[key] elapses.
+function tickNAPExpiryV2() {
+  if (!S._napExpiryV2) return;
+  for (const key in S._napExpiryV2) {
+    if (S._napExpiryV2[key] <= S.turn) {
+      const [a, b] = key.split('-');
+      if (relationV2(a, b) === 'nap') {
+        setRelationV2(a, b, 'peace');
+        if (a === S.humanId || b === S.humanId) {
+          const other = S.nations[a === S.humanId ? b : a];
+          if (other) log(`Non-Aggression Pact with ${other.name} has expired.`, null);
+        }
+      }
+      delete S._napExpiryV2[key];
+    }
+  }
+}
+
 // ── v2 end-of-turn ───────────────────────────────────────────────────────────
 // Processes all nations: defence accrual, income, MP/DP, stability (regime-capped),
 // capital-loss shock, and regime-based rebellion.
@@ -10833,6 +10978,8 @@ const V2_DEF_CAP = 50;      // max defence points per province
 const V2_DEF_ACCRUAL = 1;   // defence points gained per province per turn at peace
 function endTurnV2() {
   if (!S.v2) return;
+  // P11: relations drift over time — expire NAPs and tick war durations.
+  tickNAPExpiryV2();
   // Province defence accrual — independent of gold/mp
   for (const pid in S.provinces) {
     const p = S.provinces[pid]; if (!p || p._bad) continue;
@@ -10859,6 +11006,20 @@ function endTurnV2() {
     n._capWasLost = inc.capLost;
     const atWar     = Object.values(n.rel || {}).some(r => r === 'war');
     const stabDelta = atWar ? -0.5 : 2;
+    // P11: tick war duration + a light war-score drift toward whoever holds more land.
+    if (n.rel) {
+      n.warTurns = n.warTurns || {}; n.warScore = n.warScore || {};
+      for (const oid in n.rel) {
+        if (n.rel[oid] !== 'war') continue;
+        n.warTurns[oid] = (n.warTurns[oid] || 0) + 1;
+        const o = S.nations[oid];
+        if (o) {
+          const myLands = provs.length, theirLands = nationProvinces(oid).length;
+          const delta = Math.sign(myLands - theirLands) * 0.5;
+          n.warScore[oid] = Math.max(-100, Math.min(100, (n.warScore[oid] || 0) + delta));
+        }
+      }
+    }
     let rebels = null;
     for (let i = 0; i < provs.length; i++) {
       const pid = provs[i];
@@ -16006,8 +16167,8 @@ function renderSelectedPanelV2() {
   let rel = 'neutral';
   if (isOwn) rel = 'self';
   else if (nid && me && me.rel && me.rel[nid]) rel = me.rel[nid];
-  const relTagClass = rel === 'self' ? 'rel-self' : rel === 'ally' ? 'rel-ally' : rel === 'war' ? 'rel-war' : 'rel-peace';
-  const relLabel    = rel === 'self' ? T('rel_own') : rel === 'ally' ? T('rel_ally') : rel === 'war' ? T('rel_war') : isNeutral ? 'NEUTRAL' : T('rel_neutral');
+  const relTagClass = rel === 'self' ? 'rel-self' : rel === 'ally' ? 'rel-ally' : rel === 'war' ? 'rel-war' : rel === 'nap' ? 'rel-nap' : 'rel-peace';
+  const relLabel    = rel === 'self' ? T('rel_own') : rel === 'ally' ? T('rel_ally') : rel === 'war' ? T('rel_war') : rel === 'nap' ? T('rel_nap') : isNeutral ? 'NEUTRAL' : T('rel_neutral');
   const bldIcons    = { fortress:'🏯', armory:'⚔', port:'⚓', market:'🏪' };
 
   let html = `
@@ -16065,6 +16226,41 @@ function renderSelectedPanelV2() {
     html += `<div class="stat-row"><span class="lbl">Nation Provinces</span><span class="val">${natProvs.length}</span></div>`;
     html += `<div class="stat-row"><span class="lbl">Regime</span><span class="val">${(nat.regime||'monarchy').toUpperCase()}</span></div>`;
     html += `<div class="stat-row"><span class="lbl">Relation</span><span class="val"><span class="rel-tag ${relTagClass}">${relLabel}</span></span></div>`;
+
+    // P11: diplomacy actions (declare war / ally / NAP / break-ally / white peace),
+    // mirroring v1's renderSelectedPanel branch but operating on S.nations via doDiplomacyV2.
+    if (me && nid !== S.humanId) {
+      const r2 = relationV2(S.humanId, nid);
+      if (r2 === 'war') {
+        const wScore  = (me.warScore && me.warScore[nid]) || 0;
+        const wsClass = wScore > 10 ? 'ws-pos' : wScore < -10 ? 'ws-neg' : 'ws-neutral';
+        const wdur    = (me.warTurns && me.warTurns[nid]) || 0;
+        html += `<div class="stat-row"><span class="lbl">${T('stat_war_score')}</span><span class="val"><span class="war-score-tag ${wsClass}">${wScore > 0 ? '+' : ''}${Math.round(wScore)}</span></span></div>`;
+        html += `<div class="stat-row"><span class="lbl">${T('stat_war_dur')}</span><span class="val">${wdur}t</span></div>`;
+        const peaceOk = (me.dp || 0) >= P1.DP_COST.peace;
+        html += `<button class="btn ally" onclick="doDiplomacyV2('${nid}','peace')" ${peaceOk ? '' : 'disabled'}>${T('act_peace_white')} <span class="ap-cost">(${P1.DP_COST.peace}DP)</span></button>`;
+      } else if (r2 === 'nap') {
+        const napTurns = (S._napExpiryV2 && S._napExpiryV2[`${S.humanId}-${nid}`]) ? S._napExpiryV2[`${S.humanId}-${nid}`] - S.turn : '?';
+        html += `<div class="stat-row"><span class="lbl">${T('stat_nap')}</span><span class="val"><span class="truce-badge">${napTurns}${T('stat_left')}</span></span></div>`;
+        const allyOk = (me.dp || 0) >= P1.DP_COST.ally;
+        html += `<button class="btn ally" onclick="doDiplomacyV2('${nid}','ally')" ${allyOk ? '' : 'disabled'}>${T('act_upgrade_ally')} <span class="ap-cost">(${P1.DP_COST.ally}DP)</span></button>`;
+        const warOk = (me.dp || 0) >= P1.DP_COST.war;
+        html += `<button class="btn danger" onclick="doDiplomacyV2('${nid}','declare-war')" ${warOk ? '' : 'disabled'}>${T('act_declare_war')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+      } else if (r2 === 'ally') {
+        html += `<button class="btn" onclick="doDiplomacyV2('${nid}','break-ally')">${T('act_break_ally')} <span class="ap-cost">(${P1.DP_COST.breakAlly}DP)</span></button>`;
+        const warOk = (me.dp || 0) >= P1.DP_COST.war;
+        html += `<button class="btn danger" onclick="doDiplomacyV2('${nid}','declare-war')" ${warOk ? '' : 'disabled'}>${T('act_declare_war_a')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+      } else {
+        const allyOk = (me.dp || 0) >= P1.DP_COST.ally;
+        html += `<button class="btn ally" onclick="doDiplomacyV2('${nid}','ally')" ${allyOk ? '' : 'disabled'}>${T('act_propose_ally')} <span class="ap-cost">(${P1.DP_COST.ally}DP)</span></button>`;
+        if (!isNAPV2(S.humanId, nid)) {
+          const napOk = (me.dp || 0) >= P1.DP_COST.nap;
+          html += `<button class="btn nap" onclick="doProposeNAPV2('${nid}')" ${napOk ? '' : 'disabled'}>${T('act_propose_nap')} <span class="ap-cost">(${P1.DP_COST.nap}DP)</span></button>`;
+        }
+        const warOk = (me.dp || 0) >= P1.DP_COST.war;
+        html += `<button class="btn danger" onclick="doDiplomacyV2('${nid}','declare-war')" ${warOk ? '' : 'disabled'}>${T('act_declare_war')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+      }
+    }
   }
 
   if (body) body.innerHTML = html;
@@ -17171,4 +17367,97 @@ boot();
           <div class="mp-label" style="margin-top:8px" data-i18n="mp_scenario">SCENARIO</div>
           <select class="mp-input" id="mp-create-scenario" style="cursor:pointer">
             <option value="sandbox">🌐 Sandbox (1450 AD)</option>
-          
+            <option value="ancient">⚔️ Ancient World (218 BC)</option>
+            <option value="roman">🏛️ Roman Empire (117 AD)</option>
+            <option value="medieval">✝️ Medieval Christendom (1096 AD)</option>
+            <option value="mongol">🏹 Mongol Empire (1300 AD)</option>
+            <option value="timurid">☄️ Timurid Era (1400 AD)</option>
+            <option value="discovery">⛵ Age of Discovery (1492 AD)</option>
+            <option value="gunpowder">🕌 Gunpowder Empires (1700 AD)</option>
+            <option value="napoleonic">🎖️ Napoleonic Wars (1804 AD)</option>
+            <option value="victorian">🎩 Victorian Era (1850 AD)</option>
+            <option value="ww1">🪖 World War I (1914)</option>
+            <option value="ww2">💣 World War II (1939)</option>
+            <option value="coldwar">☢️ Cold War (1947)</option>
+            <option value="current">🌍 Current World (2025)</option>
+          </select>
+          <button class="mp-btn" id="mp-create-btn" onclick="mpCreateRoom()">▸ CREATE ROOM</button>
+        </div>
+
+        <div class="mp-section" id="mps-join">
+          <div class="mp-label" data-i18n="mp_your_name">YOUR NAME</div>
+          <input class="mp-input" id="mp-join-name" data-i18n-placeholder="mp_ph_your_name" placeholder="Enter your name" maxlength="20">
+          <div class="mp-label" style="margin-top:8px" data-i18n="mp_room_code">ROOM CODE</div>
+          <input class="mp-input code-input" id="mp-join-code" data-i18n-placeholder="mp_ph_room_code" placeholder="XXXXXX" maxlength="6">
+          <button class="mp-btn" id="mp-join-btn" onclick="mpJoinRoom()">↗ JOIN ROOM</button>
+        </div>
+      </div>
+
+      <!-- Room lobby (shown after create/join) -->
+      <div id="mp-room-lobby" style="display:none">
+        <div class="mp-room-code" id="mp-room-code-display">------</div>
+        <div class="mp-room-code-sub">▸ SHARE THIS CODE WITH FRIENDS (UP TO 4 PLAYERS)</div>
+        <div class="mp-player-list" id="mp-player-list"></div>
+        <div class="mp-status" id="mp-lobby-status" data-i18n="mp_waiting_players">Waiting for players…</div>
+        <button class="mp-btn outline" id="mp-pick-btn" onclick="mpPickNation()" style="margin-bottom:8px">&#127758; PICK YOUR NATION ON GLOBE</button>
+        <div class="mp-status" id="mp-pick-hint" style="display:none;color:#c9a84c">&#9658; Click any nation on globe, then tap RETURN</div>
+        <button class="mp-btn" id="mp-return-btn" onclick="mpReturnToLobby()" style="display:none">&#8592; RETURN TO LOBBY</button>
+                <button class="mp-btn" id="mp-start-btn" onclick="mpStartGame()" disabled>▸ START GAME</button>
+        <button class="mp-btn outline" onclick="closeMPOverlay()">← BACK</button>
+      </div>
+
+      <div class="mp-status" id="mp-connecting-status" style="display:none">Connecting…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── IN-GAME MULTIPLAYER HUD ── -->
+<div id="mp-hud">
+  <div id="mp-timer-label">PLANNING PHASE · 2:00</div>
+  <div id="mp-timer-bar-wrap"><div id="mp-timer-bar"></div></div>
+  <div id="mp-waiting-label"></div>
+</div>
+
+<!-- Reconnect status banner — visible feedback while (re)connecting to a room,
+     including the page-reload path where the lobby overlay is closed. -->
+<div id="mp-reconnect-banner" hidden>
+  <span class="mrb-dot" aria-hidden="true"></span>
+  <span id="mp-reconnect-text"></span>
+</div>
+
+<!-- Centered waiting overlay shown while other players finish their turn -->
+<div id="mp-waiting-overlay" role="status" aria-live="polite">
+  <div class="mw-spinner" aria-hidden="true"></div>
+  <div class="mw-text">
+    <div id="mp-waiting-main" data-i18n="mp_waiting_players">Waiting for other players…</div>
+    <div class="mw-sub" id="mp-waiting-sub" data-i18n="mp_turn_locked">Your turn is locked in.</div>
+  </div>
+</div>
+
+<!-- Diplomacy request modal (shown to the receiver) -->
+<div id="diplo-request-modal" role="dialog" aria-modal="true">
+  <div class="drm-box">
+    <div class="drm-tag" id="drm-tag">DIPLOMATIC REQUEST</div>
+    <div class="drm-msg" id="drm-msg"></div>
+    <div class="drm-buttons">
+      <button class="drm-btn drm-accept" id="drm-accept">ACCEPT</button>
+      <button class="drm-btn drm-reject" id="drm-reject">REJECT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diplomacy response toast (shown to the sender after the receiver responds) -->
+<div id="diplo-result" role="alert"></div>
+
+<!-- ── IN-GAME CHAT ── -->
+<div id="mp-chat">
+  <div id="mp-chat-log"></div>
+  <div id="mp-chat-form">
+    <input id="mp-chat-input" data-i18n-placeholder="mp_ph_chat" placeholder="Chat…" maxlength="200"
+           onkeydown="if(event.key==='Enter')mpSendChat()">
+    <button id="mp-chat-send" onclick="mpSendChat()">▸</button>
+  </div>
+</div>
+
+</body>
+</html>
