@@ -3206,6 +3206,18 @@ en: {
   stat_nap:         '▸ NAP',
   stat_truce:       '▸ TRUCE',
   stat_left:        't LEFT',
+  // ── P16: occupation, war weariness, peace deals ─────────────────────────
+  stat_war_weariness: '▸ WAR WEARINESS',
+  stat_occupied:      '▸ OCCUPIED PROVINCES',
+  act_peace_cede:        '⚑ DEMAND OCCUPIED TERRITORY',
+  act_peace_reparations: '💰 DEMAND REPARATIONS',
+  glog_v2_peace_white:   '{v0} accepts white peace.',
+  glog_v2_peace_cede:    '{v0} cedes {v1} province(s) in the peace deal.',
+  glog_v2_peace_reparations: '{v0} pays {v1}g in war reparations.',
+  glog_v2_peace_reject: '{v0} rejects your peace offer.',
+  glog_v2_no_occupied:  'You hold no occupied enemy territory to demand.',
+  glog_v2_ws_too_low:   'War score too low to demand reparations (need {v0}).',
+  glog_v2_truce_block:  'Cannot declare war on {v0} — truce in effect.',
   // ── P12: province economy ───────────────────────────────────────────────
   stat_economy:     'Economy',
   stat_happiness:   'Happiness',
@@ -4445,6 +4457,18 @@ ru: {
   stat_nap:         '▸ ДНА',
   stat_truce:       '▸ ПЕРЕМИРИЕ',
   stat_left:        'х. ОСТАЛОСЬ',
+  // ── P16: оккупация, военная усталость, мирные соглашения ────────────────
+  stat_war_weariness: '▸ ВОЕННАЯ УСТАЛОСТЬ',
+  stat_occupied:      '▸ ОККУПИРОВАНО ПРОВИНЦИЙ',
+  act_peace_cede:        '⚑ ТРЕБОВАТЬ ОККУПИРОВАННЫЕ ЗЕМЛИ',
+  act_peace_reparations: '💰 ТРЕБОВАТЬ КОНТРИБУЦИЮ',
+  glog_v2_peace_white:   '{v0} принимает белый мир.',
+  glog_v2_peace_cede:    '{v0} уступает {v1} провинций(ии) по мирному соглашению.',
+  glog_v2_peace_reparations: '{v0} выплачивает {v1}з контрибуции.',
+  glog_v2_peace_reject: '{v0} отклоняет ваше мирное предложение.',
+  glog_v2_no_occupied:  'У вас нет оккупированных вражеских территорий, чтобы их потребовать.',
+  glog_v2_ws_too_low:   'Военный счёт слишком низок для требования контрибуции (нужно {v0}).',
+  glog_v2_truce_block:  'Невозможно объявить войну {v0} — действует перемирие.',
   // ── P12: экономика провинций ────────────────────────────────────────────
   stat_economy:     'Экономика',
   stat_happiness:   'Довольство',
@@ -9669,6 +9693,32 @@ function _overlayFillV2(p, nat) {
   }
 }
 
+// P16: diagonal-hatch pattern for occupied provinces (striped in the occupier's
+// colour), shown over the political/military/wars lenses per the roadmap spec.
+let _occStripeCache = {};
+function _occupiedStripeCanvasV2(color) {
+  if (_occStripeCache[color]) return _occStripeCache[color];
+  const sz = 8;
+  const c = document.createElement('canvas');
+  c.width = sz; c.height = sz;
+  const cx = c.getContext('2d');
+  cx.strokeStyle = color;
+  cx.lineWidth = 2.4;
+  cx.globalAlpha = 0.6;
+  for (const off of [-sz, 0, sz]) {
+    cx.beginPath();
+    cx.moveTo(off, sz);
+    cx.lineTo(off + sz, 0);
+    cx.stroke();
+  }
+  _occStripeCache[color] = c;
+  return c;
+}
+function _occupiedFillV2(targetCtx, occNat) {
+  const color = (occNat && occNat.color) || '#ffffff';
+  return targetCtx.createPattern(_occupiedStripeCanvasV2(color), 'repeat');
+}
+
 // ── Wars lens: group nations by shared conflict (union-find over war relations) ──
 let _warsColors = {};
 function _computeWarsIndex() {
@@ -10210,6 +10260,11 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       const me = S.humanId && S.nations[S.humanId];
       if (_overlayMode === 'political' && me && nat && nat.id !== S.humanId && me.rel && me.rel[nat.id] === 'war') {
         targetCtx.fillStyle = 'rgba(220,60,45,0.42)'; targetCtx.fill();   // enemy-at-war wash
+      }
+      // P16: hatch occupied provinces in the occupier's colour (political/military/wars lenses).
+      if (pr.occupiedBy && (_overlayMode === 'political' || _overlayMode === 'military' || _overlayMode === 'wars')) {
+        const occNat = S.nations[pr.occupiedBy];
+        if (occNat) { targetCtx.fillStyle = _occupiedFillV2(targetCtx, occNat); targetCtx.fill(); }
       }
       targetCtx.strokeStyle = TH.internal; targetCtx.lineWidth = 0.3; targetCtx.stroke();
       continue;
@@ -10788,6 +10843,51 @@ function combatMulV2(nid) {
   const n = S.nations[nid]; if (!n) return 1;
   return (typeof ERAS !== 'undefined' && ERAS[n.era]) ? ERAS[n.era].combatMul : 1;
 }
+// P16: de-facto controller of a province — the occupier if one is present,
+// otherwise the legal owner. Used for combat multipliers and movement
+// friendliness so occupied territory behaves like the occupier's own land
+// without transferring `p.nation` (that only happens via cedeProvinceV2).
+function provinceControllerV2(pid) {
+  const p = S.provinces[pid]; if (!p) return null;
+  return p.occupiedBy || p.nation;
+}
+window.provinceControllerV2 = provinceControllerV2;
+// P16: AoC2 §16.6 province value — feeds occupation-based war score (§10.1).
+function provinceValueV2(pid) {
+  const p = S.provinces[pid]; if (!p || p._bad) return 0;
+  const economy = Math.min(5, Math.max(1, p.economy || 1));
+  const dev     = Math.min(5, Math.max(1, p.dev || 1));
+  const pop     = p.pop || 80;
+  let v = 1 + economy * 0.1 + dev * 2.0 + pop * 0.001;
+  if (p.capital) v *= 10;
+  return v;
+}
+window.provinceValueV2 = provinceValueV2;
+// P16: reassign a nation's capital to its most-connected remaining province
+// (mirrors the centrality proxy used at world init). Eliminates the nation
+// if it has no provinces left.
+function reassignCapitalV2(nid) {
+  const n = S.nations[nid]; if (!n) return;
+  const provs = nationProvinces(nid);
+  if (!provs.length) { n.eliminated = true; n.capital = null; return; }
+  let cap = provs[0], best = -1;
+  for (const pid of provs) { const d = (S.provinces[pid].neighbors || []).length; if (d > best) { best = d; cap = pid; } }
+  n.capital = cap; S.provinces[cap].capital = true;
+}
+window.reassignCapitalV2 = reassignCapitalV2;
+// P16: transfer legal ownership of a province as part of a peace deal — clears
+// any occupation flags and reassigns the ceding nation's capital if it was lost.
+function cedeProvinceV2(pid, toNid) {
+  const p = S.provinces[pid]; if (!p) return;
+  const fromNid = p.nation;
+  p.occupiedBy = null; p.occTurns = 0;
+  if (p.capital && fromNid != null) {
+    p.capital = false;
+    if (S.nations[fromNid]) reassignCapitalV2(fromNid);
+  }
+  _setProvNation(pid, toNid);
+}
+window.cedeProvinceV2 = cedeProvinceV2;
 function provinceDefMulV2(pid) {
   const p = S.provinces[pid]; if (!p) return 1;
   let m = 1;
@@ -10795,22 +10895,38 @@ function provinceDefMulV2(pid) {
   // P14: fortress II compounds the base fortress bonus; watchtower adds a small bonus.
   if (p.building === 'fortress') m += ((p.buildingLevel || 1) >= 2 ? 0.80 : 0.50);
   if (p.building === 'watchtower') m += 0.03;
-  // P15: regime defense bonus (AoC2 §7.2 — e.g. city-state +12%, democracy +6%)
-  const owner = p.nation && S.nations[p.nation];
+  // P15/P16: regime defense bonus (AoC2 §7.2) follows the de-facto controller —
+  // the army defending here belongs to whoever currently holds the province.
+  const ctrl = provinceControllerV2(pid);
+  const owner = ctrl && S.nations[ctrl];
   if (owner) m += (V2_REGIMES[owner.regime] || V2_REGIMES.monarchy).defenseBonus || 0;
   return m + (p.defense || 0) / 100;          // accrued province defence points (P3.x)
 }
 function resolveCombatV2(fromPid, toPid) {
   const from = S.provinces[fromPid], to = S.provinces[toPid];
   if (!from || !to) return null;
-  const atkNid = from.nation;
+  // P16: combat multipliers follow the de-facto controller (an occupier's army
+  // fights with its own nation's era/regime bonuses, not the legal owner's).
+  const atkNid = provinceControllerV2(fromPid);
+  const defNid = provinceControllerV2(toPid);
   const atkArmy = from.army;
   const atk = atkArmy * combatMulV2(atkNid);
-  const def = to.army * combatMulV2(to.nation) * provinceDefMulV2(toPid);
+  const def = to.army * combatMulV2(defNid) * provinceDefMulV2(toPid);
   if (atk > def) {                              // attacker wins → occupy
     const survivors = Math.max(1, Math.round((atk - def) / Math.max(0.01, combatMulV2(atkNid))));
     const occupy = Math.min(atkArmy, survivors);
-    _setProvNation(toPid, atkNid); to.army = occupy; to.defense = 0; to.building = to.building;  // keep buildings
+    // P16: neutral land is annexed instantly (as before); enemy-owned land is
+    // marked occupied — ownership only transfers via a peace deal
+    // (cedeProvinceV2). The legal owner retaking their own occupied province
+    // simply clears the occupation.
+    if (to.nation == null) {
+      _setProvNation(toPid, atkNid);
+    } else if (to.nation === atkNid) {
+      to.occupiedBy = null; to.occTurns = 0;
+    } else {
+      to.occupiedBy = atkNid; to.occTurns = 0;
+    }
+    to.army = occupy; to.defense = 0; to.building = to.building;  // keep buildings
     from.army = Math.max(0, atkArmy - occupy);
     if (typeof markBordersDirty === 'function') markBordersDirty();
     return 'win';
@@ -10825,7 +10941,9 @@ function moveOrAttackV2(fromPid, toPid, troops) {
   if (!from || !to || !(from.neighbors || []).includes(toPid)) return false;   // must be adjacent
   if (from.army <= 1) return false;
   if (from.sea && from.sea[toPid] && from.building !== 'port') return false;  // sea hop needs port
-  if (to.nation === from.nation) {             // reinforce a friendly province
+  // P16: friendliness follows de-facto control, so reinforcing territory you
+  // currently occupy (but don't legally own yet) works like any other move.
+  if (provinceControllerV2(toPid) === provinceControllerV2(fromPid)) {
     const n = Math.min(troops || (from.army - 1), from.army - 1);
     if (n <= 0) return false;
     from.army -= n; to.army += n; return true;
@@ -10979,6 +11097,14 @@ function calculateIncomeV2(nid, provs) {
   let production = 0, tax = 0, admin = 0, manpower = 0, upkeepBase = 0, happinessSum = 0, totalPop = 0, researchBonus = 0;
   for (const pid of provs) {
     const p = S.provinces[pid]; if (!p || p._bad) continue;
+    // P16: enemy-occupied provinces are disrupted — they still count toward
+    // lands/pop/happiness (the owner still legally holds them) but produce no
+    // income, manpower, research, or upkeep contribution while occupied.
+    if (p.occupiedBy && p.occupiedBy !== nid) {
+      totalPop += (p.pop || 80);
+      happinessSum += (p.happiness == null) ? 60 : p.happiness;
+      continue;
+    }
     const stabMod    = 0.5 + (p.stability || 70) / 200;
     const dev        = Math.min(5, Math.max(1, p.dev || 1));
     const economy    = Math.min(5, Math.max(1, p.economy || 1));
@@ -11079,6 +11205,10 @@ function doDiplomacyV2(otherId, action) {
 
   if (action === 'declare-war') {
     if (curRel === 'war') return;
+    // P16: truces (from a recent peace deal) block re-declaring war for a cooldown period.
+    if (typeof hasTruceV2 === 'function' && hasTruceV2(S.humanId, otherId)) {
+      logT('glog_v2_truce_block', { v0: other.name }, 'crit'); return;
+    }
     me.dp -= P1.DP_COST.war;
     setRelationV2(S.humanId, otherId, 'war');
     me.warScore = me.warScore || {}; other.warScore = other.warScore || {};
@@ -11129,6 +11259,95 @@ function doDiplomacyV2(otherId, action) {
   if (typeof render === 'function') render();
 }
 window.doDiplomacyV2 = doDiplomacyV2;
+
+// P16: war score threshold for demanding reparations in a peace deal (AoC2 §10.1).
+const V2_REPARATIONS_MIN_WS = 25;
+
+// P16: v2-specific truce tracking — separate from v1's S.truces (which is keyed
+// off S.players, not S.nations). S.truceV2[a][b] = turn number truce expires.
+function hasTruceV2(a, b) {
+  if (!S.truceV2 || !S.truceV2[a] || !S.truceV2[a][b]) return false;
+  return S.truceV2[a][b] > S.turn;
+}
+window.hasTruceV2 = hasTruceV2;
+function setTruceV2(a, b, turns) {
+  S.truceV2 = S.truceV2 || {};
+  if (!S.truceV2[a]) S.truceV2[a] = {};
+  if (!S.truceV2[b]) S.truceV2[b] = {};
+  S.truceV2[a][b] = S.truceV2[b][a] = S.turn + turns;
+}
+window.setTruceV2 = setTruceV2;
+
+// P16: peace deal — white peace, demand occupied territory, or war reparations.
+// AI acceptance odds scale with the human's war score (occupation %) and war
+// duration. Vassalize is explicitly deferred to P17 (see roadmap scope note).
+function doPeaceDealV2(otherId, dealType) {
+  if (!S.v2) return;
+  const me = S.nations[S.humanId];
+  const other = S.nations[otherId];
+  if (!me || !other || other.eliminated) return;
+  if (relationV2(S.humanId, otherId) !== 'war') return;
+  if ((me.dp || 0) < P1.DP_COST.peace) { log(`Not enough DP (need ${P1.DP_COST.peace}).`, 'crit'); return; }
+
+  const myWS = (me.warScore && me.warScore[otherId]) || 0;
+  const dur  = (me.warTurns && me.warTurns[otherId]) || 0;
+  const occupiedProvs = nationProvinces(otherId).filter(pid => S.provinces[pid].occupiedBy === S.humanId);
+
+  if (dealType === 'cede' && occupiedProvs.length === 0) {
+    logT('glog_v2_no_occupied', null, 'crit'); return;
+  }
+  if (dealType === 'reparations' && myWS < V2_REPARATIONS_MIN_WS) {
+    logT('glog_v2_ws_too_low', { v0: V2_REPARATIONS_MIN_WS }, 'crit'); return;
+  }
+
+  let accept;
+  if (dealType === 'white')             accept = 0.50 + myWS * 0.005 + Math.min(0.30, dur * 0.03);
+  else if (dealType === 'cede')         accept = 0.15 + myWS * 0.008 + Math.min(0.25, dur * 0.02);
+  else if (dealType === 'reparations')  accept = 0.25 + myWS * 0.006 + Math.min(0.25, dur * 0.02);
+  else return;
+  accept = Math.max(0.05, Math.min(0.92, accept));
+
+  me.dp -= P1.DP_COST.peace;
+
+  if (Math.random() < accept) {
+    if (dealType === 'cede') {
+      occupiedProvs.forEach(pid => cedeProvinceV2(pid, S.humanId));
+      logT('glog_v2_peace_cede', { v0: other.name, v1: occupiedProvs.length }, 'good');
+    } else if (dealType === 'reparations') {
+      const reparations = Math.round((other.gold || 0) * Math.min(0.5, myWS / 100));
+      other.gold = Math.max(0, (other.gold || 0) - reparations);
+      me.gold = (me.gold || 0) + reparations;
+      logT('glog_v2_peace_reparations', { v0: other.name, v1: reparations }, 'good');
+    } else {
+      logT('glog_v2_peace_white', { v0: other.name }, 'good');
+    }
+    // End the war: clear scores/weariness, revert any remaining occupation between
+    // the two nations (white peace gives back what wasn't formally ceded above).
+    setRelationV2(S.humanId, otherId, 'peace');
+    if (me.warScore) delete me.warScore[otherId];
+    if (other.warScore) delete other.warScore[S.humanId];
+    if (me.warTurns) delete me.warTurns[otherId];
+    if (other.warTurns) delete other.warTurns[S.humanId];
+    if (me.warWeariness) delete me.warWeariness[otherId];
+    if (other.warWeariness) delete other.warWeariness[S.humanId];
+    [S.humanId, otherId].forEach(nid => {
+      nationProvinces(nid).forEach(pid => {
+        const p = S.provinces[pid];
+        if (p && (p.occupiedBy === S.humanId || p.occupiedBy === otherId)) {
+          p.occupiedBy = null; p.occTurns = 0;
+        }
+      });
+    });
+    setTruceV2(S.humanId, otherId, P1.TRUCE_TURNS);
+    if (typeof markBordersDirty === 'function') markBordersDirty();
+  } else {
+    logT('glog_v2_peace_reject', { v0: other.name }, 'crit');
+  }
+  if (typeof updateHUDV2 === 'function') updateHUDV2();
+  if (typeof renderSelectedPanelV2 === 'function') renderSelectedPanelV2();
+  if (typeof render === 'function') render();
+}
+window.doPeaceDealV2 = doPeaceDealV2;
 
 // Non-Aggression Pact proposal — mirrors v1's doProposeNAP, scaled to S.nations.
 function doProposeNAPV2(otherId) {
@@ -11213,27 +11432,37 @@ function endTurnV2() {
     const capLossShock = inc.capLost && !n._capWasLost;
     n._capWasLost = inc.capLost;
     const atWar     = Object.values(n.rel || {}).some(r => r === 'war');
-    const stabDelta = atWar ? -0.5 : 2;
-    // P11: tick war duration + a light war-score drift toward whoever holds more land.
+    // P16: war score = % of the enemy's total province value (AoC2 §16.6)
+    // currently occupied — recomputed each turn so it tracks the front line
+    // and maps directly onto AoC2 §10.1's 25/50/75% peace-demand thresholds.
+    // War weariness accrues while at war and decays at peace, deepening the
+    // stability/happiness penalty of a prolonged conflict.
+    n.warTurns = n.warTurns || {}; n.warScore = n.warScore || {}; n.warWeariness = n.warWeariness || {};
     if (n.rel) {
-      n.warTurns = n.warTurns || {}; n.warScore = n.warScore || {};
       for (const oid in n.rel) {
-        if (n.rel[oid] !== 'war') continue;
-        n.warTurns[oid] = (n.warTurns[oid] || 0) + 1;
-        const o = S.nations[oid];
-        if (o) {
-          const myLands = provs.length, theirLands = nationProvinces(oid).length;
-          const delta = Math.sign(myLands - theirLands) * 0.5;
-          n.warScore[oid] = Math.max(-100, Math.min(100, (n.warScore[oid] || 0) + delta));
+        if (!S.nations[oid]) continue;
+        if (n.rel[oid] === 'war') {
+          n.warTurns[oid] = (n.warTurns[oid] || 0) + 1;
+          const theirProvs = nationProvinces(oid);
+          const totalVal = theirProvs.reduce((s, pid) => s + provinceValueV2(pid), 0) || 1;
+          const occVal   = theirProvs.reduce((s, pid) => s + (S.provinces[pid].occupiedBy === nid ? provinceValueV2(pid) : 0), 0);
+          n.warScore[oid] = Math.max(0, Math.min(100, Math.round(occVal / totalVal * 100)));
+          n.warWeariness[oid] = Math.min(100, (n.warWeariness[oid] || 0) + 1.5);
+        } else if (n.warWeariness[oid]) {
+          n.warWeariness[oid] = Math.max(0, n.warWeariness[oid] - 3);
+          if (n.warWeariness[oid] <= 0) delete n.warWeariness[oid];
         }
       }
     }
+    const warWearinessMax = Object.values(n.warWeariness).reduce((m, w) => Math.max(m, w), 0);
+    const stabDelta = atWar ? -0.5 - warWearinessMax / 100 : 2;
     // P12: budget-driven happiness target — generous public-goods spending and
     // low taxes raise it, heavy taxation and war lower it. Provinces drift
-    // toward this target by up to 2 points/turn.
+    // toward this target by up to 2 points/turn. P16: war weariness deepens
+    // the wartime penalty over the course of a long conflict.
     const budget = n.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
     const happyTarget = Math.max(0, Math.min(100,
-      50 + (budget.goods - 20) * 0.6 - Math.max(0, budget.tax - 50) * 0.5 - (atWar ? 8 : 0)));
+      50 + (budget.goods - 20) * 0.6 - Math.max(0, budget.tax - 50) * 0.5 - (atWar ? 8 : 0) - warWearinessMax * 0.15));
     const investChance = (budget.investment || 0) / 100 * 0.05;   // P12: per-province/turn odds of +1 economy
     // P13: research accrues from budget.research scaled by total population.
     // At 100% progress, techLevel steps up (cost grows exponentially) and era
@@ -11255,6 +11484,11 @@ function endTurnV2() {
       const pid = provs[i];
       const p = S.provinces[pid]; if (!p || p._bad) continue;
       if (capLossShock) p.stability = Math.max(5, (p.stability || 70) - 20);
+      // P16: occupied provinces lose stability each turn under enemy occupation
+      if (p.occupiedBy) {
+        p.occTurns = (p.occTurns || 0) + 1;
+        p.stability = Math.max(5, (p.stability || 70) - 1);
+      }
       // Stability: regen + clamp to regime ceiling
       p.stability = Math.max(5, Math.min(regime.stabCeil, (p.stability || 70) + stabDelta));
       // P12: happiness drifts toward the budget-driven target
@@ -16675,13 +16909,27 @@ function renderSelectedPanelV2() {
     if (me && nid !== S.humanId) {
       const r2 = relationV2(S.humanId, nid);
       if (r2 === 'war') {
+        // P16: war score is now a 0-100 occupation-value percentage (replaces the
+        // old ±100 land-count drift), so it's never negative — no "+" prefix.
         const wScore  = (me.warScore && me.warScore[nid]) || 0;
-        const wsClass = wScore > 10 ? 'ws-pos' : wScore < -10 ? 'ws-neg' : 'ws-neutral';
+        const wsClass = wScore >= 50 ? 'ws-pos' : wScore >= 15 ? 'ws-neutral' : 'ws-neg';
         const wdur    = (me.warTurns && me.warTurns[nid]) || 0;
-        html += `<div class="stat-row"><span class="lbl">${T('stat_war_score')}</span><span class="val"><span class="war-score-tag ${wsClass}">${wScore > 0 ? '+' : ''}${Math.round(wScore)}</span></span></div>`;
+        const weariness = Math.round((me.warWeariness && me.warWeariness[nid]) || 0);
+        const occCount = nationProvinces(nid).filter(pid => S.provinces[pid].occupiedBy === S.humanId).length;
+        html += `<div class="stat-row"><span class="lbl">${T('stat_war_score')}</span><span class="val"><span class="war-score-tag ${wsClass}">${Math.round(wScore)}%</span></span></div>`;
         html += `<div class="stat-row"><span class="lbl">${T('stat_war_dur')}</span><span class="val">${wdur}t</span></div>`;
+        html += `<div class="stat-row"><span class="lbl">${T('stat_war_weariness')}</span><span class="val">${weariness}%</span></div>`;
+        if (occCount > 0) {
+          html += `<div class="stat-row"><span class="lbl">${T('stat_occupied')}</span><span class="val">${occCount}</span></div>`;
+        }
         const peaceOk = (me.dp || 0) >= P1.DP_COST.peace;
-        html += `<button class="btn ally" onclick="doDiplomacyV2('${nid}','peace')" ${peaceOk ? '' : 'disabled'}>${T('act_peace_white')} <span class="ap-cost">(${P1.DP_COST.peace}DP)</span></button>`;
+        html += `<button class="btn ally" onclick="doPeaceDealV2('${nid}','white')" ${peaceOk ? '' : 'disabled'}>${T('act_peace_white')} <span class="ap-cost">(${P1.DP_COST.peace}DP)</span></button>`;
+        if (occCount > 0) {
+          html += `<button class="btn ally" onclick="doPeaceDealV2('${nid}','cede')" ${peaceOk ? '' : 'disabled'}>${T('act_peace_cede')} <span class="ap-cost">(${P1.DP_COST.peace}DP)</span></button>`;
+        }
+        if (wScore >= V2_REPARATIONS_MIN_WS) {
+          html += `<button class="btn ally" onclick="doPeaceDealV2('${nid}','reparations')" ${peaceOk ? '' : 'disabled'}>${T('act_peace_reparations')} <span class="ap-cost">(${P1.DP_COST.peace}DP)</span></button>`;
+        }
       } else if (r2 === 'nap') {
         const napTurns = (S._napExpiryV2 && S._napExpiryV2[`${S.humanId}-${nid}`]) ? S._napExpiryV2[`${S.humanId}-${nid}`] - S.turn : '?';
         html += `<div class="stat-row"><span class="lbl">${T('stat_nap')}</span><span class="val"><span class="truce-badge">${napTurns}${T('stat_left')}</span></span></div>`;
@@ -16700,8 +16948,14 @@ function renderSelectedPanelV2() {
           const napOk = (me.dp || 0) >= P1.DP_COST.nap;
           html += `<button class="btn nap" onclick="doProposeNAPV2('${nid}')" ${napOk ? '' : 'disabled'}>${T('act_propose_nap')} <span class="ap-cost">(${P1.DP_COST.nap}DP)</span></button>`;
         }
-        const warOk = (me.dp || 0) >= P1.DP_COST.war;
-        html += `<button class="btn danger" onclick="doDiplomacyV2('${nid}','declare-war')" ${warOk ? '' : 'disabled'}>${T('act_declare_war')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+        // P16: a truce from a recent peace deal blocks re-declaring war for a cooldown.
+        if (typeof hasTruceV2 === 'function' && hasTruceV2(S.humanId, nid)) {
+          const truceLeft = S.truceV2[S.humanId][nid] - S.turn;
+          html += `<div class="stat-row"><span class="lbl">${T('stat_truce')}</span><span class="val"><span class="truce-badge">${truceLeft}${T('stat_left')}</span></span></div>`;
+        } else {
+          const warOk = (me.dp || 0) >= P1.DP_COST.war;
+          html += `<button class="btn danger" onclick="doDiplomacyV2('${nid}','declare-war')" ${warOk ? '' : 'disabled'}>${T('act_declare_war')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+        }
       }
     }
   }
@@ -17383,6 +17637,9 @@ function deserializeState(snap) {
       // P14: building levels + construction queue back-compat for older saves.
       if (p.building && p.buildingLevel == null) p.buildingLevel = 1;
       if (p.construction === undefined) p.construction = null;
+      // P16: occupation fields back-compat for older saves.
+      if (p.occupiedBy === undefined) p.occupiedBy = null;
+      if (p.occTurns == null) p.occTurns = 0;
     }
   }
   if (S.v2 && S.nations) {
@@ -17391,8 +17648,10 @@ function deserializeState(snap) {
       if (!n.budget) n.budget = { tax: 50, goods: 20, research: 15, investment: 15 };
       if (n.techLevel == null) n.techLevel = 0.1; // P13: tech/research back-compat defaults
       if (n.research == null) n.research = 0;
+      if (!n.warWeariness) n.warWeariness = {};   // P16: war weariness back-compat
     }
   }
+  if (S.v2 && !S.truceV2) S.truceV2 = {};         // P16: v2 truce tracking back-compat
   for (const pid in S.players) {
     if (!S.players[pid].intel) S.players[pid].intel = 0;
     if (!S.players[pid].tradeRoutes) S.players[pid].tradeRoutes = [];
@@ -17420,4 +17679,286 @@ function deserializeState(snap) {
   }
 }
 
-function rebuildFeatu
+function rebuildFeatures(topo) {
+  const fc = topojson.feature(topo, topo.objects.countries);
+  S.features = fc.features.filter(f => f.id !== '010' && f.id !== '-99');
+  S.featureById = {};
+  for (const f of S.features) S.featureById[f.id] = f;
+}
+
+function saveMeta() {
+  const me = S.players[S.humanId];
+  const c = S.countries[S.humanId];
+  if (!me || !c) return null;
+  return {
+    nation: c.name,
+    flag: flagEmoji(c.code),
+    date: `${MONTHS[S.monthIdx]} ${S.year}`,
+    turn: S.turn,
+    territories: playerOwned(S.humanId).length,
+    era: ERAS[me.era].name,
+    savedAt: new Date().toISOString()
+  };
+}
+
+// ---- Slot I/O --------------------------------------------------------------
+function getSlotData(slot) {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY_PREFIX + slot);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+let _exitAfterSave = false;
+
+function saveToSlot(slot) {
+  try {
+    const data = {
+      version: SAVE_VERSION,
+      meta: saveMeta(),
+      state: serializeState()
+    };
+    localStorage.setItem(SAVE_KEY_PREFIX + slot, JSON.stringify(data));
+    if (_exitAfterSave) {
+      // Browsers block window.close() for tabs the user opened, so "exit" returns
+      // to the main menu (a fresh load) — the save is already written above.
+      showToast(`${T('toast_saved')} ${slot} — ${T('toast_saving_exit')}`);
+      setTimeout(() => { location.reload(); }, 900);
+    } else {
+      showToast(`${T('toast_saved')} ${slot}`);
+      closeSaveModal();
+    }
+  } catch(e) {
+    showToast(Tpl('toast_save_failed', {err: e.message || 'storage error'}));
+    console.error('Save error', e);
+  }
+}
+
+// ── Autosave: silent, own slot, written at the end of each turn ───────────────
+const AUTOSAVE_SLOT = 'auto';
+function autosave() {
+  if (S.gameOver) return;
+  try {
+    const data = { version: SAVE_VERSION, meta: saveMeta(), state: serializeState(), auto: true };
+    localStorage.setItem(SAVE_KEY_PREFIX + AUTOSAVE_SLOT, JSON.stringify(data));
+  } catch(e) {
+    // Storage full or unavailable — fail silently, never interrupt the turn.
+    console.warn('Autosave skipped:', e.message || e);
+  }
+}
+
+function loadFromSlot(slot) {
+  const data = getSlotData(slot);
+  if (!data || !data.state) { showToast(Tpl('toast_slot_empty', {slot})); return; }
+  try {
+    deserializeState(data.state);
+    markBordersDirty();   // loaded world has its own owners/wars
+    // Rebuild features from embedded topo
+    const topo = window.__TOPO__;
+    if (topo) rebuildFeatures(topo);
+    addSeaNeighbors();   // ensure island sea-links exist (idempotent — fixes pre-fix saves too)
+    // Switch UI
+    document.getElementById('loading').hidden = true;
+    document.getElementById('setup').hidden = true;
+    document.getElementById('game').hidden = false;
+    // Canvas setup (only once — guard is in setupGameCanvas)
+    setupGameCanvas();
+    // Rebuild projection from current canvas dimensions
+    const rect = document.getElementById('globe').getBoundingClientRect();
+    const sz = Math.min(rect.width, rect.height);
+    if (projection) {
+      projection.rotate(S.rotation).scale(sz * 0.46).translate([rect.width / 2, rect.height / 2]);
+      path = d3.geoPath(projection, ctx);
+    }
+    updateDate();
+    updateHUD();
+    render();
+    closeLoadModal();
+    showToast(Tpl('toast_loaded', {nation: data.meta.nation.toUpperCase(), date: data.meta.date}));
+    logT('glog_110', {v0: data.meta.nation, v1: data.meta.date, v2: data.meta.territories}, 'self');
+  } catch(e) {
+    showToast(Tpl('toast_load_failed', {err: e.message || 'corrupted save'}));
+    console.error('Load error', e);
+  }
+}
+
+function deleteSlot(slot) {
+  localStorage.removeItem(SAVE_KEY_PREFIX + slot);
+  renderSaveSlots();
+  renderLoadSlots();
+}
+
+function hasAnySave() {
+  for (let i = 1; i <= NUM_SLOTS; i++) {
+    if (getSlotData(i)) return true;
+  }
+  return false;
+}
+
+// ---- Toast -----------------------------------------------------------------
+let _toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('save-toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// War declaration alert — prominent banner. Collects all declarations fired
+// during a single AI phase and shows them together, auto-dismissing after a while.
+let _warAlertTimer = null;
+let _warAlertNames = [];
+function showWarAlert(nationName) {
+  if (!nationName) return;
+  if (!_warAlertNames.includes(nationName)) _warAlertNames.push(nationName);
+  const el = document.getElementById('war-alert');
+  const txt = document.getElementById('war-alert-text');
+  if (!el || !txt) return;
+  const names = _warAlertNames.map(n => `<b>${n}</b>`);
+  let msg;
+  if (names.length === 1) msg = Tpl('wa_single', { nation: names[0] });
+  else {
+    const last = names.pop();
+    msg = Tpl('wa_multi', { nations: names.join(', '), last });
+  }
+  txt.innerHTML = msg;
+  el.classList.add('show');
+  if (_warAlertTimer) clearTimeout(_warAlertTimer);
+  _warAlertTimer = setTimeout(dismissWarAlert, 7000);
+}
+function dismissWarAlert() {
+  const el = document.getElementById('war-alert');
+  if (el) el.classList.remove('show');
+  _warAlertNames = [];
+  if (_warAlertTimer) { clearTimeout(_warAlertTimer); _warAlertTimer = null; }
+}
+window.dismissWarAlert = dismissWarAlert;
+
+// Lightweight notice when player tries to pick a nation already taken by someone else
+let _pickedNoticeTimer = null;
+function showPickedNotice(playerName, nationName) {
+  let el = document.getElementById('picked-notice');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'picked-notice';
+  }
+  // Always reparent to body so it isn't trapped inside another element's stacking context
+  if (el.parentNode !== document.body) document.body.appendChild(el);
+  // Safe text — fall back to plain English if Tpl/i18n fails for any reason
+  let txt;
+  try { txt = Tpl('pn_taken', { player: playerName, nation: nationName }); } catch (e) { txt = null; }
+  if (!txt || txt === 'pn_taken') {
+    txt = `${playerName} has already chosen ${nationName}. Pick another country.`;
+  }
+  el.textContent = txt;
+  el.classList.add('show');
+  if (_pickedNoticeTimer) clearTimeout(_pickedNoticeTimer);
+  _pickedNoticeTimer = setTimeout(() => el.classList.remove('show'), 4000);
+}
+window.showPickedNotice = showPickedNotice;
+
+// ---- Slot HTML Renderer ----------------------------------------------------
+function slotHTML(slot, forLoad) {
+  const data = getSlotData(slot);
+  const occupied = !!data;
+  const sq = JSON.stringify(slot);  // quote so string slots ('auto') are valid in onclick
+  const label = (typeof slot === 'string') ? slot.toUpperCase() : slot;
+  if (occupied && data.meta) {
+    const m = data.meta;
+    const actionBtn = forLoad
+      ? `<button class="sl-act act-load" onclick="loadFromSlot(${sq})">${T('ui_load')}</button>`
+      : `<button class="sl-act" onclick="saveToSlot(${sq})">${T('ui_overwrite')}</button>`;
+    const delBtn = `<button class="sl-act act-del" onclick="deleteSlot(${sq})" title="${T('tip_delete_save')}">✕</button>`;
+    return `<div class="sl-slot occupied">
+      <div class="sl-slot-num">${label}</div>
+      <div class="sl-info">
+        <div class="sl-nation">${m.flag} ${m.nation.toUpperCase()}${data.auto ? ` <span style="color:var(--ink-dim);font-size:8.5px">${T('ui_autosave')}</span>` : ''}</div>
+        <div class="sl-meta">${m.era} · ${m.date} · Turn ${m.turn} · ${m.territories} territories</div>
+      </div>
+      <div class="sl-actions">${actionBtn}${delBtn}</div>
+    </div>`;
+  } else {
+    const actionBtn = forLoad
+      ? `<button class="sl-act" disabled style="opacity:0.3;cursor:not-allowed">${T('ui_empty')}</button>`
+      : `<button class="sl-act" onclick="saveToSlot(${sq})">${T('ui_save_here')}</button>`;
+    return `<div class="sl-slot">
+      <div class="sl-slot-num">${label}</div>
+      <div class="sl-info"><div class="sl-empty">— empty slot —</div></div>
+      <div class="sl-actions">${actionBtn}</div>
+    </div>`;
+  }
+}
+
+function renderSaveSlots() {
+  const el = document.getElementById('save-slots-body');
+  if (!el) return;
+  let html = '';
+  for (let i = 1; i <= NUM_SLOTS; i++) html += slotHTML(i, false);
+  el.innerHTML = html;
+}
+
+function renderLoadSlots() {
+  const el = document.getElementById('load-slots-body');
+  if (!el) return;
+  let html = '';
+  if (getSlotData(AUTOSAVE_SLOT)) html += slotHTML(AUTOSAVE_SLOT, true);  // autosave first
+  for (let i = 1; i <= NUM_SLOTS; i++) html += slotHTML(i, true);
+  el.innerHTML = html;
+}
+
+// ---- Modal open/close ------------------------------------------------------
+function openSaveModal() {
+  document.getElementById('save-modal-title').textContent = T('save_title');
+  renderSaveSlots();
+  document.getElementById('save-modal').hidden = false;
+}
+function closeSaveModal() {
+  _exitAfterSave = false;
+  document.getElementById('save-modal').hidden = true;
+}
+function openLoadModal() {
+  renderLoadSlots();
+  document.getElementById('load-modal').hidden = false;
+}
+function closeLoadModal() {
+  document.getElementById('load-modal').hidden = true;
+}
+
+// Expose to window
+window.openSaveModal = openSaveModal;
+window.closeSaveModal = closeSaveModal;
+window.openLoadModal = openLoadModal;
+window.closeLoadModal = closeLoadModal;
+window.saveToSlot = saveToSlot;
+window.loadFromSlot = loadFromSlot;
+window.deleteSlot = deleteSlot;
+
+// ── Settings dropdown ────────────────────────────────────────────────────────
+
+function toggleSettingsMenu(e) {
+  const dd  = document.getElementById('settings-dropdown');
+  const btn = document.getElementById('settings-btn');
+  const isOpen = dd.classList.contains('open');
+  if (isOpen) {
+    dd.classList.remove('open');
+    btn.classList.remove('open');
+  } else {
+    const r = btn.getBoundingClientRect();
+    dd.style.right = (window.innerWidth - r.right) + 'px';
+    dd.style.top   = r.bottom + 4 + 'px';
+    dd.classList.add('open');
+    btn.classList.add('open');
+    // Highlight active language (only buttons that actually have data-lang)
+    document.querySelectorAll('.sdd-lang-btn[data-lang], .menu-lang-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === getLang());
+    });
+    // Highlight active map mode
+    document.querySelectorAll('.mapmode-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === (S.mapMode || 'globe'));
+    });
+    syncMapToggles();   // M4/M5: reflect theme + camera-follow state
+    syncTipsToggle();   // A4: reflect tips on/off
+  }
+  if (e) e.stopPropag
