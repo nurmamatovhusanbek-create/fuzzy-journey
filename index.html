@@ -3226,6 +3226,21 @@ en: {
   budget_goods:     'Public goods',
   budget_research:  'Research',
   budget_investment:'Investment',
+  // ── P15: governments / regimes ──────────────────────────────────────────
+  sec_government:    'GOVERNMENT',
+  lbl_current_gov:   'Current government',
+  act_change_gov:    'Switch to',
+  lbl_era_required:  'Requires era',
+  regime_tribal:     'Tribal',
+  regime_feudal:     'Feudal',
+  regime_monarchy:   'Monarchy',
+  regime_republic:   'Republic',
+  regime_empire:     'Empire',
+  regime_democracy:  'Democracy',
+  regime_communism:  'Communism',
+  regime_fascism:    'Fascism',
+  regime_horde:      'Horde',
+  regime_citystate:  'City-State',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_recruit:      '+ RECRUIT',
   act_develop:      '↑ DEVELOP',
@@ -4450,6 +4465,21 @@ ru: {
   budget_goods:     'Общ. блага',
   budget_research:  'Наука',
   budget_investment:'Инвестиции',
+  // ── P15: формы правления ─────────────────────────────────────────────────
+  sec_government:    'ФОРМА ПРАВЛЕНИЯ',
+  lbl_current_gov:   'Текущая форма правления',
+  act_change_gov:    'Сменить на',
+  lbl_era_required:  'Требуется эпоха',
+  regime_tribal:     'Племенной строй',
+  regime_feudal:     'Феодализм',
+  regime_monarchy:   'Монархия',
+  regime_republic:   'Республика',
+  regime_empire:     'Империя',
+  regime_democracy:  'Демократия',
+  regime_communism:  'Коммунизм',
+  regime_fascism:    'Фашизм',
+  regime_horde:      'Орда',
+  regime_citystate:  'Город-государство',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_reduce_army:  'СОКРАТИТЬ АРМИЮ ДО',
   act_reduce_do:    '− РАСПУСТИТЬ ВОЙСКА',
@@ -10765,6 +10795,9 @@ function provinceDefMulV2(pid) {
   // P14: fortress II compounds the base fortress bonus; watchtower adds a small bonus.
   if (p.building === 'fortress') m += ((p.buildingLevel || 1) >= 2 ? 0.80 : 0.50);
   if (p.building === 'watchtower') m += 0.03;
+  // P15: regime defense bonus (AoC2 §7.2 — e.g. city-state +12%, democracy +6%)
+  const owner = p.nation && S.nations[p.nation];
+  if (owner) m += (V2_REGIMES[owner.regime] || V2_REGIMES.monarchy).defenseBonus || 0;
   return m + (p.defense || 0) / 100;          // accrued province defence points (P3.x)
 }
 function resolveCombatV2(fromPid, toPid) {
@@ -10825,19 +10858,59 @@ const DEV_INCOME = [0, 1, 3, 6, 10, 15]; // indexed by development 1–5 (index 
 // colonyFree:  tribal nations pay no colonization cost
 // rebelChance: per-province per-turn probability a <30 stab province revolts
 // P12 additions: incTax/incProd scale the new tax/production income components;
-// adminMul scales distance-from-capital admin drain; budgetMin is the minimum
-// budget.tax % the regime tolerates (republics need gold, tribes don't tax much).
+// adminCost (renamed from adminMul, P15) scales distance-from-capital admin drain;
+// accTax (renamed from budgetMin, P15) is the minimum budget.tax % the regime
+// tolerates (republics need gold, tribes don't tax much).
+// P15 additions (AoC2 §7.2 multiplier set):
+//   minGoods/minInvest: minimum budget.goods / budget.investment % (like accTax)
+//   upkeep:        multiplier on army upkeep (calculateIncomeV2)
+//   defenseBonus:  flat addend to provinceDefMulV2 (e.g. 0.04 = +4% defense)
+//   moveCost:      multiplier on MP costs of build/colonize/relocate actions
+//   recruitCost:   multiplier on gold+MP cost of recruiting troops
+//   availableSinceEra: min ERAS index (0-4) a nation must reach to switch into this regime
+//   revolutionary: true for ideologies that cause unrest when adopted (changeRegimeV2)
 const V2_REGIMES = {
   tribal:   { incMul: 0.85, stabCeil: 75,  colonyFree: true,  rebelChance: 0,
-              incTax: 0.70, incProd: 1.10, adminMul: 0.70, budgetMin: 20 },
+              incTax: 0.70, incProd: 1.10, adminCost: 0.70, accTax: 20,
+              upkeep: 1.60, defenseBonus: 0.10, minGoods: 0.10, minInvest: 0.05,
+              moveCost: 1.875, recruitCost: 1.00, availableSinceEra: 0, revolutionary: false },
   feudal:   { incMul: 0.95, stabCeil: 85,  colonyFree: false, rebelChance: 0.02,
-              incTax: 1.00, incProd: 0.90, adminMul: 1.00, budgetMin: 30 },
+              incTax: 1.00, incProd: 0.90, adminCost: 1.00, accTax: 30,
+              upkeep: 1.00, defenseBonus: 0.02, minGoods: 0.15, minInvest: 0.10,
+              moveCost: 1.00, recruitCost: 1.00, availableSinceEra: 0, revolutionary: false },
   monarchy: { incMul: 1.00, stabCeil: 90,  colonyFree: false, rebelChance: 0.02,
-              incTax: 1.00, incProd: 1.00, adminMul: 1.00, budgetMin: 30 },
+              incTax: 1.00, incProd: 1.00, adminCost: 1.00, accTax: 30,
+              upkeep: 1.00, defenseBonus: 0.04, minGoods: 0.15, minInvest: 0.10,
+              moveCost: 1.00, recruitCost: 1.00, availableSinceEra: 0, revolutionary: false },
   republic: { incMul: 1.20, stabCeil: 75,  colonyFree: false, rebelChance: 0,
-              incTax: 1.25, incProd: 1.10, adminMul: 0.85, budgetMin: 40 },
+              incTax: 1.25, incProd: 1.10, adminCost: 0.85, accTax: 40,
+              upkeep: 1.00, defenseBonus: 0.04, minGoods: 0.15, minInvest: 0.10,
+              moveCost: 1.00, recruitCost: 1.125, availableSinceEra: 0, revolutionary: false },
   empire:   { incMul: 1.10, stabCeil: 100, colonyFree: false, rebelChance: 0.05,
-              incTax: 1.05, incProd: 1.05, adminMul: 1.20, budgetMin: 35 },
+              incTax: 1.05, incProd: 1.05, adminCost: 1.20, accTax: 35,
+              upkeep: 1.05, defenseBonus: 0.05, minGoods: 0.15, minInvest: 0.10,
+              moveCost: 1.00, recruitCost: 1.00, availableSinceEra: 0, revolutionary: false },
+  // ── P15 new regimes (AoC2 §7.2) ──────────────────────────────────────────────
+  democracy:  { incMul: 1.00, stabCeil: 85, colonyFree: false, rebelChance: 0,
+              incTax: 1.04, incProd: 1.00, adminCost: 1.04, accTax: 24,
+              upkeep: 1.00, defenseBonus: 0.06, minGoods: 0.10, minInvest: 0.14,
+              moveCost: 1.00, recruitCost: 1.125, availableSinceEra: 0, revolutionary: false },
+  communism:  { incMul: 1.00, stabCeil: 85, colonyFree: false, rebelChance: 0.03,
+              incTax: 0.98, incProd: 1.00, adminCost: 1.08, accTax: 28,
+              upkeep: 0.97, defenseBonus: 0.03, minGoods: 0.15, minInvest: 0.10,
+              moveCost: 1.00, recruitCost: 1.00, availableSinceEra: 3, revolutionary: true },
+  fascism:    { incMul: 1.00, stabCeil: 85, colonyFree: false, rebelChance: 0.03,
+              incTax: 1.01, incProd: 1.04, adminCost: 1.00, accTax: 28,
+              upkeep: 0.98, defenseBonus: 0.05, minGoods: 0.14, minInvest: 0.12,
+              moveCost: 1.00, recruitCost: 1.125, availableSinceEra: 3, revolutionary: true },
+  horde:      { incMul: 1.00, stabCeil: 70, colonyFree: true,  rebelChance: 0.02,
+              incTax: 1.08, incProd: 0.96, adminCost: 1.04, accTax: 22,
+              upkeep: 1.10, defenseBonus: 0.00, minGoods: 0.14, minInvest: 0.08,
+              moveCost: 0.75, recruitCost: 1.25, availableSinceEra: 0, revolutionary: true },
+  citystate:  { incMul: 1.00, stabCeil: 95, colonyFree: false, rebelChance: 0,
+              incTax: 1.02, incProd: 1.02, adminCost: 1.20, accTax: 26,
+              upkeep: 0.94, defenseBonus: 0.12, minGoods: 0.10, minInvest: 0.12,
+              moveCost: 1.25, recruitCost: 1.125, availableSinceEra: 0, revolutionary: false },
 };
 
 // ── v2 province buildings (P5, expanded P14) ─────────────────────────────────
@@ -10877,7 +10950,7 @@ const V2_BUILDINGS = {
 };
 
 // ── v2 income aggregation ─────────────────────────────────────────────────────
-// P12: gold per radian of great-circle distance from the capital, before regime.adminMul
+// P12: gold per radian of great-circle distance from the capital, before regime.adminCost
 const ADMIN_DIST_FACTOR = 1.8;
 function calculateIncomeV2(nid, provs) {
   const n = S.nations[nid];
@@ -10927,7 +11000,7 @@ function calculateIncomeV2(nid, provs) {
     tax += Math.floor((p.pop || 80) / 20 * (budget.tax / 100) * (happiness / 100) * regime.incTax);
     // admin = distance-from-capital drain (waived for the capital itself)
     if (pid !== capPid && capProv && p.lat != null && p.lon != null && capProv.lat != null && capProv.lon != null) {
-      admin += Math.floor(_gcDist([capProv.lon, capProv.lat], [p.lon, p.lat]) * ADMIN_DIST_FACTOR * regime.adminMul);
+      admin += Math.floor(_gcDist([capProv.lon, capProv.lat], [p.lon, p.lat]) * ADMIN_DIST_FACTOR * regime.adminCost);
     }
     manpower += Math.floor((2 + Math.floor((p.pop || 80) / 100) + era.mpBonus) * stabMod);
     // P14: supply camp cuts the upkeep contribution of armies stationed here by 20%.
@@ -10939,7 +11012,7 @@ function calculateIncomeV2(nid, provs) {
   if (capLost) gold = Math.floor(gold * 0.5);        // lost capital halves income
   gold = Math.floor(gold * regime.incMul * techIncomeMul);   // regime + tech multipliers
   admin = Math.floor(admin * techAdminMul);                  // P13: tech reduces admin drain
-  const upkeep = Math.floor(upkeepBase * (0.25 + n.era * 0.05) * techUpkeepMul); // P13: tech reduces upkeep; P14: supply camp discount
+  const upkeep = Math.floor(upkeepBase * (0.25 + n.era * 0.05) * techUpkeepMul * regime.upkeep); // P13: tech reduces upkeep; P14: supply camp discount; P15: regime upkeep multiplier
   const lands  = provs.length;
   const manCap = Math.max(120 + n.era * 50, lands * 30 + n.era * 35);
   const happinessAvg = lands ? Math.round(happinessSum / lands) : 60;
@@ -11220,15 +11293,17 @@ window.calculateIncomeV2 = calculateIncomeV2;
 window.endTurnV2 = endTurnV2;
 
 // P12: human budget-slider handler. `key` is one of tax/goods/research/investment;
-// `val` is the slider's 0-100 string. Tax is floored at the regime's budgetMin.
+// `val` is the slider's 0-100 string.
+// P15: tax/goods/investment are each floored at the regime's minimum %
+// (accTax/minGoods/minInvest, AoC2 §7.1 "Minimum Requirements by Government").
 function setBudgetV2(key, val) {
   const n = S.nations[S.humanId]; if (!n) return;
   n.budget = n.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
   let v = Math.max(0, Math.min(100, Math.round(Number(val) || 0)));
-  if (key === 'tax') {
-    const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
-    v = Math.max(regime.budgetMin || 0, v);
-  }
+  const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  if (key === 'tax')             v = Math.max(regime.accTax || 0, v);
+  else if (key === 'goods')      v = Math.max(Math.round((regime.minGoods || 0) * 100), v);
+  else if (key === 'investment') v = Math.max(Math.round((regime.minInvest || 0) * 100), v);
   n.budget[key] = v;
   if (typeof updateHUDV2 === 'function') updateHUDV2();
 }
@@ -11247,7 +11322,9 @@ function colonizeCostV2(pid, nid) {
   // P13: higher technology reduces colonization cost (AoC2 §15.1), floor at 50%.
   const n = nid && S.nations[nid];
   if (n) gold = Math.floor(gold * Math.max(0.5, 1 - (n.techLevel || 0) * 0.06));
-  return { gold, mp: V2_COLONY_MP_COST };
+  // P15: colonization MP cost scaled by the regime's moveCost multiplier.
+  const regime = (n && (V2_REGIMES[n.regime] || V2_REGIMES.monarchy)) || V2_REGIMES.monarchy;
+  return { gold, mp: V2_COLONY_MP_COST * (regime.moveCost || 1) };
 }
 
 // Checks all conditions for nid to colonize pid (neutral adjacency + resources)
@@ -11381,10 +11458,13 @@ function buildV2(nid, pid, type) {
   const techNeeded = bld.levelTech[idx];
   if (techNeeded != null && (n.techLevel || 0) < techNeeded) return false; // P13: tech-gated buildings
   const cost = bld.levelCost[idx];
+  // P15: build MP cost scaled by the regime's moveCost multiplier.
+  const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  const mpCost = cost.mp * (regime.moveCost || 1);
   if ((n.gold || 0) < cost.gold) return false;
-  if ((n.mp || 0)  < cost.mp)   return false;
+  if ((n.mp || 0)  < mpCost)    return false;
   n.gold = (n.gold || 0) - cost.gold;
-  n.mp   = Math.max(0, (n.mp || 0) - cost.mp);
+  n.mp   = Math.max(0, (n.mp || 0) - mpCost);
   p.construction = { type, level, turnsLeft: bld.buildTime[idx] };
   return true;
 }
@@ -11400,10 +11480,13 @@ function relocateCapitalV2(nid, newPid) {
   const p = S.provinces[newPid]; if (!p || p._bad) return false;
   if (p.nation !== nid) return false;
   if (newPid === n.capital) return false;
+  // P15: relocation MP cost scaled by the regime's moveCost multiplier.
+  const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  const mpCost = V2_RELOCATE_MP * (regime.moveCost || 1);
   if ((n.gold || 0) < V2_RELOCATE_GOLD) return false;
-  if ((n.mp || 0)  < V2_RELOCATE_MP)   return false;
+  if ((n.mp || 0)  < mpCost)           return false;
   n.gold = (n.gold || 0) - V2_RELOCATE_GOLD;
-  n.mp   = Math.max(0, (n.mp || 0) - V2_RELOCATE_MP);
+  n.mp   = Math.max(0, (n.mp || 0) - mpCost);
   const old = S.provinces[n.capital];
   if (old) { old.capital = false; old.capitalOf = null; }
   p.capital = true; p.capitalOf = nid;
@@ -11411,10 +11494,51 @@ function relocateCapitalV2(nid, newPid) {
   return true;
 }
 
+// ── v2 government change (P15) ───────────────────────────────────────────────
+// Switching governments costs gold + AoC2's standard 2.2 MP (§7.1), scaled by
+// the CURRENT regime's moveCost. Era-gated via the target regime's
+// availableSinceEra. Adopting or leaving a "revolutionary" ideology
+// (communism/fascism/horde) causes a one-time nationwide stability shock.
+const V2_CHANGE_GOV_GOLD = 200;
+const V2_CHANGE_GOV_MP   = 2.2;
+
+function canChangeRegimeV2(nid, newRegime) {
+  if (!S.v2) return false;
+  const n = S.nations[nid]; if (!n || n.eliminated) return false;
+  const target = V2_REGIMES[newRegime]; if (!target) return false;
+  if (newRegime === n.regime) return false;
+  if ((n.era || 0) < (target.availableSinceEra || 0)) return false;
+  const cur = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  const mpCost = V2_CHANGE_GOV_MP * (cur.moveCost || 1);
+  return (n.gold || 0) >= V2_CHANGE_GOV_GOLD && (n.mp || 0) >= mpCost;
+}
+
+function changeRegimeV2(nid, newRegime) {
+  if (!canChangeRegimeV2(nid, newRegime)) return false;
+  const n = S.nations[nid];
+  const cur = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  const target = V2_REGIMES[newRegime];
+  const mpCost = V2_CHANGE_GOV_MP * (cur.moveCost || 1);
+  n.gold = (n.gold || 0) - V2_CHANGE_GOV_GOLD;
+  n.mp   = Math.max(0, (n.mp || 0) - mpCost);
+  if (cur.revolutionary || target.revolutionary) {
+    for (const pid of nationProvinces(nid)) {
+      const p = S.provinces[pid]; if (!p || p._bad) continue;
+      p.stability = Math.max(5, (p.stability || 70) - 15);
+    }
+  }
+  n.regime = newRegime;
+  return true;
+}
+
 window.buildV2            = buildV2;
 window.relocateCapitalV2  = relocateCapitalV2;
+window.canChangeRegimeV2  = canChangeRegimeV2;
+window.changeRegimeV2     = changeRegimeV2;
 window.V2_REGIMES         = V2_REGIMES;
 window.V2_BUILDINGS       = V2_BUILDINGS;
+window.V2_CHANGE_GOV_GOLD = V2_CHANGE_GOV_GOLD;
+window.V2_CHANGE_GOV_MP   = V2_CHANGE_GOV_MP;
 
 function calculateIncome(pid) {
   const p = S.players[pid];
@@ -16315,10 +16439,13 @@ function doRecruitV2(pid) {
   if (p.nation !== S.humanId) return;
   const n = S.nations[S.humanId]; if (!n || n.eliminated) return;
   const armCost = p.building === 'armory' ? 15 : 30;
-  if ((n.gold||0) < armCost || (n.manpower||0) < 40 || (n.mp||0) < 1) return;
+  // P15: recruitment MP cost scaled by the regime's recruitCost multiplier.
+  const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
+  const mpCost = 1 * (regime.recruitCost || 1);
+  if ((n.gold||0) < armCost || (n.manpower||0) < 40 || (n.mp||0) < mpCost) return;
   n.gold     = (n.gold||0) - armCost;
   n.manpower = Math.max(0, (n.manpower||0) - 40);
-  n.mp       = Math.max(0, (n.mp||0) - 1);
+  n.mp       = Math.max(0, (n.mp||0) - mpCost);
   p.army     = (p.army||0) + 20;
   updateHUD(); render(); renderSelectedPanel();
 }
@@ -16350,6 +16477,14 @@ window.doBuildV2UI         = doBuildV2UI;
 window.doRelocateCapitalUI = doRelocateCapitalUI;
 window.doColonizeV2UI      = doColonizeV2UI;
 window.doAttackV2UI        = doAttackV2UI;
+
+// P15: government-change UI handler
+function doChangeRegimeV2UI(newRegime) {
+  if (!S.v2) return;
+  if (!changeRegimeV2(S.humanId, newRegime)) return;
+  updateHUD(); render(); renderSelectedPanel();
+}
+window.doChangeRegimeV2UI  = doChangeRegimeV2UI;
 
 // ── v2 province info panel ────────────────────────────────────────────────────
 function renderSelectedPanelV2() {
@@ -16430,7 +16565,12 @@ function renderSelectedPanelV2() {
       <div class="sel-section-title">${T('sec_budget')}</div>
       <div class="sel-stats">
         ${['tax','goods','research','investment'].map(k => {
-          const minV = k === 'tax' ? ((V2_REGIMES[me.regime]||V2_REGIMES.monarchy).budgetMin || 0) : 0;
+          const _rg = V2_REGIMES[me.regime]||V2_REGIMES.monarchy;
+          // P15: goods/investment also have regime-driven minimums (AoC2 §7.1)
+          const minV = k === 'tax' ? (_rg.accTax || 0)
+                     : k === 'goods' ? Math.round((_rg.minGoods || 0) * 100)
+                     : k === 'investment' ? Math.round((_rg.minInvest || 0) * 100)
+                     : 0;
           return `
         <div class="stat-row">
           <span class="lbl">${T('budget_'+k)}</span>
@@ -16443,9 +16583,31 @@ function renderSelectedPanelV2() {
         </div>`;
         }).join('')}
       </div>`;
+    // P15: government section — current regime + switch-to options (AoC2 §7)
+    {
+      const curRegime = V2_REGIMES[me.regime] || V2_REGIMES.monarchy;
+      const switchMpCost = V2_CHANGE_GOV_MP * (curRegime.moveCost || 1);
+      html += `
+      <div class="sel-section-title">${T('sec_government')}</div>
+      <div class="sel-stats">
+        <div class="stat-row"><span class="lbl">${T('lbl_current_gov')}</span><span class="val">${T('regime_'+(me.regime||'monarchy'))}</span></div>
+      </div>`;
+      for (const key of Object.keys(V2_REGIMES)) {
+        if (key === me.regime || key === 'tribal') continue; // tribal is a non-playable starting regime (AoC2 §7.2)
+        const target = V2_REGIMES[key];
+        const eraLocked = (me.era || 0) < (target.availableSinceEra || 0);
+        const canSwitch = !eraLocked && canChangeRegimeV2(S.humanId, key);
+        const lockNote = eraLocked ? ` <span class="ap-cost">(${T('lbl_era_required')}: ${T(ERAS[target.availableSinceEra].name)})</span>` : '';
+        html += `<button class="btn" onclick="doChangeRegimeV2UI('${key}')" ${canSwitch?'':'disabled'}>${T('act_change_gov')} ${T('regime_'+key)} <span class="ap-cost">(${V2_CHANGE_GOV_GOLD}g · ${switchMpCost}MP)</span>${lockNote}</button>`;
+      }
+    }
+    // P15: build/colonize/relocate MP costs scaled by the regime's moveCost multiplier.
+    const _moveCost = (V2_REGIMES[me.regime]||V2_REGIMES.monarchy).moveCost || 1;
     const armCost = p.building === 'armory' ? 15 : 30;
-    const canRec  = (me.gold||0) >= armCost && (me.manpower||0) >= 40 && (me.mp||0) >= 1;
-    html += `<button class="btn" onclick="doRecruitV2('${S.selectedId}')" ${canRec?'':'disabled'}>⚔ Recruit +20 <span class="ap-cost">(${armCost}g · 40mp · 1MP)</span></button>`;
+    // P15: recruitment MP cost scaled by the regime's recruitCost multiplier.
+    const recruitMp = 1 * ((V2_REGIMES[me.regime]||V2_REGIMES.monarchy).recruitCost || 1);
+    const canRec  = (me.gold||0) >= armCost && (me.manpower||0) >= 40 && (me.mp||0) >= recruitMp;
+    html += `<button class="btn" onclick="doRecruitV2('${S.selectedId}')" ${canRec?'':'disabled'}>⚔ Recruit +20 <span class="ap-cost">(${armCost}g · 40mp · ${recruitMp}MP)</span></button>`;
     // P14: construction queue — show countdown, an upgrade button for the
     // existing building (if not maxed), or the full build menu for an empty plot.
     if (p.construction) {
@@ -16459,22 +16621,25 @@ function renderSelectedPanelV2() {
         const idx = lvl; // next level's index
         const techLocked = bld.levelTech[idx] != null && (me.techLevel||0) < bld.levelTech[idx];
         const cost = bld.levelCost[idx];
-        const canB = !techLocked && (me.gold||0) >= cost.gold && (me.mp||0) >= cost.mp;
+        const mpCost = cost.mp * _moveCost;
+        const canB = !techLocked && (me.gold||0) >= cost.gold && (me.mp||0) >= mpCost;
         const lockNote = techLocked ? ` <span class="ap-cost">— ${T('lbl_tech_required')} ${bld.levelTech[idx]}</span>` : '';
-        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${p.building}')" ${canB?'':'disabled'}>${bld.icon} Upgrade to ${bld.levelLabels[idx]} <span class="ap-cost">(${cost.gold}g · ${cost.mp}MP)</span>${lockNote}</button>`;
+        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${p.building}')" ${canB?'':'disabled'}>${bld.icon} Upgrade to ${bld.levelLabels[idx]} <span class="ap-cost">(${cost.gold}g · ${mpCost}MP)</span>${lockNote}</button>`;
       }
     } else {
       for (const [type, bld] of Object.entries(V2_BUILDINGS)) {
         const techLocked = bld.levelTech[0] != null && (me.techLevel||0) < bld.levelTech[0];
         const cost = bld.levelCost[0];
-        const canB = !techLocked && (me.gold||0) >= cost.gold && (me.mp||0) >= cost.mp;
+        const mpCost = cost.mp * _moveCost;
+        const canB = !techLocked && (me.gold||0) >= cost.gold && (me.mp||0) >= mpCost;
         const lockNote = techLocked ? ` <span class="ap-cost">— ${T('lbl_tech_required')} ${bld.levelTech[0]}</span>` : '';
-        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${type}')" ${canB?'':'disabled'}>${bld.icon} Build ${bld.levelLabels[0]} <span class="ap-cost">(${cost.gold}g · ${cost.mp}MP — ${bld.effect})</span>${lockNote}</button>`;
+        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${type}')" ${canB?'':'disabled'}>${bld.icon} Build ${bld.levelLabels[0]} <span class="ap-cost">(${cost.gold}g · ${mpCost}MP — ${bld.effect})</span>${lockNote}</button>`;
       }
     }
     if (S.selectedId !== me.capital) {
-      const canRel = (me.gold||0) >= 100 && (me.mp||0) >= 1;
-      html += `<button class="btn" onclick="doRelocateCapitalUI('${S.selectedId}')" ${canRel?'':'disabled'}>⭐ Set as Capital <span class="ap-cost">(100g · 1MP)</span></button>`;
+      const relMp = V2_RELOCATE_MP * _moveCost;
+      const canRel = (me.gold||0) >= V2_RELOCATE_GOLD && (me.mp||0) >= relMp;
+      html += `<button class="btn" onclick="doRelocateCapitalUI('${S.selectedId}')" ${canRel?'':'disabled'}>⭐ Set as Capital <span class="ap-cost">(${V2_RELOCATE_GOLD}g · ${relMp}MP)</span></button>`;
     } else {
       html += `<div style="font-size:9px;color:var(--gold-bright);letter-spacing:.12em;padding:4px 0">⭐ CAPITAL PROVINCE</div>`;
     }
@@ -17255,276 +17420,4 @@ function deserializeState(snap) {
   }
 }
 
-function rebuildFeatures(topo) {
-  const fc = topojson.feature(topo, topo.objects.countries);
-  S.features = fc.features.filter(f => f.id !== '010' && f.id !== '-99');
-  S.featureById = {};
-  for (const f of S.features) S.featureById[f.id] = f;
-}
-
-function saveMeta() {
-  const me = S.players[S.humanId];
-  const c = S.countries[S.humanId];
-  if (!me || !c) return null;
-  return {
-    nation: c.name,
-    flag: flagEmoji(c.code),
-    date: `${MONTHS[S.monthIdx]} ${S.year}`,
-    turn: S.turn,
-    territories: playerOwned(S.humanId).length,
-    era: ERAS[me.era].name,
-    savedAt: new Date().toISOString()
-  };
-}
-
-// ---- Slot I/O --------------------------------------------------------------
-function getSlotData(slot) {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY_PREFIX + slot);
-    return raw ? JSON.parse(raw) : null;
-  } catch(e) { return null; }
-}
-
-let _exitAfterSave = false;
-
-function saveToSlot(slot) {
-  try {
-    const data = {
-      version: SAVE_VERSION,
-      meta: saveMeta(),
-      state: serializeState()
-    };
-    localStorage.setItem(SAVE_KEY_PREFIX + slot, JSON.stringify(data));
-    if (_exitAfterSave) {
-      // Browsers block window.close() for tabs the user opened, so "exit" returns
-      // to the main menu (a fresh load) — the save is already written above.
-      showToast(`${T('toast_saved')} ${slot} — ${T('toast_saving_exit')}`);
-      setTimeout(() => { location.reload(); }, 900);
-    } else {
-      showToast(`${T('toast_saved')} ${slot}`);
-      closeSaveModal();
-    }
-  } catch(e) {
-    showToast(Tpl('toast_save_failed', {err: e.message || 'storage error'}));
-    console.error('Save error', e);
-  }
-}
-
-// ── Autosave: silent, own slot, written at the end of each turn ───────────────
-const AUTOSAVE_SLOT = 'auto';
-function autosave() {
-  if (S.gameOver) return;
-  try {
-    const data = { version: SAVE_VERSION, meta: saveMeta(), state: serializeState(), auto: true };
-    localStorage.setItem(SAVE_KEY_PREFIX + AUTOSAVE_SLOT, JSON.stringify(data));
-  } catch(e) {
-    // Storage full or unavailable — fail silently, never interrupt the turn.
-    console.warn('Autosave skipped:', e.message || e);
-  }
-}
-
-function loadFromSlot(slot) {
-  const data = getSlotData(slot);
-  if (!data || !data.state) { showToast(Tpl('toast_slot_empty', {slot})); return; }
-  try {
-    deserializeState(data.state);
-    markBordersDirty();   // loaded world has its own owners/wars
-    // Rebuild features from embedded topo
-    const topo = window.__TOPO__;
-    if (topo) rebuildFeatures(topo);
-    addSeaNeighbors();   // ensure island sea-links exist (idempotent — fixes pre-fix saves too)
-    // Switch UI
-    document.getElementById('loading').hidden = true;
-    document.getElementById('setup').hidden = true;
-    document.getElementById('game').hidden = false;
-    // Canvas setup (only once — guard is in setupGameCanvas)
-    setupGameCanvas();
-    // Rebuild projection from current canvas dimensions
-    const rect = document.getElementById('globe').getBoundingClientRect();
-    const sz = Math.min(rect.width, rect.height);
-    if (projection) {
-      projection.rotate(S.rotation).scale(sz * 0.46).translate([rect.width / 2, rect.height / 2]);
-      path = d3.geoPath(projection, ctx);
-    }
-    updateDate();
-    updateHUD();
-    render();
-    closeLoadModal();
-    showToast(Tpl('toast_loaded', {nation: data.meta.nation.toUpperCase(), date: data.meta.date}));
-    logT('glog_110', {v0: data.meta.nation, v1: data.meta.date, v2: data.meta.territories}, 'self');
-  } catch(e) {
-    showToast(Tpl('toast_load_failed', {err: e.message || 'corrupted save'}));
-    console.error('Load error', e);
-  }
-}
-
-function deleteSlot(slot) {
-  localStorage.removeItem(SAVE_KEY_PREFIX + slot);
-  renderSaveSlots();
-  renderLoadSlots();
-}
-
-function hasAnySave() {
-  for (let i = 1; i <= NUM_SLOTS; i++) {
-    if (getSlotData(i)) return true;
-  }
-  return false;
-}
-
-// ---- Toast -----------------------------------------------------------------
-let _toastTimer = null;
-function showToast(msg) {
-  const el = document.getElementById('save-toast');
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.add('show');
-  if (_toastTimer) clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
-}
-
-// War declaration alert — prominent banner. Collects all declarations fired
-// during a single AI phase and shows them together, auto-dismissing after a while.
-let _warAlertTimer = null;
-let _warAlertNames = [];
-function showWarAlert(nationName) {
-  if (!nationName) return;
-  if (!_warAlertNames.includes(nationName)) _warAlertNames.push(nationName);
-  const el = document.getElementById('war-alert');
-  const txt = document.getElementById('war-alert-text');
-  if (!el || !txt) return;
-  const names = _warAlertNames.map(n => `<b>${n}</b>`);
-  let msg;
-  if (names.length === 1) msg = Tpl('wa_single', { nation: names[0] });
-  else {
-    const last = names.pop();
-    msg = Tpl('wa_multi', { nations: names.join(', '), last });
-  }
-  txt.innerHTML = msg;
-  el.classList.add('show');
-  if (_warAlertTimer) clearTimeout(_warAlertTimer);
-  _warAlertTimer = setTimeout(dismissWarAlert, 7000);
-}
-function dismissWarAlert() {
-  const el = document.getElementById('war-alert');
-  if (el) el.classList.remove('show');
-  _warAlertNames = [];
-  if (_warAlertTimer) { clearTimeout(_warAlertTimer); _warAlertTimer = null; }
-}
-window.dismissWarAlert = dismissWarAlert;
-
-// Lightweight notice when player tries to pick a nation already taken by someone else
-let _pickedNoticeTimer = null;
-function showPickedNotice(playerName, nationName) {
-  let el = document.getElementById('picked-notice');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'picked-notice';
-  }
-  // Always reparent to body so it isn't trapped inside another element's stacking context
-  if (el.parentNode !== document.body) document.body.appendChild(el);
-  // Safe text — fall back to plain English if Tpl/i18n fails for any reason
-  let txt;
-  try { txt = Tpl('pn_taken', { player: playerName, nation: nationName }); } catch (e) { txt = null; }
-  if (!txt || txt === 'pn_taken') {
-    txt = `${playerName} has already chosen ${nationName}. Pick another country.`;
-  }
-  el.textContent = txt;
-  el.classList.add('show');
-  if (_pickedNoticeTimer) clearTimeout(_pickedNoticeTimer);
-  _pickedNoticeTimer = setTimeout(() => el.classList.remove('show'), 4000);
-}
-window.showPickedNotice = showPickedNotice;
-
-// ---- Slot HTML Renderer ----------------------------------------------------
-function slotHTML(slot, forLoad) {
-  const data = getSlotData(slot);
-  const occupied = !!data;
-  const sq = JSON.stringify(slot);  // quote so string slots ('auto') are valid in onclick
-  const label = (typeof slot === 'string') ? slot.toUpperCase() : slot;
-  if (occupied && data.meta) {
-    const m = data.meta;
-    const actionBtn = forLoad
-      ? `<button class="sl-act act-load" onclick="loadFromSlot(${sq})">${T('ui_load')}</button>`
-      : `<button class="sl-act" onclick="saveToSlot(${sq})">${T('ui_overwrite')}</button>`;
-    const delBtn = `<button class="sl-act act-del" onclick="deleteSlot(${sq})" title="${T('tip_delete_save')}">✕</button>`;
-    return `<div class="sl-slot occupied">
-      <div class="sl-slot-num">${label}</div>
-      <div class="sl-info">
-        <div class="sl-nation">${m.flag} ${m.nation.toUpperCase()}${data.auto ? ` <span style="color:var(--ink-dim);font-size:8.5px">${T('ui_autosave')}</span>` : ''}</div>
-        <div class="sl-meta">${m.era} · ${m.date} · Turn ${m.turn} · ${m.territories} territories</div>
-      </div>
-      <div class="sl-actions">${actionBtn}${delBtn}</div>
-    </div>`;
-  } else {
-    const actionBtn = forLoad
-      ? `<button class="sl-act" disabled style="opacity:0.3;cursor:not-allowed">${T('ui_empty')}</button>`
-      : `<button class="sl-act" onclick="saveToSlot(${sq})">${T('ui_save_here')}</button>`;
-    return `<div class="sl-slot">
-      <div class="sl-slot-num">${label}</div>
-      <div class="sl-info"><div class="sl-empty">— empty slot —</div></div>
-      <div class="sl-actions">${actionBtn}</div>
-    </div>`;
-  }
-}
-
-function renderSaveSlots() {
-  const el = document.getElementById('save-slots-body');
-  if (!el) return;
-  let html = '';
-  for (let i = 1; i <= NUM_SLOTS; i++) html += slotHTML(i, false);
-  el.innerHTML = html;
-}
-
-function renderLoadSlots() {
-  const el = document.getElementById('load-slots-body');
-  if (!el) return;
-  let html = '';
-  if (getSlotData(AUTOSAVE_SLOT)) html += slotHTML(AUTOSAVE_SLOT, true);  // autosave first
-  for (let i = 1; i <= NUM_SLOTS; i++) html += slotHTML(i, true);
-  el.innerHTML = html;
-}
-
-// ---- Modal open/close ------------------------------------------------------
-function openSaveModal() {
-  document.getElementById('save-modal-title').textContent = T('save_title');
-  renderSaveSlots();
-  document.getElementById('save-modal').hidden = false;
-}
-function closeSaveModal() {
-  _exitAfterSave = false;
-  document.getElementById('save-modal').hidden = true;
-}
-function openLoadModal() {
-  renderLoadSlots();
-  document.getElementById('load-modal').hidden = false;
-}
-function closeLoadModal() {
-  document.getElementById('load-modal').hidden = true;
-}
-
-// Expose to window
-window.openSaveModal = openSaveModal;
-window.closeSaveModal = closeSaveModal;
-window.openLoadModal = openLoadModal;
-window.closeLoadModal = closeLoadModal;
-window.saveToSlot = saveToSlot;
-window.loadFromSlot = loadFromSlot;
-window.deleteSlot = deleteSlot;
-
-// ── Settings dropdown ────────────────────────────────────────────────────────
-
-function toggleSettingsMenu(e) {
-  const dd  = document.getElementById('settings-dropdown');
-  const btn = document.getElementById('settings-btn');
-  const isOpen = dd.classList.contains('open');
-  if (isOpen) {
-    dd.classList.remove('open');
-    btn.classList.remove('open');
-  } else {
-    const r = btn.getBoundingClientRect();
-    dd.style.right = (window.innerWidth - r.right) + 'px';
-    dd.style.top   = r.bottom + 4 + 'px';
-    dd.classList.add('open');
-    btn.classList.add('open');
-    // Highlight active language (only buttons that actually have data-lang)
-    document.querySelectorAll('.sdd-lang-btn[data-lang], .menu-lan
+function rebuildFeatu
