@@ -2254,6 +2254,7 @@
       <button class="lens-btn" data-lens="economic" onclick="setOverlayMode('economic')"><span class="lens-ic">💰</span><span data-i18n="overlay_economic">Economic</span></button>
       <button class="lens-btn" data-lens="military" onclick="setOverlayMode('military')"><span class="lens-ic">⚔</span><span data-i18n="overlay_military">Military</span></button>
       <button class="lens-btn" data-lens="wars" onclick="setOverlayMode('wars')"><span class="lens-ic">🔥</span><span data-i18n="overlay_wars">Wars</span></button>
+      <button class="lens-btn" data-lens="stability" onclick="setOverlayMode('stability')"><span class="lens-ic">⚖</span><span data-i18n="overlay_stability">Stability</span></button>
     </div>
   </div>
 
@@ -2709,6 +2710,7 @@ en: {
   overlay_economic: 'Economic',
   overlay_military: 'Military',
   overlay_wars: 'Wars',
+  overlay_stability: 'Stability',
   overlay_terrain: 'Terrain',
   sdd_theme: 'MAP STYLE',
   theme_standard: '🌍 STANDARD',
@@ -3493,6 +3495,7 @@ ru: {
   overlay_economic: 'Экономика',
   overlay_military: 'Армия',
   overlay_wars: 'Войны',
+  overlay_stability: 'Стабильность',
   overlay_terrain: 'Рельеф',
   sdd_theme: 'СТИЛЬ КАРТЫ',
   theme_standard: '🌍 СТАНДАРТ',
@@ -4910,13 +4913,14 @@ window.setMapMode = setMapMode;
 // through their own chosen lens. Default: political (owner colours).
 let _overlayMode = 'political';
 let _overlayMaxArmy = 1;   // recomputed per draw for the military heatmap
-const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'wars'];
+const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'wars', 'stability'];
 function setOverlayMode(mode) {
   if (!OVERLAY_MODES.includes(mode)) return;
   _overlayMode = mode;
   document.querySelectorAll('.lens-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.lens === mode);
   });
+  if (S.v2 && typeof markBordersDirty === 'function') markBordersDirty();
   if (typeof render === 'function') render();
 }
 window.setOverlayMode = setOverlayMode;
@@ -9537,9 +9541,55 @@ function _overlayFill(c, owner) {
       if (dead) return '#1c2030';
       return _warsColors[c.ownerId] || '#363c4a';
     }
+    case 'stability': {
+      if (dead) return '#23281c';
+      const stab = Math.max(0, Math.min(100, owner.stability != null ? owner.stability : 70));
+      return _lerpColor('#c0463a', '#46b56b', stab / 100);   // red(unrest) → green(stable)
+    }
     case 'political':
     default:
       return dead ? '#1e2438' : owner.color;
+  }
+}
+
+// Fill colour for one PROVINCE (v2) under the active overlay lens. `p` is the
+// province record (S.provinces[pid]); `nat` is its owning S.nations entry (or
+// null/undefined for unowned/_bad land). Mirrors _overlayFill's palette so the
+// lenses read the same way in both v1 (country-grade) and v2 (province-grade).
+function _overlayFillV2(p, nat) {
+  const dead = !nat || nat.eliminated;
+  switch (_overlayMode) {
+    case 'economic': {
+      if (dead) return '#23281c';
+      const dev = Math.max(1, Math.min(6, p.dev || 1));
+      return _lerpColor('#2c3320', '#ecc63c', (dev - 1) / 5);
+    }
+    case 'military': {
+      if (dead) return '#241c1c';
+      return _lerpColor('#2a1d1d', '#e8552f', Math.min(1, (p.army || 0) / _overlayMaxArmy));
+    }
+    case 'diplomatic': {
+      if (dead) return '#1e2438';
+      if (!S.humanId || p.nation === S.humanId) return '#3a6fd8';   // you
+      const me = S.nations[S.humanId];
+      const rel = me && me.rel ? me.rel[p.nation] : null;
+      if (rel === 'war')  return '#d4493c';
+      if (rel === 'ally') return '#3fb56b';
+      if (rel === 'nap')  return '#3aa9b8';
+      return '#566079';                                  // neutral
+    }
+    case 'wars': {
+      if (dead) return '#1c2030';
+      return _warsColors[p.nation] || '#363c4a';
+    }
+    case 'stability': {
+      if (dead) return '#23281c';
+      const stab = Math.max(0, Math.min(100, p.stability != null ? p.stability : 70));
+      return _lerpColor('#c0463a', '#46b56b', stab / 100);   // red(unrest) → green(stable)
+    }
+    case 'political':
+    default:
+      return dead ? '#39404e' : nat.color;
   }
 }
 
@@ -9549,11 +9599,12 @@ function _computeWarsIndex() {
   _warsColors = {};
   const parent = {}, inWar = {};
   const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
-  for (const pid in S.players) {
-    const p = S.players[pid];
+  const pool = S.v2 ? S.nations : S.players;
+  for (const pid in pool) {
+    const p = pool[pid];
     if (!p || p.eliminated || !p.rel) continue;
     for (const oid in p.rel) {
-      if (p.rel[oid] === 'war' && S.players[oid] && !S.players[oid].eliminated) {
+      if (p.rel[oid] === 'war' && pool[oid] && !pool[oid].eliminated) {
         if (!(pid in parent)) parent[pid] = pid;
         if (!(oid in parent)) parent[oid] = oid;
         parent[find(pid)] = find(oid);
@@ -10057,24 +10108,31 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   // Military lens: normalise army density against the largest stack in play.
   if (_overlayMode === 'military') {
     _overlayMaxArmy = 1;
-    for (const f of S.features) {
-      const cc = S.countries[f.id];
-      if (cc && cc.army > _overlayMaxArmy) _overlayMaxArmy = cc.army;
+    if (S.v2) {
+      for (const f of S.features) {
+        const pr = S.provinces[f.id];
+        if (pr && pr.army > _overlayMaxArmy) _overlayMaxArmy = pr.army;
+      }
+    } else {
+      for (const f of S.features) {
+        const cc = S.countries[f.id];
+        if (cc && cc.army > _overlayMaxArmy) _overlayMaxArmy = cc.army;
+      }
     }
   }
   // Wars lens: group nations into conflicts so each war gets its own colour.
   if (_overlayMode === 'wars') _computeWarsIndex();
   for (const f of S.features) {
-    if (S.v2) {                                   // ── province-grade fill: colour by owner NATION ──
+    if (S.v2) {                                   // ── province-grade fill: colour by owner NATION (or active lens) ──
       const pr = S.provinces[f.id]; if (!pr || pr._bad) continue;   // skip globe-filling degenerate features
       const nat = pr.nation ? S.nations[pr.nation] : null;
-      let fill = nat ? nat.color : '#39404e';     // neutral / unowned = grey
+      let fill = _overlayFillV2(pr, nat);
       if (!_parch) fill = _blendColor(fill, '#e2e9f3', 0.16);
       targetCtx.fillStyle = fill;
       targetCtx.beginPath(); targetPath(f); targetCtx.fill();
       if (TH.wash) { targetCtx.fillStyle = TH.wash; targetCtx.fill(); }
       const me = S.humanId && S.nations[S.humanId];
-      if (me && nat && nat.id !== S.humanId && me.rel && me.rel[nat.id] === 'war') {
+      if (_overlayMode === 'political' && me && nat && nat.id !== S.humanId && me.rel && me.rel[nat.id] === 'war') {
         targetCtx.fillStyle = 'rgba(220,60,45,0.42)'; targetCtx.fill();   // enemy-at-war wash
       }
       targetCtx.strokeStyle = TH.internal; targetCtx.lineWidth = 0.3; targetCtx.stroke();
@@ -17113,38 +17171,4 @@ boot();
           <div class="mp-label" style="margin-top:8px" data-i18n="mp_scenario">SCENARIO</div>
           <select class="mp-input" id="mp-create-scenario" style="cursor:pointer">
             <option value="sandbox">🌐 Sandbox (1450 AD)</option>
-            <option value="ancient">⚔️ Ancient World (218 BC)</option>
-            <option value="roman">🏛️ Roman Empire (117 AD)</option>
-            <option value="medieval">✝️ Medieval Christendom (1096 AD)</option>
-            <option value="mongol">🏹 Mongol Empire (1300 AD)</option>
-            <option value="timurid">☄️ Timurid Era (1400 AD)</option>
-            <option value="discovery">⛵ Age of Discovery (1492 AD)</option>
-            <option value="gunpowder">🕌 Gunpowder Empires (1700 AD)</option>
-            <option value="napoleonic">🎖️ Napoleonic Wars (1804 AD)</option>
-            <option value="victorian">🎩 Victorian Era (1850 AD)</option>
-            <option value="ww1">🪖 World War I (1914)</option>
-            <option value="ww2">💣 World War II (1939)</option>
-            <option value="coldwar">☢️ Cold War (1947)</option>
-            <option value="current">🌍 Current World (2025)</option>
-          </select>
-          <button class="mp-btn" id="mp-create-btn" onclick="mpCreateRoom()">▸ CREATE ROOM</button>
-        </div>
-
-        <div class="mp-section" id="mps-join">
-          <div class="mp-label" data-i18n="mp_your_name">YOUR NAME</div>
-          <input class="mp-input" id="mp-join-name" data-i18n-placeholder="mp_ph_your_name" placeholder="Enter your name" maxlength="20">
-          <div class="mp-label" style="margin-top:8px" data-i18n="mp_room_code">ROOM CODE</div>
-          <input class="mp-input code-input" id="mp-join-code" data-i18n-placeholder="mp_ph_room_code" placeholder="XXXXXX" maxlength="6">
-          <button class="mp-btn" id="mp-join-btn" onclick="mpJoinRoom()">↗ JOIN ROOM</button>
-        </div>
-      </div>
-
-      <!-- Room lobby (shown after create/join) -->
-      <div id="mp-room-lobby" style="display:none">
-        <div class="mp-room-code" id="mp-room-code-display">------</div>
-        <div class="mp-room-code-sub">▸ SHARE THIS CODE WITH FRIENDS (UP TO 4 PLAYERS)</div>
-        <div class="mp-player-list" id="mp-player-list"></div>
-        <div class="mp-status" id="mp-lobby-status" data-i18n="mp_waiting_players">Waiting for players…</div>
-        <button class="mp-btn outline" id="mp-pick-btn" onclick="mpPickNation()" style="margin-bottom:8px">&#127758; PICK YOUR NATION ON GLOBE</button>
-        <div class="mp-status" id="mp-pick-hint" style="display:none;color:#c9a84c">&#9658; Click any nation on globe, then tap RETURN</div>
-        <button class
+          
