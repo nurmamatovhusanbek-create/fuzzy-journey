@@ -10462,10 +10462,39 @@ function computeCountryStats(feature) {
 //   S.nations[nid]   = { id,name,color,gold,manpower,era,tech,mp,dp,intel,rel,
 //                        grudges,capital(pid),regime,personality,isHuman,eliminated }
 // ============================================================================
+// ── v2 province ownership index (P8 perf) ───────────────────────────────────
+// S._provByNation = { nid: [pid,...] } — built lazily once (and rebuilt on load
+// of older saves that lack it), then kept in sync by _setProvNation, the single
+// choke point for every p.nation write. Plain object of arrays so it survives
+// JSON.stringify (no Set/Map in S.*).
+function _ensureProvByNationV2() {
+  if (S._provByNation) return;
+  S._provByNation = {};
+  const P = S.provinces || {};
+  for (const pid in P) {
+    const nid = P[pid].nation;
+    if (nid == null) continue;
+    (S._provByNation[nid] || (S._provByNation[nid] = [])).push(pid);
+  }
+}
+function _setProvNation(pid, newNid) {
+  const p = S.provinces && S.provinces[pid]; if (!p) return;
+  const old = p.nation;
+  if (old === newNid) return;
+  _ensureProvByNationV2();
+  if (old != null && S._provByNation[old]) {
+    const arr = S._provByNation[old];
+    const i = arr.indexOf(pid);
+    if (i !== -1) arr.splice(i, 1);
+  }
+  p.nation = newNid;
+  if (newNid != null) (S._provByNation[newNid] || (S._provByNation[newNid] = [])).push(pid);
+}
+window._setProvNation = _setProvNation;
+
 function nationProvinces(nid) {
-  const o = []; const P = S.provinces || {};
-  for (const pid in P) if (P[pid].nation === nid) o.push(pid);
-  return o;
+  _ensureProvByNationV2();
+  return S._provByNation[nid] || [];
 }
 // Rewrite a feature's geometry in place, keeping only sub-polygons whose outer
 // ring spans ≤180° of longitude. Drops antimeridian-straddling / pole-wrapping
@@ -10503,6 +10532,7 @@ function initWorldV2(topo) {
   S.featureById = {};
   S.provinces = {};
   S.nations = {};
+  S._provByNation = null;   // rebuilt lazily by nationProvinces() for this fresh world
   const natName = {};
   for (const f of feats) {
     S.featureById[f.id] = f;
@@ -10637,7 +10667,7 @@ function resolveCombatV2(fromPid, toPid) {
   if (atk > def) {                              // attacker wins → occupy
     const survivors = Math.max(1, Math.round((atk - def) / Math.max(0.01, combatMulV2(atkNid))));
     const occupy = Math.min(atkArmy, survivors);
-    to.nation = atkNid; to.army = occupy; to.defense = 0; to.building = to.building;  // keep buildings
+    _setProvNation(toPid, atkNid); to.army = occupy; to.defense = 0; to.building = to.building;  // keep buildings
     from.army = Math.max(0, atkArmy - occupy);
     if (typeof markBordersDirty === 'function') markBordersDirty();
     return 'win';
@@ -10702,10 +10732,10 @@ const V2_BUILDINGS = {
 };
 
 // ── v2 income aggregation ─────────────────────────────────────────────────────
-function calculateIncomeV2(nid) {
+function calculateIncomeV2(nid, provs) {
   const n = S.nations[nid];
   if (!n) return { gold: 0, manpower: 0, upkeep: 0, net: 0, manCap: 120, lands: 0, capLost: false };
-  const provs = nationProvinces(nid);
+  provs = provs || nationProvinces(nid);
   if (!provs.length) return { gold: 0, manpower: 0, upkeep: 0, net: 0, manCap: 120, lands: 0, capLost: false };
   const era       = (ERAS && ERAS[n.era]) ? ERAS[n.era] : { incomeBonus: 0, mpBonus: 0 };
   const regime    = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
@@ -10752,34 +10782,38 @@ function endTurnV2() {
     const ownerAtWar = owner && Object.values(owner.rel || {}).some(r => r === 'war');
     if (!ownerAtWar) p.defense = Math.min(V2_DEF_CAP, (p.defense || 0) + V2_DEF_ACCRUAL);
   }
-  // Per-nation: income, MP/DP, stability with regime ceiling + capital-loss + rebellion
+  // Per-nation: income, MP/DP, stability with regime ceiling + capital-loss + rebellion.
+  // Single pass over each nation's province list (P8 perf): capital-loss shock,
+  // stability regen, and rebellion checks all happen in one loop. Rebellions are
+  // collected and applied after the loop since _setProvNation mutates the very
+  // array (S._provByNation[nid]) we're iterating.
   for (const nid in S.nations) {
     const n = S.nations[nid]; if (!n || n.eliminated) continue;
-    const inc    = calculateIncomeV2(nid);
+    const provs  = nationProvinces(nid);
+    const inc    = calculateIncomeV2(nid, provs);
     const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
     n.gold     = Math.max(0, (n.gold || 0) + inc.net);
     n.manpower = Math.min(inc.manCap, (n.manpower || 0) + inc.manpower);
     n.mp = Math.min(6 + n.era * 2, (n.mp || 0) + 1 + n.era * 0.4);
     n.dp = Math.min(4 + n.era * 2, (n.dp || 0) + 1 + n.era * 0.3);
     // Capital-loss shock: first turn the capital is held by an enemy → −20 stab everywhere
-    if (inc.capLost && !n._capWasLost) {
-      for (const pid of nationProvinces(nid)) {
-        const p = S.provinces[pid]; if (!p || p._bad) continue;
-        p.stability = Math.max(5, (p.stability || 70) - 20);
-      }
-    }
+    const capLossShock = inc.capLost && !n._capWasLost;
     n._capWasLost = inc.capLost;
     const atWar     = Object.values(n.rel || {}).some(r => r === 'war');
     const stabDelta = atWar ? -0.5 : 2;
-    for (const pid of nationProvinces(nid)) {
+    let rebels = null;
+    for (let i = 0; i < provs.length; i++) {
+      const pid = provs[i];
       const p = S.provinces[pid]; if (!p || p._bad) continue;
+      if (capLossShock) p.stability = Math.max(5, (p.stability || 70) - 20);
       // Stability: regen + clamp to regime ceiling
       p.stability = Math.max(5, Math.min(regime.stabCeil, (p.stability || 70) + stabDelta));
       // Rebellion: very unstable provinces in risky regimes go neutral
       if (regime.rebelChance > 0 && pid !== n.capital && (p.stability || 70) < 30 && Math.random() < regime.rebelChance) {
-        p.nation = null;
+        (rebels || (rebels = [])).push(pid);
       }
     }
+    if (rebels) for (const pid of rebels) _setProvNation(pid, null);
   }
   aiColonizeV2();
 }
@@ -10826,7 +10860,7 @@ function doColonizeV2(nid, pid) {
     n.gold = (n.gold || 0) - cost.gold;
     n.mp   = Math.max(0, (n.mp || 0) - cost.mp);
   }
-  p.nation    = nid;
+  _setProvNation(pid, nid);
   p.army      = Math.max(1, p.army || 0);
   p.stability = 50;   // new colony starts fragile
   p.defense   = 0;    // no accrued defence yet
@@ -10856,15 +10890,25 @@ function neutralAdjacentV2(nid) {
   return result;
 }
 
-// AI: each non-human nation colonizes the best adjacent neutral it can afford (≤1/turn)
+// AI: each non-human nation colonizes the best adjacent neutral it can afford (≤1/turn).
+// Throttled (P8 perf): only V2_AI_COLONIZE_BATCH nations are scanned per turn,
+// round-robin via S._aiColonizeCursor, so a 251-nation world doesn't run a full
+// neutral-adjacency scan for every nation on every END TURN.
+const V2_AI_COLONIZE_BATCH = 40;
 function aiColonizeV2() {
   if (!S.v2) return;
-  for (const nid in S.nations) {
+  const ids = Object.keys(S.nations);
+  if (!ids.length) return;
+  const cursor = S._aiColonizeCursor || 0;
+  const batch  = Math.min(V2_AI_COLONIZE_BATCH, ids.length);
+  for (let i = 0; i < batch; i++) {
+    const nid = ids[(cursor + i) % ids.length];
     const n = S.nations[nid];
     if (!n || n.eliminated || n.isHuman) continue;
     const candidates = neutralAdjacentV2(nid);
     for (const pid of candidates) { if (doColonizeV2(nid, pid)) break; }
   }
+  S._aiColonizeCursor = (cursor + batch) % ids.length;
 }
 
 // Strips ownership from `fraction` of each nation's weakest provinces to create
@@ -10878,14 +10922,16 @@ function designateNeutralsV2(fraction) {
     const provs = nationProvinces(nid);
     const toNeutral = Math.floor(provs.length * fraction);
     if (!toNeutral) continue;
-    provs.sort((a, b) => {
+    // Copy before sorting/iterating: provs IS S._provByNation[nid], and
+    // _setProvNation splices that same array as we strip ownership below.
+    const ordered = provs.slice().sort((a, b) => {
       const pa = S.provinces[a], pb = S.provinces[b];
       return ((pa.dev || 1) + (pa.army || 0)) - ((pb.dev || 1) + (pb.army || 0));
     });
     let stripped = 0;
-    for (const pid of provs) {
+    for (const pid of ordered) {
       if (pid === n.capital) continue;
-      S.provinces[pid].nation = null;
+      _setProvNation(pid, null);
       if (++stripped >= toNeutral) break;
     }
   }
@@ -17101,63 +17147,4 @@ boot();
         <div class="mp-status" id="mp-lobby-status" data-i18n="mp_waiting_players">Waiting for players…</div>
         <button class="mp-btn outline" id="mp-pick-btn" onclick="mpPickNation()" style="margin-bottom:8px">&#127758; PICK YOUR NATION ON GLOBE</button>
         <div class="mp-status" id="mp-pick-hint" style="display:none;color:#c9a84c">&#9658; Click any nation on globe, then tap RETURN</div>
-        <button class="mp-btn" id="mp-return-btn" onclick="mpReturnToLobby()" style="display:none">&#8592; RETURN TO LOBBY</button>
-                <button class="mp-btn" id="mp-start-btn" onclick="mpStartGame()" disabled>▸ START GAME</button>
-        <button class="mp-btn outline" onclick="closeMPOverlay()">← BACK</button>
-      </div>
-
-      <div class="mp-status" id="mp-connecting-status" style="display:none">Connecting…</div>
-    </div>
-  </div>
-</div>
-
-<!-- ── IN-GAME MULTIPLAYER HUD ── -->
-<div id="mp-hud">
-  <div id="mp-timer-label">PLANNING PHASE · 2:00</div>
-  <div id="mp-timer-bar-wrap"><div id="mp-timer-bar"></div></div>
-  <div id="mp-waiting-label"></div>
-</div>
-
-<!-- Reconnect status banner — visible feedback while (re)connecting to a room,
-     including the page-reload path where the lobby overlay is closed. -->
-<div id="mp-reconnect-banner" hidden>
-  <span class="mrb-dot" aria-hidden="true"></span>
-  <span id="mp-reconnect-text"></span>
-</div>
-
-<!-- Centered waiting overlay shown while other players finish their turn -->
-<div id="mp-waiting-overlay" role="status" aria-live="polite">
-  <div class="mw-spinner" aria-hidden="true"></div>
-  <div class="mw-text">
-    <div id="mp-waiting-main" data-i18n="mp_waiting_players">Waiting for other players…</div>
-    <div class="mw-sub" id="mp-waiting-sub" data-i18n="mp_turn_locked">Your turn is locked in.</div>
-  </div>
-</div>
-
-<!-- Diplomacy request modal (shown to the receiver) -->
-<div id="diplo-request-modal" role="dialog" aria-modal="true">
-  <div class="drm-box">
-    <div class="drm-tag" id="drm-tag">DIPLOMATIC REQUEST</div>
-    <div class="drm-msg" id="drm-msg"></div>
-    <div class="drm-buttons">
-      <button class="drm-btn drm-accept" id="drm-accept">ACCEPT</button>
-      <button class="drm-btn drm-reject" id="drm-reject">REJECT</button>
-    </div>
-  </div>
-</div>
-
-<!-- Diplomacy response toast (shown to the sender after the receiver responds) -->
-<div id="diplo-result" role="alert"></div>
-
-<!-- ── IN-GAME CHAT ── -->
-<div id="mp-chat">
-  <div id="mp-chat-log"></div>
-  <div id="mp-chat-form">
-    <input id="mp-chat-input" data-i18n-placeholder="mp_ph_chat" placeholder="Chat…" maxlength="200"
-           onkeydown="if(event.key==='Enter')mpSendChat()">
-    <button id="mp-chat-send" onclick="mpSendChat()">▸</button>
-  </div>
-</div>
-
-</body>
-</html>
+        <button class
