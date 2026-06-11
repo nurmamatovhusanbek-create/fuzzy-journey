@@ -2654,10 +2654,22 @@
 // TERRA BELLUM — globe strategy combining WorldWarBot's chaos and AoC2 depth
 // ============================================================================
 
+// BUGFIX: localStorage/sessionStorage throw SecurityError on opaque origins
+// (e.g. Chrome opening this file directly via file://). Any unguarded access
+// at script-load time used to abort the whole script before boot() could run,
+// leaving the loading screen stuck forever. These helpers make every access
+// fail safe (return null / no-op) instead of throwing.
+function lsGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function lsSet(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+function lsRemove(key) { try { localStorage.removeItem(key); } catch (e) {} }
+function ssGet(key) { try { return sessionStorage.getItem(key); } catch (e) { return null; } }
+function ssSet(key, val) { try { sessionStorage.setItem(key, val); } catch (e) {} }
+function ssRemove(key) { try { sessionStorage.removeItem(key); } catch (e) {} }
+
 // ════════════════════════════════════════════════════════════════════════════
 // I18N — Translation system (EN / RU)
 // ════════════════════════════════════════════════════════════════════════════
-var _lang = localStorage.getItem('tb_lang') || 'en';
+var _lang = lsGet('tb_lang') || 'en';
 
 const TB_LANG = {
 en: {
@@ -4812,7 +4824,7 @@ window.icon = icon;
 
 function setLang(lang) {
   _lang = lang;
-  localStorage.setItem('tb_lang', lang);
+  lsSet('tb_lang', lang);
   renderAll();
   // Re-render dynamic game panels if game is running
   if (window.S && window.S.humanId) {
@@ -8835,7 +8847,7 @@ function refreshNotifs() {
 // the in-game guide (Settings → How to Play) re-arms them. Client-local only —
 // no S state, no MP message, no save coupling.
 // ============================================================================
-let _tipsEnabled = localStorage.getItem('tb_tips') !== 'off';
+let _tipsEnabled = lsGet('tb_tips') !== 'off';
 let _tipsSeen = (() => { try { return JSON.parse(localStorage.getItem('tb_tips_seen') || '{}') || {}; } catch (e) { return {}; } })();
 
 function _persistTipsSeen() { try { localStorage.setItem('tb_tips_seen', JSON.stringify(_tipsSeen)); } catch (e) {} }
@@ -8847,7 +8859,7 @@ function syncTipsToggle() {
 }
 function setTipsEnabled(on) {
   _tipsEnabled = !!on;
-  localStorage.setItem('tb_tips', _tipsEnabled ? 'on' : 'off');
+  lsSet('tb_tips', _tipsEnabled ? 'on' : 'off');
   syncTipsToggle();
   if (!_tipsEnabled) {                       // hide any tip cards currently up
     _notifs = _notifs.filter(n => !(n.key && n.key.indexOf('tip:') === 0));
@@ -11088,7 +11100,13 @@ function calculateIncomeV2(nid, provs) {
   const techUpkeepMul = 1 / (1 + techLevel * 0.04);
   const capPid    = n.capital;
   const capProv   = capPid && S.provinces[capPid];
-  const capLost   = !!(capProv && capProv.nation !== nid);
+  // P16: under the occupation model, an enemy can hold the capital via
+  // `occupiedBy` without `p.nation` ever changing (ownership only transfers
+  // on a formal cession, which immediately reassigns the capital anyway).
+  // So "capital lost" must check de-facto control, not legal ownership —
+  // otherwise this flag (and its stability shock / income penalty / UI
+  // badge) can never fire.
+  const capLost   = !!(capProv && provinceControllerV2(capPid) !== nid);
   // Build set of capital-adjacent pids for the +1g radius bonus
   const capAdjSet = new Set();
   if (capProv && !capLost) {
@@ -12000,7 +12018,7 @@ function startGame(humanCountryId) {
   syncTipsToggle();         // A4: reflect saved tips on/off in settings
 
   // Show tutorial on first play; afterwards accessible via ❓
-  if (!localStorage.getItem('tb_tutorial_seen')) {
+  if (!lsGet('tb_tutorial_seen')) {
     setTimeout(() => showTutorial(), 600);
   }
   // A4: seed the first contextual tip after the boot/guide settles
@@ -15793,14 +15811,14 @@ function mpAttemptReconnect() {
 // Save reconnect data to sessionStorage
 window.addEventListener('beforeunload', () => {
   if (MP.active) {
-    sessionStorage.setItem('tb_mp_reconnect', JSON.stringify({
+    ssSet('tb_mp_reconnect', JSON.stringify({
       code: MP.roomCode, playerId: MP.playerId
     }));
   }
 });
 // On load: offer to reconnect to the room the player was in before the reload.
 window.addEventListener('load', () => {
-  const saved = sessionStorage.getItem('tb_mp_reconnect');
+  const saved = ssGet('tb_mp_reconnect');
   if (!saved) return;
   let d; try { d = JSON.parse(saved); } catch { return; }
   if (!d || !d.code || !d.playerId) { try { sessionStorage.removeItem('tb_mp_reconnect'); } catch (e) {} return; }
@@ -16100,7 +16118,7 @@ window.showTutorial = showTutorial;
 
 function closeTutorial() {
   document.getElementById('tut-overlay').hidden = true;
-  localStorage.setItem('tb_tutorial_seen', '1');
+  lsSet('tb_tutorial_seen', '1');
 }
 window.closeTutorial = closeTutorial;
 
@@ -17783,7 +17801,7 @@ function loadFromSlot(slot) {
 }
 
 function deleteSlot(slot) {
-  localStorage.removeItem(SAVE_KEY_PREFIX + slot);
+  lsRemove(SAVE_KEY_PREFIX + slot);
   renderSaveSlots();
   renderLoadSlots();
 }
@@ -17961,4 +17979,193 @@ function toggleSettingsMenu(e) {
     syncMapToggles();   // M4/M5: reflect theme + camera-follow state
     syncTipsToggle();   // A4: reflect tips on/off
   }
-  if (e) e.stopPropag
+  if (e) e.stopPropagation();
+}
+window.toggleSettingsMenu = toggleSettingsMenu;
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const dd  = document.getElementById('settings-dropdown');
+  const btn = document.getElementById('settings-btn');
+  if (!dd || !btn) return;
+  if (!dd.contains(e.target) && e.target !== btn) {
+    dd.classList.remove('open');
+    btn.classList.remove('open');
+  }
+});
+
+function _closeSettings() {
+  document.getElementById('settings-dropdown').classList.remove('open');
+  document.getElementById('settings-btn').classList.remove('open');
+}
+
+function sddSave() {
+  _closeSettings();
+  _exitAfterSave = false;
+  document.getElementById('save-modal-title').textContent = T('save_title');
+  renderSaveSlots();
+  document.getElementById('save-modal').hidden = false;
+}
+window.sddSave = sddSave;
+
+function sddTutorial() {
+  _closeSettings();
+  resetTipsSeen();   // A4: replaying the guide re-arms the contextual tips
+  showTutorial();
+}
+window.sddTutorial = sddTutorial;
+
+function sddExit() {
+  _closeSettings();
+  _exitAfterSave = true;
+  document.getElementById('save-modal-title').textContent = T('save_exit_title');
+  renderSaveSlots();
+  document.getElementById('save-modal').hidden = false;
+}
+window.sddExit = sddExit;
+
+// ============================================================================
+// BOOT — patched to support load-on-start
+// ============================================================================
+function boot() {
+  renderAll(); // apply saved language to all data-i18n elements immediately
+  // set initial active state on main-menu language buttons
+  document.querySelectorAll('.menu-lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === getLang());
+  });
+  try {
+    setStatus(T('boot_check_libs'));
+    if (typeof d3 === 'undefined') throw new Error('d3 library not loaded');
+    if (typeof topojson === 'undefined') throw new Error('topojson library not loaded');
+    setStatus(T('boot_check_data'));
+    var topo = window.__TOPO__;
+    if (!topo) throw new Error('__TOPO__ not defined');
+    if (!topo.objects || !topo.objects.countries) throw new Error('topology malformed');
+    setStatus(Tpl('boot_build_world', { n: (topo.objects.countries.geometries||[]).length }));
+    initWorld(topo);
+    setStatus(T('boot_prepare_globe'));
+    document.getElementById('loading').hidden = true;
+    document.getElementById('setup').hidden = false;
+
+    // Show Load Game button only if saves exist
+    var loadBtn = document.getElementById('load-game-btn');
+    if (loadBtn) loadBtn.style.display = hasAnySave() ? '' : 'none';
+
+    // NEW GAME button reveals the country-picker canvas
+    var newBtn = document.getElementById('new-game-btn');
+    var prompt = document.getElementById('setup-prompt');
+    if (newBtn) {
+      newBtn.addEventListener('click', function() {
+        const chrome = document.getElementById('setup-chrome');
+        if (chrome) chrome.style.display = 'none';
+        // Initialise the globe in the background, then show scenario picker
+        setTimeout(function() {
+          try {
+            setupSetupCanvas();
+            renderSetup();
+          } catch (e2) {
+            console.warn('Globe render warning:', e2.message);
+          }
+        }, 50);
+        // Show scenario picker (it will reveal the prompt after selection)
+        setTimeout(function() { showScenarioPicker(); }, 80);
+      });
+    }
+  } catch (e) {
+    setStatus('ERROR: ' + e.message, true);
+    console.error('[Terra Bellum boot error]', e);
+  }
+}
+
+window.addEventListener('error', function(ev) {
+  setStatus(T('boot_js_error') + ' ' + (ev.message || 'unknown') + ' ' + T('boot_at_line') + ' ' + (ev.lineno || '?'), true);
+});
+
+boot();
+</script>
+
+<!-- ── MULTIPLAYER LOBBY OVERLAY ── -->
+<div id="mp-overlay">
+  <div class="mp-card">
+    <div class="mp-card-head">
+      <span class="mp-card-title" data-i18n="setup_mp_title">MULTIPLAYER</span>
+      <button class="mp-close" onclick="closeMPOverlay()">✕</button>
+    </div>
+    <div class="mp-card-body">
+
+      <!-- Create / Join tabs -->
+      <div id="mp-lobby-tabs">
+        <div class="mp-tabs">
+          <button class="mp-tab active" id="mpt-create" onclick="mpTab('create')">▸ CREATE ROOM</button>
+          <button class="mp-tab"        id="mpt-join"   onclick="mpTab('join')">↗ JOIN ROOM</button>
+        </div>
+
+        <div class="mp-section active" id="mps-create">
+          <div class="mp-label" data-i18n="mp_your_name">YOUR NAME</div>
+          <input class="mp-input" id="mp-create-name" data-i18n-placeholder="mp_ph_your_name" placeholder="Enter your name" maxlength="20">
+          <div class="mp-label" style="margin-top:8px" data-i18n="mp_scenario">SCENARIO</div>
+          <select class="mp-input" id="mp-create-scenario" style="cursor:pointer">
+            <option value="sandbox">🌐 Sandbox (1450 AD)</option>
+            <option value="ancient">⚔️ Ancient World (218 BC)</option>
+            <option value="roman">🏛️ Roman Empire (117 AD)</option>
+            <option value="medieval">✝️ Medieval Christendom (1096 AD)</option>
+            <option value="mongol">🏹 Mongol Empire (1300 AD)</option>
+            <option value="timurid">☄️ Timurid Era (1400 AD)</option>
+            <option value="discovery">⛵ Age of Discovery (1492 AD)</option>
+            <option value="gunpowder">🕌 Gunpowder Empires (1700 AD)</option>
+            <option value="napoleonic">🎖️ Napoleonic Wars (1804 AD)</option>
+            <option value="victorian">🎩 Victorian Era (1850 AD)</option>
+            <option value="ww1">🪖 World War I (1914)</option>
+            <option value="ww2">💣 World War II (1939)</option>
+            <option value="coldwar">☢️ Cold War (1947)</option>
+            <option value="current">🌍 Current World (2025)</option>
+          </select>
+          <button class="mp-btn" id="mp-create-btn" onclick="mpCreateRoom()">▸ CREATE ROOM</button>
+        </div>
+
+        <div class="mp-section" id="mps-join">
+          <div class="mp-label" data-i18n="mp_your_name">YOUR NAME</div>
+          <input class="mp-input" id="mp-join-name" data-i18n-placeholder="mp_ph_your_name" placeholder="Enter your name" maxlength="20">
+          <div class="mp-label" style="margin-top:8px" data-i18n="mp_room_code">ROOM CODE</div>
+          <input class="mp-input code-input" id="mp-join-code" data-i18n-placeholder="mp_ph_room_code" placeholder="XXXXXX" maxlength="6">
+          <button class="mp-btn" id="mp-join-btn" onclick="mpJoinRoom()">↗ JOIN ROOM</button>
+        </div>
+      </div>
+
+      <!-- Room lobby (shown after create/join) -->
+      <div id="mp-room-lobby" style="display:none">
+        <div class="mp-room-code" id="mp-room-code-display">------</div>
+        <div class="mp-room-code-sub">▸ SHARE THIS CODE WITH FRIENDS (UP TO 4 PLAYERS)</div>
+        <div class="mp-player-list" id="mp-player-list"></div>
+        <div class="mp-status" id="mp-lobby-status" data-i18n="mp_waiting_players">Waiting for players…</div>
+        <button class="mp-btn outline" id="mp-pick-btn" onclick="mpPickNation()" style="margin-bottom:8px">&#127758; PICK YOUR NATION ON GLOBE</button>
+        <div class="mp-status" id="mp-pick-hint" style="display:none;color:#c9a84c">&#9658; Click any nation on globe, then tap RETURN</div>
+        <button class="mp-btn" id="mp-return-btn" onclick="mpReturnToLobby()" style="display:none">&#8592; RETURN TO LOBBY</button>
+                <button class="mp-btn" id="mp-start-btn" onclick="mpStartGame()" disabled>▸ START GAME</button>
+        <button class="mp-btn outline" onclick="closeMPOverlay()">← BACK</button>
+      </div>
+
+      <div class="mp-status" id="mp-connecting-status" style="display:none">Connecting…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── IN-GAME MULTIPLAYER HUD ── -->
+<div id="mp-hud">
+  <div id="mp-timer-label">PLANNING PHASE · 2:00</div>
+  <div id="mp-timer-bar-wrap"><div id="mp-timer-bar"></div></div>
+  <div id="mp-waiting-label"></div>
+</div>
+
+<!-- Reconnect status banner — visible feedback while (re)connecting to a room,
+     including the page-reload path where the lobby overlay is closed. -->
+<div id="mp-reconnect-banner" hidden>
+  <span class="mrb-dot" aria-hidden="true"></span>
+  <span id="mp-reconnect-text"></span>
+</div>
+
+<!-- Centered waiting overlay shown while other players finish their turn -->
+<div id="mp-waiting-overlay" role="status" aria-live="polite">
+  <div class="mw-spinner" aria-hidden="true"></div>
+  <div class="mw-text">
+    <div id="mp-w
