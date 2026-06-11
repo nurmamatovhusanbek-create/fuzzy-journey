@@ -3230,6 +3230,27 @@ en: {
   glog_v2_no_occupied:  'You hold no occupied enemy territory to demand.',
   glog_v2_ws_too_low:   'War score too low to demand reparations (need {v0}).',
   glog_v2_truce_block:  'Cannot declare war on {v0} — truce in effect.',
+  // ── P17: subjects, rebels & ultimatums ──────────────────────────────────
+  stat_overlord:        '▸ OVERLORD',
+  stat_tribute:         '▸ TRIBUTE RATE',
+  stat_liberty_desire:  '▸ LIBERTY DESIRE',
+  act_peace_vassalize:      '♛ DEMAND VASSALAGE',
+  act_liberate_vassal:      '☮ GRANT INDEPENDENCE',
+  act_declare_independence: '⚑ DECLARE INDEPENDENCE',
+  act_ultimatum_vassalize:  '⚑ ULTIMATUM: VASSALIZE',
+  act_ultimatum_province:   '⚑ ULTIMATUM: DEMAND PROVINCE',
+  lbl_rebel_territory:      'REBEL TERRITORY',
+  lbl_rebel_territory_desc: 'Held by rebel forces — capture it to restore order.',
+  glog_v2_rebellion:            '{v0} has erupted in rebellion, breaking away from {v1}!',
+  glog_v2_peace_vassalize:      '{v0} accepts vassalage under your crown.',
+  glog_v2_vassalize_ws_too_low: 'War score too low to demand vassalage (need {v0}).',
+  glog_v2_independence:         '{v0} has declared independence!',
+  glog_v2_liberate_vassal:      '{v0} is granted independence.',
+  glog_v2_ultimatum_too_weak:   'Your army is not strong enough to issue an ultimatum.',
+  glog_v2_ultimatum_no_target:  'No suitable border province to demand from {v0}.',
+  glog_v2_ultimatum_province:   '{v0} yields to your ultimatum, ceding {v1}.',
+  glog_v2_ultimatum_vassalize:  '{v0} yields to your ultimatum and becomes your vassal.',
+  glog_v2_ultimatum_reject:     '{v0} rejects your ultimatum — war declared!',
   // ── P12: province economy ───────────────────────────────────────────────
   stat_economy:     'Economy',
   stat_happiness:   'Happiness',
@@ -4481,6 +4502,27 @@ ru: {
   glog_v2_no_occupied:  'У вас нет оккупированных вражеских территорий, чтобы их потребовать.',
   glog_v2_ws_too_low:   'Военный счёт слишком низок для требования контрибуции (нужно {v0}).',
   glog_v2_truce_block:  'Невозможно объявить войну {v0} — действует перемирие.',
+  // ── P17: вассалы, повстанцы и ультиматумы ────────────────────────────────
+  stat_overlord:        '▸ СЮЗЕРЕН',
+  stat_tribute:         '▸ СТАВКА ДАНИ',
+  stat_liberty_desire:  '▸ ЖЕЛАНИЕ СВОБОДЫ',
+  act_peace_vassalize:      '♛ ТРЕБОВАТЬ ВАССАЛИТЕТА',
+  act_liberate_vassal:      '☮ ДАРОВАТЬ НЕЗАВИСИМОСТЬ',
+  act_declare_independence: '⚑ ОБЪЯВИТЬ НЕЗАВИСИМОСТЬ',
+  act_ultimatum_vassalize:  '⚑ УЛЬТИМАТУМ: ВАССАЛИТЕТ',
+  act_ultimatum_province:   '⚑ УЛЬТИМАТУМ: ТРЕБОВАТЬ ПРОВИНЦИЮ',
+  lbl_rebel_territory:      'ТЕРРИТОРИЯ ПОВСТАНЦЕВ',
+  lbl_rebel_territory_desc: 'Удерживается повстанцами — захватите, чтобы восстановить порядок.',
+  glog_v2_rebellion:            'Провинция {v0} охвачена восстанием и отделяется от {v1}!',
+  glog_v2_peace_vassalize:      '{v0} признаёт вассальную зависимость от вашей короны.',
+  glog_v2_vassalize_ws_too_low: 'Военный счёт слишком низок для требования вассалитета (нужно {v0}).',
+  glog_v2_independence:         '{v0} обретает независимость!',
+  glog_v2_liberate_vassal:      '{v0} получает независимость.',
+  glog_v2_ultimatum_too_weak:   'Ваша армия недостаточно сильна для ультиматума.',
+  glog_v2_ultimatum_no_target:  'Нет подходящей приграничной провинции для требования у {v0}.',
+  glog_v2_ultimatum_province:   '{v0} уступает вашему ультиматуму, отдавая {v1}.',
+  glog_v2_ultimatum_vassalize:  '{v0} уступает вашему ультиматуму и становится вашим вассалом.',
+  glog_v2_ultimatum_reject:     '{v0} отвергает ваш ультиматум — объявлена война!',
   // ── P12: экономика провинций ────────────────────────────────────────────
   stat_economy:     'Экономика',
   stat_happiness:   'Довольство',
@@ -5130,7 +5172,7 @@ const P1 = {
   LOAN_TURNS: 15,
   MAX_LOANS: 2,
   MP_COST: { attack: 2, move: 1, recruit: 1, develop: 2, build: 2 },
-  DP_COST: { war: 3, peace: 2, ally: 4, breakAlly: 1, vassal: 3, nap: 2, marriage: 3 },
+  DP_COST: { war: 3, peace: 2, ally: 4, breakAlly: 1, vassal: 3, nap: 2, marriage: 3, ultimatum: 4 },
   WAR_WEARINESS_STAB_PER_TURN: 1.0,  // P3 #11: each active war costs -1.0 stab/turn (was 1.5; recovery now offsets a single war)
   WAR_SCORE_CONQUEST: 22,
   WAR_SCORE_BATTLE_WIN: 5,
@@ -10769,7 +10811,8 @@ function initWorldV2(topo) {
       isHuman: false, eliminated: false,
       warTurns: {}, warScore: {}, warGoal: {},
       budget: { tax: 50, goods: 20, research: 15, investment: 15 },  // P12: % sliders, sum ~100
-      techLevel: 0.1 + Math.random() * 0.3, research: 0              // P13: continuous tech (0.01-50 in AoC2; we cap at 5)
+      techLevel: 0.1 + Math.random() * 0.3, research: 0,             // P13: continuous tech (0.01-50 in AoC2; we cap at 5)
+      overlord: null, vassals: [], tribute: 0, libertyDesire: 0      // P17: subjects
     };
   }
   // Capital = each nation's most-connected province (a cheap centrality proxy; P5
@@ -10900,6 +10943,51 @@ function cedeProvinceV2(pid, toNid) {
   _setProvNation(pid, toNid);
 }
 window.cedeProvinceV2 = cedeProvinceV2;
+// P17: a low-stability province revolts — spawns or grows the synthetic rebel
+// nation (REBEL_NID) instead of simply going neutral (AoC2 §13). The rebel
+// faction annexes captured territory immediately (see resolveCombatV2) rather
+// than negotiating peace, so its holdings live entirely in `p.nation`
+// (never `occupiedBy`).
+function spawnRebelV2(pid, formerOwnerNid) {
+  const p = S.provinces[pid]; if (!p) return;
+  let reb = S.nations[REBEL_NID];
+  if (!reb || reb.eliminated) {
+    S.nations[REBEL_NID] = reb = {
+      id: REBEL_NID, name: 'Rebels', color: 'hsl(0,70%,32%)',
+      gold: 0, manpower: 30, era: 0, tech: { martial: 0, treasury: 0, statecraft: 0 },
+      mp: 0, dp: 0, intel: 0, rel: {}, grudges: {},
+      capital: null, regime: 'rebels', personality: 'conqueror',
+      isHuman: false, eliminated: false,
+      warTurns: {}, warScore: {}, warGoal: {},
+      budget: { tax: 0, goods: 0, research: 0, investment: 0 },
+      techLevel: 0.1, research: 0,
+      overlord: null, vassals: [], tribute: 0, libertyDesire: 0
+    };
+  }
+  const formerOwner = formerOwnerNid != null ? S.nations[formerOwnerNid] : null;
+  if (p.capital && formerOwnerNid != null) {
+    p.capital = false;
+    if (formerOwner) reassignCapitalV2(formerOwnerNid);
+  }
+  p.occupiedBy = null; p.occTurns = 0;
+  _setProvNation(pid, REBEL_NID);
+  // Rebels show up with a credible defending garrison, not a token force.
+  p.army = Math.max(p.army || 0, 5 + Math.floor((p.pop || 80) / 30));
+  p.stability = Math.max(p.stability || 0, 50);
+  if (!reb.capital) { reb.capital = pid; p.capital = true; }
+  // Hostile to whoever just lost the province.
+  if (formerOwner && relationV2(REBEL_NID, formerOwnerNid) !== 'war') {
+    setRelationV2(REBEL_NID, formerOwnerNid, 'war');
+    reb.warScore[formerOwnerNid] = 0; reb.warTurns[formerOwnerNid] = 0;
+    formerOwner.warScore = formerOwner.warScore || {}; formerOwner.warTurns = formerOwner.warTurns || {};
+    formerOwner.warScore[REBEL_NID] = 0; formerOwner.warTurns[REBEL_NID] = 0;
+  }
+  if (formerOwnerNid === S.humanId) {
+    logT('glog_v2_rebellion', { v0: p.name, v1: formerOwner ? formerOwner.name : '' }, 'crit');
+  }
+  if (typeof markBordersDirty === 'function') markBordersDirty();
+}
+window.spawnRebelV2 = spawnRebelV2;
 function provinceDefMulV2(pid) {
   const p = S.provinces[pid]; if (!p) return 1;
   let m = 1;
@@ -10935,6 +11023,11 @@ function resolveCombatV2(fromPid, toPid) {
       _setProvNation(toPid, atkNid);
     } else if (to.nation === atkNid) {
       to.occupiedBy = null; to.occTurns = 0;
+    } else if (atkNid === REBEL_NID || defNid === REBEL_NID) {
+      // P17: rebels neither hold occupied territory nor negotiate peace —
+      // combat involving either side as the rebel faction transfers legal
+      // ownership immediately (cedeProvinceV2 also handles capital reassignment).
+      cedeProvinceV2(toPid, atkNid);
     } else {
       to.occupiedBy = atkNid; to.occTurns = 0;
     }
@@ -11041,7 +11134,21 @@ const V2_REGIMES = {
               incTax: 1.02, incProd: 1.02, adminCost: 1.20, accTax: 26,
               upkeep: 0.94, defenseBonus: 0.12, minGoods: 0.10, minInvest: 0.12,
               moveCost: 1.25, recruitCost: 1.125, availableSinceEra: 0, revolutionary: false },
+  // ── P17: rebel faction regime (AoC2 §13 "Revolutionary" trait) ───────────────
+  // Used only by the synthetic rebel nation (REBEL_NID). Poorly organised (low
+  // income, no tax base, high admin drain) but fights hard on defense
+  // (defenseBonus 0.08 ≈ AoC2's 8% revolutionary bonus) and never spawns more
+  // rebels of its own (rebelChance 0). Not selectable via the regime-switch UI
+  // (excluded the same way 'tribal' is, in renderSelectedPanelV2).
+  rebels:     { incMul: 0.70, stabCeil: 60, colonyFree: true,  rebelChance: 0,
+              incTax: 0.60, incProd: 0.80, adminCost: 1.50, accTax: 0,
+              upkeep: 1.20, defenseBonus: 0.08, minGoods: 0,    minInvest: 0,
+              moveCost: 1.00, recruitCost: 1.50, availableSinceEra: 0, revolutionary: true },
 };
+// P17: fixed id for the synthetic rebel nation (an ISO 3166 user-assigned code,
+// guaranteed not to collide with any real adm0_a3 country code from the map data).
+const REBEL_NID = 'XRB';
+window.REBEL_NID = REBEL_NID;
 
 // ── v2 province buildings (P5, expanded P14) ─────────────────────────────────
 // One building per province (p.building = key string), with levels for
@@ -11204,6 +11311,95 @@ function isFriendlyV2(aId, bId) {
   return r === 'ally' || r === 'nap';
 }
 
+// P17: Subjects & rebels — vassalage helpers.
+// Propagate a relation change from `nid` to all of its vassals (so vassals
+// join their overlord's wars/peace deals and share alliances vs third parties).
+function _propagateVassalRelV2(nid, otherId, status) {
+  const n = S.nations[nid];
+  if (!n || !Array.isArray(n.vassals)) return;
+  for (const vId of n.vassals) {
+    if (vId === otherId || vId === nid) continue;
+    const v = S.nations[vId];
+    if (!v || v.eliminated) continue;
+    setRelationV2(vId, otherId, status);
+    const o = S.nations[otherId];
+    if (status === 'war') {
+      v.warScore = v.warScore || {}; v.warScore[otherId] = 0;
+      v.warTurns = v.warTurns || {}; v.warTurns[otherId] = 0;
+      if (o) {
+        o.warScore = o.warScore || {}; o.warScore[vId] = 0;
+        o.warTurns = o.warTurns || {}; o.warTurns[vId] = 0;
+      }
+    } else if (status === 'peace') {
+      if (v.warScore) delete v.warScore[otherId];
+      if (v.warTurns) delete v.warTurns[otherId];
+      if (v.warWeariness) delete v.warWeariness[otherId];
+      if (o) {
+        if (o.warScore) delete o.warScore[vId];
+        if (o.warTurns) delete o.warTurns[vId];
+        if (o.warWeariness) delete o.warWeariness[vId];
+      }
+      [vId, otherId].forEach(side => {
+        nationProvinces(side).forEach(pid => {
+          const p = S.provinces[pid];
+          if (p && (p.occupiedBy === vId || p.occupiedBy === otherId)) { p.occupiedBy = null; p.occTurns = 0; }
+        });
+      });
+      setTruceV2(vId, otherId, P1.TRUCE_TURNS);
+    }
+  }
+}
+window._propagateVassalRelV2 = _propagateVassalRelV2;
+
+// Establish a vassal relationship: vassalId becomes a subject of overlordId.
+// Sets default tribute, resets liberty desire, allies the pair, and has the
+// vassal inherit the overlord's wars/alliances against third parties.
+function establishVassalV2(overlordId, vassalId) {
+  const overlord = S.nations[overlordId];
+  const vassal = S.nations[vassalId];
+  if (!overlord || !vassal || overlordId === vassalId) return;
+  // Detach from any prior overlord first.
+  if (vassal.overlord != null) {
+    const oldLord = S.nations[vassal.overlord];
+    if (oldLord && Array.isArray(oldLord.vassals)) {
+      const i = oldLord.vassals.indexOf(vassalId);
+      if (i !== -1) oldLord.vassals.splice(i, 1);
+    }
+  }
+  vassal.overlord = overlordId;
+  vassal.tribute = 25;
+  vassal.libertyDesire = 0;
+  overlord.vassals = overlord.vassals || [];
+  if (!overlord.vassals.includes(vassalId)) overlord.vassals.push(vassalId);
+  setRelationV2(overlordId, vassalId, 'ally');
+  // Inherit overlord's wars and alliances with third parties.
+  for (const oid in S.nations) {
+    if (oid === overlordId || oid === vassalId) continue;
+    const o = S.nations[oid];
+    if (!o || o.eliminated) continue;
+    const rel = relationV2(overlordId, oid);
+    if (rel === 'war') {
+      setRelationV2(vassalId, oid, 'war');
+      vassal.warScore = vassal.warScore || {}; vassal.warScore[oid] = 0;
+      vassal.warTurns = vassal.warTurns || {}; vassal.warTurns[oid] = 0;
+      o.warScore = o.warScore || {}; o.warScore[vassalId] = 0;
+      o.warTurns = o.warTurns || {}; o.warTurns[vassalId] = 0;
+    } else if (rel === 'ally' && overlord.vassals.includes(oid)) {
+      setRelationV2(vassalId, oid, 'ally');
+    }
+  }
+}
+window.establishVassalV2 = establishVassalV2;
+
+// P17: human overlord adjusts a vassal's tribute rate via the panel slider.
+function setVassalTributeV2(nid, val) {
+  const v = S.nations[nid];
+  if (!v || v.overlord !== S.humanId) return;
+  v.tribute = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+  if (typeof renderSelectedPanelV2 === 'function') renderSelectedPanelV2();
+}
+window.setVassalTributeV2 = setVassalTributeV2;
+
 // Human-driven diplomacy actions: declare-war / ally / break-ally / peace (white peace).
 // DP costs are shared with v1 via P1.DP_COST. AI acceptance odds reuse AI_PERSONALITIES,
 // keyed off the target nation's `personality` field (set at world init like v1 players).
@@ -11218,7 +11414,8 @@ function doDiplomacyV2(otherId, action) {
   const dpNeeded = action === 'declare-war' ? P1.DP_COST.war
     : action === 'ally'       ? P1.DP_COST.ally
     : action === 'peace'      ? P1.DP_COST.peace
-    : action === 'break-ally' ? P1.DP_COST.breakAlly : 0;
+    : action === 'break-ally' ? P1.DP_COST.breakAlly
+    : action === 'declare-independence' ? P1.DP_COST.war : 0;
   if ((me.dp || 0) < dpNeeded) { log(`Not enough DP (need ${dpNeeded}).`, 'crit'); return; }
 
   if (action === 'declare-war') {
@@ -11233,6 +11430,9 @@ function doDiplomacyV2(otherId, action) {
     me.warScore[otherId] = 0; other.warScore[S.humanId] = 0;
     me.warTurns = me.warTurns || {}; other.warTurns = other.warTurns || {};
     me.warTurns[otherId] = 0; other.warTurns[S.humanId] = 0;
+    // P17: vassals are drawn into their overlord's wars.
+    _propagateVassalRelV2(S.humanId, otherId, 'war');
+    _propagateVassalRelV2(otherId, S.humanId, 'war');
     log(`War declared on ${other.name}.`, 'self');
   } else if (action === 'ally') {
     if (curRel === 'war') return;
@@ -11271,6 +11471,30 @@ function doDiplomacyV2(otherId, action) {
     } else {
       log(`${other.name} rejects your peace offer.`, 'crit');
     }
+  } else if (action === 'liberate') {
+    // Lord-initiated peaceful release of a vassal — no DP cost.
+    if (other.overlord !== S.humanId) return;
+    other.overlord = null; other.tribute = 0; other.libertyDesire = 0;
+    if (Array.isArray(me.vassals)) {
+      const i = me.vassals.indexOf(otherId);
+      if (i !== -1) me.vassals.splice(i, 1);
+    }
+    logT('glog_v2_liberate_vassal', { v0: other.name }, 'good');
+  } else if (action === 'declare-independence') {
+    // Vassal-initiated break from its overlord — starts a war of independence.
+    if (!me.overlord || me.overlord !== otherId) return;
+    me.dp -= P1.DP_COST.war;
+    me.overlord = null; me.tribute = 0; me.libertyDesire = 0;
+    if (Array.isArray(other.vassals)) {
+      const i = other.vassals.indexOf(S.humanId);
+      if (i !== -1) other.vassals.splice(i, 1);
+    }
+    setRelationV2(S.humanId, otherId, 'war');
+    me.warScore = me.warScore || {}; other.warScore = other.warScore || {};
+    me.warScore[otherId] = 0; other.warScore[S.humanId] = 0;
+    me.warTurns = me.warTurns || {}; other.warTurns = other.warTurns || {};
+    me.warTurns[otherId] = 0; other.warTurns[S.humanId] = 0;
+    logT('glog_v2_independence', { v0: me.name }, 'crit');
   }
   if (typeof updateHUDV2 === 'function') updateHUDV2();
   if (typeof renderSelectedPanelV2 === 'function') renderSelectedPanelV2();
@@ -11280,6 +11504,8 @@ window.doDiplomacyV2 = doDiplomacyV2;
 
 // P16: war score threshold for demanding reparations in a peace deal (AoC2 §10.1).
 const V2_REPARATIONS_MIN_WS = 25;
+// P17: war score threshold for demanding vassalization in a peace deal.
+const V2_VASSALIZE_MIN_WS = 50;
 
 // P16: v2-specific truce tracking — separate from v1's S.truces (which is keyed
 // off S.players, not S.nations). S.truceV2[a][b] = turn number truce expires.
@@ -11317,13 +11543,17 @@ function doPeaceDealV2(otherId, dealType) {
   if (dealType === 'reparations' && myWS < V2_REPARATIONS_MIN_WS) {
     logT('glog_v2_ws_too_low', { v0: V2_REPARATIONS_MIN_WS }, 'crit'); return;
   }
+  if (dealType === 'vassalize' && myWS < V2_VASSALIZE_MIN_WS) {
+    logT('glog_v2_vassalize_ws_too_low', { v0: V2_VASSALIZE_MIN_WS }, 'crit'); return;
+  }
 
   let accept;
   if (dealType === 'white')             accept = 0.50 + myWS * 0.005 + Math.min(0.30, dur * 0.03);
   else if (dealType === 'cede')         accept = 0.15 + myWS * 0.008 + Math.min(0.25, dur * 0.02);
   else if (dealType === 'reparations')  accept = 0.25 + myWS * 0.006 + Math.min(0.25, dur * 0.02);
+  else if (dealType === 'vassalize')    accept = 0.10 + myWS * 0.006 + Math.min(0.20, dur * 0.015);
   else return;
-  accept = Math.max(0.05, Math.min(0.92, accept));
+  accept = Math.max(0.05, Math.min(dealType === 'vassalize' ? 0.75 : 0.92, accept));
 
   me.dp -= P1.DP_COST.peace;
 
@@ -11336,6 +11566,9 @@ function doPeaceDealV2(otherId, dealType) {
       other.gold = Math.max(0, (other.gold || 0) - reparations);
       me.gold = (me.gold || 0) + reparations;
       logT('glog_v2_peace_reparations', { v0: other.name, v1: reparations }, 'good');
+    } else if (dealType === 'vassalize') {
+      establishVassalV2(S.humanId, otherId);
+      logT('glog_v2_peace_vassalize', { v0: other.name }, 'good');
     } else {
       logT('glog_v2_peace_white', { v0: other.name }, 'good');
     }
@@ -11357,6 +11590,9 @@ function doPeaceDealV2(otherId, dealType) {
       });
     });
     setTruceV2(S.humanId, otherId, P1.TRUCE_TURNS);
+    // P17: vassals on both sides follow their overlord into peace.
+    _propagateVassalRelV2(S.humanId, otherId, 'peace');
+    _propagateVassalRelV2(otherId, S.humanId, 'peace');
     if (typeof markBordersDirty === 'function') markBordersDirty();
   } else {
     logT('glog_v2_peace_reject', { v0: other.name }, 'crit');
@@ -11366,6 +11602,75 @@ function doPeaceDealV2(otherId, dealType) {
   if (typeof render === 'function') render();
 }
 window.doPeaceDealV2 = doPeaceDealV2;
+
+// P17: ultimatum thresholds — army strength ratio required to issue one, and
+// the truce length granted after an accepted ultimatum.
+const V2_ULTIMATUM_MIN_RATIO = 1.2;
+const V2_ULTIMATUM_TRUCE_TURNS = 16;
+
+// P17: demand vassalage or a border province from a nation at peace, backed
+// by a credible army-strength advantage. Reject -> free war (DP already spent).
+function doUltimatumV2(otherId, demand) {
+  if (!S.v2) return;
+  const me = S.nations[S.humanId];
+  const other = S.nations[otherId];
+  if (!me || !other || other.eliminated) return;
+  if (relationV2(S.humanId, otherId) !== 'peace') return;
+  if ((me.dp || 0) < P1.DP_COST.ultimatum) { log(`Not enough DP (need ${P1.DP_COST.ultimatum}).`, 'crit'); return; }
+
+  const myArmy    = nationProvinces(S.humanId).reduce((s, pid) => s + (S.provinces[pid].army || 0), 0);
+  const otherArmy = nationProvinces(otherId).reduce((s, pid) => s + (S.provinces[pid].army || 0), 0);
+  if (myArmy < otherArmy * V2_ULTIMATUM_MIN_RATIO) {
+    logT('glog_v2_ultimatum_too_weak', null, 'crit'); return;
+  }
+
+  let targetPid = null;
+  if (demand === 'province') {
+    const myProvs = new Set(nationProvinces(S.humanId));
+    const candidates = nationProvinces(otherId).filter(pid => {
+      const p = S.provinces[pid];
+      if (!p || p.capital) return false;
+      return (p.neighbors || []).some(nb => myProvs.has(nb));
+    });
+    if (!candidates.length) {
+      logT('glog_v2_ultimatum_no_target', { v0: other.name }, 'crit'); return;
+    }
+    targetPid = candidates.reduce((a, b) => provinceValueV2(a) <= provinceValueV2(b) ? a : b);
+  } else if (demand !== 'vassalize') {
+    return;
+  }
+
+  me.dp -= P1.DP_COST.ultimatum;
+  const ratio = otherArmy > 0 ? myArmy / otherArmy : myArmy;
+  let accept = 0.20 + Math.min(0.5, (ratio - V2_ULTIMATUM_MIN_RATIO) * 0.3);
+  accept = Math.max(0.05, Math.min(0.85, accept));
+
+  if (Math.random() < accept) {
+    if (demand === 'province') {
+      const provName = S.provinces[targetPid].name;
+      cedeProvinceV2(targetPid, S.humanId);
+      logT('glog_v2_ultimatum_province', { v0: other.name, v1: provName }, 'good');
+    } else {
+      establishVassalV2(S.humanId, otherId);
+      logT('glog_v2_ultimatum_vassalize', { v0: other.name }, 'good');
+    }
+    setTruceV2(S.humanId, otherId, V2_ULTIMATUM_TRUCE_TURNS);
+    if (typeof markBordersDirty === 'function') markBordersDirty();
+  } else {
+    setRelationV2(S.humanId, otherId, 'war');
+    me.warScore = me.warScore || {}; other.warScore = other.warScore || {};
+    me.warScore[otherId] = 0; other.warScore[S.humanId] = 0;
+    me.warTurns = me.warTurns || {}; other.warTurns = other.warTurns || {};
+    me.warTurns[otherId] = 0; other.warTurns[S.humanId] = 0;
+    _propagateVassalRelV2(S.humanId, otherId, 'war');
+    _propagateVassalRelV2(otherId, S.humanId, 'war');
+    logT('glog_v2_ultimatum_reject', { v0: other.name }, 'crit');
+  }
+  if (typeof updateHUDV2 === 'function') updateHUDV2();
+  if (typeof renderSelectedPanelV2 === 'function') renderSelectedPanelV2();
+  if (typeof render === 'function') render();
+}
+window.doUltimatumV2 = doUltimatumV2;
 
 // Non-Aggression Pact proposal — mirrors v1's doProposeNAP, scaled to S.nations.
 function doProposeNAPV2(otherId) {
@@ -11532,14 +11837,46 @@ function endTurnV2() {
           p.construction = null;
         }
       }
-      // Rebellion: very unstable provinces in risky regimes go neutral
+      // Rebellion: very unstable provinces in risky regimes spawn/grow the
+      // rebel nation with its own army (P17), instead of just going neutral.
       if (regime.rebelChance > 0 && pid !== n.capital && (p.stability || 70) < 30 && Math.random() < regime.rebelChance) {
         (rebels || (rebels = [])).push(pid);
       }
     }
-    if (rebels) for (const pid of rebels) _setProvNation(pid, null);
+    if (rebels) for (const pid of rebels) spawnRebelV2(pid, nid);
+  }
+  // P17: vassal tribute, liberty desire, and independence — second pass so
+  // transfers don't depend on per-nation loop ordering.
+  const _tribute = [];
+  for (const nid in S.nations) {
+    const n = S.nations[nid]; if (!n || n.eliminated || !n.overlord) continue;
+    const overlord = S.nations[n.overlord];
+    if (!overlord || overlord.eliminated) { n.overlord = null; n.tribute = 0; n.libertyDesire = 0; continue; }
+    const tribute = n.tribute || 0;
+    if (tribute > 0) {
+      const provs = nationProvinces(nid);
+      const inc = calculateIncomeV2(nid, provs);
+      const amt = Math.floor(Math.max(0, inc.gold) * tribute / 100);
+      if (amt > 0) { n.gold = Math.max(0, (n.gold || 0) - amt); _tribute.push([n.overlord, amt]); }
+    }
+    n.libertyDesire = Math.max(0, Math.min(100, (n.libertyDesire || 0) + tribute * 0.04 - 0.5));
+    if (n.libertyDesire >= 100) {
+      const exOverlord = n.overlord;
+      n.overlord = null; n.tribute = 0; n.libertyDesire = 0;
+      if (overlord.vassals) { const i = overlord.vassals.indexOf(nid); if (i !== -1) overlord.vassals.splice(i, 1); }
+      setRelationV2(nid, exOverlord, 'war');
+      n.warScore = n.warScore || {}; overlord.warScore = overlord.warScore || {};
+      n.warScore[exOverlord] = 0; overlord.warScore[nid] = 0;
+      n.warTurns = n.warTurns || {}; overlord.warTurns = overlord.warTurns || {};
+      n.warTurns[exOverlord] = 0; overlord.warTurns[nid] = 0;
+      if (S.humanId === exOverlord || S.humanId === nid) logT('glog_v2_independence', { v0: n.name }, 'crit');
+    }
+  }
+  for (const [toNid, amt] of _tribute) {
+    const o = S.nations[toNid]; if (o && !o.eliminated) o.gold = (o.gold || 0) + amt;
   }
   aiColonizeV2();
+  aiRebelTurnV2();
 }
 window.calculateIncomeV2 = calculateIncomeV2;
 window.endTurnV2 = endTurnV2;
@@ -11689,6 +12026,33 @@ window.doColonizeV2        = doColonizeV2;
 window.neutralAdjacentV2   = neutralAdjacentV2;
 window.aiColonizeV2        = aiColonizeV2;
 window.designateNeutralsV2 = designateNeutralsV2;
+
+// P17: minimal AI for the rebel faction — the only AI-driven army movement in
+// v2 (regular AI nations never move armies; see P11/P16 notes). Each turn,
+// rebel-held provinces with a strong-enough garrison have a chance to attack
+// their weakest non-rebel neighbour. Kept deliberately small in scope.
+const V2_REBEL_ATTACK_CHANCE = 0.35;
+const V2_REBEL_MIN_ARMY = 4;
+function aiRebelTurnV2() {
+  if (!S.v2) return;
+  const reb = S.nations[REBEL_NID];
+  if (!reb || reb.eliminated) return;
+  const provs = nationProvinces(REBEL_NID).slice();
+  for (const pid of provs) {
+    const p = S.provinces[pid]; if (!p || p._bad) continue;
+    if ((p.army || 0) < V2_REBEL_MIN_ARMY) continue;
+    if (Math.random() >= V2_REBEL_ATTACK_CHANCE) continue;
+    let target = null, weakest = Infinity;
+    for (const nb of (p.neighbors || [])) {
+      const q = S.provinces[nb]; if (!q || q._bad || q.nation === REBEL_NID) continue;
+      if (p.sea && p.sea[nb] && p.building !== 'port') continue; // sea hop needs a port
+      if ((q.army || 0) < weakest) { weakest = q.army || 0; target = nb; }
+    }
+    if (target == null) continue;
+    moveOrAttackV2(pid, target, Math.floor((p.army || 0) * 0.7));
+  }
+}
+window.aiRebelTurnV2 = aiRebelTurnV2;
 
 // ── v2 province buildings (P5, build queue P14) ──────────────────────────────
 // Start construction of `type` (new build at level 1, or the next level if
@@ -16799,6 +17163,12 @@ function renderSelectedPanelV2() {
     </div>`;
 
   if (isOwn && me) {
+    // P17: vassal status badge — shown once, on any owned province, if subject to an overlord.
+    if (me.overlord && S.nations[me.overlord]) {
+      const lord = S.nations[me.overlord];
+      html += `<div class="stat-row"><span class="lbl">${T('stat_overlord')}</span><span class="val">${lord.name}</span></div>`;
+      html += `<button class="btn danger" onclick="doDiplomacyV2('${me.overlord}','declare-independence')">${T('act_declare_independence')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+    }
     // P12: national economy breakdown + budget sliders (shown once, on any owned province)
     const inc2 = calculateIncomeV2(S.humanId);
     const budget = me.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
@@ -16845,7 +17215,7 @@ function renderSelectedPanelV2() {
         <div class="stat-row"><span class="lbl">${T('lbl_current_gov')}</span><span class="val">${T('regime_'+(me.regime||'monarchy'))}</span></div>
       </div>`;
       for (const key of Object.keys(V2_REGIMES)) {
-        if (key === me.regime || key === 'tribal') continue; // tribal is a non-playable starting regime (AoC2 §7.2)
+        if (key === me.regime || key === 'tribal' || key === 'rebels') continue; // tribal/rebels are non-playable (AoC2 §7.2/§13)
         const target = V2_REGIMES[key];
         const eraLocked = (me.era || 0) < (target.availableSinceEra || 0);
         const canSwitch = !eraLocked && canChangeRegimeV2(S.humanId, key);
@@ -16917,6 +17287,11 @@ function renderSelectedPanelV2() {
       html += `<button class="btn ally" onclick="doColonizeV2UI('${S.selectedId}')" ${canCol?'':'disabled'}>🏛 Colonize <span class="ap-cost">(${costStr})</span></button>`;
     }
   } else if (nat) {
+    if (nid === REBEL_NID) {
+      // P17: rebel-held territory — status note only, no diplomacy.
+      html += `<div class="sel-section-title">${T('lbl_rebel_territory')}</div>`;
+      html += `<div style="font-size:10px;color:var(--ink-dim);padding:2px 0 6px">${T('lbl_rebel_territory_desc')}</div>`;
+    } else {
     const natProvs = nationProvinces(nid);
     html += `<div class="stat-row"><span class="lbl">Nation Provinces</span><span class="val">${natProvs.length}</span></div>`;
     html += `<div class="stat-row"><span class="lbl">Regime</span><span class="val">${(nat.regime||'monarchy').toUpperCase()}</span></div>`;
@@ -16925,6 +17300,16 @@ function renderSelectedPanelV2() {
     // P11: diplomacy actions (declare war / ally / NAP / break-ally / white peace),
     // mirroring v1's renderSelectedPanel branch but operating on S.nations via doDiplomacyV2.
     if (me && nid !== S.humanId) {
+      if (nat.overlord === S.humanId) {
+        // P17: viewing one of the human's own vassals — tribute/liberty controls.
+        const tribute = nat.tribute || 0;
+        const liberty = Math.round(nat.libertyDesire || 0);
+        html += `<div class="stat-row"><span class="lbl">${T('stat_tribute')}</span><span class="val">${tribute}%</span></div>`;
+        html += `<input type="range" min="0" max="100" step="25" value="${tribute}" oninput="setVassalTributeV2('${nid}', this.value)" style="width:100%;margin:2px 0 6px">`;
+        html += `<div class="stat-row"><span class="lbl">${T('stat_liberty_desire')}</span><span class="val">${liberty}/100</span></div>`;
+        html += `<div style="background:#1a1f2e;border:1px solid var(--border);height:8px;border-radius:4px;overflow:hidden;margin:2px 0 6px"><div style="background:${liberty>=75?'#e85a4f':liberty>=40?'#e8b04f':'#5fa8e8'};height:100%;width:${liberty}%"></div></div>`;
+        html += `<button class="btn" onclick="doDiplomacyV2('${nid}','liberate')">${T('act_liberate_vassal')}</button>`;
+      } else {
       const r2 = relationV2(S.humanId, nid);
       if (r2 === 'war') {
         // P16: war score is now a 0-100 occupation-value percentage (replaces the
@@ -16947,6 +17332,9 @@ function renderSelectedPanelV2() {
         }
         if (wScore >= V2_REPARATIONS_MIN_WS) {
           html += `<button class="btn ally" onclick="doPeaceDealV2('${nid}','reparations')" ${peaceOk ? '' : 'disabled'}>${T('act_peace_reparations')} <span class="ap-cost">(${P1.DP_COST.peace}DP)</span></button>`;
+        }
+        if (wScore >= V2_VASSALIZE_MIN_WS) {
+          html += `<button class="btn ally" onclick="doPeaceDealV2('${nid}','vassalize')" ${peaceOk ? '' : 'disabled'}>${T('act_peace_vassalize')} <span class="ap-cost">(${P1.DP_COST.peace}DP)</span></button>`;
         }
       } else if (r2 === 'nap') {
         const napTurns = (S._napExpiryV2 && S._napExpiryV2[`${S.humanId}-${nid}`]) ? S._napExpiryV2[`${S.humanId}-${nid}`] - S.turn : '?';
@@ -16973,8 +17361,17 @@ function renderSelectedPanelV2() {
         } else {
           const warOk = (me.dp || 0) >= P1.DP_COST.war;
           html += `<button class="btn danger" onclick="doDiplomacyV2('${nid}','declare-war')" ${warOk ? '' : 'disabled'}>${T('act_declare_war')} <span class="ap-cost">(${P1.DP_COST.war}DP)</span></button>`;
+          // P17: ultimatums — demand vassalage or a border province (peace-only;
+          // rejection means free war, gated on army-strength ratio in doUltimatumV2).
+          const myArmyU = nationProvinces(S.humanId).reduce((s,pid)=>s+(S.provinces[pid].army||0),0);
+          const otherArmyU = natProvs.reduce((s,pid)=>s+(S.provinces[pid].army||0),0);
+          const ultimatumOk = (me.dp || 0) >= P1.DP_COST.ultimatum && myArmyU >= otherArmyU * V2_ULTIMATUM_MIN_RATIO;
+          html += `<button class="btn danger" onclick="doUltimatumV2('${nid}','vassalize')" ${ultimatumOk ? '' : 'disabled'}>${T('act_ultimatum_vassalize')} <span class="ap-cost">(${P1.DP_COST.ultimatum}DP)</span></button>`;
+          html += `<button class="btn danger" onclick="doUltimatumV2('${nid}','province')" ${ultimatumOk ? '' : 'disabled'}>${T('act_ultimatum_province')} <span class="ap-cost">(${P1.DP_COST.ultimatum}DP)</span></button>`;
         }
       }
+      }
+    }
     }
   }
 
@@ -17667,6 +18064,11 @@ function deserializeState(snap) {
       if (n.techLevel == null) n.techLevel = 0.1; // P13: tech/research back-compat defaults
       if (n.research == null) n.research = 0;
       if (!n.warWeariness) n.warWeariness = {};   // P16: war weariness back-compat
+      // P17: subjects back-compat defaults
+      if (n.overlord === undefined) n.overlord = null;
+      if (!n.vassals) n.vassals = [];
+      if (n.tribute == null) n.tribute = 0;
+      if (n.libertyDesire == null) n.libertyDesire = 0;
     }
   }
   if (S.v2 && !S.truceV2) S.truceV2 = {};         // P16: v2 truce tracking back-compat
@@ -18168,4 +18570,35 @@ boot();
 <div id="mp-waiting-overlay" role="status" aria-live="polite">
   <div class="mw-spinner" aria-hidden="true"></div>
   <div class="mw-text">
-    <div id="mp-w
+    <div id="mp-waiting-main" data-i18n="mp_waiting_players">Waiting for other players…</div>
+    <div class="mw-sub" id="mp-waiting-sub" data-i18n="mp_turn_locked">Your turn is locked in.</div>
+  </div>
+</div>
+
+<!-- Diplomacy request modal (shown to the receiver) -->
+<div id="diplo-request-modal" role="dialog" aria-modal="true">
+  <div class="drm-box">
+    <div class="drm-tag" id="drm-tag">DIPLOMATIC REQUEST</div>
+    <div class="drm-msg" id="drm-msg"></div>
+    <div class="drm-buttons">
+      <button class="drm-btn drm-accept" id="drm-accept">ACCEPT</button>
+      <button class="drm-btn drm-reject" id="drm-reject">REJECT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diplomacy response toast (shown to the sender after the receiver responds) -->
+<div id="diplo-result" role="alert"></div>
+
+<!-- ── IN-GAME CHAT ── -->
+<div id="mp-chat">
+  <div id="mp-chat-log"></div>
+  <div id="mp-chat-form">
+    <input id="mp-chat-input" data-i18n-placeholder="mp_ph_chat" placeholder="Chat…" maxlength="200"
+           onkeydown="if(event.key==='Enter')mpSendChat()">
+    <button id="mp-chat-send" onclick="mpSendChat()">▸</button>
+  </div>
+</div>
+
+</body>
+</html>
