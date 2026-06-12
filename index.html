@@ -2273,6 +2273,8 @@
     display: none;
     flex-direction: column;
     overflow: hidden;
+    /* Never let the menu run past the bottom of a short viewport — scroll instead. */
+    max-height: calc(100vh - 56px); overflow-y: auto;
   }
   #settings-dropdown.open { display: flex; }
   .sdd-section {
@@ -2393,7 +2395,7 @@
     <canvas id="globe"></canvas>
     <div id="move-banner" class="move-mode-banner" hidden></div>
     <div class="globe-hint" data-i18n="globe_hint">DRAG TO ROTATE · TAP TO SELECT</div>
-    <div id="notif-rail" hidden></div>
+    <div id="notif-rail" hidden role="status" aria-live="polite" aria-label="Alerts">
     <div class="map-lens" id="map-lens">
       <div class="lens-search">
         <div id="map-search-results" class="lens-search-results" hidden></div>
@@ -2416,20 +2418,20 @@
   <!-- ── FLOATING PANELS (absolute-positioned over globe) ── -->
 
   <!-- Shared tab strip — sits atop the docked panel slot, switches panels in place -->
-  <div id="panel-tabs" style="display:none">
-    <button class="ptab" data-panel="selection" onclick="showPanel('selection')" data-i18n-title="tip_tab_selection">
+  <div id="panel-tabs" style="display:none" role="tablist" aria-label="Game panels">
+    <button class="ptab" role="tab" aria-selected="false" data-panel="selection" onclick="showPanel('selection')" data-i18n-title="tip_tab_selection">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>
     </button>
-    <button class="ptab" data-panel="empire" onclick="showPanel('empire')" data-i18n-title="tip_tab_empire">
+    <button class="ptab" role="tab" aria-selected="false" data-panel="empire" onclick="showPanel('empire')" data-i18n-title="tip_tab_empire">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10l2 1V8l2 1V6l3-2 3 2v3l2-1v3l2-1v11M10 21v-4a2 2 0 0 1 4 0v4"/></svg>
     </button>
-    <button class="ptab" data-panel="tech" onclick="showPanel('tech')" data-i18n-title="tip_tab_tech">
+    <button class="ptab" role="tab" aria-selected="false" data-panel="tech" onclick="showPanel('tech')" data-i18n-title="tip_tab_tech">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v5.5L4.8 17a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 8.5V3M8 14h8"/></svg>
     </button>
-    <button class="ptab" data-panel="diplo" onclick="showPanel('diplo')" data-i18n-title="tip_tab_diplo">
+    <button class="ptab" role="tab" aria-selected="false" data-panel="diplo" onclick="showPanel('diplo')" data-i18n-title="tip_tab_diplo">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 21 11l-2-2-6.5 6.5M9.5 6.5 3 13l2 2 6.5-6.5M14.5 6.5 21 13l-2 2M9.5 17.5 3 11l2-2"/></svg>
     </button>
-    <button class="ptab" data-panel="log" onclick="showPanel('log')" data-i18n-title="tip_tab_log">
+    <button class="ptab" role="tab" aria-selected="false" data-panel="log" onclick="showPanel('log')" data-i18n-title="tip_tab_log">
       <svg class="tb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v12a2 2 0 0 0 2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 0-2-2zM9 8h6M9 12h6"/></svg>
     </button>
   </div>
@@ -16771,8 +16773,11 @@ function showPanel(name) {
   const tabs = document.getElementById('panel-tabs');
   if (tabs) {
     tabs.style.display = 'flex';
-    tabs.querySelectorAll('.ptab').forEach(t =>
-      t.classList.toggle('active', t.getAttribute('data-panel') === name));
+    tabs.querySelectorAll('.ptab').forEach(t => {
+      const on = t.getAttribute('data-panel') === name;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
   }
 }
 window.showPanel = showPanel;
