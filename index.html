@@ -523,6 +523,20 @@
   .gain { color: var(--green); font-size: 10px; margin-left: 4px; }
   .upkeep-tag { color: var(--red-warn); font-size: 10px; margin-left: 4px; }
 
+  /* Resource pop — floating "+N"/"-N" that rises and fades over a HUD chip
+     when gold/manpower change on the end-of-turn income tick. */
+  @keyframes income-pop-rise {
+    0%   { transform: translate(-50%, 0); opacity: 1; }
+    100% { transform: translate(-50%, -22px); opacity: 0; }
+  }
+  .income-pop {
+    position: fixed; z-index: 48; pointer-events: none;
+    font: 700 12px/1 'JetBrains Mono', monospace; letter-spacing: 0.05em;
+    animation: income-pop-rise 1.1s ease-out forwards;
+  }
+  .income-pop.pos { color: var(--green); }
+  .income-pop.neg { color: var(--red-warn); }
+
   .move-mode-banner {
     position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
     background: var(--gold); color: var(--bg-0); padding: 8px 16px;
@@ -958,6 +972,16 @@
   }
   #save-toast.show { opacity: 1; }
 
+  /* Autosave indicator — small, subtle corner cue (quieter than the manual-save toast) */
+  #autosave-indicator {
+    position: fixed; bottom: 14px; left: 14px;
+    background: var(--bg-1); border: 1px solid rgba(255,255,255,0.10);
+    color: rgba(180,190,205,0.85); font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.15em; padding: 5px 10px; border-radius: 4px;
+    pointer-events: none; opacity: 0; transition: opacity 0.4s; z-index: 40;
+  }
+  #autosave-indicator.show { opacity: 1; }
+
   /* War declaration alert — prominent, dismissible banner */
   #war-alert {
     position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-12px);
@@ -979,6 +1003,59 @@
     cursor: pointer; padding: 0 2px; flex-shrink: 0; transition: color .15s;
   }
   #war-alert .wa-close:hover { color: var(--ink); }
+
+  /* ===== Screenshot mode ===== */
+  /* Toggle button — entry point, mirrors .map-lens styling, bottom-right of globe */
+  .screenshot-toggle-btn {
+    position: absolute; right: 12px; bottom: 14px; z-index: 6;
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    background: rgba(10, 14, 24, 0.72); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212, 160, 23, 0.22); border-radius: 8px;
+    color: var(--ink-dim); cursor: pointer; font-size: 14px;
+    transition: background .12s, color .12s;
+  }
+  .screenshot-toggle-btn:hover { background: rgba(212, 160, 23, 0.10); color: var(--ink); }
+  body.flatmap-full .screenshot-toggle-btn { bottom: 48px; }
+
+  /* Exit/export bar — shown only while in screenshot mode */
+  #screenshot-bar {
+    display: none; align-items: center; gap: 8px;
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 47;
+    background: rgba(8, 13, 26, 0.92); backdrop-filter: blur(8px);
+    border: 1px solid rgba(212, 160, 23, 0.30); border-radius: 6px;
+    padding: 8px 10px;
+  }
+  #screenshot-bar button {
+    background: rgba(212,160,23,0.12); border: 1px solid rgba(212,160,23,0.35);
+    color: var(--ink); font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; padding: 6px 12px; border-radius: 4px;
+    cursor: pointer; transition: background .12s;
+  }
+  #screenshot-bar button:hover { background: rgba(212,160,23,0.24); }
+
+  /* Hide UI chrome for a clean shot. .topbar uses visibility so the grid layout
+     (and canvas size) doesn't change; everything else can fully collapse. */
+  body.screenshot-mode .topbar { visibility: hidden; }
+  body.screenshot-mode #panel-tabs,
+  body.screenshot-mode #country-float,
+  body.screenshot-mode #empire-float,
+  body.screenshot-mode #diplo-float,
+  body.screenshot-mode #tech-float,
+  body.screenshot-mode #log-float,
+  body.screenshot-mode #stats-overlay,
+  body.screenshot-mode #tut-overlay,
+  body.screenshot-mode #move-banner,
+  body.screenshot-mode .globe-hint,
+  body.screenshot-mode #notif-rail,
+  body.screenshot-mode .map-lens,
+  body.screenshot-mode .screenshot-toggle-btn,
+  body.screenshot-mode #save-toast,
+  body.screenshot-mode #autosave-indicator,
+  body.screenshot-mode #war-alert {
+    display: none !important;
+  }
+  body.screenshot-mode #screenshot-bar { display: flex; }
 
   /* ── Nested tooltips (CK3-style) ─────────────────────────────────────────── */
   /* Floating tooltip element — single instance, repositioned per hover. */
@@ -2262,6 +2339,7 @@
       <button class="lens-btn" data-lens="wars" onclick="setOverlayMode('wars')"><span class="lens-ic">🔥</span><span data-i18n="overlay_wars">Wars</span></button>
       <button class="lens-btn" data-lens="stability" onclick="setOverlayMode('stability')"><span class="lens-ic">⚖</span><span data-i18n="overlay_stability">Stability</span></button>
     </div>
+    <button class="screenshot-toggle-btn" id="screenshot-toggle-btn" onclick="toggleScreenshotMode()" data-i18n-title="screenshot_enter">📷</button>
   </div>
 
   <!-- ── FLOATING PANELS (absolute-positioned over globe) ── -->
@@ -2636,6 +2714,11 @@
 
 <!-- Toast -->
 <div id="save-toast"></div>
+<div id="autosave-indicator"></div>
+<div id="screenshot-bar">
+  <button onclick="exportScreenshot()" data-i18n="screenshot_save">SAVE IMAGE</button>
+  <button onclick="toggleScreenshotMode()" data-i18n="screenshot_exit">EXIT (ESC)</button>
+</div>
 <div id="war-alert" role="alert">
   <span class="wa-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 21 11l-2-2-6.5 6.5M9.5 6.5 3 13l2 2 6.5-6.5M14.5 6.5 21 13l-2 2M9.5 17.5 3 11l2-2"/></svg></span>
   <span class="wa-text" id="war-alert-text"></span>
@@ -3286,6 +3369,26 @@ en: {
   regime_fascism:    'Fascism',
   regime_horde:      'Horde',
   regime_citystate:  'City-State',
+  // ── P18: formable civilizations ─────────────────────────────────────────
+  sec_formables:          'FORMABLE CIVILIZATIONS',
+  act_form_nation:        '⚑ FORM {v0}',
+  glog_v2_formed:         '{v0} has formed!',
+  form_ger_emp_name:      'German Empire',
+  form_iberia_name:       'Iberian Union',
+  form_britannia_name:    'Britannia',
+  form_scandinavia_name:  'Scandinavian Union',
+  form_arabia_name:       'Arabian Caliphate',
+  form_maghreb_name:      'Maghreb Union',
+  form_grancolombia_name: 'Gran Colombia',
+  form_eafrica_name:      'East African Federation',
+  // ── P18: province-mode scenario picker ──────────────────────────────────
+  v2sc_modern_name:   'MODERN WORLD',
+  v2sc_modern_badge:  'MODERN ERA · 2024 AD',
+  v2sc_modern_desc:   'The world as it is today. Every nation begins on its real 2024 borders — the default Province Mode experience.',
+  v2sc_roman_name:    'ROMAN EMPIRE',
+  v2sc_roman_badge:   'CLASSICAL ERA · 117 AD',
+  v2sc_roman_desc:    'Begin at the height of Roman power under Trajan. Most of Europe, North Africa and the Near East are united under Rome — country borders are used as an approximation of the provincial frontier.',
+  glog_v2_scenario_start: 'The chronicle begins: {v0}, {v1}.',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_recruit:      '+ RECRUIT',
   act_develop:      '↑ DEVELOP',
@@ -3368,6 +3471,10 @@ en: {
   toast_saved:      'SAVED TO SLOT',
   toast_saving_exit:'SAVED — RETURNING TO MENU',
   toast_save_fail:  'SAVE FAILED',
+  autosave_indicator: 'Autosaved',
+  screenshot_enter: 'Screenshot mode',
+  screenshot_save:  'SAVE IMAGE',
+  screenshot_exit:  'EXIT (ESC)',
   // ── Log messages (template — use {var} for interpolation) ─────────────────
   log_flag_rises:   'The flag of {nation} rises. A new chronicler takes the throne.',
   log_conquered:    '{attacker} conquered {province} from {defender}.',
@@ -4558,6 +4665,26 @@ ru: {
   regime_fascism:    'Фашизм',
   regime_horde:      'Орда',
   regime_citystate:  'Город-государство',
+  // ── P18: формируемые цивилизации ────────────────────────────────────────
+  sec_formables:          'ФОРМИРУЕМЫЕ ЦИВИЛИЗАЦИИ',
+  act_form_nation:        '⚑ ОБРАЗОВАТЬ {v0}',
+  glog_v2_formed:         '{v0} образована!',
+  form_ger_emp_name:      'Германская империя',
+  form_iberia_name:       'Иберийский союз',
+  form_britannia_name:    'Британия',
+  form_scandinavia_name:  'Скандинавский союз',
+  form_arabia_name:       'Арабский халифат',
+  form_maghreb_name:      'Магрибский союз',
+  form_grancolombia_name: 'Великая Колумбия',
+  form_eafrica_name:      'Восточноафриканская федерация',
+  // ── P18: выбор сценария провинциального режима ──────────────────────────
+  v2sc_modern_name:   'СОВРЕМЕННЫЙ МИР',
+  v2sc_modern_badge:  'СОВРЕМЕННАЯ ЭПОХА · 2024 Г.',
+  v2sc_modern_desc:   'Мир таким, какой он есть сегодня. Каждая нация начинает в своих реальных границах 2024 года — стандартный режим провинций.',
+  v2sc_roman_name:    'РИМСКАЯ ИМПЕРИЯ',
+  v2sc_roman_badge:   'КЛАССИЧЕСКАЯ ЭПОХА · 117 Г. Н.Э.',
+  v2sc_roman_desc:    'Начните на пике могущества Рима при Траяне. Большая часть Европы, Северной Африки и Ближнего Востока объединена под властью Рима — современные границы стран используются как приближение провинциальных рубежей.',
+  glog_v2_scenario_start: 'Хроника начинается: {v0}, {v1}.',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_reduce_army:  'СОКРАТИТЬ АРМИЮ ДО',
   act_reduce_do:    '− РАСПУСТИТЬ ВОЙСКА',
@@ -4640,6 +4767,10 @@ ru: {
   toast_saved:      'СОХРАНЕНО В ЯЧЕЙКУ',
   toast_saving_exit:'СОХРАНЕНО — ВОЗВРАТ В МЕНЮ',
   toast_save_fail:  'ОШИБКА СОХРАНЕНИЯ',
+  autosave_indicator: 'Автосохранено',
+  screenshot_enter: 'Режим скриншота',
+  screenshot_save:  'СОХРАНИТЬ ИЗОБРАЖЕНИЕ',
+  screenshot_exit:  'ВЫХОД (ESC)',
   // ── Log messages ─────────────────────────────────────────────────────────
   log_flag_rises:   'Флаг {nation} поднят. Новый летописец взошёл на трон.',
   log_conquered:    '{attacker} завоевал {province} у {defender}.',
@@ -9953,6 +10084,17 @@ function _blendColor(a, b, t) {
   const ca = _toRGB(a), cb = _toRGB(b);
   return `rgb(${Math.round(ca[0]+(cb[0]-ca[0])*t)},${Math.round(ca[1]+(cb[1]-ca[1])*t)},${Math.round(ca[2]+(cb[2]-ca[2])*t)})`;
 }
+// PERF: the country/province fill loop calls _blendColor(fill, '#e2e9f3', 0.16) once
+// per feature, every drawGlobe() pass (incl. every drag-rotate frame). The input set
+// of `fill` strings is small (per-nation colours, occasionally lerped) compared to the
+// hundreds of features in province-mode v2, so memoise this specific lift — pure
+// function of `fill`, safe to cache for the session.
+const _blendLightCache = new Map();
+function _blendLight(hex) {
+  let v = _blendLightCache.get(hex);
+  if (v === undefined) { v = _blendColor(hex, '#e2e9f3', 0.16); _blendLightCache.set(hex, v); }
+  return v;
+}
 function _animatedFill(id, target) {
   const prev = _lastFill[id];
   if (prev !== undefined && prev !== target && !_ownerAnim[id]) {
@@ -10079,6 +10221,19 @@ function _drawDynamic(targetCtx, targetCanvas, targetPath, _proj, highlightSelec
       targetCtx.shadowBlur = 10;
       targetCtx.beginPath(); targetPath(f); targetCtx.stroke();
       targetCtx.shadowBlur = 0;
+      // Selection ping — pulsing radar ring centred on the selected province,
+      // makes the selection easy to spot at a glance on a busy map.
+      const res = projectCentroid(f, _proj);
+      if (res) {
+        const [px, py] = res.pt;
+        const ping = (Date.now() % 1400) / 1400;   // 0..1 sawtooth, ~0.7Hz
+        targetCtx.save();
+        targetCtx.globalAlpha = (1 - ping) * 0.75;
+        targetCtx.strokeStyle = '#f3c552';
+        targetCtx.lineWidth = 2;
+        targetCtx.beginPath(); targetCtx.arc(px, py, 9 + ping * 22, 0, Math.PI * 2); targetCtx.stroke();
+        targetCtx.restore();
+      }
     }
   }
   // Battle FX (attack arrows + capture flash) — main canvas only
@@ -10307,7 +10462,10 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       const pr = S.provinces[f.id]; if (!pr || pr._bad) continue;   // skip globe-filling degenerate features
       const nat = pr.nation ? S.nations[pr.nation] : null;
       let fill = _overlayFillV2(pr, nat);
-      if (!_parch) fill = _blendColor(fill, '#e2e9f3', 0.16);
+      // Conquest paint: ease the fill from the old owner's colour to the new one
+      // when a province changes hands (same fade used by the v1 political lens).
+      if (_overlayMode === 'political' && !S.setupPhase) fill = _animatedFill(f.id, fill);
+      if (!_parch) fill = _blendLight(fill);
       targetCtx.fillStyle = fill;
       targetCtx.beginPath(); targetPath(f); targetCtx.fill();
       if (TH.wash) { targetCtx.fillStyle = TH.wash; targetCtx.fill(); }
@@ -10335,7 +10493,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     }
     // Lift land fills toward a soft light so the map doesn't read as too dark
     // against the deep ocean (the parchment theme has its own aged wash instead).
-    if (!_parch) fill = _blendColor(fill, '#e2e9f3', 0.16);
+    if (!_parch) fill = _blendLight(fill);
     targetCtx.fillStyle = fill;
     targetCtx.beginPath(); targetPath(f); targetCtx.fill();
     // Aged-paper wash over every land fill (parchment theme)
@@ -10785,6 +10943,9 @@ function initWorldV2(topo) {
     S.provinces[f.id] = {
       id: f.id, name: p.name || '?',
       nation: nation,                                  // owner nid (adm0_a3) | null = neutral
+      homeNation: nation,                              // P18: original owner at world init — used by
+                                                        // formables (province set requirements) and
+                                                        // scenario painting; never mutated after this.
       neighbors: Array.isArray(p.nb) ? p.nb : [],      // precomputed adjacency (no topojson.neighbors)
       lat: p.lat, lon: p.lon,
       army: startingArmy(),
@@ -10812,7 +10973,8 @@ function initWorldV2(topo) {
       warTurns: {}, warScore: {}, warGoal: {},
       budget: { tax: 50, goods: 20, research: 15, investment: 15 },  // P12: % sliders, sum ~100
       techLevel: 0.1 + Math.random() * 0.3, research: 0,             // P13: continuous tech (0.01-50 in AoC2; we cap at 5)
-      overlord: null, vassals: [], tribute: 0, libertyDesire: 0      // P17: subjects
+      overlord: null, vassals: [], tribute: 0, libertyDesire: 0,     // P17: subjects
+      formedAs: null                                                  // P18: formable civilization id, once formed
     };
   }
   // Capital = each nation's most-connected province (a cheap centrality proxy; P5
@@ -11185,6 +11347,133 @@ const V2_BUILDINGS = {
                 levelCost: [{ gold: 80, mp: 1 }, { gold: 140, mp: 1 }, { gold: 200, mp: 2 }], levelTech: [0, 0.6, 1.2],
                 levelLabels: ['Workshop I', 'Workshop II', 'Workshop III'], effect: '+5% production per level' },
 };
+
+// ── v2 formable civilizations (P18) ───────────────────────────────────────────
+// AoC2 §18: a nation that currently owns every province in a formable's required
+// set (by `homeNation` — the province's owner at world init, see initWorldV2 and
+// the back-compat note in deserializeState) may transform into that formable.
+// Transformation renames/recolors the nation IN PLACE (same nid/tag), so every
+// stat — gold, manpower, tech, era, provinces, wars, vassals — simply carries
+// over, per "all pre-formation statistics carry over". Human-only for now; AI
+// auto-forming is a documented scope note (see roadmap).
+const V2_FORM_BONUS_GOLD = 100;
+const V2_FORM_BONUS_MP   = 1.5;
+const V2_FORMABLES = [
+  { id: 'GER_EMP',      name: 'form_ger_emp_name',      icon: '🦅', color: '#4a4a52', requiredNations: ['DEU', 'AUT'],                                   minEra: 1 },
+  { id: 'IBERIA',       name: 'form_iberia_name',       icon: '🦁', color: '#c0392b', requiredNations: ['ESP', 'PRT'],                                   minEra: 1 },
+  { id: 'BRITANNIA',    name: 'form_britannia_name',    icon: '🐉', color: '#2c3e88', requiredNations: ['GBR', 'IRL'],                                   minEra: 1 },
+  { id: 'SCANDINAVIA',  name: 'form_scandinavia_name',  icon: '❄', color: '#1f6f8b', requiredNations: ['SWE', 'NOR', 'DNK', 'FIN'],                     minEra: 1 },
+  { id: 'ARABIA',       name: 'form_arabia_name',       icon: '🌙', color: '#1a7a4c', requiredNations: ['SAU', 'YEM', 'OMN', 'ARE', 'QAT', 'KWT', 'BHR'], minEra: 1 },
+  { id: 'MAGHREB',      name: 'form_maghreb_name',      icon: '🏛', color: '#c8932a', requiredNations: ['MAR', 'DZA', 'TUN', 'LBY'],                     minEra: 1 },
+  { id: 'GRANCOLOMBIA', name: 'form_grancolombia_name', icon: '⭐', color: '#e0b020', requiredNations: ['COL', 'VEN', 'ECU', 'PAN'],                     minEra: 1 },
+  { id: 'EAFRICA',      name: 'form_eafrica_name',      icon: '🌍', color: '#27ae60', requiredNations: ['KEN', 'TZA', 'UGA', 'RWA', 'BDI'],              minEra: 1 },
+];
+
+// Province ids whose `homeNation` is one of `nations` (array of ISO3 codes).
+// Skips `_bad` (unrenderable/uncapturable) provinces so a formable can never be
+// permanently blocked by a degenerate geometry feature.
+function formableHomeProvinces(nations) {
+  const set = new Set(nations);
+  const out = [];
+  for (const pid in S.provinces) {
+    const p = S.provinces[pid];
+    if (p && !p._bad && set.has(p.homeNation)) out.push(pid);
+  }
+  return out;
+}
+
+// Does nation `nid` currently own every province in formable `f`'s required set?
+function formableQualifiesV2(nid, f) {
+  const n = S.nations[nid];
+  if (!n || n.eliminated || n.formedAs) return false;
+  if ((n.era || 0) < (f.minEra || 0)) return false;
+  const provs = formableHomeProvinces(f.requiredNations);
+  if (!provs.length) return false;
+  for (const pid of provs) {
+    const p = S.provinces[pid];
+    if (!p || p.nation !== nid) return false;
+  }
+  return true;
+}
+
+// All formables nation `nid` currently qualifies for.
+function getAvailableFormablesV2(nid) {
+  return V2_FORMABLES.filter(f => formableQualifiesV2(nid, f));
+}
+
+// Transform nation `nid` into formable `formId`: rename/recolor in place and
+// grant a small one-time bonus. All existing stats/provinces/relations carry
+// over unchanged.
+function doFormNationV2(nid, formId) {
+  const n = S.nations[nid]; if (!n) return false;
+  const f = V2_FORMABLES.find(x => x.id === formId); if (!f) return false;
+  if (!formableQualifiesV2(nid, f)) return false;
+  n.name = T(f.name);
+  n.color = f.color;
+  n.formedAs = f.id;
+  n.gold = (n.gold || 0) + V2_FORM_BONUS_GOLD;
+  n.manpower = (n.manpower || 0) + V2_FORM_BONUS_MP;
+  markBordersDirty();
+  logT('glog_v2_formed', { v0: n.name }, 'crit');
+  return true;
+}
+window.V2_FORMABLES            = V2_FORMABLES;
+window.formableHomeProvinces   = formableHomeProvinces;
+window.formableQualifiesV2     = formableQualifiesV2;
+window.getAvailableFormablesV2 = getAvailableFormablesV2;
+window.doFormNationV2          = doFormNationV2;
+
+// ── v2 province-mode scenario painting (P18) ──────────────────────────────────
+// Reassigns province ownership by `homeNation` groups (same idea as the
+// formables' required-set lookup above) before the player picks a starting
+// nation, so province mode can offer historical maps in addition to the modern
+// (2024) baseline. Reuses the existing v1 SCENARIOS picker UI/markup, but this
+// list and its apply function are entirely separate — v1's SCENARIOS/applyScenario
+// (country-grade, S.countries/S.players) are untouched.
+const V2_SCENARIOS = [
+  {
+    id: 'modern', name: 'v2sc_modern_name', icon: '🌐', badge: 'v2sc_modern_badge',
+    description: 'v2sc_modern_desc', year: 2024, monthIdx: 0,
+    leaderNation: null, leaderColor: null, memberNations: [],
+  },
+  {
+    id: 'roman', name: 'v2sc_roman_name', icon: '🏛', badge: 'v2sc_roman_badge',
+    description: 'v2sc_roman_desc', year: 117, monthIdx: 0,
+    leaderNation: 'ITA', leaderColor: '#7d2238',
+    // Country-level approximation of Rome's extent under Trajan, 117 AD — not
+    // exact province boundaries, but a recognisable historical footprint.
+    memberNations: ['ITA','FRA','ESP','PRT','GBR','BEL','NLD','CHE','AUT',
+      'SVN','HRV','BIH','SRB','MNE','ALB','MKD','GRC','BGR','ROU','TUR',
+      'SYR','LBN','ISR','JOR','EGY','LBY','TUN','DZA','MAR','MLT','CYP'],
+  },
+];
+
+// Reassign every province whose `homeNation` is in `sc.memberNations` to
+// `sc.leaderNation`, recolor the leader, reassign capitals for every nation
+// that gained or lost provinces, and set S.year/S.monthIdx. A no-op (besides
+// setting the date) for scenarios with no `leaderNation` — e.g. 'modern',
+// which is already the 2024 baseline initWorldV2 produces.
+function applyV2ScenarioPainting(scenarioId) {
+  const sc = V2_SCENARIOS.find(s => s.id === scenarioId);
+  if (!sc) return;
+  S.year = sc.year; S.monthIdx = sc.monthIdx || 0;
+  if (!sc.leaderNation || !sc.memberNations || !sc.memberNations.length) return;
+  const affected = new Set([sc.leaderNation]);
+  for (const pid of formableHomeProvinces(sc.memberNations)) {
+    const p = S.provinces[pid];
+    if (p.nation !== sc.leaderNation) {
+      affected.add(p.nation);
+      _setProvNation(pid, sc.leaderNation);
+    }
+  }
+  if (sc.leaderColor && S.nations[sc.leaderNation]) S.nations[sc.leaderNation].color = sc.leaderColor;
+  for (const nid of affected) {
+    if (S.nations[nid]) reassignCapitalV2(nid);
+  }
+  markBordersDirty();
+}
+window.V2_SCENARIOS = V2_SCENARIOS;
+window.applyV2ScenarioPainting = applyV2ScenarioPainting;
 
 // ── v2 income aggregation ─────────────────────────────────────────────────────
 // P12: gold per radian of great-circle distance from the capital, before regime.adminCost
@@ -12404,33 +12693,97 @@ function enterProvinceModeSetup() {
     // Neutrals are designated after nation pick (in startGameV2) so the setup
     // globe shows a complete political map — no grey holes while choosing.
 
-    // Enter the globe picker — same as the v1 flow but now S.v2 is true
-    const chrome = document.getElementById('setup-chrome');
-    const prompt = document.getElementById('setup-prompt');
-    const picker = document.getElementById('scenario-picker');
-    if (chrome) chrome.style.display = 'none';
-    if (picker) picker.style.display = 'none';
-    if (prompt) {
-      prompt.hidden = false;
-      prompt.textContent = '▸ DRAG TO ROTATE · TAP A PROVINCE TO CLAIM ITS NATION AS YOUR HOMELAND';
-      // Overlay the hint at top-centre so it doesn't consume flex space
-      prompt.style.cssText += ';position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:40;white-space:nowrap';
-    }
-
-    // Full-viewport canvas: remove padding/gap from the setup flex container
-    // and stretch the canvas to fill the whole screen.
-    const setupDiv = document.getElementById('setup');
-    if (setupDiv) { setupDiv.style.padding = '0'; setupDiv.style.gap = '0'; setupDiv.style.alignItems = 'stretch'; }
-    const sg = document.getElementById('setup-globe');
-    if (sg) sg.style.cssText += ';max-width:none;flex:1;';
-
-    S.setupPhase = true;   // keeps handleSelect in nation-pick mode
-    S.year = 2024; S.monthIdx = 0;
-    try { setupSetupCanvas(); } catch (e) {}
-    try { renderSetup(); } catch (e) {}
+    // P18: pick a scenario (era) before the globe nation-picker — this paints
+    // province ownership for historical scenarios, or leaves the 2024 baseline
+    // untouched for 'modern'.
+    showV2ScenarioPicker();
   });
 }
 window.enterProvinceModeSetup = enterProvinceModeSetup;
+
+// P18: scenario (era) picker for province mode — reuses the v1 #scenario-picker
+// markup/CSS (.sp-card/.sp-era-badge/.sp-card-desc/.sp-detail), but is wired to
+// V2_SCENARIOS/applyV2ScenarioPainting and proceeds to the province-mode globe
+// nation-picker on confirm. v1's showScenarioPicker/SCENARIOS are untouched.
+function showV2ScenarioPicker() {
+  const picker  = document.getElementById('scenario-picker');
+  const grid    = document.getElementById('sp-grid');
+  const detail  = document.getElementById('sp-detail');
+  const confirm = document.getElementById('sp-confirm');
+  const back    = document.getElementById('sp-back');
+  const prompt  = document.getElementById('setup-prompt');
+  const chrome  = document.getElementById('setup-chrome');
+
+  if (chrome) chrome.style.display = 'none';
+  if (prompt) prompt.hidden = true;
+  picker.style.display = 'flex';
+  grid.innerHTML = '';
+  detail.classList.remove('visible');
+  confirm.disabled = true;
+
+  let chosen = null;
+  V2_SCENARIOS.forEach(sc => {
+    const yr = sc.year < 0 ? `${Math.abs(sc.year)} BC` : `${sc.year} AD`;
+    const card = document.createElement('div');
+    card.className = 'sp-card';
+    card.innerHTML = `
+      <div class="sp-card-head">
+        <span class="sp-card-name">${sc.icon} ${T(sc.name)}</span>
+        <span class="sp-card-year">${yr}</span>
+      </div>
+      <span class="sp-era-badge">${T(sc.badge)}</span>
+      <div class="sp-card-desc">${T(sc.description)}</div>
+    `;
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.sp-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      chosen = sc.id;
+      confirm.disabled = false;
+      detail.innerHTML = `<h4>${sc.icon} ${T(sc.name)} — ${yr}</h4>${T(sc.description)}`;
+      detail.classList.add('visible');
+    });
+    grid.appendChild(card);
+  });
+
+  confirm.onclick = () => {
+    if (!chosen) return;
+    S.activeV2Scenario = chosen;
+    applyV2ScenarioPainting(chosen);
+    enterProvinceModeNationPick();
+  };
+
+  back.onclick = () => {
+    picker.style.display = 'none';
+    if (chrome) chrome.style.display = '';
+  };
+}
+window.showV2ScenarioPicker = showV2ScenarioPicker;
+
+// P18: enter the province-mode globe nation-picker (the former tail end of
+// enterProvinceModeSetup) — called once a scenario has been chosen/painted.
+function enterProvinceModeNationPick() {
+  const prompt = document.getElementById('setup-prompt');
+  const picker = document.getElementById('scenario-picker');
+  if (picker) picker.style.display = 'none';
+  if (prompt) {
+    prompt.hidden = false;
+    prompt.textContent = '▸ DRAG TO ROTATE · TAP A PROVINCE TO CLAIM ITS NATION AS YOUR HOMELAND';
+    // Overlay the hint at top-centre so it doesn't consume flex space
+    prompt.style.cssText += ';position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:40;white-space:nowrap';
+  }
+
+  // Full-viewport canvas: remove padding/gap from the setup flex container
+  // and stretch the canvas to fill the whole screen.
+  const setupDiv = document.getElementById('setup');
+  if (setupDiv) { setupDiv.style.padding = '0'; setupDiv.style.gap = '0'; setupDiv.style.alignItems = 'stretch'; }
+  const sg = document.getElementById('setup-globe');
+  if (sg) sg.style.cssText += ';max-width:none;flex:1;';
+
+  S.setupPhase = true;   // keeps handleSelect in nation-pick mode
+  try { setupSetupCanvas(); } catch (e) {}
+  try { renderSetup(); } catch (e) {}
+}
+window.enterProvinceModeNationPick = enterProvinceModeNationPick;
 
 // Launches the v2 province-mode game for `nid`. Called by handleSelect when
 // the player taps a province during province-mode setup.
@@ -12460,12 +12813,21 @@ function startGameV2(nid) {
   window.endTurn = function endTurnV2Wrapper() {
     const btn = document.getElementById('end-turn');
     if (btn) { btn.disabled = true; }
+    const human = S.nations[S.humanId];
+    const prevGold = human ? (human.gold || 0) : 0;
+    const prevManpower = human ? (human.manpower || 0) : 0;
     endTurnV2();
     S.turn++;
     advanceTime();
     updateHUD();
     markBordersDirty();
     render();
+    // Resource pop numbers: show the actual gold/manpower delta applied this
+    // turn (post-clamp), floating up from the HUD chips.
+    if (human) {
+      showResourcePop('my-gold', (human.gold || 0) - prevGold, 'g');
+      showResourcePop('my-manpower', (human.manpower || 0) - prevManpower, '');
+    }
     if (btn) { btn.disabled = false; }
   };
 
@@ -12477,6 +12839,14 @@ function startGameV2(nid) {
   markBordersDirty();
   updateHUD();
   render();
+  // P18: announce the chosen scenario in the chronicle, if one was picked.
+  if (S.activeV2Scenario) {
+    const sc = V2_SCENARIOS.find(s => s.id === S.activeV2Scenario);
+    if (sc) {
+      const yr = sc.year < 0 ? `${Math.abs(sc.year)} BC` : `${sc.year} AD`;
+      logT('glog_v2_scenario_start', { v0: T(sc.name), v1: yr }, 'crit');
+    }
+  }
   startWarPulse();
 }
 window.startGameV2 = startGameV2;
@@ -17102,6 +17472,14 @@ function doChangeRegimeV2UI(newRegime) {
 }
 window.doChangeRegimeV2UI  = doChangeRegimeV2UI;
 
+// P18: formable-civilization UI handler
+function doFormNationV2UI(formId) {
+  if (!S.v2) return;
+  if (!doFormNationV2(S.humanId, formId)) return;
+  updateHUD(); render(); renderSelectedPanel();
+}
+window.doFormNationV2UI = doFormNationV2UI;
+
 // ── v2 province info panel ────────────────────────────────────────────────────
 function renderSelectedPanelV2() {
   const body  = document.getElementById('selected-body');
@@ -17276,6 +17654,17 @@ function renderSelectedPanelV2() {
       }).join('');
       html += `<select id="v2-atk-target" style="width:100%;margin-top:6px;padding:7px;background:#0a0e1a;color:#e8dccc;border:1px solid var(--border);font-family:inherit;font-size:10.5px">${opts}</select>`;
       html += `<button class="btn attack" onclick="doAttackV2UI('${S.selectedId}')">⚔ Attack</button>`;
+    }
+    // P18: formable civilizations — shown once, on any owned province, listing
+    // every formable whose required province set the human currently owns in full.
+    {
+      const availForm = getAvailableFormablesV2(S.humanId);
+      if (availForm.length) {
+        html += `<div class="sel-section-title">${T('sec_formables')}</div>`;
+        for (const f of availForm) {
+          html += `<button class="btn ally" onclick="doFormNationV2UI('${f.id}')">${f.icon} ${Tpl('act_form_nation', { v0: T(f.name) })}</button>`;
+        }
+      }
     }
   } else if (isNeutral && me) {
     const adjOwn = (p.neighbors||[]).some(nb => S.provinces[nb] && S.provinces[nb].nation === S.humanId);
@@ -17875,6 +18264,7 @@ function cycleOwnProvince(dir) {
 // selection). Returns true if it consumed the key. The event modal is skipped
 // on purpose — it demands a choice.
 function handleEscape() {
+  if (document.body.classList.contains('screenshot-mode')) { toggleScreenshotMode(); return true; }
   const coalPeace = document.getElementById('coal-peace-modal');
   if (coalPeace && !coalPeace.hidden) { closeCoalitionPeace(); return true; }
   const genName = document.getElementById('gen-name-modal');
@@ -18055,6 +18445,10 @@ function deserializeState(snap) {
       // P16: occupation fields back-compat for older saves.
       if (p.occupiedBy === undefined) p.occupiedBy = null;
       if (p.occTurns == null) p.occTurns = 0;
+      // P18: formables need a "home" owner snapshot; older saves never recorded one,
+      // so fall back to the province's current owner (best-effort — a formable's
+      // required set may already differ slightly from the true 2024 baseline).
+      if (p.homeNation === undefined) p.homeNation = p.nation;
     }
   }
   if (S.v2 && S.nations) {
@@ -18069,6 +18463,8 @@ function deserializeState(snap) {
       if (!n.vassals) n.vassals = [];
       if (n.tribute == null) n.tribute = 0;
       if (n.libertyDesire == null) n.libertyDesire = 0;
+      // P18: formable civilizations back-compat default
+      if (n.formedAs === undefined) n.formedAs = null;
     }
   }
   if (S.v2 && !S.truceV2) S.truceV2 = {};         // P16: v2 truce tracking back-compat
@@ -18161,6 +18557,7 @@ function autosave() {
   try {
     const data = { version: SAVE_VERSION, meta: saveMeta(), state: serializeState(), auto: true };
     localStorage.setItem(SAVE_KEY_PREFIX + AUTOSAVE_SLOT, JSON.stringify(data));
+    showAutosaveIndicator();
   } catch(e) {
     // Storage full or unavailable — fail silently, never interrupt the turn.
     console.warn('Autosave skipped:', e.message || e);
@@ -18224,6 +18621,54 @@ function showToast(msg) {
   el.classList.add('show');
   if (_toastTimer) clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// Autosave indicator — quiet corner flash, distinct from the manual-save toast.
+let _autosaveTimer = null;
+function showAutosaveIndicator() {
+  const el = document.getElementById('autosave-indicator');
+  if (!el) return;
+  el.textContent = '💾 ' + T('autosave_indicator');
+  el.classList.add('show');
+  if (_autosaveTimer) clearTimeout(_autosaveTimer);
+  _autosaveTimer = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+// ---- Resource pop numbers ----------------------------------------------------
+// Small "+N"/"-N" that rises and fades over a HUD chip — called on the income
+// tick so gold/manpower changes are visible at a glance, not just in the chip text.
+function showResourcePop(anchorId, delta, suffix) {
+  if (!delta) return;
+  const anchor = document.getElementById(anchorId);
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'income-pop ' + (delta > 0 ? 'pos' : 'neg');
+  el.textContent = (delta > 0 ? '+' : '') + delta + (suffix || '');
+  el.style.left = (rect.left + rect.width / 2) + 'px';
+  el.style.top = (rect.top - 4) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1150);
+}
+
+// ---- Screenshot mode --------------------------------------------------------
+// Hides the HUD/panels for a clean shot of the globe. .topbar stays in the grid
+// via visibility:hidden, so the canvas size is unchanged — no resize needed.
+function toggleScreenshotMode() {
+  document.body.classList.toggle('screenshot-mode');
+  render();
+}
+
+// Exports the current globe canvas as a PNG download.
+function exportScreenshot() {
+  const canvas = document.getElementById('globe');
+  if (!canvas) return;
+  const a = document.createElement('a');
+  a.download = 'terra-bellum-' + Date.now() + '.png';
+  a.href = canvas.toDataURL('image/png');
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 // War declaration alert — prominent banner. Collects all declarations fired
