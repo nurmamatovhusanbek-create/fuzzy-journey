@@ -171,6 +171,16 @@
   .ptab.active { color: var(--gold-bright); border-bottom-color: var(--gold); background: rgba(212,160,23,0.12); }
   .topbar-btn .tb-icon, #settings-btn .tb-icon { vertical-align: middle; }
   .chip-icon .tb-icon { vertical-align: middle; color: var(--gold); }
+  /* Topbar chip groups — cluster by category with a coloured left accent so the
+     eye can find economy / military / diplomatic stats at a glance. */
+  .chip-group {
+    display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+    padding: 2px 6px 2px 7px; border-radius: 5px;
+    border-left: 2px solid transparent; background: rgba(255,255,255,0.015);
+  }
+  .chip-group.econ { border-left-color: rgba(212,160,23,0.55); }
+  .chip-group.mil  { border-left-color: rgba(232,93,74,0.55); }
+  .chip-group.dip  { border-left-color: rgba(120,165,210,0.55); }
   .topbar-btn.active { background: rgba(212,160,23,0.18); border-color: var(--gold); color: var(--gold-bright); }
   #end-turn {
     font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 11px;
@@ -223,6 +233,29 @@
     border-color: rgba(212, 160, 23, 0.40);
   }
   body.flatmap-full .map-lens { bottom: 48px; }
+  /* Map search — find a country/province by name and fly+select it. */
+  .lens-search { position: relative; margin-bottom: 4px; }
+  .lens-search input {
+    width: 100%; box-sizing: border-box;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(212,160,23,0.25);
+    border-radius: 5px; color: var(--ink); padding: 4px 7px;
+    font: 600 10px/1 'JetBrains Mono', monospace; letter-spacing: 0.3px; outline: none;
+  }
+  .lens-search input:focus { border-color: rgba(212,160,23,0.6); }
+  .lens-search input::placeholder { color: var(--ink-dim); }
+  .lens-search-results {
+    position: absolute; left: 0; right: 0; bottom: 100%; margin-bottom: 3px; z-index: 8;
+    background: rgba(10,14,24,0.96); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,160,23,0.25); border-radius: 6px;
+    max-height: 168px; overflow-y: auto;
+  }
+  .lens-search-results[hidden] { display: none; }
+  .lsr-item, .lsr-empty {
+    padding: 5px 8px; font: 600 10px/1.2 'JetBrains Mono', monospace; color: var(--ink-dim);
+  }
+  .lsr-item { cursor: pointer; }
+  .lsr-item:hover { background: rgba(212,160,23,0.15); color: var(--ink); }
+  .lsr-empty { opacity: 0.7; }
 
   /* ===== Notification queue (persistent left rail, below topbar) ===== */
   #notif-rail {
@@ -2331,14 +2364,20 @@
   <header class="topbar">
     <div class="brand">TERRA BELLUM</div>
     <div class="hud-chips">
-      <div class="chip" data-tt="gold"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h3.5a1.5 1.5 0 0 1 0 3H9.5"/></svg></span><span class="chip-val gold-v" id="my-gold">0</span></div>
-      <div class="chip" data-tt="manpower"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/></svg></span><span class="chip-val" id="my-manpower">0</span></div>
-      <div class="chip" data-tt="mp"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6 6.5.5-5 4.3 1.6 6.4L12 17l-5.6 3.2L8 13.8l-5-4.3 6.5-.5z"/></svg></span><span class="chip-val" id="my-mp">0</span></div>
-      <div class="chip" data-tt="dp"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-3 3-4-4 4-4M13 7l3-3 4 4-4 4M8 13l3-3 3 3-2 2"/></svg></span><span class="chip-val" id="my-dp">0</span></div>
-      <div class="chip" data-tt="intel"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg></span><span class="chip-val" id="my-intel">0</span></div>
-      <div class="chip" data-tt="trade"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4l5 3-5 3M21 7H8M8 20l-5-3 5-3M3 17h13"/></svg></span><span class="chip-val" id="my-trade">0g</span></div>
-      <div class="chip" data-tt="territories"><span class="chip-val" id="my-lands">0</span><span class="chip-lbl" data-i18n="hud_lands">LANDS</span></div>
-      <div class="chip" data-tt="armies"><span class="chip-val" id="my-armies">0</span><span class="chip-lbl" data-i18n="hud_armies">ARMIES</span></div>
+      <div class="chip-group econ">
+        <div class="chip" data-tt="gold"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h3.5a1.5 1.5 0 0 1 0 3H9.5"/></svg></span><span class="chip-val gold-v" id="my-gold">0</span></div>
+        <div class="chip" data-tt="trade"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4l5 3-5 3M21 7H8M8 20l-5-3 5-3M3 17h13"/></svg></span><span class="chip-val" id="my-trade">0g</span></div>
+        <div class="chip" data-tt="territories"><span class="chip-val" id="my-lands">0</span><span class="chip-lbl" data-i18n="hud_lands">LANDS</span></div>
+      </div>
+      <div class="chip-group mil">
+        <div class="chip" data-tt="manpower"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/></svg></span><span class="chip-val" id="my-manpower">0</span></div>
+        <div class="chip" data-tt="armies"><span class="chip-val" id="my-armies">0</span><span class="chip-lbl" data-i18n="hud_armies">ARMIES</span></div>
+        <div class="chip" data-tt="mp"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6 6.5.5-5 4.3 1.6 6.4L12 17l-5.6 3.2L8 13.8l-5-4.3 6.5-.5z"/></svg></span><span class="chip-val" id="my-mp">0</span></div>
+      </div>
+      <div class="chip-group dip">
+        <div class="chip" data-tt="dp"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-3 3-4-4 4-4M13 7l3-3 4 4-4 4M8 13l3-3 3 3-2 2"/></svg></span><span class="chip-val" id="my-dp">0</span></div>
+        <div class="chip" data-tt="intel"><span class="chip-icon"><svg class="tb-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg></span><span class="chip-val" id="my-intel">0</span></div>
+      </div>
     </div>
     <div class="topbar-right">
       <div class="date"><span id="date-text">JAN 1450</span><span class="era" id="era-text">· ANCIENT</span></div>
@@ -2356,6 +2395,13 @@
     <div class="globe-hint" data-i18n="globe_hint">DRAG TO ROTATE · TAP TO SELECT</div>
     <div id="notif-rail" hidden></div>
     <div class="map-lens" id="map-lens">
+      <div class="lens-search">
+        <div id="map-search-results" class="lens-search-results" hidden></div>
+        <input id="map-search" type="text" autocomplete="off" spellcheck="false"
+               data-i18n-placeholder="search_ph" placeholder="Find a place…"
+               oninput="mapSearchInput(this.value)"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();mapSearchEnter();}else if(event.key==='Escape'){this.blur();mapSearchInput('');}">
+      </div>
       <div class="lens-title" data-i18n="overlay_title">MAP VIEW</div>
       <button class="lens-btn active" data-lens="political" onclick="setOverlayMode('political')"><span class="lens-ic">🗺</span><span data-i18n="overlay_political">Political</span></button>
       <button class="lens-btn" data-lens="diplomatic" onclick="setOverlayMode('diplomatic')"><span class="lens-ic">🤝</span><span data-i18n="overlay_diplomatic">Diplomatic</span></button>
@@ -2831,6 +2877,8 @@ en: {
   mapmode_globe: '🌐 GLOBE',
   mapmode_flat: '🗺 FLAT',
   overlay_title: 'MAP VIEW',
+  search_ph: 'Find a place…',
+  search_none: 'No match',
   overlay_political: 'Political',
   overlay_diplomatic: 'Diplomatic',
   overlay_economic: 'Economic',
@@ -3708,6 +3756,8 @@ ru: {
   mapmode_globe: '🌐 ГЛОБУС',
   mapmode_flat: '🗺 ПЛОСКАЯ',
   overlay_title: 'ВИД КАРТЫ',
+  search_ph: 'Найти место…',
+  search_none: 'Нет совпадений',
   overlay_political: 'Политика',
   overlay_diplomatic: 'Дипломатия',
   overlay_economic: 'Экономика',
@@ -8877,6 +8927,9 @@ function showTurnSummary() {
 // self-resolve; other keys are one-shot event alerts.
 let _notifs = [];
 let _notifSeq = 1;
+// Severity rank for rail ordering: lower sorts higher (crit on top, tips at bottom).
+// Blank/unknown cls is treated as mid-priority info.
+const _NOTIF_SEV = { crit: 0, warn: 1, good: 2, tip: 3 };
 const NOTIF_TTL = 5000;   // P4 #7: one-shot alerts live 5s of REAL elapsed time
 let _notifTicker = null;
 // A single wall-clock ticker prunes expired one-shot cards. Using Date.now()
@@ -8995,7 +9048,11 @@ function renderNotifRail() {
   el.innerHTML =
     `<div class="notif-head"><span>${T('notif_alerts')}</span>` +
     `<button class="notif-clear" title="${T('notif_clear')}" onclick="clearNotifs()">✕</button></div>` +
-    _notifs.slice().reverse().map(n =>
+    _notifs.slice().reverse()
+      // Newest-first (above), then a STABLE sort by severity so critical/war
+      // cards rise to the top while recency order is kept within each tier.
+      .sort((a, b) => (_NOTIF_SEV[a.cls] ?? 2) - (_NOTIF_SEV[b.cls] ?? 2))
+      .map(n =>
       `<div class="notif-card ${n.cls}" onclick="notifClick(event, ${n.id})">
         <button class="notif-x" type="button">✕</button>
         <div class="notif-ic">${n.icon}</div>
@@ -10175,6 +10232,47 @@ function flyToFeature(id, force) {
 }
 window.flyToFeature = flyToFeature;
 
+// ── Map search: find a country (v1) / province (v2) by name, fly to it & select.
+// Reuses flyToFeature + handleSelect; only features that have geometry (exist in
+// featureById) are searchable, so a pick always resolves to something drawable.
+let _mapSearchMatches = [];
+function _searchableFeatures() {
+  const out = [], src = S.v2 ? S.provinces : S.countries;
+  if (!src || !S.featureById) return out;
+  for (const id in src) {
+    const o = src[id];
+    if (o && o.name && S.featureById[id]) out.push({ id, name: o.name });
+  }
+  return out;
+}
+function mapSearchInput(q) {
+  const box = document.getElementById('map-search-results');
+  if (!box) return;
+  q = (q || '').trim().toLowerCase();
+  if (!q) { box.hidden = true; box.innerHTML = ''; _mapSearchMatches = []; return; }
+  _mapSearchMatches = _searchableFeatures()
+    .filter(f => f.name.toLowerCase().indexOf(q) !== -1)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice(0, 7);
+  if (!_mapSearchMatches.length) {
+    box.innerHTML = `<div class="lsr-empty">${T('search_none')}</div>`; box.hidden = false; return;
+  }
+  box.innerHTML = _mapSearchMatches.map((f, i) =>
+    `<div class="lsr-item" onclick="mapSearchPick(${i})">${genEsc(f.name)}</div>`).join('');
+  box.hidden = false;
+}
+function mapSearchPick(i) {
+  const m = _mapSearchMatches[i]; if (!m) return;
+  const box = document.getElementById('map-search-results'); if (box) box.hidden = true;
+  const inp = document.getElementById('map-search'); if (inp) { inp.value = ''; inp.blur(); }
+  if (typeof flyToFeature === 'function') flyToFeature(m.id, true);
+  if (typeof handleSelect === 'function') handleSelect(m.id);
+}
+function mapSearchEnter() { if (_mapSearchMatches.length) mapSearchPick(0); }
+window.mapSearchInput = mapSearchInput;
+window.mapSearchPick = mapSearchPick;
+window.mapSearchEnter = mapSearchEnter;
+
 
 // ── PERF: dynamic overlay layers (war fronts, move-mode, selection, battle FX) ──
 // These are the only things that animate while the map is otherwise static, so
@@ -10335,7 +10433,11 @@ function _ensureBaseCanvas() {
 function _visibleTileOffsets(ww, rect) {
   const t = projection.translate();
   const out = [];
-  for (const dx of [-ww, 0, ww]) {
+  // Consider up to ±2 world-widths so an ultrawide viewport or a very zoomed-out
+  // flat map never shows a gap/hard edge past the usual ±1 tiles. The viewport-cull
+  // below drops any candidate that's fully off-screen, so on normal screens this
+  // still renders just the 2-3 visible tiles — no extra draw cost.
+  for (const dx of [-2 * ww, -ww, 0, ww, 2 * ww]) {
     const left = t[0] + dx - ww / 2, right = t[0] + dx + ww / 2;
     if (right >= -2 && left <= rect.width + 2) out.push(dx);
   }
