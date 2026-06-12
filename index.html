@@ -122,6 +122,16 @@
   .chip .chip-val { font-weight: 700; color: var(--ink); letter-spacing: 0.05em; }
   .chip .chip-val.gold-v { color: var(--gold-bright); }
   .chip .chip-lbl { color: var(--ink-dim); font-size: 9px; letter-spacing: 0.1em; }
+  /* Critical-resource emphasis: pulse a chip when its resource is in danger
+     (gold heading to bankruptcy, manpower exhausted). Toggled from updateHUDV2. */
+  .chip.low {
+    border-color: rgba(232,93,74,0.55);
+    animation: chip-low-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes chip-low-pulse {
+    0%, 100% { border-color: rgba(232,93,74,0.28); box-shadow: none; }
+    50%      { border-color: rgba(232,93,74,0.85); box-shadow: 0 0 8px rgba(232,93,74,0.35); }
+  }
   /* topbar right section — its left divider lines up with the docked panel
      column (panels are right:0, width:384px; topbar has 14px right padding,
      so 384-14 = 370px puts this border at the panel's left edge). */
@@ -269,6 +279,21 @@
   }
   .notif-card .notif-x:hover { color: var(--ink); }
   body.flatmap-full #notif-rail { top: 64px; }
+
+  /* ===== Responsive: shrink the 384px docked panels + aligned topbar-right
+     on smaller screens so they don't eat 30%+ of the viewport. The topbar-right
+     width stays (panel-width − 14px topbar padding) so its left divider keeps
+     lining up with the panel's left edge. ===== */
+  @media (max-width: 1280px) {
+    #panel-tabs,
+    #country-float, #empire-float, #diplo-float, #tech-float, #log-float { width: 340px; }
+    .topbar-right { width: 326px; }
+  }
+  @media (max-width: 1024px) {
+    #panel-tabs,
+    #country-float, #empire-float, #diplo-float, #tech-float, #log-float { width: 288px; }
+    .topbar-right { width: 274px; }
+  }
 
   /* ===== Old HUD sidebar — hidden, kept for DOM structure ===== */
   .hud { display: none !important; }
@@ -17308,6 +17333,14 @@ function updateHUDV2() {
   setHTML('my-dp', `<span class="ap-val ${n.dp < 2 ? 'ap-low' : ''}">${Math.floor(n.dp)}/${dpCap}</span>`);
   // Hide v1-only chips that have no v2 meaning yet
   ['my-intel','my-trade'].forEach(id => { const el = document.getElementById(id); if (el && el.closest('.chip')) el.closest('.chip').style.display = 'none'; });
+  // Critical-resource emphasis: pulse the gold chip when the treasury is empty or
+  // projected to go bankrupt within ~3 turns, and the manpower chip when exhausted.
+  const _chipLow = (id, low) => {
+    const el = document.getElementById(id), chip = el && el.closest('.chip');
+    if (chip) chip.classList.toggle('low', !!low);
+  };
+  _chipLow('my-gold', n.gold < 0 || (inc.net < 0 && (n.gold + inc.net * 3) < 0));
+  _chipLow('my-manpower', n.manpower < 0);
 }
 
 function updateHUD() {
@@ -18333,6 +18366,37 @@ function onGameKey(e) {
   if (e.key === 'Tab') {
     e.preventDefault();
     cycleOwnProvince(e.shiftKey ? -1 : 1);
+    return;
+  }
+  // 'E' = end turn (Space also works)
+  if (e.key === 'e' || e.key === 'E') {
+    const et = document.getElementById('end-turn');
+    if (et && !et.disabled) { e.preventDefault(); window.endTurn(); }
+    return;
+  }
+  // 'F' = toggle flat / globe map
+  if (e.key === 'f' || e.key === 'F') {
+    if (typeof setMapMode === 'function') {
+      e.preventDefault();
+      setMapMode(S.mapMode === 'flat' ? 'globe' : 'flat');
+    }
+    return;
+  }
+  // 1-6 = switch map lens
+  if (e.key >= '1' && e.key <= '6') {
+    const lens = ['political','diplomatic','economic','military','wars','stability'][+e.key - 1];
+    if (lens && typeof setOverlayMode === 'function') { e.preventDefault(); setOverlayMode(lens); }
+    return;
+  }
+  // +/- = zoom in / out (clamp matches the wheel-zoom range)
+  if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+    if (typeof projection !== 'undefined' && projection && projection.scale) {
+      e.preventDefault();
+      const zin = (e.key === '+' || e.key === '=');
+      const cur = projection.scale();
+      projection.scale(Math.max(150, Math.min(2000, cur * (zin ? 1.15 : 0.87))));
+      render();
+    }
     return;
   }
 }
