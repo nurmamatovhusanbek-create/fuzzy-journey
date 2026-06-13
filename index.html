@@ -545,6 +545,11 @@
   .selected-flag {
     font-size: 28px; line-height: 1; filter: drop-shadow(0 0 6px rgba(0,0,0,0.5));
   }
+  /* Historical flags (flagFor) — SVG asset, procedural banner, or emoji. */
+  .tb-flag { display:inline-block; width:22px; height:14px; vertical-align:-2px;
+    border:1px solid rgba(0,0,0,0.5); border-radius:2px; object-fit:cover;
+    box-shadow:0 0 0 0.5px rgba(255,255,255,0.08); }
+  .tb-flag-emoji { font-size:14px; vertical-align:-1px; }
   .selected-name {
     font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px;
     letter-spacing: 0.08em; color: var(--ink);
@@ -3501,6 +3506,30 @@ en: {
   v2sc_ww1_name:      'THE GREAT WAR',
   v2sc_ww1_badge:     'WORLD WAR I · 1914',
   v2sc_ww1_desc:      'The eve of the First World War. True 1914 powers — the German Empire, Austria-Hungary, the Ottoman Empire, the Russian, British and French Empires — with borders sampled province-by-province from the historical map.',
+  v2sc_ancient_name:'THE ANCIENT WORLD', v2sc_ancient_badge:'CLASSICAL ANTIQUITY · 218 BC',
+  v2sc_ancient_desc:'Carthage and Rome at war, the Hellenistic kingdoms, Maurya and Han. Vast reaches — the Americas, Siberia, the Pacific — remain unknown, open to discovery.',
+  v2sc_medieval_name:'CHRISTENDOM & CALIPHATE', v2sc_medieval_badge:'HIGH MIDDLE AGES · 1096',
+  v2sc_medieval_desc:'The First Crusade. Byzantium, the Holy Roman Empire, the Abbasids and a fractured patchwork of kingdoms.',
+  v2sc_mongol_name:'THE MONGOL STORM', v2sc_mongol_badge:'AGE OF THE KHANS · 1300',
+  v2sc_mongol_desc:'The Khanates straddle Eurasia at their height. The pre-Columbian Americas lie undiscovered.',
+  v2sc_timurid_name:"TIMUR'S WORLD", v2sc_timurid_badge:'TIMURID ERA · 1400',
+  v2sc_timurid_desc:"Timur's empire at full extent, the Ottomans rising, Ming China. The New World is still unknown.",
+  v2sc_discovery_name:'THE AGE OF DISCOVERY', v2sc_discovery_badge:'AGE OF SAIL · 1492',
+  v2sc_discovery_desc:"Columbus sets sail. Europe's powers, the Ottomans and the great Asian empires — with the Americas and African interior open to colonization.",
+  v2sc_gunpowder_name:'THE GUNPOWDER EMPIRES', v2sc_gunpowder_badge:'EARLY MODERN · 1700',
+  v2sc_gunpowder_desc:'Mughal, Ottoman, Safavid, Qing and the rising European states in the age of the musket.',
+  v2sc_napoleonic_name:'THE NAPOLEONIC WARS', v2sc_napoleonic_badge:'AGE OF REVOLUTION · 1804',
+  v2sc_napoleonic_desc:"Napoleon's France against the old empires. Interior Africa remains unmapped before the Scramble.",
+  v2sc_victorian_name:'THE VICTORIAN AGE', v2sc_victorian_badge:'INDUSTRIAL ERA · 1850',
+  v2sc_victorian_desc:'Empire, industry and the telegraph. The Scramble for Africa is about to begin.',
+  v2sc_ww2_name:'THE SECOND WORLD WAR', v2sc_ww2_badge:'WORLD WAR II · 1939',
+  v2sc_ww2_desc:'The eve of global war — the Axis, the Allies, the USSR and a world of colonial empires.',
+  v2sc_coldwar_name:'THE COLD WAR', v2sc_coldwar_badge:'POSTWAR ERA · 1947',
+  v2sc_coldwar_desc:'Two superpowers, decolonization and the nuclear age.',
+  terra_title:'TERRA INCOGNITA',
+  terra_desc:'Undiscovered land — a bordering nation can colonize it for gold and movement points.',
+  terra_tech:'Requires technology level {n} to colonize this era.',
+  ev_worldwide:'WORLDWIDE EVENT', ev_event:'HISTORICAL EVENT',
   glog_v2_scenario_start: 'The chronicle begins: {v0}, {v1}.',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_recruit:      '+ RECRUIT',
@@ -4805,6 +4834,30 @@ ru: {
   v2sc_ww1_name:      'ВЕЛИКАЯ ВОЙНА',
   v2sc_ww1_badge:     'ПЕРВАЯ МИРОВАЯ · 1914 Г.',
   v2sc_ww1_desc:      'Канун Первой мировой войны. Подлинные державы 1914 года — Германская империя, Австро-Венгрия, Османская империя, Российская, Британская и Французская империи — с границами, восстановленными по исторической карте провинция за провинцией.',
+  v2sc_ancient_name:'ДРЕВНИЙ МИР', v2sc_ancient_badge:'КЛАССИЧЕСКАЯ ДРЕВНОСТЬ · 218 ДО Н.Э.',
+  v2sc_ancient_desc:'Войны Карфагена и Рима, эллинистические царства, Маурьи и Хань. Огромные просторы — Америка, Сибирь, Тихий океан — ещё не открыты.',
+  v2sc_medieval_name:'ХРИСТИАНСКИЙ МИР И ХАЛИФАТ', v2sc_medieval_badge:'ВЫСОКОЕ СРЕДНЕВЕКОВЬЕ · 1096',
+  v2sc_medieval_desc:'Первый крестовый поход. Византия, Священная Римская империя, Аббасиды и пёстрая мозаика королевств.',
+  v2sc_mongol_name:'МОНГОЛЬСКАЯ БУРЯ', v2sc_mongol_badge:'ЭПОХА ХАНОВ · 1300',
+  v2sc_mongol_desc:'Ханства на пике, охватывающие Евразию. Доколумбова Америка не открыта.',
+  v2sc_timurid_name:'МИР ТИМУРА', v2sc_timurid_badge:'ЭПОХА ТИМУРИДОВ · 1400',
+  v2sc_timurid_desc:'Империя Тимура в полном размахе, восход Османов, минский Китай. Новый Свет ещё неизвестен.',
+  v2sc_discovery_name:'ЭПОХА ВЕЛИКИХ ОТКРЫТИЙ', v2sc_discovery_badge:'ЭПОХА ПАРУСА · 1492',
+  v2sc_discovery_desc:'Колумб выходит в море. Державы Европы, Османы и великие империи Азии — Америка и внутренняя Африка открыты для колонизации.',
+  v2sc_gunpowder_name:'ПОРОХОВЫЕ ИМПЕРИИ', v2sc_gunpowder_badge:'РАННЕЕ НОВОЕ ВРЕМЯ · 1700',
+  v2sc_gunpowder_desc:'Великие Моголы, Османы, Сефевиды, Цин и растущие державы Европы в эпоху мушкета.',
+  v2sc_napoleonic_name:'НАПОЛЕОНОВСКИЕ ВОЙНЫ', v2sc_napoleonic_badge:'ЭПОХА РЕВОЛЮЦИЙ · 1804',
+  v2sc_napoleonic_desc:'Франция Наполеона против старых империй. Внутренняя Африка ещё не нанесена на карту.',
+  v2sc_victorian_name:'ВИКТОРИАНСКАЯ ЭПОХА', v2sc_victorian_badge:'ИНДУСТРИАЛЬНАЯ ЭРА · 1850',
+  v2sc_victorian_desc:'Империи, промышленность и телеграф. Раздел Африки вот-вот начнётся.',
+  v2sc_ww2_name:'ВТОРАЯ МИРОВАЯ ВОЙНА', v2sc_ww2_badge:'ВТОРАЯ МИРОВАЯ · 1939',
+  v2sc_ww2_desc:'Канун мировой войны — Ось, союзники, СССР и мир колониальных империй.',
+  v2sc_coldwar_name:'ХОЛОДНАЯ ВОЙНА', v2sc_coldwar_badge:'ПОСЛЕВОЕННАЯ ЭРА · 1947',
+  v2sc_coldwar_desc:'Две сверхдержавы, деколонизация и ядерный век.',
+  terra_title:'НЕИЗВЕДАННЫЕ ЗЕМЛИ',
+  terra_desc:'Неоткрытая земля — соседняя нация может колонизировать её за золото и очки передвижения.',
+  terra_tech:'Требуется уровень технологий {n} для колонизации в эту эпоху.',
+  ev_worldwide:'МИРОВОЕ СОБЫТИЕ', ev_event:'ИСТОРИЧЕСКОЕ СОБЫТИЕ',
   glog_v2_scenario_start: 'Хроника начинается: {v0}, {v1}.',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_reduce_army:  'СОКРАТИТЬ АРМИЮ ДО',
@@ -5409,6 +5462,38 @@ function flagEmoji(code) {
   if (!code || code === 'XX') return '🏴';
   return code.split('').map(c => String.fromCodePoint(127397 + c.charCodeAt(0))).join('');
 }
+
+// ── Flags ────────────────────────────────────────────────────────────────────
+// flagFor(nation, year) → a small HTML flag. Resolution order:
+//   1. curated SVG asset from flags_manifest.json (optional date-ranged variant)
+//   2. modern ISO emoji (nations carrying a 2-letter `code`, e.g. v1 country mode)
+//   3. procedural banner (nation colour + initial) — so EVERY era nation has a flag.
+// Phase 1 ships the procedural fallback; curated SVGs drop in later via the manifest.
+let _flagManifest = null;   // populated by loadFlagManifest() if flags_manifest.json exists
+function loadFlagManifest() {
+  try { fetch('flags_manifest.json').then(r => r.ok ? r.json() : null).then(m => { if (m) _flagManifest = m; }).catch(() => {}); } catch (e) {}
+}
+function _flagDevice(nation) {
+  const col = (nation && nation.color) || '#888888';
+  const name = (nation && nation.name) || '?';
+  const ini = ((name.match(/[A-Za-zА-Яа-я0-9]/) || ['?'])[0]).toUpperCase();
+  const c = col.replace('#', '');
+  const r = parseInt(c.slice(0,2),16)||120, g = parseInt(c.slice(2,4),16)||120, b = parseInt(c.slice(4,6),16)||120;
+  const tc = (0.299*r + 0.587*g + 0.114*b)/255 > 0.55 ? '#1a1a1a' : '#f0f0f0';
+  return `<svg class="tb-flag" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="${col}"/><rect y="13.5" width="30" height="6.5" fill="rgba(0,0,0,0.22)"/><text x="15" y="13.6" text-anchor="middle" font-family="Cinzel,serif" font-size="12" font-weight="700" fill="${tc}">${ini}</text></svg>`;
+}
+function flagFor(nation, year) {
+  if (!nation) return '';
+  if (_flagManifest && _flagManifest[nation.id]) {
+    const m = _flagManifest[nation.id];
+    let file = m.file;
+    if (m.variants && year != null) { const v = m.variants.find(v => year >= (v.from ?? -1e9) && year <= (v.to ?? 1e9)); if (v) file = v.file; }
+    if (file) return `<img class="tb-flag" src="flags/${file}" alt="">`;
+  }
+  if (nation.code) return `<span class="tb-flag-emoji">${flagEmoji(nation.code)}</span>`;
+  return _flagDevice(nation);
+}
+window.flagFor = flagFor;
 
 // Era system
 // incomeBonus = flat gold added per owned province each turn (no multiplier)
@@ -8942,6 +9027,85 @@ function showHistoricalEvent(ev) {
   modal.hidden = false;
 }
 
+// ── Scheduled historical events (date-anchored; country-scoped or worldwide) ──
+// Data-driven, loaded from events_global.json + events_<era>.json. Fire when the
+// in-game date reaches the anchor and scope/conditions match. Reuses the event
+// modal + hasFired/markFired (fire-once) + S.globalModifiers. See roadmap-history.
+let _scheduledEvents = [];
+let _curSchedEvent = null;
+function _evT(x) { if (x == null) return ''; if (typeof x === 'string') return x; return x[_lang] || x.en || Object.values(x)[0] || ''; }
+function loadEventsV2(eraId, cb) {
+  _scheduledEvents = [];
+  const want = ['events_global.json', 'events_' + eraId + '.json'];
+  let pending = want.length;
+  want.forEach(fn => fetch(fn).then(r => r.ok ? r.json() : null)
+    .then(arr => { if (Array.isArray(arr)) _scheduledEvents.push(...arr); })
+    .catch(() => {}).finally(() => { if (--pending === 0 && cb) cb(); }));
+}
+window.loadEventsV2 = loadEventsV2;
+function _dateReachedV2(t) { return S.year > t.year || (S.year === t.year && (S.monthIdx || 0) >= (t.monthIdx || 0)); }
+function _eventAppliesV2(ev) {
+  const t = ev.trigger || {};
+  if (!_dateReachedV2(t)) return false;
+  if (ev.scope === 'country') {
+    const me = S.nations[S.humanId]; if (!me) return false;
+    if (t.nation && me.name !== t.nation && S.humanId !== t.nation) return false;
+    if (t.ownsProvince && (!S.provinces[t.ownsProvince] || S.provinces[t.ownsProvince].nation !== S.humanId)) return false;
+    if (t.minTechLevel && (me.techLevel || 0) < t.minTechLevel) return false;
+  }
+  if (t.chance != null && Math.random() > t.chance) { markFired(ev.id); return false; }  // rolled & missed → never re-rolls
+  return true;
+}
+function applyEventEffectsV2(effects) {
+  if (!Array.isArray(effects)) return;
+  const me = S.nations[S.humanId];
+  for (const e of effects) {
+    const tgt = (e.target === 'self' || !e.target) ? me : S.nations[e.target];
+    switch (e.op) {
+      case 'nation.gold':     if (tgt) tgt.gold = (tgt.gold || 0) + (e.delta || 0); break;
+      case 'nation.manpower': if (tgt) tgt.manpower = Math.max(0, (tgt.manpower || 0) + (e.delta || 0)); break;
+      case 'nation.mp':       if (tgt) tgt.mp = (tgt.mp || 0) + (e.delta || 0); break;
+      case 'nation.dp':       if (tgt) tgt.dp = (tgt.dp || 0) + (e.delta || 0); break;
+      case 'nation.stability': if (tgt) for (const pid of nationProvinces(tgt.id)) { const pp = S.provinces[pid]; if (pp) pp.stability = Math.max(0, Math.min(100, (pp.stability || 70) + (e.delta || 0))); } break;
+      case 'world.modifier':  if (!S.globalModifiers) S.globalModifiers = {}; S.globalModifiers[e.key] = (e.mul != null) ? (S.globalModifiers[e.key] || 1) * e.mul : (e.delta || 0); if (e.turns) S.globalModifiers[e.key + '_turns'] = e.turns; break;
+      default: break;
+    }
+  }
+}
+function checkScheduledEventsV2() {
+  if (!S.v2 || !_scheduledEvents.length) return;
+  for (const ev of _scheduledEvents) {
+    if (!ev || !ev.id || hasFired(ev.id)) continue;
+    let ok = false; try { ok = _eventAppliesV2(ev); } catch (e) {}
+    if (ok) { markFired(ev.id); fireScheduledEventV2(ev); return; }   // one per turn
+  }
+}
+function fireScheduledEventV2(ev) {
+  _curSchedEvent = ev;
+  const card = document.getElementById('event-card'), modal = document.getElementById('event-modal');
+  if (!card || !modal) { applyEventEffectsV2(ev.autoEffects); return; }
+  const choices = (ev.choices && ev.choices.length) ? ev.choices : [{ label: { en: 'Acknowledge', ru: 'Принять' }, effects: [] }];
+  const btns = choices.map((c, i) => `<button class="event-choice choice-primary" onclick="_schedChooseV2(${i})"><span class="choice-label">▸ ${_evT(c.label)}</span></button>`).join('');
+  card.innerHTML = `
+    <div class="event-banner">
+      <div class="event-category">${ev.icon || '📜'} ${ev.scope === 'world' ? T('ev_worldwide') : T('ev_event')}</div>
+      <div class="event-title" style="color:var(--gold-bright)">${_evT(ev.title)}</div>
+      <div class="event-turn-badge">${Tpl('ui_turn_date', { n: S.turn, month: MONTHS[S.monthIdx], year: S.year })}</div>
+    </div>
+    <div class="event-body"><div class="event-flavor">${_evT(ev.flavor)}</div></div>
+    <div class="event-choices">${btns}</div>`;
+  modal.hidden = false;
+}
+function _schedChooseV2(i) {
+  const ev = _curSchedEvent;
+  if (ev) { const c = (ev.choices || [])[i]; if (c) applyEventEffectsV2(c.effects); applyEventEffectsV2(ev.autoEffects); }
+  _curSchedEvent = null;
+  const modal = document.getElementById('event-modal'); if (modal) modal.hidden = true;
+  if (typeof updateHUD === 'function') updateHUD();
+  if (typeof render === 'function') render();
+}
+window._schedChooseV2 = _schedChooseV2;
+
 // ── Chronicle filter ──────────────────────────────────────────────────────────
 let _chronFilter = 'all';
 function setChronFilter(f) {
@@ -10059,6 +10223,10 @@ function _occupiedFillV2(targetCtx, occNat) {
   const color = (occNat && occNat.color) || '#ffffff';
   return targetCtx.createPattern(_occupiedStripeCanvasV2(color), 'repeat');
 }
+// Terra incognita (discoverable / undiscovered land this era) — neutral grey hatch.
+function _terraFillV2(targetCtx) {
+  return targetCtx.createPattern(_occupiedStripeCanvasV2('#8893a3'), 'repeat');
+}
 
 // ── Wars lens: group nations by shared conflict (union-find over war relations) ──
 let _warsColors = {};
@@ -10671,6 +10839,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       const pr = S.provinces[f.id]; if (!pr || pr._bad) continue;   // skip globe-filling degenerate features
       const nat = pr.nation ? S.nations[pr.nation] : null;
       let fill = _overlayFillV2(pr, nat);
+      if (pr.discoverable) fill = '#272b33';   // terra incognita — dim base (hatched below)
       // Conquest paint: ease the fill from the old owner's colour to the new one
       // when a province changes hands (same fade used by the v1 political lens).
       if (_overlayMode === 'political' && !S.setupPhase) fill = _animatedFill(f.id, fill);
@@ -10678,6 +10847,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
       targetCtx.fillStyle = fill;
       targetCtx.beginPath(); targetPath(f); targetCtx.fill();
       if (TH.wash) { targetCtx.fillStyle = TH.wash; targetCtx.fill(); }
+      if (pr.discoverable) { targetCtx.fillStyle = _terraFillV2(targetCtx); targetCtx.fill(); }
       const me = S.humanId && S.nations[S.humanId];
       if (_overlayMode === 'political' && me && nat && nat.id !== S.humanId && me.rel && me.rel[nat.id] === 'war') {
         targetCtx.fillStyle = 'rgba(220,60,45,0.42)'; targetCtx.fill();   // enemy-at-war wash
@@ -11639,30 +11809,23 @@ window.doFormNationV2          = doFormNationV2;
 // (2024) baseline. Reuses the existing v1 SCENARIOS picker UI/markup, but this
 // list and its apply function are entirely separate — v1's SCENARIOS/applyScenario
 // (country-grade, S.countries/S.players) are untouched.
+// Every historical era routes through applyEraV2 (true period nations + borders +
+// discoverable terra incognita, from maps/era_<id>.json). 'modern' is the live
+// 2024 baseline initWorldV2 already produces (no eraFile → no repaint).
 const V2_SCENARIOS = [
-  {
-    id: 'modern', name: 'v2sc_modern_name', icon: '🌐', badge: 'v2sc_modern_badge',
-    description: 'v2sc_modern_desc', year: 2024, monthIdx: 0,
-    leaderNation: null, leaderColor: null, memberNations: [],
-  },
-  {
-    id: 'roman', name: 'v2sc_roman_name', icon: '🏛', badge: 'v2sc_roman_badge',
-    description: 'v2sc_roman_desc', year: 117, monthIdx: 0,
-    leaderNation: 'ITA', leaderColor: '#7d2238',
-    // Country-level approximation of Rome's extent under Trajan, 117 AD — not
-    // exact province boundaries, but a recognisable historical footprint.
-    memberNations: ['ITA','FRA','ESP','PRT','GBR','BEL','NLD','CHE','AUT',
-      'SVN','HRV','BIH','SRB','MNE','ALB','MKD','GRC','BGR','ROU','TUR',
-      'SYR','LBN','ISR','JOR','EGY','LBY','TUN','DZA','MAR','MLT','CYP'],
-  },
-  {
-    // Era scenario: replaces the whole roster with true 1914 historical nations
-    // (German Empire, Austria-Hungary, Ottoman, Russian/British Empires, …),
-    // borders sampled province-by-province from maps/ww1.topojson.
-    id: 'ww1', name: 'v2sc_ww1_name', icon: '🪖', badge: 'v2sc_ww1_badge',
-    description: 'v2sc_ww1_desc', year: 1914, monthIdx: 0,
-    eraFile: 'ww1',
-  },
+  { id: 'ancient',    name: 'v2sc_ancient_name',    icon: '🏺', badge: 'v2sc_ancient_badge',    description: 'v2sc_ancient_desc',    year: -218, monthIdx: 0, eraFile: 'ancient' },
+  { id: 'roman',      name: 'v2sc_roman_name',      icon: '🏛', badge: 'v2sc_roman_badge',      description: 'v2sc_roman_desc',      year: 117,  monthIdx: 0, eraFile: 'roman' },
+  { id: 'medieval',   name: 'v2sc_medieval_name',   icon: '🏰', badge: 'v2sc_medieval_badge',   description: 'v2sc_medieval_desc',   year: 1096, monthIdx: 0, eraFile: 'medieval' },
+  { id: 'mongol',     name: 'v2sc_mongol_name',     icon: '🏹', badge: 'v2sc_mongol_badge',     description: 'v2sc_mongol_desc',     year: 1300, monthIdx: 0, eraFile: 'mongol' },
+  { id: 'timurid',    name: 'v2sc_timurid_name',    icon: '☄️', badge: 'v2sc_timurid_badge',    description: 'v2sc_timurid_desc',    year: 1400, monthIdx: 0, eraFile: 'timurid' },
+  { id: 'discovery',  name: 'v2sc_discovery_name',  icon: '⛵', badge: 'v2sc_discovery_badge',  description: 'v2sc_discovery_desc',  year: 1492, monthIdx: 0, eraFile: 'discovery' },
+  { id: 'gunpowder',  name: 'v2sc_gunpowder_name',  icon: '🕌', badge: 'v2sc_gunpowder_badge',  description: 'v2sc_gunpowder_desc',  year: 1700, monthIdx: 0, eraFile: 'gunpowder' },
+  { id: 'napoleonic', name: 'v2sc_napoleonic_name', icon: '🎖️', badge: 'v2sc_napoleonic_badge', description: 'v2sc_napoleonic_desc', year: 1804, monthIdx: 0, eraFile: 'napoleonic' },
+  { id: 'victorian',  name: 'v2sc_victorian_name',  icon: '🎩', badge: 'v2sc_victorian_badge',  description: 'v2sc_victorian_desc',  year: 1850, monthIdx: 0, eraFile: 'victorian' },
+  { id: 'ww1',        name: 'v2sc_ww1_name',        icon: '🪖', badge: 'v2sc_ww1_badge',        description: 'v2sc_ww1_desc',        year: 1914, monthIdx: 0, eraFile: 'ww1' },
+  { id: 'ww2',        name: 'v2sc_ww2_name',        icon: '💣', badge: 'v2sc_ww2_badge',        description: 'v2sc_ww2_desc',        year: 1939, monthIdx: 0, eraFile: 'ww2' },
+  { id: 'coldwar',    name: 'v2sc_coldwar_name',    icon: '☢️', badge: 'v2sc_coldwar_badge',    description: 'v2sc_coldwar_desc',    year: 1947, monthIdx: 0, eraFile: 'coldwar' },
+  { id: 'modern',     name: 'v2sc_modern_name',     icon: '🌐', badge: 'v2sc_modern_badge',     description: 'v2sc_modern_desc',     year: 2024, monthIdx: 0, leaderNation: null, leaderColor: null, memberNations: [] },
 ];
 
 // Reassign every province whose `homeNation` is in `sc.memberNations` to
@@ -11712,12 +11875,16 @@ window.loadEraV2 = loadEraV2;
 function applyEraV2(eraData) {
   if (!eraData || !eraData.prov) return false;
   const provMap = eraData.prov, natMeta = eraData.nations || {};
-  // 1. Retag every province to its historical owner (uncovered → neutral).
+  const discSet = new Set(eraData.discoverable || []);
+  S._eraColonize = eraData.colonize || null;   // per-era colonize tuning (tech gate, cost mults)
+  // 1. Retag every province to its historical owner (uncovered → neutral; some
+  //    uncovered land is flagged `discoverable` = colonizable terra incognita).
   for (const pid in S.provinces) {
     const slug = provMap[pid] || null;
     const p = S.provinces[pid];
     p.nation = slug; p.homeNation = slug; p.capital = false;
     p.occupiedBy = null; p.occTurns = 0;
+    p.discoverable = (!slug && discSet.has(pid));
   }
   // 2. Rebuild the nation roster from the historical powers present.
   S.nations = {}; S._provByNation = null;
@@ -13049,7 +13216,7 @@ function showV2ScenarioPicker() {
       const prevTxt = confirm.textContent;
       confirm.textContent = '⏳ …';
       loadEraV2(sc.eraFile, (data) => {
-        if (data && applyEraV2(data)) { enterProvinceModeNationPick(); }
+        if (data && applyEraV2(data)) { loadEventsV2(sc.eraFile); enterProvinceModeNationPick(); }
         else {
           // Fetch failed → fall back to the modern baseline so setup still works.
           confirm.disabled = false; confirm.textContent = prevTxt;
@@ -15105,6 +15272,8 @@ function endTurn() {
   checkAndFireEvents();
   // ---- Phase 10: Historical Events ----
   checkHistoricalEvents();
+  // ---- Scheduled date-anchored events (era data files) ----
+  try { checkScheduledEventsV2(); } catch (e) {}
   // ---- Era objectives ----
   checkEraObjectives();
   // ---- A2 dynamic missions ----
@@ -17864,7 +18033,7 @@ function renderSelectedPanelV2() {
   let html = `
     <div class="sel-name">${p.name||'?'}${(p.capital && p.capitalOf === nid) ? ' ⭐' : ''}</div>
     <div class="sel-sub">
-      ${nat ? `<span style="cursor:pointer;color:var(--gold-bright)" onclick="gotoNationV2('${nid}')">${nat.name}</span>` : '<span style="color:var(--ink-dim)">Unclaimed Territory</span>'}
+      ${nat ? `${flagFor(nat, S.year)} <span style="cursor:pointer;color:var(--gold-bright)" onclick="gotoNationV2('${nid}')">${nat.name}</span>` : '<span style="color:var(--ink-dim)">Unclaimed Territory</span>'}
       ${nid ? `<span class="rel-tag ${relTagClass}" style="margin-left:6px">${relLabel}</span>` : ''}
     </div>
     <div class="sel-stats">
@@ -18009,8 +18178,12 @@ function renderSelectedPanelV2() {
     if (adjOwn) {
       const cost   = colonizeCostV2(S.selectedId, S.humanId);
       const regime = V2_REGIMES[me.regime] || V2_REGIMES.monarchy;
-      const canCol = regime.colonyFree || ((me.gold||0) >= cost.gold && (me.mp||0) >= cost.mp);
+      const eraTech = (S._eraColonize && S._eraColonize.tech) || 0;
+      const techOk  = (me.techLevel || 0) >= eraTech;
+      const canCol = techOk && (regime.colonyFree || ((me.gold||0) >= cost.gold && (me.mp||0) >= cost.mp));
       const costStr = regime.colonyFree ? 'Free (Tribal)' : `${cost.gold}g · ${cost.mp}MP`;
+      if (p.discoverable) html += `<div class="sel-section-title">${T('terra_title')}</div><div style="font-size:10px;color:var(--ink-dim);padding:2px 0 6px">${T('terra_desc')}</div>`;
+      if (!techOk) html += `<div style="font-size:9.5px;color:var(--red-warn);padding:3px 0">${Tpl('terra_tech', { n: eraTech.toFixed(1) })}</div>`;
       html += `<button class="btn ally" onclick="doColonizeV2UI('${S.selectedId}')" ${canCol?'':'disabled'}>🏛 Colonize <span class="ap-cost">(${costStr})</span></button>`;
     }
   } else if (nat) {
