@@ -10655,10 +10655,53 @@ function _drawDynamic(targetCtx, targetCanvas, targetPath, _proj, highlightSelec
       }
     }
   }
+  _drawDataSpikes(targetCtx, _proj);
 }
+
+// ── Data-spike overlay (proportional-symbol viz) ──────────────────────────────
+// Opt-in: on a quantitative lens (population / army / economy), draw a height-
+// scaled spike at each feature's centroid — the eye reads height far better than
+// colour alone (GitHub-globe / spike-map technique). Drawn in the dynamic layer so
+// it rotates + back-culls and never bloats the cached base.
+let _dataSpikes = false;
+const _SPIKE_LENS = { population: '#6ab0ff', military: '#ff6a4a', economic: '#ffce3a' };
+function _drawDataSpikes(ctx, proj) {
+  if (!_dataSpikes || !proj) return;
+  const color = _SPIKE_LENS[_overlayMode]; if (!color) return;
+  const lens = _overlayMode, v2 = S.v2, isGlobe = (S.mapMode !== 'flat'), D = Math.PI / 180;
+  let vcLon = 0, vcSin = 0, vcCos = 1;
+  if (isGlobe) { vcLon = -(S.rotation[0] || 0); const vl = -(S.rotation[1] || 0) * D; vcSin = Math.sin(vl); vcCos = Math.cos(vl); }
+  const val = (id) => {
+    if (v2) { const p = S.provinces[id]; if (!p) return 0; return lens === 'population' ? (p.pop || 0) : lens === 'military' ? (p.army || 0) : ((p.dev || 0) + (p.economy || 0)); }
+    const c = S.countries[id]; if (!c) return 0; return lens === 'population' ? (c.population || 0) : lens === 'military' ? (c.army || 0) : 0;
+  };
+  let max = 1; for (const f of S.features) { const x = val(f.id); if (x > max) max = x; }
+  ctx.save();
+  for (const f of S.features) {
+    let lon, lat;
+    if (v2) { const p = S.provinces[f.id]; if (!p || p._bad) continue; lon = p.lon; lat = p.lat; }
+    else { let ce = _cenCache[f.id]; if (!ce) { try { ce = _cenCache[f.id] = d3.geoCentroid(f); } catch (_) { ce = _cenCache[f.id] = [0, 0]; } } lon = ce[0]; lat = ce[1]; }
+    if (lon == null) continue;
+    const x = val(f.id); if (x <= 0) continue;
+    if (isGlobe) { const cd = vcSin * Math.sin(lat * D) + vcCos * Math.cos(lat * D) * Math.cos((lon - vcLon) * D); if (cd < 0.02) continue; }
+    const pt = proj([lon, lat]); if (!pt || isNaN(pt[0])) continue;
+    const h = 3 + Math.sqrt(x / max) * 38;
+    ctx.beginPath();
+    ctx.moveTo(pt[0] - 2, pt[1]); ctx.lineTo(pt[0] + 2, pt[1]); ctx.lineTo(pt[0], pt[1] - h); ctx.closePath();
+    ctx.globalAlpha = 0.85; ctx.fillStyle = color; ctx.fill();
+    ctx.globalAlpha = 1; ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.6; ctx.stroke();
+  }
+  ctx.restore();
+}
+window.toggleDataSpikes = function () {
+  _dataSpikes = !_dataSpikes;
+  const b = document.getElementById('spike-btn'); if (b) b.classList.toggle('active', _dataSpikes);
+  if (typeof render === 'function') render();
+};
 
 // ── PERF: interaction LOD + offscreen base-layer cache ──────────────────────
 let _interacting = false;   // true while dragging/rotating/panning → cheaper frame
+let _cenCache = {};          // PERF: cached v1 feature centroids for back-hemisphere culling
 const _DPR = Math.min(window.devicePixelRatio || 1, 2);
 let _baseCanvas = null, _baseCtx = null, _basePath = null, _baseKey = null;
 function _ensureBaseCanvas() {
@@ -10749,6 +10792,15 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   // LOD: while actively dragging/rotating, skip the costliest base detail
   // (terrain glyphs, army labels, the inner border line) for a smoother frame.
   const _lod = _interacting && targetCanvas === canvas;
+  // PERF: while dragging/zooming the globe, cull features on the BACK hemisphere
+  // before projecting them — d3.geoPath would otherwise project+clip every back
+  // polygon only to draw nothing. Only during _lod, so settled frames stay exact.
+  const _cull = _lod && _isGlobe;
+  const _DEG = Math.PI / 180;
+  let _vcLon = 0, _vcSin = 0, _vcCos = 1;
+  if (_cull) { _vcLon = -(S.rotation[0] || 0); const vl = -(S.rotation[1] || 0) * _DEG; _vcSin = Math.sin(vl); _vcCos = Math.cos(vl); }
+  const _backFace = (lon, lat) => (lon == null || lat == null) ? false :
+    (_vcSin * Math.sin(lat * _DEG) + _vcCos * Math.cos(lat * _DEG) * Math.cos((lon - _vcLon) * _DEG)) < -0.1;
 
   // ── Stars: now drawn in the dynamic overlay (_drawStars) so they can rotate;
   //    only the atmosphere glow stays in the cached base here. ────────────────
@@ -10838,6 +10890,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
   for (const f of S.features) {
     if (S.v2) {                                   // ── province-grade fill: colour by owner NATION (or active lens) ──
       const pr = S.provinces[f.id]; if (!pr || pr._bad) continue;   // skip globe-filling degenerate features
+      if (_cull && _backFace(pr.lon, pr.lat)) continue;             // PERF: skip back-hemisphere while dragging
       const nat = pr.nation ? S.nations[pr.nation] : null;
       let fill = _overlayFillV2(pr, nat);
       if (pr.discoverable) fill = '#272b33';   // terra incognita — dim base (hatched below)
@@ -10863,6 +10916,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     }
     const c = S.countries[f.id];
     if (!c) continue;
+    if (_cull) { let ce = _cenCache[f.id]; if (!ce) { try { ce = _cenCache[f.id] = d3.geoCentroid(f); } catch (_) { ce = _cenCache[f.id] = [0, 0]; } } if (_backFace(ce[0], ce[1])) continue; }
     const owner = S.players[c.ownerId];
     let fill = _overlayFill(c, owner);
     // M5: in the political lens, ease the fill from the old owner's colour to the
