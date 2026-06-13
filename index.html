@@ -10596,18 +10596,23 @@ function _drawDynamic(targetCtx, targetCanvas, targetPath, _proj, highlightSelec
       targetCtx.shadowBlur = 10;
       targetCtx.beginPath(); targetPath(f); targetCtx.stroke();
       targetCtx.shadowBlur = 0;
-      // Selection ping — pulsing radar ring centred on the selected province,
-      // makes the selection easy to spot at a glance on a busy map.
+      // Selection ping — a ONE-SHOT ripple that plays once when a province is
+      // selected, then stops (no endless pulsing). The static gold outline above
+      // stays to mark the selection.
       const res = projectCentroid(f, _proj);
       if (res) {
         const [px, py] = res.pt;
-        const ping = (Date.now() % 1400) / 1400;   // 0..1 sawtooth, ~0.7Hz
-        targetCtx.save();
-        targetCtx.globalAlpha = (1 - ping) * 0.75;
-        targetCtx.strokeStyle = '#f3c552';
-        targetCtx.lineWidth = 2;
-        targetCtx.beginPath(); targetCtx.arc(px, py, 9 + ping * 22, 0, Math.PI * 2); targetCtx.stroke();
-        targetCtx.restore();
+        if (S.selectedId !== _pingId) { _pingId = S.selectedId; _pingStart = Date.now(); }
+        const el = Date.now() - _pingStart;
+        if (el < 1100) {
+          const ping = el / 1100;
+          targetCtx.save();
+          targetCtx.globalAlpha = (1 - ping) * 0.7;
+          targetCtx.strokeStyle = '#f3c552';
+          targetCtx.lineWidth = 2;
+          targetCtx.beginPath(); targetCtx.arc(px, py, 9 + ping * 26, 0, Math.PI * 2); targetCtx.stroke();
+          targetCtx.restore();
+        }
       }
     }
   }
@@ -10691,14 +10696,19 @@ function _drawDataSpikes(ctx, proj) {
     if (v2) { const p = S.provinces[f.id]; if (!p || p._bad) continue; lon = p.lon; lat = p.lat; }
     else { let ce = _cenCache[f.id]; if (!ce) { try { ce = _cenCache[f.id] = d3.geoCentroid(f); } catch (_) { ce = _cenCache[f.id] = [0, 0]; } } lon = ce[0]; lat = ce[1]; }
     if (lon == null) continue;
-    const x = val(f.id); if (x <= 0) continue;
+    const x = val(f.id); const norm = x / max; if (norm < 0.03) continue;   // skip negligible
     if (isGlobe) { const cd = vcSin * Math.sin(lat * D) + vcCos * Math.cos(lat * D) * Math.cos((lon - vcLon) * D); if (cd < 0.02) continue; }
     const pt = proj([lon, lat]); if (!pt || isNaN(pt[0])) continue;
-    const h = 3 + Math.sqrt(x / max) * 38;
+    const h = 5 + Math.sqrt(norm) * 46, w = 1.5, x0 = pt[0], y0 = pt[1];
+    // tapered spike with a base→bright-tip gradient (reads as a glowing column)
+    const g = ctx.createLinearGradient(x0, y0, x0, y0 - h);
+    g.addColorStop(0, color + '22'); g.addColorStop(0.45, color); g.addColorStop(1, '#ffffff');
     ctx.beginPath();
-    ctx.moveTo(pt[0] - 2, pt[1]); ctx.lineTo(pt[0] + 2, pt[1]); ctx.lineTo(pt[0], pt[1] - h); ctx.closePath();
-    ctx.globalAlpha = 0.85; ctx.fillStyle = color; ctx.fill();
-    ctx.globalAlpha = 1; ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.6; ctx.stroke();
+    ctx.moveTo(x0 - w, y0); ctx.lineTo(x0 + w, y0); ctx.lineTo(x0, y0 - h); ctx.closePath();
+    ctx.globalAlpha = 0.95; ctx.fillStyle = g; ctx.fill();
+    // base anchor dot
+    ctx.globalAlpha = 0.9; ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x0, y0, 1.5, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
 }
@@ -10711,6 +10721,7 @@ window.toggleDataSpikes = function () {
 // ── PERF: interaction LOD + offscreen base-layer cache ──────────────────────
 let _interacting = false;   // true while dragging/rotating/panning → cheaper frame
 let _cenCache = {};          // PERF: cached v1 feature centroids for back-hemisphere culling
+let _pingId = null, _pingStart = 0;   // one-shot selection-ripple state
 const _DPR = Math.min(window.devicePixelRatio || 1, 2);
 let _baseCanvas = null, _baseCtx = null, _basePath = null, _baseKey = null;
 function _ensureBaseCanvas() {
@@ -11043,7 +11054,9 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
     // so a modest zoom-out clears them (not just a hover/drag). Buildings cut out
     // earlier still (see the per-feature zoomRatio gate below).
     const zoomRatio  = curScale / defScale;
-    const labelAlpha = Math.max(0, Math.min(1, (zoomRatio - 1.30) / 0.40));
+    // Labels only appear when notably zoomed IN (≥2×), full by 2.4× — so a small
+    // zoom-out clears them and they're never shown at the default/zoomed-out view.
+    const labelAlpha = Math.max(0, Math.min(1, (zoomRatio - 2.0) / 0.40));
 
     if (labelAlpha > 0.01) {
       targetCtx.save();
@@ -11091,7 +11104,7 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
         // Building icon — emoji above pill. Held to a tighter zoom than the army
         // labels (1.75× vs 1.3×) so it disappears EARLIER than the army number
         // when zooming out, and only returns when you zoom well in.
-        if (c.building && BUILDINGS[c.building] && zoomRatio >= 1.75) {
+        if (c.building && BUILDINGS[c.building] && zoomRatio >= 2.7) {
           targetCtx.font = '9px serif';
           targetCtx.textAlign = 'center';
           targetCtx.textBaseline = 'middle';
