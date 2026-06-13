@@ -244,10 +244,14 @@
   body.flatmap-full .map-lens { bottom: 48px; }
   /* Map search — find a country/province by name and fly+select it. */
   .lens-search { position: relative; margin-bottom: 4px; }
+  .lens-search::before {            /* search icon (audit 1.12) */
+    content: '🔍'; position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+    font-size: 9px; opacity: 0.55; pointer-events: none; z-index: 1;
+  }
   .lens-search input {
     width: 100%; box-sizing: border-box;
     background: rgba(0,0,0,0.35); border: 1px solid rgba(212,160,23,0.25);
-    border-radius: 5px; color: var(--ink); padding: 4px 7px;
+    border-radius: 5px; color: var(--ink); padding: 4px 7px 4px 21px;
     font: 600 10px/1 'JetBrains Mono', monospace; letter-spacing: 0.3px; outline: none;
   }
   .lens-search input:focus { border-color: rgba(212,160,23,0.6); }
@@ -566,6 +570,8 @@
   .rel-ally { background: rgba(107,163,104,0.18); color: var(--green); border: 1px solid rgba(107,163,104,0.4); }
   .rel-war { background: rgba(232,93,74,0.18); color: var(--red-warn); border: 1px solid rgba(232,93,74,0.4); }
   .rel-peace { background: rgba(90,112,144,0.15); color: var(--steel); border: 1px solid rgba(90,112,144,0.3); }
+  /* Theme all native range sliders gold instead of browser blue (audit 1.7). */
+  input[type="range"] { accent-color: var(--gold); cursor: pointer; }
   .rel-self { background: rgba(212,160,23,0.18); color: var(--gold); border: 1px solid rgba(212,160,23,0.4); }
   .rel-nap { background: rgba(58,169,184,0.18); color: #3aa9b8; border: 1px solid rgba(58,169,184,0.4); }
 
@@ -18118,11 +18124,11 @@ function renderSelectedPanelV2() {
     const budget = me.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
     html += _selAcc('econ', T('sec_economy'), `
       <div class="sel-stats">
-        <div class="stat-row"><span class="lbl">${T('lbl_tax')}</span><span class="val">+${inc2.tax}g</span></div>
-        <div class="stat-row"><span class="lbl">${T('lbl_production')}</span><span class="val">+${inc2.production}g</span></div>
-        <div class="stat-row"><span class="lbl">${T('lbl_admin')}</span><span class="val">−${inc2.admin}g</span></div>
-        <div class="stat-row"><span class="lbl">${T('lbl_upkeep')}</span><span class="val">−${inc2.upkeep}g</span></div>
-        <div class="stat-row"><span class="lbl">${T('lbl_net')}</span><span class="val">${inc2.net>=0?'+':''}${inc2.net}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_tax')}</span><span class="val" style="color:#6ba368">+${inc2.tax}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_production')}</span><span class="val" style="color:#6ba368">+${inc2.production}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_admin')}</span><span class="val" style="color:#e8744f">−${inc2.admin}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_upkeep')}</span><span class="val" style="color:#e8744f">−${inc2.upkeep}g</span></div>
+        <div class="stat-row"><span class="lbl">${T('lbl_net')}</span><span class="val" style="color:${inc2.net>=0?'#6fbf73':'#e8554a'};font-weight:700">${inc2.net>=0?'+':''}${inc2.net}g</span></div>
         <div class="stat-row"><span class="lbl">${T('lbl_happiness_avg')}</span><span class="val">${inc2.happinessAvg}/100</span></div>
         <div class="stat-row"><span class="lbl">${T('lbl_tech_level')}</span><span class="val">${(me.techLevel||0).toFixed(2)}</span></div>
         <div class="stat-row"><span class="lbl">${T('lbl_research')}</span><span class="val">${Math.floor(me.research||0)}/${techResearchNeeded(me.techLevel||0)}</span></div>
