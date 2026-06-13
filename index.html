@@ -2448,6 +2448,7 @@
       <button class="lens-btn" data-lens="buildings" onclick="setOverlayMode('buildings')"><span class="lens-ic">🏛</span><span data-i18n="overlay_buildings">Buildings</span></button>
       <button class="lens-btn" data-lens="governments" onclick="setOverlayMode('governments')"><span class="lens-ic">⚜</span><span data-i18n="overlay_governments">Governments</span></button>
       </div>
+      <button class="lens-btn" id="spike-btn" onclick="toggleDataSpikes()" title="Population / army / economy as height spikes (works with those lenses)"><span class="lens-ic">📊</span><span data-i18n="overlay_spikes">Data Spikes</span></button>
     </div>
     <button class="screenshot-toggle-btn" id="screenshot-toggle-btn" onclick="toggleScreenshotMode()" data-i18n-title="screenshot_enter">📷</button>
   </div>
@@ -2927,6 +2928,7 @@ en: {
   overlay_population: 'Population',
   overlay_buildings: 'Buildings',
   overlay_governments: 'Governments',
+  overlay_spikes: 'Data Spikes',
   overlay_terrain: 'Terrain',
   sdd_theme: 'MAP STYLE',
   theme_standard: '🌍 STANDARD',
@@ -3836,6 +3838,7 @@ ru: {
   overlay_population: 'Население',
   overlay_buildings: 'Здания',
   overlay_governments: 'Правительства',
+  overlay_spikes: 'Шпили данных',
   overlay_terrain: 'Рельеф',
   sdd_theme: 'СТИЛЬ КАРТЫ',
   theme_standard: '🌍 СТАНДАРТ',
