@@ -1,0 +1,21 @@
+[
+  { "id": "ww2_poland_1939", "icon": "💥", "scope": "world", "trigger": { "year": 1939, "monthIdx": 8 },
+    "title": { "en": "The Invasion of Poland", "ru": "Вторжение в Польшу" },
+    "flavor": { "en": "Blitzkrieg in the east ignites the Second World War.", "ru": "Блицкриг на востоке разжигает Вторую мировую войну." },
+    "autoEffects": [] },
+  { "id": "ww2_fall_france_1940", "icon": "🇫🇷", "scope": "world", "trigger": { "year": 1940, "monthIdx": 5 },
+    "title": { "en": "The Fall of France", "ru": "Падение Франции" },
+    "flavor": { "en": "In six weeks the Wehrmacht does what four years could not in the last war.", "ru": "За шесть недель вермахт делает то, что не удалось за четыре года прошлой войны." },
+    "autoEffects": [] },
+  { "id": "ww2_barbarossa_1941", "icon": "🥶", "scope": "country", "trigger": { "year": 1941, "monthIdx": 5, "nation": "Germany" },
+    "title": { "en": "Operation Barbarossa", "ru": "Операция «Барбаросса»" },
+    "flavor": { "en": "The largest invasion in history rolls east. The fate of the war hangs on the steppe.", "ru": "Крупнейшее вторжение в истории катится на восток." },
+    "choices": [
+      { "label": { "en": "Drive on Moscow", "ru": "Наступать на Москву" }, "effects": [ { "op": "nation.manpower", "target": "self", "delta": -50 }, { "op": "nation.stability", "target": "self", "delta": -8 } ] },
+      { "label": { "en": "Consolidate gains", "ru": "Закрепить успехи" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -40 } ] }
+    ] },
+  { "id": "ww2_pearl_harbor_1941", "icon": "🚢", "scope": "world", "trigger": { "year": 1941, "monthIdx": 11 },
+    "title": { "en": "Pearl Harbor", "ru": "Пёрл-Харбор" },
+    "flavor": { "en": "A surprise strike brings the sleeping giant of America into the war.", "ru": "Внезапный удар втягивает спящего гиганта — Америку — в войну." },
+    "autoEffects": [] }
+]

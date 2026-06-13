@@ -1,0 +1,17 @@
+[
+  { "id": "gun_spanish_succession", "icon": "👑", "scope": "world", "trigger": { "year": 1701, "monthIdx": 4 },
+    "title": { "en": "The War of the Spanish Succession", "ru": "Война за испанское наследство" },
+    "flavor": { "en": "A disputed throne sets the great powers of Europe at one another's throats.", "ru": "Спорный трон сталкивает великие державы Европы." },
+    "autoEffects": [] },
+  { "id": "gun_great_northern", "icon": "❄", "scope": "world", "trigger": { "year": 1700, "monthIdx": 1 },
+    "title": { "en": "The Great Northern War", "ru": "Великая Северная война" },
+    "flavor": { "en": "Russia rises to challenge Sweden's dominion over the Baltic.", "ru": "Россия бросает вызов господству Швеции на Балтике." },
+    "autoEffects": [] },
+  { "id": "gun_aurangzeb", "icon": "🕌", "scope": "country", "trigger": { "year": 1707, "monthIdx": 2, "nation": "Mughal Empire" },
+    "title": { "en": "The Death of Aurangzeb", "ru": "Смерть Аурангзеба" },
+    "flavor": { "en": "Decades of war leave the empire vast but exhausted. The succession is bitter.", "ru": "Десятилетия войн оставляют империю огромной, но истощённой." },
+    "choices": [
+      { "label": { "en": "Centralize power", "ru": "Централизовать власть" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -60 }, { "op": "nation.stability", "target": "self", "delta": 8 } ] },
+      { "label": { "en": "Grant the nobles autonomy", "ru": "Дать знати автономию" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": -10 } ] }
+    ] }
+]

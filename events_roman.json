@@ -1,0 +1,17 @@
+[
+  { "id": "rom_trajan_death", "icon": "🏛", "scope": "world", "trigger": { "year": 117, "monthIdx": 7 },
+    "title": { "en": "Death of Trajan", "ru": "Смерть Траяна" },
+    "flavor": { "en": "The empire reaches its greatest extent — and the question of how to hold it begins.", "ru": "Империя достигает наибольших размеров — и встаёт вопрос, как её удержать." },
+    "autoEffects": [] },
+  { "id": "rom_hadrian_wall", "icon": "🧱", "scope": "country", "trigger": { "year": 122, "monthIdx": 0, "nation": "Roman Empire" },
+    "title": { "en": "Hadrian's Wall", "ru": "Вал Адриана" },
+    "flavor": { "en": "Rather than endless conquest, you fortify the frontier. The empire consolidates.", "ru": "Вместо бесконечных завоеваний вы укрепляете границу." },
+    "choices": [
+      { "label": { "en": "Build the wall (consolidate)", "ru": "Строить вал" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -60 }, { "op": "nation.stability", "target": "self", "delta": 10 } ] },
+      { "label": { "en": "March on (expand)", "ru": "Идти дальше" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": -6 } ] }
+    ] },
+  { "id": "rom_antonine_plague", "icon": "🤒", "scope": "world", "trigger": { "year": 165, "monthIdx": 0 },
+    "title": { "en": "The Antonine Plague", "ru": "Чума Антонинов" },
+    "flavor": { "en": "Returning legions carry a pestilence that ravages the cities of the empire.", "ru": "Возвращающиеся легионы несут чуму, опустошающую города." },
+    "autoEffects": [ { "op": "nation.manpower", "target": "self", "delta": -30 }, { "op": "nation.stability", "target": "self", "delta": -8 } ] }
+]

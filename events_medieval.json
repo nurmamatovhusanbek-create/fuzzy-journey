@@ -1,0 +1,14 @@
+[
+  { "id": "med_first_crusade", "icon": "✝", "scope": "world", "trigger": { "year": 1099, "monthIdx": 6 },
+    "title": { "en": "Jerusalem Falls to the Crusaders", "ru": "Иерусалим взят крестоносцами" },
+    "flavor": { "en": "The First Crusade storms the Holy City, redrawing the politics of the Levant.", "ru": "Первый крестовый поход штурмует Святой город." },
+    "autoEffects": [] },
+  { "id": "med_concordat_worms", "icon": "📜", "scope": "world", "trigger": { "year": 1122, "monthIdx": 8 },
+    "title": { "en": "The Concordat of Worms", "ru": "Вормсский конкордат" },
+    "flavor": { "en": "Pope and Emperor settle the Investiture Controversy — for now.", "ru": "Папа и император улаживают спор об инвеституре." },
+    "autoEffects": [] },
+  { "id": "med_great_schism", "icon": "⛪", "scope": "country", "trigger": { "year": 1100, "monthIdx": 0, "nation": "Byzantine Empire" },
+    "title": { "en": "East and West Divided", "ru": "Раскол Востока и Запада" },
+    "flavor": { "en": "The rift between Constantinople and Rome hardens. Your church stands apart.", "ru": "Раскол между Константинополем и Римом углубляется." },
+    "autoEffects": [ { "op": "nation.stability", "target": "self", "delta": 5 } ] }
+]

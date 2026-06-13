@@ -5485,15 +5485,16 @@ function _flagDevice(nation) {
 function flagFor(nation, year) {
   if (!nation) return '';
   if (_flagManifest && _flagManifest[nation.id]) {
-    const m = _flagManifest[nation.id];
-    let file = m.file;
-    if (m.variants && year != null) { const v = m.variants.find(v => year >= (v.from ?? -1e9) && year <= (v.to ?? 1e9)); if (v) file = v.file; }
-    if (file) return `<img class="tb-flag" src="flags/${file}" alt="">`;
+    let entry = _flagManifest[nation.id];
+    if (entry.variants && year != null) { const v = entry.variants.find(v => year >= (v.from ?? -1e9) && year <= (v.to ?? 1e9)); if (v) entry = v; }
+    if (entry.svg) return entry.svg;                                  // inline SVG (self-contained)
+    if (entry.file) return `<img class="tb-flag" src="flags/${entry.file}" alt="">`;
   }
   if (nation.code) return `<span class="tb-flag-emoji">${flagEmoji(nation.code)}</span>`;
   return _flagDevice(nation);
 }
 window.flagFor = flagFor;
+loadFlagManifest();   // async — populates _flagManifest from flags_manifest.json if present
 
 // Era system
 // incomeBonus = flat gold added per owned province each turn (no multiplier)
@@ -12677,6 +12678,9 @@ function canColonizeV2(nid, pid) {
   });
   if (!adjacent) return false;
   const n = S.nations[nid]; if (!n || n.eliminated) return false;
+  // Era tech gate (discovery/colonization roadmap): can't settle terra incognita
+  // before the era's required technology level. Applies to AI and player alike.
+  if (S._eraColonize && (n.techLevel || 0) < (S._eraColonize.tech || 0)) return false;
   const cost   = colonizeCostV2(pid, nid);
   const regime = V2_REGIMES[n.regime] || V2_REGIMES.monarchy;
   return regime.colonyFree || ((n.gold || 0) >= cost.gold && (n.mp || 0) >= cost.mp);

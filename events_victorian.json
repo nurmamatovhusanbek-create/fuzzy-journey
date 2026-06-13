@@ -1,0 +1,14 @@
+[
+  { "id": "vic_great_exhibition", "icon": "💎", "scope": "country", "trigger": { "year": 1851, "monthIdx": 4, "nation": "British Empire" },
+    "title": { "en": "The Great Exhibition", "ru": "Всемирная выставка" },
+    "flavor": { "en": "The Crystal Palace displays the wonders of industry to the world.", "ru": "Хрустальный дворец являет миру чудеса промышленности." },
+    "autoEffects": [ { "op": "nation.gold", "target": "self", "delta": 50 } ] },
+  { "id": "vic_crimean_war", "icon": "⚔", "scope": "world", "trigger": { "year": 1853, "monthIdx": 9 },
+    "title": { "en": "The Crimean War", "ru": "Крымская война" },
+    "flavor": { "en": "The great powers clash over the dying Ottoman Empire.", "ru": "Великие державы сталкиваются из-за умирающей Османской империи." },
+    "autoEffects": [] },
+  { "id": "vic_scramble_africa", "icon": "🌍", "scope": "world", "trigger": { "year": 1884, "monthIdx": 10 },
+    "title": { "en": "The Scramble for Africa", "ru": "Раздел Африки" },
+    "flavor": { "en": "At Berlin, the powers carve the African interior into colonies on paper.", "ru": "В Берлине державы делят внутреннюю Африку на колонии." },
+    "autoEffects": [] }
+]

@@ -1,0 +1,13 @@
+[
+  { "id": "mod_ai_boom", "icon": "🤖", "scope": "world", "trigger": { "year": 2026, "monthIdx": 0 },
+    "title": { "en": "The Age of Intelligence", "ru": "Эпоха интеллекта" },
+    "flavor": { "en": "Artificial intelligence reshapes economies, militaries and statecraft alike.", "ru": "Искусственный интеллект меняет экономику, армии и управление." },
+    "choices": [
+      { "label": { "en": "Invest heavily", "ru": "Крупные инвестиции" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -80 }, { "op": "nation.mp", "target": "self", "delta": 3 } ] },
+      { "label": { "en": "Proceed with caution", "ru": "Действовать осторожно" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": 4 } ] }
+    ] },
+  { "id": "mod_energy_2030", "icon": "⚡", "scope": "world", "trigger": { "year": 2030, "monthIdx": 0 },
+    "title": { "en": "The Energy Transition", "ru": "Энергетический переход" },
+    "flavor": { "en": "A global shift in how the world is powered redraws the map of wealth and influence.", "ru": "Глобальный сдвиг в энергетике перечерчивает карту богатства и влияния." },
+    "autoEffects": [ { "op": "nation.gold", "target": "self", "delta": 40 } ] }
+]

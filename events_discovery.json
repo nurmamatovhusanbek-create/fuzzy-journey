@@ -1,0 +1,14 @@
+[
+  { "id": "dis_tordesillas", "icon": "🗺", "scope": "world", "trigger": { "year": 1494, "monthIdx": 5 },
+    "title": { "en": "The Treaty of Tordesillas", "ru": "Тордесильясский договор" },
+    "flavor": { "en": "A line drawn on a map divides the unexplored world between two crowns.", "ru": "Линия на карте делит неизведанный мир между двумя коронами." },
+    "autoEffects": [] },
+  { "id": "dis_dagama_india", "icon": "⚓", "scope": "world", "trigger": { "year": 1498, "monthIdx": 4 },
+    "title": { "en": "The Sea Road to India", "ru": "Морской путь в Индию" },
+    "flavor": { "en": "Da Gama rounds Africa and reaches India, breaking the old spice monopolies.", "ru": "Да Гама огибает Африку и достигает Индии." },
+    "autoEffects": [ { "op": "nation.gold", "target": "self", "delta": 30 } ] },
+  { "id": "dis_reformation", "icon": "✝", "scope": "world", "trigger": { "year": 1517, "monthIdx": 9 },
+    "title": { "en": "The Reformation", "ru": "Реформация" },
+    "flavor": { "en": "Ninety-five theses nailed to a church door split Christendom in two.", "ru": "Девяносто пять тезисов раскалывают христианский мир надвое." },
+    "autoEffects": [ { "op": "nation.stability", "target": "self", "delta": -6 } ] }
+]

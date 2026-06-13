@@ -1,0 +1,17 @@
+[
+  { "id": "nap_coronation", "icon": "👑", "scope": "country", "trigger": { "year": 1804, "monthIdx": 11, "nation": "France" },
+    "title": { "en": "Coronation of an Emperor", "ru": "Коронация императора" },
+    "flavor": { "en": "You take the crown from the Pope's hands and place it on your own head.", "ru": "Вы берёте корону из рук Папы и сами возлагаете её на голову." },
+    "autoEffects": [ { "op": "nation.stability", "target": "self", "delta": 8 }, { "op": "nation.manpower", "target": "self", "delta": 30 } ] },
+  { "id": "nap_austerlitz", "icon": "⚔", "scope": "world", "trigger": { "year": 1805, "monthIdx": 11 },
+    "title": { "en": "The Sun of Austerlitz", "ru": "Солнце Аустерлица" },
+    "flavor": { "en": "The War of the Third Coalition is decided on a frozen battlefield.", "ru": "Война третьей коалиции решается на замёрзшем поле." },
+    "autoEffects": [] },
+  { "id": "nap_russia_1812", "icon": "🥶", "scope": "country", "trigger": { "year": 1812, "monthIdx": 5, "nation": "France" },
+    "title": { "en": "The Russian Campaign", "ru": "Русский поход" },
+    "flavor": { "en": "The Grande Armée marches east. Glory and catastrophe await in the snow.", "ru": "Великая армия идёт на восток. В снегах ждут слава и катастрофа." },
+    "choices": [
+      { "label": { "en": "March on Moscow", "ru": "Идти на Москву" }, "effects": [ { "op": "nation.manpower", "target": "self", "delta": -60 }, { "op": "nation.stability", "target": "self", "delta": -12 } ] },
+      { "label": { "en": "Hold the line", "ru": "Держать оборону" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -40 } ] }
+    ] }
+]

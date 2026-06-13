@@ -1,0 +1,17 @@
+[
+  { "id": "tim_ankara", "icon": "☄", "scope": "world", "trigger": { "year": 1402, "monthIdx": 6 },
+    "title": { "en": "The Battle of Ankara", "ru": "Битва при Анкаре" },
+    "flavor": { "en": "Timur shatters the Ottoman army and captures the Sultan, throwing Anatolia into chaos.", "ru": "Тимур разбивает османскую армию и пленяет султана." },
+    "autoEffects": [] },
+  { "id": "tim_death_timur", "icon": "⚰", "scope": "country", "trigger": { "year": 1405, "monthIdx": 1, "nation": "Timurid Empire" },
+    "title": { "en": "The Death of Timur", "ru": "Смерть Тимура" },
+    "flavor": { "en": "The conqueror dies marching on China. His empire must find a new master — or fragment.", "ru": "Завоеватель умирает в походе на Китай." },
+    "choices": [
+      { "label": { "en": "Secure the succession", "ru": "Обеспечить наследование" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -50 }, { "op": "nation.stability", "target": "self", "delta": 6 } ] },
+      { "label": { "en": "Press the campaign", "ru": "Продолжить поход" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": -12 } ] }
+    ] },
+  { "id": "tim_ming_treasure", "icon": "⛵", "scope": "world", "trigger": { "year": 1405, "monthIdx": 5 },
+    "title": { "en": "The Treasure Fleets", "ru": "Флот сокровищ" },
+    "flavor": { "en": "Zheng He's vast fleets sail the Indian Ocean, projecting Ming power across the seas.", "ru": "Огромные флоты Чжэн Хэ бороздят Индийский океан." },
+    "autoEffects": [] }
+]
