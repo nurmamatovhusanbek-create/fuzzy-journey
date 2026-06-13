@@ -501,6 +501,24 @@
     letter-spacing: 0.25em; color: var(--gold); margin: 10px 0 4px;
     padding-bottom: 4px; border-bottom: 1px solid rgba(212,160,23,0.15);
   }
+  /* Collapsible accordion sections — keep the province panel short by default
+     (AoC2-style progressive disclosure). Click a header to expand. */
+  details.sel-acc { margin-top: 8px; border: 1px solid rgba(212,160,23,0.15); border-radius: 5px; background: rgba(255,255,255,0.015); }
+  details.sel-acc > summary {
+    font-family: 'Cinzel', serif; font-weight: 700; font-size: 9px; letter-spacing: 0.22em;
+    color: var(--gold); padding: 7px 9px; cursor: pointer; list-style: none;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  details.sel-acc > summary::-webkit-details-marker { display: none; }
+  details.sel-acc > summary::after { content: '▸'; color: var(--ink-dim); font-size: 10px; transition: transform .15s; }
+  details.sel-acc[open] > summary::after { transform: rotate(90deg); }
+  details.sel-acc > summary:hover { color: var(--gold-bright); }
+  .sel-acc-body { padding: 2px 9px 9px; }
+  .sel-select {
+    width: 100%; margin-top: 4px; padding: 7px; cursor: pointer;
+    background: #0a0e1a; color: var(--ink); border: 1px solid var(--border);
+    border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  }
 
   .btn {
     width: 100%; padding: 8px 10px; margin-top: 6px;
@@ -17784,6 +17802,21 @@ function doFormNationV2UI(formId) {
 window.doFormNationV2UI = doFormNationV2UI;
 
 // ── v2 province info panel ────────────────────────────────────────────────────
+// Collapsible accordion section for the selection panel. Open-state persists
+// across re-renders via window._tbSel (keyed by id), so expanding a section and
+// then acting (which re-renders the panel) doesn't snap it shut.
+window._tbSel = window._tbSel || {};
+function _selAcc(id, title, inner) {
+  const open = window._tbSel[id] ? ' open' : '';
+  return `<details class="sel-acc"${open} ontoggle="window._tbSel['${id}']=this.open"><summary>${title}</summary><div class="sel-acc-body">${inner}</div></details>`;
+}
+// Government dropdown → change to the selected regime.
+function doChangeRegimeFromSelect() {
+  const sel = document.getElementById('gov-select');
+  if (sel && sel.value && typeof doChangeRegimeV2UI === 'function') doChangeRegimeV2UI(sel.value);
+}
+window.doChangeRegimeFromSelect = doChangeRegimeFromSelect;
+
 function renderSelectedPanelV2() {
   const body  = document.getElementById('selected-body');
   const float = document.getElementById('country-float');
@@ -17853,8 +17886,7 @@ function renderSelectedPanelV2() {
     // P12: national economy breakdown + budget sliders (shown once, on any owned province)
     const inc2 = calculateIncomeV2(S.humanId);
     const budget = me.budget || { tax: 50, goods: 20, research: 15, investment: 15 };
-    html += `
-      <div class="sel-section-title">${T('sec_economy')}</div>
+    html += _selAcc('econ', T('sec_economy'), `
       <div class="sel-stats">
         <div class="stat-row"><span class="lbl">${T('lbl_tax')}</span><span class="val">+${inc2.tax}g</span></div>
         <div class="stat-row"><span class="lbl">${T('lbl_production')}</span><span class="val">+${inc2.production}g</span></div>
@@ -17885,24 +17917,26 @@ function renderSelectedPanelV2() {
           </span>
         </div>`;
         }).join('')}
-      </div>`;
-    // P15: government section — current regime + switch-to options (AoC2 §7)
+      </div>`);
+    // P15: government section — current regime + a dropdown of switch-to options
+    // (AoC2 §7), collapsed into an accordion to keep the panel compact.
     {
       const curRegime = V2_REGIMES[me.regime] || V2_REGIMES.monarchy;
       const switchMpCost = V2_CHANGE_GOV_MP * (curRegime.moveCost || 1);
-      html += `
-      <div class="sel-section-title">${T('sec_government')}</div>
-      <div class="sel-stats">
-        <div class="stat-row"><span class="lbl">${T('lbl_current_gov')}</span><span class="val">${T('regime_'+(me.regime||'monarchy'))}</span></div>
-      </div>`;
+      let opts = '';
       for (const key of Object.keys(V2_REGIMES)) {
         if (key === me.regime || key === 'tribal' || key === 'rebels') continue; // tribal/rebels are non-playable (AoC2 §7.2/§13)
         const target = V2_REGIMES[key];
         const eraLocked = (me.era || 0) < (target.availableSinceEra || 0);
         const canSwitch = !eraLocked && canChangeRegimeV2(S.humanId, key);
-        const lockNote = eraLocked ? ` <span class="ap-cost">(${T('lbl_era_required')}: ${T(ERAS[target.availableSinceEra].name)})</span>` : '';
-        html += `<button class="btn" onclick="doChangeRegimeV2UI('${key}')" ${canSwitch?'':'disabled'}>${T('act_change_gov')} ${T('regime_'+key)} <span class="ap-cost">(${V2_CHANGE_GOV_GOLD}g · ${switchMpCost}MP)</span>${lockNote}</button>`;
+        const lockNote = eraLocked ? ` (${T('lbl_era_required')}: ${T(ERAS[target.availableSinceEra].name)})` : '';
+        opts += `<option value="${key}" ${canSwitch?'':'disabled'}>${T('regime_'+key)}${lockNote}</option>`;
       }
+      const govInner = `
+        <div class="stat-row"><span class="lbl">${T('lbl_current_gov')}</span><span class="val">${T('regime_'+(me.regime||'monarchy'))}</span></div>
+        <select id="gov-select" class="sel-select">${opts}</select>
+        <button class="btn" onclick="doChangeRegimeFromSelect()">${T('act_change_gov')} <span class="ap-cost">(${V2_CHANGE_GOV_GOLD}g · ${switchMpCost}MP)</span></button>`;
+      html += _selAcc('gov', T('sec_government'), govInner);
     }
     // P15: build/colonize/relocate MP costs scaled by the regime's moveCost multiplier.
     const _moveCost = (V2_REGIMES[me.regime]||V2_REGIMES.monarchy).moveCost || 1;
@@ -17913,10 +17947,10 @@ function renderSelectedPanelV2() {
     html += `<button class="btn" onclick="doRecruitV2('${S.selectedId}')" ${canRec?'':'disabled'}>⚔ Recruit +20 <span class="ap-cost">(${armCost}g · 40mp · ${recruitMp}MP)</span></button>`;
     // P14: construction queue — show countdown, an upgrade button for the
     // existing building (if not maxed), or the full build menu for an empty plot.
+    let buildInner = '';
     if (p.construction) {
       const cb = V2_BUILDINGS[p.construction.type];
-      html += `<div class="sel-section-title">${T('sec_construction')}</div>
-        <div style="font-size:10px;color:var(--ink-dim);padding:2px 0 6px">${cb.icon} ${cb.levelLabels[p.construction.level-1]} — ${Tpl('lbl_turns_left',{n:p.construction.turnsLeft})}</div>`;
+      buildInner += `<div style="font-size:10px;color:var(--ink-dim);padding:2px 0 6px">${cb.icon} ${cb.levelLabels[p.construction.level-1]} — ${Tpl('lbl_turns_left',{n:p.construction.turnsLeft})}</div>`;
     } else if (p.building) {
       const bld = V2_BUILDINGS[p.building];
       const lvl = p.buildingLevel || 1;
@@ -17927,7 +17961,7 @@ function renderSelectedPanelV2() {
         const mpCost = cost.mp * _moveCost;
         const canB = !techLocked && (me.gold||0) >= cost.gold && (me.mp||0) >= mpCost;
         const lockNote = techLocked ? ` <span class="ap-cost">— ${T('lbl_tech_required')} ${bld.levelTech[idx]}</span>` : '';
-        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${p.building}')" ${canB?'':'disabled'}>${bld.icon} Upgrade to ${bld.levelLabels[idx]} <span class="ap-cost">(${cost.gold}g · ${mpCost}MP)</span>${lockNote}</button>`;
+        buildInner += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${p.building}')" ${canB?'':'disabled'}>${bld.icon} Upgrade to ${bld.levelLabels[idx]} <span class="ap-cost">(${cost.gold}g · ${mpCost}MP)</span>${lockNote}</button>`;
       }
     } else {
       for (const [type, bld] of Object.entries(V2_BUILDINGS)) {
@@ -17936,9 +17970,10 @@ function renderSelectedPanelV2() {
         const mpCost = cost.mp * _moveCost;
         const canB = !techLocked && (me.gold||0) >= cost.gold && (me.mp||0) >= mpCost;
         const lockNote = techLocked ? ` <span class="ap-cost">— ${T('lbl_tech_required')} ${bld.levelTech[0]}</span>` : '';
-        html += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${type}')" ${canB?'':'disabled'}>${bld.icon} Build ${bld.levelLabels[0]} <span class="ap-cost">(${cost.gold}g · ${mpCost}MP — ${bld.effect})</span>${lockNote}</button>`;
+        buildInner += `<button class="btn" onclick="doBuildV2UI('${S.selectedId}','${type}')" ${canB?'':'disabled'}>${bld.icon} Build ${bld.levelLabels[0]} <span class="ap-cost">(${cost.gold}g · ${mpCost}MP — ${bld.effect})</span>${lockNote}</button>`;
       }
     }
+    if (buildInner) html += _selAcc('build', T('sec_construction'), buildInner);
     if (S.selectedId !== me.capital) {
       const relMp = V2_RELOCATE_MP * _moveCost;
       const canRel = (me.gold||0) >= V2_RELOCATE_GOLD && (me.mp||0) >= relMp;
