@@ -5313,6 +5313,11 @@ const BUILDING_LENS_COLOR = {
   fortress:'#c0463a', armory:'#d08a3a', port:'#3aa9b8', market:'#ecc63c',
   watchtower:'#9c8243', supplycamp:'#7a9a3b', library:'#6f8fd0', farm:'#6ba368', workshop:'#b07a4a'
 };
+// Nations get VARIED governments at world init (round-robin), so the world isn't
+// all-monarchy and the Governments lens is meaningful. Player can still switch.
+const REGIME_POOL = ['monarchy','republic','empire','democracy','feudal','communism','fascism','citystate','horde'];
+let _regimeCtr = 0;
+function _pickRegime() { return REGIME_POOL[_regimeCtr++ % REGIME_POOL.length]; }
 function setOverlayMode(mode) {
   if (!OVERLAY_MODES.includes(mode)) return;
   _overlayMode = mode;
@@ -9995,11 +10000,11 @@ function _overlayFillV2(p, nat) {
     }
     case 'population': {
       if (dead) return '#1a2433';
-      return _lerpColor('#1a2433', '#4a90d9', Math.min(1, (p.pop || 0) / _overlayMaxPop));   // dark → blue
+      return _lerpColor('#2a4a6e', '#8fd0ff', Math.min(1, (p.pop || 0) / _overlayMaxPop));   // muted blue → bright (readable on dark globe)
     }
     case 'buildings': {
       if (dead) return '#23262b';
-      return p.building ? (BUILDING_LENS_COLOR[p.building] || '#caa23a') : '#2a2f38';   // built → typed colour, else dim
+      return p.building ? (BUILDING_LENS_COLOR[p.building] || '#caa23a') : '#3c4452';   // built → typed colour, else visible slate
     }
     case 'governments': {
       if (dead) return '#23262b';
@@ -11152,7 +11157,7 @@ function initWorldV2(topo) {
       gold: 45 + Math.floor(Math.random() * 35), manpower: 55 + Math.floor(Math.random() * 40),
       era: 0, tech: { martial: 0, treasury: 0, statecraft: 0 },
       mp: 6, dp: 4, intel: 0, rel: {}, grudges: {},
-      capital: null, regime: 'monarchy',
+      capital: null, regime: _pickRegime(),
       personality: (typeof AI_PERSONALITIES !== 'undefined' && AI_PERSONALITIES.length)
         ? AI_PERSONALITIES[Math.floor(Math.random() * AI_PERSONALITIES.length)].id : 'guardian',
       isHuman: false, eliminated: false,
@@ -11709,7 +11714,7 @@ function applyEraV2(eraData) {
       gold: 45 + Math.floor(Math.random() * 35), manpower: 55 + Math.floor(Math.random() * 40),
       era: 0, tech: { martial: 0, treasury: 0, statecraft: 0 },
       mp: 6, dp: 4, intel: 0, rel: {}, grudges: {},
-      capital: null, regime: 'monarchy',
+      capital: null, regime: _pickRegime(),
       personality: (typeof AI_PERSONALITIES !== 'undefined' && AI_PERSONALITIES.length)
         ? AI_PERSONALITIES[Math.floor(Math.random() * AI_PERSONALITIES.length)].id : 'guardian',
       isHuman: false, eliminated: false,
