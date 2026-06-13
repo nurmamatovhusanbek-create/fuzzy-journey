@@ -2411,6 +2411,9 @@
       <button class="lens-btn" data-lens="military" onclick="setOverlayMode('military')"><span class="lens-ic">⚔</span><span data-i18n="overlay_military">Military</span></button>
       <button class="lens-btn" data-lens="wars" onclick="setOverlayMode('wars')"><span class="lens-ic">🔥</span><span data-i18n="overlay_wars">Wars</span></button>
       <button class="lens-btn" data-lens="stability" onclick="setOverlayMode('stability')"><span class="lens-ic">⚖</span><span data-i18n="overlay_stability">Stability</span></button>
+      <button class="lens-btn" data-lens="population" onclick="setOverlayMode('population')"><span class="lens-ic">👥</span><span data-i18n="overlay_population">Population</span></button>
+      <button class="lens-btn" data-lens="buildings" onclick="setOverlayMode('buildings')"><span class="lens-ic">🏛</span><span data-i18n="overlay_buildings">Buildings</span></button>
+      <button class="lens-btn" data-lens="governments" onclick="setOverlayMode('governments')"><span class="lens-ic">⚜</span><span data-i18n="overlay_governments">Governments</span></button>
     </div>
     <button class="screenshot-toggle-btn" id="screenshot-toggle-btn" onclick="toggleScreenshotMode()" data-i18n-title="screenshot_enter">📷</button>
   </div>
@@ -2887,6 +2890,9 @@ en: {
   overlay_military: 'Military',
   overlay_wars: 'Wars',
   overlay_stability: 'Stability',
+  overlay_population: 'Population',
+  overlay_buildings: 'Buildings',
+  overlay_governments: 'Governments',
   overlay_terrain: 'Terrain',
   sdd_theme: 'MAP STYLE',
   theme_standard: '🌍 STANDARD',
@@ -3769,6 +3775,9 @@ ru: {
   overlay_military: 'Армия',
   overlay_wars: 'Войны',
   overlay_stability: 'Стабильность',
+  overlay_population: 'Население',
+  overlay_buildings: 'Здания',
+  overlay_governments: 'Правительства',
   overlay_terrain: 'Рельеф',
   sdd_theme: 'СТИЛЬ КАРТЫ',
   theme_standard: '🌍 СТАНДАРТ',
@@ -5281,7 +5290,18 @@ window.setMapMode = setMapMode;
 // through their own chosen lens. Default: political (owner colours).
 let _overlayMode = 'political';
 let _overlayMaxArmy = 1;   // recomputed per draw for the military heatmap
-const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'wars', 'stability'];
+const OVERLAY_MODES = ['political', 'diplomatic', 'economic', 'military', 'wars', 'stability', 'population', 'buildings', 'governments'];
+let _overlayMaxPop = 1;   // recomputed per draw for the population heatmap
+// Lens palettes (AOC2-style map modes, Terra Bellum colours).
+const REGIME_LENS_COLOR = {
+  tribal:'#7a6a4a', feudal:'#8a6d3b', monarchy:'#c79a3a', republic:'#4a86c4',
+  empire:'#9c3f5a', democracy:'#3fb56b', communism:'#c0463a', fascism:'#5a5f6b',
+  horde:'#b5803a', citystate:'#3aa9b8', rebels:'#888'
+};
+const BUILDING_LENS_COLOR = {
+  fortress:'#c0463a', armory:'#d08a3a', port:'#3aa9b8', market:'#ecc63c',
+  watchtower:'#9c8243', supplycamp:'#7a9a3b', library:'#6f8fd0', farm:'#6ba368', workshop:'#b07a4a'
+};
 function setOverlayMode(mode) {
   if (!OVERLAY_MODES.includes(mode)) return;
   _overlayMode = mode;
@@ -9962,6 +9982,18 @@ function _overlayFillV2(p, nat) {
       const stab = Math.max(0, Math.min(100, p.stability != null ? p.stability : 70));
       return _lerpColor('#c0463a', '#46b56b', stab / 100);   // red(unrest) → green(stable)
     }
+    case 'population': {
+      if (dead) return '#1a2433';
+      return _lerpColor('#1a2433', '#4a90d9', Math.min(1, (p.pop || 0) / _overlayMaxPop));   // dark → blue
+    }
+    case 'buildings': {
+      if (dead) return '#23262b';
+      return p.building ? (BUILDING_LENS_COLOR[p.building] || '#caa23a') : '#2a2f38';   // built → typed colour, else dim
+    }
+    case 'governments': {
+      if (dead) return '#23262b';
+      return REGIME_LENS_COLOR[nat.regime] || '#566079';
+    }
     case 'political':
     default:
       return dead ? '#39404e' : nat.color;
@@ -10588,6 +10620,14 @@ function drawGlobe(targetCtx, targetCanvas, targetPath, highlightSelected = true
         const cc = S.countries[f.id];
         if (cc && cc.army > _overlayMaxArmy) _overlayMaxArmy = cc.army;
       }
+    }
+  }
+  // Population lens: normalise against the most-populous province in play (v2 only).
+  if (_overlayMode === 'population' && S.v2) {
+    _overlayMaxPop = 1;
+    for (const f of S.features) {
+      const pr = S.provinces[f.id];
+      if (pr && pr.pop > _overlayMaxPop) _overlayMaxPop = pr.pop;
     }
   }
   // Wars lens: group nations into conflicts so each war gets its own colour.
@@ -18596,9 +18636,9 @@ function onGameKey(e) {
     }
     return;
   }
-  // 1-6 = switch map lens
-  if (e.key >= '1' && e.key <= '6') {
-    const lens = ['political','diplomatic','economic','military','wars','stability'][+e.key - 1];
+  // 1-9 = switch map lens
+  if (e.key >= '1' && e.key <= '9') {
+    const lens = ['political','diplomatic','economic','military','wars','stability','population','buildings','governments'][+e.key - 1];
     if (lens && typeof setOverlayMode === 'function') { e.preventDefault(); setOverlayMode(lens); }
     return;
   }
