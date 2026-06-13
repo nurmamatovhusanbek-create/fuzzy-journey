@@ -3463,6 +3463,9 @@ en: {
   v2sc_roman_name:    'ROMAN EMPIRE',
   v2sc_roman_badge:   'CLASSICAL ERA · 117 AD',
   v2sc_roman_desc:    'Begin at the height of Roman power under Trajan. Most of Europe, North Africa and the Near East are united under Rome — country borders are used as an approximation of the provincial frontier.',
+  v2sc_ww1_name:      'THE GREAT WAR',
+  v2sc_ww1_badge:     'WORLD WAR I · 1914',
+  v2sc_ww1_desc:      'The eve of the First World War. True 1914 powers — the German Empire, Austria-Hungary, the Ottoman Empire, the Russian, British and French Empires — with borders sampled province-by-province from the historical map.',
   glog_v2_scenario_start: 'The chronicle begins: {v0}, {v1}.',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_recruit:      '+ RECRUIT',
@@ -4761,6 +4764,9 @@ ru: {
   v2sc_roman_name:    'РИМСКАЯ ИМПЕРИЯ',
   v2sc_roman_badge:   'КЛАССИЧЕСКАЯ ЭПОХА · 117 Г. Н.Э.',
   v2sc_roman_desc:    'Начните на пике могущества Рима при Траяне. Большая часть Европы, Северной Африки и Ближнего Востока объединена под властью Рима — современные границы стран используются как приближение провинциальных рубежей.',
+  v2sc_ww1_name:      'ВЕЛИКАЯ ВОЙНА',
+  v2sc_ww1_badge:     'ПЕРВАЯ МИРОВАЯ · 1914 Г.',
+  v2sc_ww1_desc:      'Канун Первой мировой войны. Подлинные державы 1914 года — Германская империя, Австро-Венгрия, Османская империя, Российская, Британская и Французская империи — с границами, восстановленными по исторической карте провинция за провинцией.',
   glog_v2_scenario_start: 'Хроника начинается: {v0}, {v1}.',
   // ── Action buttons ───────────────────────────────────────────────────────
   act_reduce_army:  'СОКРАТИТЬ АРМИЮ ДО',
@@ -11575,6 +11581,14 @@ const V2_SCENARIOS = [
       'SVN','HRV','BIH','SRB','MNE','ALB','MKD','GRC','BGR','ROU','TUR',
       'SYR','LBN','ISR','JOR','EGY','LBY','TUN','DZA','MAR','MLT','CYP'],
   },
+  {
+    // Era scenario: replaces the whole roster with true 1914 historical nations
+    // (German Empire, Austria-Hungary, Ottoman, Russian/British Empires, …),
+    // borders sampled province-by-province from maps/ww1.topojson.
+    id: 'ww1', name: 'v2sc_ww1_name', icon: '🪖', badge: 'v2sc_ww1_badge',
+    description: 'v2sc_ww1_desc', year: 1914, monthIdx: 0,
+    eraFile: 'ww1',
+  },
 ];
 
 // Reassign every province whose `homeNation` is in `sc.memberNations` to
@@ -11603,6 +11617,83 @@ function applyV2ScenarioPainting(scenarioId) {
 }
 window.V2_SCENARIOS = V2_SCENARIOS;
 window.applyV2ScenarioPainting = applyV2ScenarioPainting;
+
+// ── Era scenarios: TRUE historical nations ────────────────────────────────────
+// Unlike applyV2ScenarioPainting (modern roster, one empire repaint), an era
+// scenario REPLACES the whole nation roster with historical powers sampled from
+// the era's real borders (maps/era_<id>.json, built offline by eramaps-build/
+// sample-era.js). Each province is retagged to its historical owner and S.nations
+// is rebuilt — so the existing v2 economy/AI/diplomacy/saves all run unchanged,
+// just over a different (period-accurate) set of nations.
+let _eraDataCache = {};
+function loadEraV2(eraId, cb) {
+  if (_eraDataCache[eraId]) { cb(_eraDataCache[eraId]); return; }
+  fetch('maps/era_' + eraId + '.json')
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(data => { _eraDataCache[eraId] = data; cb(data); })
+    .catch(e => { console.error('era map fetch failed', eraId, e); cb(null); });
+}
+window.loadEraV2 = loadEraV2;
+
+function applyEraV2(eraData) {
+  if (!eraData || !eraData.prov) return false;
+  const provMap = eraData.prov, natMeta = eraData.nations || {};
+  // 1. Retag every province to its historical owner (uncovered → neutral).
+  for (const pid in S.provinces) {
+    const slug = provMap[pid] || null;
+    const p = S.provinces[pid];
+    p.nation = slug; p.homeNation = slug; p.capital = false;
+    p.occupiedBy = null; p.occTurns = 0;
+  }
+  // 2. Rebuild the nation roster from the historical powers present.
+  S.nations = {}; S._provByNation = null;
+  let seed = 11;
+  const present = {};
+  for (const pid in provMap) present[provMap[pid]] = true;
+  for (const slug in present) {
+    const meta = natMeta[slug] || {};
+    S.nations[slug] = {
+      id: slug, name: meta.name || slug,
+      color: meta.color || genColor(seed++),
+      gold: 45 + Math.floor(Math.random() * 35), manpower: 55 + Math.floor(Math.random() * 40),
+      era: 0, tech: { martial: 0, treasury: 0, statecraft: 0 },
+      mp: 6, dp: 4, intel: 0, rel: {}, grudges: {},
+      capital: null, regime: 'monarchy',
+      personality: (typeof AI_PERSONALITIES !== 'undefined' && AI_PERSONALITIES.length)
+        ? AI_PERSONALITIES[Math.floor(Math.random() * AI_PERSONALITIES.length)].id : 'guardian',
+      isHuman: false, eliminated: false,
+      warTurns: {}, warScore: {}, warGoal: {},
+      budget: { tax: 50, goods: 20, research: 15, investment: 15 },
+      techLevel: 0.1 + Math.random() * 0.3, research: 0,
+      overlord: null, vassals: [], tribute: 0, libertyDesire: 0, formedAs: null,
+      _capCity: Array.isArray(meta.cap) ? meta.cap : null   // [lon,lat], snapped below
+    };
+  }
+  // 3. Capital = nearest province to the authored capital city; else the
+  //    most-connected province (initWorldV2's heuristic). Empty nations → stub.
+  for (const nid in S.nations) {
+    const provs = nationProvinces(nid);
+    if (!provs.length) { S.nations[nid].eliminated = true; delete S.nations[nid]._capCity; continue; }
+    let cap = null;
+    const cc = S.nations[nid]._capCity;
+    if (cc) {
+      let bd = Infinity;
+      for (const pid of provs) {
+        const pp = S.provinces[pid]; if (pp.lon == null || pp.lat == null) continue;
+        const d = _gcDist([cc[0], cc[1]], [pp.lon, pp.lat]);
+        if (d < bd) { bd = d; cap = pid; }
+      }
+    }
+    if (!cap) { let best = -1; cap = provs[0]; for (const pid of provs) { const d = (S.provinces[pid].neighbors || []).length; if (d > best) { best = d; cap = pid; } } }
+    S.nations[nid].capital = cap;
+    S.provinces[cap].capital = true;
+    delete S.nations[nid]._capCity;
+  }
+  if (eraData.year != null) S.year = eraData.year;
+  if (typeof markBordersDirty === 'function') markBordersDirty();
+  return true;
+}
+window.applyEraV2 = applyEraV2;
 
 // ── v2 income aggregation ─────────────────────────────────────────────────────
 // P12: gold per radian of great-circle distance from the capital, before regime.adminCost
@@ -12877,6 +12968,22 @@ function showV2ScenarioPicker() {
   confirm.onclick = () => {
     if (!chosen) return;
     S.activeV2Scenario = chosen;
+    const sc = V2_SCENARIOS.find(s => s.id === chosen);
+    if (sc && sc.eraFile) {
+      // Era scenario → async-load the historical roster, then enter nation pick.
+      confirm.disabled = true;
+      const prevTxt = confirm.textContent;
+      confirm.textContent = '⏳ …';
+      loadEraV2(sc.eraFile, (data) => {
+        if (data && applyEraV2(data)) { enterProvinceModeNationPick(); }
+        else {
+          // Fetch failed → fall back to the modern baseline so setup still works.
+          confirm.disabled = false; confirm.textContent = prevTxt;
+          applyV2ScenarioPainting('modern'); enterProvinceModeNationPick();
+        }
+      });
+      return;
+    }
     applyV2ScenarioPainting(chosen);
     enterProvinceModeNationPick();
   };
