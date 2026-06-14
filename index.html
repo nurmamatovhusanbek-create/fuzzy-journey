@@ -10699,7 +10699,7 @@ function _drawDataSpikes(ctx, proj) {
     const x = val(f.id); const norm = x / max; if (norm < 0.03) continue;   // skip negligible
     if (isGlobe) { const cd = vcSin * Math.sin(lat * D) + vcCos * Math.cos(lat * D) * Math.cos((lon - vcLon) * D); if (cd < 0.02) continue; }
     const pt = proj([lon, lat]); if (!pt || isNaN(pt[0])) continue;
-    const h = 5 + Math.sqrt(norm) * 46, w = 1.5, x0 = pt[0], y0 = pt[1];
+    const h = 4 + Math.sqrt(norm) * 24, w = 3, x0 = pt[0], y0 = pt[1];
     // tapered spike with a base→bright-tip gradient (reads as a glowing column)
     const g = ctx.createLinearGradient(x0, y0, x0, y0 - h);
     g.addColorStop(0, color + '22'); g.addColorStop(0.45, color); g.addColorStop(1, '#ffffff');
@@ -10708,7 +10708,7 @@ function _drawDataSpikes(ctx, proj) {
     ctx.globalAlpha = 0.95; ctx.fillStyle = g; ctx.fill();
     // base anchor dot
     ctx.globalAlpha = 0.9; ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(x0, y0, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x0, y0, 2.5, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
 }

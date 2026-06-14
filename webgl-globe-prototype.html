@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terra Bellum — WebGL Globe Prototype (globe.gl)</title>
+<style>
+  :root { --gold:#d4a017; --gold-bright:#f3c552; --ink:#e8dccc; --ink-dim:#8a91a0; --bg:#060a14; --border:rgba(212,160,23,0.25); }
+  * { box-sizing: border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:ui-monospace,'JetBrains Mono',monospace; overflow:hidden; }
+  #globeViz { position:fixed; inset:0; }
+  .panel { position:fixed; background:rgba(8,12,22,0.82); backdrop-filter:blur(6px); border:1px solid var(--border); border-radius:8px; z-index:10; }
+  #brand { top:12px; left:14px; padding:8px 12px; font-weight:900; letter-spacing:.28em; color:var(--gold); font-size:13px; }
+  #brand small { display:block; color:var(--ink-dim); font-weight:600; letter-spacing:.12em; font-size:8.5px; margin-top:3px; }
+  #lenses { top:62px; right:14px; padding:8px; display:flex; flex-direction:column; gap:3px; width:172px; }
+  #lenses .ttl { font-size:8.5px; letter-spacing:1px; color:var(--ink-dim); padding:1px 4px 4px; }
+  .lbtn { display:flex; align-items:center; gap:7px; background:transparent; border:1px solid transparent; border-radius:5px; color:var(--ink-dim); cursor:pointer; font:600 10px/1 inherit; letter-spacing:.4px; padding:5px 8px; text-align:left; }
+  .lbtn:hover { background:rgba(212,160,23,.10); color:var(--ink); }
+  .lbtn.active { background:rgba(212,160,23,.18); color:var(--gold-bright); border-color:rgba(212,160,23,.4); }
+  .lbtn .ic { width:14px; text-align:center; }
+  #lenses select { width:100%; margin-top:6px; padding:5px; background:#0a0e1a; color:var(--ink); border:1px solid var(--border); border-radius:5px; font:600 10px/1 inherit; cursor:pointer; }
+  #info { bottom:14px; left:14px; padding:10px 12px; width:240px; display:none; }
+  #info .nm { font-family:'Cinzel',serif; font-size:13px; color:var(--gold-bright); letter-spacing:.08em; }
+  #info .ow { font-size:10px; color:var(--ink-dim); margin:3px 0 8px; }
+  #info .row { display:flex; justify-content:space-between; font-size:10px; padding:2px 0; }
+  #info .row .v { color:#fff; font-weight:700; }
+  #fps { bottom:14px; right:14px; padding:6px 10px; font-size:10px; color:var(--gold); }
+  #legend { bottom:14px; left:50%; transform:translateX(-50%); padding:8px 12px; width:180px; }
+  /* diagnostic / status overlay — centred, always visible until 'ready' */
+  #status { top:50%; left:50%; transform:translate(-50%,-50%); padding:16px 22px; min-width:320px; max-width:80vw; font-size:12px; line-height:1.7; }
+  #status h3 { margin:0 0 8px; color:var(--gold-bright); font-size:13px; letter-spacing:.1em; }
+  #status .ln { color:var(--ink-dim); } #status .ok { color:#6fbf73; } #status .bad { color:#e8554a; }
+  .tag { display:inline-block; padding:1px 6px; border-radius:3px; font-size:8.5px; font-weight:700; letter-spacing:.06em; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2/dist/globe.gl.min.js"></script>
+</head>
+<body>
+  <div id="globeViz"></div>
+  <div class="panel" id="brand">TERRA BELLUM<small>WEBGL GLOBE PROTOTYPE · globe.gl</small></div>
+  <div class="panel" id="lenses" style="display:none">
+    <div class="ttl">MAP VIEW</div>
+    <button class="lbtn active" data-lens="political"><span class="ic">🗺</span>Political</button>
+    <button class="lbtn" data-lens="population"><span class="ic">👥</span>Population (3D)</button>
+    <button class="lbtn" data-lens="development"><span class="ic">💰</span>Development (3D)</button>
+    <button class="lbtn" data-lens="military"><span class="ic">⚔</span>Military (3D)</button>
+    <select id="era"><option value="">— Modern (provinces) —</option></select>
+  </div>
+  <div class="panel" id="info"></div>
+  <div class="panel" id="fps" style="display:none">-- fps</div>
+  <div class="panel" id="legend" style="display:none"></div>
+  <div class="panel" id="status"><h3>WebGL Globe — starting…</h3><div id="slog"></div></div>
+
+<script>
+const S = { lens:'political', features:[], stat:{}, natColor:{}, eraNations:null, max:1, world:null };
+const slog = (msg, cls) => { const d=document.getElementById('slog'); d.innerHTML += `<div class="ln ${cls||''}">${msg}</div>`; };
+const fail = (msg) => { document.querySelector('#status h3').textContent='⚠ Problem'; slog(msg,'bad'); };
+window.addEventListener('error', e => fail('JS error: '+(e.message||e)+(e.filename?(' @ '+e.filename.split('/').pop()+':'+e.lineno):'')));
+
+const ERAS = ['ancient','roman','medieval','mongol','timurid','discovery','gunpowder','napoleonic','victorian','ww1','ww2','coldwar'];
+function hash01(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return ((h>>>0)%100000)/100000; }
+function natColor(slug){
+  if (S.eraNations && S.eraNations[slug] && S.eraNations[slug].color) return S.eraNations[slug].color;
+  if (S.natColor[slug]) return S.natColor[slug];
+  const h=Math.floor(hash01(slug)*360), s=58+Math.floor(hash01(slug+'s')*22), l=52+Math.floor(hash01(slug+'l')*10);
+  return (S.natColor[slug]=`hsl(${h},${s}%,${l}%)`);
+}
+function lerpHex(a,b,t){ const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16); const ar=pa>>16,ag=(pa>>8)&255,ab=pa&255,br=pb>>16,bg=(pb>>8)&255,bb=pb&255; const r=Math.round(ar+(br-ar)*t),g=Math.round(ag+(bg-ag)*t),c=Math.round(ab+(bb-ab)*t); return '#'+((1<<24)|(r<<16)|(g<<8)|c).toString(16).slice(1); }
+function statOf(f){ return S.stat[f.id]||{pop:0,dev:1,army:0}; }
+function lensValue(f){ const s=statOf(f); return S.lens==='population'?s.pop:S.lens==='military'?s.army:S.lens==='development'?s.dev:0; }
+function recomputeMax(){ S.max=1; if(S.lens==='political')return; if(S.lens==='development'){S.max=5;return;} for(const f of S.features){const v=lensValue(f); if(v>S.max)S.max=v;} }
+function capColor(f){
+  if(!f.properties.nation) return 'rgba(64,70,84,0.55)';
+  if(S.lens==='political') return natColor(f.properties.nation);
+  const n=Math.min(1,lensValue(f)/S.max);
+  if(S.lens==='population')  return lerpHex('#1d3a5c','#7ec8ff',Math.sqrt(n));
+  if(S.lens==='development') return lerpHex('#2c3320','#ecc63c',n);
+  if(S.lens==='military')    return lerpHex('#2a1d1d','#ff6a4a',Math.sqrt(n));
+  return natColor(f.properties.nation);
+}
+function altOf(f){ if(S.lens==='political'||!f.properties.nation) return 0.006; return 0.008+Math.sqrt(Math.min(1,lensValue(f)/S.max))*0.30; }
+function repaint(){ recomputeMax(); S.world.polygonAltitude(altOf).polygonCapColor(capColor); updateLegend(); }
+
+function boot(){
+  if (typeof Globe === 'undefined') return fail('globe.gl did NOT load (CDN blocked / offline). Serve the page and allow cdn.jsdelivr.net.');
+  if (typeof topojson === 'undefined') return fail('topojson-client did NOT load from CDN.');
+  slog('libraries loaded','ok');
+  const src = window.__PROV__
+    ? (slog('using embedded map data','ok'), Promise.resolve(window.__PROV__))
+    : (slog('fetching maps/provinces.topojson …'), fetch('maps/provinces.topojson').then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }));
+  src.then(topo=>{
+    const fc = topojson.feature(topo, topo.objects.countries);
+    S.features = fc.features.filter(f=>f.geometry);
+    slog('map loaded: '+S.features.length+' provinces','ok');
+    for(const f of S.features){ const id=f.id||''; S.stat[id]={pop:50+Math.floor(hash01(id+'p')*220),dev:1+Math.floor(hash01(id+'d')*5),army:hash01(id+'a')>0.7?Math.floor(hash01(id+'a2')*200):0}; }
+    const sel=document.getElementById('era'); for(const e of ERAS){const o=document.createElement('option');o.value=e;o.textContent='Era: '+e;sel.appendChild(o);} sel.onchange=()=>loadEra(sel.value);
+    slog('creating WebGL globe …');
+    S.world = new Globe(document.getElementById('globeViz'))
+      .backgroundColor('#04060d').showGlobe(true)
+      .backgroundImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
+      .showAtmosphere(true).atmosphereColor('#5b8def').atmosphereAltitude(0.28)
+      .polygonsData(S.features).polygonAltitude(altOf).polygonCapColor(capColor)
+      .polygonSideColor(()=>'rgba(50,90,170,0.30)').polygonStrokeColor(()=>'rgba(255,255,255,0.10)')
+      .polygonLabel(({properties:p})=>`<div style="background:rgba(8,12,22,0.92);border:1px solid #b8902a;border-radius:6px;padding:6px 9px;font:600 11px monospace;color:#e8dccc"><b style="color:#f3c552">${p.name||'?'}</b><br><span style="color:#8a91a0">${p.nationName||p.nation||'Neutral'}</span></div>`)
+      .onPolygonHover(h=>{ S.world.polygonCapColor(d=>d===h?'#ffffff':capColor(d)); })
+      .onPolygonClick(showInfo)
+      .ringColor(()=>(t=>`rgba(243,197,82,${(1-t).toFixed(2)})`)).ringMaxRadius(5).ringPropagationSpeed(4).ringRepeatPeriod(99999)
+      .polygonsTransitionDuration(260);
+    try{ const m=S.world.globeMaterial(); m.color.set('#0a1626'); m.emissive.set('#0a1a36'); m.emissiveIntensity=0.45; m.shininess=8; }catch(e){}
+    S.world.pointOfView({lat:25,lng:15,altitude:2.2},0);
+    try{ const c=S.world.controls(); c.autoRotate=true; c.autoRotateSpeed=0.34; c.enableDamping=true; c.dampingFactor=0.12; }catch(e){}
+    document.querySelectorAll('.lbtn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.lbtn').forEach(x=>x.classList.toggle('active',x===b));S.lens=b.dataset.lens;repaint();});
+    document.getElementById('status').style.display='none';
+    document.getElementById('lenses').style.display='flex';
+    document.getElementById('fps').style.display='block';
+    startFps();
+  }).catch(e=>fail('map fetch failed: '+e+'  — you must SERVE the folder over http (file:// blocks fetch). Run: python -m http.server, then open http://localhost:8000/webgl-globe-prototype.html'));
+}
+function loadEra(id){
+  if(!id){ for(const f of S.features){ if(f.properties._mn!==undefined){f.properties.nation=f.properties._mn;f.properties.nationName=f.properties._mnn;} } S.eraNations=null; repaint(); return; }
+  fetch('maps/era_'+id+'.json').then(r=>r.json()).then(era=>{
+    S.eraNations=era.nations||{}; const disc=new Set(era.discoverable||[]);
+    for(const f of S.features){ if(f.properties._mn===undefined){f.properties._mn=f.properties.nation;f.properties._mnn=f.properties.nationName;} const slug=era.prov[f.id]||null; f.properties.nation=slug; f.properties.nationName=slug?(era.nations[slug]?.name||slug):(disc.has(f.id)?'Terra Incognita':'Neutral'); }
+    repaint();
+  }).catch(e=>{ alert('Era data needs the page served over http (it fetches maps/era_'+id+'.json). Showing the embedded modern map.'); });
+}
+function showInfo(f){ const el=document.getElementById('info'); if(!f){el.style.display='none';return;} const p=f.properties,s=statOf(f);
+  el.innerHTML=`<div class="nm">${p.name||'?'}</div><div class="ow"><span class="tag" style="background:${p.nation?capColor(f):'#444'};color:#0a0e14">${p.nationName||p.nation||'NEUTRAL'}</span></div><div class="row"><span>Population</span><span class="v">${s.pop}</span></div><div class="row"><span>Development</span><span class="v">${s.dev}/5</span></div><div class="row"><span>Army</span><span class="v">${s.army}</span></div>`;
+  el.style.display='block';
+  // one-shot ripple ring at the clicked province
+  if(p.lon!=null){ S.world.ringsData([{lat:p.lat,lng:p.lon}]); clearTimeout(S._ringT); S._ringT=setTimeout(()=>{ try{S.world.ringsData([]);}catch(e){} },1600); }
+}
+function updateLegend(){
+  const el=document.getElementById('legend');
+  const grads={ population:['#1d3a5c','#7ec8ff','POPULATION'], development:['#2c3320','#ecc63c','DEVELOPMENT'], military:['#2a1d1d','#ff6a4a','ARMY'] };
+  const g=grads[S.lens];
+  if(!g){ el.style.display='none'; return; }
+  el.innerHTML=`<div style="font-size:8.5px;letter-spacing:1px;color:#8a91a0;margin-bottom:4px">${g[2]} · taller = more</div><div style="height:8px;border-radius:4px;background:linear-gradient(90deg,${g[0]},${g[1]})"></div><div style="display:flex;justify-content:space-between;font-size:8px;color:#8a91a0;margin-top:2px"><span>low</span><span>high</span></div>`;
+  el.style.display='block';
+}
+function startFps(){ let last=performance.now(),fr=0; (function loop(t){fr++; if(t-last>=500){document.getElementById('fps').textContent=Math.round(fr*1000/(t-last))+' fps';fr=0;last=t;} requestAnimationFrame(loop);})(performance.now()); }
+
+if (document.readyState!=='loading') boot(); else window.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>

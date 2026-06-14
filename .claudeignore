@@ -1,0 +1,34 @@
+# .claudeignore — paths that don't need Claude's attention for normal
+# Terra Bellum work (audits, bugfixes, P-phase features on index.html).
+# Re-include (remove the line) if a future task specifically targets these.
+
+# --- Build tooling / generated data (never hand-edited) ---
+eramaps-build/
+Earth/
+maps/*.topojson
+.git/
+
+# --- Superseded / historical docs (decisions already made or done) ---
+roadmap-province-v2.md
+roadmap  v2.md
+roadmap-maps.md
+roadmap-era-borders.md
+era mapping.md
+gen-ru.md
+gen-ru-grammar.md
+gen-translate.md
+i18n-fix.md
+i18n-gaps.md
+research-provinces-colonization-events.md
+research-terrain-and-perf.md
+
+# --- Standalone prototypes / old game versions (separate from index.html) ---
+terra_bellum_mpaudit.html
+commanders.html
+traits1.html
+traits2.html
+_i18n_scan.py
+
+# --- Stray temp/debris files ---
+testfile*.tmp
+_synctest.txt
