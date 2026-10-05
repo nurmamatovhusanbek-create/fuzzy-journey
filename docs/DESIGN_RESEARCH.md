@@ -30,4 +30,20 @@ Criteria: matches theme (history, maps), distinctive, readable (contrast), cheap
 the parchment map theme.
 **Chosen B**: documents are paper (sheet, chit, wax), furniture is umber leather and brass. Fallback: A (git history).
 
+## Q2 result — army glyph (prototype E vs. shield)
+Prototyped both with `tests/ui_plaque.gd` (TB_PLAQUE=0 shield, 1 paper gonfalon) at zoom 1.6 / 3 / 6 / 12 on the standard map.
+Shield: strong contrast but a dark lozenge repeated 40× reads as noise and has nothing to do with the paper interface.
+Gonfalon (cream cloth, owner-colour header, ink figures, swallow-tail hem, brass studs = rank, red hem at war, grey for foreign):
+most legible digits on every lens, consistent with the sheets. **Chosen: gonfalon** (`plaque_style` 1). Fallback: shield
+(`TB_PLAQUE=0`). Distance behaviour is unchanged: zoom-level disclosure (stars → key stacks → all).
+
+## Q4 — Things that overlap
+Map text (province names, stars, plaques) used to run under the dock, the ribbon, the End-Turn seal and the side panel.
+Chosen: the HUD publishes the rectangles it covers (`TBHud.keepouts` → `TBMapView.keepout_fn`) and every label pass treats them
+as occupied space. No label is drawn where the interface would hide it.
+
+## Q5 — Panel actions
+Wrapped rows of different-width buttons looked ragged and the panel overflowed when two columns were forced. Chosen: one
+column of full-width buttons (clear tap targets, no overflow at any width); figures follow below.
+
 (continued below as decisions are made)

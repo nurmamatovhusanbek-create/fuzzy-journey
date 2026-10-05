@@ -104,6 +104,15 @@ func build() -> void:
 	_ribbon.resized.connect(_place_portrait_toasts)
 	layout_for(get_viewport_rect().size)
 
+## rectangles (global) the HUD occupies on the map: labels avoid them
+func keepouts() -> Array:
+	var out: Array = []
+	if not visible: return out
+	if _ribbon != null: out.append(_ribbon.get_global_rect())
+	if _seal != null: out.append(_seal.get_global_rect().grow(4.0))
+	if _dock != null: out.append(Rect2(_dock.global_position, _dock.get_combined_minimum_size()).grow(4.0))
+	return out
+
 ## landscape: dock runs down the left edge; portrait: along the bottom beside the seal
 func layout_for(vp: Vector2) -> void:
 	if _dock == null: return

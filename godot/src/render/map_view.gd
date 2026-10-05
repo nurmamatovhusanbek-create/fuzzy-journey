@@ -38,6 +38,8 @@ var render_scale := 1.0        # SubViewport resolution relative to the control'
 var _vp: SubViewport
 var _view_tex: TextureRect
 var labels: TBMapLabels
+## global rectangles the interface covers (dock, seal, ribbon, panel): labels keep out of them
+var keepout_fn: Callable
 var _mat: ShaderMaterial
 var _rect: ColorRect
 var _ids_tex: ImageTexture

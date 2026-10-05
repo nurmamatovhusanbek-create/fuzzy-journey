@@ -39,6 +39,10 @@ func _ready() -> void:
 	sfx = TBAudio.new(); add_child(sfx); sfx.enabled = cfg.get("sound", true)
 	hud = TBHud.new(); add_child(hud); hud.visible = false
 	panel = TBProvincePanel.new(); add_child(panel)
+	map.keepout_fn = func() -> Array:
+		var r: Array = hud.keepouts()
+		if panel.visible: r.append(panel.get_global_rect())
+		return r
 	panel.command.connect(_on_command); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)

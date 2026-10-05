@@ -30,21 +30,50 @@ func add_fx(kind: String, from: int, to: int, col: Color, delay_ms: int = 0) -> 
 	_fx.append({"kind": kind, "from": from, "to": to, "col": col, "t0": Time.get_ticks_msec() + delay_ms, "dur": 700 if kind == "atk" else 900})
 	queue_redraw()
 
+var _core_sig := -1
+var _core_v := PackedVector3Array()
+var _core_n := PackedInt32Array()
+
+## the label anchor of each nation: the centroid of its main body (provinces within ~30 degrees of the province nearest the overall
+## centroid), so overseas colonies do not drag the name into the ocean. Rebuilt only when ownership changed.
+func _rebuild_cores() -> void:
+	var sig := 0
+	for p in g.P: sig = (sig * 31 + g.owner[p] + p) & 0x3fffffff
+	if sig == _core_sig and _core_v.size() == g.N1: return
+	_core_sig = sig
+	var n1 := g.N1
+	var sum := PackedVector3Array(); sum.resize(n1)
+	_core_n = PackedInt32Array(); _core_n.resize(n1)
+	for p in g.P:
+		var o := g.owner[p]
+		if o == 0: continue
+		sum[o] += _unit[p]; _core_n[o] += 1
+	var best := PackedInt32Array(); best.resize(n1); best.fill(-1)
+	var bd := PackedFloat32Array(); bd.resize(n1); bd.fill(-2.0)
+	for n in range(1, n1):
+		sum[n] = sum[n].normalized() if sum[n].length() > 0.0001 else Vector3.ZERO
+	for p in g.P:
+		var o := g.owner[p]
+		if o == 0 or sum[o] == Vector3.ZERO: continue
+		var d := _unit[p].dot(sum[o])
+		if d > bd[o]: bd[o] = d; best[o] = p
+	var core := PackedVector3Array(); core.resize(n1)
+	for p in g.P:
+		var o := g.owner[p]
+		if o == 0 or best[o] < 0: continue
+		if _unit[p].dot(_unit[best[o]]) > 0.866: core[o] += _unit[p]
+	for n in range(1, n1):
+		core[n] = core[n].normalized() if core[n].length() > 0.0001 else Vector3.ZERO
+	_core_v = core
+
 ## nation names at their centroid; bigger nations get bigger text; overlapping names are skipped
 func _draw_nation_names(font: Font) -> void:
 	if map.zoom > (4.0 if map.mode == 0 else 5.5): return
 	if _tracked == null: _tracked = TBKit.tracked(font, 2)
 	font = _tracked
 	var N1 := g.N1
-	var sx := PackedFloat32Array(); sx.resize(N1)
-	var sy := PackedFloat32Array(); sy.resize(N1)
-	var sz := PackedFloat32Array(); sz.resize(N1)
-	var cnt := PackedInt32Array(); cnt.resize(N1)
-	for p in g.P:
-		var o := g.owner[p]
-		if o == 0: continue
-		var u := _unit[p]
-		sx[o] += u.x; sy[o] += u.y; sz[o] += u.z; cnt[o] += 1
+	_rebuild_cores()
+	var sx := _core_v; var cnt := _core_n
 	var order: Array = []
 	for n in range(1, N1):
 		if cnt[n] >= 3 and g.alive[n] != 0 and n != g.rebel: order.append(n)
@@ -55,10 +84,8 @@ func _draw_nation_names(font: Font) -> void:
 	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
 	for n in order:
 		if shown >= 70: break
-		var v := Vector3(sx[n], sy[n], sz[n])
-		var len := v.length()
-		if len < 0.0001: continue
-		v /= len
+		var v: Vector3 = sx[n]
+		if v == Vector3.ZERO: continue
 		var pos: Vector2
 		var depth := 1.0
 		if map.mode == 0:
@@ -77,9 +104,10 @@ func _draw_nation_names(font: Font) -> void:
 		var txt: String = g.dname(n)
 		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 		var rect := Rect2(pos - tw * 0.5, tw).grow(3.0)
-		var clash := false
+		var clash := _blocked(rect)
 		for r in placed:
-			if r.intersects(rect): clash = true; break
+			if clash: break
+			if r.intersects(rect): clash = true
 		if clash: continue
 		placed.append(rect); shown += 1
 		var a := clampf(depth * 1.6, 0.35, 0.95)
@@ -109,9 +137,10 @@ func _draw_province_names() -> void:
 		var txt: String = TBI18n.place(g.world.name[p])
 		var tw := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11)
 		var rect := Rect2(pos + Vector2(-tw.x * 0.5, 6), tw).grow(2.0)
-		var clash := false
+		var clash := _blocked(rect)
 		for r in placed:
-			if r.intersects(rect): clash = true; break
+			if clash: break
+			if r.intersects(rect): clash = true
 		if clash: continue
 		placed.append(rect); shown += 1
 		draw_string_outline(f, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0.02, 0.03, 0.07, 0.8))
@@ -218,6 +247,7 @@ func _draw() -> void:
 	if map == null or g == null or hidden_while_dragging: return
 	var font: Font = TBKit.display()
 	var nfont: Font = TBKit.mono_b()
+	_refresh_keepout()
 	if g.human_id == 0:                 # nation-pick screen: names only
 		_draw_nation_names(font)
 		return
@@ -279,7 +309,7 @@ func _draw() -> void:
 		var p: int = v[0]
 		var pos := Vector2(v[1], v[2])
 		if not v[6]:
-			if _claim(grid, Rect2(pos - Vector2(9, 9), Vector2(18, 18))):
+			if not _blocked(Rect2(pos - Vector2(9, 9), Vector2(18, 18))) and _claim(grid, Rect2(pos - Vector2(9, 9), Vector2(18, 18))):
 				if not _stars.has(p): _stars[p] = {"a": 0.0, "t": 1.0}
 				_stars[p]["t"] = 1.0; _stars[p]["x"] = pos.x; _stars[p]["y"] = pos.y; _stars[p]["limb"] = v[4]
 				drawn += 1
@@ -291,7 +321,7 @@ func _draw() -> void:
 		var fs := 9 + tier
 		var tw := nfont.get_string_size("%d" % maxi(a, int(st["shown"])), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 10.0 + tier
 		var prect := Rect2(pos.x - tw * 0.5 - 1.0, pos.y - 11.0, tw + 2.0, 24.0)
-		if not _claim(grid, prect): continue
+		if _blocked(prect) or not _claim(grid, prect): continue
 		_frame_rects.append(prect)
 		st["t"] = 1.0; st["x"] = pos.x; st["y"] = pos.y; st["limb"] = v[4]
 		chosen.append(p); chosen_set[p] = true
@@ -319,6 +349,22 @@ func _draw() -> void:
 	_draw_fx()
 
 ## one heraldic plaque: tier decides size and pips, owner's colour along the top, rim by relation
+## screen areas covered by the interface (dock, seal, ribbon, side panel): labels keep out of them. Callable -> Array[Rect2] in global coordinates
+var _ko: Array = []
+
+func _refresh_keepout() -> void:
+	_ko.clear()
+	if not map.keepout_fn.is_valid(): return
+	var o := get_global_rect().position
+	for r in map.keepout_fn.call(): _ko.append(Rect2((r as Rect2).position - o, (r as Rect2).size))
+
+func _blocked(r: Rect2) -> bool:
+	for k in _ko:
+		if (k as Rect2).intersects(r): return true
+	return false
+
+var plaque_style: int = int(OS.get_environment("TB_PLAQUE")) if OS.get_environment("TB_PLAQUE") != "" else 1
+
 func _draw_plaque(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, me: int, zs: float) -> void:
 	var o := g.owner[p]
 	var tier: int = st["tier"]
@@ -335,6 +381,11 @@ func _draw_plaque(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var rim := TBKit.GOLD2 if o == me else (TBKit.RED if g.get_rel(me, o) == 1 else Color(0.62, 0.66, 0.75, 0.9))
 	draw_set_transform(pos, 0.0, Vector2(sc, sc))
 	var x0 := -tw * 0.5; var x1 := tw * 0.5; var y0 := -h * 0.5 - 0.5; var y1 := h * 0.5 - 0.5
+	if plaque_style == 1:
+		_standard(Vector2(x0, y0), Vector2(x1, y1), o, rim, al, p == map.selected, tier, txt, fs, nfont, me)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		_floater(p, pos, st, o, me, nfont)
+		return
 	var shield := PackedVector2Array([Vector2(x0 + 3, y0), Vector2(x1 - 3, y0), Vector2(x1, y0 + 3), Vector2(x1, y1), Vector2(0, y1 + 4.5), Vector2(x0, y1), Vector2(x0, y0 + 3)])
 	var body := Color(0.03, 0.05, 0.1, 0.92 * al)
 	if p == map.selected: body = Color(0.10, 0.12, 0.17, 0.96 * al)
@@ -353,6 +404,9 @@ func _draw_plaque(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 		draw_colored_polygon(PackedVector2Array([Vector2(px, y0 - 5.2), Vector2(px + 2.0, y0 - 3.2), Vector2(px, y0 - 1.2), Vector2(px - 2.0, y0 - 3.2)]), Color(rim.r, rim.g, rim.b, 0.9 * al))
 	draw_string(nfont, Vector2(x0 + 5.0 + tier * 0.5, y1 - 3.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.95, 0.92, 0.85, al))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_floater(p, pos, st, o, me, nfont)
+
+func _floater(p: int, pos: Vector2, st: Dictionary, o: int, me: int, nfont: Font) -> void:
 	# floating change: +15 / -12 rises and fades
 	if float(st["dt"]) > 0.0 and int(st["dn"]) != 0 and (o == me or absi(int(st["dn"])) >= 10):
 		var k := 1.0 - float(st["dt"]) / 1.3
@@ -361,6 +415,28 @@ func _draw_plaque(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 		var dp := pos + Vector2(-nfont.get_string_size(dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x * 0.5, -16.0 - 16.0 * k)
 		draw_string_outline(nfont, dp, dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0.02, 0.03, 0.07, 0.8 * (1.0 - k)))
 		draw_string(nfont, dp, dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, dcol)
+
+## a gonfalon of laid paper: owner-colour header, ink figures, swallow-tail hem; matches the paper interface
+func _standard(a: Vector2, b: Vector2, o: int, rim: Color, al: float, hot: bool, tier: int, txt: String, fs: int, nfont: Font, me: int) -> void:
+	var x0 := a.x; var y0 := a.y; var x1 := b.x; var y1 := b.y
+	var war := g.get_rel(me, o) == 1
+	var paper := Color(0.93, 0.88, 0.76) if o == me else (Color(0.95, 0.82, 0.76) if war else Color(0.86, 0.83, 0.76))
+	var ink := Color(0.16, 0.12, 0.08)
+	var cloth := PackedVector2Array([Vector2(x0, y0), Vector2(x1, y0), Vector2(x1, y1 + 3.5), Vector2((x0 + x1) * 0.5, y1 - 0.5), Vector2(x0, y1 + 3.5)])
+	draw_colored_polygon(PackedVector2Array([Vector2(x0 + 1.2, y0 + 1.6), Vector2(x1 + 1.2, y0 + 1.6), Vector2(x1 + 1.2, y1 + 5.0), Vector2((x0 + x1) * 0.5 + 1.2, y1 + 1.0), Vector2(x0 + 1.2, y1 + 5.0)]), Color(0, 0, 0, 0.35 * al))
+	paper.a = al
+	draw_colored_polygon(cloth, paper)
+	var oc := Color.hex((g.color[o] << 8) | 0xFF); oc.a = al
+	draw_rect(Rect2(x0, y0, x1 - x0, 3.4), oc, true)
+	var ring := cloth.duplicate(); ring.append(cloth[0])
+	var ec := (Color(0.52, 0.11, 0.09) if o == me else (Color(0.62, 0.1, 0.08) if war else ink)); ec.a = 0.85 * al
+	draw_polyline(ring, ec, 1.2 if (o == me or hot) else 1.0, true)
+	draw_line(Vector2(x0, y0 + 3.4), Vector2(x1, y0 + 3.4), Color(ink.r, ink.g, ink.b, 0.5 * al), 0.8, true)
+	for k in tier:                                  # brass studs on the header: rank
+		var px := (k - (tier - 1) * 0.5) * 5.0
+		draw_circle(Vector2((x0 + x1) * 0.5 + px, y0 - 2.6), 2.1, Color(0.78, 0.58, 0.18, al))
+	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	draw_string(nfont, Vector2((x0 + x1) * 0.5 - tw * 0.5, y1 - 2.8), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(ink.r, ink.g, ink.b, al))
 
 ## battle arrows, marching tokens and impact rings
 func _draw_fx() -> void:
