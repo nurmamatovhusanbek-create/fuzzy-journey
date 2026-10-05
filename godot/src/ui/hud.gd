@@ -34,6 +34,7 @@ var _turn: Label
 var _lens: OptionButton
 var _advisor_btn: P.DockButton
 var _portrait := false
+var _legend: P.Legend
 
 func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -90,6 +91,7 @@ func build() -> void:
 	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toasts.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_child(_toasts)
+	_legend = P.Legend.new(); _legend.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); add_child(_legend)
 	# ---- end turn seal
 	_seal = P.Seal.new()
 	_seal.caption = T.call("end_turn").to_upper() if TBI18n.lang != "ru" else T.call("end_turn")
@@ -181,6 +183,18 @@ func toast(msg: String, bad: bool = false) -> void:
 	_toasts.add_child(l)
 	while _toasts.get_child_count() > 5: _toasts.get_child(0).queue_free(); break
 	get_tree().create_timer(5.5).timeout.connect(func(): if is_instance_valid(l): l.queue_free())
+
+func set_lens_legend(lens: String) -> void:
+	if _legend != null: _legend.setup(lens)
+	_place_legend()
+
+func _place_legend() -> void:
+	if _legend == null: return
+	var h := _legend.custom_minimum_size.y
+	_legend.size = Vector2(340, h)
+	_legend.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_legend.offset_left = -170 + (60 if not _portrait else 0); _legend.offset_right = 170 + (60 if not _portrait else 0)
+	_legend.offset_bottom = -14 if not _portrait else -78; _legend.offset_top = _legend.offset_bottom - h
 
 func set_busy(b: bool) -> void:
 	if _seal: _seal.set_busy(b); _seal.disabled = b

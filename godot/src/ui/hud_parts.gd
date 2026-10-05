@@ -102,3 +102,59 @@ class Seal extends Button:
 		var fs := int(maxf(8.0, 9.0 * u))
 		var w := f.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		draw_string(f, c + Vector2(-w * 0.5, 17.0 * u), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, gcol)
+
+
+## colour key for the active map lens: gradient bar for ramps, swatches for categories
+class Legend extends Control:
+	const D = preload("res://src/engine/data.gd")
+	var items: Array = []          # [[rgb, label]]
+	var ramp: Array = []           # rgb stops
+	var lo := ""; var hi := ""
+	var heading := ""
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE; visible = false
+	func setup(lens: String) -> void:
+		items = []; ramp = []; heading = ""
+		var T: Callable = TBI18n.T
+		var L = TBLenses
+		match lens:
+			"economic": ramp = L.ECON_RAMP
+			"military": ramp = L.ARMY_RAMP
+			"population": ramp = L.POP_RAMP
+			"stability": ramp = L.STAB_RAMP
+			"diplomatic":
+				items = [[0x46c36b, T.call("leg_self")], [L.REL_COL[0], T.call("rel_peace")], [L.REL_COL[1], T.call("rel_war")], [L.REL_COL[2], T.call("rel_nap")], [L.REL_COL[3], T.call("rel_ally")], [L.REL_COL[4], T.call("rel_marriage")]]
+			"governments":
+				for i in 10: items.append([L.REGIME_COL[i], T.call("g_" + D.REGIME_ID[i])])
+			"terrain":
+				for i in L.TERRAIN_COL.size(): items.append([L.TERRAIN_COL[i], T.call("t_" + D.TERRAIN_ID[i])])
+			"buildings":
+				for i in range(1, L.BUILD_COL.size()): items.append([L.BUILD_COL[i], T.call("b_" + D.BUILDINGS[i - 1]["id"])])
+		lo = T.call("leg_low"); hi = T.call("leg_high")
+		heading = T.call("lens_" + lens)
+		visible = not (ramp.is_empty() and items.is_empty())
+		custom_minimum_size = Vector2(0, 0)
+		var h := 40.0
+		if not items.is_empty(): h = 24.0 + ceil(items.size() / 3.0) * 18.0
+		custom_minimum_size = Vector2(340, h)
+		queue_redraw()
+	func _draw() -> void:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.03, 0.05, 0.1, 0.82), true)
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.83, 0.63, 0.09, 0.4), false, 1.0)
+		var f := K.mono()
+		draw_string(K.display(), Vector2(10, 15), heading, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.953, 0.773, 0.322))
+		if not ramp.is_empty():
+			var x0 := 10.0; var x1 := size.x - 10.0; var y := 22.0
+			var n := ramp.size() - 1
+			for i in n:
+				var a := Color.hex((ramp[i] << 8) | 0xFF); var b := Color.hex((ramp[i + 1] << 8) | 0xFF)
+				var xa := x0 + (x1 - x0) * i / n; var xb := x0 + (x1 - x0) * (i + 1) / n
+				draw_polygon(PackedVector2Array([Vector2(xa, y), Vector2(xb, y), Vector2(xb, y + 8), Vector2(xa, y + 8)]), PackedColorArray([a, b, b, a]))
+			draw_string(f, Vector2(x0, y + 22), lo, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.62, 0.58, 0.5))
+			draw_string(f, Vector2(x1 - f.get_string_size(hi, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x, y + 22), hi, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.62, 0.58, 0.5))
+		else:
+			var colw := (size.x - 20.0) / 3.0
+			for i in items.size():
+				var cx := 10.0 + (i % 3) * colw; var cy := 28.0 + (i / 3) * 18.0
+				draw_rect(Rect2(cx, cy - 9, 12, 10), Color.hex((items[i][0] << 8) | 0xFF))
+				draw_string(f, Vector2(cx + 17, cy), String(items[i][1]), HORIZONTAL_ALIGNMENT_LEFT, colw - 20, 10, Color(0.91, 0.863, 0.8))

@@ -41,7 +41,7 @@ func _ready() -> void:
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
 	hud.end_turn_pressed.connect(func(): sfx.play("turn"); end_turn())
 	hud.tapped.connect(func(): sfx.play("tap"))
-	hud.lens_selected.connect(func(n): map.set_lens(n))
+	hud.lens_selected.connect(func(n): map.set_lens(n); hud.set_lens_legend(n))
 	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation))
 	hud.goals_pressed.connect(func(): TBModals.goals(_overlay, g))
 	hud.decisions_pressed.connect(func(): TBModals.decisions(_overlay, g, _on_command))

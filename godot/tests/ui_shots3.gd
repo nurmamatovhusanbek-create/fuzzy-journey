@@ -24,6 +24,8 @@ func _init() -> void:
 	main.cfg["theme"] = "standard"; main.map.set_mode(1); main._apply_quality()
 	main.map.zoom = 1.0
 	await _shot("flat")
-	main.map.set_lens("military")
+	main.map.set_lens("military"); main.hud.set_lens_legend("military")
 	await _shot("lens_mil")
+	main.map.set_lens("diplomatic"); main.hud.set_lens_legend("diplomatic")
+	await _shot("lens_dip")
 	quit()
