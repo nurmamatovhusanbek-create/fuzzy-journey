@@ -29,6 +29,7 @@ var _seal: P.Seal
 var _flag: TextureRect
 var _name: Label
 var _ruler: Label
+var _cameo: TBPortrait
 var _date: Label
 var _turn: Label
 var _lens: OptionButton
@@ -54,6 +55,8 @@ func build() -> void:
 	var nat := K.hbox(9)
 	_flag = TextureRect.new(); _flag.custom_minimum_size = Vector2(38, 26); _flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; _flag.stretch_mode = TextureRect.STRETCH_SCALE; _flag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	nat.add_child(_flag)
+	_cameo = TBPortrait.new(); _cameo.custom_minimum_size = Vector2(44, 44); _cameo.visible = false
+	nat.add_child(_cameo)
 	var nv := VBoxContainer.new(); nv.add_theme_constant_override("separation", -1)
 	_name = K.title("", 19); nv.add_child(_name)
 	_ruler = K.label("", 12, K.DIM); nv.add_child(_ruler)
@@ -146,6 +149,8 @@ func refresh() -> void:
 		rl = "%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)]
 	_ruler.text = rl
 	_ruler.visible = rl != ""
+	_cameo.visible = rl != ""
+	if rl != "": _cameo.setup(g, n, 44)
 	_date.text = _year(g.year)
 	_turn.text = "%s %d · %s" % [T.call("turn"), g.turn, T.call("month_%d" % g.month_idx) if TBI18n.has_key("month_%d" % g.month_idx) else TBData.MONTHS[g.month_idx]]
 	var net: int = inc["net"]

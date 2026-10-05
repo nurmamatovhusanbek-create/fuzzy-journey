@@ -113,9 +113,16 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> void:
 	m[1].add_child(K.caps(sub + " · " + T.call("era_" + g.era_id) if TBI18n.has_key("era_" + g.era_id) else sub, 11, K.GOLD))
 	if g.rules >= 1 and g.r_name[me] != "":
 		var rl := K.label("%s %s · %s" % [T.call(TBRulers.title_key(g, me)), TBRulers.display_name(g, me), T.call("ruler_age", {"a": TBRulers.age(g, me)})], 16, K.GOLD2)
-		m[1].add_child(rl)
+		var hb := K.hbox(12)
+		hb.add_child(TBPortrait.new().setup(g, me, 76))
+		var rc := K.vbox(2); rc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; rc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		rc.add_child(rl)
 		var tr: String = TBRulers.TRAITS[g.r_trait[me]]
-		if tr != "none": m[1].add_child(K.label("%s — %s" % [T.call("rtr_" + tr), T.call("rtr_%s_d" % tr)], 13, K.DIM))
+		if tr != "none":
+			var tl0 := K.label("%s — %s" % [T.call("rtr_" + tr), T.call("rtr_%s_d" % tr)], 13, K.DIM)
+			tl0.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl0.custom_minimum_size = Vector2(300, 0)
+			rc.add_child(tl0)
+		hb.add_child(rc); m[1].add_child(hb)
 	var army := 0
 	for p in g.owned(me): army += g.army[p]
 	m[1].add_child(K.row(T.call("lands"), str(g.own_count(me))))
@@ -260,14 +267,18 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 	for p in g.owned(n): army += g.army[p]
 	if g.rules >= 1 and g.r_name[n] != "":
 		var rl := K.label("%s %s · %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n), T.call("ruler_age", {"a": TBRulers.age(g, n)})], 15, K.GOLD2)
-		v.add_child(rl)
+		var hb := K.hbox(12)
+		hb.add_child(TBPortrait.new().setup(g, n, 84))
+		var rc := K.vbox(2); rc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; rc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		rc.add_child(rl)
 		var sk := K.label("%s %d · %s %d · %s %d" % [T.call("skill_adm"), g.r_adm[n], T.call("skill_dip"), g.r_dip[n], T.call("skill_mil"), g.r_mil[n]], 13, K.DIM)
-		v.add_child(sk)
+		rc.add_child(sk)
 		var tr: String = TBRulers.TRAITS[g.r_trait[n]]
 		if tr != "none":
 			var tl := K.label("%s — %s" % [T.call("rtr_" + tr), T.call("rtr_%s_d" % tr)], 13, K.DIM)
-			tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(400, 0)
-			v.add_child(tl)
+			tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(300, 0)
+			rc.add_child(tl)
+		hb.add_child(rc); v.add_child(hb)
 	var grid := GridContainer.new(); grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 18)
 	v.add_child(grid)
