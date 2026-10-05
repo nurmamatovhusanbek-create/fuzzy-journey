@@ -16,7 +16,7 @@
 | Systems: economy, buildings, tech/eras, combat, war score, peace deals (white / land / **vassal**), NAP/alliance, rebels, colonization, mercenaries, **events** (12 random + 14 scheduled packs), **covert ops**, **5 victory paths**, AI (personalities, budget mgmt, spies, anti-hegemon) | done |
 | Multiplayer: authoritative server (**deployed on Render**), lobby, delta sync, proposals, chat, turn timer, **auto-reconnect**, command validation + rate limit | done; tested with 2 clients + UI + reconnect |
 | Perf work: bake-time sea links (new game 289 ms to 11 ms), render only on change + low-processor mode, half-res ID texture on Low tier | done |
-| Android / iOS builds | presets + CI workflow written, **not run** (no Android SDK / Mac in the dev sandbox) |
+| Android / iOS builds | **CI-verified**: Windows, Linux, Android APK and iOS Xcode project all build on GitHub Actions (never run on a physical device) |
 | UX: **Chronicle** (filterable history), **Advisor** (alerts + tips, crisis toasts), richer log (occupation, annexation, bankruptcy, era) — from `docs/RESEARCH.md` item 1 | done |
 | **Rulers** (item 2): named leaders with skills + traits, ageing, succession / crises / elections, ~140 historical rulers across 11 eras (`data/rulers.json`), era-appropriate starting governments (`engine/regimes.gd`) | done |
 | **Casus belli, infamy, coalitions** (item 3): 5 casus belli (coalition / reclaim / revenge / defend ally / rebels), infamy from unjustified wars + conquest, coalition at 22 (ends at 12), AI weighs infamy + CB, shown on nation card, advisor and chronicle | done |

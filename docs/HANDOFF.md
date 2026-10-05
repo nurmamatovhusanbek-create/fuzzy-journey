@@ -9,6 +9,8 @@ Every push to a `claude/**` branch or `main` runs `.github/workflows/godot.yml`:
 
 Install the APK: download the artifact from the run page, unzip, copy `TerraBellum.apk` to the phone, allow "install unknown apps".
 
+CI status (verified on GitHub Actions): tests + oracle pass; Windows, Linux and the Android APK build and upload as `terra-bellum-builds`; the iOS Xcode project exports as `terra-bellum-ios-xcode-project`.
+
 ## Measuring performance on a real phone
 Settings → **Performance readout** shows fps, frame ms, map quality tier and render scale, memory, and the last end-turn time.
 Settings → Quality: *Auto* steps the map down by itself when drags are slow; *Low* uses the half-resolution ID texture and 60 % render scale.
