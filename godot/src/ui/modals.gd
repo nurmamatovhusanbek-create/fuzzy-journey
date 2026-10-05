@@ -7,6 +7,12 @@ static var T: Callable = TBI18n.T
 const ERAS := ["modern", "ancient", "roman", "medieval", "mongol", "timurid", "discovery", "gunpowder", "napoleonic", "victorian", "ww1", "ww2", "coldwar"]
 const ERA_YEAR := {"ancient": -218, "roman": 117, "medieval": 1096, "mongol": 1300, "timurid": 1400, "discovery": 1492, "gunpowder": 1700, "napoleonic": 1804, "victorian": 1850, "ww1": 1914, "ww2": 1939, "coldwar": 1947, "modern": 2024}
 
+## pinned Back button below the scrolling body
+static func _footer_back(m: Array) -> void:
+	var b := K.button(T.call("back"), func(): close(m[0]))
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m[2].add_child(b)
+
 static func close(m: Control) -> void:
 	if is_instance_valid(m): m.queue_free()
 
@@ -96,7 +102,7 @@ static func statistics(parent: Control, g: TBGame, on_list: Callable) -> void:
 	m[1].add_child(chart); m[1].add_child(legend)
 	if g.stats.size() < 2: m[1].add_child(K.label(T.call("stats_wait"), 13, K.DIM))
 	draw.call()
-	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+	_footer_back(m)
 
 static var _facts_cache := {}
 ## "N nations · A, B, C" for an era (largest powers by province count)
@@ -146,7 +152,7 @@ static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bo
 			if shown >= 60: break
 	search.text_changed.connect(draw)
 	draw.call("")
-	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+	_footer_back(m)
 
 static func budget(parent: Control, g: TBGame, on_change: Callable) -> void:
 	var m := K.modal(parent, T.call("budget"), 460, "coins")
@@ -165,7 +171,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> void:
 			g.apply({"cmd": "budget", "n": n, "key": keys[idx], "val": int(v)}); sync.call(); on_change.call())
 		m[1].add_child(s); sliders.append(s)
 	sync.call()
-	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+	_footer_back(m)
 
 static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_menu: Callable) -> void:
 	var m := K.modal(parent, T.call("settings"), 440, "gear")
@@ -194,7 +200,7 @@ static func save_load(parent: Control, saving: bool, on_save: Callable, on_load:
 		var l := K.label(info, 14); l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(l)
 		if saving and slot != "auto": row.add_child(K.button(T.call("save"), func(): on_save.call(slot); close(m[0])))
 		if not saving and not meta.is_empty(): row.add_child(K.button(T.call("load"), func(): close(m[0]); on_load.call(slot)))
-	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+	_footer_back(m)
 
 ## detailed nation card with diplomacy actions; on_cmd(cmd Dictionary), on_goto(n)
 static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, on_goto: Callable) -> void:
@@ -361,7 +367,7 @@ static func goals(parent: Control, g: TBGame) -> void:
 		m[1].add_child(d)
 		m[1].add_child(K.Meter.new(pct * 100.0, col))
 		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); m[1].add_child(gap)
-	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+	_footer_back(m)
 
 static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 	var won: bool = g.winner == g.human_id
@@ -428,7 +434,7 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
 	var tabs := K.segmented(tab_items, "mine", func(id: String): st["cat"] = id; draw.call())
 	m[1].add_child(tabs); m[1].move_child(tabs, 2)
 	draw.call()
-	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+	_footer_back(m)
 
 ## Decisions: costed national projects, listed as ruled ledger entries
 const DEC_GLYPH := {"mil_reform": "swords", "trade_fair": "scales", "centralize": "crown", "conscript": "men", "propaganda": "scroll", "patronage": "book", "fortify": "shield", "amnesty": "dove"}
@@ -465,7 +471,7 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> void:
 		var rl := Control.new(); rl.custom_minimum_size = Vector2(0, 9)
 		rl.draw.connect(func(): rl.draw_line(Vector2(0, 4), Vector2(rl.size.x, 4), Color(0.83, 0.63, 0.09, 0.22), 1.0))
 		list.add_child(rl)
-	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+	_footer_back(m)
 
 ## Advisor: current alerts and tips; tapping one jumps to the province concerned
 static func advisor(parent: Control, g: TBGame, on_goto: Callable) -> void:
@@ -484,4 +490,4 @@ static func advisor(parent: Control, g: TBGame, on_goto: Callable) -> void:
 			var pp: int = a["p"]
 			var go := K.icon_button("pin", func(): close(m[0]); on_goto.call(pp), 38); row.add_child(go)
 		m[1].add_child(row)
-	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+	_footer_back(m)
