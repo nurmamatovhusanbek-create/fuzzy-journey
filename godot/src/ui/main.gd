@@ -37,7 +37,9 @@ func _ready() -> void:
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
 	hud.end_turn_pressed.connect(end_turn)
 	hud.lens_selected.connect(func(n): map.set_lens(n))
-	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _goto_nation))
+	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation))
+	hud.wars_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation, true))
+	panel.nation_requested.connect(_open_nation)
 	hud.budget_pressed.connect(func(): TBModals.budget(_overlay, g, func(): hud.refresh()))
 	hud.save_pressed.connect(func(): TBModals.save_load(_overlay, true, _save_slot, _load_slot))
 	hud.settings_pressed.connect(_open_settings)
@@ -167,6 +169,9 @@ func _select(p: int) -> void:
 func _on_move_requested(p: int) -> void:
 	move_from = p
 	hud.toast(T.call("move") + " ▸")
+
+func _open_nation(n: int) -> void:
+	TBModals.nation_detail(_overlay, g, n, _on_command, _goto_nation)
 
 func _goto_nation(n: int) -> void:
 	var cp := g.capital_of[n]

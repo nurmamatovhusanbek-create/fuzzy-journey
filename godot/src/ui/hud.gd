@@ -5,6 +5,7 @@ extends Control
 signal end_turn_pressed
 signal lens_selected(name: String)
 signal nations_pressed
+signal wars_pressed
 signal budget_pressed
 signal save_pressed
 signal settings_pressed
@@ -38,6 +39,7 @@ func build() -> void:
 	row.add_child(nat)
 	for key in ["date", "gold", "man", "mp", "dp", "lands"]:
 		var l := K.label("", 15); row.add_child(l); _chips[key] = l
+	var wars := K.button("", func(): wars_pressed.emit()); wars.custom_minimum_size = Vector2(0, K.MIN_TOUCH - 8); row.add_child(wars); _chips["wars"] = wars
 	# map lens picker (one compact dropdown instead of a tall button column)
 	var lens := OptionButton.new()
 	lens.focus_mode = Control.FOCUS_NONE
@@ -75,6 +77,12 @@ func refresh() -> void:
 	_chips["mp"].text = "MP %d" % int(g.mp[n])
 	_chips["dp"].text = "DP %d" % int(g.dp[n])
 	_chips["lands"].text = "%s %d" % [T.call("lands"), inc["lands"]]
+	var wc := 0
+	for o in range(1, g.N1):
+		if g.alive[o] != 0 and g.get_rel(n, o) == 1: wc += 1
+	_chips["wars"].text = "⚔ %d" % wc
+	_chips["wars"].visible = wc > 0
+	_chips["wars"].add_theme_color_override("font_color", K.RED.lightened(0.3))
 
 static func _year(y: int) -> String:
 	return "%d BC" % -y if y < 0 else "%d AD" % y

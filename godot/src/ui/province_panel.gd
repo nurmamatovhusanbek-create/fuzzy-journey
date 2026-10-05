@@ -5,6 +5,7 @@ extends PanelContainer
 signal command(cmd: Dictionary)
 signal move_requested(p: int)
 signal closed
+signal nation_requested(n: int)
 
 const K = preload("res://src/ui/ui_kit.gd")
 static var T: Callable = TBI18n.T
@@ -59,6 +60,7 @@ func rebuild() -> void:
 	if o != 0:
 		sub.add_child(K.color_chip(g.color[o]))
 		sub.add_child(K.label(g.nat_name[o], 15))
+		var inf := K.button("ℹ", func(): nation_requested.emit(o)); inf.custom_minimum_size = Vector2(36, 32); sub.add_child(inf)
 		if rel == D.REL_WAR: sub.add_child(K.label("⚔ " + T.call("war"), 13, K.RED))
 		elif rel == D.REL_ALLY: sub.add_child(K.label("🤝 " + T.call("ally"), 13, Color(0.55, 0.72, 1.0)))
 		elif rel == D.REL_NAP: sub.add_child(K.label(T.call("nap"), 13, Color(0.5, 0.86, 0.89)))
