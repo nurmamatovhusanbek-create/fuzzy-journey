@@ -53,7 +53,8 @@ func open_menu() -> void:
 
 func _connect(then: Callable) -> void:
 	if net != null: net.close(); net.queue_free()
-	net = TBNet.new(); net.name = "Net"; add_child(net)
+	net = TBNet.new(); net.name = "Net"
+	get_tree().root.add_child(net)       # RPC node paths must match the server: /root/Net
 	await get_tree().process_frame
 	net.connected.connect(then, CONNECT_ONE_SHOT)
 	net.disconnected.connect(_on_disconnected)
@@ -138,6 +139,8 @@ func _on_chat(from: String, text: String) -> void:
 # ---------------------------------------------------------------- lobby
 func _show_lobby(info: Dictionary) -> void:
 	if is_instance_valid(_lobby): _lobby.queue_free()
+	for c in main._overlay.get_children():
+		if c != _lobby: c.queue_free()      # drop the menu card / dialogs behind the lobby
 	main.hud.visible = false; main.panel.visible = false
 	_lobby = PanelContainer.new()
 	_lobby.position = Vector2(12, 12)
