@@ -2,6 +2,8 @@
 config_version=5
 
 [application]
+
+config/quit_on_go_back=false
 config/name="Terra Bellum"
 config/description="Turn-based grand strategy on a globe."
 run/main_scene="res://src/ui/main.tscn"

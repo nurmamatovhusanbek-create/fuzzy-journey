@@ -403,6 +403,23 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		if mode == "game" and g != null and not _busy and not mp.in_game:
 			_autosave()
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST: _on_back()
+
+## Android back button: close the open dialog, then the province sheet, then offer the menu; quit only from the title screen
+func _on_back() -> void:
+	var top: Node = null
+	for c in _overlay.get_children():
+		if c is ColorRect: top = c
+	if top != null and mode != "menu":
+		top.queue_free(); return
+	match mode:
+		"menu":
+			if top != null: show_menu()
+			else: get_tree().quit()
+		"pick", "mp_lobby": show_menu()
+		"game":
+			if panel.visible: _select(-1)
+			else: _open_settings()
 
 func _update_perf(delta: float) -> void:
 	if not cfg.get("perf", false):
