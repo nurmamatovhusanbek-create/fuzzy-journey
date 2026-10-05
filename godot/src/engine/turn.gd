@@ -15,6 +15,7 @@ static func end_turn(g: TBGame) -> PackedInt32Array:
 		g.month_idx -= 12
 		g.year += 1
 	if g.rules >= 1:
+		TBGenerals.tick(g)
 		TBRulers.tick(g)
 		TBDiplo.tick(g)
 		TBStats.record(g)

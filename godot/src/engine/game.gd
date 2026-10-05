@@ -72,6 +72,7 @@ var econ := PackedByteArray()
 var stab := PackedByteArray()
 var happy := PackedByteArray()
 var defense := PackedByteArray()
+var gen := PackedInt32Array()                 # generals (rules >= 1): see TBGenerals
 var terrain := PackedByteArray()
 var building := PackedByteArray()
 var b_level := PackedByteArray()
@@ -157,7 +158,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	N1 = N + 1
 
 	# ---- provinces ----
-	occupier.resize(P); army.resize(P); pop.resize(P); occ_turns.resize(P)
+	occupier.resize(P); army.resize(P); pop.resize(P); occ_turns.resize(P); gen.resize(P)
 	for a in [dev, econ, stab, happy, defense, terrain, building, b_level, b_building, b_turns, capital, discoverable, dirty_flag]:
 		a.resize(P)
 	if has_era:
@@ -361,6 +362,7 @@ func take_dirty() -> PackedInt32Array:
 func set_owner(p: int, n: int) -> void:
 	if owner[p] == n: return
 	owner[p] = n; own_dirty = true; touch(p)
+	if gen[p] != 0: gen[p] = 0
 	if n != 0 and not core.is_empty() and core[p] == 0: core[p] = n      # first settlers make it home land
 
 func controller(p: int) -> int:
@@ -514,7 +516,9 @@ func move_or_attack(n: int, from: int, to: int, troops: int) -> String:
 	if ctrl_to == n:
 		var k := mini(troops if troops != 0 else army[from] - 1, army[from] - 1)
 		if k <= 0: return "!noarmy"
-		army[from] -= k; army[to] = mini(65000, army[to] + k); touch(from); touch(to)
+		var left := army[from] - k
+		army[from] = left; army[to] = mini(65000, army[to] + k); touch(from); touch(to)
+		if rules >= 1 and TBGenerals.follows(self, from, left): TBGenerals.transfer(self, from, to)
 		return "move"
 	if ctrl_to != 0 and friendly(n, ctrl_to): return "!friendly"
 	if ctrl_to != 0 and get_rel(n, ctrl_to) != D.REL_WAR: return "!nowar"
@@ -528,6 +532,9 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 	var def_n := controller(to)
 	var atk: float = send * combat_mul(atk_n) * float(D.TERRAIN_ATK[terrain[to]])
 	var dfn: float = army[to] * combat_mul(def_n) * def_mul(to)
+	var rides := rules >= 1 and TBGenerals.follows(self, from, avail - send)
+	if rides: atk *= TBGenerals.mul(self, from)
+	if rules >= 1: dfn *= TBGenerals.mul(self, to)
 	if atk > dfn:
 		var surv := maxi(1, int(round((atk - dfn) / maxf(0.01, combat_mul(atk_n)))))
 		var occ := mini(send, surv)
@@ -542,11 +549,19 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 		army[to] = occ; defense[to] = 0
 		army[from] = maxi(0, avail - occ)
 		touch(from); touch(to)
+		if rules >= 1:
+			if gen[to] != 0 and def_n != 0 and human[def_n] != 0: log.append({"turn": turn, "kind": "general_fell", "a": def_n, "p": to, "gn": TBGenerals.name_idx(self, to), "sk": TBGenerals.skill(self, to)})
+			gen[to] = 0
+			if rides:
+				TBGenerals.transfer(self, from, to); TBGenerals.win(self, to, atk_n)
 		return "win"
 	var atk_loss := int(round(send * minf(0.9, dfn / (atk + dfn))))
 	army[from] = maxi(0, avail - atk_loss)
 	army[to] = maxi(1, army[to] - int(round(army[to] * (atk / (atk + dfn)) * 0.55)))
 	touch(from); touch(to)
+	if rules >= 1:
+		if rides: TBGenerals.lose(self, from, atk_n, atk_loss * 2 > send)
+		TBGenerals.win(self, to, def_n)
 	return "loss"
 
 func cede(p: int, to: int) -> void:
@@ -590,6 +605,7 @@ func apply(c: Dictionary) -> Dictionary:
 			TBTrade.set_deal(self, n, int(c.get("t", 0)), false)
 			return {"ok": true}
 		"hire": return _c_hire(c)
+		"appoint": return TBGenerals.appoint(self, n, int(c.get("p", -1)))
 		"spy": return _c_spy(c)
 		"eventChoice": return TBEvents.resolve_choice(self, n, int(c.get("uid", 0)), int(c.get("i", 0)))
 		"noop": return {"ok": true}

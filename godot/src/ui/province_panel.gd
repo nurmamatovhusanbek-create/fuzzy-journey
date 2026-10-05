@@ -85,6 +85,8 @@ func rebuild() -> void:
 	elif g.b_building[p] != 0: bname = "%s · %d" % [T.call("b_" + D.BUILDINGS[g.b_building[p] - 1]["id"]), g.b_turns[p]]
 	var stats := K.vbox(6)
 	stats.add_child(K.row(T.call("army"), K.fmt(g.army[p]), K.GOLD2))
+	if g.rules >= 1 and g.gen[p] != 0 and not mine:
+		stats.add_child(K.row(T.call("general"), "%s  %s" % [TBGenerals.display_name(g, p), "★".repeat(TBGenerals.skill(g, p))], K.TEXT))
 	stats.add_child(K.row(T.call("pop"), K.fmt(g.pop[p] * 1000)))
 	stats.add_child(K.row(T.call("dev"), "", K.TEXT, K.Pips.new(g.dev[p])))
 	stats.add_child(K.row(T.call("econ"), "", K.TEXT, K.Pips.new(g.econ[p])))
@@ -102,6 +104,13 @@ func rebuild() -> void:
 		act.add_child(K.button(T.call("recruit") + " +15", func(): command.emit({"cmd": "recruit", "p": p, "amount": 15})))
 		act.add_child(K.button(T.call("hire") + " +40 (%dg)" % int(ceil(40 * 5.0 * float(D.REGIMES[g.regime[me]]["recruitCost"]))), func(): command.emit({"cmd": "hire", "p": p, "amount": 40})))
 		if g.army[p] > 1: act.add_child(K.button(T.call("move"), func(): move_requested.emit(p)))
+		if g.rules >= 1:
+			if g.gen[p] != 0:
+				stats.add_child(K.row(T.call("general"), "%s  %s" % [TBGenerals.display_name(g, p), "★".repeat(TBGenerals.skill(g, p))], K.GOLD2))
+			elif g.army[p] >= TBGenerals.MIN_ARMY:
+				var gb := K.button(T.call("appoint_general") + " (%dg)" % TBGenerals.cost(g, me), func(): command.emit({"cmd": "appoint", "p": p}))
+				gb.tooltip_text = T.call("general_hint") + "  " + T.call("gen_slots", {"n": TBGenerals.count(g, me), "c": TBGenerals.cap(g, me)})
+				act.add_child(gb)
 		var ob := OptionButton.new(); ob.custom_minimum_size = Vector2(150, K.MIN_TOUCH); ob.focus_mode = Control.FOCUS_NONE
 		ob.add_item(T.call("build") + "…", 0)
 		for i in D.BUILDINGS.size():

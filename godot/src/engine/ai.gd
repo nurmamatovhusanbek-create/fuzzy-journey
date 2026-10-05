@@ -107,6 +107,7 @@ static func _nation(g: TBGame, n: int) -> void:
 				hb = own[g.rng.randi_n(own.size())]
 			g.apply({"cmd": "hire", "n": n, "p": hb, "amount": 40})
 	if g.rules >= 1:
+		TBGenerals.ai_step(g, n, own)
 		TBDecisions.ai_pick(g, n)
 		TBTrade.ai_step(g, n)
 		TBDiplo.ai_marry(g, n)

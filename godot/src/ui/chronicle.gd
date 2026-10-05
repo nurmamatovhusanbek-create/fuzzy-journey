@@ -12,7 +12,7 @@ static func category(e: Dictionary) -> String:
 		"coalition", "coalition_end": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union": return "diplo"
 		"realm": return "events"
-		"event", "event_choice", "era", "bankrupt", "ruler", "decision": return "events"
+		"event", "event_choice", "era", "bankrupt", "ruler", "decision", "general_up", "general_fell": return "events"
 	return "events"
 
 static func involves(e: Dictionary, me: int) -> bool:
@@ -59,6 +59,9 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"ruler":
 			if String(e["k"]) == "elected" and not involves(e, g.human_id): return ""
 			return T.call("e_ruler_" + String(e["k"]), {"a": a, "old": TBRulers.name_of(e["old"], int(e["oldn"])), "new": TBRulers.name_of(e["new"], int(e["num"]))})
+		"general_up", "general_fell":
+			if not involves(e, g.human_id): return ""
+			return T.call("e_" + String(e["kind"]), {"a": a, "g": TBI18n.T("rn_%d" % int(e["gn"])), "sk": int(e["sk"])})
 		"decision": return T.call("e_decision", {"a": a, "d": T.call("dec_" + String(e["id"]))}) if involves(e, g.human_id) else ""
 		"bankrupt": return T.call("e_bankrupt", {"a": a})
 		"era": return T.call("e_era", {"a": a, "e": T.call("era_name_%d" % int(e["k"]))})
@@ -82,13 +85,14 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 		"occupied": return e.get("b", -1) == me
 		"annexed": return e.get("b", -1) == me
 		"spy": return e.get("b", -1) == me and bool(e["ok"])
+		"general_fell": return true
 	return false
 
 ## which entries pop up as toasts when they happen
 static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
 		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "trade", "marriage", "marriage_end", "union": return involves(e, me)
-		"rebels", "bankrupt", "era", "ruler", "realm": return e.get("a", -1) == me
+		"rebels", "bankrupt", "era", "ruler", "realm", "general_up", "general_fell": return e.get("a", -1) == me
 		"coalition", "coalition_end": return true
 		"eliminated": return true
 		"event": return e.get("a", 0) == me or e.get("a", 0) == 0
