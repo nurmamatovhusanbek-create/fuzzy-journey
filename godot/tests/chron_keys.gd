@@ -16,7 +16,7 @@ func _init() -> void:
 					if o != h and g.alive[o] != 0 and o != g.rebel: g.apply({"cmd": "trade", "n": h, "t": o}); g.apply({"cmd": "marry", "n": h, "t": o}); break
 			g.end_turn()
 			for e in g.pending.duplicate(): g.apply({"cmd": "eventChoice", "n": h, "uid": e["uid"], "i": 0})
-		for lang in ["en", "ru"]:
+		for lang in ["en", "ru", "uz"]:
 			TBI18n.load_lang(lang)
 			for e in g.log:
 				kinds[e["kind"]] = true

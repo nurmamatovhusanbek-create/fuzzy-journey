@@ -31,5 +31,6 @@ Generals (`engine/generals.gd`, 6 % strength per star, ride with full-stack move
 
 ## Known gaps
 - Never run on a physical Android/iOS device (CI proves the export builds, not that it feels right).
+- Uzbek (Latin script) is a third UI language, machine-translated by me: expect rough phrasing; nation/province names and the dated historical events fall back to English or Russian-less English text.
 - Nation and province names have Russian atlas forms (machine-translated; expect a few odd transliterations).
 - Not ported from the legacy game: formable nations, war goals, data-spike lens.

@@ -9,7 +9,7 @@ func _init() -> void:
 	for it in TBHonours.LIST:
 		for k in ["honour_" + it[0], "honour_" + it[0] + "_d"]:
 			if not TBI18n.has_key(k): print("missing ", k); fails += 1
-	for lang in ["en", "ru"]:
+	for lang in ["en", "ru", "uz"]:
 		TBI18n.load_lang(lang)
 		for id in TBModals.CODEX:
 			for k in ["codex_%s_t" % id, "codex_%s_b" % id]:

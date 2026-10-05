@@ -33,7 +33,7 @@ func _init() -> void:
 		for e in g.log: if e["kind"] == "event": fired += 1
 		print("%-10s %2d events defined | fired in 100 turns: %2d | human prompts %2d (applied %d)" % [era_id, evs.size(), fired, prompts, applied])
 		if fired == 0: fails += 1
-	for lang in ["en", "ru"]:
+	for lang in ["en", "ru", "uz"]:
 		TBI18n.load_lang(lang)
 		for ev in TBEvents.random_defs():
 			var id: String = ev["id"]

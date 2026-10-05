@@ -9,7 +9,7 @@ Economy, tech and eras, buildings, armies and combat, peace deals (white / land 
 **named rulers** with traits and succession (≈140 historical rulers), **casus belli, infamy and coalitions**,
 **national decrees**, **trade deals**, **royal marriages**, **ultimatums**, **generals** and **supply limits**, espionage, rebels,
 28 regional unifications, ~255 dated historical events with choices, random events, five victory paths, a chronicle,
-an advisor, statistics charts, honours (achievements), procedural ruler cameos, a codex. EN/RU, authoritative multiplayer,
+an advisor, statistics charts, honours (achievements), procedural ruler cameos, a codex. EN / RU / UZ (Uzbek, Latin), authoritative multiplayer,
 **hot-seat** for 2-4 players on one device, synthesised sound.
 UI: "war table" design system (see `docs/ARCHITECTURE.md`).
 

@@ -27,7 +27,7 @@ func _init() -> void:
 		if g2.alive[n] != 0 and n != g2.rebel: counts[g2.doctrine[n]] += 1
 	print("AI doctrines after 30 turns (none/martial/mercantile/admin): ", counts)
 	if counts[1] + counts[2] + counts[3] < 10: fails += 1
-	for lang in ["en", "ru"]:
+	for lang in ["en", "ru", "uz"]:
 		TBI18n.load_lang(lang)
 		for id in ["martial", "mercantile", "administrative"]:
 			for k in ["doc_" + id, "doc_%s_d" % id]:
