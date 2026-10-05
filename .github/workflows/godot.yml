@@ -42,18 +42,26 @@ jobs:
       - name: Linux
         run: mkdir -p build/linux && cd godot && godot --headless --export-release "Linux" ../build/linux/TerraBellum.x86_64
       - name: Android (debug-signed APK)
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
-          mkdir -p build/android ~/.android
+          mkdir -p build/android ~/.android ~/.config/godot
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
-          godot --headless --path godot --quit || true
+          JAVA_SDK="$(dirname "$(dirname "$(readlink -f "$(which javac)")")")"
+          SDK="$(ls -d /usr/lib/android-sdk /opt/android-sdk /root/android-sdk 2>/dev/null | head -1)"
+          echo "java=$JAVA_SDK android=$SDK"; ls "$SDK" || true
           cat > ~/.config/godot/editor_settings-4.4.tres <<EOT
           [gd_resource type="EditorSettings" format=3]
           [resource]
-          export/android/android_sdk_path = "/usr/lib/android-sdk"
+          export/android/android_sdk_path = "$SDK"
+          export/android/java_sdk_path = "$JAVA_SDK"
           export/android/debug_keystore = "/root/.android/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOT
+          cat ~/.config/godot/editor_settings-4.4.tres
           cd godot && godot --headless --export-debug "Android" ../build/android/TerraBellum.apk
       - uses: actions/upload-artifact@v4
         with: { name: terra-bellum-builds, path: build/ }
