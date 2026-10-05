@@ -4,6 +4,7 @@ extends Control
 
 signal province_picked(p: int, secondary: bool)
 signal province_hovered(p: int)
+signal view_changed
 
 const SHADER := preload("res://src/render/globe.gdshader")
 const PAL_W := 2048
@@ -19,6 +20,7 @@ var selected := -1
 var hover := -1
 
 var quality := 2
+var labels: TBMapLabels
 var _mat: ShaderMaterial
 var _rect: ColorRect
 var _ids_tex: ImageTexture
@@ -55,7 +57,9 @@ func setup(game: TBGame) -> void:
 		_pal_tex = ImageTexture.create_from_image(_pal_img)
 		_mat.set_shader_parameter("pal", _pal_tex)
 		resized.connect(_push_view)
+		labels = TBMapLabels.new(); add_child(labels); labels.attach(self)
 	lenses = TBLenses.new(g)
+	labels.set_game(g)
 	repaint_all()
 	_push_view()
 
@@ -97,6 +101,7 @@ func _write(p: int) -> void:
 		_pal[r2 + 3] = 0
 
 func _upload() -> void:
+	if labels != null: labels.queue_redraw()
 	_pal_img.set_data(PAL_W, 4, false, Image.FORMAT_RGBA8, _pal)
 	_pal_tex.update(_pal_img)
 
@@ -119,6 +124,11 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("sel_id", selected + 1 if selected >= 0 else -1)
 	_mat.set_shader_parameter("hover_id", hover + 1 if hover >= 0 else -1)
 	_mat.set_shader_parameter("quality", quality)
+	if labels != null:
+		labels.max_labels = [40, 90, 160][quality]
+		labels.hidden_while_dragging = _pressed and _drag_moved >= 6.0
+		labels.queue_redraw()
+	view_changed.emit()
 
 func set_mode(m: int) -> void:
 	mode = m
@@ -223,6 +233,7 @@ func _gui_input(event: InputEvent) -> void:
 				else:
 					if _pressed and _drag_moved < 6.0: province_picked.emit(pick_at(event.position), false)
 					_pressed = false
+					_push_view()
 			MOUSE_BUTTON_RIGHT:
 				if event.pressed: province_picked.emit(pick_at(event.position), true)
 	elif event is InputEventMouseMotion:
