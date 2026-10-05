@@ -159,5 +159,6 @@ static func tick(g: TBGame) -> void:
 		var old_raw: String = g.r_name[n]; var old_num: int = g.r_num[n]
 		var major: bool = g.human[n] != 0 or g.own_count(n) >= 20
 		roll(g, n, died)
+		if died: TBDiplo.on_succession(g, n, _h(g, n, 41))
 		if major:
 			g.log.append({"turn": g.turn, "kind": "ruler", "a": n, "k": ("crisis" if crisis else ("died" if died else "elected")), "old": old_raw, "oldn": old_num, "new": g.r_name[n], "num": g.r_num[n]})

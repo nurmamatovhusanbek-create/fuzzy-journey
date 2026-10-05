@@ -583,6 +583,7 @@ func apply(c: Dictionary) -> Dictionary:
 		"develop": return _c_develop(c)
 		"decide": return TBDecisions.apply(self, n, String(c.get("id", "")))
 		"trade": return TBTrade.propose(self, n, int(c.get("t", 0)))
+		"marry": return TBDiplo.marry(self, n, int(c.get("t", 0)))
 		"cancelTrade":
 			TBTrade.set_deal(self, n, int(c.get("t", 0)), false)
 			return {"ok": true}

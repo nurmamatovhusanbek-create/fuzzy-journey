@@ -265,6 +265,7 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 			if rel == 0:
 				act.add_child(K.button(T.call("propose_nap"), func(): on_cmd.call({"cmd": "nap", "t": n}); close(m[0])))
 				act.add_child(K.button(T.call("propose_ally"), func(): on_cmd.call({"cmd": "ally", "t": n}); close(m[0])))
+			if TBDiplo.can_marry(g, me, n): act.add_child(K.button(T.call("marry_propose"), func(): on_cmd.call({"cmd": "marry", "t": n}); close(m[0])))
 			if g.rules >= 1:
 				if TBTrade.has(g, me, n): act.add_child(K.button(T.call("trade_cancel"), func(): on_cmd.call({"cmd": "cancelTrade", "t": n}); close(m[0])))
 				else: act.add_child(K.button(T.call("trade_propose"), func(): on_cmd.call({"cmd": "trade", "t": n}); close(m[0])))

@@ -123,6 +123,8 @@ export default {
   ev_trade_embargo_t: 'Торговое эмбарго', ev_trade_embargo_f: 'Соперник закрыл свои порты для ваших товаров. Купцы умоляют корону ответить.',
   ev_trade_embargo_c0: 'Ответить тем же', ev_trade_embargo_d0: '−30 золота · дурная слава +2 · −1 очков дипломатии',
   ev_trade_embargo_c1: 'Стерпеть', ev_trade_embargo_d1: '−60 золота',
+  marry_propose: 'Династический брак (3 ОД)', e_marriage: 'Династический брак соединяет «{a}» и «{b}»', e_marriage_end: 'Династическая связь «{a}» и «{b}» прервалась', e_union: '«{b}» переходит под корону «{a}» в личной унии',
+  err_state: 'Невозможно при текущих отношениях.',
   ev_worldwide: 'Мировое событие', ev_event: 'Событие', ev_ack: 'Принять', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Обильный урожай', ev_bountiful_harvest_f: 'Поля ломятся от зерна, а амбары полны как никогда.',
   ev_bountiful_harvest_c0: 'Раздать излишки', ev_bountiful_harvest_d0: '+40 золота, +25 людей, +8 к стабильности в столице',

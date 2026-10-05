@@ -46,3 +46,43 @@ static func tick(g: TBGame) -> void:
 		elif g.coalition[n] != 0 and g.infamy[n] < COALITION_OFF:
 			g.coalition[n] = 0
 			g.log.append({"turn": g.turn, "kind": "coalition_end", "a": n})
+
+
+# ---------------------------------------------------------------- royal marriages (rules >= 1)
+const DP_MARRY := 3
+
+static func can_marry(g: TBGame, a: int, b: int) -> bool:
+	if g.rules < 1 or a == b or a == g.rebel or b == g.rebel or g.alive[a] == 0 or g.alive[b] == 0: return false
+	var r := g.get_rel(a, b)
+	return (r == D.REL_PEACE or r == D.REL_NAP) and TBRulers.is_hereditary(g, a) and TBRulers.is_hereditary(g, b) and g.overlord[a] == 0 and g.overlord[b] == 0
+
+static func marry(g: TBGame, n: int, t: int) -> Dictionary:
+	if g.rules < 1: return {"ok": false, "err": "rules"}
+	if not can_marry(g, n, t): return {"ok": false, "err": "state"}
+	if g.dp[n] < DP_MARRY: return {"ok": false, "err": "dp"}
+	if g.has_truce(n, t) and g.human[t] == 0: return {"ok": false, "err": "truce"}
+	if g.human[t] == 0 and not TBAI.accepts_pact(g, t, n, D.REL_ALLY): return {"ok": false, "err": "refused"}
+	g.dp[n] -= DP_MARRY
+	g.set_rel(n, t, D.REL_MARRIAGE)
+	g.grudge[n * g.N1 + t] = maxi(0, g.grudge[n * g.N1 + t] - 40); g.grudge[t * g.N1 + n] = maxi(0, g.grudge[t * g.N1 + n] - 40)
+	g.log.append({"turn": g.turn, "kind": "marriage", "a": n, "b": t})
+	return {"ok": true}
+
+## called when n's ruler changes: the marriage may lapse, or the match may bring a personal union under the stronger partner
+static func on_succession(g: TBGame, n: int, rng: TBRng) -> void:
+	for x in range(1, g.N1):
+		if x == n or g.alive[x] == 0 or g.get_rel(n, x) != D.REL_MARRIAGE: continue
+		var roll := rng.next()
+		if roll < 0.22 and g.overlord[n] == 0 and g.overlord[x] == 0 and g.own_count(x) * 10 >= g.own_count(n) * 8 and g.human[n] == 0:
+			g.overlord[n] = x; g.tribute[n] = 0; g.liberty[n] = 0.0
+			g.log.append({"turn": g.turn, "kind": "union", "a": x, "b": n})
+		elif roll < 0.5:
+			g.set_rel(n, x, D.REL_PEACE)
+			g.log.append({"turn": g.turn, "kind": "marriage_end", "a": n, "b": x})
+		return
+
+static func ai_marry(g: TBGame, n: int) -> void:
+	if g.rules < 1 or g.dp[n] < DP_MARRY + 1.0 or g.rng.next() > 0.04 or not TBRulers.is_hereditary(g, n): return
+	for o in range(1, g.N1):
+		if o != n and can_marry(g, n, o) and g.human[o] == 0 and g.own_count(o) >= 6:
+			marry(g, n, o); return

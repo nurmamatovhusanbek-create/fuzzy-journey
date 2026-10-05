@@ -123,6 +123,8 @@ export default {
   ev_trade_embargo_t: 'A Trade Embargo', ev_trade_embargo_f: 'A rival bans your goods from its ports. Merchants beg the crown to answer.',
   ev_trade_embargo_c0: 'Retaliate in kind', ev_trade_embargo_d0: '−30 gold · infamy +2 · −1 diplomacy points',
   ev_trade_embargo_c1: 'Endure it', ev_trade_embargo_d1: '−60 gold',
+  marry_propose: 'Royal marriage (3 DP)', e_marriage: 'A royal marriage joins {a} and {b}', e_marriage_end: 'The dynastic bond between {a} and {b} has lapsed', e_union: '{b} passes under the crown of {a} in a personal union',
+  err_state: 'Not possible in the current relationship.',
   ev_worldwide: 'Worldwide event', ev_event: 'Event', ev_ack: 'Acknowledge', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Bountiful Harvest', ev_bountiful_harvest_f: 'Fields overflow with grain and the granaries are fuller than in living memory.',
   ev_bountiful_harvest_c0: 'Distribute the surplus', ev_bountiful_harvest_d0: '+40 gold, +25 manpower, +8 stability in the capital',

@@ -11,6 +11,7 @@ run "rulers: historical seeds, succession, determinism" tests/rulers.gd
 run "diplomacy: casus belli, infamy, coalitions" tests/diplo.gd
 run "decisions" tests/decisions.gd
 run "trade deals" tests/trade.gd
+run "royal marriages" tests/marriage.gd
 run "Russian nation names" tests/names_ru.gd
 run "synth audio" tests/audio.gd
 run "soak: random human, 7 eras, invariants" tests/soak.gd
