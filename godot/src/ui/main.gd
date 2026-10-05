@@ -174,7 +174,19 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	hint_box.custom_minimum_size = Vector2(360, 0); hint_box.offset_left = -180; hint_box.offset_right = 180; hint_box.offset_top = 16
 	var hint := K.title(T.call("pick_nation"), 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint); hint_box.add_child(K.ornament())
 	_overlay.add_child(hint_box)
+	_add_pick_buttons()
+
+func _add_pick_buttons() -> void:
 	_overlay.add_child(_back_btn())
+	var lb := K.button(T.call("nations"), func(): TBModals.nations(_overlay, g, func(n: int): _pick_nation_from_list(n), false, false))
+	lb.anchor_left = 1.0; lb.anchor_right = 1.0; lb.offset_left = -150; lb.offset_right = -10; lb.offset_top = 10
+	_overlay.add_child(lb)
+
+func _pick_nation_from_list(n: int) -> void:
+	var cap := g.capital_of[n]
+	if cap < 0: cap = g.owned(n)[0]
+	map.fly_to(world.lon[cap], world.lat[cap], 2.4 if map.mode == 0 else maxf(map.zoom, 3.0))
+	_on_pick(cap, false)
 
 func _back_btn() -> Button:
 	var b := K.button(T.call("back"), func(): show_menu()); b.position = Vector2(10, 10); return b
@@ -201,7 +213,7 @@ func _on_pick(p: int, secondary: bool) -> void:
 		var n := g.owner[p]
 		map.select(p)
 		_clear_overlay()
-		_overlay.add_child(_back_btn())
+		_add_pick_buttons()
 		var m := K.modal(_overlay, g.dname(n), 380, "flag")
 		m[0].color = Color(0, 0, 0, 0)
 		m[1].add_child(K.label("%d %s" % [g.own_count(n), T.call("lands").to_lower()], 14, K.DIM))

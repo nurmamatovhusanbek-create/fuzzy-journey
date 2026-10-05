@@ -121,9 +121,9 @@ static func _era_facts(id: String) -> String:
 	_facts_cache[id + TBI18n.lang] = out
 	return out
 
-static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bool = false) -> void:
+static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bool = false, tabs: bool = true) -> void:
 	var m := K.modal(parent, T.call("nations"), 480, "globe")
-	if not only_wars:
+	if not only_wars and tabs:
 		m[1].add_child(K.segmented([["list", T.call("dk_nations")], ["stats", T.call("statistics")]], "list", func(id: String): if id == "stats": close(m[0]); statistics(parent, g, func(): nations(parent, g, on_pick))))
 	var search := LineEdit.new(); search.placeholder_text = T.call("search"); search.custom_minimum_size = Vector2(0, K.MIN_TOUCH)
 	m[1].add_child(search)
