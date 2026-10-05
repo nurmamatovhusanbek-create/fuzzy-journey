@@ -125,6 +125,8 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 	var me := g.human_id
 	var m := K.modal(parent, g.nat_name[n], 460)
 	var v: VBoxContainer = m[1]
+	v.add_child(TBFlags.chip(g, n, 1.1))
+	v.move_child(v.get_child(v.get_child_count() - 1), 0)
 	var rel := g.get_rel(me, n) if n != me else -1
 	var army := 0
 	for p in g.owned(n): army += g.army[p]

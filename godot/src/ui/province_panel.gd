@@ -58,7 +58,7 @@ func rebuild() -> void:
 	_body.add_child(head)
 	var sub := K.hbox(6)
 	if o != 0:
-		sub.add_child(K.color_chip(g.color[o]))
+		sub.add_child(TBFlags.chip(g, o))
 		sub.add_child(K.label(g.nat_name[o], 15))
 		var inf := K.button("ℹ", func(): nation_requested.emit(o)); inf.custom_minimum_size = Vector2(36, 32); sub.add_child(inf)
 		if rel == D.REL_WAR: sub.add_child(K.label("⚔ " + T.call("war"), 13, K.RED))
@@ -76,7 +76,7 @@ func rebuild() -> void:
 	var bname: String = T.call("none")
 	if g.building[p] != 0: bname = "%s %d" % [T.call("b_" + D.BUILDINGS[g.building[p] - 1]["id"]), g.b_level[p]]
 	elif g.b_building[p] != 0: bname = "⏳ %s (%d)" % [T.call("b_" + D.BUILDINGS[g.b_building[p] - 1]["id"]), g.b_turns[p]]
-	for row in [[T.call("army"), K.fmt(g.army[p])], [T.call("pop"), K.fmt(g.pop[p] * 1000)], [T.call("dev"), "%d/5" % g.dev[p]], ["Econ", "%d/5" % g.econ[p]],
+	for row in [[T.call("army"), K.fmt(g.army[p])], [T.call("pop"), K.fmt(g.pop[p] * 1000)], [T.call("dev"), "%d/5" % g.dev[p]], [T.call("econ"), "%d/5" % g.econ[p]],
 			[T.call("stability"), str(g.stab[p])], [T.call("happiness"), str(g.happy[p])], [T.call("terrain"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])], [T.call("building"), bname]]:
 		grid.add_child(K.label(row[0], 13, K.DIM)); grid.add_child(K.label(row[1], 14))
 	var bar := ProgressBar.new(); bar.max_value = 100; bar.value = g.stab[p]; bar.show_percentage = false; bar.custom_minimum_size = Vector2(0, 6)

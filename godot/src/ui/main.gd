@@ -118,9 +118,14 @@ func show_menu() -> void:
 	v.add_child(K.button(T.call("settings"), _open_settings))
 
 func _open_settings() -> void:
+	var prev_lang: String = TBI18n.lang
 	TBModals.settings(_overlay, cfg, func():
 		_save_cfg(); TBI18n.load_lang(cfg["lang"]); _apply_quality()
-		map.set_mode(0 if cfg["view"] == "globe" else 1), func(): show_menu() if mode == "game" else Callable())
+		map.set_mode(0 if cfg["view"] == "globe" else 1)
+		if TBI18n.lang != prev_lang:          # re-create already-built screens in the new language
+			prev_lang = TBI18n.lang
+			if mode == "game": hud.build(); hud.refresh(); if selected >= 0: panel.rebuild()
+			elif mode == "menu": show_menu(), func(): show_menu() if mode == "game" else Callable())
 
 func _open_era_picker() -> void:
 	_clear_overlay(); _spin = false

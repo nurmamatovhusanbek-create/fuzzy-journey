@@ -34,7 +34,7 @@ func build() -> void:
 	row.add_theme_constant_override("h_separation", 10); row.add_theme_constant_override("v_separation", 4)
 	top.add_child(row)
 	var nat := K.hbox(6)
-	nat.add_child(K.color_chip(0)); _chips["swatch"] = nat.get_child(0)
+	var fl := TextureRect.new(); fl.custom_minimum_size = Vector2(32, 22); fl.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; fl.stretch_mode = TextureRect.STRETCH_SCALE; nat.add_child(fl); _chips["swatch"] = fl
 	var nl := K.label("", 16, K.GOLD2); nat.add_child(nl); _chips["nation"] = nl
 	row.add_child(nat)
 	for key in ["date", "gold", "man", "mp", "lands"]:
@@ -68,7 +68,7 @@ func refresh() -> void:
 	if g == null or _chips.is_empty(): return
 	var n := g.human_id
 	var inc := g.income(n)
-	_chips["swatch"].color = Color.hex((g.color[n] << 8) | 0xFF)
+	_chips["swatch"].texture = TBFlags.texture(g.nat_code[n], g.color[n])
 	_chips["nation"].text = g.nat_name[n]
 	_chips["date"].text = "%s %d · %s %s" % [T.call("turn"), g.turn, TBData.MONTHS[g.month_idx], _year(g.year)]
 	var net: int = inc["net"]

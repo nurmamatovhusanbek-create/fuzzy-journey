@@ -97,8 +97,11 @@ func _project(p: int, c0: float, s0: float, sl: float, cl: float, R: float, cx: 
 	return Vector3(cx + R * x, cy - R * y, z)
 
 func _draw() -> void:
-	if map == null or g == null or g.human_id == 0 or hidden_while_dragging: return
+	if map == null or g == null or hidden_while_dragging: return
 	var font := ThemeDB.fallback_font
+	if g.human_id == 0:                 # nation-pick screen: names only
+		_draw_nation_names(font)
+		return
 	var vis: Array = []
 	var me := g.human_id
 	var zoomed := map.zoom >= (2.0 if map.mode == 0 else 2.6)
