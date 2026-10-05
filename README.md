@@ -7,11 +7,13 @@ The original browser game is kept untouched in `index.html` until the rebuild re
 Province-level grand strategy on a GPU-rendered globe/flat map, 13 start eras (218 BC – today), ~250 nations.
 Economy, tech and eras, buildings, armies and combat, peace deals (white / land / vassal), alliances and pacts,
 **named rulers** with traits and succession (≈140 historical rulers), **casus belli, infamy and coalitions**,
-**national decrees**, **trade deals**, espionage, rebels, ~255 dated historical events with choices, random events,
-five victory paths, a chronicle, an advisor, statistics charts. EN/RU, authoritative multiplayer, synthesised sound.
+**national decrees**, **trade deals**, **royal marriages**, **ultimatums**, **generals** and **supply limits**, espionage, rebels,
+28 regional unifications, ~255 dated historical events with choices, random events, five victory paths, a chronicle,
+an advisor, statistics charts, honours (achievements), procedural ruler cameos, a codex. EN/RU, authoritative multiplayer,
+**hot-seat** for 2-4 players on one device, synthesised sound.
 UI: "war table" design system (see `docs/ARCHITECTURE.md`).
 
-![menu](docs/screens/menu.png) ![game](docs/screens/game.png)
+![menu](docs/screens/menu.png) ![game](docs/screens/game.png) ![nation](docs/screens/nation_cameo.png) ![honours](docs/screens/honours.png)
 
 ## Layout
 | Path | What |
