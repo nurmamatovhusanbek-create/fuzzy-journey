@@ -90,7 +90,7 @@ static func _scheduled(g: TBGame) -> void:
 				_apply_sched_effects(g, n, ev.get("autoEffects", []))
 				if choices.size() > 0:
 					_apply_sched_effects(g, n, choices[g.rng.randi_n(choices.size())].get("effects", []))
-		g.log.append({"turn": g.turn, "kind": "event", "a": targets[0] if targets.size() == 1 else 0, "id": id, "world": targets.size() > 1})
+		g.log.append({"turn": g.turn, "kind": "event", "a": targets[0] if targets.size() == 1 else 0, "id": id, "world": targets.size() > 1, "title": ev.get("title", {}), "icon": ev.get("icon", "📜")})
 
 static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 	for e in effects:
@@ -182,7 +182,7 @@ static func _resolve(g: TBGame, e: Dictionary, choice: int) -> void:
 				var chs: Array = ev.get("choices", [])
 				if chs.size() > 0: _apply_sched_effects(g, n, chs[choice].get("effects", []))
 				break
-	g.log.append({"turn": g.turn, "kind": "event_choice", "a": n, "id": e["id"], "k": choice})
+	g.log.append({"turn": g.turn, "kind": "event_choice", "a": n, "id": e["id"], "k": choice, "rand": e["kind"] == "rand", "title": e.get("title", {})})
 
 static func _provs(g: TBGame, n: int, scope: String) -> PackedInt32Array:
 	var own := g.owned(n)

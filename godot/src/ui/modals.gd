@@ -270,3 +270,65 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 		row.add_child(K.label("%d %s · %s" % [r[0], T.call("hud_prov"), K.fmt(r[2])], 13, K.DIM))
 		m[1].add_child(row)
 	m[1].add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call(), true))
+
+
+## Chronicle: persistent history with category filters (newest first)
+static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
+	var m := K.modal(parent, "📜 " + T.call("chronicle"), 560)
+	var st := {"cat": "mine"}
+	var seg := HFlowContainer.new(); seg.add_theme_constant_override("h_separation", 6); seg.add_theme_constant_override("v_separation", 6)
+	m[1].add_child(seg)
+	var list := K.vbox(3)
+	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 360); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.add_child(list); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m[1].add_child(scroll)
+	var btns := {}
+	var draw := func():
+		for c in list.get_children(): c.queue_free()
+		var shown := 0
+		for i in range(g.log.size() - 1, -1, -1):
+			var e: Dictionary = g.log[i]
+			var cat := TBChron.category(e)
+			if st["cat"] == "mine" and not TBChron.involves(e, g.human_id): continue
+			if st["cat"] in ["war", "diplo", "events"] and cat != st["cat"]: continue
+			var tx := TBChron.text(g, e)
+			if tx == "": continue
+			var row := K.hbox(8)
+			var d := K.label("%s · T%d" % [TBChron.date(g, int(e["turn"])), int(e["turn"])], 12, K.DIM); d.custom_minimum_size = Vector2(110, 0); row.add_child(d)
+			var l := K.label(tx, 14, K.RED.lightened(0.3) if TBChron.is_bad(e, g.human_id) else K.TEXT)
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(l)
+			if e.has("p") and int(e["p"]) >= 0:
+				var pp: int = e["p"]
+				var go := K.button("◎", func(): close(m[0]); on_goto.call(pp)); go.custom_minimum_size = Vector2(36, 28); row.add_child(go)
+			list.add_child(row)
+			shown += 1
+			if shown >= 120: break
+		if shown == 0: list.add_child(K.label(T.call("chron_empty"), 14, K.DIM))
+	for c in TBChron.CATS:
+		var b := K.button(T.call("chron_" + c)); b.custom_minimum_size = Vector2(0, 36)
+		b.pressed.connect(func():
+			st["cat"] = c
+			for k in btns: btns[k].add_theme_color_override("font_color", K.GOLD2 if k == c else K.TEXT)
+			draw.call())
+		seg.add_child(b); btns[c] = b
+	btns["mine"].add_theme_color_override("font_color", K.GOLD2)
+	draw.call()
+	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+
+## Advisor: current alerts and tips; tapping one jumps to the province concerned
+static func advisor(parent: Control, g: TBGame, on_goto: Callable) -> void:
+	var m := K.modal(parent, "💡 " + T.call("advisor"), 520)
+	var al := TBAdvisor.alerts(g, g.human_id)
+	if al.is_empty(): m[1].add_child(K.label(T.call("al_none"), 15, K.DIM))
+	for a in al:
+		var sev: int = a["sev"]
+		var col := K.RED.lightened(0.3) if sev == 2 else (K.GOLD2 if sev == 1 else K.TEXT)
+		var icon := "⛔" if sev == 2 else ("⚠" if sev == 1 else "💡")
+		var row := K.hbox(8)
+		var l := K.label("%s %s" % [icon, T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)})], 14, col)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size = Vector2(380, 0); row.add_child(l)
+		if int(a["p"]) >= 0:
+			var pp: int = a["p"]
+			var go := K.button("◎", func(): close(m[0]); on_goto.call(pp)); go.custom_minimum_size = Vector2(44, 36); row.add_child(go)
+		m[1].add_child(row)
+	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))

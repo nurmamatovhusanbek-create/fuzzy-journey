@@ -500,6 +500,8 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 		elif atk_n == rebel or def_n == rebel: cede(to, atk_n)
 		else:
 			occupier[to] = atk_n; occ_turns[to] = 0; occ_rev += 1
+			if rules >= 1 and (human[atk_n] != 0 or human[def_n] != 0 or capital[to] != 0):
+				log.append({"turn": turn, "kind": "occupied", "a": atk_n, "b": def_n, "p": to})
 		army[to] = occ; defense[to] = 0
 		army[from] = maxi(0, avail - occ)
 		touch(from); touch(to)

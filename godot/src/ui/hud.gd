@@ -7,6 +7,8 @@ signal lens_selected(name: String)
 signal nations_pressed
 signal wars_pressed
 signal goals_pressed
+signal chronicle_pressed
+signal advisor_pressed
 signal budget_pressed
 signal save_pressed
 signal settings_pressed
@@ -49,7 +51,8 @@ func build() -> void:
 		lens.add_item(T.call("lens_" + TBLenses.NAMES[i]), i)
 	lens.item_selected.connect(func(idx: int): lens_selected.emit(TBLenses.NAMES[lens.get_item_id(idx)]))
 	row.add_child(lens)
-	for spec in [["goals", "🏆", goals_pressed], ["nations", T.call("nations"), nations_pressed], ["budget", T.call("budget"), budget_pressed], ["save", T.call("save"), save_pressed], ["settings", "⚙", settings_pressed]]:
+	var adv := K.button("💡", func(): advisor_pressed.emit()); adv.custom_minimum_size = Vector2(0, K.MIN_TOUCH - 8); row.add_child(adv); _chips["advisor"] = adv
+	for spec in [["chron", "📜", chronicle_pressed], ["goals", "🏆", goals_pressed], ["nations", T.call("nations"), nations_pressed], ["budget", T.call("budget"), budget_pressed], ["save", T.call("save"), save_pressed], ["settings", "⚙", settings_pressed]]:
 		var b := K.button(spec[1]); b.custom_minimum_size = Vector2(0, K.MIN_TOUCH - 8); b.pressed.connect(func(): spec[2].emit()); row.add_child(b)
 	# toasts
 	_toasts = VBoxContainer.new()
@@ -84,6 +87,13 @@ func refresh() -> void:
 	_chips["wars"].text = "⚔ %d" % wc
 	_chips["wars"].visible = wc > 0
 	_chips["wars"].add_theme_color_override("font_color", K.RED.lightened(0.3))
+	var al := TBAdvisor.alerts(g, n)
+	var crit := 0; var warn := 0
+	for a in al:
+		if a["sev"] == 2: crit += 1
+		elif a["sev"] == 1: warn += 1
+	_chips["advisor"].text = "💡 %d" % al.size() if al.size() > 0 else "💡"
+	_chips["advisor"].add_theme_color_override("font_color", K.RED.lightened(0.3) if crit > 0 else (K.GOLD2 if warn > 0 else K.TEXT))
 
 static func _year(y: int) -> String:
 	return "%d BC" % -y if y < 0 else "%d AD" % y

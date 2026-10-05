@@ -41,6 +41,8 @@ func _ready() -> void:
 	hud.lens_selected.connect(func(n): map.set_lens(n))
 	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation))
 	hud.goals_pressed.connect(func(): TBModals.goals(_overlay, g))
+	hud.chronicle_pressed.connect(func(): TBModals.chronicle(_overlay, g, _goto_province))
+	hud.advisor_pressed.connect(func(): TBModals.advisor(_overlay, g, _goto_province))
 	hud.wars_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation, true))
 	panel.nation_requested.connect(_open_nation)
 	hud.budget_pressed.connect(func(): TBModals.budget(_overlay, g, func(): hud.refresh()))
@@ -234,6 +236,10 @@ func _set_move_from(p: int) -> void:
 func _open_nation(n: int) -> void:
 	TBModals.nation_detail(_overlay, g, n, _on_command, _goto_nation)
 
+func _goto_province(p: int) -> void:
+	map.fly_to(world.lon[p], world.lat[p])
+	_select(p)
+
 func _goto_nation(n: int) -> void:
 	var cp := g.capital_of[n]
 	if cp >= 0:
@@ -310,21 +316,24 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	if g.over: TBModals.game_over(_overlay, g, show_menu)
 	else: _autosave()
 
+var _crisis := PackedStringArray()
+
 func _flush_log() -> void:
 	var me := g.human_id
 	while _log_idx < g.log.size():
 		var e: Dictionary = g.log[_log_idx]; _log_idx += 1
-		var a := String(g.nat_name[e["a"]]); var b := String(g.nat_name[e["b"]]) if e.has("b") else ""
-		var rel: bool = e["a"] == me or e.get("b", -1) == me
-		match e["kind"]:
-			"war": if rel: hud.toast(T.call("e_war", {"a": a, "b": b}), true)
-			"peace": if rel: hud.toast(T.call("e_peace", {"a": a, "b": b}))
-			"ally": if rel: hud.toast(T.call("e_ally", {"a": a, "b": b}))
-			"eliminated": hud.toast(T.call("e_elim", {"a": a}))
-			"spy": if e.get("b", -1) == me: hud.toast(T.call("e_spy_hit", {"a": a, "op": T.call("spy_" + String(e["op"]))}) if e["ok"] else T.call("e_spy_caught", {"a": a}), e["ok"])
-			"rebels": if e["a"] == me: hud.toast(T.call("e_rebels", {"a": a}), true)
-	if g.log.size() > 400:
-		g.log = g.log.slice(g.log.size() - 200); _log_idx = g.log.size()
+		if not TBChron.toast_worthy(g, e, me): continue
+		var tx := TBChron.text(g, e)
+		if tx != "": hud.toast(tx, TBChron.is_bad(e, me))
+	# new crises (since last turn) get an advisor toast
+	var al := TBAdvisor.alerts(g, me)
+	var now := TBAdvisor.crisis_ids(al)
+	for a in al:
+		if a["sev"] == 2 and not _crisis.has(a["id"]):
+			hud.toast("⛔ " + T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)}), true)
+	_crisis = now
+	if g.log.size() > 900:
+		g.log = g.log.slice(g.log.size() - 600); _log_idx = g.log.size()
 
 # ---------------------------------------------------------------- persistence
 func _save_slot(slot: String) -> void:

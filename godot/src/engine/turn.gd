@@ -40,6 +40,7 @@ static func _tick(g: TBGame) -> void:
 			if oc != 0:
 				if g.occ_turns[p] < 250: g.occ_turns[p] += 1
 				if o != 0 and g.occ_turns[p] >= (10 if g.capital[p] != 0 else 5) and g.get_rel(o, oc) == D.REL_WAR:
+					if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "annexed", "a": oc, "b": o, "p": p})
 					g.cede(p, oc); g.army[p] = maxi(g.army[p], 6); g.stab[p] = mini(g.stab[p], 50); g.touch(p)
 					continue
 			else:
@@ -62,7 +63,9 @@ static func _tick(g: TBGame) -> void:
 		var inc := g.income(n)
 		var reg: Dictionary = D.REGIMES[g.regime[n]]
 		var era: int = g.era[n]
+		var gold_before: float = g.gold[n]
 		g.gold[n] = maxf(0.0, g.gold[n] + inc["net"])
+		if g.rules >= 1 and g.human[n] != 0 and gold_before > 0.0 and g.gold[n] <= 0.0: g.log.append({"turn": g.turn, "kind": "bankrupt", "a": n})
 		g.manpower[n] = minf(inc["manCap"], g.manpower[n] + inc["manpower"])
 		g.mp[n] = minf(6 + era * 2, g.mp[n] + 1 + era * 0.4)
 		if g.rules >= 1 and g.human[n] == 0: g.mp[n] = minf(8 + era * 2, g.mp[n] + 1.2)    # AI acts less cleverly: extra action points
@@ -92,11 +95,13 @@ static func _tick(g: TBGame) -> void:
 		var invest_chance := inv_pct / 100.0 * 0.05
 		g.research[n] += D.tech_gain(inc["pop"], res_pct) + inc["researchBonus"]
 		var need := _need(g, g.tech_level[n])
+		var era_before: int = g.era[n]
 		while g.research[n] >= need:
 			g.research[n] -= need
 			g.tech_level[n] = minf(5.0, round((g.tech_level[n] + D.TECH_STEP) * 100.0) / 100.0)
 			g.era[n] = mini(D.ERAS.size() - 1, int(floor(g.tech_level[n])))
 			need = _need(g, g.tech_level[n])
+		if g.rules >= 1 and g.era[n] > era_before and (g.human[n] != 0 or g.era[n] >= 3): g.log.append({"turn": g.turn, "kind": "era", "a": n, "k": g.era[n]})
 		var dev_cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
 		var stab_ceil: int = reg["stabCeil"]
 		var rebel_chance: float = reg["rebelChance"]

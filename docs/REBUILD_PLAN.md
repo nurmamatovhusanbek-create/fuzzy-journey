@@ -17,6 +17,7 @@
 | Multiplayer: authoritative server (**deployed on Render**), lobby, delta sync, proposals, chat, turn timer, **auto-reconnect**, command validation + rate limit | done; tested with 2 clients + UI + reconnect |
 | Perf work: bake-time sea links (new game 289 ms to 11 ms), render only on change + low-processor mode, half-res ID texture on Low tier | done |
 | Android / iOS builds | presets + CI workflow written, **not run** (no Android SDK / Mac in the dev sandbox) |
+| UX: **Chronicle** (filterable history), **Advisor** (alerts + tips, crisis toasts), richer log (occupation, annexation, bankruptcy, era) — from `docs/RESEARCH.md` item 1 | done |
 | Still to port from legacy | trade routes, generals, formable nations, ultimatums / war goals / coalitions / marriage UI, data-spike lens, localized nation names |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 
