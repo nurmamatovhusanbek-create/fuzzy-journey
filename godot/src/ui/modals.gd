@@ -131,6 +131,16 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 	var rel := g.get_rel(me, n) if n != me else -1
 	var army := 0
 	for p in g.owned(n): army += g.army[p]
+	if g.rules >= 1 and g.r_name[n] != "":
+		var rl := K.label("%s %s · %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n), T.call("ruler_age", {"a": TBRulers.age(g, n)})], 15, K.GOLD2)
+		v.add_child(rl)
+		var sk := K.label("%s %d · %s %d · %s %d" % [T.call("skill_adm"), g.r_adm[n], T.call("skill_dip"), g.r_dip[n], T.call("skill_mil"), g.r_mil[n]], 13, K.DIM)
+		v.add_child(sk)
+		var tr: String = TBRulers.TRAITS[g.r_trait[n]]
+		if tr != "none":
+			var tl := K.label("%s — %s" % [T.call("rtr_" + tr), T.call("rtr_%s_d" % tr)], 13, K.DIM)
+			tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(400, 0)
+			v.add_child(tl)
 	var grid := GridContainer.new(); grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 18)
 	v.add_child(grid)

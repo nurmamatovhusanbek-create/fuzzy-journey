@@ -99,6 +99,15 @@ var dirty_flag := PackedByteArray()
 var dirty_list := PackedInt32Array()
 var rel_dirty := PackedInt32Array()   # canonical (min*N1+max) pairs whose relation changed since last take (net deltas)
 var log: Array = []
+# rulers (rules >= 1): see engine/rulers.gd
+var r_name := PackedStringArray()    # "rn:<idx>" (procedural, i18n) or "English|Russian" (historical)
+var r_num := PackedByteArray()
+var r_born := PackedInt32Array()     # turn of birth (negative = before start)
+var r_since := PackedInt32Array()    # turn of accession
+var r_adm := PackedByteArray()
+var r_dip := PackedByteArray()
+var r_mil := PackedByteArray()
+var r_trait := PackedByteArray()
 var nap_expiry: Dictionary = {}
 var occ_rev: int = 0
 
@@ -174,6 +183,9 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
+	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
+	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:
+		a.resize(N1)
 	ev_last_any.resize(N1); ev_last_any.fill(-99); trade_bonus.resize(N1); combat_bonus.resize(N1); combat_turns.resize(N1)
 	start_year = year
 	for n in range(1, N1):
@@ -209,6 +221,9 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		nb_off = w.nbx_off.duplicate(); nb = w.nbx.duplicate(); nb_sea = w.nbx_sea.duplicate()
 	else:
 		add_sea_links()
+	if rules >= 1:
+		TBRegimes.assign(self)
+		TBRulers.init(self)
 
 func set_human(n: int) -> void:
 	human.fill(0); human[n] = 1; human_id = n
@@ -438,8 +453,10 @@ func income(n: int) -> Dictionary:
 	var gld: int = prod + tax
 	if cap_lost_now: gld = int(floor(gld * 0.5))
 	gld = int(floor(gld * float(reg["incMul"]) * tech_inc))
+	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n)))
 	admin = int(floor(admin * tech_admin))
 	var upkeep := int(floor(up_base * (0.25 + era[n] * 0.05) * tech_up * float(reg["upkeep"])))
+	if rules >= 1: man = int(floor(man * TBRulers.manpower_mul(self, n)))
 	out["gold"] = gld; out["manpower"] = man; out["upkeep"] = upkeep; out["tax"] = tax; out["production"] = prod; out["admin"] = admin
 	out["net"] = gld - admin - upkeep
 	out["manCap"] = maxi(120 + era[n] * 50, own.size() * 30 + era[n] * 35)
@@ -460,6 +477,7 @@ func combat_mul(n: int) -> float:
 	if n == 0: return 1.0
 	var m: float = D.ERAS[era[n]]["combatMul"]
 	if combat_turns[n] > 0: m += combat_bonus[n]
+	if rules >= 1: m *= TBRulers.combat_mul(self, n)
 	return m
 
 func sea_edge(from: int, to: int) -> int:

@@ -14,7 +14,9 @@ static func end_turn(g: TBGame) -> PackedInt32Array:
 	if g.month_idx >= 12:
 		g.month_idx -= 12
 		g.year += 1
-	if g.rules >= 1: TBEvents.run(g)
+	if g.rules >= 1:
+		TBRulers.tick(g)
+		TBEvents.run(g)
 	check_victory(g)
 	return g.take_dirty()
 
@@ -69,7 +71,7 @@ static func _tick(g: TBGame) -> void:
 		g.manpower[n] = minf(inc["manCap"], g.manpower[n] + inc["manpower"])
 		g.mp[n] = minf(6 + era * 2, g.mp[n] + 1 + era * 0.4)
 		if g.rules >= 1 and g.human[n] == 0: g.mp[n] = minf(8 + era * 2, g.mp[n] + 1.2)    # AI acts less cleverly: extra action points
-		g.dp[n] = minf(4 + era * 2, g.dp[n] + 1 + era * 0.3)
+		g.dp[n] = minf(4 + era * 2, g.dp[n] + 1 + era * 0.3 + (TBRulers.dp_add(g, n) if g.rules >= 1 else 0.0))
 		if g.rules >= 1: g.intel[n] = minf(20.0, g.intel[n] + 0.8 + minf(1.5, own.size() / 40.0))
 		var cap_shock: bool = inc["capLost"] and g.cap_lost[n] == 0
 		g.cap_lost[n] = 1 if inc["capLost"] else 0
@@ -89,11 +91,12 @@ static func _tick(g: TBGame) -> void:
 				if g.occupier[q] == n: occ += v
 			g.war_score[i] = clampi(int(round(occ / (tot if tot != 0.0 else 1.0) * 100.0)), 0, 100)
 		var stab_delta: float = ((-0.5 - weary / 100.0) if g.rules == 0 else (-0.15 - weary / 250.0)) if at_war else 2.0
+		if g.rules >= 1: stab_delta += TBRulers.stab_add(g, n)
 		var bud := n * 4
 		var tax: int = g.budget[bud]; var goods: int = g.budget[bud + 1]; var res_pct: int = g.budget[bud + 2]; var inv_pct: int = g.budget[bud + 3]
-		var happy_target := clampf(50.0 + (goods - 20) * 0.6 - maxf(0.0, tax - 50) * 0.5 - (8.0 if at_war else 0.0) - weary * 0.15, 0.0, 100.0)
-		var invest_chance := inv_pct / 100.0 * 0.05
-		g.research[n] += D.tech_gain(inc["pop"], res_pct) + inc["researchBonus"]
+		var happy_target := clampf(50.0 + (goods - 20) * 0.6 - maxf(0.0, tax - 50) * 0.5 - (8.0 if at_war else 0.0) - weary * 0.15 + (TBRulers.happy_add(g, n) if g.rules >= 1 else 0.0), 0.0, 100.0)
+		var invest_chance := inv_pct / 100.0 * 0.05 * (TBRulers.invest_mul(g, n) if g.rules >= 1 else 1.0)
+		g.research[n] += (D.tech_gain(inc["pop"], res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) if g.rules >= 1 else 1.0)
 		var need := _need(g, g.tech_level[n])
 		var era_before: int = g.era[n]
 		while g.research[n] >= need:
@@ -104,7 +107,7 @@ static func _tick(g: TBGame) -> void:
 		if g.rules >= 1 and g.era[n] > era_before and (g.human[n] != 0 or g.era[n] >= 3): g.log.append({"turn": g.turn, "kind": "era", "a": n, "k": g.era[n]})
 		var dev_cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
 		var stab_ceil: int = reg["stabCeil"]
-		var rebel_chance: float = reg["rebelChance"]
+		var rebel_chance: float = reg["rebelChance"] * (TBRulers.rebel_mul(g, n) if g.rules >= 1 else 1.0)
 		for p in own:
 			if cap_shock: g.stab[p] = maxi(5, g.stab[p] - 20)
 			if g.occupier[p] != 0: g.stab[p] = maxi(5, g.stab[p] - 1)

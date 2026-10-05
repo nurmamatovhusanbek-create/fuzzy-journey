@@ -18,6 +18,7 @@
 | Perf work: bake-time sea links (new game 289 ms to 11 ms), render only on change + low-processor mode, half-res ID texture on Low tier | done |
 | Android / iOS builds | presets + CI workflow written, **not run** (no Android SDK / Mac in the dev sandbox) |
 | UX: **Chronicle** (filterable history), **Advisor** (alerts + tips, crisis toasts), richer log (occupation, annexation, bankruptcy, era) — from `docs/RESEARCH.md` item 1 | done |
+| **Rulers** (item 2): named leaders with skills + traits, ageing, succession / crises / elections, ~140 historical rulers across 11 eras (`data/rulers.json`), era-appropriate starting governments (`engine/regimes.gd`) | done |
 | Still to port from legacy | trade routes, generals, formable nations, ultimatums / war goals / coalitions / marriage UI, data-spike lens, localized nation names |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 

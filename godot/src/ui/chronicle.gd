@@ -10,7 +10,7 @@ static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
 		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "independence": return "war"
 		"ally", "vassal", "spy": return "diplo"
-		"event", "event_choice", "era", "bankrupt": return "events"
+		"event", "event_choice", "era", "bankrupt", "ruler": return "events"
 	return "events"
 
 static func involves(e: Dictionary, me: int) -> bool:
@@ -42,6 +42,9 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"rebels": return T.call("e_rebels", {"a": a}) if involves(e, g.human_id) else ""
 		"occupied": return T.call("e_occupied", {"a": a, "b": b, "p": pn})
 		"annexed": return T.call("e_annexed", {"a": a, "b": b, "p": pn})
+		"ruler":
+			if String(e["k"]) == "elected" and not involves(e, g.human_id): return ""
+			return T.call("e_ruler_" + String(e["k"]), {"a": a, "old": TBRulers.name_of(e["old"], int(e["oldn"])), "new": TBRulers.name_of(e["new"], int(e["num"]))})
 		"bankrupt": return T.call("e_bankrupt", {"a": a})
 		"era": return T.call("e_era", {"a": a, "e": T.call("era_name_%d" % int(e["k"]))})
 		"victory": return T.call("e_victory", {"a": a})
@@ -70,7 +73,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
 		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed": return involves(e, me)
-		"rebels", "bankrupt", "era": return e.get("a", -1) == me
+		"rebels", "bankrupt", "era", "ruler": return e.get("a", -1) == me
 		"eliminated": return true
 		"event": return e.get("a", 0) == me or e.get("a", 0) == 0
 		"spy": return e.get("b", -1) == me
