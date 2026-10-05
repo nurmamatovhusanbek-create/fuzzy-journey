@@ -410,7 +410,7 @@ func _update_perf(delta: float) -> void:
 		return
 	if _perf_label == null:
 		_perf_label = K.label("", 11, K.GOLD2); _perf_label.add_theme_font_override("font", K.mono())
-		_perf_label.set_anchors_preset(Control.PRESET_TOP_RIGHT); _perf_label.position = Vector2(-330, 100); _perf_label.z_index = 100
+		_perf_label.set_anchors_preset(Control.PRESET_TOP_RIGHT); _perf_label.offset_left = -620; _perf_label.offset_right = -8; _perf_label.offset_top = 100; _perf_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _perf_label.z_index = 100
 		add_child(_perf_label)
 	_perf_label.visible = true
 	_perf_t += delta

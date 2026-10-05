@@ -18,6 +18,8 @@ func _init() -> void:
 	main.hud.refresh()
 	main.map.fly_to(-95.0, 40.0, 1.0)
 	for i in 8: await process_frame
+	main.cfg["perf"] = true
+	for i in 40: await process_frame
 	await _shot("globe")
 	main.map.fly_to(2.0, 47.0, 5.0)
 	for i in 10: await process_frame
