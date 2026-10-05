@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import zlib from 'node:zlib';
 import * as topojson from 'topojson-client';
 
-const W = 2048, H = 1024;
+const W = 4096, H = 2048;
 const OUT = 'godot/data';
 fs.mkdirSync(OUT + '/eras', { recursive: true });
 
