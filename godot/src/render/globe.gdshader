@@ -136,6 +136,7 @@ void fragment() {
 			col = texelFetch(pal, ivec2(id, 0), 0).rgb;
 			vec4 occ = texelFetch(pal, ivec2(id, 2), 0);
 			if (occ.a > 0.5 && mod(p.x + p.y, 8.0) < 4.0) col = occ.rgb;
+			if (texelFetch(pal, ivec2(id, 3), 0).r > 0.5) col = mix(col, vec3(1.0, 0.82, 0.18), 0.58);   // valid move/attack target
 			if (id == sel_id) col = mix(col, vec3(1.0, 0.92, 0.55), 0.38);
 			else if (id == hover_id) col = mix(col, vec3(1.0), 0.18);
 		}

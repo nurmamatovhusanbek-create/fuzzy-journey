@@ -29,6 +29,7 @@ func _ready() -> void:
 	map.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(map)
 	map.province_picked.connect(_on_pick)
+	map.province_hovered.connect(_on_hover)
 	hud = TBHud.new(); add_child(hud); hud.visible = false
 	panel = TBProvincePanel.new(); add_child(panel)
 	panel.command.connect(_on_command); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
@@ -174,8 +175,24 @@ func _on_pick(p: int, secondary: bool) -> void:
 	if p < 0: _select(-1); return
 	if secondary and selected >= 0 and g.controller(selected) == g.human_id: _do_move(selected, p); return
 	if move_from >= 0:
-		var f := move_from; move_from = -1; _do_move(f, p); return
+		var f := move_from; _set_move_from(-1); _do_move(f, p); return
 	_select(p)
+
+var _tip: PanelContainer
+var _tip_label: Label
+## desktop-only hover tooltip: province, owner, army
+func _on_hover(p: int) -> void:
+	if mode != "game" or p < 0 or OS.has_feature("mobile"):
+		if _tip != null: _tip.visible = false
+		return
+	if _tip == null:
+		_tip = PanelContainer.new(); _tip.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tip.z_index = 50
+		_tip_label = K.label("", 13); _tip.add_child(_tip_label); add_child(_tip)
+	var o := g.owner[p]
+	_tip_label.text = "%s — %s  (%s %s)" % [world.name[p], g.nat_name[o] if o != 0 else T.call("neutral"), T.call("army"), K.fmt(g.army[p])]
+	_tip.visible = true
+	_tip.reset_size()
+	_tip.position = (get_local_mouse_position() + Vector2(16, 18)).clamp(Vector2.ZERO, size - _tip.size)
 
 func _select(p: int) -> void:
 	selected = p
@@ -183,8 +200,18 @@ func _select(p: int) -> void:
 	panel.show_province(g, p) if p >= 0 else panel.show_province(g, -1)
 
 func _on_move_requested(p: int) -> void:
-	move_from = p
+	_set_move_from(p)
 	hud.toast(T.call("move") + " ▸")
+
+## highlight where the selected army may go (adjacent land, or sea hops from ports)
+func _set_move_from(p: int) -> void:
+	move_from = p
+	var t := PackedInt32Array()
+	if p >= 0:
+		for e in range(g.nb_off[p], g.nb_off[p + 1]):
+			if g.nb_sea[e] != 0 and g.building[p] != TBData.B_PORT: continue
+			t.append(g.nb[e])
+	map.set_targets(t)
 
 func _open_nation(n: int) -> void:
 	TBModals.nation_detail(_overlay, g, n, _on_command, _goto_nation)
@@ -245,7 +272,7 @@ func end_turn() -> void:
 	if mp.in_game:
 		mp.end_turn(); return
 	if _busy or mode != "game": return
-	_busy = true; hud.set_busy(true); move_from = -1
+	_busy = true; hud.set_busy(true); _set_move_from(-1)
 	_turn_thread = Thread.new()
 	_turn_thread.start(_turn_worker)
 

@@ -126,6 +126,14 @@ func _upload() -> void:
 	_pal_img.set_data(PAL_W, 4, false, Image.FORMAT_RGBA8, _pal)
 	_pal_tex.update(_pal_img)
 
+## highlight provinces (move/attack targets). Pass an empty array to clear.
+var _targets := PackedInt32Array()
+func set_targets(list: PackedInt32Array) -> void:
+	for p in _targets: _pal[(3 * PAL_W + p + 1) * 4] = 0
+	_targets = list
+	for p in _targets: _pal[(3 * PAL_W + p + 1) * 4] = 255
+	_upload()
+
 func set_lens(name: String) -> void:
 	lenses.mode = name
 	repaint_all()
