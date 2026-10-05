@@ -49,6 +49,7 @@ jobs:
         env:
           GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASS: android
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
           mkdir -p build/android ~/.android ~/.config/godot
