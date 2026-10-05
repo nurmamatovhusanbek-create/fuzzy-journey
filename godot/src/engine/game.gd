@@ -201,7 +201,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		regime[n] = D.REGIME_REBELS if n == rebel else D.REGIME_POOL[(n - 1) % D.REGIME_POOL.size()]
 		personality[n] = TBRng.hash_str(nat_code[n]) % D.PERSONALITIES.size()
 		budget[n * 4] = 50; budget[n * 4 + 1] = 20; budget[n * 4 + 2] = 15; budget[n * 4 + 3] = 15
-		color[n] = gen_color(n)
+		color[n] = gen_color(n) if rules == 0 else gen_wash(n)
 	nb_off = w.nb_off.duplicate(); nb = w.nb.duplicate(); nb_sea.resize(w.nb.size())
 	var have_sea: bool = not w.nbx.is_empty()
 	rebuild_owned()
@@ -840,6 +840,13 @@ static func gen_color(n: int) -> int:
 	var l := 0.45 + (n % 4) * 0.05
 	var col := Color.from_hsv(h / 360.0, minf(1.0, s), minf(1.0, l + 0.35))
 	return col.to_rgba32() >> 8   # 0xRRGGBB
+
+## rules >= 1: muted inks, like hand-tinted washes on an old chart (still distinct neighbours via the golden angle)
+static func gen_wash(n: int) -> int:
+	var h := fposmod(n * 137.508, 360.0)
+	var s := 0.34 + (n % 3) * 0.07
+	var v := 0.58 + (n % 4) * 0.055
+	return Color.from_hsv(h / 360.0, s, v).to_rgba32() >> 8
 
 func end_turn() -> PackedInt32Array:
 	return TBTurn.end_turn(self)

@@ -5,8 +5,8 @@ extends RefCounted
 const D = preload("res://src/engine/data.gd")
 const NAMES := ["political", "diplomatic", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]
 
-const NEUTRAL := 0x4b4f58
-const DISCOVERABLE := 0x272b33
+const NEUTRAL := 0x5b5142
+const DISCOVERABLE := 0x2f2a24
 const REGIME_COL := [0x7a6a4a, 0x8a6d3b, 0xc79a3a, 0x4a86c4, 0x9c3f5a, 0x3fb56b, 0xc0463a, 0x5a5f6b, 0xb5803a, 0x3aa9b8, 0x888888]
 const TERRAIN_COL := [0x9dbb6a, 0xa89868, 0x8a8478, 0x4f7f4a, 0x6f8a6a, 0xc6b676]
 const BUILD_COL := [0, 0xc0463a, 0xd08a3a, 0x3aa9b8, 0xecc63c, 0x9c8243, 0x7a9a3b, 0x6f8fd0, 0x6ba368, 0xb07a4a]

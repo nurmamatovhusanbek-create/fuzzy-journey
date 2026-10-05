@@ -12,37 +12,75 @@ static func close(m: Control) -> void:
 
 static func era_picker(parent: Control, difficulty: String, on_start: Callable, on_back: Callable) -> void:
 	var st := {"era": "modern", "diff": difficulty}
-	var m := K.modal(parent, T.call("choose_era"), 640)
-	var grid := GridContainer.new(); grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 8); grid.add_theme_constant_override("v_separation", 8)
-	m[1].add_child(grid)
-	var era_btns := {}
-	for id in ERAS:
+	var portrait := parent.get_viewport_rect().size.y > parent.get_viewport_rect().size.x
+	var m := K.modal(parent, T.call("choose_era"), 520 if portrait else 820, "hourglass")
+	var body := BoxContainer.new(); body.vertical = portrait; body.add_theme_constant_override("separation", 22)
+	m[1].add_child(body)
+	# ---- chronology rail
+	var rail := VBoxContainer.new(); rail.add_theme_constant_override("separation", 0); rail.custom_minimum_size = Vector2(300 if not portrait else 0, 0)
+	body.add_child(rail)
+	var rows := {}
+	var name_l := K.title("", 26); name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var year_l := K.num("", 15, K.DIM)
+	var blurb := K.label("", 15, K.TEXT); blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; blurb.custom_minimum_size = Vector2(240, 0)
+	var powers := K.label("", 13, K.DIM); powers.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; powers.custom_minimum_size = Vector2(240, 0)
+	var show := func(id: String):
+		st["era"] = id
+		for k in rows: rows[k].selected = (k == id); rows[k].queue_redraw()
+		name_l.text = T.call("era_" + id)
 		var y: int = ERA_YEAR[id]
-		var b := K.button("%s\n%s" % [T.call("era_" + id), ("%d BC" % -y) if y < 0 else ("%d AD" % y)])
-		b.custom_minimum_size = Vector2(190, 58)
-		b.pressed.connect(func():
-			st["era"] = id
-			for k in era_btns: era_btns[k].add_theme_color_override("font_color", K.GOLD2 if k == id else K.TEXT))
-		grid.add_child(b); era_btns[id] = b
-	era_btns["modern"].add_theme_color_override("font_color", K.GOLD2)
-	m[1].add_child(K.label(T.call("difficulty"), 13, K.DIM))
-	var seg := K.hbox(6); m[1].add_child(seg)
-	var d_btns := {}
-	for d in ["easy", "normal", "hard"]:
-		var b := K.button(T.call(d)); b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.pressed.connect(func():
-			st["diff"] = d
-			for k in d_btns: d_btns[k].add_theme_color_override("font_color", K.GOLD2 if k == d else K.TEXT))
-		seg.add_child(b); d_btns[d] = b
-	d_btns[difficulty].add_theme_color_override("font_color", K.GOLD2)
-	var row := K.hbox(8); m[1].add_child(row)
+		year_l.text = ("%d BC" % -y) if y < 0 else ("%d AD" % y)
+		blurb.text = T.call("blurb_" + id)
+		powers.text = _era_facts(id)
+	var order := ERAS.duplicate()
+	order.sort_custom(func(a, b): return ERA_YEAR[a] < ERA_YEAR[b])      # chronological, modern last
+	for i in order.size():
+		var id: String = order[i]
+		var y: int = ERA_YEAR[id]
+		var r := TBMenuParts.EraRow.new(("%d BC" % -y) if y < 0 else ("%d AD" % y), T.call("era_" + id))
+		r.first = i == 0; r.last = i == order.size() - 1
+		r.pressed.connect(func(): show.call(id))
+		rail.add_child(r); rows[id] = r
+	# ---- detail
+	var det := K.vbox(10); det.size_flags_horizontal = Control.SIZE_EXPAND_FILL; det.custom_minimum_size = Vector2(240, 0)
+	body.add_child(det)
+	det.add_child(year_l); det.add_child(name_l); det.add_child(K.ornament()); det.add_child(blurb)
+	det.add_child(K.section(T.call("great_powers"))); det.add_child(powers)
+	var fill := Control.new(); fill.size_flags_vertical = Control.SIZE_EXPAND_FILL; fill.custom_minimum_size = Vector2(0, 6); det.add_child(fill)
+	det.add_child(K.section(T.call("difficulty")))
+	det.add_child(K.segmented([["easy", T.call("easy")], ["normal", T.call("normal")], ["hard", T.call("hard")]], difficulty, func(id: String): st["diff"] = id))
+	var row := K.hbox(8); det.add_child(row)
 	row.add_child(K.button(T.call("back"), func(): close(m[0]); on_back.call()))
 	var go := K.button(T.call("new_game"), func(): close(m[0]); on_start.call(st["era"], st["diff"]), true)
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(go)
+	show.call("modern")
+
+static var _facts_cache := {}
+## "N nations · A, B, C" for an era (largest powers by province count)
+static func _era_facts(id: String) -> String:
+	if _facts_cache.has(id + TBI18n.lang): return _facts_cache[id + TBI18n.lang]
+	var out := ""
+	if id != "modern":
+		var era := TBWorld.load_era("res://data", id)
+		if not era.is_empty():
+			var cnt := {}
+			for o in era["owner"]: if int(o) > 0: cnt[int(o)] = cnt.get(int(o), 0) + 1
+			var ks := cnt.keys()
+			ks.sort_custom(func(a, b): return cnt[a] > cnt[b])
+			var names: Array = []
+			for k in ks:
+				var nm := String(era["nations"][int(k) - 1]["name"])
+				if nm.to_lower().contains("hunter") or nm.to_lower().contains("farmers") or nm.to_lower().contains("pastoral") or nm.to_lower().contains("cultures") or nm.to_lower().contains("minor"): continue
+				names.append(nm)
+				if names.size() >= 4: break
+			out = "%s\n%s" % [", ".join(names), T.call("n_nations", {"n": era["nations"].size()})]
+	else:
+		out = T.call("n_nations", {"n": 250})
+	_facts_cache[id + TBI18n.lang] = out
+	return out
 
 static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bool = false) -> void:
-	var m := K.modal(parent, T.call("nations"), 480)
+	var m := K.modal(parent, T.call("nations"), 480, "globe")
 	var search := LineEdit.new(); search.placeholder_text = T.call("search"); search.custom_minimum_size = Vector2(0, K.MIN_TOUCH)
 	m[1].add_child(search)
 	var list := K.vbox(2); m[1].add_child(list)
@@ -56,9 +94,8 @@ static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bo
 		for n in rows:
 			if q != "" and not g.nat_name[n].to_lower().contains(q.to_lower()): continue
 			var rel := g.get_rel(g.human_id, n)
-			var b := K.button("%s%s    %d" % [g.nat_name[n], "  ⚔" if rel == 1 else ("  🤝" if rel == 3 else ""), g.own_count(n)])
-			b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.custom_minimum_size = Vector2(0, 38)
-			b.pressed.connect(func(): close(m[0]); on_pick.call(n))
+			var nat_col := K.RED.lightened(0.25) if rel == 1 else (Color(0.55, 0.72, 1.0) if rel == 3 else K.TEXT)
+			var b := K.list_row(g.nat_name[n], str(g.own_count(n)), func(): close(m[0]); on_pick.call(n), nat_col)
 			list.add_child(b)
 			shown += 1
 			if shown >= 60: break
@@ -67,7 +104,7 @@ static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bo
 	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
 
 static func budget(parent: Control, g: TBGame, on_change: Callable) -> void:
-	var m := K.modal(parent, T.call("budget"), 460)
+	var m := K.modal(parent, T.call("budget"), 460, "coins")
 	var n := g.human_id
 	var keys := ["tax", "goods", "research", "invest"]
 	var sliders := []
@@ -86,7 +123,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> void:
 	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
 
 static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_menu: Callable) -> void:
-	var m := K.modal(parent, T.call("settings"), 440)
+	var m := K.modal(parent, T.call("settings"), 440, "gear")
 	_segment(m[1], T.call("quality"), [["auto", T.call("q_auto")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
 	_segment(m[1], T.call("language"), [["en", "English"], ["ru", "Русский"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
 	_segment(m[1], T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], cfg["view"], func(v): cfg["view"] = v; on_change.call())
@@ -97,17 +134,8 @@ static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_m
 	var bk := K.button(T.call("back"), func(): close(m[0]), true); bk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(bk)
 
 static func _segment(parent: Control, title: String, items: Array, current: String, cb: Callable) -> void:
-	parent.add_child(K.label(title, 13, K.DIM))
-	var row := K.hbox(6); parent.add_child(row)
-	var btns := {}
-	for it in items:
-		var b := K.button(it[1]); b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var id: String = it[0]
-		b.pressed.connect(func():
-			cb.call(id)
-			for k in btns: btns[k].add_theme_color_override("font_color", K.GOLD2 if k == id else K.TEXT))
-		row.add_child(b); btns[id] = b
-	btns[current].add_theme_color_override("font_color", K.GOLD2)
+	parent.add_child(K.section(title))
+	parent.add_child(K.segmented(items, current, cb))
 
 static func save_load(parent: Control, saving: bool, on_save: Callable, on_load: Callable) -> void:
 	var m := K.modal(parent, T.call("save") if saving else T.call("load"), 460)
@@ -250,7 +278,7 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable) ->
 
 ## victory goals with progress bars
 static func goals(parent: Control, g: TBGame) -> void:
-	var m := K.modal(parent, T.call("goals_title"), 460)
+	var m := K.modal(parent, T.call("goals_title"), 460, "trophy")
 	var prog := TBTurn.victory_progress(g, g.human_id)
 	for id in TBTurn.VICTORY_IDS:
 		var pct: float = prog[id]
@@ -289,15 +317,12 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 
 ## Chronicle: persistent history with category filters (newest first)
 static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
-	var m := K.modal(parent, "📜 " + T.call("chronicle"), 560)
+	var m := K.modal(parent, T.call("chronicle"), 560, "book")
 	var st := {"cat": "mine"}
-	var seg := HFlowContainer.new(); seg.add_theme_constant_override("h_separation", 6); seg.add_theme_constant_override("v_separation", 6)
-	m[1].add_child(seg)
 	var list := K.vbox(3)
 	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 360); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.add_child(list); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	m[1].add_child(scroll)
-	var btns := {}
 	var draw := func():
 		for c in list.get_children(): c.queue_free()
 		var shown := 0
@@ -314,52 +339,58 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
 			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(l)
 			if e.has("p") and int(e["p"]) >= 0:
 				var pp: int = e["p"]
-				var go := K.button("◎", func(): close(m[0]); on_goto.call(pp)); go.custom_minimum_size = Vector2(36, 28); row.add_child(go)
+				var go := K.icon_button("pin", func(): close(m[0]); on_goto.call(pp), 32); row.add_child(go)
 			list.add_child(row)
 			shown += 1
 			if shown >= 120: break
 		if shown == 0: list.add_child(K.label(T.call("chron_empty"), 14, K.DIM))
-	for c in TBChron.CATS:
-		var b := K.button(T.call("chron_" + c)); b.custom_minimum_size = Vector2(0, 36)
-		b.pressed.connect(func():
-			st["cat"] = c
-			for k in btns: btns[k].add_theme_color_override("font_color", K.GOLD2 if k == c else K.TEXT)
-			draw.call())
-		seg.add_child(b); btns[c] = b
-	btns["mine"].add_theme_color_override("font_color", K.GOLD2)
+	var tab_items: Array = []
+	for c in TBChron.CATS: tab_items.append([c, T.call("chron_" + c)])
+	var tabs := K.segmented(tab_items, "mine", func(id: String): st["cat"] = id; draw.call())
+	m[1].add_child(tabs); m[1].move_child(tabs, 2)
 	draw.call()
 	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
 
-## Decisions: costed national projects
+## Decisions: costed national projects, listed as ruled ledger entries
+const DEC_GLYPH := {"mil_reform": "swords", "trade_fair": "scales", "centralize": "crown", "conscript": "men", "propaganda": "scroll", "patronage": "book", "fortify": "shield", "amnesty": "dove"}
+
 static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> void:
-	var m := K.modal(parent, "⚖ " + T.call("decisions"), 540)
+	var m := K.modal(parent, T.call("decisions"), 560, "scales")
 	var me := g.human_id
 	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 380); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var list := K.vbox(8); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list); m[1].add_child(scroll)
+	var list := K.vbox(0); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var pad := MarginContainer.new(); pad.add_theme_constant_override("margin_right", 14); pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.add_child(list); scroll.add_child(pad); m[1].add_child(scroll)
 	for i in TBDecisions.LIST.size():
 		var d: Dictionary = TBDecisions.LIST[i]
 		var active := TBDecisions.is_active(g, me, i)
 		var why := TBDecisions.why_not(g, me, i)
-		var box := PanelContainer.new()
-		var v := K.vbox(3); box.add_child(v)
-		var head := K.hbox(8); v.add_child(head)
-		var tl := K.label("%s  %s" % [d["icon"], T.call("dec_" + String(d["id"]))], 16, K.GOLD2 if active else K.TEXT); tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; head.add_child(tl)
-		var tag := ""
-		if active: tag = T.call("dec_forever") if TBDecisions.turns_left(g, me, i) > 5000 else T.call("dec_left", {"n": TBDecisions.turns_left(g, me, i)})
-		head.add_child(K.label(tag if active else "%d 🪙 · %d MP" % [int(d["gold"]), int(d["mp"])], 13, K.GREEN if active else K.DIM))
-		var ds := K.label(T.call("dec_%s_d" % d["id"]), 13, K.DIM); ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; ds.custom_minimum_size = Vector2(440, 0); v.add_child(ds)
-		if not active:
+		var row := K.hbox(12); row.custom_minimum_size = Vector2(0, 64)
+		var gl := K.glyph_label_big(DEC_GLYPH.get(d["id"], "scroll"))
+		gl.size_flags_vertical = Control.SIZE_SHRINK_CENTER; row.add_child(gl)
+		var mid := K.vbox(1); mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mid.add_child(K.title(T.call("dec_" + String(d["id"])), 16, K.GOLD2 if active else K.TEXT))
+		var ds := K.label(T.call("dec_%s_d" % d["id"]), 13, K.DIM); ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; ds.custom_minimum_size = Vector2(220, 0); mid.add_child(ds)
+		row.add_child(mid)
+		var right := K.vbox(4); right.custom_minimum_size = Vector2(112, 0)
+		if active:
+			right.add_child(K.caps(T.call("dec_forever") if TBDecisions.turns_left(g, me, i) > 5000 else T.call("dec_left", {"n": TBDecisions.turns_left(g, me, i)}), 10, K.GREEN))
+		else:
+			var cost := K.hbox(8); cost.add_child(K.glyph_label("coin", str(int(d["gold"])), K.GOLD2 if g.gold[me] >= float(d["gold"]) else K.RED)); cost.add_child(K.glyph_label("swords", str(int(d["mp"])), K.GOLD2 if g.mp[me] >= float(d["mp"]) else K.RED))
+			right.add_child(cost)
 			var b := K.button(T.call("dec_do"), func(): on_cmd.call({"cmd": "decide", "id": String(d["id"])}); close(m[0]))
-			b.disabled = why != ""
-			if why != "": b.tooltip_text = T.call("err_" + why) if TBI18n.has_key("err_" + why) else why
-			v.add_child(b)
-		list.add_child(box)
+			b.custom_minimum_size = Vector2(0, 34); b.disabled = why != ""
+			right.add_child(b)
+		row.add_child(right)
+		list.add_child(row)
+		var rl := Control.new(); rl.custom_minimum_size = Vector2(0, 9)
+		rl.draw.connect(func(): rl.draw_line(Vector2(0, 4), Vector2(rl.size.x, 4), Color(0.83, 0.63, 0.09, 0.22), 1.0))
+		list.add_child(rl)
 	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
 
 ## Advisor: current alerts and tips; tapping one jumps to the province concerned
 static func advisor(parent: Control, g: TBGame, on_goto: Callable) -> void:
-	var m := K.modal(parent, "💡 " + T.call("advisor"), 520)
+	var m := K.modal(parent, T.call("advisor"), 520, "lamp")
 	var al := TBAdvisor.alerts(g, g.human_id)
 	if al.is_empty(): m[1].add_child(K.label(T.call("al_none"), 15, K.DIM))
 	for a in al:
@@ -371,6 +402,6 @@ static func advisor(parent: Control, g: TBGame, on_goto: Callable) -> void:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size = Vector2(380, 0); row.add_child(l)
 		if int(a["p"]) >= 0:
 			var pp: int = a["p"]
-			var go := K.button("◎", func(): close(m[0]); on_goto.call(pp)); go.custom_minimum_size = Vector2(44, 36); row.add_child(go)
+			var go := K.icon_button("pin", func(): close(m[0]); on_goto.call(pp), 38); row.add_child(go)
 		m[1].add_child(row)
 	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))

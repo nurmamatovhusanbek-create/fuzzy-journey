@@ -110,7 +110,7 @@ void fragment() {
 		if (mode == 0) {
 			float r = length((p - rect_size * 0.5) / radius);
 			float glow = smoothstep(1.14, 1.0, r);
-			c += vec3(0.20, 0.38, 0.85) * glow * 0.55;
+			c += vec3(0.16, 0.27, 0.46) * glow * 0.5;
 		}
 		COLOR = vec4(c, 1.0);
 	} else {
@@ -200,7 +200,7 @@ void fragment() {
 			col *= (theme == 1) ? (0.80 + 0.3 * nl) : (0.50 + 0.62 * nl);
 			col *= mix(0.78, 1.0, n.z);       // limb darkening
 			float r = length(n.xy);
-			col += vec3(0.20, 0.38, 0.85) * smoothstep(0.88, 1.0, r) * 0.35;   // rim glow
+			col += vec3(0.28, 0.38, 0.52) * smoothstep(0.88, 1.0, r) * 0.28;   // rim glow
 			a = smoothstep(1.0, 0.994, r);
 			col = mix(bg_color.rgb, col, a);
 		}

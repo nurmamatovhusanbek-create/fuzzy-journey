@@ -49,7 +49,7 @@ func _ready() -> void:
 	hud.budget_pressed.connect(func(): TBModals.budget(_overlay, g, func(): hud.refresh()))
 	hud.save_pressed.connect(func(): TBModals.save_load(_overlay, true, _save_slot, _load_slot))
 	hud.settings_pressed.connect(_open_settings)
-	resized.connect(func(): panel.layout_for(size))
+	resized.connect(func(): panel.layout_for(size); hud.layout_for(size))
 	get_window().size_changed.connect(_update_ui_scale); _update_ui_scale()
 	_apply_quality()
 	_new_demo_game()
@@ -117,21 +117,33 @@ func _new_demo_game() -> void:
 func _clear_overlay() -> void:
 	for c in _overlay.get_children(): c.queue_free()
 
+const MP_ = preload("res://src/ui/menu_parts.gd")
+var _bezel: Control
+
 func show_menu() -> void:
 	mode = "menu"; _spin = true
-	hud.visible = false; panel.visible = false; _clear_overlay()
-	var m := K.modal(_overlay, "")
-	m[0].color = Color(0, 0, 0, 0)
-	var v: VBoxContainer = m[1]
-	v.custom_minimum_size = Vector2(320, 0)
-	var t := K.label(T.call("title"), 34, K.GOLD2); t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(t)
-	var tag := K.label(T.call("tagline"), 14, K.DIM); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(tag)
-	v.add_child(K.button(T.call("new_game"), _open_era_picker, true))
-	var cont := K.button(T.call("continue"), func(): _load_slot("auto"))
-	cont.visible = not TBSave.meta("auto").is_empty(); v.add_child(cont)
-	v.add_child(K.button(T.call("load"), func(): TBModals.save_load(_overlay, false, _save_slot, _load_slot)))
-	v.add_child(K.button(T.call("multiplayer"), func(): mp.open_menu()))
-	v.add_child(K.button(T.call("settings"), _open_settings))
+	hud.visible = false; panel.visible = false; _clear_overlay(); map.labels.visible = false
+	var bez := MP_.Bezel.new(); bez.map = map; _overlay.add_child(bez); _bezel = bez
+	var holder := CenterContainer.new(); holder.set_anchors_preset(Control.PRESET_FULL_RECT); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.add_child(holder)
+	var v := K.vbox(2)
+	v.custom_minimum_size = Vector2(380, 0)
+	holder.add_child(v)
+	var portrait := size.y > size.x
+	var t := K.label(T.call("title"), 54 if not portrait else 38, K.GOLD2)
+	t.add_theme_font_override("font", K.tracked(K.display_hi(), 4 if not portrait else 2))
+	t.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.75)); t.add_theme_constant_override("shadow_offset_y", 2); t.add_theme_constant_override("shadow_offset_x", 0); t.add_theme_constant_override("shadow_outline_size", 5)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(t)
+	v.add_child(K.ornament())
+	var tag := K.caps(T.call("tagline"), 11, K.TEXT); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(tag)
+	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 18); v.add_child(gap)
+	v.add_child(MP_.Entry.new(T.call("new_game"), true, _open_era_picker))
+	if not TBSave.meta("auto").is_empty(): v.add_child(MP_.Entry.new(T.call("continue"), false, func(): _load_slot("auto")))
+	v.add_child(MP_.Entry.new(T.call("load"), false, func(): TBModals.save_load(_overlay, false, _save_slot, _load_slot)))
+	v.add_child(MP_.Entry.new(T.call("multiplayer"), false, func(): mp.open_menu()))
+	v.add_child(MP_.Entry.new(T.call("settings"), false, _open_settings))
+	var gap2 := Control.new(); gap2.custom_minimum_size = Vector2(0, 10); v.add_child(gap2)
+	var ver := K.caps("terra bellum · godot build", 9, K.DIM); ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(ver)
 
 func _open_settings() -> void:
 	var prev_lang: String = TBI18n.lang
@@ -153,17 +165,17 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty})
 	map.setup(g)
 	mode = "pick"; _spin = false; _clear_overlay()
-	var hint := K.label(T.call("pick_nation"), 16, K.GOLD2)
-	hint.set_anchors_preset(Control.PRESET_CENTER_TOP); hint.position.y = 14
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_overlay.add_child(hint)
+	var hint_box := VBoxContainer.new(); hint_box.set_anchors_preset(Control.PRESET_CENTER_TOP); hint_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_box.custom_minimum_size = Vector2(360, 0); hint_box.offset_left = -180; hint_box.offset_right = 180; hint_box.offset_top = 16
+	var hint := K.title(T.call("pick_nation"), 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint); hint_box.add_child(K.ornament())
+	_overlay.add_child(hint_box)
 	_overlay.add_child(_back_btn())
 
 func _back_btn() -> Button:
 	var b := K.button(T.call("back"), func(): show_menu()); b.position = Vector2(10, 10); return b
 
 func _start_game(n: int) -> void:
-	g.set_human(n); g.color[n] = 0xE63946
+	g.set_human(n); g.color[n] = 0xC63A4A
 	mode = "game"; _clear_overlay(); _log_idx = g.log.size()
 	map.lenses.refresh_nations(); map.repaint_all()
 	var cap := g.capital_of[n]
@@ -185,7 +197,7 @@ func _on_pick(p: int, secondary: bool) -> void:
 		map.select(p)
 		_clear_overlay()
 		_overlay.add_child(_back_btn())
-		var m := K.modal(_overlay, g.nat_name[n], 380)
+		var m := K.modal(_overlay, g.nat_name[n], 380, "flag")
 		m[0].color = Color(0, 0, 0, 0)
 		m[1].add_child(K.label("%d %s" % [g.own_count(n), T.call("lands").to_lower()], 14, K.DIM))
 		var row := K.hbox(8); m[1].add_child(row)
@@ -360,9 +372,11 @@ func _notification(what: int) -> void:
 			_autosave()
 
 func _process(delta: float) -> void:
+	if map.labels != null and map.labels.visible != (mode != "menu"): map.labels.visible = mode != "menu"
 	if mode == "menu" and _spin:
 		map.lon0 += delta * 0.12
 		map._push_view()
+		if is_instance_valid(_bezel): _bezel.queue_redraw()
 
 # ---------------------------------------------------------------- multiplayer hooks (called by TBMpController)
 func enter_mp_game(game: TBGame, nation: int) -> void:

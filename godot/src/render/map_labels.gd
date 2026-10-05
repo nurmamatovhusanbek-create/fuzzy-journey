@@ -35,6 +35,7 @@ func _process(_d: float) -> void:
 ## nation names at their centroid; bigger nations get bigger text; overlapping names are skipped
 func _draw_nation_names(font: Font) -> void:
 	if map.zoom > (4.0 if map.mode == 0 else 5.5): return
+	font = TBKit.tracked(font, 2)
 	var N1 := g.N1
 	var sx := PackedFloat32Array(); sx.resize(N1)
 	var sy := PackedFloat32Array(); sy.resize(N1)
@@ -83,8 +84,16 @@ func _draw_nation_names(font: Font) -> void:
 		if clash: continue
 		placed.append(rect); shown += 1
 		var a := clampf(depth * 1.6, 0.35, 0.95)
-		draw_string_outline(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, a * 0.8))
-		draw_string(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, a))
+		var mine: bool = n == g.human_id
+		draw_string_outline(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.02, 0.03, 0.07, a * 0.85))
+		draw_string(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.95, 0.8, 0.4, a) if mine else Color(0.94, 0.9, 0.82, a * 0.92))
+
+func _star(pos: Vector2) -> void:
+	var pts := PackedVector2Array()
+	for i in 10: pts.append(pos + Vector2(sin(i * PI / 5.0), -cos(i * PI / 5.0)) * (7.0 if i % 2 == 0 else 3.2))
+	draw_colored_polygon(pts, Color(0.953, 0.773, 0.322))
+	pts.append(pts[0])
+	draw_polyline(pts, Color(0.03, 0.05, 0.1), 1.2, true)
 
 ## screen position + visibility for province p given the map camera
 func _project(p: int, c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> Vector3:
@@ -98,7 +107,8 @@ func _project(p: int, c0: float, s0: float, sl: float, cl: float, R: float, cx: 
 
 func _draw() -> void:
 	if map == null or g == null or hidden_while_dragging: return
-	var font := ThemeDB.fallback_font
+	var font: Font = TBKit.display()
+	var nfont: Font = TBKit.mono_b()
 	if g.human_id == 0:                 # nation-pick screen: names only
 		_draw_nation_names(font)
 		return
@@ -134,15 +144,21 @@ func _draw() -> void:
 		var o := g.owner[p]
 		var pos := Vector2(v[1], v[2])
 		if g.capital[p] != 0 and not zoomed:
-			draw_string(font, pos + Vector2(-6, 5), "★", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.95)); drawn += 1; continue
+			_star(pos); drawn += 1; continue
 		var a := g.army[p]
 		if a <= 0: continue
 		var txt := TBKit.fmt(a)
-		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 10
-		var rect := Rect2(pos - Vector2(tw * 0.5, 8), Vector2(tw, 16))
-		var bg := Color(0.08, 0.25, 0.12, 0.88) if o == me else (Color(0.4, 0.09, 0.09, 0.88) if g.get_rel(me, o) == 1 else Color(0.06, 0.08, 0.13, 0.82))
-		draw_rect(rect, bg, true)
-		draw_string(font, pos + Vector2(-tw * 0.5 + 5, 4.5), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+		var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 10
+		# heraldic plaque: dark field, rim coloured by relation, a band of the owner's colour along the top
+		var rim := TBKit.GOLD2 if o == me else (TBKit.RED if g.get_rel(me, o) == 1 else Color(0.62, 0.66, 0.75, 0.9))
+		var x0 := pos.x - tw * 0.5; var x1 := pos.x + tw * 0.5; var y0 := pos.y - 8.0; var y1 := pos.y + 7.0
+		var shield := PackedVector2Array([Vector2(x0, y0), Vector2(x1, y0), Vector2(x1, y1), Vector2(pos.x, y1 + 4.0), Vector2(x0, y1)])
+		draw_colored_polygon(shield, Color(0.03, 0.05, 0.1, 0.9))
+		var oc := Color.hex((g.color[o] << 8) | 0xFF)
+		draw_rect(Rect2(x0 + 1, y0 + 1, tw - 2, 2.0), oc, true)
+		var ring := shield.duplicate(); ring.append(shield[0])
+		draw_polyline(ring, Color(rim.r, rim.g, rim.b, 0.85), 1.0, true)
+		draw_string(nfont, Vector2(x0 + 5, y1 - 2.5), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.95, 0.92, 0.85))
 		drawn += 1
 	_draw_nation_names(font)
 	# battle effects

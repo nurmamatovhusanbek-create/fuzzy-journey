@@ -29,10 +29,10 @@ func _init() -> void:
 func layout_for(vp: Vector2) -> void:
 	if vp.x >= vp.y:   # landscape: right side
 		set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-		offset_left = -346; offset_right = -8; offset_top = 64; offset_bottom = -84
+		offset_left = -350; offset_right = -10; offset_top = 76; offset_bottom = -116
 	else:              # portrait: bottom sheet
 		set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-		offset_left = 6; offset_right = -6; offset_top = -330; offset_bottom = -76
+		offset_left = 6; offset_right = -6; offset_top = -430; offset_bottom = -100
 
 func show_province(game: TBGame, province: int) -> void:
 	g = game; p = province
@@ -49,40 +49,55 @@ func rebuild() -> void:
 	var o := g.owner[p]
 	var mine := o == me
 	var rel := g.get_rel(me, o) if (o != 0 and not mine) else -1
-	var head := K.hbox(6)
-	var title := K.label(("★ " if g.capital[p] != 0 else "") + w.name[p], 20, K.GOLD2)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(title)
-	var x := K.button("✕", func(): closed.emit()); x.custom_minimum_size = Vector2(40, 40)
-	head.add_child(x)
+	var head := K.hbox(8)
+	var tcol := VBoxContainer.new()
+	tcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tcol.add_theme_constant_override("separation", 0)
+	var title := K.title(w.name[p], 21)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; title.custom_minimum_size = Vector2(120, 0)
+	tcol.add_child(title)
+	if g.capital[p] != 0:
+		var cp := K.caps(T.call("capital"), 10, K.GOLD2); tcol.add_child(cp)
+	head.add_child(tcol)
+	head.add_child(K.icon_button("close", func(): closed.emit(), 40))
 	_body.add_child(head)
-	var sub := K.hbox(6)
+	_body.add_child(K.ornament())
+	var sub := K.hbox(8)
 	if o != 0:
 		sub.add_child(TBFlags.chip(g, o))
-		sub.add_child(K.label(g.nat_name[o], 15))
-		var inf := K.button("ℹ", func(): nation_requested.emit(o)); inf.custom_minimum_size = Vector2(36, 32); sub.add_child(inf)
-		if rel == D.REL_WAR: sub.add_child(K.label("⚔ " + T.call("war"), 13, K.RED))
-		elif rel == D.REL_ALLY: sub.add_child(K.label("🤝 " + T.call("ally"), 13, Color(0.55, 0.72, 1.0)))
-		elif rel == D.REL_NAP: sub.add_child(K.label(T.call("nap"), 13, Color(0.5, 0.86, 0.89)))
-		if g.overlord[o] != 0: sub.add_child(K.label(T.call("vassal"), 13, K.DIM))
+		var nb := Button.new(); nb.text = g.nat_name[o] + "  ›"; nb.flat = true; nb.focus_mode = Control.FOCUS_NONE
+		nb.add_theme_stylebox_override("normal", StyleBoxEmpty.new()); nb.add_theme_stylebox_override("hover", StyleBoxEmpty.new()); nb.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+		nb.add_theme_font_size_override("font_size", 15); nb.add_theme_color_override("font_color", K.TEXT); nb.add_theme_color_override("font_hover_color", K.GOLD2)
+		nb.alignment = HORIZONTAL_ALIGNMENT_LEFT; nb.custom_minimum_size = Vector2(0, 32); nb.pressed.connect(func(): nation_requested.emit(o))
+		sub.add_child(nb)
+		var tag := ""; var tc := K.DIM
+		if rel == D.REL_WAR: tag = T.call("war"); tc = K.RED
+		elif rel == D.REL_ALLY: tag = T.call("ally"); tc = Color(0.55, 0.72, 1.0)
+		elif rel == D.REL_NAP: tag = T.call("nap"); tc = Color(0.5, 0.86, 0.89)
+		elif g.overlord[o] != 0: tag = T.call("vassal")
+		if tag != "": sub.add_child(K.caps(tag, 10, tc))
 	else:
-		sub.add_child(K.label(T.call("neutral"), 15, K.DIM))
+		sub.add_child(K.caps(T.call("neutral"), 11, K.DIM))
 	_body.add_child(sub)
 	if g.occupier[p] != 0:
 		_body.add_child(K.label(T.call("occupied_by", {"nation": g.nat_name[g.occupier[p]]}), 13, K.RED))
-	var grid := GridContainer.new(); grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 14)
-	_body.add_child(grid)
 	var bname: String = T.call("none")
 	if g.building[p] != 0: bname = "%s %d" % [T.call("b_" + D.BUILDINGS[g.building[p] - 1]["id"]), g.b_level[p]]
-	elif g.b_building[p] != 0: bname = "⏳ %s (%d)" % [T.call("b_" + D.BUILDINGS[g.b_building[p] - 1]["id"]), g.b_turns[p]]
-	for row in [[T.call("army"), K.fmt(g.army[p])], [T.call("pop"), K.fmt(g.pop[p] * 1000)], [T.call("dev"), "%d/5" % g.dev[p]], [T.call("econ"), "%d/5" % g.econ[p]],
-			[T.call("stability"), str(g.stab[p])], [T.call("happiness"), str(g.happy[p])], [T.call("terrain"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])], [T.call("building"), bname]]:
-		grid.add_child(K.label(row[0], 13, K.DIM)); grid.add_child(K.label(row[1], 14))
-	var bar := ProgressBar.new(); bar.max_value = 100; bar.value = g.stab[p]; bar.show_percentage = false; bar.custom_minimum_size = Vector2(0, 6)
-	_body.add_child(bar)
+	elif g.b_building[p] != 0: bname = "%s · %d" % [T.call("b_" + D.BUILDINGS[g.b_building[p] - 1]["id"]), g.b_turns[p]]
+	var stats := K.vbox(6)
+	stats.add_child(K.row(T.call("army"), K.fmt(g.army[p]), K.GOLD2))
+	stats.add_child(K.row(T.call("pop"), K.fmt(g.pop[p] * 1000)))
+	stats.add_child(K.row(T.call("dev"), "", K.TEXT, K.Pips.new(g.dev[p])))
+	stats.add_child(K.row(T.call("econ"), "", K.TEXT, K.Pips.new(g.econ[p])))
+	stats.add_child(K.row(T.call("terrain"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])))
+	stats.add_child(K.row(T.call("building"), bname))
+	stats.add_child(K.meter_row(T.call("stability"), g.stab[p], K.GREEN if g.stab[p] >= 50 else (K.GOLD2 if g.stab[p] >= 30 else K.RED)))
+	stats.add_child(K.meter_row(T.call("happiness"), g.happy[p], K.GREEN if g.happy[p] >= 50 else (K.GOLD2 if g.happy[p] >= 30 else K.RED)))
 	var act := HFlowContainer.new(); act.add_theme_constant_override("h_separation", 6); act.add_theme_constant_override("v_separation", 6)
+	var portrait := get_viewport_rect().size.y > get_viewport_rect().size.x
+	if not portrait: _body.add_child(stats)
+	_body.add_child(K.section(T.call("actions")))
 	_body.add_child(act)
+	if portrait: _body.add_child(stats)       # on a phone the actions come first; the sheet scrolls to the figures
 	if mine:
 		act.add_child(K.button(T.call("recruit") + " +15", func(): command.emit({"cmd": "recruit", "p": p, "amount": 15})))
 		act.add_child(K.button(T.call("hire") + " +40 (%dg)" % int(ceil(40 * 5.0 * float(D.REGIMES[g.regime[me]]["recruitCost"]))), func(): command.emit({"cmd": "hire", "p": p, "amount": 40})))
