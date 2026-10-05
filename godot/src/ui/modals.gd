@@ -344,7 +344,7 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 		v.add_child(K.label("%s  (%s %.0f)" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]], 13, K.DIM))
 		var sp := HFlowContainer.new(); sp.add_theme_constant_override("h_separation", 6); v.add_child(sp)
 		for op in ["steal", "sabotage", "incite"]:
-			var cost: float = TBGame.SPY_COST[op]
+			var cost: float = TBCommands.SPY_COST[op]
 			var b := K.button("%s (%d)" % [T.call("spy_" + op), int(cost)], func(): on_cmd.call({"cmd": "spy", "t": n, "op": op}); close(m[0]))
 			b.disabled = g.intel[me] < cost or g.friendly(me, n)
 			sp.add_child(b)
@@ -458,7 +458,7 @@ static func hotseat_setup(parent: Control, on_go: Callable) -> void:
 const CODEX := ["infamy", "cb", "ultimatum", "generals", "supply", "rulers", "trade", "realms", "victory"]
 static func codex(parent: Control) -> void:
 	var m := K.modal(parent, T.call("codex"), 520, "book")
-	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 400); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, clampf(parent.get_viewport_rect().size.y * 0.6, 340.0, 620.0)); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var list := K.vbox(10); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list); m[1].add_child(scroll)
 	for id in CODEX:
@@ -472,7 +472,7 @@ static func codex(parent: Control) -> void:
 static func honours(parent: Control, cfg: Dictionary) -> void:
 	var m := K.modal(parent, "%s  %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], 500, "trophy")
 	var d: Dictionary = cfg.get("honours", {})
-	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 380); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, clampf(parent.get_viewport_rect().size.y * 0.6, 340.0, 620.0)); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var list := K.vbox(8); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list); m[1].add_child(scroll)
 	for it in TBHonours.LIST:
