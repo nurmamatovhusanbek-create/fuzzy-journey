@@ -30,6 +30,7 @@
 | **Royal marriages** (dynastic bond, lapse on succession, personal unions), map lens legend, pick-by-list, 13 more random events | done |
 | **Regional unification** (28 realms, ≥75% of a region → reward + chronicle; progress in Goals), AI proposals to humans, Russian province names, engraved hatching/pinned footers | done |
 | Honours (19 persistent achievements) | done: menu entry, toasts on unlock |
+| Supply limits / attrition (rules >= 1) | done: foreign-land armies above the limit waste away |
 | Still to port from legacy | (formables partially covered by regional unification), war goals, data-spike lens |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 
