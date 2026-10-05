@@ -12,7 +12,7 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"quality": "medium", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard"}
+var cfg := {"quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -30,6 +30,7 @@ func _ready() -> void:
 	add_child(map)
 	map.province_picked.connect(_on_pick)
 	map.province_hovered.connect(_on_hover)
+	map.performance_low.connect(_on_perf_low)
 	hud = TBHud.new(); add_child(hud); hud.visible = false
 	panel = TBProvincePanel.new(); add_child(panel)
 	panel.command.connect(_on_command); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
@@ -82,12 +83,22 @@ func _save_cfg() -> void:
 	for k in cfg: f.set_value("tb", k, cfg[k])
 	f.save("user://settings.cfg")
 
+var _auto_tier := -1
+
+## the map reports sustained slow frames: step the auto tier down once per ~30 interactions
+func _on_perf_low() -> void:
+	if cfg["quality"] != "auto" or _auto_tier <= 0: return
+	_auto_tier -= 1
+	_apply_quality()
+	if hud != null and hud.visible: hud.toast(T.call("q_auto_down"))
+
 func _guess_quality() -> String:
 	if OS.has_feature("mobile") or OS.get_name() == "Android" or OS.get_name() == "iOS": return "medium"
 	return "high"
 
 func _apply_quality() -> void:
-	var q: int = {"low": 0, "medium": 1, "high": 2}.get(cfg["quality"], 1)
+	if cfg["quality"] == "auto" and _auto_tier < 0: _auto_tier = {"low": 0, "medium": 1, "high": 2}.get(_guess_quality(), 1)
+	var q: int = _auto_tier if cfg["quality"] == "auto" else {"low": 0, "medium": 1, "high": 2}.get(cfg["quality"], 1)
 	map.quality = q
 	map.map_theme = 1 if cfg.get("theme", "standard") == "parchment" else 0
 	map.render_scale = [0.6, 0.85, 1.0][q]      # fraction of logical resolution the map shader renders at

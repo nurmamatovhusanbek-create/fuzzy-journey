@@ -38,6 +38,7 @@ export default {
   demand_vassal: 'Потребовать вассалитета', err_vassal: 'Уже связан вассальной зависимостью',
   econ: 'Экономика',
   map_style: 'Стиль карты', style_standard: 'Обычный', style_parchment: 'Пергамент',
+  q_auto_down: 'Графика снижена для плавности',
   ev_worldwide: 'Мировое событие', ev_event: 'Событие', ev_ack: 'Принять', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Обильный урожай', ev_bountiful_harvest_f: 'Поля ломятся от зерна, а амбары полны как никогда.',
   ev_bountiful_harvest_c0: 'Раздать излишки', ev_bountiful_harvest_d0: '+40 золота, +25 людей, +8 к стабильности в столице',

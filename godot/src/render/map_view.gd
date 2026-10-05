@@ -5,6 +5,7 @@ extends Control
 signal province_picked(p: int, secondary: bool)
 signal province_hovered(p: int)
 signal view_changed
+signal performance_low        # sustained slow frames while interacting -> UI may lower the quality tier
 
 const SHADER := preload("res://src/render/globe.gdshader")
 const PAL_W := 2048
@@ -216,6 +217,22 @@ func drag_by(d: Vector2) -> void:
 		_clamp_flat()
 	_push_view()
 
+var _last_drag_us := 0
+var _slow_count := 0
+var _sample_n := 0
+## inter-event time while dragging ~ frame time on a vsync'd device; sustained > ~45 ms means the GPU can't keep up
+func _sample_frame() -> void:
+	var now := Time.get_ticks_usec()
+	if _last_drag_us != 0:
+		var dt := (now - _last_drag_us) / 1000.0
+		if dt < 250.0:                       # ignore pauses
+			_sample_n += 1
+			if dt > 45.0: _slow_count += 1
+			if _sample_n >= 30:
+				if _slow_count >= 18: performance_low.emit()
+				_sample_n = 0; _slow_count = 0
+	_last_drag_us = now
+
 func _clamp_flat() -> void:
 	if mode != 1: return
 	var lim := maxf(0.0, PI / 2 - (size.y / 2.0) / flat_scale())
@@ -286,13 +303,16 @@ func _gui_input(event: InputEvent) -> void:
 				else:
 					if _pressed and _drag_moved < 6.0: province_picked.emit(pick_at(event.position), false)
 					_pressed = false
+					_last_drag_us = 0
 					_push_view()
 			MOUSE_BUTTON_RIGHT:
 				if event.pressed: province_picked.emit(pick_at(event.position), true)
 	elif event is InputEventMouseMotion:
 		if _pressed:
 			_drag_moved += event.relative.length()
-			if _drag_moved >= 6.0: drag_by(event.relative)
+			if _drag_moved >= 6.0:
+				_sample_frame()
+				drag_by(event.relative)
 		else:
 			var h := pick_at(event.position)
 			if h != hover:

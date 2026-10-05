@@ -87,7 +87,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> void:
 
 static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_menu: Callable) -> void:
 	var m := K.modal(parent, T.call("settings"), 440)
-	_segment(m[1], T.call("quality"), [["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
+	_segment(m[1], T.call("quality"), [["auto", T.call("q_auto")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
 	_segment(m[1], T.call("language"), [["en", "English"], ["ru", "Русский"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
 	_segment(m[1], T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], cfg["view"], func(v): cfg["view"] = v; on_change.call())
 	_segment(m[1], T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")]], cfg.get("theme", "standard"), func(v): cfg["theme"] = v; on_change.call())
