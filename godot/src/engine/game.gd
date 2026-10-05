@@ -592,6 +592,11 @@ func _c_peace(c: Dictionary) -> Dictionary:
 	var ws := war_score[n * N1 + t]
 	var kind: String = c.get("kind", "white")
 	if human[t] == 0 and not c.get("_force", false) and not TBAI.accepts_peace(self, t, n, kind): return _err("refused")
+	if kind == "vassal":
+		if rules < 1 or ws < 50: return _err("warscore")
+		if overlord[t] != 0 or overlord[n] != 0: return _err("vassal")
+		overlord[t] = n; tribute[t] = 30; liberty[t] = 0.0
+		log.append({"turn": turn, "kind": "vassal", "a": n, "b": t})
 	if kind == "cede":
 		if ws < 25: return _err("warscore")
 		var budget_pts := ws * 0.9

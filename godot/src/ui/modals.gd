@@ -165,6 +165,7 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 		if rel == 1:
 			act.add_child(K.button(T.call("white_peace"), func(): on_cmd.call({"cmd": "peace", "t": n, "kind": "white"}); close(m[0])))
 			act.add_child(K.button(T.call("demand_land"), func(): on_cmd.call({"cmd": "peace", "t": n, "kind": "cede"}); close(m[0])))
+			if g.rules >= 1: act.add_child(K.button(T.call("demand_vassal"), func(): on_cmd.call({"cmd": "peace", "t": n, "kind": "vassal"}); close(m[0])))
 		else:
 			var wb := K.button(T.call("declare_war"), func(): on_cmd.call({"cmd": "declareWar", "t": n}); close(m[0]))
 			wb.add_theme_color_override("font_color", K.RED.lightened(0.3)); act.add_child(wb)

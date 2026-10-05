@@ -7,6 +7,18 @@
 4. **Multiplayer: host-authoritative with delta snapshots** (Godot high-level multiplayer: ENet native / WebSocket). Not lockstep — floating-point `sin/asin` differ across ARM/x86, which would desync. Per-turn payload = changed provinces + nation table (a few KB) instead of the whole state.
 5. **Chunked code**: strict layers with enforced dependency rules (see `docs/ARCHITECTURE.md`).
 
+## Status (kept current)
+| Area | State |
+|---|---|
+| Engine (GDScript, bit-exact vs JS oracle at `rules=0`; tuned game at `rules=1`) | done, tested (`tools/test_all.sh`) |
+| GPU map (globe/flat, borders, lenses, selection, occupation hatch, 3 quality tiers, render scale) | done |
+| Single-player UI (menu, eras, nation pick, HUD, province panel, nation card, budget, save/load, tutorial, game-over standings, portrait + safe-area) | done |
+| Systems: economy, buildings, tech/eras, combat, war score, peace deals (white/land/vassal), NAP/alliance, rebels, colonization, events (random + 14 scheduled packs), covert ops, mercenaries, AI (personalities, budget, spying, anti-hegemon) | done |
+| Multiplayer: authoritative server (deployed on Render), lobby, delta sync, proposals, chat, timer, auto-reconnect | done; tested locally with 2 clients + UI |
+| Android / iOS builds | presets + CI workflow written, **not run** (no Android SDK / Mac available in the dev sandbox) |
+| Still to port from legacy | trade routes, generals, formable nations, ultimatums/war goals/coalitions/marriage UI, flags, data-spike lens, parchment theme |
+| Perf on real low-end hardware | **unmeasured** — needs a physical phone |
+
 Legacy `index.html` stays untouched until feature parity. The JS engine written earlier is kept in `reference/engine-js` as a **test oracle** for the GDScript port (same seed ⇒ comparable results).
 
 ## Why the old game lagged (measured from its code)

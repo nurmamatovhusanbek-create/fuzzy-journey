@@ -52,7 +52,7 @@ func open_menu() -> void:
 	v.add_child(K.button(T.call("back"), func(): m[0].queue_free()))
 
 func _connect(then: Callable) -> void:
-	if net != null: net.close(); net.queue_free()
+	_drop_net()
 	net = TBNet.new(); net.name = "Net"
 	get_tree().root.add_child(net)       # RPC node paths must match the server: /root/Net
 	await get_tree().process_frame
@@ -71,10 +71,47 @@ func _lobby_toast(msg: String) -> void:
 	var l := K.label(msg, 15, K.RED.lightened(0.3)); l.position = Vector2(12, 60); main._overlay.add_child(l)
 	get_tree().create_timer(4.0).timeout.connect(func(): if is_instance_valid(l): l.queue_free())
 
+var _reconnects := 0
+
+## remove the old net node synchronously: a queue_free()d sibling would force the new node to be renamed (@Net@2) and break RPC paths
+func _drop_net() -> void:
+	if net == null or not is_instance_valid(net): return
+	net.close()
+	if net.get_parent() != null: net.get_parent().remove_child(net)
+	net.queue_free()
+	net = null
+
+var _reconnecting := false
+
 func _on_disconnected() -> void:
-	if in_game:
+	if _reconnecting: return                      # a flaky link can emit this twice
+	if in_game and _reconnects < 8:
+		_reconnecting = true
 		main.hud.toast(T.call("mp_lost"), true)
+		_reconnects += 1
+		await get_tree().create_timer(3.0).timeout
+		await _reconnect()
+		return
 	active = false
+
+## rejoin the same room with the stored token (server restores our nation)
+func _reconnect() -> void:
+	var code := net.my_room
+	var token := net.my_token
+	_drop_net()
+	net = TBNet.new(); net.name = "Net"
+	get_tree().root.add_child(net)
+	await get_tree().process_frame
+	net.my_room = code; net.my_token = token
+	net.connected.connect(func():
+		_reconnects = 0; _reconnecting = false
+		net.join_room(code, player_name), CONNECT_ONE_SHOT)
+	net.disconnected.connect(func(): _reconnecting = false; _on_disconnected())
+	net.error_received.connect(func(msg): main.hud.toast(msg, true))
+	net.room_updated.connect(_on_room); net.snapshot_ready.connect(_on_snapshot); net.delta_applied.connect(_on_delta)
+	net.command_result.connect(_on_result); net.proposal_received.connect(_on_proposal); net.chat_received.connect(_on_chat)
+	if not net.connect_to(main.world, url):
+		_reconnecting = false; _on_disconnected()
 
 # ---------------------------------------------------------------- server events
 func _on_snapshot(g: TBGame) -> void:

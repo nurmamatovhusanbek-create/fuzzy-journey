@@ -222,6 +222,8 @@ static func _seek_peace(g: TBGame, n: int) -> void:
 		if losing > 15 or (dur > (8 if g.rules == 0 else 14) and absi(losing) < 12 and g.rng.chance(0.3)):
 			var force: bool = (not accepts_peace(g, o, n, "white")) and losing > 35
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "cede" if mine >= 25 else "white", "_force": force})
+		elif g.rules >= 1 and mine >= 60 and g.overlord[o] == 0 and g.overlord[n] == 0 and g.rng.chance(0.4):
+			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "vassal", "_force": true})
 		elif mine >= (40 if g.rules == 0 else 25) and g.rng.chance(0.3 if g.rules == 0 else 0.6):
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "cede"})
 
@@ -250,6 +252,7 @@ static func accepts_peace(g: TBGame, t: int, p: int, kind: String) -> bool:
 	want += minf(1.5, dur / 20.0)
 	want -= g.grudge[t * N1 + p] / 80.0
 	if kind == "cede": want -= 0.5 + their_ws * 0.02
+	if kind == "vassal": want -= 1.5 + their_ws * 0.03
 	return want > 0.2
 
 static func accepts_pact(g: TBGame, t: int, p: int, rel: int) -> bool:
