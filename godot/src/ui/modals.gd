@@ -378,7 +378,7 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 		var from_name: String = g.dname(int(e["from"])) if g != null else ""
 		var mp := K.modal(parent, "", 480)
 		var ult0: bool = e["id"] == "ultimatum"
-		var hl := K.label("⚔" if ult0 else "🤝", 38, K.RED.lightened(0.25) if ult0 else K.GOLD2); hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(hl)
+		var hl := K.glyph_label_big("swords" if ult0 else ("dove" if e["id"] == "peace" else "scroll")); hl.custom_minimum_size = Vector2(48, 48); hl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; mp[1].add_child(hl)
 		var tl := K.title(T.call("prop_ult_title" if ult0 else "prop_title", {"a": from_name}), 22); tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(420, 0); mp[1].add_child(tl)
 		mp[1].add_child(K.ornament())
 		var ult: bool = e["id"] == "ultimatum"

@@ -98,6 +98,7 @@ static func _offer_valid(g: TBGame, from: int, to: int, what: String) -> bool:
 		"ally": return r == D.REL_NAP or (r == D.REL_PEACE and g.dp[from] >= D.DP_ALLY)
 		"trade": return r != D.REL_WAR and not TBTrade.has(g, from, to) and g.trade_cnt[from] < TBTrade.max_deals(g, from) and g.trade_cnt[to] < TBTrade.max_deals(g, to)
 		"marry": return can_marry(g, from, to)
+		"peace": return r == D.REL_WAR
 	return false
 
 static func accept_offer(g: TBGame, from: int, to: int, what: String) -> void:
@@ -107,6 +108,7 @@ static func accept_offer(g: TBGame, from: int, to: int, what: String) -> void:
 			g.set_rel(from, to, D.REL_NAP); g.nap_expiry[mini(from, to) * g.N1 + maxi(from, to)] = g.turn + 20
 			pass
 		"ally": g.set_rel(from, to, D.REL_ALLY); g.log.append({"turn": g.turn, "kind": "ally", "a": from, "b": to})
+		"peace": g.apply({"cmd": "peace", "n": to, "t": from, "kind": "white", "_force": true})
 		"trade": TBTrade.set_deal(g, from, to, true); g.log.append({"turn": g.turn, "kind": "trade", "a": from, "b": to})
 		"marry":
 			g.set_rel(from, to, D.REL_MARRIAGE); g.log.append({"turn": g.turn, "kind": "marriage", "a": from, "b": to})
@@ -130,11 +132,28 @@ static func ai_offer(g: TBGame, n: int) -> void:
 		g.pending.append({"uid": g.ev_uid, "n": h, "kind": "prop", "id": what, "from": n, "icon": "🤝", "cat": "", "count": 2})
 		return
 
+## a nation that is losing a war against a human sues for white peace (hash roll: the main RNG stream is untouched)
+static func ai_peace_offer(g: TBGame, n: int) -> void:
+	if g.rules < 1 or g.human[n] != 0 or n == g.rebel: return
+	for h in g.humans():
+		if g.alive[h] == 0 or g.get_rel(n, h) != D.REL_WAR: continue
+		var losing: bool = g.war_score[h * g.N1 + n] >= 20 or g.war_turns[n * g.N1 + h] >= 14
+		if not losing or not TBAI.accepts_peace(g, n, h, "white"): continue
+		if TBRulers._h(g, n, 71).next() > 0.3: continue
+		var busy := false
+		for e in g.pending: if int(e["n"]) == h and e["kind"] == "prop": busy = true
+		if busy: return
+		g.ev_uid += 1
+		g.pending.append({"uid": g.ev_uid, "n": h, "kind": "prop", "id": "peace", "from": n, "icon": "🕊", "cat": "", "count": 2})
+		return
+
 ## once per turn, after unanswered prompts were cleared: AI nations may make offers to humans
 static func offers_turn(g: TBGame) -> void:
 	if g.rules < 1 or g.humans().is_empty(): return
 	for n in range(1, g.N1):
-		if g.alive[n] != 0 and g.human[n] == 0: ai_offer(g, n)
+		if g.alive[n] != 0 and g.human[n] == 0:
+			ai_offer(g, n)
+			ai_peace_offer(g, n)
 
 
 # ---------------------------------------------------------------- ultimatums (rules >= 1)
