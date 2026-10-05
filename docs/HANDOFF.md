@@ -2,7 +2,7 @@
 
 ## Getting builds
 Every push to a `claude/**` branch or `main` runs `.github/workflows/godot.yml`:
-1. **test** — all headless tests (`tools/test_all.sh`: engine, save/load, rulers, diplomacy, decisions, trade, marriage, events, soak, audio, MP server+2 clients) and the JS-oracle check.
+1. **test** — all headless tests (`tools/test_all.sh`: engine, save/load, rulers, diplomacy, decisions, trade, marriage, generals, ultimatums, honours, supply, events, soak, audio, MP server+2 clients; the script now exits non-zero when any test fails) and the JS-oracle check.
 2. **export** — Windows `.exe`, Linux binary, **Android debug-signed APK** → artifact `terra-bellum-builds`.
 3. **ios** — exports an **Xcode project** (artifact `terra-bellum-ios-xcode-project`). Open it on a Mac, set your Apple Team ID / signing, build to a device.
    The preset ships with the placeholder team id `0000000000` so the project can be generated without an Apple account.
@@ -24,6 +24,9 @@ Default client URL: `wss://terra-bellum-godot-server.onrender.com` (free plan: f
 See `docs/ARCHITECTURE.md` (layers + UI design system), `docs/REBUILD_PLAN.md` (status table), `docs/RESEARCH.md` (genre analysis + backlog).
 Content sources: `tools/events_src.py` + `tools/events_content.py` (scheduled events), `tools/events_random_src.py` (random events), `godot/data/rulers.json` (historical rulers), `godot/data/i18n/names_ru.json` (Russian nation names).
 After editing `reference/i18n/*.js` run `node tools/i18n.mjs`.
+
+## Game systems added after the research backlog (all `rules >= 1`, rules 0 stays oracle-exact)
+Generals (`engine/generals.gd`, 6 % strength per star, ride with full-stack moves) · ultimatums (`TBDiplo.ultimatum`, Yield/Defy prompt for humans, AI yields at ~2.4x strength) · supply limits (`TBGame.attrition`) · honours (`ui/honours.gd`, cross-game achievements stored in settings.cfg) · ruler cameos (`ui/portrait.gd`, procedural) · campaign briefing · AI-attack replay arrows on the map.
 
 ## Known gaps
 - Never run on a physical Android/iOS device (CI proves the export builds, not that it feels right).
