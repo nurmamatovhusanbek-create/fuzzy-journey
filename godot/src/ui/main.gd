@@ -204,6 +204,8 @@ func _on_command(c: Dictionary) -> void:
 	if not res["ok"]:
 		var key := "err_" + String(res["err"])
 		hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
+	elif res.has("success"):
+		hud.toast(T.call("spy_ok") if res["success"] else T.call("spy_fail"), not res["success"])
 	_after_change()
 
 func _do_move(from: int, to: int) -> void:
@@ -274,6 +276,7 @@ func _flush_log() -> void:
 			"peace": if rel: hud.toast(T.call("e_peace", {"a": a, "b": b}))
 			"ally": if rel: hud.toast(T.call("e_ally", {"a": a, "b": b}))
 			"eliminated": hud.toast(T.call("e_elim", {"a": a}))
+			"spy": if e.get("b", -1) == me: hud.toast(T.call("e_spy_hit", {"a": a, "op": T.call("spy_" + String(e["op"]))}) if e["ok"] else T.call("e_spy_caught", {"a": a}), e["ok"])
 			"rebels": if e["a"] == me: hud.toast(T.call("e_rebels", {"a": a}), true)
 	if g.log.size() > 400:
 		g.log = g.log.slice(g.log.size() - 200); _log_idx = g.log.size()
@@ -294,6 +297,12 @@ func _load_slot(slot: String) -> void:
 	var cap := g.capital_of[g.human_id]
 	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2)
 	_select(-1)
+
+## phones kill backgrounded apps: save when paused / losing focus
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		if mode == "game" and g != null and not _busy and not mp.in_game:
+			_autosave()
 
 func _process(delta: float) -> void:
 	if mode == "menu" and _spin:

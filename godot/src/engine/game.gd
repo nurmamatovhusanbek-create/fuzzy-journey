@@ -32,6 +32,7 @@ var mp := PackedFloat32Array()
 var dp := PackedFloat32Array()
 var tech_level := PackedFloat32Array()
 var research := PackedFloat32Array()
+var intel := PackedFloat32Array()      # covert-ops resource (rules >= 1)
 var liberty := PackedFloat32Array()
 var era := PackedByteArray()
 var regime := PackedByteArray()
@@ -171,6 +172,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	budget.resize(N1 * 4); rel.resize(N1 * N1); grudge.resize(N1 * N1)
 	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
+	intel.resize(N1); intel.fill(5.0)
 	ev_last_any.resize(N1); ev_last_any.fill(-99); trade_bonus.resize(N1); combat_bonus.resize(N1); combat_turns.resize(N1)
 	start_year = year
 	for n in range(1, N1):
@@ -535,6 +537,7 @@ func apply(c: Dictionary) -> Dictionary:
 		"regime": return _c_regime(c)
 		"develop": return _c_develop(c)
 		"hire": return _c_hire(c)
+		"spy": return _c_spy(c)
 		"eventChoice": return TBEvents.resolve_choice(self, n, int(c.get("uid", 0)), int(c.get("i", 0)))
 		"noop": return {"ok": true}
 	return {"ok": false, "err": "unknown"}
@@ -726,6 +729,42 @@ func _c_regime(c: Dictionary) -> Dictionary:
 	for p in owned(n):
 		stab[p] = maxi(5, stab[p] - 15)
 	return {"ok": true}
+
+## covert operations (rules >= 1): steal | sabotage | incite
+const SPY_COST := {"steal": 6.0, "sabotage": 8.0, "incite": 10.0}
+func _c_spy(c: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var t: int = c["t"]; var op: String = c.get("op", "")
+	if not SPY_COST.has(op): return _err("type")
+	if t <= 0 or t >= N1 or t == n or alive[t] == 0 or t == rebel: return _err("target")
+	if friendly(n, t): return _err("ally")
+	var cost: float = SPY_COST[op]
+	if intel[n] < cost: return _err("intel")
+	intel[n] -= cost
+	var tech_gap := tech_level[n] - tech_level[t]
+	var chance := clampf(0.60 + tech_gap * 0.08, 0.25, 0.9)
+	var ok := rng.next() < chance
+	var own := owned(t)
+	if ok and not own.is_empty():
+		match op:
+			"steal":
+				var amt := minf(gold[t] * 0.15, 150.0)
+				gold[t] -= amt; gold[n] += amt
+			"sabotage":
+				for k in 3:
+					var p := own[rng.randi_n(own.size())]
+					stab[p] = maxi(5, stab[p] - 12)
+					if k == 0 and building[p] != 0:
+						building[p] = 0; b_level[p] = 0
+					touch(p)
+			"incite":
+				var best := own[0]
+				for p in own: if stab[p] < stab[best]: best = p
+				stab[best] = maxi(5, stab[best] - 30); touch(best)
+	else:
+		var gi := t * N1 + n
+		grudge[gi] = mini(100, grudge[gi] + 25)
+	log.append({"turn": turn, "kind": "spy", "a": n, "b": t, "op": op, "ok": ok})
+	return {"ok": true, "success": ok}
 
 ## mercenaries: converts gold directly into troops (no manpower), pricey
 func _c_hire(c: Dictionary) -> Dictionary:

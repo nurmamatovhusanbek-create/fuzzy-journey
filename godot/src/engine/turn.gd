@@ -67,6 +67,7 @@ static func _tick(g: TBGame) -> void:
 		g.mp[n] = minf(6 + era * 2, g.mp[n] + 1 + era * 0.4)
 		if g.rules >= 1 and g.human[n] == 0: g.mp[n] = minf(8 + era * 2, g.mp[n] + 1.2)    # AI acts less cleverly: extra action points
 		g.dp[n] = minf(4 + era * 2, g.dp[n] + 1 + era * 0.3)
+		if g.rules >= 1: g.intel[n] = minf(20.0, g.intel[n] + 0.8 + minf(1.5, own.size() / 40.0))
 		var cap_shock: bool = inc["capLost"] and g.cap_lost[n] == 0
 		g.cap_lost[n] = 1 if inc["capLost"] else 0
 		var weary := 0.0

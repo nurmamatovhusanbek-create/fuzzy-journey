@@ -173,6 +173,14 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 				act.add_child(K.button(T.call("propose_ally"), func(): on_cmd.call({"cmd": "ally", "t": n}); close(m[0])))
 			if rel == 2 or rel == 3:
 				act.add_child(K.button(T.call("break_pact"), func(): on_cmd.call({"cmd": "breakPact", "t": n}); close(m[0])))
+	if n != me and g.rules >= 1:
+		v.add_child(K.label("%s  (%s %.0f)" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]], 13, K.DIM))
+		var sp := HFlowContainer.new(); sp.add_theme_constant_override("h_separation", 6); v.add_child(sp)
+		for op in ["steal", "sabotage", "incite"]:
+			var cost: float = TBGame.SPY_COST[op]
+			var b := K.button("%s (%d)" % [T.call("spy_" + op), int(cost)], func(): on_cmd.call({"cmd": "spy", "t": n, "op": op}); close(m[0]))
+			b.disabled = g.intel[me] < cost or g.friendly(me, n)
+			sp.add_child(b)
 	var row := K.hbox(8); v.add_child(row)
 	row.add_child(K.button(T.call("back"), func(): close(m[0])))
 	var go := K.button(T.call("goto"), func(): close(m[0]); on_goto.call(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(go)

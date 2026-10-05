@@ -111,6 +111,11 @@ static func _nation(g: TBGame, n: int) -> void:
 	if at_war or g.at_war(n): _fight(g, n, fr)
 	# 5. peace when losing
 	if g.war_cnt[n] > 0: _seek_peace(g, n)
+	# 5b. rules>=1: spies strike current enemies
+	if g.rules >= 1 and at_war and g.intel[n] >= 10.0 and g.rng.chance(0.12 + float(pers["aggr"]) * 0.1):
+		for o in range(1, g.N1):
+			if o != n and g.alive[o] != 0 and o != g.rebel and g.get_rel(n, o) == D.REL_WAR:
+				g.apply({"cmd": "spy", "n": n, "t": o, "op": ["steal", "sabotage", "incite"][g.rng.randi_n(3)]}); break
 	# 6. diplomacy
 	if g.dp[n] >= D.DP_NAP and g.rng.chance(float(pers["dipl"]) * 0.15): _diplomacy(g, n, fr)
 
@@ -130,6 +135,8 @@ static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array)
 	if not g.rng.chance(minf(1.0, aggr * 0.5)): return
 	var tgt := 0; var ts := -1.0
 	var seen := {}
+	# rules>=1 anti-runaway: nations unite against any power holding a large share of the world
+	var total_owned := g.P - g.own_count(0)
 	var i := 0
 	while i < fr.size():
 		var p := fr[i]; var q := fr[i + 1]
@@ -139,6 +146,9 @@ static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array)
 		seen[t] = true
 		if float(g.army[p]) / maxf(8.0, g.army[q] + 10.0) < 1.15: continue
 		var s: float = float(g.army[p]) / (g.army[q] + 10.0) + g.grudge[n * g.N1 + t] / 50.0 + g.rng.next() * 0.5
+		if g.rules >= 1:
+			var share := float(g.own_count(t)) / maxf(1.0, total_owned)
+			if share > 0.04: s += (share - 0.04) * 25.0       # hegemon: everyone's favourite target
 		if s > ts:
 			ts = s; tgt = t
 	if tgt != 0:

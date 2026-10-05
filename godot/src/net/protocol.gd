@@ -2,7 +2,7 @@
 class_name TBNetProto
 extends RefCounted
 
-const NAT_F := ["gold", "manpower", "mp", "dp", "tech_level", "research", "liberty"]
+const NAT_F := ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty"]
 const NAT_B := ["era", "regime", "alive", "tribute", "cap_lost", "human", "personality"]
 const NAT_I := ["capital_of", "overlord", "last_war_turn", "war_cnt", "color"]
 const MATRICES := ["war_score", "war_turns", "truce", "grudge"]
