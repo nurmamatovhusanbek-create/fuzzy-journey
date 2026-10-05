@@ -1,93 +1,62 @@
-# Terra Bellum — Rebuild Plan
+# Terra Bellum — Rebuild Plan (Godot 4)
 
-Decisions (confirmed with the owner):
+## Decisions (confirmed with the owner)
+1. **Leave HTML entirely → Godot 4.4 (Compatibility/GLES3 renderer), GDScript.** Targets: Android (low-end first), Windows, iOS. (Godot 4 C# cannot export to iOS, so GDScript.)
+2. **One unified province engine.** v1 "country mode" disappears; a country is a nation owning provinces. v2 had *no* AI wars — the rebuild adds them.
+3. **GPU map:** province-ID texture + palette texture + one fragment shader (globe/flat, borders, lenses). An ownership change = update a 1,788-pixel palette, never a repaint.
+4. **Multiplayer: host-authoritative with delta snapshots** (Godot high-level multiplayer: ENet native / WebSocket). Not lockstep — floating-point `sin/asin` differ across ARM/x86, which would desync. Per-turn payload = changed provinces + nation table (a few KB) instead of the whole state.
+5. **Chunked code**: strict layers with enforced dependency rules (see `docs/ARCHITECTURE.md`).
 
-1. **One unified province engine.** v1 "country mode" disappears as a separate engine. A country is just a nation owning provinces. The v1 AI, espionage, trade, generals, events and victory systems are ported onto the province engine. v2 currently has *no* AI wars at all — the rebuild fixes that.
-2. **Pre-baked map + light canvas renderer.** No per-frame polygon projection, no d3 at runtime, no WebGL requirement.
-3. **Multiplayer:** redesigned as deterministic lockstep (commands + seed + state hash). Server lives in this repo (`server/`) and is deployed to Render via the connector.
-4. **Modular ES modules, no framework, esbuild bundle.** Simulation runs in a Web Worker.
+Legacy `index.html` stays untouched until feature parity. The JS engine written earlier is kept in `reference/engine-js` as a **test oracle** for the GDScript port (same seed ⇒ comparable results).
 
-Legacy game is preserved untouched in `legacy/index.html` until feature parity.
+## Why the old game lagged (measured from its code)
+| Problem | Effect |
+|---|---|
+| 1.5 MB single file / 19.7k lines; d3 + topojson parsed on load | slow start, GC |
+| `d3.geoPath` re-projects ~1,800 polygons (34k arcs) every frame; shadowBlur, gradients | main lag source |
+| Click = `d3.geoContains` over every province | slow taps |
+| State = nested objects with string ids; `Object.keys` scans each turn | GC churn |
+| MP host `JSON.stringify`s the whole state (incl. geometry) every turn | multi-MB per turn |
+| Sim + AI + render on one thread | end-turn freeze |
+| v1 and v2 engines side by side (`if (S.v2)`) | duplicate code, v2 AI missing |
 
-## 1. What is wrong today (measured from the code)
+Prototype measurement (CPU per-pixel globe in a browser): 40–65 ms/frame — i.e. the CPU should not draw the globe at all. A fragment shader does it for ~free.
 
-| Problem | Where | Effect |
-|---|---|---|
-| 1.5 MB single file, 19.7k lines, 280 KB d3 + 107 KB inline v1 topojson parsed on load | `index.html` | slow load, huge parse/GC |
-| `d3.geoPath` re-projects + clips ~1,800 polygons (34k arcs) every frame while dragging; `shadowBlur`, per-feature gradients | `drawGlobe` | main cause of lag |
-| Hit test = `d3.geoContains` over *every* province per click | `attachGlobeInteraction` | O(N·vertices) per tap |
-| State is nested objects (`S.provinces[id]`, `S.nations[id]`) with string ids; `Object.keys`/`Object.values` scans every turn | engine | GC churn, slow turns |
-| `S.features` (all geometry) lives inside `S`; MP host `JSON.stringify`s whole `S` and broadcasts it every turn | `mpSerialiseS` | multi-MB per turn |
-| Simulation, AI (v1 `aiTurn`, 30-nation batches) and rendering share the main thread | `endTurn` | UI freezes at end of turn |
-| ~50 `backdrop-filter`, ~60 `box-shadow`, many `innerHTML` full re-renders | CSS/UI | repaint cost on weak GPUs |
-| Two engines (v1 `S.countries/players`, v2 `S.provinces/nations`) with `if (S.v2)` forks | everywhere | duplicate code, v2 AI missing |
-
-## 2. Target architecture
-
+## Architecture (see docs/ARCHITECTURE.md)
 ```
-src/
-  data/        bake output loaders (world.bin, era packs, events, i18n)
-  engine/      PURE deterministic sim (no DOM). Runs in worker.
-    state.js     struct-of-arrays state (Int32/Uint16/Float32 arrays by province/nation index)
-    rng.js       seeded mulberry32 (lockstep-safe)
-    commands.js  the ONLY way state changes: move, recruit, build, declare, peace, ...
-    turn.js      end-of-turn pipeline (income, growth, unrest, events)
-    combat.js  diplomacy.js  economy.js  tech.js  events.js  victory.js
-    ai/          budgeted AI: each nation re-plans every N turns, frontier lists only
-  render/      canvas renderer: baked equirect bitmap, globe sampler, pick buffer, lenses
-  ui/          vanilla DOM panels, event delegation, virtual lists, tooltips
-  net/         lockstep client (commands, hash check, resync snapshot)
-  i18n/        EN/RU tables (extracted from legacy)
-  main.js      boot, worker wiring
-tools/bake.mjs  topojson/era json  ->  public/data/*.bin   (build-time only)
-server/        Node ws relay for lockstep (Render)
+tools/bake.mjs          topojson + era json  -> godot/data/*  (build-time, Node)
+godot/
+  project.godot  export_presets.cfg
+  data/                 world.json, ids.bin.gz (u16 ID raster), eras/*.json
+  src/
+    engine/   pure simulation (RefCounted classes, typed arrays, no Nodes/UI)  <- ported from reference/engine-js
+    render/   map_view.gd + globe.gdshader + lenses.gd (GPU map, picking, camera)
+    ui/       scenes: menu, HUD, province panel, nations, budget, save/load
+    net/      host-authoritative multiplayer (later phase)
+    i18n/     translations (EN/RU from legacy)
+  tests/      headless GDScript tests (determinism, golden vs reference)
+reference/    engine-js (oracle), i18n source tables
 ```
 
-### Data model (SoA)
-Provinces get dense int ids `0..P-1` (P≈1,800). Parallel typed arrays: `owner:Uint16`, `army:Uint16`, `pop:Uint16`, `dev:Uint8`, `stab:Uint8`, `building:Uint8`, `flags:Uint8`, plus static `lat/lon/neighbors(CSR)`. Nations `0..N-1` with typed fields and small arrays for relations (`N×N Uint8` matrix: war/peace/nap/ally/vassal). No object per province, no strings in hot paths. Per-nation province lists maintained incrementally (CSR + dirty flag).
-
-### Renderer
-- **Bake (build time):** rasterize provinces into a 2048×1024 equirectangular **ID buffer** (`Uint16`) + per-province span lists (run-length rows) + simplified borders. Shipped as one compressed binary.
-- **Runtime base layer:** offscreen 2048×1024 bitmap painted from the ID buffer using a nation/lens colour LUT. An ownership change repaints only that province's spans (microseconds), not the map.
-- **Globe:** custom orthographic inverse sampler into the base bitmap at an adaptive internal resolution (e.g. 384² on weak devices, lower while dragging, upscaled by the canvas). No polygon projection at all. Flat map = pan/zoom blit of the same bitmap.
-- **Hit test:** inverse projection → equirect pixel → ID buffer lookup. O(1).
-- Overlays (selection outline, war fronts, army chips, labels) drawn only for visible provinces, from precomputed centroids; zoom-gated; no shadow blur.
-- Quality tiers auto-selected by a first-run frame-time probe (Low / Medium / High); user override in settings.
-
-### Simulation / AI
-- Worker owns the state; main thread sends **commands**, receives **compact diffs** (changed province ids + values) — never full state.
-- End-of-turn is time-sliced and incremental; AI is budgeted: each nation plans every k turns (staggered by index), reads only its frontier provinces, scores via small integer formulas. Ported personalities/grudges/war-likelihood/war goals/ultimatums from v1.
-- Deterministic (seeded RNG, no `Math.random`, no iteration over object keys) so the same engine powers lockstep MP and replays/tests.
-
-### Multiplayer
-Lockstep: server relays signed command batches per turn; every client runs the same worker; clients exchange a state hash each turn; mismatch → host snapshot resync. Payload per turn = a few hundred bytes instead of the whole state. Host-migration is trivial because nobody is authoritative. Server: `server/` (Node `ws`), room codes, lobby, chat, reconnect, timers — same feature set as the current client expects.
-
-### Save/Load
-Typed arrays → one binary blob (+ small JSON meta) → IndexedDB slots + autosave. Versioned.
-
-## 3. Phases
-
+## Phases
 | # | Deliverable | Exit criteria |
 |---|---|---|
-| 0 | This plan, repo scaffolding, esbuild, legacy preserved | `npm run build` works |
-| 1 | `tools/bake.mjs`: world + 12 era packs → binary; ID raster, CSR neighbors, centroids, borders | bake <1 min; data size ≤ ~1/3 of current |
-| 2 | Engine core + tests: state, RNG, commands, economy, combat, turn loop | deterministic test: same seed+commands ⇒ same hash |
-| 3 | Renderer: globe + flat + pick + lenses + quality tiers | 60 fps drag on throttled CPU; 1-frame ownership repaint |
-| 4 | UI shell + single-player playable (pick nation, move/attack/recruit/build, end turn) | full SP loop without lag |
-| 5 | AI + diplomacy + war goals/peace/ultimatums/coalitions/vassals | AI nations expand, ally, war, make peace |
-| 6 | Port remaining systems: tech/eras, trade, espionage, generals, events (14 packs), victory, tutorial, flags, i18n EN/RU | parity checklist (below) |
-| 7 | Lockstep MP + server on Render | 4-player test, hash stays equal, reconnect |
-| 8 | Perf budget CI (Playwright, CPU throttle 6×), save/load, polish, retire legacy | budgets met |
+| 0 | plan, repo restructure, Godot 4.4 installed | done |
+| 1 | data bake → Godot data (ID raster, CSR neighbours, 12 era packs) | done (350 KB total) |
+| 2 | **Engine port (GDScript)**: state, economy, combat, commands, turn, AI, save | headless tests pass; behaviour matches JS oracle |
+| 3 | **GPU map**: globe+flat shader, borders, lenses, picking, camera, quality tiers | draws in headless smoke run; shader compiles |
+| 4 | UI + playable single-player loop (pick nation → play → end turn) | full loop without errors |
+| 5 | AI depth: personalities, war goals, ultimatums, coalitions, vassals, peace models | AI expands, allies, wars, peace |
+| 6 | Remaining systems: tech/eras UI, trade, espionage, generals, events (14 packs), victory, tutorial, flags, i18n EN/RU | parity checklist |
+| 7 | Multiplayer (host-authoritative, rooms, chat, reconnect); server = Godot headless dedicated or Render | 4-player test |
+| 8 | Export: Android (APK/AAB), Windows, iOS project; perf pass on low-end profile | budgets met |
 
-## 4. Performance budgets (6× CPU throttle in headless Chromium)
-- Cold load to menu: < 2 s on 3G-fast; JS < 250 KB gz, data < 1.2 MB gz.
-- Drag/zoom: ≥ 45 fps. Click-to-select: < 16 ms.
-- End turn (250 nations): < 150 ms main-thread blocking (worker does the rest); UI never freezes.
-- Memory: < 120 MB heap.
+## Performance budgets (low-end Android, ~2 GB RAM)
+Cold start < 3 s · map ≥ 30 fps on a 5-year-old budget phone (GPU shader, 1 draw call) · tap-to-select < 16 ms · end-turn < 100 ms (250 nations) · RAM < 250 MB · APK < 40 MB.
 
-## 5. Feature parity checklist (from legacy audit)
-Province map + 12 era scenarios, historical nation names/flags · economy (tax/production/admin distance, budget sliders) · population/dev/happiness/stability · regimes (9) & change · buildings (9, levels, queue) · tech/eras · armies move/recruit/reduce · combat + terrain/def · war score from occupation · peace deals, tribute, vassalage, ultimatums, war goals · NAP/alliance/marriage/coalitions · espionage · trade routes · colonization/discovery · rebels · formable nations · random + historical + scheduled events · generals · victory/endgame/leaderboard · lenses (political, diplomatic, economic, military, wars, stability, population, buildings, governments, terrain, spikes) · themes · search · tutorial/tooltips · EN/RU · difficulty · save/load/autosave · MP (rooms, timer, chat, reconnect).
+## Feature-parity checklist (from legacy audit)
+Province map + 12 era scenarios, historical nations/flags · economy (tax/production/admin distance, budget sliders) · pop/dev/happiness/stability · 9 regimes + change · 9 buildings (levels, queue) · tech/eras · armies · combat + terrain/defence · occupation war score · peace deals, tribute, vassals, ultimatums, war goals · NAP/alliance/marriage/coalitions · espionage · trade · colonization/discovery · rebels · formables · random/historical/scheduled events · generals · victory/endgame · lenses (political, diplomatic, economic, military, wars, stability, population, buildings, governments, terrain) · themes · search · tutorial/tooltips · EN/RU · difficulty · save/load/autosave · MP.
 
-## 6. Open items needing owner input later
-- Render connector access (to deploy `server/`).
-- Whether to keep the parchment theme and data-spike lens at launch (default: keep, Medium+ tiers only).
+## Open items needing owner input
+- iOS: building/publishing needs a Mac + Apple Developer account (I can prepare the project/preset).
+- Render connector: needed only if you want a hosted relay server for MP (a dedicated headless Godot server is the default).

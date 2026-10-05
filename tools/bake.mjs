@@ -5,7 +5,7 @@ import zlib from 'node:zlib';
 import * as topojson from 'topojson-client';
 
 const W = 2048, H = 1024;
-const OUT = 'public/data';
+const OUT = 'godot/data';
 fs.mkdirSync(OUT + '/eras', { recursive: true });
 
 const topo = JSON.parse(fs.readFileSync('maps/provinces.topojson', 'utf8'));

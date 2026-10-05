@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { Game, REL } from '../src/engine/index.js';
+import { Game, REL } from './src/index.js';
 
-const world = JSON.parse(fs.readFileSync('public/data/world.json', 'utf8'));
-const era = (id) => JSON.parse(fs.readFileSync(`public/data/eras/${id}.json`, 'utf8'));
+const world = JSON.parse(fs.readFileSync('godot/data/world.json', 'utf8'));
+const era = (id) => JSON.parse(fs.readFileSync(`godot/data/eras/${id}.json`, 'utf8'));
 
 function run(seed, turns, eraId) {
   const g = new Game(world, eraId ? era(eraId) : null, { seed });

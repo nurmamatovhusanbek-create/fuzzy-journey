@@ -1,17 +1,10 @@
 {
-  "name": "terra-bellum",
-  "version": "3.0.0-dev",
+  "name": "terra-bellum-tools",
   "private": true,
   "type": "module",
   "scripts": {
     "bake": "node tools/bake.mjs",
-    "build": "node tools/build.mjs",
-    "dev": "node tools/build.mjs --watch",
-    "test": "node --test test/*.test.js",
-    "serve": "node tools/serve.mjs"
+    "test:ref": "node --test reference/engine-js/engine.test.js"
   },
-  "devDependencies": {
-    "esbuild": "^0.25.0",
-    "topojson-client": "^3.1.0"
-  }
+  "devDependencies": { "topojson-client": "^3.1.0" }
 }
