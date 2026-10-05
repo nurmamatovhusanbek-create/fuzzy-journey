@@ -148,7 +148,8 @@ func show_menu() -> void:
 	v.add_child(K.ornament())
 	var tag := K.caps(T.call("tagline"), 11, K.TEXT); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(tag)
 	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 18); v.add_child(gap)
-	v.add_child(MP_.Entry.new(T.call("new_game"), true, _open_era_picker))
+	v.add_child(MP_.Entry.new(T.call("new_game"), true, func(): _hot_n = 0; _hot_list = PackedInt32Array(); _open_era_picker()))
+	v.add_child(MP_.Entry.new(T.call("hotseat"), false, func(): TBModals.hotseat_setup(_overlay, func(k: int): _hot_n = k; _hot_list = PackedInt32Array(); _open_era_picker())))
 	if not TBSave.meta("auto").is_empty(): v.add_child(MP_.Entry.new(T.call("continue"), false, func(): _load_slot("auto")))
 	v.add_child(MP_.Entry.new(T.call("load"), false, func(): TBModals.save_load(_overlay, false, _save_slot, _load_slot)))
 	v.add_child(MP_.Entry.new(T.call("multiplayer"), false, func(): mp.open_menu()))
@@ -202,7 +203,7 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	mode = "pick"; _spin = false; _clear_overlay()
 	var hint_box := VBoxContainer.new(); hint_box.set_anchors_preset(Control.PRESET_CENTER_TOP); hint_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hint_box.custom_minimum_size = Vector2(360, 0); hint_box.offset_left = -180; hint_box.offset_right = 180; hint_box.offset_top = 16
-	var hint := K.title(T.call("pick_nation"), 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint); hint_box.add_child(K.ornament())
+	var hint := K.title(T.call("pick_nation") if _hot_n == 0 else T.call("hot_pick", {"k": _hot_list.size() + 1, "n": _hot_n}), 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint); hint_box.add_child(K.ornament())
 	_overlay.add_child(hint_box)
 	_add_pick_buttons()
 
@@ -211,6 +212,18 @@ func _add_pick_buttons() -> void:
 	var lb := K.button(T.call("nations"), func(): TBModals.nations(_overlay, g, func(n: int): _pick_nation_from_list(n), false, false))
 	lb.anchor_left = 1.0; lb.anchor_right = 1.0; lb.offset_left = -150; lb.offset_right = -10; lb.offset_top = 10
 	_overlay.add_child(lb)
+
+## hot-seat: every player picks in turn, then the game starts
+func _confirm_pick(n: int) -> void:
+	if _hot_n <= 1: _start_game(n); return
+	_hot_list.append(n)
+	if _hot_list.size() >= _hot_n: _start_game(n); return
+	_clear_overlay()
+	var hint_box := VBoxContainer.new(); hint_box.set_anchors_preset(Control.PRESET_CENTER_TOP); hint_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_box.custom_minimum_size = Vector2(360, 0); hint_box.offset_left = -180; hint_box.offset_right = 180; hint_box.offset_top = 16
+	var hint := K.title(T.call("hot_pick", {"k": _hot_list.size() + 1, "n": _hot_n}), 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint); hint_box.add_child(K.ornament())
+	_overlay.add_child(hint_box)
+	_add_pick_buttons()
 
 func _pick_nation_from_list(n: int) -> void:
 	var cap := g.capital_of[n]
@@ -221,8 +234,17 @@ func _pick_nation_from_list(n: int) -> void:
 func _back_btn() -> Button:
 	var b := K.button(T.call("back"), func(): show_menu()); b.position = Vector2(10, 10); return b
 
+const HOT_COLORS := [0xC63A4A, 0x3A7AC6, 0x3AA66A, 0xC6A23A]
+
 func _start_game(n: int) -> void:
-	g.set_human(n); g.color[n] = 0xC63A4A
+	if _hot_n > 1:
+		g.set_human(_hot_list[0])
+		for k in range(1, _hot_list.size()): g.add_human(_hot_list[k])
+		for k in _hot_list.size(): g.color[_hot_list[k]] = HOT_COLORS[k]
+		n = _hot_list[0]
+		_hot_n = 0
+	else:
+		g.set_human(n); g.color[n] = 0xC63A4A
 	mode = "game"; _clear_overlay(); _log_idx = g.log.size()
 	map.lenses.refresh_nations(); map.repaint_all()
 	var cap := g.capital_of[n]
@@ -252,7 +274,8 @@ func _on_pick(p: int, secondary: bool) -> void:
 		m[1].add_child(K.label("%d %s" % [g.own_count(n), T.call("lands").to_lower()], 14, K.DIM))
 		var row := K.hbox(8); m[1].add_child(row)
 		row.add_child(K.button(T.call("back"), func(): m[0].queue_free()))
-		var go := K.button(T.call("play_as", {"nation": g.dname(n)}), func(): _start_game(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(go)
+		var taken: bool = _hot_list.has(n)
+		var go := K.button(T.call("play_as", {"nation": g.dname(n)}), func(): _confirm_pick(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; go.disabled = taken; row.add_child(go)
 		return
 	if mode != "game" or _busy: return
 	if p < 0: _select(-1); return
@@ -339,6 +362,10 @@ func _do_move(from: int, to: int) -> void:
 	_after_change()
 
 var _shown_events := {}
+var _hot_n := 0                          # hot-seat: players to pick (0 = not setting one up)
+var _hot_list := PackedInt32Array()
+
+func _is_hotseat() -> bool: return g != null and not mp.in_game and g.humans().size() > 1
 
 ## prompt the human for any pending event choice addressed to them (SP and MP share this)
 func show_events() -> void:
@@ -362,10 +389,39 @@ func end_turn() -> void:
 	if mp.in_game:
 		mp.end_turn(); return
 	if _busy or mode != "game": return
+	if _is_hotseat():
+		var hs := g.humans()
+		var nxt := _next_human(hs)
+		if nxt != 0:
+			_set_move_from(-1)
+			_hot_switch(nxt, false); return
 	_busy = true; hud.set_busy(true); _set_move_from(-1)
 	_turn_t0 = Time.get_ticks_msec()
 	_turn_thread = Thread.new()
 	_turn_thread.start(_turn_worker)
+
+## the next living human after the current one in this round (0 = everybody has moved)
+func _next_human(hs: PackedInt32Array) -> int:
+	var i := hs.find(g.human_id)
+	for k in range(i + 1, hs.size()):
+		if g.alive[hs[k]] != 0: return hs[k]
+	return 0
+
+## hand the device to player n: state changes behind an opaque curtain, revealed on tap
+func _hot_switch(n: int, new_round: bool) -> void:
+	g.human_id = n
+	_select(-1); _set_move_from(-1)
+	map.lenses.refresh_nations(); map.repaint_all()
+	var cap := g.capital_of[n]
+	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2 if map.mode == 0 else maxf(map.zoom, 3.0))
+	hud.refresh()
+	var m := K.modal(_overlay, g.dname(n), 420, "flag")
+	m[0].color = Color(0.012, 0.02, 0.045, 1.0)
+	var c := K.caps(T.call("hot_pass"), 11, K.GOLD); c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; m[1].add_child(c)
+	var fl := TBFlags.chip(g, n, 1.6); fl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; m[1].add_child(fl)
+	var tl := K.label("%s %d · %s" % [T.call("turn"), g.turn, TBChron.date(g, g.turn)], 14, K.DIM); tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; m[1].add_child(tl)
+	var rb := K.button(T.call("hot_ready"), func(): m[0].queue_free(); show_events(), true); rb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m[2].add_child(rb)
 
 func _turn_worker() -> void:
 	var dirty := g.end_turn()
@@ -377,11 +433,17 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	_turn_ms = Time.get_ticks_msec() - _turn_t0
 	var lens := map.lenses.mode
 	map.repaint(dirty, lens != "political")
+	var hot := _is_hotseat()
+	if hot:
+		g.human_id = g.humans()[0]
+		for h in g.humans():
+			if g.alive[h] != 0: g.human_id = h; break
 	_flush_log()
 	_replay_battles()
 	hud.refresh()
 	if selected >= 0: panel.rebuild()
-	show_events()
+	if hot and not g.over: _hot_switch(g.human_id, true)
+	else: show_events()
 	if g.over: sfx.play("win" if g.winner == g.human_id else "alert")
 	if g.over: TBModals.game_over(_overlay, g, show_menu)
 	else: _autosave()
@@ -416,6 +478,7 @@ func _flush_log() -> void:
 			if String(e["kind"]) == "war" and TBChron.involves(e, me): sfx.play("war")
 			elif String(e["kind"]) in ["event", "ruler"]: sfx.play("event")
 	earned.append_array(TBHonours.on_state(g))
+	if _is_hotseat(): earned.clear()
 	for id in TBHonours.record(g, cfg, earned):
 		hud.toast("%s: %s" % [T.call("honour_earned"), T.call("honour_" + id)], false)
 		sfx.play("event"); _save_cfg()
@@ -445,6 +508,7 @@ func _load_slot(slot: String) -> void:
 	var cap := g.capital_of[g.human_id]
 	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2)
 	_select(-1)
+	if _is_hotseat(): _hot_switch(g.human_id, false)
 
 ## phones kill backgrounded apps: save when paused / losing focus
 func _notification(what: int) -> void:

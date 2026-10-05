@@ -444,6 +444,16 @@ static func goals(parent: Control, g: TBGame) -> void:
 			m[1].add_child(h); m[1].add_child(K.Meter.new(nearest[k][0] * 100.0, K.GOLD2))
 	_footer_back(m)
 
+## Hot-seat setup: how many players share this device
+static func hotseat_setup(parent: Control, on_go: Callable) -> void:
+	var m := K.modal(parent, T.call("hotseat"), 420, "men")
+	var d := K.label(T.call("hot_hint"), 13, K.DIM); d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; d.custom_minimum_size = Vector2(360, 0); m[1].add_child(d)
+	var st := {"n": "2"}
+	_segment(m[1], T.call("hot_players"), [["2", "2"], ["3", "3"], ["4", "4"]], "2", func(v): st["n"] = v)
+	m[2].add_child(K.button(T.call("back"), func(): close(m[0])))
+	var go := K.button(T.call("start"), func(): close(m[0]); on_go.call(int(st["n"])), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m[2].add_child(go)
+
 ## Codex: a short reference for the interlocking systems
 const CODEX := ["infamy", "cb", "ultimatum", "generals", "supply", "rulers", "trade", "realms", "victory"]
 static func codex(parent: Control) -> void:
