@@ -20,6 +20,7 @@ var selected := -1
 var hover := -1
 
 var quality := 2
+var map_theme := 0               # 0 standard, 1 parchment
 var render_scale := 1.0        # SubViewport resolution relative to the control's logical size
 var _vp: SubViewport
 var _view_tex: TextureRect
@@ -174,6 +175,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("sel_id", selected + 1 if selected >= 0 else -1)
 	_mat.set_shader_parameter("hover_id", hover + 1 if hover >= 0 else -1)
 	_mat.set_shader_parameter("quality", quality)
+	_mat.set_shader_parameter("theme", map_theme)
 	_select_ids_texture()
 	if labels != null:
 		labels.max_labels = [40, 90, 160][quality]

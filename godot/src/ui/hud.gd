@@ -34,7 +34,7 @@ func build() -> void:
 	row.add_theme_constant_override("h_separation", 10); row.add_theme_constant_override("v_separation", 4)
 	top.add_child(row)
 	var nat := K.hbox(6)
-	var fl := TextureRect.new(); fl.custom_minimum_size = Vector2(32, 22); fl.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; fl.stretch_mode = TextureRect.STRETCH_SCALE; nat.add_child(fl); _chips["swatch"] = fl
+	var fl := TextureRect.new(); fl.custom_minimum_size = Vector2(32, 22); fl.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; fl.stretch_mode = TextureRect.STRETCH_SCALE; fl.size_flags_vertical = Control.SIZE_SHRINK_CENTER; nat.add_child(fl); _chips["swatch"] = fl
 	var nl := K.label("", 16, K.GOLD2); nat.add_child(nl); _chips["nation"] = nl
 	row.add_child(nat)
 	for key in ["date", "gold", "man", "mp", "lands"]:

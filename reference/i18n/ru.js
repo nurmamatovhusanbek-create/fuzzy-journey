@@ -37,6 +37,7 @@ export default {
   spy_title: 'Тайные операции', spy_steal: 'Украсть золото', spy_sabotage: 'Саботаж', spy_incite: 'Разжечь смуту', hud_intel: 'Разведка', err_intel: 'Не хватает разведданных', err_ally: 'Нельзя действовать против друга', spy_ok: 'Операция удалась', spy_fail: 'Операция провалена', e_spy_hit: 'Агенты {a} нанесли удар: {op}', e_spy_caught: 'Вы поймали шпионов {a}',
   demand_vassal: 'Потребовать вассалитета', err_vassal: 'Уже связан вассальной зависимостью',
   econ: 'Экономика',
+  map_style: 'Стиль карты', style_standard: 'Обычный', style_parchment: 'Пергамент',
   ev_worldwide: 'Мировое событие', ev_event: 'Событие', ev_ack: 'Принять', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Обильный урожай', ev_bountiful_harvest_f: 'Поля ломятся от зерна, а амбары полны как никогда.',
   ev_bountiful_harvest_c0: 'Раздать излишки', ev_bountiful_harvest_d0: '+40 золота, +25 людей, +8 к стабильности в столице',

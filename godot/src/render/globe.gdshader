@@ -15,6 +15,7 @@ uniform float flat_scale = 200.0;
 uniform int mode = 0;            // 0 globe, 1 flat
 uniform int sel_id = -1;         // province id (index+1) or -1
 uniform int hover_id = -1;
+uniform int theme = 0;           // 0 standard, 1 parchment
 uniform int quality = 2;         // 0 low (no province borders), 1 medium, 2 high
 uniform float time = 0.0;
 uniform vec4 bg_color : source_color = vec4(0.024, 0.039, 0.078, 1.0);
@@ -129,6 +130,7 @@ void fragment() {
 		if (id == 0) {
 			float lat_d = degrees(lat), lon_d = degrees(lon);
 			col = mix(vec3(0.045, 0.11, 0.24), vec3(0.07, 0.17, 0.34), clamp(1.0 - abs(lat) / (PI * 0.5), 0.0, 1.0));
+			if (theme == 1) col = mix(vec3(0.62, 0.70, 0.72), vec3(0.70, 0.76, 0.76), clamp(1.0 - abs(lat) / (PI * 0.5), 0.0, 1.0));
 			// faint graticule every 15 degrees
 			float gl = min(abs(fract(lat_d / 15.0 + 0.5) - 0.5) * 15.0, abs(fract(lon_d / 15.0 + 0.5) - 0.5) * 15.0 * cos(lat));
 			col += vec3(0.05, 0.09, 0.16) * (1.0 - smoothstep(0.0, tpp * 0.18 + 0.01, gl)) * 0.6;
@@ -141,6 +143,7 @@ void fragment() {
 			else if (id == hover_id) col = mix(col, vec3(1.0), 0.18);
 		}
 
+		if (theme == 1 && id != 0) col = mix(col, vec3(0.86, 0.76, 0.55) * (0.55 + 0.9 * dot(col, vec3(0.33))), 0.62);   // aged-paper wash
 		// ---- borders (constant screen width) ----
 		float e_nat = 1e4, e_prov = 1e4, e_coast = 1e4, e_sel = 1e4, e_war = 1e4;
 		int own = owner_of(id);
@@ -184,7 +187,8 @@ void fragment() {
 		}
 		float prov_alpha = clamp(2.2 - tpp, 0.0, 1.0) * 0.45;
 		col = mix(col, col * 0.55, clamp(0.5 + 0.8 - e_prov, 0.0, 1.0) * prov_alpha);
-		col = mix(col, vec3(0.04, 0.05, 0.07), clamp(1.4 - e_nat + 0.5, 0.0, 1.0) * 0.9);
+		vec3 nat_line = (theme == 1) ? vec3(0.30, 0.18, 0.08) : vec3(0.04, 0.05, 0.07);
+		col = mix(col, nat_line, clamp(1.4 - e_nat + 0.5, 0.0, 1.0) * 0.9);
 		col = mix(col, vec3(0.03, 0.07, 0.13), clamp(1.1 - e_coast + 0.5, 0.0, 1.0) * 0.85);
 		col = mix(col, vec3(0.93, 0.25, 0.20), clamp(1.8 - e_war + 0.5, 0.0, 1.0));
 		col = mix(col, vec3(1.0, 0.85, 0.30), clamp(1.6 - e_sel + 0.5, 0.0, 1.0));
@@ -193,7 +197,7 @@ void fragment() {
 		if (mode == 0) {
 			vec3 L = normalize(vec3(-0.35, 0.40, 0.85));
 			float nl = max(dot(n, L), 0.0);
-			col *= 0.50 + 0.62 * nl;
+			col *= (theme == 1) ? (0.80 + 0.3 * nl) : (0.50 + 0.62 * nl);
 			col *= mix(0.78, 1.0, n.z);       // limb darkening
 			float r = length(n.xy);
 			col += vec3(0.20, 0.38, 0.85) * smoothstep(0.88, 1.0, r) * 0.35;   // rim glow

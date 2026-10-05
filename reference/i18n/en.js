@@ -37,6 +37,7 @@ export default {
   spy_title: 'Covert operations', spy_steal: 'Steal gold', spy_sabotage: 'Sabotage', spy_incite: 'Incite unrest', hud_intel: 'Intel', err_intel: 'Not enough intel', err_ally: 'Cannot target a friend', spy_ok: 'Operation succeeded', spy_fail: 'Operation failed', e_spy_hit: 'Agents of {a} struck you: {op}', e_spy_caught: 'You caught spies of {a}',
   demand_vassal: 'Demand vassalage', err_vassal: 'Already part of a subject chain',
   econ: 'Economy',
+  map_style: 'Map style', style_standard: 'Standard', style_parchment: 'Parchment',
   ev_worldwide: 'Worldwide event', ev_event: 'Event', ev_ack: 'Acknowledge', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Bountiful Harvest', ev_bountiful_harvest_f: 'Fields overflow with grain and the granaries are fuller than in living memory.',
   ev_bountiful_harvest_c0: 'Distribute the surplus', ev_bountiful_harvest_d0: '+40 gold, +25 manpower, +8 stability in the capital',

@@ -12,7 +12,7 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"quality": "medium", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false}
+var cfg := {"quality": "medium", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -89,6 +89,7 @@ func _guess_quality() -> String:
 func _apply_quality() -> void:
 	var q: int = {"low": 0, "medium": 1, "high": 2}.get(cfg["quality"], 1)
 	map.quality = q
+	map.map_theme = 1 if cfg.get("theme", "standard") == "parchment" else 0
 	map.render_scale = [0.6, 0.85, 1.0][q]      # fraction of logical resolution the map shader renders at
 	map._push_view()
 
