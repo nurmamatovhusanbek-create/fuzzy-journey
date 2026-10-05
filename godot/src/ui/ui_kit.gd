@@ -362,13 +362,18 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	back.add_child(center)
 	var card := PanelContainer.new()
+	width = mini(width, int(parent.get_viewport_rect().size.x) - 20)
 	card.custom_minimum_size = Vector2(width, 0)
 	center.add_child(card)
+	var outer := vbox(10)
+	card.add_child(outer)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.custom_minimum_size = Vector2(width - 36, 0)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	card.add_child(scroll)
+	outer.add_child(scroll)
+	var footer := hbox(8)          # pinned below the scrolling body (primary actions stay visible on phones)
+	outer.add_child(footer)
 	var v := vbox(8)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(v)
@@ -381,8 +386,9 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 	parent.add_child(back)
 	# a ScrollContainer reports zero height: size it to its content, capped to the viewport
 	var fit := func():
-		var cap := parent.get_viewport_rect().size.y * 0.86
+		var cap := parent.get_viewport_rect().size.y * 0.86 - footer.get_combined_minimum_size().y - 12.0
 		scroll.custom_minimum_size.y = minf(v.get_combined_minimum_size().y + 4, cap)
 	v.minimum_size_changed.connect(fit)
+	footer.minimum_size_changed.connect(fit)
 	fit.call_deferred()
-	return [back, v]
+	return [back, v, footer]

@@ -52,7 +52,7 @@ class EraRow extends Button:
 	var last := false
 	func _init(y: String, name_text: String) -> void:
 		year_text = y; text = ""; tooltip_text = ""; focus_mode = Control.FOCUS_NONE; flat = true
-		custom_minimum_size = Vector2(0, 38); name = "Era"
+		custom_minimum_size = Vector2(0, 34); name = "Era"
 		set_meta("label", name_text)
 		for st in ["normal", "hover", "pressed", "disabled", "focus"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
 	func _draw() -> void:
