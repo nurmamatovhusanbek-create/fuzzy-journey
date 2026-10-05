@@ -12,7 +12,7 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal"}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -152,6 +152,7 @@ func show_menu() -> void:
 	if not TBSave.meta("auto").is_empty(): v.add_child(MP_.Entry.new(T.call("continue"), false, func(): _load_slot("auto")))
 	v.add_child(MP_.Entry.new(T.call("load"), false, func(): TBModals.save_load(_overlay, false, _save_slot, _load_slot)))
 	v.add_child(MP_.Entry.new(T.call("multiplayer"), false, func(): mp.open_menu()))
+	v.add_child(MP_.Entry.new("%s  %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], false, func(): TBModals.honours(_overlay, cfg)))
 	v.add_child(MP_.Entry.new(T.call("settings"), false, _open_settings))
 	var gap2 := Control.new(); gap2.custom_minimum_size = Vector2(0, 10); v.add_child(gap2)
 	var ver := K.caps("terra bellum · godot build", 9, K.DIM); ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(ver)
@@ -365,14 +366,20 @@ var _crisis := PackedStringArray()
 
 func _flush_log() -> void:
 	var me := g.human_id
+	var earned := PackedStringArray()
 	while _log_idx < g.log.size():
 		var e: Dictionary = g.log[_log_idx]; _log_idx += 1
+		earned.append_array(TBHonours.on_log(g, e))
 		if not TBChron.toast_worthy(g, e, me): continue
 		var tx := TBChron.text(g, e)
 		if tx != "":
 			hud.toast(tx, TBChron.is_bad(e, me))
 			if String(e["kind"]) == "war" and TBChron.involves(e, me): sfx.play("war")
 			elif String(e["kind"]) in ["event", "ruler"]: sfx.play("event")
+	earned.append_array(TBHonours.on_state(g))
+	for id in TBHonours.record(g, cfg, earned):
+		hud.toast("%s: %s" % [T.call("honour_earned"), T.call("honour_" + id)], false)
+		sfx.play("event"); _save_cfg()
 	# new crises (since last turn) get an advisor toast
 	var al := TBAdvisor.alerts(g, me)
 	var now := TBAdvisor.crisis_ids(al)

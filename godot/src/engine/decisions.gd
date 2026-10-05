@@ -24,6 +24,12 @@ static func index_of(id: String) -> int:
 static func is_active(g: TBGame, n: int, i: int) -> bool:
 	return g.dec_until[n * LIST.size() + i] > g.turn
 
+static func active_count(g: TBGame, n: int) -> int:
+	var c := 0
+	for i in LIST.size():
+		if is_active(g, n, i): c += 1
+	return c
+
 static func turns_left(g: TBGame, n: int, i: int) -> int:
 	return maxi(0, g.dec_until[n * LIST.size() + i] - g.turn)
 

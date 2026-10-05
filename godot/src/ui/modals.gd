@@ -428,6 +428,30 @@ static func goals(parent: Control, g: TBGame) -> void:
 			m[1].add_child(h); m[1].add_child(K.Meter.new(nearest[k][0] * 100.0, K.GOLD2))
 	_footer_back(m)
 
+## Honours: cross-game achievements, earned ones in gold, locked ones as faint outlines
+static func honours(parent: Control, cfg: Dictionary) -> void:
+	var m := K.modal(parent, "%s  %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], 500, "trophy")
+	var d: Dictionary = cfg.get("honours", {})
+	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 380); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var list := K.vbox(8); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list); m[1].add_child(scroll)
+	for it in TBHonours.LIST:
+		var id: String = it[0]
+		var got := d.has(id)
+		var row := K.hbox(10)
+		var gl := K.glyph_label_big(String(it[1]))
+		gl.modulate = Color(1, 1, 1, 1.0 if got else 0.28)
+		row.add_child(gl)
+		var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_child(K.title(T.call("honour_" + id), 15, K.GOLD2 if got else K.DIM))
+		var ds := K.label(T.call("honour_" + id + "_d"), 12, K.TEXT if got else K.DIM); ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; ds.custom_minimum_size = Vector2(340, 0)
+		col.add_child(ds)
+		row.add_child(col)
+		if got: row.add_child(K.caps(String(d[id]), 10, K.GOLD))
+		list.add_child(row)
+		var hl := ColorRect.new(); hl.custom_minimum_size = Vector2(0, 1); hl.color = Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.35 if got else 0.12); list.add_child(hl)
+	_footer_back(m)
+
 static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 	var won: bool = g.winner == g.human_id
 	var sub: String = T.call("e_victory", {"a": g.dname(g.winner)}) if won else T.call("e_defeat")
