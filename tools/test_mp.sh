@@ -17,4 +17,5 @@ echo "== host"; grep -E "^\[|SCRIPT|ERROR" /tmp/mp_host.log | grep -v ALSA
 echo "== join"; grep -E "^\[|SCRIPT|ERROR" /tmp/mp_join.log | grep -v ALSA
 # pass criteria: both clients reached turn 5 with identical mirrored checksums
 H=$(grep "turn=5" /tmp/mp_host.log | sed 's/.*checksum=\([0-9]*\).*/\1/'); J=$(grep "turn=5" /tmp/mp_join.log | sed 's/.*checksum=\([0-9]*\).*/\1/')
-if [ -n "$H" ] && [ "$H" == "$J" ]; then echo "MP OK (checksum $H)"; exit 0; else echo "MP FAIL host=$H join=$J"; exit 1; fi
+HF=$(grep "turn=5" /tmp/mp_host.log | sed 's/.*fp=\(-*[0-9]*\).*/\1/'); JF=$(grep "turn=5" /tmp/mp_join.log | sed 's/.*fp=\(-*[0-9]*\).*/\1/')
+if [ -n "$H" ] && [ "$H" == "$J" ] && [ -n "$HF" ] && [ "$HF" == "$JF" ]; then echo "MP OK (checksum $H, systems fingerprint $HF)"; grep "turn=5" /tmp/mp_host.log | tail -1; exit 0; else echo "MP FAIL host=$H/$HF join=$J/$JF"; exit 1; fi

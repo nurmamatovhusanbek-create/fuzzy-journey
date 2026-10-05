@@ -42,12 +42,18 @@ func _init() -> void:
 	for t in 4:
 		var mine: PackedInt32Array = net.game.owned(net.my_nation)
 		net.send_command({"cmd": "recruit", "p": mine[0], "amount": 15})
+		if t == 1: net.send_command({"cmd": "decide", "id": "propaganda"})
+		if t == 2:
+			for o in range(1, net.game.N1):
+				if o != net.my_nation and net.game.alive[o] != 0 and o != net.game.rebel: net.send_command({"cmd": "trade", "t": o}); break
 		await create_timer(0.5).timeout
 		var tn := net.game.turn
 		net.end_turn()
 		await _wait(func(): return net.game.turn > tn)
 		await create_timer(0.3).timeout
-		print("[%s] turn=%d checksum=%d army(mine0)=%d gold=%.1f" % [role, net.game.turn, net.game.state_checksum() & 0xFFFFFFFF, net.game.army[mine[0]], net.game.gold[net.my_nation]])
+		var gg := net.game
+		var fp := hash([gg.dec_until, gg.trade, gg.trade_cnt, gg.r_name, gg.r_adm, gg.r_trait, gg.infamy, gg.coalition, gg.stats.size()])
+		print("[%s] turn=%d checksum=%d army(mine0)=%d gold=%.1f fp=%d decs=%d trades=%d" % [role, gg.turn, gg.state_checksum() & 0xFFFFFFFF, gg.army[mine[0]], gg.gold[net.my_nation], fp, int(TBDecisions.is_active(gg, net.my_nation, 4)), gg.trade_cnt[net.my_nation]])
 	await create_timer(0.5).timeout
 	print("[%s] DONE" % role)
 	quit()
