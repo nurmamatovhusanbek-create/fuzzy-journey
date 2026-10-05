@@ -20,13 +20,10 @@ static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Col
 			ci.draw_arc(c, r * 0.9, 0, TAU, 28, col, w, true)
 			ci.draw_arc(c, r * 0.58, 0, TAU, 20, col, w * 0.7, true)
 			ci.draw_line(c + Vector2(0, -r * 0.28), c + Vector2(0, r * 0.28), col, w, true)
-		"men":
-			ci.draw_arc(c + Vector2(0, r * 0.1), r * 0.78, PI, TAU, 16, col, w, true)
-			ci.draw_line(c + Vector2(-r * 0.78, r * 0.1), c + Vector2(-r * 0.78, r * 0.75), col, w, true)
-			ci.draw_line(c + Vector2(r * 0.78, r * 0.1), c + Vector2(r * 0.78, r * 0.75), col, w, true)
-			ci.draw_line(c + Vector2(0, -r * 0.65), c + Vector2(0, r * 0.75), col, w * 0.8, true)
-			ci.draw_line(c + Vector2(-r * 0.78, r * 0.75), c + Vector2(-r * 0.25, r * 0.75), col, w, true)
-			ci.draw_line(c + Vector2(r * 0.78, r * 0.75), c + Vector2(r * 0.25, r * 0.75), col, w, true)
+		"men":      # a bust: head over shoulders
+			ci.draw_arc(c + Vector2(0, -r * 0.38), r * 0.3, 0, TAU, 14, col, w, true)
+			ci.draw_arc(c + Vector2(0, r * 0.82), r * 0.76, PI, TAU, 16, col, w, true)
+			ci.draw_line(c + Vector2(-r * 0.76, r * 0.82), c + Vector2(r * 0.76, r * 0.82), col, w, true)
 		"swords":
 			for s in [-1.0, 1.0]:
 				ci.draw_line(c + Vector2(-0.8 * s, -0.8) * r, c + Vector2(0.8 * s, 0.8) * r, col, w, true)
