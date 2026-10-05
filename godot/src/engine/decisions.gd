@@ -79,12 +79,29 @@ static func research_mul(g: TBGame, n: int) -> float: return 1.0 + (0.25 if _on(
 static func stab_add(g: TBGame, n: int) -> float: return 1.0 if _on(g, n, "propaganda") else 0.0
 static func happy_add(g: TBGame, n: int) -> float: return (5.0 if _on(g, n, "propaganda") else 0.0) - (5.0 if _on(g, n, "conscript") else 0.0)
 
+## sampled average stability below 55: the realm is drifting towards revolt
+static func _restless(g: TBGame, n: int) -> bool:
+	var own := g.owned(n)
+	if own.is_empty(): return false
+	var step := maxi(1, own.size() / 12)
+	var sum := 0; var c := 0
+	var i := 0
+	while i < own.size():
+		sum += g.stab[own[i]]; c += 1; i += step
+	return float(sum) / float(c) < 55.0
+
+## AI: a rich realm that is drifting towards revolt buys propaganda before spending its action points elsewhere (no RNG)
+static func ai_steady(g: TBGame, n: int) -> void:
+	if g.rules < 1 or g.gold[n] < 600.0 or g.mp[n] < 2.0 or _on(g, n, "propaganda"): return
+	if _restless(g, n): apply(g, n, "propaganda")
+
 ## AI: occasionally spends spare gold on a sensible decision
 static func ai_pick(g: TBGame, n: int) -> void:
-	if g.gold[n] < 260.0 or g.mp[n] < 3.0 or g.rng.next() > 0.12: return
+	if g.gold[n] < 260.0 or g.mp[n] < 3.0 or g.rng.next() > (0.12 if g.gold[n] < 2000.0 else 0.4): return
 	var at_war: bool = g.war_cnt[n] > 0
 	var order := ["mil_reform", "centralize", "trade_fair", "patronage", "conscript", "amnesty", "fortify", "propaganda"]
 	if at_war: order = ["mil_reform", "conscript", "fortify", "propaganda", "centralize", "trade_fair", "patronage", "amnesty"]
+	if _restless(g, n): order = ["propaganda"] + order        # a wobbling realm steadies itself first
 	for id in order:
 		var i := index_of(id)
 		if why_not(g, n, i) == "" and g.gold[n] >= float(LIST[i]["gold"]) + 100.0:

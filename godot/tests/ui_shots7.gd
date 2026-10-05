@@ -11,4 +11,12 @@ func _init() -> void:
 	await process_frame
 	TBModals.codex(main._overlay)
 	await _shot("codex")
+	TBI18n.load_lang("ru")
+	main._clear_overlay()
+	TBModals.codex(main._overlay)
+	await _shot("codex_ru")
+	main._clear_overlay()
+	main.cfg["honours"] = {"first_blood": "1804", "treasure": "1810"}
+	TBModals.honours(main._overlay, main.cfg)
+	await _shot("honours_ru")
 	quit(0)

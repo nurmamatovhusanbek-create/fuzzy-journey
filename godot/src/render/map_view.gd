@@ -277,6 +277,9 @@ func project(lon_deg: float, lat_deg: float) -> Vector3:
 	return Vector3(size.x * 0.5 + dl2 * s, size.y * 0.5 - (lat - lat0) * s, 1.0)
 
 # ---------------------------------------------------------------- input
+## fingers wobble: on touch devices a tap may move a little before it stops being a tap
+func _tap_slop() -> float: return 16.0 if DisplayServer.is_touchscreen_available() else 6.0
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed: _touches[event.index] = event.position
@@ -301,7 +304,7 @@ func _gui_input(event: InputEvent) -> void:
 			MOUSE_BUTTON_LEFT:
 				if event.pressed: _pressed = true; _drag_moved = 0.0
 				else:
-					if _pressed and _drag_moved < 6.0: province_picked.emit(pick_at(event.position), false)
+					if _pressed and _drag_moved < _tap_slop(): province_picked.emit(pick_at(event.position), false)
 					_pressed = false
 					_last_drag_us = 0
 					_push_view()
@@ -310,7 +313,7 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion:
 		if _pressed:
 			_drag_moved += event.relative.length()
-			if _drag_moved >= 6.0:
+			if _drag_moved >= _tap_slop():
 				_sample_frame()
 				drag_by(event.relative)
 		else:
