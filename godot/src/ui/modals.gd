@@ -104,6 +104,51 @@ static func statistics(parent: Control, g: TBGame, on_list: Callable) -> void:
 	draw.call()
 	_footer_back(m)
 
+## Briefing shown when a campaign starts: who you are, who your neighbours are, what to do first
+static func briefing(parent: Control, g: TBGame, on_done: Callable) -> void:
+	var me := g.human_id
+	var m := K.modal(parent, g.dname(me), 520, "flag")
+	var year := g.year
+	var sub := ("%d BC" % -year) if year < 0 else ("%d AD" % year)
+	m[1].add_child(K.caps(sub + " · " + T.call("era_" + g.era_id) if TBI18n.has_key("era_" + g.era_id) else sub, 11, K.GOLD))
+	if g.rules >= 1 and g.r_name[me] != "":
+		var rl := K.label("%s %s · %s" % [T.call(TBRulers.title_key(g, me)), TBRulers.display_name(g, me), T.call("ruler_age", {"a": TBRulers.age(g, me)})], 16, K.GOLD2)
+		m[1].add_child(rl)
+		var tr: String = TBRulers.TRAITS[g.r_trait[me]]
+		if tr != "none": m[1].add_child(K.label("%s — %s" % [T.call("rtr_" + tr), T.call("rtr_%s_d" % tr)], 13, K.DIM))
+	var army := 0
+	for p in g.owned(me): army += g.army[p]
+	m[1].add_child(K.row(T.call("lands"), str(g.own_count(me))))
+	m[1].add_child(K.row(T.call("total_army"), K.fmt(army)))
+	m[1].add_child(K.row(T.call("gold"), K.fmt(g.gold[me]), K.GOLD2))
+	# neighbours by the number of shared borders
+	var shared := {}
+	for p in g.owned(me):
+		for e in range(g.nb_off[p], g.nb_off[p + 1]):
+			var o := g.owner[g.nb[e]]
+			if o != 0 and o != me and g.nb_sea[e] == 0: shared[o] = shared.get(o, 0) + 1
+	var order := shared.keys()
+	order.sort_custom(func(a, b): return shared[a] > shared[b])
+	if not order.is_empty():
+		m[1].add_child(K.section(T.call("neighbours")))
+		for i in mini(4, order.size()):
+			var o: int = order[i]
+			var oa := 0
+			for p in g.owned(o): oa += g.army[p]
+			var ratio := float(oa) / maxf(1.0, army)
+			var tag: String = T.call("brief_stronger") if ratio > 1.3 else (T.call("brief_weaker") if ratio < 0.75 else T.call("brief_equal"))
+			var rowb := K.hbox(6); rowb.add_child(K.label(g.dname(o), 14)); rowb.add_child(K.Leader.new())
+			rowb.add_child(K.caps(tag, 10, K.RED.lightened(0.2) if ratio > 1.3 else (K.GREEN if ratio < 0.75 else K.DIM)))
+			m[1].add_child(rowb)
+	var al := TBAdvisor.alerts(g, me)
+	if not al.is_empty():
+		m[1].add_child(K.section(T.call("advisor")))
+		for i in mini(2, al.size()):
+			var l := K.label(T.call("al_" + String(al[i]["id"]), {"k": int(al[i]["k"]), "r": "%.1f" % (int(al[i]["k"]) / 10.0)}), 13, K.TEXT)
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.custom_minimum_size = Vector2(440, 0); m[1].add_child(l)
+	var go := K.button(T.call("brief_begin"), func(): close(m[0]); on_done.call(), true)
+	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; m[2].add_child(go)
+
 static var _facts_cache := {}
 ## "N nations · A, B, C" for an era (largest powers by province count)
 static func _era_facts(id: String) -> String:

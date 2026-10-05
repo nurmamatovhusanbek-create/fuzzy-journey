@@ -209,7 +209,9 @@ func _start_game(n: int) -> void:
 	_autosave()
 	if not cfg.get("tutorial", false):
 		cfg["tutorial"] = true; _save_cfg()
-		TBModals.tutorial(_overlay, func(): pass)
+		TBModals.tutorial(_overlay, func(): TBModals.briefing(_overlay, g, func(): pass))
+	else:
+		TBModals.briefing(_overlay, g, func(): pass)
 
 # ---------------------------------------------------------------- input
 func _on_pick(p: int, secondary: bool) -> void:
