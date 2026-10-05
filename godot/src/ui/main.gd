@@ -12,7 +12,7 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal"}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -20,6 +20,10 @@ var _log_idx := 0
 var _spin := true
 var mp: TBMpController
 var sfx: TBAudio
+var _perf_label: Label
+var _perf_t := 0.0
+var _turn_ms := 0
+var _turn_t0 := 0
 
 func _ready() -> void:
 	theme = K.theme()
@@ -333,6 +337,7 @@ func end_turn() -> void:
 		mp.end_turn(); return
 	if _busy or mode != "game": return
 	_busy = true; hud.set_busy(true); _set_move_from(-1)
+	_turn_t0 = Time.get_ticks_msec()
 	_turn_thread = Thread.new()
 	_turn_thread.start(_turn_worker)
 
@@ -343,6 +348,7 @@ func _turn_worker() -> void:
 func _turn_done(dirty: PackedInt32Array) -> void:
 	_turn_thread.wait_to_finish()
 	_busy = false; hud.set_busy(false)
+	_turn_ms = Time.get_ticks_msec() - _turn_t0
 	var lens := map.lenses.mode
 	map.repaint(dirty, lens != "political")
 	_flush_log()
@@ -398,7 +404,23 @@ func _notification(what: int) -> void:
 		if mode == "game" and g != null and not _busy and not mp.in_game:
 			_autosave()
 
+func _update_perf(delta: float) -> void:
+	if not cfg.get("perf", false):
+		if _perf_label != null: _perf_label.visible = false
+		return
+	if _perf_label == null:
+		_perf_label = K.label("", 11, K.GOLD2); _perf_label.add_theme_font_override("font", K.mono())
+		_perf_label.set_anchors_preset(Control.PRESET_TOP_RIGHT); _perf_label.position = Vector2(-330, 100); _perf_label.z_index = 100
+		add_child(_perf_label)
+	_perf_label.visible = true
+	_perf_t += delta
+	if _perf_t < 0.5: return
+	_perf_t = 0.0
+	var ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	_perf_label.text = "%d fps · frame %.1f ms · map tier %d @%.0f%% · mem %d MB · turn %d ms" % [Engine.get_frames_per_second(), ms, map.quality, map.render_scale * 100.0, OS.get_static_memory_usage() / 1048576, _turn_ms]
+
 func _process(delta: float) -> void:
+	_update_perf(delta)
 	if map.labels != null and map.labels.visible != (mode != "menu"): map.labels.visible = mode != "menu"
 	if mode == "menu" and _spin:
 		map.lon0 += delta * 0.12
