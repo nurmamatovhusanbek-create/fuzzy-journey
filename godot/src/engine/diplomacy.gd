@@ -86,3 +86,51 @@ static func ai_marry(g: TBGame, n: int) -> void:
 	for o in range(1, g.N1):
 		if o != n and can_marry(g, n, o) and g.human[o] == 0 and g.own_count(o) >= 6:
 			marry(g, n, o); return
+
+
+# ---------------------------------------------------------------- offers from AI nations to human players (rules >= 1)
+static func _offer_valid(g: TBGame, from: int, to: int, what: String) -> bool:
+	if g.alive[from] == 0 or g.alive[to] == 0: return false
+	var r := g.get_rel(from, to)
+	match what:
+		"nap": return r == D.REL_PEACE
+		"ally": return r == D.REL_NAP or (r == D.REL_PEACE and g.dp[from] >= D.DP_ALLY)
+		"trade": return r != D.REL_WAR and not TBTrade.has(g, from, to) and g.trade_cnt[from] < TBTrade.max_deals(g, from) and g.trade_cnt[to] < TBTrade.max_deals(g, to)
+		"marry": return can_marry(g, from, to)
+	return false
+
+static func accept_offer(g: TBGame, from: int, to: int, what: String) -> void:
+	if not _offer_valid(g, from, to, what): return
+	match what:
+		"nap":
+			g.set_rel(from, to, D.REL_NAP); g.nap_expiry[mini(from, to) * g.N1 + maxi(from, to)] = g.turn + 20
+			pass
+		"ally": g.set_rel(from, to, D.REL_ALLY); g.log.append({"turn": g.turn, "kind": "ally", "a": from, "b": to})
+		"trade": TBTrade.set_deal(g, from, to, true); g.log.append({"turn": g.turn, "kind": "trade", "a": from, "b": to})
+		"marry":
+			g.set_rel(from, to, D.REL_MARRIAGE); g.log.append({"turn": g.turn, "kind": "marriage", "a": from, "b": to})
+
+## an AI nation occasionally proposes something friendly to a human (shown as a prompt; unanswered = declined next turn)
+static func ai_offer(g: TBGame, n: int) -> void:
+	if g.rules < 1 or g.human[n] != 0 or n == g.rebel or g.rng.next() > 0.015: return
+	var pers: Dictionary = D.PERSONALITIES[g.personality[n]]
+	if float(pers["dipl"]) < 0.4: return
+	for h in g.humans():
+		if g.alive[h] == 0 or g.grudge[n * g.N1 + h] >= 20 or g.get_rel(n, h) == D.REL_WAR: continue
+		var busy := false
+		for e in g.pending: if int(e["n"]) == h and e["kind"] == "prop": busy = true
+		if busy: return
+		var kinds: Array = []
+		for w in ["nap", "ally", "trade", "marry"]:
+			if _offer_valid(g, n, h, w): kinds.append(w)
+		if kinds.is_empty(): continue
+		var what: String = kinds[g.rng.randi_n(kinds.size())]
+		g.ev_uid += 1
+		g.pending.append({"uid": g.ev_uid, "n": h, "kind": "prop", "id": what, "from": n, "icon": "🤝", "cat": "", "count": 2})
+		return
+
+## once per turn, after unanswered prompts were cleared: AI nations may make offers to humans
+static func offers_turn(g: TBGame) -> void:
+	if g.rules < 1 or g.humans().is_empty(): return
+	for n in range(1, g.N1):
+		if g.alive[n] != 0 and g.human[n] == 0: ai_offer(g, n)

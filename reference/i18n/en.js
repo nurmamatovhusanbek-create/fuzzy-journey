@@ -125,6 +125,7 @@ export default {
   ev_trade_embargo_c1: 'Endure it', ev_trade_embargo_d1: '−60 gold',
   marry_propose: 'Royal marriage (3 DP)', e_marriage: 'A royal marriage joins {a} and {b}', e_marriage_end: 'The dynastic bond between {a} and {b} has lapsed', e_union: '{b} passes under the crown of {a} in a personal union',
   err_state: 'Not possible in the current relationship.',
+  prop_title: 'A proposal from {a}', prop_nap: 'Their envoys offer a non-aggression pact.', prop_ally: 'Their envoys propose an alliance between your nations.', prop_trade: 'Their merchants propose a trade deal that would profit both realms.', prop_marry: 'Their court proposes a dynastic marriage.', e_offer_yes: 'You accepted the proposal of {a}',
   ev_worldwide: 'Worldwide event', ev_event: 'Event', ev_ack: 'Acknowledge', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Bountiful Harvest', ev_bountiful_harvest_f: 'Fields overflow with grain and the granaries are fuller than in living memory.',
   ev_bountiful_harvest_c0: 'Distribute the surplus', ev_bountiful_harvest_d0: '+40 gold, +25 manpower, +8 stability in the capital',

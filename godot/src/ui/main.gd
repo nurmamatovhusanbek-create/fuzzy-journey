@@ -315,7 +315,7 @@ func show_events() -> void:
 		_shown_events[e["uid"]] = true
 		sfx.play("event")
 		var uid: int = e["uid"]
-		TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}))
+		TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}), g)
 		return                      # one at a time; the next shows after this one is answered
 
 func _after_change() -> void:

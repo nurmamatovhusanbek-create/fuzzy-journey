@@ -310,7 +310,17 @@ static func _loc(d: Variant) -> String:
 	return String(d)
 
 ## event prompt with choices; on_choose(i) is called with the chosen index
-static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable) -> void:
+static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g: TBGame = null) -> void:
+	if e["kind"] == "prop":
+		var from_name: String = g.dname(int(e["from"])) if g != null else ""
+		var mp := K.modal(parent, "", 480)
+		var hl := K.label("🤝", 38, K.GOLD2); hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(hl)
+		var tl := K.title(T.call("prop_title", {"a": from_name}), 22); tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(420, 0); mp[1].add_child(tl)
+		mp[1].add_child(K.ornament())
+		var fl2 := K.label(T.call("prop_" + String(e["id"])), 15); fl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; fl2.custom_minimum_size = Vector2(420, 0); fl2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(fl2)
+		mp[1].add_child(K.choice_card(T.call("mp_accept"), "", func(): close(mp[0]); on_choose.call(0), true))
+		mp[1].add_child(K.choice_card(T.call("mp_decline"), "", func(): close(mp[0]); on_choose.call(1)))
+		return
 	var rand: bool = e["kind"] == "rand"
 	var id: String = e["id"]
 	var title: String = T.call("ev_%s_t" % id) if rand else _loc(e.get("title", {}))

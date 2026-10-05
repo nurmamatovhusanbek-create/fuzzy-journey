@@ -51,6 +51,7 @@ static func run(g: TBGame) -> void:
 	g.pending = []
 	_scheduled(g)
 	_randoms(g)
+	TBDiplo.offers_turn(g)
 
 # ---------------------------------------------------------------- scheduled historical events
 static func _scheduled(g: TBGame) -> void:
@@ -188,6 +189,10 @@ static func resolve_choice(g: TBGame, n: int, uid: int, choice: int) -> Dictiona
 static func _resolve(g: TBGame, e: Dictionary, choice: int) -> void:
 	var n: int = e["n"]
 	choice = clampi(choice, 0, int(e["count"]) - 1)
+	if e["kind"] == "prop":
+		if choice == 0: TBDiplo.accept_offer(g, int(e["from"]), n, String(e["id"]))
+		g.log.append({"turn": g.turn, "kind": "offer_" + ("yes" if choice == 0 else "no"), "a": int(e["from"]), "b": n, "id": e["id"]})
+		return
 	if e["kind"] == "rand":
 		for ev in _random:
 			if ev["id"] == e["id"]:
