@@ -192,7 +192,7 @@ func _show_lobby(info: Dictionary) -> void:
 		var nat := "—"
 		if p["nation"] != 0: nat = net.game.nat_name[p["nation"]]
 		else: all_picked = false
-		v.add_child(K.label("%s%s  →  %s" % ["★ " if p["host"] else "", p["name"], nat], 15, K.TEXT if p["connected"] else K.DIM))
+		v.add_child(K.label("%s%s  →  %s" % ["[%s] " % T.call("mp_host") if p["host"] else "", p["name"], nat], 15, K.TEXT if p["connected"] else K.DIM))
 	if info["host"] == me:
 		var go := K.button(T.call("mp_start"), func(): net.start_game(), true); go.disabled = not all_picked; v.add_child(go)
 	v.add_child(K.button(T.call("back"), func(): leave()))
@@ -214,18 +214,19 @@ func end_turn() -> void:
 	net.end_turn()
 
 func _make_timer() -> void:
-	_timer_label = K.label("", 15, K.GOLD2)
-	_timer_label.set_anchors_preset(Control.PRESET_CENTER_TOP); _timer_label.position = Vector2(-40, 62)
+	_timer_label = K.num("", 18, K.GOLD2)
+	_timer_label.set_anchors_preset(Control.PRESET_CENTER_TOP); _timer_label.position = Vector2(-30, main.hud.ribbon_height() + 8)
 	main.hud.add_child(_timer_label)
 	var chat := LineEdit.new(); chat.placeholder_text = T.call("mp_chat"); chat.custom_minimum_size = Vector2(240, 36)
-	chat.set_anchors_preset(Control.PRESET_BOTTOM_LEFT); chat.position = Vector2(10, -48)
+	chat.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	chat.position = Vector2(76, -50) if main.size.x >= main.size.y else Vector2(10, -130)
 	chat.text_submitted.connect(func(t: String): if t.strip_edges() != "": net.chat(t); chat.clear())
 	main.hud.add_child(chat)
 
 func _process(_d: float) -> void:
 	if in_game and is_instance_valid(_timer_label):
 		var left := maxi(0, _deadline_at - Time.get_ticks_msec()) / 1000
-		_timer_label.text = "⏱ %d:%02d" % [left / 60, left % 60]
+		_timer_label.text = "%d:%02d" % [left / 60, left % 60]
 
 func leave() -> void:
 	if net != null:

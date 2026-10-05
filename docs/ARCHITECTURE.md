@@ -16,3 +16,17 @@ Code is split into **chunks (layers)** so each can be changed and tested alone.
 * render reads engine arrays and writes only GPU textures.
 * `tools/check_layers.mjs` (run in tests) fails the build when a forbidden dependency appears.
 * Tests: `godot/tests/` run with `godot --headless -s tests/run_all.gd`.
+
+
+## UI design system ("war table")
+Visual language: navy lacquer and brass rules, matching the original game (`--bg #060a14 / --gold #d4a017 / --ink #e8dccc`), with engraved capitals (Cinzel; Alegreya SC covers Cyrillic) and monospaced figures (JetBrains Mono). Fonts live in `godot/assets/fonts` (OFL).
+
+| Piece | File | Notes |
+|---|---|---|
+| `TBFrame` | `ui/frame.gd` | StyleBox: chamfered, asymmetric notches, optional second hairline + registration ticks. No rounded corners anywhere. |
+| `TBGlyph` | `ui/glyphs.gd` | ~30 engraved line icons drawn with primitives (no emoji/icon fonts: unreliable on phones). |
+| `TBKit` | `ui/ui_kit.gd` | palette, fonts, theme, helpers: `title/num/caps`, `row` (dotted leaders), `meter_row`, `Pips`, `segmented` (underlined tabs), `list_row`, `choice_card`, `modal` (+ornament rule). |
+| HUD parts | `ui/hud_parts.gd` | top ribbon, readouts, dock buttons, End-Turn seal (bezel sweeps while the turn resolves). |
+| Title screen | `ui/menu_parts.gd` | bezel ring around the globe, typographic menu entries, era timeline rows. |
+
+Rules: figures are mono, names/titles are Cinzel, body copy stays the engine default for legibility on small screens; boxes are only used where something is an object (modal card, event choice); lists are ledger lines, tabs are underlines, steps are diamonds. Landscape: dock on the left edge, seal bottom-right; portrait: dock along the bottom, toasts under the ribbon, province sheet lists actions before figures.

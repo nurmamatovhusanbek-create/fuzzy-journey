@@ -9,6 +9,7 @@ var max_labels := 90
 var _unit := PackedVector3Array()
 var _fx: Array = []          # {kind, from, to, col, t0, dur}
 var hidden_while_dragging := false
+var _tracked: Font
 
 func attach(m: TBMapView) -> void:
 	map = m
@@ -35,7 +36,8 @@ func _process(_d: float) -> void:
 ## nation names at their centroid; bigger nations get bigger text; overlapping names are skipped
 func _draw_nation_names(font: Font) -> void:
 	if map.zoom > (4.0 if map.mode == 0 else 5.5): return
-	font = TBKit.tracked(font, 2)
+	if _tracked == null: _tracked = TBKit.tracked(font, 2)
+	font = _tracked
 	var N1 := g.N1
 	var sx := PackedFloat32Array(); sx.resize(N1)
 	var sy := PackedFloat32Array(); sy.resize(N1)

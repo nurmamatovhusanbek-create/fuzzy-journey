@@ -124,7 +124,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> void:
 
 static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_menu: Callable) -> void:
 	var m := K.modal(parent, T.call("settings"), 440, "gear")
-	_segment(m[1], T.call("quality"), [["auto", T.call("q_auto")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
+	_segment(m[1], T.call("quality"), [["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
 	_segment(m[1], T.call("language"), [["en", "English"], ["ru", "Русский"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
 	_segment(m[1], T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], cfg["view"], func(v): cfg["view"] = v; on_change.call())
 	_segment(m[1], T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")]], cfg.get("theme", "standard"), func(v): cfg["theme"] = v; on_change.call())
@@ -236,15 +236,17 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 static func tutorial(parent: Control, on_done: Callable) -> void:
 	var step := [1]
 	var m := K.modal(parent, T.call("tut_title"), 520)
-	var title := K.label("", 20, K.GOLD2)
+	var title := K.title("", 20)
 	var body := K.label("", 15); body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; body.custom_minimum_size = Vector2(460, 90)
-	m[1].add_child(title); m[1].add_child(body)
+	var pips := K.Pips.new(1, 6); pips.custom_minimum_size = Vector2(6 * 14, 18)
+	m[1].add_child(pips); m[1].add_child(title); m[1].add_child(body)
 	var row := K.hbox(8); m[1].add_child(row)
 	var skip := K.button(T.call("tut_skip"), func(): close(m[0]); on_done.call())
 	var next := K.button(T.call("tut_next"), Callable(), true); next.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(skip); row.add_child(next)
 	var draw := func():
 		title.text = T.call("tut_%d_t" % step[0]); body.text = T.call("tut_%d_b" % step[0])
+		pips.n = step[0]; pips.queue_redraw()
 		next.text = T.call("tut_done") if step[0] == 6 else T.call("tut_next")
 	next.pressed.connect(func():
 		if step[0] >= 6: close(m[0]); on_done.call(); return
@@ -261,20 +263,25 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable) ->
 	var id: String = e["id"]
 	var title: String = T.call("ev_%s_t" % id) if rand else _loc(e.get("title", {}))
 	var flavor: String = T.call("ev_%s_f" % id) if rand else _loc(e.get("flavor", {}))
-	var m := K.modal(parent, "%s  %s" % [e.get("icon", "📜"), title], 540)
-	if not rand: m[1].add_child(K.label(T.call("ev_worldwide") if e.get("world", false) else T.call("ev_event"), 12, K.DIM))
-	var fl := K.label(flavor, 15); fl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; fl.custom_minimum_size = Vector2(480, 0)
+	var m := K.modal(parent, "", 540)
+	var ic := K.label(String(e.get("icon", "📜")), 40, K.GOLD2); ic.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; m[1].add_child(ic)
+	var cat_key := "evcat_" + String(e.get("cat", "")).to_lower().replace(" ", "_")
+	var kicker: String = T.call("ev_worldwide") if (not rand and e.get("world", false)) else (T.call("ev_event") if not rand else (T.call(cat_key) if TBI18n.has_key(cat_key) else String(e.get("cat", ""))))
+	if kicker != "":
+		var kk := K.caps(kicker, 10, K.GOLD); kk.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; m[1].add_child(kk)
+	var tl := K.title(title, 25); tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(480, 0); m[1].add_child(tl)
+	m[1].add_child(K.ornament())
+	var fl := K.label(flavor, 15); fl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; fl.custom_minimum_size = Vector2(480, 0); fl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	m[1].add_child(fl)
+	var sp := Control.new(); sp.custom_minimum_size = Vector2(0, 4); m[1].add_child(sp)
 	var count: int = e["count"]
 	var labels: Array = e.get("labels", [])
 	for i in count:
-		var txt: String
-		if rand: txt = "▸ %s\n%s" % [T.call("ev_%s_c%d" % [id, i]), T.call("ev_%s_d%d" % [id, i])]
-		elif i < labels.size(): txt = "▸ " + _loc(labels[i])
-		else: txt = T.call("ev_ack")
-		var b := K.button(txt, func(): close(m[0]); on_choose.call(i), i == 0)
-		b.custom_minimum_size = Vector2(0, 54)
-		m[1].add_child(b)
+		var ttl: String; var det := ""
+		if rand: ttl = T.call("ev_%s_c%d" % [id, i]); det = T.call("ev_%s_d%d" % [id, i])
+		elif i < labels.size(): ttl = _loc(labels[i])
+		else: ttl = T.call("ev_ack")
+		m[1].add_child(K.choice_card(ttl, det, func(): close(m[0]); on_choose.call(i), i == 0))
 
 ## victory goals with progress bars
 static func goals(parent: Control, g: TBGame) -> void:
@@ -282,19 +289,25 @@ static func goals(parent: Control, g: TBGame) -> void:
 	var prog := TBTurn.victory_progress(g, g.human_id)
 	for id in TBTurn.VICTORY_IDS:
 		var pct: float = prog[id]
-		m[1].add_child(K.label("%s — %d%%" % [T.call("vc_" + id), int(pct * 100.0)], 15, K.GOLD2 if pct >= 0.9 else K.TEXT))
+		var col := K.GREEN if pct >= 0.9 else (K.GOLD2 if pct >= 0.4 else K.STEEL.lightened(0.25))
+		var h := K.hbox(6); h.add_child(K.title(T.call("vc_" + id), 16, K.GOLD2 if pct >= 0.9 else K.TEXT)); h.add_child(K.Leader.new()); h.add_child(K.num("%d%%" % int(pct * 100.0), 15, col))
+		m[1].add_child(h)
 		var d := K.label(T.call("vc_" + id + "_d"), 12, K.DIM); d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; d.custom_minimum_size = Vector2(400, 0)
 		m[1].add_child(d)
-		var bar := ProgressBar.new(); bar.max_value = 100; bar.value = pct * 100.0; bar.show_percentage = false; bar.custom_minimum_size = Vector2(0, 8)
-		m[1].add_child(bar)
+		m[1].add_child(K.Meter.new(pct * 100.0, col))
+		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); m[1].add_child(gap)
 	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
 
 static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 	var won: bool = g.winner == g.human_id
-	var vtitle: String = T.call("e_victory", {"a": g.nat_name[g.winner]}) if won else T.call("e_defeat")
-	if won and g.victory_kind != "": vtitle = "%s — %s" % [T.call("vc_" + g.victory_kind), g.nat_name[g.winner]]
-	elif g.winner != 0 and not won: vtitle = T.call("e_lost_to", {"a": g.nat_name[g.winner]})
-	var m := K.modal(parent, vtitle, 460)
+	var sub: String = T.call("e_victory", {"a": g.nat_name[g.winner]}) if won else T.call("e_defeat")
+	if won and g.victory_kind != "": sub = "%s — %s" % [T.call("vc_" + g.victory_kind), g.nat_name[g.winner]]
+	elif g.winner != 0 and not won: sub = T.call("e_lost_to", {"a": g.nat_name[g.winner]})
+	var m := K.modal(parent, "", 480)
+	var head := K.label(T.call("go_won") if won else T.call("go_lost"), 40, K.GOLD2 if won else K.CRIMSON.lightened(0.15))
+	head.add_theme_font_override("font", K.tracked(K.display_hi(), 5)); head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	m[1].add_child(head); m[1].add_child(K.ornament())
+	var sl := K.label(sub, 15, K.TEXT); sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; sl.custom_minimum_size = Vector2(420, 0); m[1].add_child(sl)
 	var rows: Array = []
 	for n in range(1, g.N1):
 		if g.alive[n] == 0 or n == g.rebel: continue
@@ -304,16 +317,17 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 	rows.sort_custom(func(a, b): return a[0] > b[0] if a[0] != b[0] else a[1] < b[1])
 	var rank := 0
 	for i in rows.size(): if rows[i][1] == g.human_id: rank = i + 1
-	m[1].add_child(K.label("%s: %s %d · %s %d" % [T.call("go_final"), T.call("go_rank"), rank, T.call("turn"), g.turn], 14, K.DIM))
+	m[1].add_child(K.section("%s · %s %d · %s %d" % [T.call("go_final"), T.call("go_rank"), rank, T.call("turn"), g.turn]))
 	for i in mini(5, rows.size()):
 		var r: Array = rows[i]
-		var row := K.hbox(8)
-		row.add_child(K.label("%d." % (i + 1), 14, K.DIM)); row.add_child(K.color_chip(g.color[r[1]]))
-		var nm := K.label(g.nat_name[r[1]], 15, K.GOLD2 if r[1] == g.human_id else K.TEXT); nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(nm)
-		row.add_child(K.label("%d %s · %s" % [r[0], T.call("hud_prov"), K.fmt(r[2])], 13, K.DIM))
+		var row := K.hbox(10)
+		var rk := K.num("%d" % (i + 1), 15, K.GOLD2 if r[1] == g.human_id else K.DIM); rk.custom_minimum_size = Vector2(22, 0); row.add_child(rk)
+		row.add_child(TBFlags.chip(g, r[1], 0.8))
+		var nm := K.title(g.nat_name[r[1]], 15, K.GOLD2 if r[1] == g.human_id else K.TEXT); nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(nm)
+		row.add_child(K.num("%d" % r[0], 14, K.GOLD2)); row.add_child(K.glyph_label("swords", K.fmt(r[2]), K.DIM, 11))
 		m[1].add_child(row)
+	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); m[1].add_child(gap)
 	m[1].add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call(), true))
-
 
 ## Chronicle: persistent history with category filters (newest first)
 static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
@@ -396,9 +410,10 @@ static func advisor(parent: Control, g: TBGame, on_goto: Callable) -> void:
 	for a in al:
 		var sev: int = a["sev"]
 		var col := K.RED.lightened(0.3) if sev == 2 else (K.GOLD2 if sev == 1 else K.TEXT)
-		var icon := "⛔" if sev == 2 else ("⚠" if sev == 1 else "💡")
-		var row := K.hbox(8)
-		var l := K.label("%s %s" % [icon, T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)})], 14, col)
+		var row := K.hbox(10)
+		var mark := K.Pips.new(1, 1, K.RED if sev == 2 else (K.GOLD2 if sev == 1 else K.STEEL.lightened(0.3))); mark.custom_minimum_size = Vector2(14, 20); mark.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		row.add_child(mark)
+		var l := K.label(T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)}), 14, col)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size = Vector2(380, 0); row.add_child(l)
 		if int(a["p"]) >= 0:
 			var pp: int = a["p"]

@@ -29,10 +29,10 @@ static func _font(file: String, fallbacks: Array = []) -> FontFile:
 	_fonts[file] = f
 	return f
 
-## engraved capitals for titles and buttons (Cinzel; Forum covers Cyrillic)
-static func display() -> Font: return _font("cinzel-latin-700-normal", ["forum-cyrillic-400-normal", "forum-latin-400-normal"])
-static func display_hi() -> Font: return _font("cinzel-latin-900-normal", ["forum-cyrillic-400-normal", "forum-latin-400-normal"])
-static func display_lo() -> Font: return _font("cinzel-latin-500-normal", ["forum-cyrillic-400-normal", "forum-latin-400-normal"])
+## engraved capitals for titles and buttons (Cinzel; Alegreya SC small capitals cover Cyrillic)
+static func display() -> Font: return _font("cinzel-latin-700-normal", ["alegreya-sc-cyrillic-700-normal"])
+static func display_hi() -> Font: return _font("cinzel-latin-900-normal", ["alegreya-sc-cyrillic-900-normal"])
+static func display_lo() -> Font: return _font("cinzel-latin-500-normal", ["alegreya-sc-cyrillic-500-normal"])
 ## figures (JetBrains Mono)
 static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"])
 static func mono_b() -> Font: return _font("jetbrains-mono-latin-700-normal", ["jetbrains-mono-cyrillic-700-normal"])
@@ -301,6 +301,31 @@ class ListRow extends Button:
 		draw_line(Vector2(0, size.y - 0.5), Vector2(size.x, size.y - 0.5), Color(0.83, 0.63, 0.09, 0.18), 1.0)
 
 static func list_row(l: String, r: String, cb: Callable, col: Color = TEXT) -> Button: return ListRow.new(l, r, cb, col)
+
+## clickable card for event choices: title in capitals, consequence line in plain text beneath
+class ChoiceCard extends PanelContainer:
+	signal chosen
+	var _normal: StyleBox
+	var _hot: StyleBox
+	func _init(title_text: String, detail: String, primary: bool) -> void:
+		_normal = TBFrame.make(Color(0.83, 0.63, 0.09, 0.2) if primary else Color(0.075, 0.118, 0.212), Color(0.953, 0.773, 0.322, 0.9) if primary else Color(0.83, 0.63, 0.09, 0.34), 8, false, 14, 10)
+		_hot = TBFrame.make(Color(0.83, 0.63, 0.09, 0.32), Color(0.953, 0.773, 0.322, 1.0), 8, false, 14, 10)
+		add_theme_stylebox_override("panel", _normal)
+		var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 3); v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var t := TBKit.title(title_text, 16, TBKit.GOLD2 if primary else TBKit.TEXT); t.mouse_filter = Control.MOUSE_FILTER_IGNORE; t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(t)
+		if detail != "":
+			var d := TBKit.label(detail, 13, TBKit.DIM); d.mouse_filter = Control.MOUSE_FILTER_IGNORE; d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(d)
+		add_child(v)
+		mouse_entered.connect(func(): add_theme_stylebox_override("panel", _hot))
+		mouse_exited.connect(func(): add_theme_stylebox_override("panel", _normal))
+	func _gui_input(e: InputEvent) -> void:
+		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or (e is InputEventScreenTouch and e.pressed):
+			chosen.emit(); accept_event()
+
+static func choice_card(title_text: String, detail: String, cb: Callable, primary: bool = false) -> Control:
+	var c := ChoiceCard.new(title_text, detail, primary)
+	c.chosen.connect(cb)
+	return c
 
 static func segmented(items: Array, current: String, cb: Callable) -> Control:
 	var s := Segmented.new().setup(items, current)

@@ -343,7 +343,7 @@ func _flush_log() -> void:
 	var now := TBAdvisor.crisis_ids(al)
 	for a in al:
 		if a["sev"] == 2 and not _crisis.has(a["id"]):
-			hud.toast("⛔ " + T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)}), true)
+			hud.toast(T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)}), true)
 	_crisis = now
 	if g.log.size() > 900:
 		g.log = g.log.slice(g.log.size() - 600); _log_idx = g.log.size()
