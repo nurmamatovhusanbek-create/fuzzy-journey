@@ -44,6 +44,7 @@ var cap_lost := PackedByteArray()
 var tribute := PackedByteArray()
 var infamy := PackedFloat32Array()    # rules >= 1: raised by unjustified wars and conquest; >= 25 forms a coalition (engine/diplomacy.gd)
 var coalition := PackedByteArray()
+var dec_until := PackedInt32Array()   # N1 * TBDecisions.LIST.size(): turn when a decision's effect ends
 var core := PackedInt32Array()        # province -> original owner (rules >= 1: casus belli 'reclaim')
 var capital_of := PackedInt32Array()
 var overlord := PackedInt32Array()
@@ -186,7 +187,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
-	infamy.resize(N1); coalition.resize(N1)
+	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
 	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:
 		a.resize(N1)
@@ -461,6 +462,7 @@ func income(n: int) -> Dictionary:
 	gld = int(floor(gld * float(reg["incMul"]) * tech_inc))
 	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n)))
 	admin = int(floor(admin * tech_admin))
+	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n)))
 	var upkeep := int(floor(up_base * (0.25 + era[n] * 0.05) * tech_up * float(reg["upkeep"])))
 	if rules >= 1: man = int(floor(man * TBRulers.manpower_mul(self, n)))
 	out["gold"] = gld; out["manpower"] = man; out["upkeep"] = upkeep; out["tax"] = tax; out["production"] = prod; out["admin"] = admin
@@ -569,6 +571,7 @@ func apply(c: Dictionary) -> Dictionary:
 		"relocate": return _c_relocate(c)
 		"regime": return _c_regime(c)
 		"develop": return _c_develop(c)
+		"decide": return TBDecisions.apply(self, n, String(c.get("id", "")))
 		"hire": return _c_hire(c)
 		"spy": return _c_spy(c)
 		"eventChoice": return TBEvents.resolve_choice(self, n, int(c.get("uid", 0)), int(c.get("i", 0)))

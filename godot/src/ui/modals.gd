@@ -330,6 +330,33 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
 	draw.call()
 	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
 
+## Decisions: costed national projects
+static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> void:
+	var m := K.modal(parent, "⚖ " + T.call("decisions"), 540)
+	var me := g.human_id
+	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 380); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var list := K.vbox(8); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list); m[1].add_child(scroll)
+	for i in TBDecisions.LIST.size():
+		var d: Dictionary = TBDecisions.LIST[i]
+		var active := TBDecisions.is_active(g, me, i)
+		var why := TBDecisions.why_not(g, me, i)
+		var box := PanelContainer.new()
+		var v := K.vbox(3); box.add_child(v)
+		var head := K.hbox(8); v.add_child(head)
+		var tl := K.label("%s  %s" % [d["icon"], T.call("dec_" + String(d["id"]))], 16, K.GOLD2 if active else K.TEXT); tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; head.add_child(tl)
+		var tag := ""
+		if active: tag = T.call("dec_forever") if TBDecisions.turns_left(g, me, i) > 5000 else T.call("dec_left", {"n": TBDecisions.turns_left(g, me, i)})
+		head.add_child(K.label(tag if active else "%d 🪙 · %d MP" % [int(d["gold"]), int(d["mp"])], 13, K.GREEN if active else K.DIM))
+		var ds := K.label(T.call("dec_%s_d" % d["id"]), 13, K.DIM); ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; ds.custom_minimum_size = Vector2(440, 0); v.add_child(ds)
+		if not active:
+			var b := K.button(T.call("dec_do"), func(): on_cmd.call({"cmd": "decide", "id": String(d["id"])}); close(m[0]))
+			b.disabled = why != ""
+			if why != "": b.tooltip_text = T.call("err_" + why) if TBI18n.has_key("err_" + why) else why
+			v.add_child(b)
+		list.add_child(box)
+	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+
 ## Advisor: current alerts and tips; tapping one jumps to the province concerned
 static func advisor(parent: Control, g: TBGame, on_goto: Callable) -> void:
 	var m := K.modal(parent, "💡 " + T.call("advisor"), 520)

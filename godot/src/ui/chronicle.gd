@@ -11,7 +11,7 @@ static func category(e: Dictionary) -> String:
 		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "independence": return "war"
 		"coalition", "coalition_end": return "diplo"
 		"ally", "vassal", "spy": return "diplo"
-		"event", "event_choice", "era", "bankrupt", "ruler": return "events"
+		"event", "event_choice", "era", "bankrupt", "ruler", "decision": return "events"
 	return "events"
 
 static func involves(e: Dictionary, me: int) -> bool:
@@ -51,6 +51,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"ruler":
 			if String(e["k"]) == "elected" and not involves(e, g.human_id): return ""
 			return T.call("e_ruler_" + String(e["k"]), {"a": a, "old": TBRulers.name_of(e["old"], int(e["oldn"])), "new": TBRulers.name_of(e["new"], int(e["num"]))})
+		"decision": return T.call("e_decision", {"a": a, "d": T.call("dec_" + String(e["id"]))}) if involves(e, g.human_id) else ""
 		"bankrupt": return T.call("e_bankrupt", {"a": a})
 		"era": return T.call("e_era", {"a": a, "e": T.call("era_name_%d" % int(e["k"]))})
 		"victory": return T.call("e_victory", {"a": a})

@@ -20,6 +20,7 @@
 | UX: **Chronicle** (filterable history), **Advisor** (alerts + tips, crisis toasts), richer log (occupation, annexation, bankruptcy, era) — from `docs/RESEARCH.md` item 1 | done |
 | **Rulers** (item 2): named leaders with skills + traits, ageing, succession / crises / elections, ~140 historical rulers across 11 eras (`data/rulers.json`), era-appropriate starting governments (`engine/regimes.gd`) | done |
 | **Casus belli, infamy, coalitions** (item 3): 5 casus belli (coalition / reclaim / revenge / defend ally / rebels), infamy from unjustified wars + conquest, coalition at 22 (ends at 12), AI weighs infamy + CB, shown on nation card, advisor and chronicle | done |
+| **Decisions** (item 4): 8 national decisions (timed / permanent / instant), AI uses them as a gold sink, MP-safe command | done |
 | Still to port from legacy | trade routes, generals, formable nations, ultimatums / war goals / marriage UI, data-spike lens, localized nation names |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 

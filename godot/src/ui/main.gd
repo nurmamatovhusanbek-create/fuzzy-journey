@@ -41,6 +41,7 @@ func _ready() -> void:
 	hud.lens_selected.connect(func(n): map.set_lens(n))
 	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation))
 	hud.goals_pressed.connect(func(): TBModals.goals(_overlay, g))
+	hud.decisions_pressed.connect(func(): TBModals.decisions(_overlay, g, _on_command))
 	hud.chronicle_pressed.connect(func(): TBModals.chronicle(_overlay, g, _goto_province))
 	hud.advisor_pressed.connect(func(): TBModals.advisor(_overlay, g, _goto_province))
 	hud.wars_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation, true))
