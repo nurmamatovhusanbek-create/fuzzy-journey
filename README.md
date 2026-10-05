@@ -11,6 +11,8 @@ Economy, tech and eras, buildings, armies and combat, peace deals (white / land 
 five victory paths, a chronicle, an advisor, statistics charts. EN/RU, authoritative multiplayer, synthesised sound.
 UI: "war table" design system (see `docs/ARCHITECTURE.md`).
 
+![menu](docs/screens/menu.png) ![game](docs/screens/game.png)
+
 ## Layout
 | Path | What |
 |---|---|

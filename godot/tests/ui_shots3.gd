@@ -10,6 +10,7 @@ func _init() -> void:
 	var main: Control = load("res://src/ui/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
+	main.cfg["lang"] = "en"; TBI18n.load_lang("en")
 	main._begin_pick("modern", "normal")
 	var us: int = main.g.nat_code.find("USA")
 	if us < 0: us = main.g.nat_name.find("United States of America")
@@ -18,7 +19,7 @@ func _init() -> void:
 	main.hud.refresh()
 	main.map.fly_to(-95.0, 40.0, 1.0)
 	for i in 8: await process_frame
-	main.cfg["perf"] = true
+	main.cfg["perf"] = false
 	for i in 40: await process_frame
 	await _shot("globe")
 	main.map.fly_to(2.0, 47.0, 5.0)
