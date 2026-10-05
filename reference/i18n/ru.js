@@ -76,6 +76,7 @@ export default {
   q_auto_s: 'Авто', go_won: 'Победа', go_lost: 'Поражение',
   evcat_crisis: 'Кризис', evcat_diplomacy: 'Дипломатия', evcat_disaster: 'Бедствие', evcat_domestic: 'Внутренние дела', evcat_enlightenment: 'Просвещение', evcat_golden_age: 'Золотой век', evcat_military: 'Военное', evcat_trade: 'Торговля',
   mp_host: 'хозяин',
+  fx_gold: '{d} золота', fx_manpower: '{d} людей', fx_mp: '{d} очков хода', fx_dp: '{d} очков дипломатии', fx_stability: 'стабильность {d}', fx_happy: 'счастье {d}', fx_infamy: 'дурная слава {d}', fx_research: '{d} науки', fx_intel: '{d} разведки', fx_army_pct: 'армии {d}%', fx_pop_pct: 'население {d}%', fx_dev: 'провинция развивается', fx_trade: '{d} золота на след. ход', fx_combat: 'сила армии {d} на {t} ход.',
   ev_worldwide: 'Мировое событие', ev_event: 'Событие', ev_ack: 'Принять', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Обильный урожай', ev_bountiful_harvest_f: 'Поля ломятся от зерна, а амбары полны как никогда.',
   ev_bountiful_harvest_c0: 'Раздать излишки', ev_bountiful_harvest_d0: '+40 золота, +25 людей, +8 к стабильности в столице',

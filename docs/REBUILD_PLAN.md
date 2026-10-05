@@ -22,6 +22,7 @@
 | **Casus belli, infamy, coalitions** (item 3): 5 casus belli (coalition / reclaim / revenge / defend ally / rebels), infamy from unjustified wars + conquest, coalition at 22 (ends at 12), AI weighs infamy + CB, shown on nation card, advisor and chronicle | done |
 | **Decisions** (item 4): 8 national decisions (timed / permanent / instant), AI uses them as a gold sink, MP-safe command | done |
 | **UI redesign** (war-table design system, see ARCHITECTURE): ribbon HUD + dock + End-Turn seal, typographic title screen with bezel ring, era timeline, ledger-style panels, heraldic army plaques, muted chart-wash nation colours, drawn icons, EN/RU fonts | done |
+| **Historical events** (item 5): ~100 new dated events with choices + consequences across 13 eras (EN/RU), richer effect ops, effect summary shown on choices; source in `tools/events_src.py` + `events_content.py` | done |
 | Still to port from legacy | trade routes, generals, formable nations, ultimatums / war goals / marriage UI, data-spike lens, localized nation names |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 

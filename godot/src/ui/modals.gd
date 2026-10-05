@@ -55,6 +55,18 @@ static func era_picker(parent: Control, difficulty: String, on_start: Callable, 
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(go)
 	show.call("modern")
 
+## "-40 gold · stability -8" summary of scheduled-event effects
+static func fx_text(effects: Array) -> String:
+	var parts: PackedStringArray = []
+	for e in effects:
+		var op := String(e.get("op", "")).trim_prefix("nation.")
+		var d := float(e.get("delta", 0))
+		if op == "dev": parts.append(T.call("fx_dev")); continue
+		if d == 0.0 or not TBI18n.has_key("fx_" + op): continue
+		var ds := "%+d" % int(d) if op != "combat" else "%+d%%" % int(d)
+		parts.append(T.call("fx_" + op, {"d": ds.replace("-", "−"), "t": int(e.get("turns", 6))}))
+	return " · ".join(parts)
+
 static var _facts_cache := {}
 ## "N nations · A, B, C" for an era (largest powers by province count)
 static func _era_facts(id: String) -> String:
@@ -279,7 +291,10 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable) ->
 	for i in count:
 		var ttl: String; var det := ""
 		if rand: ttl = T.call("ev_%s_c%d" % [id, i]); det = T.call("ev_%s_d%d" % [id, i])
-		elif i < labels.size(): ttl = _loc(labels[i])
+		elif i < labels.size():
+			ttl = _loc(labels[i])
+			var fx: Array = e.get("fx", [])
+			if i < fx.size(): det = fx_text(fx[i])
 		else: ttl = T.call("ev_ack")
 		m[1].add_child(K.choice_card(ttl, det, func(): close(m[0]); on_choose.call(i), i == 0))
 

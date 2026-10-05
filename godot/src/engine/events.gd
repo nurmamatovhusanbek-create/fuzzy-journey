@@ -83,7 +83,7 @@ static func _scheduled(g: TBGame) -> void:
 			if g.human[n] != 0:
 				g.ev_uid += 1
 				g.pending.append({"uid": g.ev_uid, "n": n, "kind": "sched", "id": id, "icon": ev.get("icon", "📜"), "title": ev.get("title", {}), "flavor": ev.get("flavor", {}),
-					"count": maxi(1, choices.size()), "labels": choices.map(func(c): return c.get("label", {})), "world": String(ev.get("scope", "world")) == "world"})
+					"count": maxi(1, choices.size()), "labels": choices.map(func(c): return c.get("label", {})), "fx": choices.map(func(c): return c.get("effects", [])), "world": String(ev.get("scope", "world")) == "world"})
 				# auto-effects of world events hit humans immediately; choice effects wait for the answer
 				_apply_sched_effects(g, n, ev.get("autoEffects", []))
 			else:
@@ -102,6 +102,23 @@ static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 			"nation.dp": g.dp[n] += d
 			"nation.stability":
 				for p in g.owned(n): g.stab[p] = clampi(g.stab[p] + int(d), 0, 100)
+			"nation.happy":
+				for p in g.owned(n): g.happy[p] = clampi(g.happy[p] + int(d), 0, 100)
+			"nation.infamy": g.infamy[n] = clampf(g.infamy[n] + d, 0.0, 100.0)
+			"nation.research": g.research[n] = maxf(0.0, g.research[n] + d)
+			"nation.intel": g.intel[n] = clampf(g.intel[n] + d, 0.0, 20.0)
+			"nation.army_pct":
+				for p in g.owned(n): g.army[p] = maxi(3, int(g.army[p] * (1.0 + d / 100.0))); g.touch(p)
+			"nation.pop_pct":
+				for p in g.owned(n): g.pop[p] = clampi(int(g.pop[p] * (1.0 + d / 100.0)), 10, 2000); g.touch(p)
+			"nation.dev":
+				var best := -1; var bs := -1
+				for p in g.owned(n):
+					if g.dev[p] < 5 and g.pop[p] > bs: bs = g.pop[p]; best = p
+				if best >= 0: g.dev[best] += 1; g.touch(best)
+			"nation.trade": g.trade_bonus[n] += int(d)
+			"nation.combat":
+				g.combat_bonus[n] += d / 100.0; g.combat_turns[n] = maxi(int(g.combat_turns[n]), int(e.get("turns", 6)))
 
 # ---------------------------------------------------------------- random events
 static func _randoms(g: TBGame) -> void:
