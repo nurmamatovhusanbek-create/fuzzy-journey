@@ -49,6 +49,26 @@ static func alerts(g: TBGame, n: int) -> Array:
 	if g.gold[n] > 250.0 and net >= 0: out.append(_a("idle_gold", 0, -1, int(g.gold[n])))
 	var cap_mp := 6.0 + g.era[n] * 2.0
 	if g.rules >= 1 and g.trade_cnt[n] == 0 and g.dp[n] >= 2.0 and g.turn > 4: out.append(_a("no_trade", 0, -1))
+	if g.rules >= 1 and g.turn > 2:
+		if TBGenerals.count(g, n) < TBGenerals.cap(g, n) and g.gold[n] >= TBGenerals.cost(g, n) + 60:
+			var gp := -1; var gbest := 0
+			for p in own:
+				if g.gen[p] == 0 and g.army[p] >= TBGenerals.MIN_ARMY and g.army[p] > gbest and g.controller(p) == n: gbest = g.army[p]; gp = p
+			if gp >= 0: out.append(_a("no_general", 0, gp))
+		if g.dp[n] >= TBDiplo.DP_ULT and g.infamy[n] < 12.0:
+			var seen := {}
+			var up := -1; var ur := 0.0
+			for p in own:
+				for i in range(g.nb_off[p], g.nb_off[p + 1]):
+					var t: int = g.owner[g.nb[i]]
+					if t == 0 or t == n or seen.has(t) or g.nb_sea[i] != 0: continue
+					seen[t] = true
+					if g.get_rel(n, t) != D.REL_PEACE or g.has_truce(n, t): continue
+					var rr := TBDiplo.ult_ratio(g, n, t)
+					if rr >= TBDiplo.ULT_RATIO + 0.2 and rr > ur:
+						var tp := TBDiplo.ult_target(g, n, t)
+						if tp >= 0: ur = rr; up = tp
+			if up >= 0: out.append(_a("ult_chance", 0, up, int(ur * 10.0)))
 	if g.mp[n] >= cap_mp - 0.5: out.append(_a("idle_mp", 0, -1))
 	if g.manpower[n] >= inc["manCap"] * 0.95 and inc["manCap"] > 50: out.append(_a("idle_men", 0, -1))
 	if g.budget[n * 4 + 2] == 0: out.append(_a("no_research", 0, -1))

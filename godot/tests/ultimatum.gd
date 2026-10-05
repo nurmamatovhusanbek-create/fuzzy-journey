@@ -19,6 +19,12 @@ func _init() -> void:
 	g.set_human(n); g.dp[n] = 10
 	for p in g.owned(n): g.army[p] = 400
 	for p in g.owned(t): g.army[p] = 5
+	var ids := []
+	g.turn = 5; g.gold[n] = 800.0
+	for al in TBAdvisor.alerts(g, n): ids.append(al["id"])
+	g.turn = 0
+	print("advisor ids before ultimatum: ", ids)
+	if not "ult_chance" in ids or not "no_general" in ids: fails += 1
 	var inf0 := g.infamy[n]
 	var r := g.apply({"cmd": "ultimatum", "n": n, "t": t, "p": q})
 	print("strong ->", r, " owner now=", g.owner[q] == n, " infamy +", g.infamy[n] - inf0, " rel=", g.get_rel(n, t))
