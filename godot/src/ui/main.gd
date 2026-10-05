@@ -324,7 +324,7 @@ func _on_hover(p: int) -> void:
 		var pv := g.combat_preview(me, move_from, p, _troops_for(move_from))
 		_tip_note.visible = true
 		_tip_note.text = T.call("pv_win_short", {"k": int(pv["hold"])}) if pv["win"] else T.call("pv_lose_short", {"a": int(pv["lost"])})
-		_tip_note.add_theme_color_override("font_color", Color(0.6, 0.95, 0.65) if pv["win"] else K.RED.lightened(0.3))
+		_tip_note.add_theme_color_override("font_color", K.GREEN if pv["win"] else K.RED)
 	if not _tip.visible and TBMapView.animate:
 		_tip.modulate.a = 0.0
 		_tip.create_tween().tween_property(_tip, "modulate:a", 1.0, 0.1)

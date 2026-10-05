@@ -68,7 +68,7 @@ func _connect(then: Callable) -> void:
 	if not net.connect_to(main.world, url): _lobby_toast(T.call("mp_failed"))
 
 func _lobby_toast(msg: String) -> void:
-	var l := K.label(msg, 15, K.RED.lightened(0.3)); l.position = Vector2(12, 60); main._overlay.add_child(l)
+	var l := K.label(msg, 15, K.RED); l.position = Vector2(12, 60); main._overlay.add_child(l)
 	get_tree().create_timer(4.0).timeout.connect(l.queue_free)
 
 var _reconnects := 0

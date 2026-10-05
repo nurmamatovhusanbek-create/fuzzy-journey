@@ -48,7 +48,7 @@ func build() -> void:
 	# ---- ribbon
 	_ribbon = PanelContainer.new()
 	_ribbon.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_ribbon.add_theme_stylebox_override("panel", P.Ribbon.new())
+	_ribbon.add_theme_stylebox_override("panel", TBFrame.leather(12, 6))
 	add_child(_ribbon)
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation", 18); row.add_theme_constant_override("v_separation", 4)
@@ -59,19 +59,19 @@ func build() -> void:
 	_cameo = TBPortrait.new(); _cameo.custom_minimum_size = Vector2(44, 44); _cameo.visible = false
 	nat.add_child(_cameo)
 	var nv := VBoxContainer.new(); nv.add_theme_constant_override("separation", -1)
-	_name = K.title("", 19); nv.add_child(_name)
-	_ruler = K.label("", 12, K.DIM); nv.add_child(_ruler)
+	_name = K.title("", 19, K.BRASS_LT); nv.add_child(_name)
+	_ruler = K.label("", 12, K.SMOKE); nv.add_child(_ruler)
 	nat.add_child(nv)
 	row.add_child(nat)
 	var dv := VBoxContainer.new(); dv.add_theme_constant_override("separation", -1)
-	_date = K.num("", 17, K.GOLD2); dv.add_child(_date)
-	_turn = K.caps("", 9); dv.add_child(_turn)
+	_date = K.num("", 17, K.BRASS_LT); dv.add_child(_date)
+	_turn = K.caps("", 9, K.SMOKE); dv.add_child(_turn)
 	row.add_child(dv)
 	for spec in [["gold", "coin", "gold"], ["man", "men", "hud_man"], ["mp", "swords", "hud_mp"], ["dp", "scroll", "hud_dp"], ["intel", "eye", "hud_intel"], ["lands", "flag", "hud_prov"], ["tech", "flask", "tech"]]:
 		var ro := P.Readout.new().setup(spec[1], T.call(spec[2]))
 		row.add_child(ro); _r[spec[0]] = ro
-	var inf := P.Readout.new().setup("skull", T.call("infamy"), K.RED); row.add_child(inf); _r["infamy"] = inf
-	var wr := P.Readout.new().setup("swords", T.call("hud_wars"), K.RED); row.add_child(wr); _r["wars"] = wr
+	var inf := P.Readout.new().setup("skull", T.call("infamy"), K.RED_LT); row.add_child(inf); _r["infamy"] = inf
+	var wr := P.Readout.new().setup("swords", T.call("hud_wars"), K.RED_LT); row.add_child(wr); _r["wars"] = wr
 	_lens = OptionButton.new()
 	_lens.focus_mode = Control.FOCUS_NONE
 	_lens.custom_minimum_size = Vector2(150, 34)
@@ -156,9 +156,9 @@ func refresh() -> void:
 	_date.text = _year(g.year)
 	_turn.text = "%s %d · %s" % [T.call("turn"), g.turn, T.call("month_%d" % g.month_idx) if TBI18n.has_key("month_%d" % g.month_idx) else TBData.MONTHS[g.month_idx]]
 	var net: int = inc["net"]
-	_r["gold"].set_num(g.gold[n], func(v: float): return K.fmt(int(round(v))), K.GOLD2)
+	_r["gold"].set_num(g.gold[n], func(v: float): return K.fmt(int(round(v))), K.BRASS_LT)
 	_r["gold"].caption.text = "%s%d" % ["+" if net >= 0 else "", net]
-	_r["gold"].caption.add_theme_color_override("font_color", K.GREEN if net >= 0 else K.RED)
+	_r["gold"].caption.add_theme_color_override("font_color", K.GREEN_LT if net >= 0 else K.RED_LT)
 	_r["man"].set_num(g.manpower[n], func(v: float): return K.fmt(int(round(v)))); _r["man"].caption.text = "/ %s" % K.fmt(inc["manCap"])
 	var ifmt := func(v: float): return "%d" % int(round(v))
 	_r["mp"].set_num(floorf(g.mp[n]), ifmt); _r["dp"].set_num(floorf(g.dp[n]), ifmt)
@@ -168,12 +168,12 @@ func refresh() -> void:
 	var wc := 0
 	for o in range(1, g.N1):
 		if g.alive[o] != 0 and g.get_rel(n, o) == 1: wc += 1
-	_r["wars"].set_value("%d" % wc, K.RED); _r["wars"].visible = wc > 0
-	_r["infamy"].set_value("%d" % int(g.infamy[n]), K.RED); _r["infamy"].visible = g.rules >= 1 and g.infamy[n] >= 5.0
+	_r["wars"].set_value("%d" % wc, K.RED_LT); _r["wars"].visible = wc > 0
+	_r["infamy"].set_value("%d" % int(g.infamy[n]), K.RED_LT); _r["infamy"].visible = g.rules >= 1 and g.infamy[n] >= 5.0
 	var al := TBAdvisor.alerts(g, n)
 	var crit := 0
 	for a in al: if a["sev"] == 2: crit += 1
-	_advisor_btn.badge = al.size(); _advisor_btn.badge_col = K.RED if crit > 0 else K.GOLD2; _advisor_btn.queue_redraw()
+	_advisor_btn.badge = al.size(); _advisor_btn.badge_col = K.RED if crit > 0 else K.BRASS_LT; _advisor_btn.queue_redraw()
 
 static func _year(y: int) -> String:
 	return "%d BC" % -y if y < 0 else "%d AD" % y
@@ -207,7 +207,7 @@ func show_preview(info: Dictionary, place: String, on_ok: Callable, on_cancel: C
 	var res: String
 	if win: res = T.call("pv_win", {"k": int(info["hold"]), "l": int(info["lost"])})
 	else: res = T.call("pv_lose", {"a": int(info["lost"]), "d": int(info["enemy_lost"])})
-	var rl := K.label(res, 14, Color(0.6, 0.95, 0.65) if win else K.RED.lightened(0.3)); rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; rl.custom_minimum_size = Vector2(320, 0); v.add_child(rl)
+	var rl := K.label(res, 14, K.GREEN if win else K.RED); rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; rl.custom_minimum_size = Vector2(320, 0); v.add_child(rl)
 	var row := K.hbox(8); v.add_child(row)
 	row.add_child(K.button(T.call("pv_cancel"), func(): hide_preview(); on_cancel.call()))
 	var ok := K.button(T.call("pv_attack"), func(): hide_preview(); on_ok.call(), true); ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(ok)
@@ -222,7 +222,7 @@ func toast(msg: String, bad: bool = false) -> void:
 	var rule_c := Color(K.RED.r, K.RED.g, K.RED.b, 0.85) if bad else Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.55)
 	var l := PanelContainer.new()
 	l.add_theme_stylebox_override("panel", TBFrame.make(Color(0.035, 0.055, 0.11, 0.93), rule_c, 6, false, 12, 6))
-	var t := K.label(msg, 14, K.RED.lightened(0.35) if bad else K.TEXT)
+	var t := K.label(msg, 14, K.RED if bad else K.TEXT)
 	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; t.custom_minimum_size = Vector2(300, 0)
 	l.add_child(t)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE

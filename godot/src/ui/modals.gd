@@ -145,7 +145,7 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> void:
 			var ratio := float(oa) / maxf(1.0, army)
 			var tag: String = T.call("brief_stronger") if ratio > 1.3 else (T.call("brief_weaker") if ratio < 0.75 else T.call("brief_equal"))
 			var rowb := K.hbox(6); rowb.add_child(K.label(g.dname(o), 14)); rowb.add_child(K.Leader.new())
-			rowb.add_child(K.caps(tag, 10, K.RED.lightened(0.2) if ratio > 1.3 else (K.GREEN if ratio < 0.75 else K.DIM)))
+			rowb.add_child(K.caps(tag, 10, K.RED if ratio > 1.3 else (K.GREEN if ratio < 0.75 else K.DIM)))
 			m[1].add_child(rowb)
 	var al := TBAdvisor.alerts(g, me)
 	if not al.is_empty():
@@ -197,7 +197,7 @@ static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bo
 		for n in rows:
 			if q != "" and not g.dname(n).to_lower().contains(q.to_lower()): continue
 			var rel := g.get_rel(g.human_id, n)
-			var nat_col := K.RED.lightened(0.25) if rel == 1 else (Color(0.55, 0.72, 1.0) if rel == 3 else K.TEXT)
+			var nat_col := K.RED if rel == 1 else (K.STEEL if rel == 3 else K.TEXT)
 			var b := K.list_row(g.dname(n), str(g.own_count(n)), func(): close(m[0]); on_pick.call(n), nat_col)
 			list.add_child(b)
 			shown += 1
@@ -330,7 +330,7 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 			if g.rules >= 1: act.add_child(K.button(T.call("demand_vassal"), func(): on_cmd.call({"cmd": "peace", "t": n, "kind": "vassal"}); close(m[0])))
 		else:
 			var wb := K.button(T.call("declare_war"), func(): on_cmd.call({"cmd": "declareWar", "t": n}); close(m[0]))
-			wb.add_theme_color_override("font_color", K.RED.lightened(0.3)); act.add_child(wb)
+			wb.add_theme_color_override("font_color", K.RED); act.add_child(wb)
 			if rel == 0:
 				act.add_child(K.button(T.call("propose_nap"), func(): on_cmd.call({"cmd": "nap", "t": n}); close(m[0])))
 				act.add_child(K.button(T.call("propose_ally"), func(): on_cmd.call({"cmd": "ally", "t": n}); close(m[0])))
@@ -424,7 +424,7 @@ static func goals(parent: Control, g: TBGame) -> void:
 	var prog := TBTurn.victory_progress(g, g.human_id)
 	for id in TBTurn.VICTORY_IDS:
 		var pct: float = prog[id]
-		var col := K.GREEN if pct >= 0.9 else (K.GOLD2 if pct >= 0.4 else K.STEEL.lightened(0.25))
+		var col := K.GREEN if pct >= 0.9 else (K.GOLD2 if pct >= 0.4 else K.STEEL)
 		var h := K.hbox(6); h.add_child(K.title(T.call("vc_" + id), 16, K.GOLD2 if pct >= 0.9 else K.TEXT)); h.add_child(K.Leader.new()); h.add_child(K.num("%d%%" % int(pct * 100.0), 15, col))
 		m[1].add_child(h)
 		var d := K.label(T.call("vc_" + id + "_d"), 12, K.DIM); d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; d.custom_minimum_size = Vector2(400, 0)
@@ -498,7 +498,7 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 	if won and g.victory_kind != "": sub = "%s — %s" % [T.call("vc_" + g.victory_kind), g.dname(g.winner)]
 	elif g.winner != 0 and not won: sub = T.call("e_lost_to", {"a": g.dname(g.winner)})
 	var m := K.modal(parent, "", 480)
-	var head := K.label(T.call("go_won") if won else T.call("go_lost"), 40, K.GOLD2 if won else K.CRIMSON.lightened(0.15))
+	var head := K.label(T.call("go_won") if won else T.call("go_lost"), 40, K.GOLD2 if won else K.CRIMSON)
 	head.add_theme_font_override("font", K.tracked(K.display_hi(), 5)); head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	m[1].add_child(head); m[1].add_child(K.ornament())
 	var sl := K.label(sub, 15, K.TEXT); sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; sl.custom_minimum_size = Vector2(420, 0); m[1].add_child(sl)
@@ -543,7 +543,7 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
 			if tx == "": continue
 			var row := K.hbox(8)
 			var d := K.label("%s · T%d" % [TBChron.date(g, int(e["turn"])), int(e["turn"])], 12, K.DIM); d.custom_minimum_size = Vector2(110, 0); row.add_child(d)
-			var l := K.label(tx, 14, K.RED.lightened(0.3) if TBChron.is_bad(e, g.human_id) else K.TEXT)
+			var l := K.label(tx, 14, K.RED if TBChron.is_bad(e, g.human_id) else K.TEXT)
 			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(l)
 			if e.has("p") and int(e["p"]) >= 0:
 				var pp: int = e["p"]
@@ -620,9 +620,9 @@ static func advisor(parent: Control, g: TBGame, on_goto: Callable) -> void:
 	if al.is_empty(): m[1].add_child(K.label(T.call("al_none"), 15, K.DIM))
 	for a in al:
 		var sev: int = a["sev"]
-		var col := K.RED.lightened(0.3) if sev == 2 else (K.GOLD2 if sev == 1 else K.TEXT)
+		var col := K.RED if sev == 2 else (K.GOLD2 if sev == 1 else K.TEXT)
 		var row := K.hbox(10)
-		var mark := K.Pips.new(1, 1, K.RED if sev == 2 else (K.GOLD2 if sev == 1 else K.STEEL.lightened(0.3))); mark.custom_minimum_size = Vector2(14, 20); mark.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		var mark := K.Pips.new(1, 1, K.RED if sev == 2 else (K.GOLD2 if sev == 1 else K.STEEL)); mark.custom_minimum_size = Vector2(14, 20); mark.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		row.add_child(mark)
 		var l := K.label(T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)}), 14, col)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size = Vector2(380, 0); row.add_child(l)

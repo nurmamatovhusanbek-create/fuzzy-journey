@@ -29,8 +29,8 @@ class Readout extends HBoxContainer:
 		_icon.draw.connect(func(): TBGlyph.draw(_icon, glyph, _icon.size * 0.5, 19.0, col, 1.5))
 		add_child(_icon)
 		var v := VBoxContainer.new(); v.add_theme_constant_override("separation", -2); v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		value = K.num("", 16); v.add_child(value)
-		caption = K.caps(cap, 9); v.add_child(caption)
+		value = K.num("", 16, K.CREAM); v.add_child(value)
+		caption = K.caps(cap, 9, K.SMOKE); v.add_child(caption)
 		add_child(v)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		return self
@@ -66,7 +66,7 @@ class Readout extends HBoxContainer:
 		value.add_theme_color_override("font_color", _base.lerp(_flash_col, _flash))
 		if _shown == _target and _flash <= 0.0: set_process(false)
 
-## square dock button with an engraved glyph and a tiny caption; optional count badge
+## dock button: a brass-ringed umber medallion with an engraved glyph and a tiny caption beneath
 class DockButton extends Button:
 	var glyph := "gear"
 	var cap := ""
@@ -74,22 +74,32 @@ class DockButton extends Button:
 	var badge_col := Color(0.953, 0.773, 0.322)
 	func setup(g: String, caption: String, cb: Callable) -> DockButton:
 		glyph = g; cap = caption
-		custom_minimum_size = Vector2(54, 54); focus_mode = Control.FOCUS_NONE
+		custom_minimum_size = Vector2(54, 58); focus_mode = Control.FOCUS_NONE
+		for st in ["normal", "hover", "pressed", "disabled", "focus"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
 		pressed.connect(cb)
 		return self
 	func _draw() -> void:
 		var hot := is_hovered() or button_pressed
-		var col := Color(0.953, 0.773, 0.322) if hot else Color(0.83, 0.68, 0.3)
-		TBGlyph.draw(self, glyph, Vector2(size.x * 0.5, size.y * 0.4), 21.0, col, 1.6)
+		var down := button_pressed
+		var R := minf(size.x * 0.5 - 4.0, 21.0)
+		var c := Vector2(size.x * 0.5, R + 3.0 + (1.0 if down else 0.0))
+		draw_circle(c + Vector2(0, 2.0), R, Color(0, 0, 0, 0.4))
+		draw_circle(c, R, Color(0.17, 0.12, 0.075, 0.97) if not hot else Color(0.26, 0.18, 0.1, 0.98))
+		draw_arc(c, R - 0.5, 0, TAU, 40, K.BRASS_LT if hot else K.BRASS, 2.0, true)
+		draw_arc(c, R - 4.0, 0, TAU, 40, Color(K.BRASS.r, K.BRASS.g, K.BRASS.b, 0.3), 1.0, true)
+		draw_arc(c, R - 0.5, PI * 1.1, PI * 1.55, 12, Color(1, 0.95, 0.75, 0.55), 1.4, true)       # rim highlight
+		TBGlyph.draw(self, glyph, c, 19.0, K.BRASS_LT if hot else K.BRASS, 1.6)
 		var f := K.mono()
 		var w := f.get_string_size(cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
-		draw_string(f, Vector2((size.x - w) * 0.5, size.y - 7.0), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.62, 0.58, 0.5) if not hot else col)
+		draw_string_outline(f, Vector2((size.x - w) * 0.5, size.y - 3.0), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, 3, Color(0.02, 0.015, 0.01, 0.8))
+		draw_string(f, Vector2((size.x - w) * 0.5, size.y - 3.0), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, K.CREAM if hot else K.SMOKE)
 		if badge > 0:
-			var c := Vector2(size.x - 9, 9)
-			draw_circle(c, 8.0, badge_col)
+			var bc := Vector2(size.x - 8, 8)
+			draw_circle(bc, 8.0, badge_col)
+			draw_arc(bc, 8.0, 0, TAU, 20, Color(0.1, 0.06, 0.02, 0.8), 1.0, true)
 			var s := str(mini(badge, 99))
 			var bw := K.mono_b().get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-			draw_string(K.mono_b(), c + Vector2(-bw * 0.5, 3.5), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.05, 0.04, 0.02))
+			draw_string(K.mono_b(), bc + Vector2(-bw * 0.5, 3.5), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.05, 0.04, 0.02))
 
 ## End Turn: a brass wax-seal medallion with a graduated bezel; the bezel sweeps while the turn resolves
 class Seal extends Button:
@@ -111,9 +121,9 @@ class Seal extends Button:
 		var R := minf(size.x, size.y) * 0.5 - 1.0
 		var down := button_pressed and not disabled
 		var hot := is_hovered() or down
-		var gold := Color(0.953, 0.773, 0.322) if hot else Color(0.83, 0.63, 0.09)
-		draw_circle(c + Vector2(0, 2), R, Color(0, 0, 0, 0.35))
-		draw_circle(c, R, Color(0.03, 0.05, 0.1, 0.96))
+		var gold := K.BRASS_LT if hot else K.BRASS
+		draw_circle(c + Vector2(0, 2), R, Color(0, 0, 0, 0.4))
+		draw_circle(c, R, Color(0.14, 0.10, 0.06, 0.97))
 		draw_arc(c, R - 1.0, 0, TAU, 56, gold, 2.0, true)
 		draw_arc(c, R - 5.0, 0, TAU, 56, Color(gold.r, gold.g, gold.b, 0.35), 1.0, true)
 		var spin := _t * 1.6 if busy else 0.0
@@ -122,20 +132,33 @@ class Seal extends Button:
 			var long := i % 4 == 0
 			var d := Vector2(cos(a), sin(a))
 			var lit := busy and fposmod(a - spin * 2.0, TAU) < 1.0
-			draw_line(c + d * (R - 8.0), c + d * (R - (14.0 if long else 11.0)), Color(gold.r, gold.g, gold.b, 0.95 if lit or long else 0.5), 1.2, true)
+			draw_line(c + d * (R - 7.0), c + d * (R - (13.0 if long else 10.0)), Color(gold.r, gold.g, gold.b, 0.95 if lit or long else 0.45), 1.2, true)
 		if pulse and not busy:
 			var k := fposmod(_t * 0.9, 1.0)
 			draw_arc(c, R + 2.0 + k * 9.0, 0, TAU, 48, Color(0.953, 0.773, 0.322, 0.55 * (1.0 - k)), 2.0, true)
-		var inner := R - 19.0
-		draw_circle(c, inner, Color(0.83, 0.63, 0.09, 0.32 if down else (0.16 if hot else 0.07)))
-		draw_arc(c, inner, 0, TAU, 40, Color(gold.r, gold.g, gold.b, 0.6), 1.0, true)
-		var gcol := Color(0.45, 0.4, 0.3) if disabled else gold
+		# the wax: an uneven disc pressed by a die, with an embossed rim, glyph and caption
+		var inner := R - 17.0
+		var seed_v := 41
+		var blob := TBPaper.blob(c, inner, inner, seed_v, 0.05, 40)
+		var wax_c := Color(0.66, 0.16, 0.13) if not down else Color(0.5, 0.1, 0.08)
+		if disabled: wax_c = Color(0.4, 0.28, 0.25)
+		var uvs := PackedVector2Array()
+		for p in blob: uvs.append((p - (c - Vector2(inner, inner))) / (inner * 2.0))
+		draw_polygon(blob, PackedColorArray([wax_c]), uvs, TBPaper.texture(TBPaper.WAX))
+		var ring := blob.duplicate(); ring.append(blob[0])
+		draw_polyline(ring, Color(0.28, 0.04, 0.03, 0.95), 1.4, true)
+		draw_arc(c, inner - 4.0, 0, TAU, 40, Color(0.32, 0.05, 0.04, 0.6), 1.2, true)
+		draw_arc(c, inner - 4.0, PI * 1.1, PI * 1.6, 12, Color(1, 0.7, 0.6, 0.35), 1.4, true)
 		var u := R / 46.0
-		TBGlyph.draw(self, "chevrons", c + Vector2(0, -6 * u), 22.0 * u, gcol, 2.0)
+		var emb := Color(0.99, 0.9, 0.78, 0.95) if not disabled else Color(0.8, 0.7, 0.6, 0.6)
+		var shade := Color(0.25, 0.03, 0.02, 0.8)
+		TBGlyph.draw(self, "chevrons", c + Vector2(0.8, -5.2 * u), 20.0 * u, shade, 2.2)
+		TBGlyph.draw(self, "chevrons", c + Vector2(0, -6 * u), 20.0 * u, emb, 2.0)
 		var f := K.display()
-		var fs := int(maxf(8.0, 9.0 * u))
+		var fs := int(maxf(8.0, 8.5 * u))
 		var w := f.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		draw_string(f, c + Vector2(-w * 0.5, 17.0 * u), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, gcol)
+		draw_string(f, c + Vector2(-w * 0.5 + 0.7, 15.0 * u + 0.7), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, shade)
+		draw_string(f, c + Vector2(-w * 0.5, 15.0 * u), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, emb)
 
 
 ## colour key for the active map lens: gradient bar for ramps, swatches for categories

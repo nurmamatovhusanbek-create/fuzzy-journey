@@ -77,7 +77,7 @@ func rebuild() -> void:
 		sub.add_child(nb)
 		var tag := ""; var tc := K.DIM
 		if rel == D.REL_WAR: tag = T.call("war"); tc = K.RED
-		elif rel == D.REL_ALLY: tag = T.call("ally"); tc = Color(0.55, 0.72, 1.0)
+		elif rel == D.REL_ALLY: tag = T.call("ally"); tc = K.STEEL
 		elif rel == D.REL_NAP: tag = T.call("nap"); tc = Color(0.5, 0.86, 0.89)
 		elif g.overlord[o] != 0: tag = T.call("vassal")
 		if tag != "": sub.add_child(K.caps(tag, 10, tc))
@@ -143,7 +143,7 @@ func rebuild() -> void:
 			act.add_child(K.button(T.call("demand_land"), func(): command.emit({"cmd": "peace", "t": o, "kind": "cede"})))
 		else:
 			var wb := K.button(T.call("declare_war"), func(): command.emit({"cmd": "declareWar", "t": o}))
-			wb.add_theme_color_override("font_color", K.RED.lightened(0.3)); act.add_child(wb)
+			wb.add_theme_color_override("font_color", K.RED); act.add_child(wb)
 			if rel == D.REL_PEACE and g.rules >= 1 and TBDiplo.can_ultimatum(g, me, o, p) == "":
 				var ub := K.button(T.call("ultimatum") + " (%d)" % TBDiplo.DP_ULT, func(): command.emit({"cmd": "ultimatum", "t": o, "p": p}))
 				ub.tooltip_text = T.call("ultimatum_hint", {"r": "%.1f" % TBDiplo.ult_ratio(g, me, o)})
