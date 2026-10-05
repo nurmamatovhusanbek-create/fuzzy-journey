@@ -56,21 +56,22 @@ class EraRow extends Button:
 		set_meta("label", name_text)
 		for st in ["normal", "hover", "pressed", "disabled", "focus"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
 	func _draw() -> void:
-		var gold := Color(0.953, 0.773, 0.322)
+		var ox := Color(0.52, 0.11, 0.09)           # oxblood
+		var ink := Color(0.165, 0.125, 0.082)
+		var rule := Color(0.45, 0.32, 0.12)
 		var hot := is_hovered() or selected
 		if selected:
-			draw_rect(Rect2(28, 2, size.x - 28, size.y - 4), Color(0.83, 0.63, 0.09, 0.14))
-			draw_line(Vector2(28, 2), Vector2(28, size.y - 2), gold, 2.0)
+			draw_rect(Rect2(28, 2, size.x - 28, size.y - 4), Color(0.55, 0.14, 0.1, 0.12))
+			draw_line(Vector2(28, 2), Vector2(28, size.y - 2), ox, 2.0)
 		var cx := 12.0; var cy := size.y * 0.5
-		var rail := Color(0.83, 0.63, 0.09, 0.5)
-		if not first: draw_line(Vector2(cx, 0), Vector2(cx, cy - 7), rail, 1.0)
-		if not last: draw_line(Vector2(cx, cy + 7), Vector2(cx, size.y), rail, 1.0)
+		if not first: draw_line(Vector2(cx, 0), Vector2(cx, cy - 7), Color(rule.r, rule.g, rule.b, 0.55), 1.0)
+		if not last: draw_line(Vector2(cx, cy + 7), Vector2(cx, size.y), Color(rule.r, rule.g, rule.b, 0.55), 1.0)
 		var pts := PackedVector2Array([Vector2(cx, cy - 6), Vector2(cx + 6, cy), Vector2(cx, cy + 6), Vector2(cx - 6, cy)])
-		if selected: draw_colored_polygon(pts, gold)
+		if selected: draw_colored_polygon(pts, ox)
 		else:
-			pts.append(pts[0]); draw_polyline(pts, Color(0.83, 0.63, 0.09, 0.9 if hot else 0.6), 1.2, true)
-		var col := gold if hot else Color(0.91, 0.863, 0.8)
-		draw_string(K.mono_b(), Vector2(40, cy + 5), year_text, HORIZONTAL_ALIGNMENT_LEFT, 84, 13, Color(0.83, 0.68, 0.3) if not selected else gold)
+			pts.append(pts[0]); draw_polyline(pts, Color(rule.r, rule.g, rule.b, 0.95 if hot else 0.7), 1.3, true)
+		var col := ox if hot else ink
+		draw_string(K.mono_b(), Vector2(40, cy + 5), year_text, HORIZONTAL_ALIGNMENT_LEFT, 84, 13, ox if selected else rule)
 		draw_string(K.display(), Vector2(128, cy + 5), String(get_meta("label")), HORIZONTAL_ALIGNMENT_LEFT, size.x - 132, 15, col)
 
 ## text-only menu entry: engraved capitals, flanked by diamonds when hot

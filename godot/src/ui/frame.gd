@@ -114,23 +114,18 @@ func _draw_chit(ci: RID, rect: Rect2) -> void:
 		_line(ci, PackedVector2Array([r.position + Vector2(3.5, r.size.y - 3.5), r.position + Vector2(r.size.x - 3.5, r.size.y - 3.5)]), Color(ink.r, ink.g, ink.b, 0.18), 0.8, false)
 
 func _draw_wax(ci: RID, rect: Rect2) -> void:
-	var r := Rect2(rect.position + Vector2(1, 1), rect.size - Vector2(2, 2.5))
-	var c := r.get_center()
+	var r := Rect2(rect.position + Vector2(1.5, 1.0), rect.size - Vector2(3, 4.0))
 	var seed_i := int(rect.size.x) * 13 + int(rect.size.y) + seed_v
-	# a wide, flattened blob: wax pressed under a stamp
-	var outer := TBPaper.blob(c, r.size.x * 0.5, r.size.y * 0.5, seed_i, 0.035, 44)
-	if not sunk: _poly(ci, TBPaper.blob(c + Vector2(1.5, 2.5), r.size.x * 0.5, r.size.y * 0.5, seed_i, 0.035, 44), Color(0.02, 0.0, 0.0, 0.3))
-	var base := Color(0.66, 0.16, 0.13) if not sunk else Color(0.52, 0.11, 0.09)
-	_textured(ci, outer, Rect2(c - r.size * 0.5, r.size), TBPaper.WAX, base)
-	_line(ci, outer, Color(0.28, 0.04, 0.03, 0.9), 1.2)
-	var inner := TBPaper.blob(c, r.size.x * 0.5 - 4.0, r.size.y * 0.5 - 4.0, seed_i + 5, 0.02, 44)
-	_line(ci, inner, Color(0.35, 0.05, 0.04, 0.55), 1.2)
-	# specular on the upper-left of the rim
-	var hl := PackedVector2Array()
-	for i in 14:
-		var a := PI * (1.05 + 0.4 * i / 13.0)
-		hl.append(c + Vector2(cos(a) * (r.size.x * 0.5 - 2.5), sin(a) * (r.size.y * 0.5 - 2.5)))
-	_line(ci, hl, Color(1.0, 0.65, 0.55, 0.38), 1.4, false)
+	var rad := minf(r.size.y * 0.42, 12.0)
+	# a stamp of wax: rounded body with a gently uneven edge, a pressed inner ring, a lit upper rim
+	var outer := TBPaper.stamp(r, rad, 0.9, seed_i)
+	if not sunk: _poly(ci, TBPaper.stamp(Rect2(r.position + Vector2(1.0, 2.2), r.size), rad, 0.9, seed_i), Color(0.02, 0.0, 0.0, 0.32))
+	var base := Color(0.64, 0.15, 0.12) if not sunk else Color(0.5, 0.1, 0.08)
+	_textured(ci, outer, r, TBPaper.WAX, base)
+	_line(ci, outer, Color(0.26, 0.04, 0.03, 0.9), 1.2)
+	var ring := Rect2(r.position + Vector2(3.5, 3.5), r.size - Vector2(7, 7))
+	_line(ci, TBPaper.stamp(ring, rad - 2.5, 0.35, seed_i + 5), Color(0.33, 0.05, 0.04, 0.5), 1.1)
+	_line(ci, PackedVector2Array([r.position + Vector2(rad, 1.8), Vector2(r.end.x - rad, r.position.y + 1.8)]), Color(1.0, 0.7, 0.6, 0.30), 1.2, false)
 
 func _draw_leather(ci: RID, rect: Rect2) -> void:
 	var r := rect

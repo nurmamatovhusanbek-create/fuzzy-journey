@@ -264,7 +264,7 @@ class IconBtn extends Button:
 	var glyph := "close"
 	func _init(g: String, cb: Callable, px: int = 40) -> void:
 		glyph = g; custom_minimum_size = Vector2(px, px); focus_mode = Control.FOCUS_NONE
-		if px < 40:
+		if px < 40 or g == "close":
 			for st in ["normal", "hover", "pressed", "disabled", "focus"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
 		if cb.is_valid(): pressed.connect(cb)
 	func _draw() -> void:

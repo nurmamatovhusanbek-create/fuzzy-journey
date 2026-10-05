@@ -106,7 +106,8 @@ func rebuild() -> void:
 	stats.add_child(K.row(T.call("building"), bname))
 	stats.add_child(K.meter_row(T.call("stability"), g.stab[p], K.GREEN if g.stab[p] >= 50 else (K.GOLD2 if g.stab[p] >= 30 else K.RED)))
 	stats.add_child(K.meter_row(T.call("happiness"), g.happy[p], K.GREEN if g.happy[p] >= 50 else (K.GOLD2 if g.happy[p] >= 30 else K.RED)))
-	var act := HFlowContainer.new(); act.add_theme_constant_override("h_separation", 6); act.add_theme_constant_override("v_separation", 6)
+	var act := GridContainer.new(); act.columns = 1; act.add_theme_constant_override("h_separation", 6); act.add_theme_constant_override("v_separation", 6)
+	act.child_entered_tree.connect(func(c: Node): if c is Control: (c as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL)
 	_body.add_child(K.section(T.call("actions")))
 	_body.add_child(act)
 	_body.add_child(stats)                    # actions first on every screen; the figures follow (the sheet scrolls)
@@ -125,7 +126,7 @@ func rebuild() -> void:
 				var gb := K.button(T.call("appoint_general") + " (%dg)" % TBGenerals.cost(g, me), func(): command.emit({"cmd": "appoint", "p": p}))
 				gb.tooltip_text = T.call("general_hint") + "  " + T.call("gen_slots", {"n": TBGenerals.count(g, me), "c": TBGenerals.cap(g, me)})
 				act.add_child(gb)
-		var ob := OptionButton.new(); ob.custom_minimum_size = Vector2(150, K.MIN_TOUCH); ob.focus_mode = Control.FOCUS_NONE
+		var ob := OptionButton.new(); ob.custom_minimum_size = Vector2(150, K.MIN_TOUCH); ob.focus_mode = Control.FOCUS_NONE; ob.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		ob.add_item(T.call("build") + "…", 0)
 		for i in D.BUILDINGS.size():
 			var b: Dictionary = D.BUILDINGS[i]

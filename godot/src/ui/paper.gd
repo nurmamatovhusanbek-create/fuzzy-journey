@@ -76,3 +76,26 @@ static func blob(c: Vector2, rx: float, ry: float, seed_v: int, wobble: float = 
 		var k := 1.0 + wobble * (sin(a * 3.0 + p1) * 0.6 + sin(a * 5.0 + p2) * 0.3 + sin(a * 9.0 + p3) * 0.2)
 		pts.append(c + Vector2(cos(a) * rx * k, sin(a) * ry * k))
 	return pts
+
+## a rounded-rectangle outline with a soft, hand-pressed wobble (wax stamp): corners of radius `rad`, edge jitter `amp` px
+static func stamp(r: Rect2, rad: float, amp: float, seed_v: int, step: float = 7.0) -> PackedVector2Array:
+	rad = minf(rad, minf(r.size.x, r.size.y) * 0.5)
+	var base := PackedVector2Array()
+	var corners := [Vector2(r.end.x - rad, r.position.y + rad), Vector2(r.end.x - rad, r.end.y - rad), Vector2(r.position.x + rad, r.end.y - rad), Vector2(r.position.x + rad, r.position.y + rad)]
+	var arc := maxi(4, int(rad / 2.5))
+	for c in 4:
+		for k in arc + 1:
+			var a := -PI * 0.5 + (c + float(k) / arc) * PI * 0.5
+			base.append(corners[c] + Vector2(cos(a), sin(a)) * rad)
+	# subdivide long straight runs so the wobble is visible along the edges
+	var pts := PackedVector2Array()
+	var cen := r.get_center()
+	var n := base.size()
+	for i in n:
+		var a2 := base[i]; var b2 := base[(i + 1) % n]
+		var segs := maxi(1, int(a2.distance_to(b2) / step))
+		for j in segs:
+			var q := a2.lerp(b2, float(j) / segs)
+			var d := (q - cen).normalized()
+			pts.append(q + d * (h2(seed_v, pts.size() + 31) - 0.5) * 2.0 * amp)
+	return pts
