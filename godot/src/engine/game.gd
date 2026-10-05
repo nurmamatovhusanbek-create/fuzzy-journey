@@ -47,6 +47,7 @@ var coalition := PackedByteArray()
 var realm_done := PackedByteArray()   # N1 * TBRealms.count(): 1 = unified (engine/realms.gd)
 var trade := PackedByteArray()        # N1*N1 symmetric: 1 = trade deal (engine/trade.gd)
 var trade_cnt := PackedByteArray()
+var doctrine := PackedByteArray()             # TBDoctrine: 0 none, 1 martial, 2 mercantile, 3 administrative
 var dec_until := PackedInt32Array()   # N1 * TBDecisions.LIST.size(): turn when a decision's effect ends
 var core := PackedInt32Array()        # province -> original owner (rules >= 1: casus belli 'reclaim')
 var capital_of := PackedInt32Array()
@@ -193,7 +194,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
-	trade.resize(N1 * N1); trade_cnt.resize(N1)
+	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
 	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:
@@ -476,7 +477,7 @@ func income(n: int) -> Dictionary:
 	gld = int(floor(gld * float(reg["incMul"]) * tech_inc))
 	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n)))
 	admin = int(floor(admin * tech_admin))
-	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n)))
+	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n)))
 	var upkeep := int(floor(up_base * (0.25 + era[n] * 0.05) * tech_up * float(reg["upkeep"])))
 	if rules >= 1: man = int(floor(man * TBRulers.manpower_mul(self, n)))
 	out["gold"] = gld; out["manpower"] = man; out["upkeep"] = upkeep; out["tax"] = tax; out["production"] = prod; out["admin"] = admin

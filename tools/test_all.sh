@@ -16,6 +16,7 @@ run "generals" tests/generals.gd
 run "ultimatums" tests/ultimatum.gd
 run "honours" tests/honours.gd
 run "supply / attrition" tests/supply.gd
+run "doctrine" tests/doctrine.gd
 run "regional unification" tests/realms.gd
 run "AI offers to humans" tests/offers.gd
 run "chronicle/advisor texts have no missing keys" tests/chron_keys.gd

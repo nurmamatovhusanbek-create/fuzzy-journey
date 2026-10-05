@@ -12,7 +12,7 @@ static func category(e: Dictionary) -> String:
 		"coalition", "coalition_end": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union": return "diplo"
 		"realm": return "events"
-		"event", "event_choice", "era", "bankrupt", "ruler", "decision", "general_up", "general_fell": return "events"
+		"event", "event_choice", "era", "bankrupt", "ruler", "decision", "doctrine", "general_up", "general_fell": return "events"
 	return "events"
 
 static func involves(e: Dictionary, me: int) -> bool:
@@ -62,6 +62,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"ultimatum":
 			if not involves(e, g.human_id): return ""
 			return T.call("e_ult_" + String(e["k"]), {"a": a, "b": b, "p": pn})
+		"doctrine": return T.call("e_doctrine", {"a": a, "d": T.call("doc_" + String(e["id"]))}) if involves(e, g.human_id) else ""
 		"general_up", "general_fell":
 			if not involves(e, g.human_id): return ""
 			return T.call("e_" + String(e["kind"]), {"a": a, "g": TBI18n.T("rn_%d" % int(e["gn"])), "sk": int(e["sk"])})

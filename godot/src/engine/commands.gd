@@ -33,6 +33,7 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 			return {"ok": true}
 		"hire": return _c_hire(g, c)
 		"appoint": return TBGenerals.appoint(g, n, int(c.get("p", -1)))
+		"doctrine": return TBDoctrine.adopt(g, n, String(c.get("id", "")))
 		"spy": return _c_spy(g, c)
 		"eventChoice": return TBEvents.resolve_choice(g, n, int(c.get("uid", 0)), int(c.get("i", 0)))
 		"noop": return {"ok": true}

@@ -35,7 +35,9 @@ static func _nation(g: TBGame, n: int) -> void:
 	var fr := _frontier(g, n)
 	var at_war := g.at_war(n)
 
-	if g.rules >= 1: TBDecisions.ai_steady(g, n)
+	if g.rules >= 1:
+		TBDecisions.ai_steady(g, n)
+		TBDoctrine.ai_step(g, n)
 	# 0. rules>=1: AI manages its budget (rich nations convert tax into research/investment)
 	if g.rules >= 1 and (g.turn + n) % 4 == 0:
 		_budget(g, n, pers, at_war)

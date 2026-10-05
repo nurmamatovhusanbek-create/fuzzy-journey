@@ -569,6 +569,23 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> void:
 	var list := K.vbox(0); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var pad := MarginContainer.new(); pad.add_theme_constant_override("margin_right", 14); pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pad.add_child(list); scroll.add_child(pad); m[1].add_child(scroll)
+	if g.rules >= 1:
+		list.add_child(K.section(T.call("doctrine")))
+		var dd := K.label(T.call("doctrine_hint", {"c": TBDoctrine.cost(g, me)}), 12, K.DIM); dd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; dd.custom_minimum_size = Vector2(420, 0); list.add_child(dd)
+		var drow := HFlowContainer.new(); drow.add_theme_constant_override("h_separation", 6); drow.add_theme_constant_override("v_separation", 6)
+		for di in range(1, TBDoctrine.IDS.size()):
+			var did: String = TBDoctrine.IDS[di]
+			var cur: bool = g.doctrine[me] == di
+			var db := K.button(T.call("doc_" + did), func(): on_cmd.call({"cmd": "doctrine", "id": did}); close(m[0]), cur)
+			db.disabled = cur or g.dp[me] < TBDoctrine.cost(g, me)
+			db.tooltip_text = T.call("doc_%s_d" % did)
+			drow.add_child(db)
+		list.add_child(drow)
+		var cur_id: String = TBDoctrine.IDS[g.doctrine[me]]
+		if g.doctrine[me] != 0:
+			var cd := K.label(T.call("doc_%s_d" % cur_id), 13, K.GOLD2); cd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cd.custom_minimum_size = Vector2(420, 0); list.add_child(cd)
+		var sp := Control.new(); sp.custom_minimum_size = Vector2(0, 8); list.add_child(sp)
+		list.add_child(K.section(T.call("decisions")))
 	for i in TBDecisions.LIST.size():
 		var d: Dictionary = TBDecisions.LIST[i]
 		var active := TBDecisions.is_active(g, me, i)
