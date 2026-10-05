@@ -46,12 +46,9 @@ jobs:
       - name: Linux
         run: mkdir -p build/linux && cd godot && godot --headless --export-release "Linux" ../build/linux/TerraBellum.x86_64
       - name: Android (debug-signed APK)
-        env:
-          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/.android/debug.keystore
-          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
-          GODOT_ANDROID_KEYSTORE_DEBUG_PASS: android
-          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
+          KS="$HOME/.android/debug.keystore"       # HOME is /github/home inside the job container, not /root
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$KS" GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey GODOT_ANDROID_KEYSTORE_DEBUG_PASS=android GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
           mkdir -p build/android ~/.android ~/.config/godot
           rm -f ~/.android/debug.keystore
           keytool -keyalg RSA -keysize 2048 -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -storetype JKS
@@ -64,7 +61,7 @@ jobs:
           [resource]
           export/android/android_sdk_path = "$SDK"
           export/android/java_sdk_path = "$JAVA_SDK"
-          export/android/debug_keystore = "/root/.android/debug.keystore"
+          export/android/debug_keystore = "$KS"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOT
