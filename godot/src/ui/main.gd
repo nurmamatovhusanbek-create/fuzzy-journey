@@ -355,12 +355,28 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	var lens := map.lenses.mode
 	map.repaint(dirty, lens != "political")
 	_flush_log()
+	_replay_battles()
 	hud.refresh()
 	if selected >= 0: panel.rebuild()
 	show_events()
 	if g.over: sfx.play("win" if g.winner == g.human_id else "alert")
 	if g.over: TBModals.game_over(_overlay, g, show_menu)
 	else: _autosave()
+
+## replay this turn's battles that involved the player, so AI attacks on (or defences by) the realm are visible
+func _replay_battles() -> void:
+	var me := g.human_id
+	var i := 0
+	for b in g.battle_fx:
+		if int(b[4]) != me and int(b[3]) != me: continue
+		if int(b[3]) == me: continue                      # own attacks already play when ordered; AI-run turns of other humans skip
+		var held: bool = int(b[2]) == 0
+		var col := Color(0.5, 0.9, 0.55) if held else Color(1.0, 0.55, 0.5)
+		map.labels.add_fx("atk", int(b[0]), int(b[1]), col, i * 220)
+		map.labels.add_fx("cap", int(b[0]), int(b[1]), col, i * 220 + 250)
+		i += 1
+		if i >= 8: break
+	g.battle_fx.clear()
 
 var _crisis := PackedStringArray()
 

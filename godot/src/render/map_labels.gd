@@ -26,8 +26,8 @@ func set_game(game: TBGame) -> void:
 		_unit[p] = Vector3(cl * sin(lon), sin(lat), cl * cos(lon))   # x east, y north, z toward lon=0
 	queue_redraw()
 
-func add_fx(kind: String, from: int, to: int, col: Color) -> void:
-	_fx.append({"kind": kind, "from": from, "to": to, "col": col, "t0": Time.get_ticks_msec(), "dur": 700 if kind == "atk" else 900})
+func add_fx(kind: String, from: int, to: int, col: Color, delay_ms: int = 0) -> void:
+	_fx.append({"kind": kind, "from": from, "to": to, "col": col, "t0": Time.get_ticks_msec() + delay_ms, "dur": 700 if kind == "atk" else 900})
 	queue_redraw()
 
 func _process(_d: float) -> void:
@@ -201,6 +201,7 @@ func _draw() -> void:
 		var k: float = float(now - int(f["t0"])) / float(f["dur"])
 		if k >= 1.0: continue
 		keep.append(f)
+		if k < 0.0: continue
 		var pt_to := map.project(g.world.lon[f["to"]], g.world.lat[f["to"]])
 		if pt_to.z <= 0.0: continue
 		var col: Color = f["col"]; col.a = 1.0 - k

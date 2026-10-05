@@ -72,6 +72,7 @@ var econ := PackedByteArray()
 var stab := PackedByteArray()
 var happy := PackedByteArray()
 var defense := PackedByteArray()
+var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
 var gen := PackedInt32Array()                 # generals (rules >= 1): see TBGenerals
 var terrain := PackedByteArray()
 var building := PackedByteArray()
@@ -565,6 +566,7 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 		army[from] = maxi(0, avail - occ)
 		touch(from); touch(to)
 		if rules >= 1:
+			if (human[atk_n] != 0 or human[def_n] != 0) and battle_fx.size() < 60: battle_fx.append([from, to, 1, atk_n, def_n])
 			if gen[to] != 0 and def_n != 0 and human[def_n] != 0: log.append({"turn": turn, "kind": "general_fell", "a": def_n, "p": to, "gn": TBGenerals.name_idx(self, to), "sk": TBGenerals.skill(self, to)})
 			gen[to] = 0
 			if rides:
@@ -575,6 +577,7 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 	army[to] = maxi(1, army[to] - int(round(army[to] * (atk / (atk + dfn)) * 0.55)))
 	touch(from); touch(to)
 	if rules >= 1:
+		if (human[atk_n] != 0 or human[def_n] != 0) and battle_fx.size() < 60: battle_fx.append([from, to, 0, atk_n, def_n])
 		if rides: TBGenerals.lose(self, from, atk_n, atk_loss * 2 > send)
 		TBGenerals.win(self, to, def_n)
 	return "loss"
