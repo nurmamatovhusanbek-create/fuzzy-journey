@@ -48,7 +48,9 @@ jobs:
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
           mkdir -p build/android ~/.android ~/.config/godot
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          rm -f ~/.android/debug.keystore
+          keytool -keyalg RSA -keysize 2048 -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -storetype JKS
+          keytool -list -keystore ~/.android/debug.keystore -storepass android | head -5
           JAVA_SDK="$(dirname "$(dirname "$(readlink -f "$(which javac)")")")"
           SDK="$(ls -d /usr/lib/android-sdk /opt/android-sdk /root/android-sdk 2>/dev/null | head -1)"
           echo "java=$JAVA_SDK android=$SDK"; ls "$SDK" || true
