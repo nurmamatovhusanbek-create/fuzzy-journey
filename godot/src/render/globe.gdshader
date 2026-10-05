@@ -153,6 +153,18 @@ void fragment() {
 		float e_nat = 1e4, e_prov = 1e4, e_coast = 1e4, e_sel = 1e4, e_war = 1e4, e_hov = 1e4;
 		int own = owner_of(id);
 		float fl = flags_of(id);
+		if (quality >= 2 && id != 0) {
+			// inner rim light along national borders: probe a few pixels out in four directions
+			float rim_w = 0.0;
+			vec2 dirs[4] = vec2[4](dtx, -dtx, dty, -dty);
+			for (int i = 0; i < 4; i++) {
+				int n1i = id_at(ivec2(floor(t + dirs[i] * 2.5)));
+				int n2i = id_at(ivec2(floor(t + dirs[i] * 5.0)));
+				if (n1i != id && n1i != 0 && owner_of(n1i) != own) rim_w += 0.5;
+				else if (n2i != id && n2i != 0 && owner_of(n2i) != own) rim_w += 0.22;
+			}
+			col = mix(col, col * 1.3 + vec3(0.045), clamp(rim_w, 0.0, 1.0) * 0.5);
+		}
 		if (quality >= 2) {
 			// screen-space: compare smoothed ids one pixel to the right / below
 			int nids[2] = int[2](smooth_id(t + dtx), smooth_id(t + dty));
