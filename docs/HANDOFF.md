@@ -14,6 +14,7 @@ CI status (verified on GitHub Actions): tests + oracle pass; Windows, Linux and 
 ## Measuring performance on a real phone
 Settings → **Performance readout** shows fps, frame ms, map quality tier and render scale, memory, and the last end-turn time.
 Settings → Quality: *Auto* steps the map down by itself when drags are slow; *Low* uses the half-resolution ID texture and 60 % render scale.
+Settings → **Copy diagnostics** puts device, GPU, fps, quality tier, last turn time and game info on the clipboard (also saved to `user://diagnostics.txt`) — paste it into a message.
 Please send me numbers from a weak device (SoC, RAM, readout) and I will tune the tiers.
 
 ## Multiplayer server

@@ -225,7 +225,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> void:
 	sync.call()
 	_footer_back(m)
 
-static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_menu: Callable) -> void:
+static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_menu: Callable, on_diag: Callable = Callable()) -> void:
 	var m := K.modal(parent, T.call("settings"), 440, "gear")
 	_segment(m[1], T.call("quality"), [["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
 	_segment(m[1], T.call("language"), [["en", "English"], ["ru", "Русский"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
@@ -236,6 +236,10 @@ static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_m
 	_segment(m[1], T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], cfg.get("ui", "normal"), func(v): cfg["ui"] = v; on_change.call())
 	m[1].add_child(K.button(T.call("tut_help"), func(): close(m[0]); tutorial(parent, func(): pass)))
 	m[1].add_child(K.button(T.call("codex"), func(): close(m[0]); codex(parent)))
+	if on_diag.is_valid():
+		var db := K.button(T.call("copy_diag"), func(): pass)
+		db.pressed.connect(func(): on_diag.call(); db.text = T.call("diag_copied"))
+		m[1].add_child(db)
 	var row := K.hbox(8); m[1].add_child(row)
 	if on_menu.is_valid(): row.add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call()))
 	var bk := K.button(T.call("back"), func(): close(m[0]), true); bk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(bk)

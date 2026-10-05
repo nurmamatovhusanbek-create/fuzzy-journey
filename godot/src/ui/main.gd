@@ -165,7 +165,30 @@ func _open_settings() -> void:
 		if TBI18n.lang != prev_lang:          # re-create already-built screens in the new language
 			prev_lang = TBI18n.lang
 			if mode == "game": hud.build(); hud.refresh(); if selected >= 0: panel.rebuild()
-			elif mode == "menu": show_menu(), func(): show_menu() if mode == "game" else Callable())
+			elif mode == "menu": show_menu(), func(): show_menu() if mode == "game" else Callable(), _copy_diagnostics)
+
+## everything needed to judge performance on a device, copied to the clipboard (and saved to user://diagnostics.txt)
+func _copy_diagnostics() -> void:
+	var lines := PackedStringArray()
+	lines.append("Terra Bellum diagnostics")
+	lines.append("os=%s %s model=%s" % [OS.get_name(), OS.get_version(), OS.get_model_name()])
+	lines.append("cpu=%s x%d  ram_static=%d MB" % [OS.get_processor_name(), OS.get_processor_count(), OS.get_static_memory_usage() / 1048576])
+	lines.append("gpu=%s | %s" % [RenderingServer.get_video_adapter_name(), RenderingServer.get_video_adapter_vendor()])
+	lines.append("screen=%s window=%s scale=%.2f touch=%s" % [DisplayServer.screen_get_size(), DisplayServer.window_get_size(), DisplayServer.screen_get_scale(), DisplayServer.is_touchscreen_available()])
+	lines.append("fps=%d frame_ms=%.1f quality=%s tier=%d render_scale=%.2f last_turn_ms=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, cfg.get("quality", "auto"), map.quality, map.render_scale, _turn_ms])
+	if g != null:
+		lines.append("game: era=%s turn=%d seed=%d rules=%d provinces=%d nations_alive=%d" % [g.era_id, g.turn, g.seed_value, g.rules, g.P, _alive_count()])
+	lines.append("lang=%s view=%s theme=%s ui=%s" % [cfg.get("lang", ""), cfg.get("view", ""), cfg.get("theme", ""), cfg.get("ui", "")])
+	var text := "\n".join(lines)
+	DisplayServer.clipboard_set(text)
+	var f := FileAccess.open("user://diagnostics.txt", FileAccess.WRITE)
+	if f != null: f.store_string(text); f.close()
+
+func _alive_count() -> int:
+	var c := 0
+	for n in range(1, g.N1):
+		if g.alive[n] != 0 and n != g.rebel: c += 1
+	return c
 
 func _open_era_picker() -> void:
 	_clear_overlay(); _spin = false
