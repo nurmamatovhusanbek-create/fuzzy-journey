@@ -120,6 +120,22 @@ func _draw_province_names() -> void:
 		draw_string_outline(f, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0.02, 0.03, 0.07, 0.8))
 		draw_string(f, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.9, 0.86, 0.76, 0.85))
 
+## true when r overlaps nothing placed so far (and records it)
+func _claim(grid: Dictionary, r: Rect2) -> bool:
+	var x0 := int(floor(r.position.x / 32.0)); var x1 := int(floor(r.end.x / 32.0))
+	var y0 := int(floor(r.position.y / 24.0)); var y1 := int(floor(r.end.y / 24.0))
+	for cx in range(x0, x1 + 1):
+		for cy in range(y0, y1 + 1):
+			var cell: Array = grid.get(Vector2i(cx, cy), [])
+			for q in cell:
+				if (q as Rect2).intersects(r): return false
+	for cx in range(x0, x1 + 1):
+		for cy in range(y0, y1 + 1):
+			var key := Vector2i(cx, cy)
+			if not grid.has(key): grid[key] = []
+			grid[key].append(r)
+	return true
+
 func _star(pos: Vector2) -> void:
 	var pts := PackedVector2Array()
 	for i in 10: pts.append(pos + Vector2(sin(i * PI / 5.0), -cos(i * PI / 5.0)) * (7.0 if i % 2 == 0 else 3.2))
@@ -170,17 +186,20 @@ func _draw() -> void:
 			vis.append([p, pt.x, pt.y, 0 if o == me else (1 if star else 2)])
 	vis.sort_custom(func(a, b): return a[3] < b[3])
 	var drawn := 0
+	var grid := {}                      # spatial hash of placed plaques: overlapping ones are dropped (own realm and capitals claim space first)
 	for v in vis:
 		if drawn >= max_labels: break
 		var p: int = v[0]
 		var o := g.owner[p]
 		var pos := Vector2(v[1], v[2])
 		if g.capital[p] != 0 and not zoomed:
-			_star(pos); drawn += 1; continue
+			if _claim(grid, Rect2(pos - Vector2(8, 8), Vector2(16, 16))): _star(pos); drawn += 1
+			continue
 		var a := g.army[p]
 		if a <= 0: continue
 		var txt := TBKit.fmt(a)
 		var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 10
+		if not _claim(grid, Rect2(pos.x - tw * 0.5 - 1.0, pos.y - 9.0, tw + 2.0, 20.0)): continue
 		# heraldic plaque: dark field, rim coloured by relation, a band of the owner's colour along the top
 		var rim := TBKit.GOLD2 if o == me else (TBKit.RED if g.get_rel(me, o) == 1 else Color(0.62, 0.66, 0.75, 0.9))
 		var x0 := pos.x - tw * 0.5; var x1 := pos.x + tw * 0.5; var y0 := pos.y - 8.0; var y1 := pos.y + 7.0
