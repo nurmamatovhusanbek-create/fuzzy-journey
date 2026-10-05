@@ -32,6 +32,60 @@ func add_fx(kind: String, from: int, to: int, col: Color) -> void:
 func _process(_d: float) -> void:
 	if not _fx.is_empty(): queue_redraw()
 
+## nation names at their centroid; bigger nations get bigger text; overlapping names are skipped
+func _draw_nation_names(font: Font) -> void:
+	if map.zoom > (4.0 if map.mode == 0 else 5.5): return
+	var N1 := g.N1
+	var sx := PackedFloat32Array(); sx.resize(N1)
+	var sy := PackedFloat32Array(); sy.resize(N1)
+	var sz := PackedFloat32Array(); sz.resize(N1)
+	var cnt := PackedInt32Array(); cnt.resize(N1)
+	for p in g.P:
+		var o := g.owner[p]
+		if o == 0: continue
+		var u := _unit[p]
+		sx[o] += u.x; sy[o] += u.y; sz[o] += u.z; cnt[o] += 1
+	var order: Array = []
+	for n in range(1, N1):
+		if cnt[n] >= 3 and g.alive[n] != 0 and n != g.rebel: order.append(n)
+	order.sort_custom(func(a, b): return cnt[a] > cnt[b])
+	var placed: Array = []
+	var shown := 0
+	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
+	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
+	for n in order:
+		if shown >= 70: break
+		var v := Vector3(sx[n], sy[n], sz[n])
+		var len := v.length()
+		if len < 0.0001: continue
+		v /= len
+		var pos: Vector2
+		var depth := 1.0
+		if map.mode == 0:
+			var x := v.x * cl - v.z * sl
+			var z0 := v.x * sl + v.z * cl
+			var y := v.y * c0 - z0 * s0
+			depth = v.y * s0 + z0 * c0
+			if depth < 0.25: continue
+			pos = Vector2(cx + R * x, cy - R * y)
+		else:
+			var lon := atan2(v.x, v.z); var lat := asin(clampf(v.y, -1.0, 1.0))
+			var pt := map.project(rad_to_deg(lon), rad_to_deg(lat))
+			pos = Vector2(pt.x, pt.y)
+		if pos.x < 0 or pos.y < 0 or pos.x > map.size.x or pos.y > map.size.y: continue
+		var fs := int(clampf(8.0 + sqrt(float(cnt[n])) * 1.4 * minf(map.zoom, 2.2), 10.0, 24.0))
+		var txt: String = g.nat_name[n]
+		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+		var rect := Rect2(pos - tw * 0.5, tw).grow(3.0)
+		var clash := false
+		for r in placed:
+			if r.intersects(rect): clash = true; break
+		if clash: continue
+		placed.append(rect); shown += 1
+		var a := clampf(depth * 1.6, 0.35, 0.95)
+		draw_string_outline(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, a * 0.8))
+		draw_string(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, a))
+
 ## screen position + visibility for province p given the map camera
 func _project(p: int, c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> Vector3:
 	var u := _unit[p]
@@ -55,7 +109,7 @@ func _draw() -> void:
 		for p in g.P:
 			var o := g.owner[p]
 			if o == 0: continue
-			var star := g.capital[p] != 0
+			var star := g.capital[p] != 0 and (map.zoom >= 1.8 or o == me)
 			if not zoomed and not star and not (o == me and map.zoom >= 1.4): continue
 			var pr := _project(p, c0, s0, sl, cl, R, cx, cy)
 			if pr.z < 0.08: continue
@@ -64,7 +118,7 @@ func _draw() -> void:
 		for p in g.P:
 			var o := g.owner[p]
 			if o == 0: continue
-			var star := g.capital[p] != 0
+			var star := g.capital[p] != 0 and (map.zoom >= 1.8 or o == me)
 			if not zoomed and not star and not (o == me and map.zoom >= 2.0): continue
 			var pt := map.project(g.world.lon[p], g.world.lat[p])
 			if pt.x < -20 or pt.y < -20 or pt.x > map.size.x + 20 or pt.y > map.size.y + 20: continue
@@ -87,6 +141,7 @@ func _draw() -> void:
 		draw_rect(rect, bg, true)
 		draw_string(font, pos + Vector2(-tw * 0.5 + 5, 4.5), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 		drawn += 1
+	_draw_nation_names(font)
 	# battle effects
 	var now := Time.get_ticks_msec()
 	var keep: Array = []
