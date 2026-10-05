@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 import * as topojson from 'topojson-client';
+import { Game } from '../reference/engine-js/src/index.js';
 
 const W = 4096, H = 2048;
 const OUT = 'godot/data';
@@ -111,6 +112,8 @@ const world = {
   nbOff: Array.from(nbOff), nb: nbList,
   natCode, natName, provNat: Array.from(provNat),
 };
+// precompute adjacency incl. sea links (the engine's add_sea_links is O(P*cells) — 260 ms on desktop, >1 s on phones)
+{ const g0 = new Game(world, null, { seed: 1 }); world.nbOffX = Array.from(g0.nbOff); world.nbX = Array.from(g0.nb); world.nbSeaX = Array.from(g0.nbSea); }
 fs.writeFileSync(OUT + '/world.json', JSON.stringify(world));
 fs.writeFileSync(OUT + '/ids.bin.gz', zlib.gzipSync(Buffer.from(ids.buffer), { level: 9 }));
 

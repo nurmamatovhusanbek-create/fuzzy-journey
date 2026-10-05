@@ -185,6 +185,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		budget[n * 4] = 50; budget[n * 4 + 1] = 20; budget[n * 4 + 2] = 15; budget[n * 4 + 3] = 15
 		color[n] = gen_color(n)
 	nb_off = w.nb_off.duplicate(); nb = w.nb.duplicate(); nb_sea.resize(w.nb.size())
+	var have_sea: bool = not w.nbx.is_empty()
 	rebuild_owned()
 	for n in range(1, N1):
 		alive[n] = 1 if (n != rebel and own_count(n) > 0) else 0  # init only (no relations yet)
@@ -202,7 +203,11 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		for n in range(1, N1):
 			tech_level[n] = 3.6 + rng.next() * 0.9
 			era[n] = mini(4, int(floor(tech_level[n])))
-	add_sea_links()
+	# sea links are installed AFTER capitals/eras were set (legacy order: capitals were chosen from land adjacency only)
+	if have_sea:
+		nb_off = w.nbx_off.duplicate(); nb = w.nbx.duplicate(); nb_sea = w.nbx_sea.duplicate()
+	else:
+		add_sea_links()
 
 func set_human(n: int) -> void:
 	human.fill(0); human[n] = 1; human_id = n
