@@ -13,6 +13,7 @@ run "decisions" tests/decisions.gd
 run "trade deals" tests/trade.gd
 run "Russian nation names" tests/names_ru.gd
 run "synth audio" tests/audio.gd
+run "soak: random human, 7 eras, invariants" tests/soak.gd
 run "historical events: integrity + firing" tests/hist_events.gd
 echo "== oracle: GDScript engine vs JS reference (rules 0)"; tools/oracle.sh "$GODOT" || fail=1
 echo "== multiplayer: server + 2 clients (lockstep of mirrored state)"; tools/test_mp.sh "$GODOT" 2>&1 | tail -3; [ "${PIPESTATUS[0]}" -eq 0 ] || fail=1

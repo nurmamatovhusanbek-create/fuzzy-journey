@@ -41,7 +41,7 @@ static func run(g: TBGame) -> void:
 	for n in range(1, g.N1):
 		if g.alive[n] == 0: continue
 		if g.trade_bonus[n] != 0:
-			g.gold[n] += g.trade_bonus[n]; g.trade_bonus[n] = 0
+			g.gold[n] = maxf(0.0, g.gold[n] + g.trade_bonus[n]); g.trade_bonus[n] = 0
 		if g.combat_turns[n] > 0:
 			g.combat_turns[n] -= 1
 			if g.combat_turns[n] == 0: g.combat_bonus[n] = 0.0
@@ -96,7 +96,7 @@ static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 	for e in effects:
 		var d: float = float(e.get("delta", 0))
 		match String(e.get("op", "")):
-			"nation.gold": g.gold[n] += d
+			"nation.gold": g.gold[n] = maxf(0.0, g.gold[n] + d)
 			"nation.manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + d)
 			"nation.mp": g.mp[n] += d
 			"nation.dp": g.dp[n] += d
@@ -230,7 +230,7 @@ static func apply_effects(g: TBGame, n: int, effects: Array) -> void:
 	for e in effects:
 		var d: float = float(e.get("d", 0))
 		match String(e.get("op", "")):
-			"gold": g.gold[n] += d
+			"gold": g.gold[n] = maxf(0.0, g.gold[n] + d)
 			"manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + d)
 			"mp": g.mp[n] += d
 			"dp": g.dp[n] = maxf(0.0, g.dp[n] + d)
