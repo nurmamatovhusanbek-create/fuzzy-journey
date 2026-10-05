@@ -38,8 +38,13 @@ func show_province(game: TBGame, province: int) -> void:
 	g = game; p = province
 	if p < 0:
 		visible = false; return
+	var was := visible
 	visible = true
 	rebuild()
+	if not was and TBMapView.animate:        # slides in from the edge instead of popping
+		modulate.a = 0.0
+		var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(self, "modulate:a", 1.0, 0.16)
 
 func rebuild() -> void:
 	if p < 0 or g == null: return

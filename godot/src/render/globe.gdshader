@@ -15,6 +15,10 @@ uniform float flat_scale = 200.0;
 uniform int mode = 0;            // 0 globe, 1 flat
 uniform int sel_id = -1;         // province id (index+1) or -1
 uniform int hover_id = -1;
+uniform float sel_t = 1.0;        // 0..1 fade-in of the selection
+uniform float hover_t = 0.0;      // 0..1 fade of the hover highlight
+uniform int hover_prev = -1;      // province whose hover highlight is fading out
+uniform float hover_prev_t = 0.0;
 uniform int theme = 0;           // 0 standard, 1 parchment
 uniform int quality = 2;         // 0 low (no province borders), 1 medium, 2 high
 uniform float time = 0.0;
@@ -138,14 +142,15 @@ void fragment() {
 			col = texelFetch(pal, ivec2(id, 0), 0).rgb;
 			vec4 occ = texelFetch(pal, ivec2(id, 2), 0);
 			if (occ.a > 0.5 && mod(p.x + p.y, 8.0) < 4.0) col = occ.rgb;
-			if (texelFetch(pal, ivec2(id, 3), 0).r > 0.5) col = mix(col, vec3(1.0, 0.82, 0.18), 0.58);   // valid move/attack target
-			if (id == sel_id) col = mix(col, vec3(1.0, 0.92, 0.55), 0.38);
-			else if (id == hover_id) col = mix(col, vec3(1.0), 0.18);
+			if (texelFetch(pal, ivec2(id, 3), 0).r > 0.5) col = mix(col, vec3(1.0, 0.82, 0.18), 0.46 + 0.12 * sin(time * 4.0));   // valid move/attack target (breathing)
+			if (id == sel_id) col = mix(col, vec3(1.0, 0.92, 0.55), (0.30 + 0.07 * sin(time * 3.0)) * sel_t);
+			if (id == hover_id) col = mix(col, vec3(1.0), 0.17 * hover_t);
+			if (id == hover_prev) col = mix(col, vec3(1.0), 0.17 * hover_prev_t);
 		}
 
 		if (theme == 1 && id != 0) col = mix(col, vec3(0.86, 0.76, 0.55) * (0.55 + 0.9 * dot(col, vec3(0.33))), 0.62);   // aged-paper wash
 		// ---- borders (constant screen width) ----
-		float e_nat = 1e4, e_prov = 1e4, e_coast = 1e4, e_sel = 1e4, e_war = 1e4;
+		float e_nat = 1e4, e_prov = 1e4, e_coast = 1e4, e_sel = 1e4, e_war = 1e4, e_hov = 1e4;
 		int own = owner_of(id);
 		float fl = flags_of(id);
 		if (quality >= 2) {
@@ -156,6 +161,7 @@ void fragment() {
 				if (nid == id) continue;
 				float d = 0.0;
 				if (id == sel_id || nid == sel_id) e_sel = min(e_sel, d);
+				if (id == hover_id || nid == hover_id) e_hov = min(e_hov, d);
 				if (id == 0 || nid == 0) { e_coast = min(e_coast, d); continue; }
 				int nown = owner_of(nid);
 				if (nown != own) {
@@ -174,6 +180,7 @@ void fragment() {
 				if (nid == id) continue;
 				float d = dist[i] / tpp;
 				if (id == sel_id || nid == sel_id) e_sel = min(e_sel, d);
+				if (id == hover_id || nid == hover_id) e_hov = min(e_hov, d);
 				if (id == 0 || nid == 0) { e_coast = min(e_coast, d); continue; }
 				int nown = owner_of(nid);
 				if (nown != own) {
@@ -191,7 +198,8 @@ void fragment() {
 		col = mix(col, nat_line, clamp(1.4 - e_nat + 0.5, 0.0, 1.0) * 0.9);
 		col = mix(col, vec3(0.03, 0.07, 0.13), clamp(1.1 - e_coast + 0.5, 0.0, 1.0) * 0.85);
 		col = mix(col, vec3(0.93, 0.25, 0.20), clamp(1.8 - e_war + 0.5, 0.0, 1.0));
-		col = mix(col, vec3(1.0, 0.85, 0.30), clamp(1.6 - e_sel + 0.5, 0.0, 1.0));
+		col = mix(col, vec3(1.0, 0.97, 0.85), clamp(1.3 - e_hov + 0.5, 0.0, 1.0) * 0.5 * hover_t * (hover_id == sel_id ? 0.0 : 1.0));
+		col = mix(col, vec3(1.0, 0.85, 0.30), clamp(1.6 + 0.35 * sel_t - e_sel + 0.5, 0.0, 1.0) * sel_t);
 
 		float a = 1.0;
 		if (mode == 0) {

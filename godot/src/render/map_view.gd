@@ -19,6 +19,18 @@ var lat0 := 0.35
 var zoom := 1.0
 var selected := -1
 var hover := -1
+## camera / highlight animation (the GPU view is re-rendered only while something is moving)
+static var animate := OS.get_environment("TB_NOANIM") == ""
+var _time := 0.0
+var _sel_t := 1.0
+var _hover_t := 0.0
+var _hover_prev := -1
+var _hover_prev_t := 0.0
+var _pulse_until := 0
+var _fly := {}
+var _vel := Vector2.ZERO                  # drag velocity (px/s) for flick inertia
+var _vel_us := 0
+var _zoom_target := -1.0
 
 var quality := 2
 var map_theme := 0               # 0 standard, 1 parchment
@@ -175,12 +187,17 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("mode", mode)
 	_mat.set_shader_parameter("sel_id", selected + 1 if selected >= 0 else -1)
 	_mat.set_shader_parameter("hover_id", hover + 1 if hover >= 0 else -1)
+	_mat.set_shader_parameter("sel_t", _sel_t)
+	_mat.set_shader_parameter("hover_t", _hover_t)
+	_mat.set_shader_parameter("hover_prev", _hover_prev + 1 if _hover_prev >= 0 else -1)
+	_mat.set_shader_parameter("hover_prev_t", _hover_prev_t)
+	_mat.set_shader_parameter("time", _time)
 	_mat.set_shader_parameter("quality", quality)
 	_mat.set_shader_parameter("theme", map_theme)
 	_select_ids_texture()
 	if labels != null:
 		labels.max_labels = [40, 90, 160][quality]
-		labels.hidden_while_dragging = _pressed and _drag_moved >= 6.0
+		labels.hidden_while_dragging = quality == 0 and _pressed and _drag_moved >= 6.0
 		labels.queue_redraw()
 	view_changed.emit()
 
@@ -191,19 +208,87 @@ func set_mode(m: int) -> void:
 	_push_view()
 
 func select(p: int) -> void:
+	if p != selected and animate:
+		_sel_t = 0.0
+		_pulse_until = Time.get_ticks_msec() + 2400
 	selected = p
 	_push_view()
 
-func fly_to(lon_deg: float, lat_deg: float, z: float = -1.0) -> void:
-	lon0 = deg_to_rad(lon_deg); lat0 = clampf(deg_to_rad(lat_deg), -1.45, 1.45)
-	if z > 0.0: zoom = z
-	_clamp_flat(); _push_view()
+func _set_hover(h: int) -> void:
+	if h == hover: return
+	if animate:
+		_hover_prev = hover; _hover_prev_t = _hover_t
+		_hover_t = 0.0
+	hover = h
+	_push_view()
 
-func zoom_by(f: float) -> void:
+## glide the camera to a place (eased; instant when animations are off or the map is not laid out yet)
+func fly_to(lon_deg: float, lat_deg: float, z: float = -1.0) -> void:
+	var tl := deg_to_rad(lon_deg)
+	var tla := clampf(deg_to_rad(lat_deg), -1.45, 1.45)
+	var tz := z if z > 0.0 else zoom
+	_vel = Vector2.ZERO; _zoom_target = -1.0
+	if not animate or size.x < 8.0 or _mat == null:
+		lon0 = tl; lat0 = tla; zoom = tz
+		_clamp_flat(); _push_view(); return
+	var dl := wrapf(tl - lon0, -PI, PI)
+	var span := absf(dl) + absf(tla - lat0) + absf(log(tz / zoom)) * 0.4
+	_fly = {"t": 0.0, "dur": clampf(0.30 + span * 0.55, 0.30, 1.0), "l0": lon0, "dl": dl, "a0": lat0, "da": tla - lat0, "z0": zoom, "z1": tz}
+
+func zoom_by(f: float, smooth: bool = false) -> void:
 	var lo := 0.6 if mode == 0 else maxf(0.5, (size.y / PI) / (size.x / TAU))
 	var hi := 14.0 if mode == 0 else 24.0
+	_fly = {}
+	if smooth and animate:
+		var base := _zoom_target if _zoom_target > 0.0 else zoom
+		_zoom_target = clampf(base * f, lo, hi)
+		_push_view(); return
+	_zoom_target = -1.0
 	zoom = clampf(zoom * f, lo, hi)
 	_clamp_flat(); _push_view()
+
+func _process(delta: float) -> void:
+	if _mat == null: return
+	_time += delta
+	var busy := false
+	# flight
+	if not _fly.is_empty():
+		_fly["t"] += delta
+		var k := clampf(_fly["t"] / _fly["dur"], 0.0, 1.0)
+		var e := k * k * k * (k * (k * 6.0 - 15.0) + 10.0)          # smootherstep
+		lon0 = wrapf(_fly["l0"] + _fly["dl"] * e, -PI, PI)
+		lat0 = clampf(_fly["a0"] + _fly["da"] * e, -1.45, 1.45)
+		zoom = _fly["z0"] * pow(_fly["z1"] / _fly["z0"], e)
+		_clamp_flat()
+		if k >= 1.0: _fly = {}
+		busy = true
+	# eased wheel zoom
+	if _zoom_target > 0.0:
+		var ratio := _zoom_target / zoom
+		if absf(ratio - 1.0) < 0.002: zoom = _zoom_target; _zoom_target = -1.0
+		else: zoom *= pow(ratio, 1.0 - exp(-14.0 * delta))
+		_clamp_flat()
+		busy = true
+	# flick inertia
+	if not _pressed and _vel.length() > 12.0:
+		drag_by(_vel * delta)
+		_vel *= exp(-4.2 * delta)
+		busy = true
+	elif not _pressed:
+		_vel = Vector2.ZERO
+	# highlight fades and the breathing pulse
+	var was := _hover_t + _hover_prev_t + _sel_t
+	if animate:
+		_hover_t = move_toward(_hover_t, 1.0 if hover >= 0 else 0.0, delta * 9.0)
+		_hover_prev_t = move_toward(_hover_prev_t, 0.0, delta * 7.0)
+		_sel_t = move_toward(_sel_t, 1.0, delta * 8.0)
+	else:
+		_hover_t = 1.0 if hover >= 0 else 0.0; _hover_prev_t = 0.0; _sel_t = 1.0
+	if absf(_hover_t + _hover_prev_t + _sel_t - was) > 0.0001: busy = true
+	if not _targets.is_empty() or (selected >= 0 and Time.get_ticks_msec() < _pulse_until):
+		busy = true
+	if busy:
+		_push_view()
 
 func drag_by(d: Vector2) -> void:
 	if mode == 0:
@@ -299,12 +384,13 @@ func _gui_input(event: InputEvent) -> void:
 		zoom_by(event.factor); return
 	if event is InputEventMouseButton:
 		match event.button_index:
-			MOUSE_BUTTON_WHEEL_UP: if event.pressed: zoom_by(1.1)
-			MOUSE_BUTTON_WHEEL_DOWN: if event.pressed: zoom_by(0.9)
+			MOUSE_BUTTON_WHEEL_UP: if event.pressed: zoom_by(1.18, true)
+			MOUSE_BUTTON_WHEEL_DOWN: if event.pressed: zoom_by(1.0 / 1.18, true)
 			MOUSE_BUTTON_LEFT:
-				if event.pressed: _pressed = true; _drag_moved = 0.0
+				if event.pressed: _pressed = true; _drag_moved = 0.0; _vel = Vector2.ZERO; _fly = {}; _zoom_target = -1.0; _vel_us = 0
 				else:
-					if _pressed and _drag_moved < _tap_slop(): province_picked.emit(pick_at(event.position), false)
+					if _pressed and _drag_moved < _tap_slop(): province_picked.emit(pick_at(event.position), false); _vel = Vector2.ZERO
+					elif Time.get_ticks_usec() - _vel_us > 90000 or not animate: _vel = Vector2.ZERO      # finger rested before lifting: no flick
 					_pressed = false
 					_last_drag_us = 0
 					_push_view()
@@ -315,8 +401,13 @@ func _gui_input(event: InputEvent) -> void:
 			_drag_moved += event.relative.length()
 			if _drag_moved >= _tap_slop():
 				_sample_frame()
+				var now := Time.get_ticks_usec()
+				if _vel_us != 0:
+					var dt := maxf(0.004, (now - _vel_us) / 1e6)
+					_vel = _vel.lerp(event.relative / dt, 0.4)
+				_vel_us = now
 				drag_by(event.relative)
 		else:
 			var h := pick_at(event.position)
 			if h != hover:
-				hover = h; _push_view(); province_hovered.emit(h)
+				_set_hover(h); province_hovered.emit(h)

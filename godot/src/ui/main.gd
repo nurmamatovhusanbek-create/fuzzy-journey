@@ -356,9 +356,13 @@ func _do_move(from: int, to: int) -> void:
 		var key := "err_" + String(res["err"])
 		hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
 	else:
-		var win: bool = res.get("result", "") == "win"
-		map.labels.add_fx("atk", from, to, Color(0.5, 0.9, 0.55) if win else Color(1.0, 0.55, 0.5))
-		if win: map.labels.add_fx("cap", from, to, Color(0.5, 0.9, 0.55))
+		var rs: String = res.get("result", "")
+		if rs == "move":
+			map.labels.add_fx("march", from, to, Color(0.95, 0.8, 0.35))
+		else:
+			var win: bool = rs == "win"
+			map.labels.add_fx("atk", from, to, Color(0.5, 0.9, 0.55) if win else Color(1.0, 0.55, 0.5))
+			map.labels.add_fx("cap", from, to, Color(0.5, 0.9, 0.55) if win else Color(1.0, 0.55, 0.5), 450)
 		_select(to)
 	_after_change()
 
