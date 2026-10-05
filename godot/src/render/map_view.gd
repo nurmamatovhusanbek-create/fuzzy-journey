@@ -48,7 +48,7 @@ func setup(game: TBGame) -> void:
 		_vp = SubViewport.new()
 		_vp.disable_3d = true
 		_vp.transparent_bg = false
-		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		_vp.render_target_update_mode = SubViewport.UPDATE_ONCE     # re-rendered only when the view or palette changes (battery!)
 		_vp.size = Vector2i(maxi(64, int(size.x)), maxi(64, int(size.y)))
 		add_child(_vp)
 		_rect = ColorRect.new()
@@ -119,6 +119,7 @@ func _write(p: int) -> void:
 		_pal[r2 + 3] = 0
 
 func _upload() -> void:
+	if _vp != null: _vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	if labels != null: labels.queue_redraw()
 	_pal_img.set_data(PAL_W, 4, false, Image.FORMAT_RGBA8, _pal)
 	_pal_tex.update(_pal_img)
@@ -133,6 +134,7 @@ func flat_scale() -> float: return size.x / TAU * zoom
 
 func _push_view() -> void:
 	if _mat == null: return
+	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	var vs := Vector2i(maxi(64, int(size.x * render_scale)), maxi(64, int(size.y * render_scale)))
 	if _vp.size != vs:
 		_vp.size = vs

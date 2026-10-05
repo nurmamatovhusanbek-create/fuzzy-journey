@@ -15,7 +15,6 @@ static var T: Callable = TBI18n.T
 var g: TBGame
 var _chips := {}
 var _toasts: VBoxContainer
-var _lens_buttons := {}
 var end_btn: Button
 
 func _init() -> void:
@@ -24,13 +23,14 @@ func _init() -> void:
 
 func build() -> void:
 	for c in get_children(): c.queue_free()
-	_chips.clear(); _lens_buttons.clear()
-	# top bar
+	_chips.clear()
+	# top bar: wraps onto several rows on narrow (portrait) screens
 	var top := PanelContainer.new()
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	top.add_theme_stylebox_override("panel", K._box(Color(0.05, 0.07, 0.12, 0.88), K.LINE, 0, 6))
 	add_child(top)
-	var row := K.hbox(10)
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 10); row.add_theme_constant_override("v_separation", 4)
 	top.add_child(row)
 	var nat := K.hbox(6)
 	nat.add_child(K.color_chip(0)); _chips["swatch"] = nat.get_child(0)
@@ -38,39 +38,29 @@ func build() -> void:
 	row.add_child(nat)
 	for key in ["date", "gold", "man", "mp", "dp", "lands"]:
 		var l := K.label("", 15); row.add_child(l); _chips[key] = l
-	var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(sp)
+	# map lens picker (one compact dropdown instead of a tall button column)
+	var lens := OptionButton.new()
+	lens.focus_mode = Control.FOCUS_NONE
+	lens.custom_minimum_size = Vector2(140, K.MIN_TOUCH - 8)
+	for i in TBLenses.NAMES.size():
+		lens.add_item(T.call("lens_" + TBLenses.NAMES[i]), i)
+	lens.item_selected.connect(func(idx: int): lens_selected.emit(TBLenses.NAMES[lens.get_item_id(idx)]))
+	row.add_child(lens)
 	for spec in [["nations", T.call("nations"), nations_pressed], ["budget", T.call("budget"), budget_pressed], ["save", T.call("save"), save_pressed], ["settings", "⚙", settings_pressed]]:
-		var b := K.button(spec[1]); b.pressed.connect(func(): spec[2].emit()); row.add_child(b)
-	# lenses (left column)
-	var lens := VBoxContainer.new()
-	lens.add_theme_constant_override("separation", 3)
-	lens.position = Vector2(8, 66)
-	add_child(lens)
-	for l in TBLenses.NAMES:
-		var b := K.button(T.call("lens_" + l)); b.custom_minimum_size = Vector2(130, 34)
-		b.add_theme_font_size_override("font_size", 13)
-		b.pressed.connect(func(): lens_selected.emit(l); _mark_lens(l))
-		lens.add_child(b); _lens_buttons[l] = b
-	_mark_lens("political")
+		var b := K.button(spec[1]); b.custom_minimum_size = Vector2(0, K.MIN_TOUCH - 8); b.pressed.connect(func(): spec[2].emit()); row.add_child(b)
 	# toasts
 	_toasts = VBoxContainer.new()
 	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toasts.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_toasts.offset_left = 10; _toasts.offset_right = 360; _toasts.offset_bottom = -78; _toasts.offset_top = -78
 	_toasts.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_toasts.position = Vector2(10, -20)
 	add_child(_toasts)
 	# end turn
 	end_btn = K.button(T.call("end_turn") + " ▸", func(): end_turn_pressed.emit(), true)
-	end_btn.custom_minimum_size = Vector2(190, 56)
 	end_btn.add_theme_font_size_override("font_size", 18)
 	end_btn.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	end_btn.grow_horizontal = Control.GROW_DIRECTION_BEGIN; end_btn.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	end_btn.position = Vector2(-14, -14)
+	end_btn.offset_left = -214; end_btn.offset_right = -12; end_btn.offset_top = -72; end_btn.offset_bottom = -12
 	add_child(end_btn)
-
-func _mark_lens(name: String) -> void:
-	for l in _lens_buttons:
-		_lens_buttons[l].add_theme_color_override("font_color", K.GOLD2 if l == name else K.TEXT)
 
 func refresh() -> void:
 	if g == null or _chips.is_empty(): return

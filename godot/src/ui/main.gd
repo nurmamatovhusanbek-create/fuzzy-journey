@@ -42,10 +42,17 @@ func _ready() -> void:
 	hud.save_pressed.connect(func(): TBModals.save_load(_overlay, true, _save_slot, _load_slot))
 	hud.settings_pressed.connect(_open_settings)
 	resized.connect(func(): panel.layout_for(size))
+	get_window().size_changed.connect(_update_ui_scale); _update_ui_scale()
 	_apply_quality()
 	_new_demo_game()
 	show_menu()
 	panel.layout_for(size)
+
+## phones in portrait need a different logical base size, otherwise the landscape 1280x720 base shrinks the UI to a few px
+func _update_ui_scale() -> void:
+	var w := get_window()
+	var s := w.size
+	w.content_scale_size = Vector2i(540, 960) if s.y > s.x else Vector2i(1280, 720)
 
 func _load_cfg() -> void:
 	var f := ConfigFile.new()

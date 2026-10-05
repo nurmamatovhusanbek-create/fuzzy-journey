@@ -5,6 +5,8 @@ config_version=5
 config/name="Terra Bellum"
 config/description="Turn-based grand strategy on a globe."
 run/main_scene="res://src/ui/main.tscn"
+run/low_processor_mode=true
+run/low_processor_mode_sleep_usec=12000
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
