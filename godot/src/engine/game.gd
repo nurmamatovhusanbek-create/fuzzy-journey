@@ -518,6 +518,40 @@ func attrition(p: int) -> int:
 	var over := army[p] - supply_limit(p)
 	return maxi(0, int(ceil(over * 0.07))) if over > 0 else 0
 
+## read-only twin of move_or_attack's checks: "move", "attack", or an error code starting with "!"
+func move_check(n: int, from: int, to: int) -> String:
+	if controller(from) != n: return "!notyours"
+	var se := sea_edge(from, to)
+	if se < 0: return "!notadjacent"
+	if se == 1 and building[from] != D.B_PORT: return "!needport"
+	if army[from] <= 1: return "!noarmy"
+	var ct := controller(to)
+	if ct == n: return "move"
+	if ct != 0 and friendly(n, ct): return "!friendly"
+	if ct != 0 and get_rel(n, ct) != D.REL_WAR: return "!nowar"
+	if discoverable[to] != 0 and tech_level[n] < 2 and owner[to] == 0: return "!undiscovered"
+	return "attack"
+
+## what resolve_combat would do (combat is deterministic): strengths, winner and losses, without changing anything
+func combat_preview(n: int, from: int, to: int, troops: int) -> Dictionary:
+	var avail := army[from]
+	var send := maxi(1, mini(troops if troops != 0 else avail - 1, avail - 1))
+	var def_n := controller(to)
+	var rides := rules >= 1 and TBGenerals.follows(self, from, avail - send)
+	var atk: float = send * combat_mul(n) * float(D.TERRAIN_ATK[terrain[to]])
+	var dfn: float = army[to] * combat_mul(def_n) * def_mul(to)
+	if rides: atk *= TBGenerals.mul(self, from)
+	if rules >= 1: dfn *= TBGenerals.mul(self, to)
+	var out := {"send": send, "defenders": army[to], "atk": atk, "dfn": dfn, "win": atk > dfn, "rides": rides, "mp": D.MP_ATTACK}
+	if atk > dfn:
+		var surv := maxi(1, int(round((atk - dfn) / maxf(0.01, combat_mul(n)))))
+		var occ := mini(send, surv)
+		out["hold"] = occ; out["lost"] = send - occ; out["enemy_lost"] = army[to]
+	else:
+		out["lost"] = int(round(send * minf(0.9, dfn / (atk + dfn))))
+		out["enemy_lost"] = int(round(army[to] * (atk / (atk + dfn)) * 0.55))
+	return out
+
 func sea_edge(from: int, to: int) -> int:
 	for i in range(nb_off[from], nb_off[from + 1]):
 		if nb[i] == to: return 1 if nb_sea[i] == 1 else 0

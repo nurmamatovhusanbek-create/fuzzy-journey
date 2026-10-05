@@ -156,13 +156,14 @@ func refresh() -> void:
 	_date.text = _year(g.year)
 	_turn.text = "%s %d · %s" % [T.call("turn"), g.turn, T.call("month_%d" % g.month_idx) if TBI18n.has_key("month_%d" % g.month_idx) else TBData.MONTHS[g.month_idx]]
 	var net: int = inc["net"]
-	_r["gold"].set_value("%s" % K.fmt(g.gold[n]), K.GOLD2)
+	_r["gold"].set_num(g.gold[n], func(v: float): return K.fmt(int(round(v))), K.GOLD2)
 	_r["gold"].caption.text = "%s%d" % ["+" if net >= 0 else "", net]
 	_r["gold"].caption.add_theme_color_override("font_color", K.GREEN if net >= 0 else K.RED)
-	_r["man"].set_value("%s" % K.fmt(g.manpower[n])); _r["man"].caption.text = "/ %s" % K.fmt(inc["manCap"])
-	_r["mp"].set_value("%d" % int(g.mp[n])); _r["dp"].set_value("%d" % int(g.dp[n]))
-	_r["intel"].set_value("%d" % int(g.intel[n])); _r["intel"].visible = g.rules >= 1
-	_r["lands"].set_value("%d" % inc["lands"])
+	_r["man"].set_num(g.manpower[n], func(v: float): return K.fmt(int(round(v)))); _r["man"].caption.text = "/ %s" % K.fmt(inc["manCap"])
+	var ifmt := func(v: float): return "%d" % int(round(v))
+	_r["mp"].set_num(floorf(g.mp[n]), ifmt); _r["dp"].set_num(floorf(g.dp[n]), ifmt)
+	_r["intel"].set_num(floorf(g.intel[n]), ifmt); _r["intel"].visible = g.rules >= 1
+	_r["lands"].set_num(float(inc["lands"]), ifmt)
 	_r["tech"].set_value("%.1f" % g.tech_level[n]); _r["tech"].caption.text = T.call("era_name_%d" % g.era[n]).to_upper() if TBI18n.lang != "ru" else T.call("era_name_%d" % g.era[n])
 	var wc := 0
 	for o in range(1, g.N1):
@@ -178,6 +179,44 @@ static func _year(y: int) -> String:
 	return "%d BC" % -y if y < 0 else "%d AD" % y
 
 ## dispatch slip: ruled paper-dark strip, crimson rule for bad news
+## battle preview banner above the dock: strengths, the exact outcome, Attack / Cancel
+var _preview: PanelContainer
+func hide_preview() -> void:
+	if is_instance_valid(_preview): _preview.queue_free()
+	_preview = null
+
+func show_preview(info: Dictionary, place: String, on_ok: Callable, on_cancel: Callable) -> void:
+	hide_preview()
+	var win: bool = info["win"]
+	var edge := Color(0.55, 0.9, 0.6, 0.9) if win else Color(K.RED.r, K.RED.g, K.RED.b, 0.9)
+	_preview = PanelContainer.new()
+	_preview.add_theme_stylebox_override("panel", TBFrame.make(Color(0.035, 0.055, 0.11, 0.96), edge, 8, true, 14, 10))
+	var v := K.vbox(6); _preview.add_child(v)
+	var head := K.hbox(8); head.add_child(K.glyph_label_big("swords")); head.add_child(K.title(T.call("pv_title", {"p": place}), 17, K.GOLD2)); v.add_child(head)
+	# strength bar: your force against the defenders
+	var a: float = info["atk"]; var d: float = info["dfn"]
+	var share := a / maxf(0.01, a + d)
+	var bar := Control.new(); bar.custom_minimum_size = Vector2(320, 12)
+	bar.draw.connect(func():
+		var w := bar.size.x
+		bar.draw_rect(Rect2(0, 2, w, 8), Color(0.8, 0.3, 0.28, 0.85))
+		bar.draw_rect(Rect2(0, 2, w * share, 8), Color(0.45, 0.85, 0.55, 0.95))
+		bar.draw_rect(Rect2(w * 0.5 - 1, 0, 2, 12), Color(1, 1, 1, 0.7)))
+	v.add_child(bar)
+	v.add_child(K.row(T.call("pv_force"), "%s  vs  %s" % [K.fmt(int(info["send"])), K.fmt(int(info["defenders"]))], K.TEXT))
+	var res: String
+	if win: res = T.call("pv_win", {"k": int(info["hold"]), "l": int(info["lost"])})
+	else: res = T.call("pv_lose", {"a": int(info["lost"]), "d": int(info["enemy_lost"])})
+	var rl := K.label(res, 14, Color(0.6, 0.95, 0.65) if win else K.RED.lightened(0.3)); rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; rl.custom_minimum_size = Vector2(320, 0); v.add_child(rl)
+	var row := K.hbox(8); v.add_child(row)
+	row.add_child(K.button(T.call("pv_cancel"), func(): hide_preview(); on_cancel.call()))
+	var ok := K.button(T.call("pv_attack"), func(): hide_preview(); on_ok.call(), true); ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(ok)
+	_preview.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_preview.grow_horizontal = Control.GROW_DIRECTION_BOTH; _preview.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_preview.offset_bottom = -126 if _portrait else -110
+	_preview.offset_left = -190 + (60 if not _portrait else 0); _preview.offset_right = 190 + (60 if not _portrait else 0)
+	add_child(_preview)
+
 func toast(msg: String, bad: bool = false) -> void:
 	if _toasts == null: return
 	var rule_c := Color(K.RED.r, K.RED.g, K.RED.b, 0.85) if bad else Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.55)

@@ -34,9 +34,37 @@ class Readout extends HBoxContainer:
 		add_child(v)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		return self
+	func _ready() -> void: set_process(false)        # only runs while a figure is rolling
 	func set_value(text: String, color: Color = Color(0.91, 0.863, 0.8)) -> void:
 		value.text = text
 		value.add_theme_color_override("font_color", color)
+
+	# ---- rolling numbers: the figure counts up/down to its new value and flashes green (gain) or red (loss)
+	var _shown := NAN
+	var _target := 0.0
+	var _flash := 0.0
+	var _flash_col := Color.WHITE
+	var _base := Color(0.91, 0.863, 0.8)
+	var _fmt := Callable()
+	func set_num(v: float, fmt: Callable, color: Color = Color(0.91, 0.863, 0.8)) -> void:
+		_fmt = fmt; _base = color
+		if is_nan(_shown) or not TBMapView.animate:
+			_shown = v; _target = v
+			set_value(fmt.call(v), color); set_process(false); return
+		if v != _target:
+			_flash = 1.0
+			_flash_col = Color(0.55, 0.95, 0.6) if v > _target else Color(1.0, 0.55, 0.5)
+			_target = v
+			set_process(true)
+		else:
+			value.add_theme_color_override("font_color", color if _flash <= 0.0 else value.get_theme_color("font_color"))
+	func _process(delta: float) -> void:
+		_shown += (_target - _shown) * (1.0 - exp(-9.0 * delta))
+		if absf(_target - _shown) < 0.5: _shown = _target
+		_flash = maxf(0.0, _flash - delta * 1.6)
+		value.text = _fmt.call(_shown)
+		value.add_theme_color_override("font_color", _base.lerp(_flash_col, _flash))
+		if _shown == _target and _flash <= 0.0: set_process(false)
 
 ## square dock button with an engraved glyph and a tiny caption; optional count badge
 class DockButton extends Button:

@@ -282,7 +282,7 @@ func _on_pick(p: int, secondary: bool) -> void:
 	if p < 0: _select(-1); return
 	if secondary and selected >= 0 and g.controller(selected) == g.human_id: _do_move(selected, p); return
 	if move_from >= 0:
-		var f := move_from; _set_move_from(-1); _do_move(f, p); return
+		_try_move(move_from, p); return
 	_select(p)
 
 var _tip: PanelContainer
@@ -313,6 +313,7 @@ func _on_move_requested(p: int) -> void:
 ## highlight where the selected army may go (adjacent land, or sea hops from ports)
 func _set_move_from(p: int) -> void:
 	move_from = p
+	if p < 0: hud.hide_preview(); _pv_to = -1
 	var t := PackedInt32Array()
 	if p >= 0:
 		for e in range(g.nb_off[p], g.nb_off[p + 1]):
@@ -348,10 +349,33 @@ func _on_command(c: Dictionary) -> void:
 		hud.toast(T.call("spy_ok") if res["success"] else T.call("spy_fail"), not res["success"])
 	_after_change()
 
+var _pv_to := -1
+## how many men a move sends from `from`, following the 25/50/75/100 % choice on the province panel
+func _troops_for(from: int) -> int:
+	var frac: float = panel.send_frac
+	if frac >= 0.999: return g.army[from] - 1
+	return maxi(1, int(floor((g.army[from] - 1) * frac)))
+
+## attacks show the exact outcome first; a second tap on the same target (or Attack) commits
+func _try_move(from: int, to: int) -> void:
+	var tr := _troops_for(from)
+	if mp.in_game or g.rules < 1 or g.move_check(g.human_id, from, to) != "attack":
+		hud.hide_preview(); _pv_to = -1; _set_move_from(-1); _do_move(from, to); return
+	if _pv_to == to: _commit_move(from, to); return
+	_pv_to = to
+	map.set_targets(PackedInt32Array([to]))
+	hud.show_preview(g.combat_preview(g.human_id, from, to, tr), TBI18n.place(world.name[to]), func(): _commit_move(from, to), func(): _pv_to = -1; _set_move_from(from))
+
+func _commit_move(from: int, to: int) -> void:
+	hud.hide_preview(); _pv_to = -1
+	_set_move_from(-1)
+	_do_move(from, to)
+
 func _do_move(from: int, to: int) -> void:
+	var tr := _troops_for(from)
 	if mp.in_game:
-		mp.send_command({"cmd": "move", "from": from, "to": to, "troops": g.army[from] - 1}); _select(to); return
-	var res := g.apply({"cmd": "move", "n": g.human_id, "from": from, "to": to, "troops": g.army[from] - 1})
+		mp.send_command({"cmd": "move", "from": from, "to": to, "troops": tr}); _select(to); return
+	var res := g.apply({"cmd": "move", "n": g.human_id, "from": from, "to": to, "troops": tr})
 	if not res["ok"]:
 		var key := "err_" + String(res["err"])
 		hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
@@ -400,7 +424,7 @@ func end_turn() -> void:
 		if nxt != 0:
 			_set_move_from(-1)
 			_hot_switch(nxt, false); return
-	_busy = true; hud.set_busy(true); _set_move_from(-1)
+	_busy = true; hud.set_busy(true); _set_move_from(-1); hud.hide_preview(); _pv_to = -1
 	_turn_t0 = Time.get_ticks_msec()
 	_turn_thread = Thread.new()
 	_turn_thread.start(_turn_worker)

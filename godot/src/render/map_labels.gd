@@ -187,6 +187,7 @@ func _process(delta: float) -> void:
 				st["last"] = a
 				st["tier"] = _tier(a)
 			if not TBMapView.animate:
+				if st["a"] != st["t"]: busy = true
 				st["a"] = st["t"]; st["shown"] = float(a)
 			else:
 				st["a"] = move_toward(st["a"], st["t"], delta * 6.0)
@@ -200,8 +201,9 @@ func _process(delta: float) -> void:
 		var sdead: Array = []
 		for p in _stars:
 			var ss: Dictionary = _stars[p]
+			var sa: float = ss["a"]
 			ss["a"] = ss["t"] if not TBMapView.animate else move_toward(ss["a"], ss["t"], delta * 6.0)
-			if ss["a"] != ss["t"]: busy = true
+			if ss["a"] != ss["t"] or sa != ss["a"]: busy = true
 			if ss["a"] <= 0.0 and ss["t"] <= 0.0: sdead.append(p)
 		for p in sdead: _stars.erase(p)
 	if busy: queue_redraw()
@@ -220,25 +222,45 @@ func _draw() -> void:
 		_draw_nation_names(font)
 		return
 	var me := g.human_id
-	var zoomed := map.zoom >= (2.0 if map.mode == 0 else 2.6)
+	# ---- progressive disclosure: far away only what matters, everything once you are close
+	var z := map.zoom / (1.0 if map.mode == 0 else 1.6)          # flat maps are wider at the same zoom number
+	var lvl := 0 if z < 1.6 else (1 if z < 3.0 else 2)
 	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
 	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
-	# ---- candidates: (province, x, y, priority, limb factor)
+	var key := {}                                                  # provinces that deserve a plaque at lvl 1
+	if lvl == 1 and g.human_id != 0:
+		var own := g.owned(me)
+		var big: Array = []
+		for p in own: if g.army[p] >= 20: big.append(p)
+		big.sort_custom(func(a, b): return g.army[a] > g.army[b])
+		for k in mini(6, big.size()): key[big[k]] = true            # my largest stacks
+		for p in own:                                              # the fronts of my wars
+			for e in range(g.nb_off[p], g.nb_off[p + 1]):
+				var q: int = g.nb[e]
+				var eo: int = g.owner[q]
+				if eo != 0 and eo != me and g.get_rel(me, eo) == 1:
+					if g.army[p] >= 12: key[p] = true
+					if g.army[q] >= 20: key[q] = true
+	if map.selected >= 0: key[map.selected] = true
+	if map.hover >= 0 and lvl >= 1: key[map.hover] = true
+	# ---- candidates: (province, x, y, priority, limb factor, army)
 	var vis: Array = []
 	for p in g.P:
 		var o := g.owner[p]
 		if o == 0: continue
-		var star := g.capital[p] != 0 and (map.zoom >= 1.8 or o == me)
-		if not zoomed and not star and not (o == me and map.zoom >= (1.4 if map.mode == 0 else 2.0)): continue
+		var cap := g.capital[p] != 0
+		var star := cap and (o == me or z >= 2.0)
+		var want := lvl == 2 or key.has(p)
+		if not want and not star: continue
 		var pr := _screen(p, c0, s0, sl, cl, R, cx, cy)
 		var limb := 1.0
 		if map.mode == 0:
-			if pr.z < 0.04: continue
-			limb = smoothstep(0.04, 0.3, pr.z)
+			if pr.z < 0.2: continue
+			limb = smoothstep(0.2, 0.55, pr.z)                     # nothing near the horizon
 		elif pr.x < -24 or pr.y < -24 or pr.x > map.size.x + 24 or pr.y > map.size.y + 24: continue
 		var shown_before := _pl.has(p) and float(_pl[p]["t"]) > 0.5
-		var prio := (0 if o == me else (1 if star else 2)) * 4 + (0 if shown_before else 1)
-		vis.append([p, pr.x, pr.y, prio, limb, g.army[p]])
+		var pri := 0 if (o == me or key.has(p)) else (1 if star else 2)
+		vis.append([p, pr.x, pr.y, pri * 4 + (0 if shown_before else 1), limb, g.army[p], want])
 	vis.sort_custom(func(a, b): return a[3] < b[3] if a[3] != b[3] else (a[5] > b[5] if a[5] != b[5] else a[0] < b[0]))
 	# ---- choose without overlap; everything else fades out
 	for p in _pl: _pl[p]["t"] = 0.0
@@ -248,12 +270,13 @@ func _draw() -> void:
 	var drawn := 0
 	var chosen: Array = []
 	var chosen_set := {}
-	var zs := clampf(0.8 + 0.12 * map.zoom, 0.85, 1.25)
+	var zs := 0.74 if lvl == 1 else clampf(0.78 + 0.07 * z, 0.84, 1.1)
+	var cap_n := mini(max_labels, 14 if lvl == 1 else max_labels)
 	for v in vis:
-		if drawn >= max_labels: break
+		if drawn >= cap_n: break
 		var p: int = v[0]
 		var pos := Vector2(v[1], v[2])
-		if g.capital[p] != 0 and not zoomed:
+		if not v[6]:
 			if _claim(grid, Rect2(pos - Vector2(9, 9), Vector2(18, 18))):
 				if not _stars.has(p): _stars[p] = {"a": 0.0, "t": 1.0}
 				_stars[p]["t"] = 1.0; _stars[p]["x"] = pos.x; _stars[p]["y"] = pos.y; _stars[p]["limb"] = v[4]
@@ -263,7 +286,7 @@ func _draw() -> void:
 		if a <= 0: continue
 		var st := _state(p)
 		var tier: int = st["tier"]
-		var fs := 10 + tier
+		var fs := 9 + tier
 		var tw := nfont.get_string_size("%d" % maxi(a, int(st["shown"])), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 10.0 + tier
 		var prect := Rect2(pos.x - tw * 0.5 - 1.0, pos.y - 11.0, tw + 2.0, 24.0)
 		if not _claim(grid, prect): continue
@@ -297,8 +320,9 @@ func _draw() -> void:
 func _draw_plaque(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, me: int, zs: float) -> void:
 	var o := g.owner[p]
 	var tier: int = st["tier"]
-	var fs := 10 + tier
+	var fs := 9 + tier
 	var txt := TBKit.fmt(int(round(st["shown"])))
+	if o != me and g.get_rel(me, o) != 1 and p != map.selected and p != map.hover: al *= 0.62       # quiet foreign stacks recede
 	var ease_in: float = float(st["a"])
 	var sc := zs * (0.6 + 0.4 * (1.0 + 1.70158 * pow(ease_in - 1.0, 3.0) + 2.70158 * pow(ease_in - 1.0, 2.0)))   # easeOutBack on appear
 	sc *= 1.0 + 0.26 * float(st["pop"]) * float(st["pop"])

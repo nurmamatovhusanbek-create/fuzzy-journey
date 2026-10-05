@@ -13,6 +13,7 @@ const D = preload("res://src/engine/data.gd")
 
 var g: TBGame
 var p := -1
+var send_frac := 1.0                      # share of the stack a move sends (25 / 50 / 75 / 100 %)
 var _body: VBoxContainer
 
 func _init() -> void:
@@ -114,7 +115,11 @@ func rebuild() -> void:
 	if mine:
 		act.add_child(K.button(T.call("recruit") + " +15", func(): command.emit({"cmd": "recruit", "p": p, "amount": 15})))
 		act.add_child(K.button(T.call("hire") + " +40 (%dg)" % int(ceil(40 * 5.0 * float(D.REGIMES[g.regime[me]]["recruitCost"]))), func(): command.emit({"cmd": "hire", "p": p, "amount": 40})))
-		if g.army[p] > 1: act.add_child(K.button(T.call("move"), func(): move_requested.emit(p)))
+		if g.army[p] > 1:
+			act.add_child(K.button(T.call("move"), func(): move_requested.emit(p)))
+			var seg := K.segmented([["25", "25%"], ["50", "50%"], ["75", "75%"], ["100", "100%"]], str(int(round(send_frac * 100.0))), func(v): send_frac = float(v) / 100.0)
+			var sh := K.hbox(6); sh.add_child(K.caps(T.call("send_share"), 10, K.DIM)); sh.add_child(seg); _body.add_child(sh)
+			_body.move_child(sh, act.get_index() + 1)
 		if g.rules >= 1:
 			if g.gen[p] != 0:
 				stats.add_child(K.row(T.call("general"), "%s  %s" % [TBGenerals.display_name(g, p), "★".repeat(TBGenerals.skill(g, p))], K.GOLD2))

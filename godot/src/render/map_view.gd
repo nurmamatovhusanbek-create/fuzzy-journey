@@ -196,7 +196,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("theme", map_theme)
 	_select_ids_texture()
 	if labels != null:
-		labels.max_labels = [40, 90, 160][quality]
+		labels.max_labels = [30, 70, 110][quality]
 		labels.hidden_while_dragging = quality == 0 and _pressed and _drag_moved >= 6.0
 		labels.queue_redraw()
 	view_changed.emit()

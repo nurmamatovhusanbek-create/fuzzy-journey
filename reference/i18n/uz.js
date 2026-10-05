@@ -657,6 +657,7 @@ export default {
   doc_administrative: "Boshqaruv",
   doc_administrative_d: "−12% boshqaruv xarajati, +5% tadqiqot.",
   e_doctrine: "{a} doktrinani qabul qildi: {d}",
+  send_share: "Yuborish", pv_title: "Hujum: {p}", pv_force: "Sizning kuchingiz va himoyachilar", pv_win: "G‘alaba: {k} jangchingiz viloyatni ushlab qoladi (yo‘qotish: {l}).", pv_lose: "Mag‘lubiyat: siz {a}, ular {d} yo‘qotadi.", pv_cancel: "Bekor qilish", pv_attack: "Hujum qilish",
   ev_worldwide: "Butun dunyo voqeasi",
   ev_event: "Voqea",
   ev_ack: "Tushunarli",
