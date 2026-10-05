@@ -10,7 +10,7 @@ var main: Control
 var net: TBNet
 var active := false
 var in_game := false
-var url := "wss://terra-bellum-server.onrender.com"
+var url := "wss://terra-bellum-godot-server.onrender.com"
 var player_name := "Player"
 var _pending := {}            # seq -> cmd
 var _lobby: Control

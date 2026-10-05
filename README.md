@@ -34,7 +34,7 @@ Dedicated authoritative server running the same engine; clients send commands an
 ```bash
 godot --headless --path godot res://src/net/server.tscn -- --port 8080     # local server
 ```
-Deploy: see `server/Dockerfile` (Render web service, WebSocket on `$PORT`).
+Deployed on Render as `terra-bellum-godot-server` (Docker, `server/Dockerfile`, WebSocket on `$PORT`); default URL `wss://terra-bellum-godot-server.onrender.com`. The legacy web-game server (`terra-bellum-server`) is untouched.
 
 ## Export
 Presets for Windows, Linux, Android, iOS are in `godot/export_presets.cfg`; `.github/workflows/godot.yml` builds them in CI.
