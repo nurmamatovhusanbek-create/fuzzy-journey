@@ -287,19 +287,54 @@ func _on_pick(p: int, secondary: bool) -> void:
 
 var _tip: PanelContainer
 var _tip_label: Label
-## desktop-only hover tooltip: province, owner, army
+## desktop-only hover card: province, owner and relation, army, terrain; in move mode the outcome of an attack
+var _tip_name: Label
+var _tip_sub: Label
+var _tip_note: Label
+var _tip_flag: TextureRect
 func _on_hover(p: int) -> void:
-	if mode != "game" or p < 0 or OS.has_feature("mobile"):
+	if mode != "game" or p < 0 or OS.has_feature("mobile") or g == null:
 		if _tip != null: _tip.visible = false
 		return
 	if _tip == null:
 		_tip = PanelContainer.new(); _tip.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tip.z_index = 50
-		_tip_label = K.label("", 13); _tip.add_child(_tip_label); add_child(_tip)
+		_tip.add_theme_stylebox_override("panel", TBFrame.make(Color(0.035, 0.055, 0.11, 0.95), Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.6), 7, false, 11, 7))
+		var v := K.vbox(1); _tip.add_child(v)
+		var top := K.hbox(7); v.add_child(top)
+		_tip_flag = TextureRect.new(); _tip_flag.custom_minimum_size = Vector2(22, 15); _tip_flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; _tip_flag.stretch_mode = TextureRect.STRETCH_SCALE; _tip_flag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		top.add_child(_tip_flag)
+		_tip_name = K.title("", 15); top.add_child(_tip_name)
+		_tip_sub = K.label("", 12, K.DIM); v.add_child(_tip_sub)
+		_tip_note = K.label("", 12, K.TEXT); v.add_child(_tip_note)
+		add_child(_tip)
 	var o := g.owner[p]
-	_tip_label.text = "%s — %s  (%s %s)" % [TBI18n.place(world.name[p]), g.dname(o) if o != 0 else T.call("neutral"), T.call("army"), K.fmt(g.army[p])]
+	var me := g.human_id
+	_tip_name.text = TBI18n.place(world.name[p])
+	_tip_flag.visible = o != 0
+	if o != 0: _tip_flag.texture = TBFlags.texture(g.nat_code[o], g.color[o])
+	var rel_txt := ""
+	if o == 0: rel_txt = T.call("neutral")
+	elif o == me: rel_txt = g.dname(o)
+	else:
+		var r := g.get_rel(me, o)
+		rel_txt = "%s · %s" % [g.dname(o), T.call(["rel_peace", "rel_war", "rel_nap", "rel_ally", "rel_marriage"][clampi(r, 0, 4)])]
+	_tip_sub.text = "%s  ·  %s %s  ·  %s" % [rel_txt, T.call("army"), K.fmt(g.army[p]), T.call("t_" + TBData.TERRAIN_ID[g.terrain[p]])]
+	_tip_note.visible = false
+	if move_from >= 0 and g.rules >= 1 and g.move_check(me, move_from, p) == "attack":
+		var pv := g.combat_preview(me, move_from, p, _troops_for(move_from))
+		_tip_note.visible = true
+		_tip_note.text = T.call("pv_win_short", {"k": int(pv["hold"])}) if pv["win"] else T.call("pv_lose_short", {"a": int(pv["lost"])})
+		_tip_note.add_theme_color_override("font_color", Color(0.6, 0.95, 0.65) if pv["win"] else K.RED.lightened(0.3))
+	if not _tip.visible and TBMapView.animate:
+		_tip.modulate.a = 0.0
+		_tip.create_tween().tween_property(_tip, "modulate:a", 1.0, 0.1)
 	_tip.visible = true
 	_tip.reset_size()
-	_tip.position = (get_local_mouse_position() + Vector2(16, 18)).clamp(Vector2.ZERO, size - _tip.size)
+	_place_tip()
+
+func _place_tip() -> void:
+	if _tip == null or not _tip.visible: return
+	_tip.position = (get_local_mouse_position() + Vector2(18, 20)).clamp(Vector2.ZERO, size - _tip.size)
 
 func _select(p: int) -> void:
 	selected = p
@@ -581,6 +616,7 @@ func _update_perf(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_update_perf(delta)
+	_place_tip()
 	if map.labels != null and map.labels.visible != (mode != "menu"): map.labels.visible = mode != "menu"
 	if mode == "menu" and _spin:
 		map.lon0 += delta * 0.12

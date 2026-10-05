@@ -30,4 +30,9 @@ func _init() -> void:
 	main._try_move(from, to)
 	for i in 6: await process_frame
 	await _shot("pv1")
+	main._clear_overlay(); main.hud.hide_preview(); main._pv_to = -1
+	root.warp_mouse(Vector2(640, 300)) if false else null
+	main._on_hover(to)
+	main._tip.position = Vector2(560, 330)
+	await _shot("pv2_tip")
 	quit(0)

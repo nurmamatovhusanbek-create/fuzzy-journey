@@ -659,6 +659,7 @@ export default {
   e_doctrine: "{a} doktrinani qabul qildi: {d}",
   send_share: "Yuborish", pv_title: "Hujum: {p}", pv_force: "Sizning kuchingiz va himoyachilar", pv_win: "G‘alaba: {k} jangchingiz viloyatni ushlab qoladi (yo‘qotish: {l}).", pv_lose: "Mag‘lubiyat: siz {a}, ular {d} yo‘qotadi.", pv_cancel: "Bekor qilish", pv_attack: "Hujum qilish",
   codex_battle_t: "Janglar", codex_battle_b: "Jang aniq hisoblanadi: sizning kuchingiz davr, relyef, hukmdor va sarkarda ustamalari bilan himoyachilar kuchiga (relyef, qal‘a, sarkarda) qarshi. Hujumni tanlaganingizda natija oldindan aniq ko‘rsatiladi. Viloyat panelidagi «Yuborish» qo‘shinning 25 dan 100 foizigacha qismini yuboradi.",
+  pv_win_short: "Hujum muvaffaqiyatli: {k} ushlab qoladi", pv_lose_short: "Hujum muvaffaqiyatsiz: −{a} jangchi",
   ev_worldwide: "Butun dunyo voqeasi",
   ev_event: "Voqea",
   ev_ack: "Tushunarli",
