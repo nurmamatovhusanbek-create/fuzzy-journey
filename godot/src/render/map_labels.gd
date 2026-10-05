@@ -77,7 +77,7 @@ func _draw_nation_names(font: Font) -> void:
 			pos = Vector2(pt.x, pt.y)
 		if pos.x < 0 or pos.y < 0 or pos.x > map.size.x or pos.y > map.size.y: continue
 		var fs := int(clampf(8.0 + sqrt(float(cnt[n])) * 1.4 * minf(map.zoom, 2.2), 10.0, 24.0))
-		var txt: String = g.nat_name[n]
+		var txt: String = g.dname(n)
 		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 		var rect := Rect2(pos - tw * 0.5, tw).grow(3.0)
 		var clash := false

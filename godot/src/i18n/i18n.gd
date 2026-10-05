@@ -18,6 +18,21 @@ static func _read(l: String) -> Dictionary:
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
 	return d if d is Dictionary else {}
 
+static var _names: Dictionary = {}
+static var _names_lang := ""
+
+## display name of a nation / polity: Russian atlas names when the language is Russian (state keeps the English id name)
+static func nation(name: String) -> String:
+	if lang == "en": return name
+	if _names_lang != lang:
+		_names_lang = lang
+		var path := "res://data/i18n/names_%s.json" % lang
+		_names = {}
+		if FileAccess.file_exists(path):
+			var d = JSON.parse_string(FileAccess.get_file_as_string(path))
+			if d is Dictionary: _names = d
+	return String(_names.get(name, name))
+
 static func T(key: String, vars: Dictionary = {}) -> String:
 	var s: String = _dicts.get(lang, {}).get(key, _dicts.get("en", {}).get(key, key))
 	for k in vars:

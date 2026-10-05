@@ -12,7 +12,7 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard"}
+var cfg := {"quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -60,7 +60,9 @@ func _ready() -> void:
 func _update_ui_scale() -> void:
 	var w := get_window()
 	var s := w.size
-	w.content_scale_size = Vector2i(540, 960) if s.y > s.x else Vector2i(1280, 720)
+	var k: float = {"small": 1.18, "normal": 1.0, "large": 0.84}.get(cfg.get("ui", "normal"), 1.0)      # bigger logical size = smaller UI
+	var base := Vector2(540, 960) if s.y > s.x else Vector2(1280, 720)
+	w.content_scale_size = Vector2i(int(base.x * k), int(base.y * k))
 	_apply_safe_area()
 
 ## keep UI clear of notches / rounded corners / gesture bars on phones
@@ -148,7 +150,7 @@ func show_menu() -> void:
 func _open_settings() -> void:
 	var prev_lang: String = TBI18n.lang
 	TBModals.settings(_overlay, cfg, func():
-		_save_cfg(); TBI18n.load_lang(cfg["lang"]); _apply_quality()
+		_save_cfg(); TBI18n.load_lang(cfg["lang"]); _apply_quality(); _update_ui_scale()
 		map.set_mode(0 if cfg["view"] == "globe" else 1)
 		if TBI18n.lang != prev_lang:          # re-create already-built screens in the new language
 			prev_lang = TBI18n.lang
@@ -197,12 +199,12 @@ func _on_pick(p: int, secondary: bool) -> void:
 		map.select(p)
 		_clear_overlay()
 		_overlay.add_child(_back_btn())
-		var m := K.modal(_overlay, g.nat_name[n], 380, "flag")
+		var m := K.modal(_overlay, g.dname(n), 380, "flag")
 		m[0].color = Color(0, 0, 0, 0)
 		m[1].add_child(K.label("%d %s" % [g.own_count(n), T.call("lands").to_lower()], 14, K.DIM))
 		var row := K.hbox(8); m[1].add_child(row)
 		row.add_child(K.button(T.call("back"), func(): m[0].queue_free()))
-		var go := K.button(T.call("play_as", {"nation": g.nat_name[n]}), func(): _start_game(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(go)
+		var go := K.button(T.call("play_as", {"nation": g.dname(n)}), func(): _start_game(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(go)
 		return
 	if mode != "game" or _busy: return
 	if p < 0: _select(-1); return
@@ -222,7 +224,7 @@ func _on_hover(p: int) -> void:
 		_tip = PanelContainer.new(); _tip.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tip.z_index = 50
 		_tip_label = K.label("", 13); _tip.add_child(_tip_label); add_child(_tip)
 	var o := g.owner[p]
-	_tip_label.text = "%s — %s  (%s %s)" % [world.name[p], g.nat_name[o] if o != 0 else T.call("neutral"), T.call("army"), K.fmt(g.army[p])]
+	_tip_label.text = "%s — %s  (%s %s)" % [world.name[p], g.dname(o) if o != 0 else T.call("neutral"), T.call("army"), K.fmt(g.army[p])]
 	_tip.visible = true
 	_tip.reset_size()
 	_tip.position = (get_local_mouse_position() + Vector2(16, 18)).clamp(Vector2.ZERO, size - _tip.size)

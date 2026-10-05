@@ -28,8 +28,8 @@ static func date(g: TBGame, turn: int) -> String:
 
 ## one-line description; empty string = not worth showing
 static func text(g: TBGame, e: Dictionary) -> String:
-	var a := String(g.nat_name[e["a"]]) if int(e.get("a", 0)) > 0 else ""
-	var b := String(g.nat_name[e["b"]]) if e.has("b") and int(e["b"]) > 0 else ""
+	var a := String(g.dname(e["a"])) if int(e.get("a", 0)) > 0 else ""
+	var b := String(g.dname(e["b"])) if e.has("b") and int(e["b"]) > 0 else ""
 	var pn := ""
 	if e.has("p") and int(e["p"]) >= 0: pn = String(g.world.name[e["p"]])
 	match String(e["kind"]):

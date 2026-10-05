@@ -235,6 +235,9 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		TBRegimes.assign(self)
 		TBRulers.init(self)
 
+## nation name for display (localised)
+func dname(n: int) -> String: return TBI18n.nation(nat_name[n])
+
 func set_human(n: int) -> void:
 	human.fill(0); human[n] = 1; human_id = n
 	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"]; mp[n] = 10; dp[n] = 6

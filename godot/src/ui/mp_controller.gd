@@ -190,7 +190,7 @@ func _show_lobby(info: Dictionary) -> void:
 	var all_picked := true
 	for p in info["players"]:
 		var nat := "—"
-		if p["nation"] != 0: nat = net.game.nat_name[p["nation"]]
+		if p["nation"] != 0: nat = net.game.dname(p["nation"])
 		else: all_picked = false
 		v.add_child(K.label("%s%s  →  %s" % ["[%s] " % T.call("mp_host") if p["host"] else "", p["name"], nat], 15, K.TEXT if p["connected"] else K.DIM))
 	if info["host"] == me:

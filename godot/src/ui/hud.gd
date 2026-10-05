@@ -137,7 +137,7 @@ func refresh() -> void:
 	var n := g.human_id
 	var inc := g.income(n)
 	_flag.texture = TBFlags.texture(g.nat_code[n], g.color[n])
-	_name.text = g.nat_name[n]
+	_name.text = g.dname(n)
 	var rl := ""
 	if g.rules >= 1 and g.r_name[n] != "":
 		rl = "%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)]

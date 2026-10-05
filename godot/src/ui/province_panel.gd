@@ -64,7 +64,7 @@ func rebuild() -> void:
 	var sub := K.hbox(8)
 	if o != 0:
 		sub.add_child(TBFlags.chip(g, o))
-		var nb := Button.new(); nb.text = g.nat_name[o] + "  ›"; nb.flat = true; nb.focus_mode = Control.FOCUS_NONE
+		var nb := Button.new(); nb.text = g.dname(o) + "  ›"; nb.flat = true; nb.focus_mode = Control.FOCUS_NONE
 		nb.add_theme_stylebox_override("normal", StyleBoxEmpty.new()); nb.add_theme_stylebox_override("hover", StyleBoxEmpty.new()); nb.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
 		nb.add_theme_font_size_override("font_size", 15); nb.add_theme_color_override("font_color", K.TEXT); nb.add_theme_color_override("font_hover_color", K.GOLD2)
 		nb.alignment = HORIZONTAL_ALIGNMENT_LEFT; nb.custom_minimum_size = Vector2(0, 32); nb.pressed.connect(func(): nation_requested.emit(o))
@@ -79,7 +79,7 @@ func rebuild() -> void:
 		sub.add_child(K.caps(T.call("neutral"), 11, K.DIM))
 	_body.add_child(sub)
 	if g.occupier[p] != 0:
-		_body.add_child(K.label(T.call("occupied_by", {"nation": g.nat_name[g.occupier[p]]}), 13, K.RED))
+		_body.add_child(K.label(T.call("occupied_by", {"nation": g.dname(g.occupier[p])}), 13, K.RED))
 	var bname: String = T.call("none")
 	if g.building[p] != 0: bname = "%s %d" % [T.call("b_" + D.BUILDINGS[g.building[p] - 1]["id"]), g.b_level[p]]
 	elif g.b_building[p] != 0: bname = "%s · %d" % [T.call("b_" + D.BUILDINGS[g.b_building[p] - 1]["id"]), g.b_turns[p]]

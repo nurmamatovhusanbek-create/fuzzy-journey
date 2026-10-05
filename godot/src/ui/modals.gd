@@ -85,10 +85,10 @@ static func statistics(parent: Control, g: TBGame, on_list: Callable) -> void:
 		for n in feats:
 			var col := Color.hex((g.color[n] << 8) | 0xFF).lightened(0.15)
 			if n == g.human_id: col = K.GOLD2
-			chart.series.append({"name": g.nat_name[n], "color": col, "pts": TBStats.series(g, n, st["key"]), "bold": n == g.human_id})
+			chart.series.append({"name": g.dname(n), "color": col, "pts": TBStats.series(g, n, st["key"]), "bold": n == g.human_id})
 			var it := K.hbox(5)
 			var sw := ColorRect.new(); sw.color = col; sw.custom_minimum_size = Vector2(12, 3); sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER; it.add_child(sw)
-			it.add_child(K.label(g.nat_name[n], 12, K.GOLD2 if n == g.human_id else K.TEXT))
+			it.add_child(K.label(g.dname(n), 12, K.GOLD2 if n == g.human_id else K.TEXT))
 			legend.add_child(it)
 		chart.queue_redraw()
 	m[1].add_child(K.segmented([["p", T.call("hud_prov")], ["a", T.call("army")], ["g", T.call("gold")], ["k", T.call("tech")]], "p", func(id: String): st["key"] = id; draw.call()))
@@ -136,10 +136,10 @@ static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bo
 		for c in list.get_children(): c.queue_free()
 		var shown := 0
 		for n in rows:
-			if q != "" and not g.nat_name[n].to_lower().contains(q.to_lower()): continue
+			if q != "" and not g.dname(n).to_lower().contains(q.to_lower()): continue
 			var rel := g.get_rel(g.human_id, n)
 			var nat_col := K.RED.lightened(0.25) if rel == 1 else (Color(0.55, 0.72, 1.0) if rel == 3 else K.TEXT)
-			var b := K.list_row(g.nat_name[n], str(g.own_count(n)), func(): close(m[0]); on_pick.call(n), nat_col)
+			var b := K.list_row(g.dname(n), str(g.own_count(n)), func(): close(m[0]); on_pick.call(n), nat_col)
 			list.add_child(b)
 			shown += 1
 			if shown >= 60: break
@@ -172,6 +172,7 @@ static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_m
 	_segment(m[1], T.call("language"), [["en", "English"], ["ru", "Русский"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
 	_segment(m[1], T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], cfg["view"], func(v): cfg["view"] = v; on_change.call())
 	_segment(m[1], T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")]], cfg.get("theme", "standard"), func(v): cfg["theme"] = v; on_change.call())
+	_segment(m[1], T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], cfg.get("ui", "normal"), func(v): cfg["ui"] = v; on_change.call())
 	m[1].add_child(K.button(T.call("tut_help"), func(): close(m[0]); tutorial(parent, func(): pass)))
 	var row := K.hbox(8); m[1].add_child(row)
 	if on_menu.is_valid(): row.add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call()))
@@ -196,7 +197,7 @@ static func save_load(parent: Control, saving: bool, on_save: Callable, on_load:
 ## detailed nation card with diplomacy actions; on_cmd(cmd Dictionary), on_goto(n)
 static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, on_goto: Callable) -> void:
 	var me := g.human_id
-	var m := K.modal(parent, g.nat_name[n], 460)
+	var m := K.modal(parent, g.dname(n), 460)
 	var v: VBoxContainer = m[1]
 	v.add_child(TBFlags.chip(g, n, 1.1))
 	v.move_child(v.get_child(v.get_child_count() - 1), 0)
@@ -244,8 +245,8 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 	for o in range(1, g.N1):
 		if g.alive[o] == 0 or o == n: continue
 		var r := g.get_rel(n, o)
-		if r == 3: allies.append(g.nat_name[o])
-		elif r == 1: enemies.append(g.nat_name[o])
+		if r == 3: allies.append(g.dname(o))
+		elif r == 1: enemies.append(g.dname(o))
 	var info := func(title: String, arr: Array):
 		var l := K.label("%s: %s" % [title, ", ".join(arr.slice(0, 6)) + (" …" if arr.size() > 6 else "") if not arr.is_empty() else T.call("none_yet")], 13, K.DIM)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.custom_minimum_size = Vector2(400, 0); v.add_child(l)
@@ -286,7 +287,7 @@ static func tutorial(parent: Control, on_done: Callable) -> void:
 	var m := K.modal(parent, T.call("tut_title"), 520)
 	var title := K.title("", 20)
 	var body := K.label("", 15); body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; body.custom_minimum_size = Vector2(460, 90)
-	var pips := K.Pips.new(1, 6); pips.custom_minimum_size = Vector2(6 * 14, 18)
+	var pips := K.Pips.new(1, 7); pips.custom_minimum_size = Vector2(7 * 14, 18)
 	m[1].add_child(pips); m[1].add_child(title); m[1].add_child(body)
 	var row := K.hbox(8); m[1].add_child(row)
 	var skip := K.button(T.call("tut_skip"), func(): close(m[0]); on_done.call())
@@ -295,9 +296,9 @@ static func tutorial(parent: Control, on_done: Callable) -> void:
 	var draw := func():
 		title.text = T.call("tut_%d_t" % step[0]); body.text = T.call("tut_%d_b" % step[0])
 		pips.n = step[0]; pips.queue_redraw()
-		next.text = T.call("tut_done") if step[0] == 6 else T.call("tut_next")
+		next.text = T.call("tut_done") if step[0] == 7 else T.call("tut_next")
 	next.pressed.connect(func():
-		if step[0] >= 6: close(m[0]); on_done.call(); return
+		if step[0] >= 7: close(m[0]); on_done.call(); return
 		step[0] += 1; draw.call())
 	draw.call()
 
@@ -351,9 +352,9 @@ static func goals(parent: Control, g: TBGame) -> void:
 
 static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 	var won: bool = g.winner == g.human_id
-	var sub: String = T.call("e_victory", {"a": g.nat_name[g.winner]}) if won else T.call("e_defeat")
-	if won and g.victory_kind != "": sub = "%s — %s" % [T.call("vc_" + g.victory_kind), g.nat_name[g.winner]]
-	elif g.winner != 0 and not won: sub = T.call("e_lost_to", {"a": g.nat_name[g.winner]})
+	var sub: String = T.call("e_victory", {"a": g.dname(g.winner)}) if won else T.call("e_defeat")
+	if won and g.victory_kind != "": sub = "%s — %s" % [T.call("vc_" + g.victory_kind), g.dname(g.winner)]
+	elif g.winner != 0 and not won: sub = T.call("e_lost_to", {"a": g.dname(g.winner)})
 	var m := K.modal(parent, "", 480)
 	var head := K.label(T.call("go_won") if won else T.call("go_lost"), 40, K.GOLD2 if won else K.CRIMSON.lightened(0.15))
 	head.add_theme_font_override("font", K.tracked(K.display_hi(), 5)); head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -374,7 +375,7 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 		var row := K.hbox(10)
 		var rk := K.num("%d" % (i + 1), 15, K.GOLD2 if r[1] == g.human_id else K.DIM); rk.custom_minimum_size = Vector2(22, 0); row.add_child(rk)
 		row.add_child(TBFlags.chip(g, r[1], 0.8))
-		var nm := K.title(g.nat_name[r[1]], 15, K.GOLD2 if r[1] == g.human_id else K.TEXT); nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(nm)
+		var nm := K.title(g.dname(r[1]), 15, K.GOLD2 if r[1] == g.human_id else K.TEXT); nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(nm)
 		row.add_child(K.num("%d" % r[0], 14, K.GOLD2)); row.add_child(K.glyph_label("swords", K.fmt(r[2]), K.DIM, 11))
 		m[1].add_child(row)
 	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); m[1].add_child(gap)
