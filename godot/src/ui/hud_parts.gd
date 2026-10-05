@@ -66,13 +66,16 @@ class DockButton extends Button:
 ## End Turn: a brass wax-seal medallion with a graduated bezel; the bezel sweeps while the turn resolves
 class Seal extends Button:
 	var busy := false
+	var pulse := false              # gentle attention ring until the player has pressed it once
 	var caption := "END TURN"
 	var _t := 0.0
 	func _init() -> void:
 		custom_minimum_size = Vector2(92, 92); focus_mode = Control.FOCUS_NONE
 		for st in ["normal", "hover", "pressed", "disabled", "focus"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
 	func set_busy(b: bool) -> void:
-		busy = b; set_process(b); queue_redraw()
+		busy = b; set_process(b or pulse); queue_redraw()
+	func set_pulse(p: bool) -> void:
+		pulse = p; set_process(busy or p); queue_redraw()
 	func _process(d: float) -> void:
 		_t += d; queue_redraw()
 	func _draw() -> void:
@@ -92,6 +95,9 @@ class Seal extends Button:
 			var d := Vector2(cos(a), sin(a))
 			var lit := busy and fposmod(a - spin * 2.0, TAU) < 1.0
 			draw_line(c + d * (R - 8.0), c + d * (R - (14.0 if long else 11.0)), Color(gold.r, gold.g, gold.b, 0.95 if lit or long else 0.5), 1.2, true)
+		if pulse and not busy:
+			var k := fposmod(_t * 0.9, 1.0)
+			draw_arc(c, R + 2.0 + k * 9.0, 0, TAU, 48, Color(0.953, 0.773, 0.322, 0.55 * (1.0 - k)), 2.0, true)
 		var inner := R - 19.0
 		draw_circle(c, inner, Color(0.83, 0.63, 0.09, 0.32 if down else (0.16 if hot else 0.07)))
 		draw_arc(c, inner, 0, TAU, 40, Color(gold.r, gold.g, gold.b, 0.6), 1.0, true)

@@ -196,5 +196,8 @@ func _place_legend() -> void:
 	_legend.offset_left = -170 + (60 if not _portrait else 0); _legend.offset_right = 170 + (60 if not _portrait else 0)
 	_legend.offset_bottom = -14 if not _portrait else -78; _legend.offset_top = _legend.offset_bottom - h
 
+func set_seal_pulse(on: bool) -> void:
+	if _seal: _seal.set_pulse(on)
+
 func set_busy(b: bool) -> void:
 	if _seal: _seal.set_busy(b); _seal.disabled = b

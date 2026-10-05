@@ -12,7 +12,7 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal"}
+var cfg := {"seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -39,7 +39,9 @@ func _ready() -> void:
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
-	hud.end_turn_pressed.connect(func(): sfx.play("turn"); end_turn())
+	hud.end_turn_pressed.connect(func():
+		sfx.play("turn"); end_turn()
+		if not cfg.get("seal_seen", false): cfg["seal_seen"] = true; _save_cfg(); hud.set_seal_pulse(false))
 	hud.tapped.connect(func(): sfx.play("tap"))
 	hud.lens_selected.connect(func(n): map.set_lens(n); hud.set_lens_legend(n))
 	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation))
@@ -198,6 +200,7 @@ func _start_game(n: int) -> void:
 	var cap := g.capital_of[n]
 	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2 if map.mode == 0 else maxf(map.zoom, 3.0))
 	hud.g = g; hud.visible = true; hud.build(); hud.refresh()
+	hud.set_seal_pulse(not cfg.get("seal_seen", false))
 	_select(-1)
 	_autosave()
 	if not cfg.get("tutorial", false):
