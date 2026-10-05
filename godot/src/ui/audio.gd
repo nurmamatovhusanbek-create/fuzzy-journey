@@ -1,0 +1,72 @@
+## Tiny synthesised sound set (no asset files): bells, a gong, a growl. Generated once at startup, 22 kHz mono.
+class_name TBAudio
+extends Node
+
+const RATE := 22050
+var enabled := true
+var _snd := {}
+var _players: Array[AudioStreamPlayer] = []
+var _next := 0
+
+func _ready() -> void:
+	for i in 4:
+		var p := AudioStreamPlayer.new(); p.volume_db = -8.0; add_child(p); _players.append(p)
+	_build.call_deferred()
+
+func _build() -> void:
+	_snd["tap"] = _tone([[1320.0, 1.0], [1980.0, 0.3]], 0.07, 0.002, 38.0)
+	_snd["coin"] = _seq([[1760.0, 0.06], [2349.0, 0.14]], 0.8)
+	_snd["turn"] = _tone([[110.0, 1.0], [164.0, 0.6], [221.0, 0.45], [331.0, 0.25]], 1.1, 0.01, 4.2)
+	_snd["event"] = _tone([[523.0, 1.0], [784.0, 0.5], [1046.0, 0.35]], 0.9, 0.005, 5.0)
+	_snd["alert"] = _seq([[880.0, 0.1], [660.0, 0.22]], 0.9)
+	_snd["war"] = _growl(0.45)
+	_snd["win"] = _seq([[523.0, 0.12], [659.0, 0.12], [784.0, 0.12], [1046.0, 0.5]], 0.9)
+
+func play(name: String) -> void:
+	if not enabled or not _snd.has(name) or _players.is_empty(): return
+	var p := _players[_next]; _next = (_next + 1) % _players.size()
+	p.stream = _snd[name]; p.play()
+
+func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
+	var b := PackedByteArray(); b.resize(samples.size() * 2)
+	for i in samples.size():
+		var v := clampi(int(samples[i] * 30000.0), -32767, 32767)
+		b[i * 2] = v & 0xFF; b[i * 2 + 1] = (v >> 8) & 0xFF
+	var w := AudioStreamWAV.new(); w.format = AudioStreamWAV.FORMAT_16_BITS; w.mix_rate = RATE; w.stereo = false; w.data = b
+	return w
+
+## additive partials with attack + exponential decay
+func _tone(partials: Array, dur: float, attack: float, decay: float, gain: float = 0.5) -> AudioStreamWAV:
+	var n := int(dur * RATE); var s := PackedFloat32Array(); s.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var env := minf(1.0, t / attack) * exp(-decay * t)
+		var v := 0.0
+		for p in partials: v += sin(TAU * p[0] * t) * p[1]
+		s[i] = v * env * gain / maxf(1.0, partials.size() * 0.6)
+	return _wav(s)
+
+func _seq(notes: Array, gain: float) -> AudioStreamWAV:
+	var all := PackedFloat32Array()
+	for nt in notes:
+		var n := int(float(nt[1]) * RATE); var seg := PackedFloat32Array(); seg.resize(n)
+		for i in n:
+			var t := float(i) / RATE
+			seg[i] = (sin(TAU * nt[0] * t) + 0.35 * sin(TAU * nt[0] * 2.0 * t)) * minf(1.0, t / 0.004) * exp(-9.0 * t) * 0.4 * gain
+		all.append_array(seg)
+	all.append_array(PackedFloat32Array([0.0, 0.0]))
+	# let the last note ring
+	var tail := int(0.25 * RATE)
+	var last: float = notes[notes.size() - 1][0]
+	for i in tail: all.append(sin(TAU * last * float(i) / RATE) * exp(-12.0 * float(i) / RATE) * 0.1 * gain)
+	return _wav(all)
+
+func _growl(dur: float) -> AudioStreamWAV:
+	var n := int(dur * RATE); var s := PackedFloat32Array(); s.resize(n)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		ph += (95.0 - 30.0 * t) / RATE
+		var saw := fposmod(ph, 1.0) * 2.0 - 1.0
+		s[i] = (saw * 0.55 + sin(TAU * 47.0 * t) * 0.4) * minf(1.0, t / 0.02) * exp(-4.0 * t) * 0.6
+	return _wav(s)

@@ -26,6 +26,7 @@
 | **Statistics** (item 6): history charts (provinces / army / gold / tech) for the leading powers, recorded from state so MP clients need no extra traffic | done |
 | **Trade deals** (item 7): bilateral deals (slots grow with era), income from partner size, war cancels, AI signs them, UI on nation card, MP-safe | done |
 | Russian nation names (737 polities), interface-size setting, refreshed tutorial (7 steps) | done |
+| Synthesised sound set (7 cues, no asset files) with settings toggle | done |
 | Still to port from legacy | generals, formable nations, ultimatums / war goals / marriage UI, data-spike lens |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 

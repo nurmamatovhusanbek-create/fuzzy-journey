@@ -13,6 +13,7 @@ signal advisor_pressed
 signal budget_pressed
 signal save_pressed
 signal settings_pressed
+signal tapped
 
 const K = preload("res://src/ui/ui_kit.gd")
 const P = preload("res://src/ui/hud_parts.gd")
@@ -80,7 +81,7 @@ func build() -> void:
 	_dock_holder.add_child(_dock)
 	for spec in [["globe", "dk_nations", nations_pressed], ["coins", "dk_budget", budget_pressed], ["scales", "dk_decisions", decisions_pressed], ["book", "dk_chronicle", chronicle_pressed], ["trophy", "dk_goals", goals_pressed], ["lamp", "dk_advisor", advisor_pressed], ["save", "dk_save", save_pressed], ["gear", "dk_settings", settings_pressed]]:
 		var sig: Signal = spec[2]
-		var b := P.DockButton.new().setup(spec[0], T.call(spec[1]), func(): sig.emit())
+		var b := P.DockButton.new().setup(spec[0], T.call(spec[1]), func(): tapped.emit(); sig.emit())
 		_dock.add_child(b)
 		if spec[0] == "lamp": _advisor_btn = b
 	# ---- toasts (dispatch slips)

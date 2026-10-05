@@ -172,6 +172,7 @@ static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_m
 	_segment(m[1], T.call("language"), [["en", "English"], ["ru", "Русский"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
 	_segment(m[1], T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], cfg["view"], func(v): cfg["view"] = v; on_change.call())
 	_segment(m[1], T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")]], cfg.get("theme", "standard"), func(v): cfg["theme"] = v; on_change.call())
+	_segment(m[1], T.call("sound"), [["1", T.call("on")], ["0", T.call("off")]], "1" if cfg.get("sound", true) else "0", func(v): cfg["sound"] = (v == "1"); on_change.call())
 	_segment(m[1], T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], cfg.get("ui", "normal"), func(v): cfg["ui"] = v; on_change.call())
 	m[1].add_child(K.button(T.call("tut_help"), func(): close(m[0]); tutorial(parent, func(): pass)))
 	var row := K.hbox(8); m[1].add_child(row)

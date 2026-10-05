@@ -12,13 +12,14 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal"}
+var cfg := {"sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
 var _log_idx := 0
 var _spin := true
 var mp: TBMpController
+var sfx: TBAudio
 
 func _ready() -> void:
 	theme = K.theme()
@@ -31,13 +32,15 @@ func _ready() -> void:
 	map.province_picked.connect(_on_pick)
 	map.province_hovered.connect(_on_hover)
 	map.performance_low.connect(_on_perf_low)
+	sfx = TBAudio.new(); add_child(sfx); sfx.enabled = cfg.get("sound", true)
 	hud = TBHud.new(); add_child(hud); hud.visible = false
 	panel = TBProvincePanel.new(); add_child(panel)
 	panel.command.connect(_on_command); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
-	hud.end_turn_pressed.connect(end_turn)
+	hud.end_turn_pressed.connect(func(): sfx.play("turn"); end_turn())
+	hud.tapped.connect(func(): sfx.play("tap"))
 	hud.lens_selected.connect(func(n): map.set_lens(n))
 	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation))
 	hud.goals_pressed.connect(func(): TBModals.goals(_overlay, g))
@@ -150,7 +153,7 @@ func show_menu() -> void:
 func _open_settings() -> void:
 	var prev_lang: String = TBI18n.lang
 	TBModals.settings(_overlay, cfg, func():
-		_save_cfg(); TBI18n.load_lang(cfg["lang"]); _apply_quality(); _update_ui_scale()
+		_save_cfg(); TBI18n.load_lang(cfg["lang"]); _apply_quality(); _update_ui_scale(); sfx.enabled = cfg.get("sound", true)
 		map.set_mode(0 if cfg["view"] == "globe" else 1)
 		if TBI18n.lang != prev_lang:          # re-create already-built screens in the new language
 			prev_lang = TBI18n.lang
@@ -270,6 +273,8 @@ func _on_command(c: Dictionary) -> void:
 	if not res["ok"]:
 		var key := "err_" + String(res["err"])
 		hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
+	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop", "hire", "recruit"]:
+		sfx.play("coin")
 	elif res.has("success"):
 		hud.toast(T.call("spy_ok") if res["success"] else T.call("spy_fail"), not res["success"])
 	_after_change()
@@ -296,6 +301,7 @@ func show_events() -> void:
 	for e in g.pending:
 		if int(e["n"]) != g.human_id or _shown_events.has(e["uid"]): continue
 		_shown_events[e["uid"]] = true
+		sfx.play("event")
 		var uid: int = e["uid"]
 		TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}))
 		return                      # one at a time; the next shows after this one is answered
@@ -328,6 +334,7 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	hud.refresh()
 	if selected >= 0: panel.rebuild()
 	show_events()
+	if g.over: sfx.play("win" if g.winner == g.human_id else "alert")
 	if g.over: TBModals.game_over(_overlay, g, show_menu)
 	else: _autosave()
 
@@ -339,7 +346,10 @@ func _flush_log() -> void:
 		var e: Dictionary = g.log[_log_idx]; _log_idx += 1
 		if not TBChron.toast_worthy(g, e, me): continue
 		var tx := TBChron.text(g, e)
-		if tx != "": hud.toast(tx, TBChron.is_bad(e, me))
+		if tx != "":
+			hud.toast(tx, TBChron.is_bad(e, me))
+			if String(e["kind"]) == "war" and TBChron.involves(e, me): sfx.play("war")
+			elif String(e["kind"]) in ["event", "ruler"]: sfx.play("event")
 	# new crises (since last turn) get an advisor toast
 	var al := TBAdvisor.alerts(g, me)
 	var now := TBAdvisor.crisis_ids(al)
