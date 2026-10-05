@@ -25,5 +25,5 @@ After editing `reference/i18n/*.js` run `node tools/i18n.mjs`.
 
 ## Known gaps
 - Never run on a physical Android/iOS device (CI proves the export builds, not that it feels right).
-- Province names are English only; nation names have Russian atlas names.
+- Nation and province names have Russian atlas forms (machine-translated; expect a few odd transliterations).
 - Not ported from the legacy game: generals, formable nations, ultimatums/war goals, data-spike lens.

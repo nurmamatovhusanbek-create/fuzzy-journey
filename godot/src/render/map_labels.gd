@@ -109,7 +109,7 @@ func _draw_province_names() -> void:
 			var pt := map.project(g.world.lon[p], g.world.lat[p])
 			pos = Vector2(pt.x, pt.y)
 		if pos.x < 20 or pos.y < 70 or pos.x > map.size.x - 20 or pos.y > map.size.y - 20: continue
-		var txt: String = g.world.name[p]
+		var txt: String = TBI18n.place(g.world.name[p])
 		var tw := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11)
 		var rect := Rect2(pos + Vector2(-tw.x * 0.5, 6), tw).grow(2.0)
 		var clash := false

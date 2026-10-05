@@ -246,7 +246,7 @@ func _on_hover(p: int) -> void:
 		_tip = PanelContainer.new(); _tip.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tip.z_index = 50
 		_tip_label = K.label("", 13); _tip.add_child(_tip_label); add_child(_tip)
 	var o := g.owner[p]
-	_tip_label.text = "%s — %s  (%s %s)" % [world.name[p], g.dname(o) if o != 0 else T.call("neutral"), T.call("army"), K.fmt(g.army[p])]
+	_tip_label.text = "%s — %s  (%s %s)" % [TBI18n.place(world.name[p]), g.dname(o) if o != 0 else T.call("neutral"), T.call("army"), K.fmt(g.army[p])]
 	_tip.visible = true
 	_tip.reset_size()
 	_tip.position = (get_local_mouse_position() + Vector2(16, 18)).clamp(Vector2.ZERO, size - _tip.size)

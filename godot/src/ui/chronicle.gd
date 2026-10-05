@@ -31,7 +31,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 	var a := String(g.dname(e["a"])) if int(e.get("a", 0)) > 0 else ""
 	var b := String(g.dname(e["b"])) if e.has("b") and int(e["b"]) > 0 else ""
 	var pn := ""
-	if e.has("p") and int(e["p"]) >= 0: pn = String(g.world.name[e["p"]])
+	if e.has("p") and int(e["p"]) >= 0: pn = TBI18n.place(String(g.world.name[e["p"]]))
 	match String(e["kind"]):
 		"war":
 			var cbk := String(e.get("cb", ""))

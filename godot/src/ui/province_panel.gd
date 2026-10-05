@@ -52,7 +52,7 @@ func rebuild() -> void:
 	var head := K.hbox(8)
 	var tcol := VBoxContainer.new()
 	tcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tcol.add_theme_constant_override("separation", 0)
-	var title := K.title(w.name[p], 21)
+	var title := K.title(TBI18n.place(w.name[p]), 21)
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; title.custom_minimum_size = Vector2(120, 0)
 	tcol.add_child(title)
 	if g.capital[p] != 0:

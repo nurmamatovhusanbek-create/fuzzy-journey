@@ -33,6 +33,21 @@ static func nation(name: String) -> String:
 			if d is Dictionary: _names = d
 	return String(_names.get(name, name))
 
+static var _places: Dictionary = {}
+static var _places_lang := ""
+
+## localised province / region name (Russian atlas forms); unknown names stay as they are
+static func place(name: String) -> String:
+	if lang == "en": return name
+	if _places_lang != lang:
+		_places_lang = lang
+		var path := "res://data/i18n/places_%s.json" % lang
+		_places = {}
+		if FileAccess.file_exists(path):
+			var d = JSON.parse_string(FileAccess.get_file_as_string(path))
+			if d is Dictionary: _places = d
+	return String(_places.get(name, name))
+
 static func T(key: String, vars: Dictionary = {}) -> String:
 	var s: String = _dicts.get(lang, {}).get(key, _dicts.get("en", {}).get(key, key))
 	for k in vars:
