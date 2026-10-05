@@ -89,6 +89,47 @@ int smooth_id(vec2 t) {
 	return best;
 }
 
+// ---- close-zoom quality: when a texel covers several pixels the bilinear-threshold edge turns into visible diamonds.
+// Here every candidate id gets a quadratic B-spline weight over a 3x3 neighbourhood and the heaviest wins: the borders
+// become smooth curves. A little low-frequency domain warp then breaks the remaining straight runs (hand-drawn look).
+float hash21(vec2 p) {
+	p = fract(p * vec2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return fract(p.x * p.y);
+}
+float vnoise(vec2 p) {
+	vec2 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x), mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+int hq_id(vec2 t) {
+	vec2 w2 = vec2(vnoise(t * 0.55), vnoise(t * 0.55 + vec2(17.3, 5.1))) - 0.5;
+	vec2 tt = t + w2 * 0.9 - 0.5;                       // warp amplitude ~0.45 texel
+	ivec2 b = ivec2(floor(tt + 0.5));
+	vec2 f = tt - vec2(b);                               // -0.5 .. 0.5
+	vec3 wx = vec3(0.5 * (0.5 - f.x) * (0.5 - f.x), 0.75 - f.x * f.x, 0.5 * (0.5 + f.x) * (0.5 + f.x));
+	vec3 wy = vec3(0.5 * (0.5 - f.y) * (0.5 - f.y), 0.75 - f.y * f.y, 0.5 * (0.5 + f.y) * (0.5 + f.y));
+	int cid[9];
+	float cw[9];
+	int n = 0;
+	for (int j = 0; j < 3; j++) {
+		for (int i = 0; i < 3; i++) {
+			int id = id_at(b + ivec2(i - 1, j - 1));
+			float w = wx[i] * wy[j] * (id == 0 ? 0.72 : 1.0);   // ocean down-weighted so thin islands survive
+			bool found = false;
+			for (int k = 0; k < n; k++) {
+				if (cid[k] == id) { cw[k] += w; found = true; }
+			}
+			if (!found) { cid[n] = id; cw[n] = w; n++; }
+		}
+	}
+	int best = cid[0]; float bw = cw[0];
+	for (int k = 1; k < n; k++) {
+		if (cw[k] > bw) { bw = cw[k]; best = cid[k]; }
+	}
+	return best;
+}
+
 int owner_of(int id) {
 	if (id == 0) return 0;
 	vec4 c = texelFetch(pal, ivec2(id, 1), 0);
@@ -121,14 +162,14 @@ void fragment() {
 		vec2 t = tex_coord(lon, lat);
 		ivec2 ti = ivec2(floor(t));
 		vec2 f = t - floor(t);
-		int id = (quality >= 2) ? smooth_id(t) : id_at(ti);
-
 		// texels per screen pixel (finite differences; robust at the lon seam)
 		float lon1, lat1; vec3 n1;
 		vec2 dtx = vec2(0.0), dty = vec2(0.0);
 		if (unproject(p + vec2(1.0, 0.0), lon1, lat1, n1)) dtx = wrap_dt(tex_coord(lon1, lat1) - t);
 		if (unproject(p + vec2(0.0, 1.0), lon1, lat1, n1)) dty = wrap_dt(tex_coord(lon1, lat1) - t);
 		float tpp = max(max(length(dtx), length(dty)), 0.0001);
+		bool hq = quality >= 2 && tpp < 0.5;                 // a texel spans two or more pixels
+		int id = hq ? hq_id(t) : ((quality >= 2) ? smooth_id(t) : id_at(ti));
 
 		vec3 col;
 		if (id == 0) {
@@ -167,7 +208,9 @@ void fragment() {
 		}
 		if (quality >= 2) {
 			// screen-space: compare smoothed ids one pixel to the right / below
-			int nids[2] = int[2](smooth_id(t + dtx), smooth_id(t + dty));
+			float lw = 1.0 + 1.3 * smoothstep(0.4, 0.04, tpp);          // line weight grows as you zoom in: 1 px far away, ~2.3 px close
+			vec2 ox = dtx * lw, oy = dty * lw;
+			int nids[2] = hq ? int[2](hq_id(t + ox), hq_id(t + oy)) : int[2](smooth_id(t + ox), smooth_id(t + oy));
 			for (int i = 0; i < 2; i++) {
 				int nid = nids[i];
 				if (nid == id) continue;
