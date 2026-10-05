@@ -37,7 +37,7 @@ func build() -> void:
 	nat.add_child(K.color_chip(0)); _chips["swatch"] = nat.get_child(0)
 	var nl := K.label("", 16, K.GOLD2); nat.add_child(nl); _chips["nation"] = nl
 	row.add_child(nat)
-	for key in ["date", "gold", "man", "mp", "dp", "lands"]:
+	for key in ["date", "gold", "man", "mp", "dp", "lands", "tech"]:
 		var l := K.label("", 15); row.add_child(l); _chips[key] = l
 	var wars := K.button("", func(): wars_pressed.emit()); wars.custom_minimum_size = Vector2(0, K.MIN_TOUCH - 8); row.add_child(wars); _chips["wars"] = wars
 	# map lens picker (one compact dropdown instead of a tall button column)
@@ -73,10 +73,13 @@ func refresh() -> void:
 	_chips["date"].text = "%s %d · %s %s" % [T.call("turn"), g.turn, TBData.MONTHS[g.month_idx], _year(g.year)]
 	var net: int = inc["net"]
 	_chips["gold"].text = "%s %s (%s%d)" % [T.call("gold"), K.fmt(g.gold[n]), "+" if net >= 0 else "", net]
-	_chips["man"].text = "%s %s/%s" % [T.call("manpower"), K.fmt(g.manpower[n]), K.fmt(inc["manCap"])]
+	_chips["man"].text = "%s %s/%s" % [T.call("hud_man"), K.fmt(g.manpower[n]), K.fmt(inc["manCap"])]
 	_chips["mp"].text = "MP %d" % int(g.mp[n])
 	_chips["dp"].text = "DP %d" % int(g.dp[n])
-	_chips["lands"].text = "%s %d" % [T.call("lands"), inc["lands"]]
+	_chips["lands"].text = "%s %d" % [T.call("hud_prov"), inc["lands"]]
+	var lvl: float = g.tech_level[n]
+	var need := TBTurn._need(g, lvl)
+	_chips["tech"].text = "%s %.1f" % [T.call("era_name_%d" % g.era[n]), lvl]
 	var wc := 0
 	for o in range(1, g.N1):
 		if g.alive[o] != 0 and g.get_rel(n, o) == 1: wc += 1

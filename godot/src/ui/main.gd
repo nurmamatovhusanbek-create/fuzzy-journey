@@ -12,7 +12,7 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"quality": "medium", "lang": "en", "view": "globe", "difficulty": "normal"}
+var cfg := {"quality": "medium", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -55,6 +55,19 @@ func _update_ui_scale() -> void:
 	var w := get_window()
 	var s := w.size
 	w.content_scale_size = Vector2i(540, 960) if s.y > s.x else Vector2i(1280, 720)
+	_apply_safe_area()
+
+## keep UI clear of notches / rounded corners / gesture bars on phones
+func _apply_safe_area() -> void:
+	if not (OS.get_name() in ["Android", "iOS"]):
+		offset_left = 0; offset_top = 0; offset_right = 0; offset_bottom = 0; return
+	var w := get_window()
+	var safe := DisplayServer.get_display_safe_area()
+	var scr := DisplayServer.screen_get_size()
+	if safe.size == Vector2i.ZERO or scr.x == 0: return
+	var k := minf(float(w.size.x) / w.content_scale_size.x, float(w.size.y) / w.content_scale_size.y)   # physical px per logical px
+	offset_left = safe.position.x / k; offset_top = safe.position.y / k
+	offset_right = -(scr.x - safe.end.x) / k; offset_bottom = -(scr.y - safe.end.y) / k
 
 func _load_cfg() -> void:
 	var f := ConfigFile.new()
@@ -136,6 +149,9 @@ func _start_game(n: int) -> void:
 	hud.g = g; hud.visible = true; hud.build(); hud.refresh()
 	_select(-1)
 	_autosave()
+	if not cfg.get("tutorial", false):
+		cfg["tutorial"] = true; _save_cfg()
+		TBModals.tutorial(_overlay, func(): pass)
 
 # ---------------------------------------------------------------- input
 func _on_pick(p: int, secondary: bool) -> void:
@@ -244,7 +260,7 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	hud.refresh()
 	if selected >= 0: panel.rebuild()
 	show_events()
-	if g.over: TBModals.game_over(_overlay, T.call("e_victory", {"a": g.nat_name[g.winner]}) if g.winner == g.human_id else T.call("e_defeat"), show_menu)
+	if g.over: TBModals.game_over(_overlay, g, show_menu)
 	else: _autosave()
 
 func _flush_log() -> void:

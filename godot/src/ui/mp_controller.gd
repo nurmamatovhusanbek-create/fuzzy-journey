@@ -112,7 +112,7 @@ func _on_delta(dirty: PackedInt32Array) -> void:
 		_last_turn = g.turn
 		main.hud.set_busy(false)
 		if g.over:
-			TBModals.game_over(main._overlay, T.call("e_victory", {"a": g.nat_name[g.winner]}) if g.winner == g.human_id else T.call("e_defeat"), main.leave_mp)
+			TBModals.game_over(main._overlay, g, main.leave_mp)
 
 func _on_result(seq: int, res: Dictionary) -> void:
 	var cmd: Dictionary = _pending.get(seq, {})

@@ -90,6 +90,7 @@ static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_m
 	_segment(m[1], T.call("quality"), [["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
 	_segment(m[1], T.call("language"), [["en", "English"], ["ru", "Русский"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
 	_segment(m[1], T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], cfg["view"], func(v): cfg["view"] = v; on_change.call())
+	m[1].add_child(K.button(T.call("tut_help"), func(): close(m[0]); tutorial(parent, func(): pass)))
 	var row := K.hbox(8); m[1].add_child(row)
 	if on_menu.is_valid(): row.add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call()))
 	var bk := K.button(T.call("back"), func(): close(m[0]), true); bk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(bk)
@@ -176,6 +177,25 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 	row.add_child(K.button(T.call("back"), func(): close(m[0])))
 	var go := K.button(T.call("goto"), func(): close(m[0]); on_goto.call(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(go)
 
+## first-run guide: 6 short steps
+static func tutorial(parent: Control, on_done: Callable) -> void:
+	var step := [1]
+	var m := K.modal(parent, T.call("tut_title"), 520)
+	var title := K.label("", 20, K.GOLD2)
+	var body := K.label("", 15); body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; body.custom_minimum_size = Vector2(460, 90)
+	m[1].add_child(title); m[1].add_child(body)
+	var row := K.hbox(8); m[1].add_child(row)
+	var skip := K.button(T.call("tut_skip"), func(): close(m[0]); on_done.call())
+	var next := K.button(T.call("tut_next"), Callable(), true); next.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(skip); row.add_child(next)
+	var draw := func():
+		title.text = T.call("tut_%d_t" % step[0]); body.text = T.call("tut_%d_b" % step[0])
+		next.text = T.call("tut_done") if step[0] == 6 else T.call("tut_next")
+	next.pressed.connect(func():
+		if step[0] >= 6: close(m[0]); on_done.call(); return
+		step[0] += 1; draw.call())
+	draw.call()
+
 static func _loc(d: Variant) -> String:
 	if d is Dictionary: return String(d.get(TBI18n.lang, d.get("en", "")))
 	return String(d)
@@ -201,6 +221,24 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable) ->
 		b.custom_minimum_size = Vector2(0, 54)
 		m[1].add_child(b)
 
-static func game_over(parent: Control, text: String, on_menu: Callable) -> void:
-	var m := K.modal(parent, text, 420)
+static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
+	var won: bool = g.winner == g.human_id
+	var m := K.modal(parent, T.call("e_victory", {"a": g.nat_name[g.winner]}) if won else T.call("e_defeat"), 460)
+	var rows: Array = []
+	for n in range(1, g.N1):
+		if g.alive[n] == 0 or n == g.rebel: continue
+		var army := 0
+		for p in g.owned(n): army += g.army[p]
+		rows.append([g.own_count(n), n, army])
+	rows.sort_custom(func(a, b): return a[0] > b[0] if a[0] != b[0] else a[1] < b[1])
+	var rank := 0
+	for i in rows.size(): if rows[i][1] == g.human_id: rank = i + 1
+	m[1].add_child(K.label("%s: %s %d · %s %d" % [T.call("go_final"), T.call("go_rank"), rank, T.call("turn"), g.turn], 14, K.DIM))
+	for i in mini(5, rows.size()):
+		var r: Array = rows[i]
+		var row := K.hbox(8)
+		row.add_child(K.label("%d." % (i + 1), 14, K.DIM)); row.add_child(K.color_chip(g.color[r[1]]))
+		var nm := K.label(g.nat_name[r[1]], 15, K.GOLD2 if r[1] == g.human_id else K.TEXT); nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(nm)
+		row.add_child(K.label("%d %s · %s" % [r[0], T.call("hud_prov"), K.fmt(r[2])], 13, K.DIM))
+		m[1].add_child(row)
 	m[1].add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call(), true))

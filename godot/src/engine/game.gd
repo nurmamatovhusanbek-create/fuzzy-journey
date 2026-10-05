@@ -195,6 +195,11 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		for n in range(1, N1):
 			tech_level[n] = minf(5.0, base + rng.next() * 0.3)
 			era[n] = mini(4, int(floor(tech_level[n])))
+	elif rules >= 1:
+		# the modern world starts technologically modern (rules 0 kept the legacy ancient-tech baseline)
+		for n in range(1, N1):
+			tech_level[n] = 3.6 + rng.next() * 0.9
+			era[n] = mini(4, int(floor(tech_level[n])))
 	add_sea_links()
 
 func set_human(n: int) -> void:
