@@ -13,6 +13,7 @@ run "decisions" tests/decisions.gd
 run "trade deals" tests/trade.gd
 run "royal marriages" tests/marriage.gd
 run "AI offers to humans" tests/offers.gd
+run "chronicle/advisor texts have no missing keys" tests/chron_keys.gd
 run "Russian nation names" tests/names_ru.gd
 run "synth audio" tests/audio.gd
 run "soak: random human, 7 eras, invariants" tests/soak.gd
