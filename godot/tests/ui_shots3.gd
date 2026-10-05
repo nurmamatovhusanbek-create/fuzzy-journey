@@ -19,6 +19,9 @@ func _init() -> void:
 	main.map.fly_to(-95.0, 40.0, 1.0)
 	for i in 8: await process_frame
 	await _shot("globe")
+	main.map.fly_to(2.0, 47.0, 5.0)
+	for i in 10: await process_frame
+	await _shot("zoomed")
 	main.cfg["theme"] = "parchment"; main._apply_quality()
 	await _shot("parchment")
 	main.cfg["theme"] = "standard"; main.map.set_mode(1); main._apply_quality()

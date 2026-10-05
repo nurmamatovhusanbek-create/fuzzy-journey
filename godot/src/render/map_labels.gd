@@ -90,6 +90,36 @@ func _draw_nation_names(font: Font) -> void:
 		draw_string_outline(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.02, 0.03, 0.07, a * 0.85))
 		draw_string(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.95, 0.8, 0.4, a) if mine else Color(0.94, 0.9, 0.82, a * 0.92))
 
+## province names when zoomed in far enough to read them (engraved small text, no overlaps)
+func _draw_province_names() -> void:
+	if map.zoom < (4.0 if map.mode == 0 else 5.5): return
+	var f: Font = TBKit.display_lo()
+	var placed: Array = []
+	var shown := 0
+	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
+	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
+	for p in g.P:
+		if shown >= 70: break
+		var pos: Vector2
+		if map.mode == 0:
+			var pr := _project(p, c0, s0, sl, cl, R, cx, cy)
+			if pr.z < 0.3: continue
+			pos = Vector2(pr.x, pr.y)
+		else:
+			var pt := map.project(g.world.lon[p], g.world.lat[p])
+			pos = Vector2(pt.x, pt.y)
+		if pos.x < 20 or pos.y < 70 or pos.x > map.size.x - 20 or pos.y > map.size.y - 20: continue
+		var txt: String = g.world.name[p]
+		var tw := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11)
+		var rect := Rect2(pos + Vector2(-tw.x * 0.5, 6), tw).grow(2.0)
+		var clash := false
+		for r in placed:
+			if r.intersects(rect): clash = true; break
+		if clash: continue
+		placed.append(rect); shown += 1
+		draw_string_outline(f, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0.02, 0.03, 0.07, 0.8))
+		draw_string(f, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.9, 0.86, 0.76, 0.85))
+
 func _star(pos: Vector2) -> void:
 	var pts := PackedVector2Array()
 	for i in 10: pts.append(pos + Vector2(sin(i * PI / 5.0), -cos(i * PI / 5.0)) * (7.0 if i % 2 == 0 else 3.2))
@@ -163,6 +193,7 @@ func _draw() -> void:
 		draw_string(nfont, Vector2(x0 + 5, y1 - 2.5), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.95, 0.92, 0.85))
 		drawn += 1
 	_draw_nation_names(font)
+	_draw_province_names()
 	# battle effects
 	var now := Time.get_ticks_msec()
 	var keep: Array = []
