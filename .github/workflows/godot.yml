@@ -19,7 +19,7 @@ jobs:
       - name: Import project
         run: cd godot && godot --headless --import || true
       - name: Engine unit tests (GDScript)
-        run: cd godot && godot --headless -s tests/run_all.gd
+        run: tools/test_all.sh "$(which godot)"
       - name: Oracle: GDScript engine == JS reference (bit-exact)
         run: |
           npm ci

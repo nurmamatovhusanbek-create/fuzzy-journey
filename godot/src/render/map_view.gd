@@ -27,6 +27,8 @@ var labels: TBMapLabels
 var _mat: ShaderMaterial
 var _rect: ColorRect
 var _ids_tex: ImageTexture
+var _ids_tex_half: ImageTexture      # 2048x1024 copy for the low tier (4 MB instead of 16 MB of VRAM)
+var _ids_is_half := false
 var _pal_img: Image
 var _pal_tex: ImageTexture
 var _pal := PackedByteArray()
@@ -128,6 +130,22 @@ func set_lens(name: String) -> void:
 	lenses.mode = name
 	repaint_all()
 
+## low tier samples a half-resolution ID texture (built once, nearest) to save VRAM and fill-rate
+func _select_ids_texture() -> void:
+	var want_half := quality == 0
+	if want_half == _ids_is_half: return
+	_ids_is_half = want_half
+	if want_half:
+		if _ids_tex_half == null:
+			var img := Image.create_from_data(world.W, world.H, false, Image.FORMAT_RG8, world.ids)
+			img.resize(world.W / 2, world.H / 2, Image.INTERPOLATE_NEAREST)
+			_ids_tex_half = ImageTexture.create_from_image(img)
+		_mat.set_shader_parameter("ids", _ids_tex_half)
+		_mat.set_shader_parameter("id_size", Vector2(world.W / 2, world.H / 2))
+	else:
+		_mat.set_shader_parameter("ids", _ids_tex)
+		_mat.set_shader_parameter("id_size", Vector2(world.W, world.H))
+
 # ---------------------------------------------------------------- camera
 func radius_px() -> float: return minf(size.x, size.y) * 0.44 * zoom
 func flat_scale() -> float: return size.x / TAU * zoom
@@ -148,6 +166,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("sel_id", selected + 1 if selected >= 0 else -1)
 	_mat.set_shader_parameter("hover_id", hover + 1 if hover >= 0 else -1)
 	_mat.set_shader_parameter("quality", quality)
+	_select_ids_texture()
 	if labels != null:
 		labels.max_labels = [40, 90, 160][quality]
 		labels.hidden_while_dragging = _pressed and _drag_moved >= 6.0
