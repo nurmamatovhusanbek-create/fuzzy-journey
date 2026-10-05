@@ -107,11 +107,9 @@ func rebuild() -> void:
 	stats.add_child(K.meter_row(T.call("stability"), g.stab[p], K.GREEN if g.stab[p] >= 50 else (K.GOLD2 if g.stab[p] >= 30 else K.RED)))
 	stats.add_child(K.meter_row(T.call("happiness"), g.happy[p], K.GREEN if g.happy[p] >= 50 else (K.GOLD2 if g.happy[p] >= 30 else K.RED)))
 	var act := HFlowContainer.new(); act.add_theme_constant_override("h_separation", 6); act.add_theme_constant_override("v_separation", 6)
-	var portrait := get_viewport_rect().size.y > get_viewport_rect().size.x
-	if not portrait: _body.add_child(stats)
 	_body.add_child(K.section(T.call("actions")))
 	_body.add_child(act)
-	if portrait: _body.add_child(stats)       # on a phone the actions come first; the sheet scrolls to the figures
+	_body.add_child(stats)                    # actions first on every screen; the figures follow (the sheet scrolls)
 	if mine:
 		act.add_child(K.button(T.call("recruit") + " +15", func(): command.emit({"cmd": "recruit", "p": p, "amount": 15})))
 		act.add_child(K.button(T.call("hire") + " +40 (%dg)" % int(ceil(40 * 5.0 * float(D.REGIMES[g.regime[me]]["recruitCost"]))), func(): command.emit({"cmd": "hire", "p": p, "amount": 40})))

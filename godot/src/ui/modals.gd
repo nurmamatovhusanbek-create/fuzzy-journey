@@ -455,7 +455,7 @@ static func hotseat_setup(parent: Control, on_go: Callable) -> void:
 	m[2].add_child(go)
 
 ## Codex: a short reference for the interlocking systems
-const CODEX := ["infamy", "cb", "ultimatum", "generals", "supply", "rulers", "doctrine", "trade", "realms", "victory"]
+const CODEX := ["infamy", "cb", "ultimatum", "generals", "battle", "supply", "rulers", "doctrine", "trade", "realms", "victory"]
 static func codex(parent: Control) -> void:
 	var m := K.modal(parent, T.call("codex"), 520, "book")
 	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, clampf(parent.get_viewport_rect().size.y * 0.6, 340.0, 620.0)); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
