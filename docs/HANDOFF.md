@@ -27,7 +27,7 @@ Content sources: `tools/events_src.py` + `tools/events_content.py` (scheduled ev
 After editing `reference/i18n/*.js` run `node tools/i18n.mjs`.
 
 ## Game systems added after the research backlog (all `rules >= 1`, rules 0 stays oracle-exact)
-Generals (`engine/generals.gd`, 6 % strength per star, ride with full-stack moves) · ultimatums (`TBDiplo.ultimatum`, Yield/Defy prompt for humans, AI yields at ~2.4x strength) · supply limits (`TBGame.attrition`) · honours (`ui/honours.gd`, cross-game achievements stored in settings.cfg) · ruler cameos (`ui/portrait.gd`, procedural) · campaign briefing · AI-attack replay arrows on the map.
+Generals (`engine/generals.gd`, 6 % strength per star, ride with full-stack moves) · ultimatums (`TBDiplo.ultimatum`, Yield/Defy prompt for humans, AI yields at ~2.4x strength) · supply limits (`TBGame.attrition`) · honours (`ui/honours.gd`, cross-game achievements stored in settings.cfg) · ruler cameos (`ui/portrait.gd`, procedural) · campaign briefing · AI-attack replay arrows on the map · doctrines (`engine/doctrine.gd`) · hot-seat (`ui/main.gd`, curtain between players) · Codex and advisor tips for the new systems.
 
 ## Known gaps
 - Never run on a physical Android/iOS device (CI proves the export builds, not that it feels right).
