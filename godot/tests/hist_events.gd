@@ -33,6 +33,15 @@ func _init() -> void:
 		for e in g.log: if e["kind"] == "event": fired += 1
 		print("%-10s %2d events defined | fired in 100 turns: %2d | human prompts %2d (applied %d)" % [era_id, evs.size(), fired, prompts, applied])
 		if fired == 0: fails += 1
+	for lang in ["en", "ru"]:
+		TBI18n.load_lang(lang)
+		for ev in TBEvents.random_defs():
+			var id: String = ev["id"]
+			var keys := ["ev_%s_t" % id, "ev_%s_f" % id]
+			for i in ev["choices"].size(): keys.append("ev_%s_c%d" % [id, i]); keys.append("ev_%s_d%d" % [id, i])
+			for k in keys:
+				if k.ends_with("_c0") and ev["choices"].size() == 1: continue
+				if not TBI18n.has_key(k) and not (ev["choices"].size() == 1 and (k.contains("_c") or k.contains("_d"))): print("MISSING i18n ", lang, " ", k); fails += 1
 	print("total %d events, %d with choices" % [total, with_choices])
 	print("HIST_EVENTS ", "OK" if fails == 0 else "FAIL")
 	quit(1 if fails > 0 else 0)

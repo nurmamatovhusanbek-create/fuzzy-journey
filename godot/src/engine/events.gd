@@ -231,6 +231,9 @@ static func apply_effects(g: TBGame, n: int, effects: Array) -> void:
 		var d: float = float(e.get("d", 0))
 		match String(e.get("op", "")):
 			"gold": g.gold[n] = maxf(0.0, g.gold[n] + d)
+			"infamy": g.infamy[n] = clampf(g.infamy[n] + d, 0.0, 100.0)
+			"research": g.research[n] = maxf(0.0, g.research[n] + d)
+			"intel": g.intel[n] = clampf(g.intel[n] + d, 0.0, 20.0)
 			"manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + d)
 			"mp": g.mp[n] += d
 			"dp": g.dp[n] = maxf(0.0, g.dp[n] + d)
