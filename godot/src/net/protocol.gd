@@ -97,6 +97,7 @@ static func apply_delta(g: TBGame, b: PackedByteArray) -> PackedInt32Array:
 				arr[diff[j]] = diff[j + 1]
 				j += 2
 			g.set(m, arr)
+	TBStats.record(g)
 	if d.has("log"):
 		for e in d["log"]: g.log.append(e)
 	return dirty

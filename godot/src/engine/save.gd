@@ -4,7 +4,7 @@ extends RefCounted
 
 const VERSION := 1
 const FIELDS_PACKED := ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "era", "regime", "personality", "alive", "human", "cap_lost", "tribute", "capital_of", "overlord", "last_war_turn", "color", "budget", "rel", "truce", "war_score", "war_turns", "grudge", "war_cnt", "ev_last_any", "trade_bonus", "combat_bonus", "combat_turns", "owner", "occupier", "occ_turns", "army", "pop", "dev", "econ", "stab", "happy", "defense", "terrain", "building", "b_level", "b_building", "b_turns", "capital", "discoverable", "nb_off", "nb", "nb_sea", "r_name", "r_num", "r_born", "r_since", "r_adm", "r_dip", "r_mil", "r_trait", "infamy", "coalition", "core", "dec_until"]
-const FIELDS_SCALAR := ["turn", "year", "month_idx", "era_id", "over", "winner", "victory_kind", "human_id", "rebel", "seed_value", "rules", "difficulty", "occ_rev", "nap_expiry", "log", "pending", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month"]
+const FIELDS_SCALAR := ["turn", "year", "month_idx", "era_id", "over", "winner", "victory_kind", "human_id", "rebel", "seed_value", "rules", "difficulty", "occ_rev", "nap_expiry", "log", "stats", "pending", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month"]
 
 static func path_for(slot: String) -> String:
 	return "user://save_%s.tbs" % slot
@@ -54,7 +54,8 @@ static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
 	var g := TBGame.new(w, era_pack, {"seed": int(d["seed_value"]), "difficulty": String(d["difficulty"]), "rules": int(d.get("rules", 0))})
 	for k in FIELDS_PACKED:
 		if d.has(k): g.set(k, d[k])      # tolerate saves from before a field existed
-	for k in FIELDS_SCALAR: g.set(k, d[k])
+	for k in FIELDS_SCALAR:
+		if d.has(k): g.set(k, d[k])
 	g.nat_name = d["nat_name"]; g.nat_code = d["nat_code"]
 	g.rng.s = int(d["rng"])
 	g.own_dirty = true

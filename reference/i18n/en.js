@@ -77,6 +77,7 @@ export default {
   evcat_crisis: 'Crisis', evcat_diplomacy: 'Diplomacy', evcat_disaster: 'Disaster', evcat_domestic: 'Domestic', evcat_enlightenment: 'Enlightenment', evcat_golden_age: 'Golden age', evcat_military: 'Military', evcat_trade: 'Trade',
   mp_host: 'host',
   fx_gold: '{d} gold', fx_manpower: '{d} manpower', fx_mp: '{d} move points', fx_dp: '{d} diplomacy points', fx_stability: 'stability {d}', fx_happy: 'happiness {d}', fx_infamy: 'infamy {d}', fx_research: '{d} research', fx_intel: '{d} intel', fx_army_pct: 'armies {d}%', fx_pop_pct: 'population {d}%', fx_dev: 'a province develops', fx_trade: '{d} gold next turn', fx_combat: 'army strength {d} for {t} turns',
+  statistics: 'Statistics', stats_wait: 'History builds up as turns pass.',
   ev_worldwide: 'Worldwide event', ev_event: 'Event', ev_ack: 'Acknowledge', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Bountiful Harvest', ev_bountiful_harvest_f: 'Fields overflow with grain and the granaries are fuller than in living memory.',
   ev_bountiful_harvest_c0: 'Distribute the surplus', ev_bountiful_harvest_d0: '+40 gold, +25 manpower, +8 stability in the capital',

@@ -67,6 +67,36 @@ static func fx_text(effects: Array) -> String:
 		parts.append(T.call("fx_" + op, {"d": ds.replace("-", "−"), "t": int(e.get("turns", 6))}))
 	return " · ".join(parts)
 
+## Statistics: history of the leading powers
+static func statistics(parent: Control, g: TBGame, on_list: Callable) -> void:
+	var m := K.modal(parent, T.call("statistics"), 620, "scales")
+	m[1].add_child(K.segmented([["list", T.call("dk_nations")], ["stats", T.call("statistics")]], "stats", func(id: String): if id == "list": close(m[0]); on_list.call()))
+	var st := {"key": "p"}
+	var chart := TBStatChart.new(); chart.custom_minimum_size = Vector2(0, 250)
+	chart.x_label = func(t: float) -> String:
+		var mo := g.start_month + int(t) * 6
+		var y := g.start_year + mo / 12
+		return ("%d BC" % -y) if y < 0 else str(y)
+	var legend := HFlowContainer.new(); legend.add_theme_constant_override("h_separation", 14); legend.add_theme_constant_override("v_separation", 4)
+	var draw := func():
+		var feats := TBStats.featured(g, 6)
+		chart.series = []
+		for c in legend.get_children(): c.queue_free()
+		for n in feats:
+			var col := Color.hex((g.color[n] << 8) | 0xFF).lightened(0.15)
+			if n == g.human_id: col = K.GOLD2
+			chart.series.append({"name": g.nat_name[n], "color": col, "pts": TBStats.series(g, n, st["key"]), "bold": n == g.human_id})
+			var it := K.hbox(5)
+			var sw := ColorRect.new(); sw.color = col; sw.custom_minimum_size = Vector2(12, 3); sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER; it.add_child(sw)
+			it.add_child(K.label(g.nat_name[n], 12, K.GOLD2 if n == g.human_id else K.TEXT))
+			legend.add_child(it)
+		chart.queue_redraw()
+	m[1].add_child(K.segmented([["p", T.call("hud_prov")], ["a", T.call("army")], ["g", T.call("gold")], ["k", T.call("tech")]], "p", func(id: String): st["key"] = id; draw.call()))
+	m[1].add_child(chart); m[1].add_child(legend)
+	if g.stats.size() < 2: m[1].add_child(K.label(T.call("stats_wait"), 13, K.DIM))
+	draw.call()
+	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+
 static var _facts_cache := {}
 ## "N nations · A, B, C" for an era (largest powers by province count)
 static func _era_facts(id: String) -> String:
@@ -93,6 +123,8 @@ static func _era_facts(id: String) -> String:
 
 static func nations(parent: Control, g: TBGame, on_pick: Callable, only_wars: bool = false) -> void:
 	var m := K.modal(parent, T.call("nations"), 480, "globe")
+	if not only_wars:
+		m[1].add_child(K.segmented([["list", T.call("dk_nations")], ["stats", T.call("statistics")]], "list", func(id: String): if id == "stats": close(m[0]); statistics(parent, g, func(): nations(parent, g, on_pick))))
 	var search := LineEdit.new(); search.placeholder_text = T.call("search"); search.custom_minimum_size = Vector2(0, K.MIN_TOUCH)
 	m[1].add_child(search)
 	var list := K.vbox(2); m[1].add_child(list)

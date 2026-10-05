@@ -103,6 +103,7 @@ var dirty_flag := PackedByteArray()
 var dirty_list := PackedInt32Array()
 var rel_dirty := PackedInt32Array()   # canonical (min*N1+max) pairs whose relation changed since last take (net deltas)
 var log: Array = []
+var stats: Array = []                # TBStats samples (statistics screen)
 # rulers (rules >= 1): see engine/rulers.gd
 var r_name := PackedStringArray()    # "rn:<idx>" (procedural, i18n) or "English|Russian" (historical)
 var r_num := PackedByteArray()
