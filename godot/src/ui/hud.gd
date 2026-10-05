@@ -30,6 +30,7 @@ var _flag: TextureRect
 var _name: Label
 var _ruler: Label
 var _cameo: TBPortrait
+var seat_tag := ""                      # hot-seat: "P2" etc., shown before the ruler's name
 var _date: Label
 var _turn: Label
 var _lens: OptionButton
@@ -147,6 +148,7 @@ func refresh() -> void:
 	var rl := ""
 	if g.rules >= 1 and g.r_name[n] != "":
 		rl = "%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)]
+	if seat_tag != "" and rl != "": rl = "%s · %s" % [seat_tag, rl]
 	_ruler.text = rl
 	_ruler.visible = rl != ""
 	_cameo.visible = rl != ""

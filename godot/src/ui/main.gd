@@ -237,6 +237,7 @@ func _back_btn() -> Button:
 const HOT_COLORS := [0xC63A4A, 0x3A7AC6, 0x3AA66A, 0xC6A23A]
 
 func _start_game(n: int) -> void:
+	hud.seat_tag = ""
 	if _hot_n > 1:
 		g.set_human(_hot_list[0])
 		for k in range(1, _hot_list.size()): g.add_human(_hot_list[k])
@@ -410,6 +411,7 @@ func _next_human(hs: PackedInt32Array) -> int:
 ## hand the device to player n: state changes behind an opaque curtain, revealed on tap
 func _hot_switch(n: int, new_round: bool) -> void:
 	g.human_id = n
+	hud.seat_tag = "P%d" % (g.humans().find(n) + 1)
 	_select(-1); _set_move_from(-1)
 	map.lenses.refresh_nations(); map.repaint_all()
 	var cap := g.capital_of[n]
@@ -504,6 +506,7 @@ func _load_slot(slot: String) -> void:
 	if ng == null: return
 	g = ng; mode = "game"; _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	map.setup(g); map.repaint_all()
+	hud.seat_tag = ""
 	hud.g = g; hud.visible = true; hud.build(); hud.refresh()
 	var cap := g.capital_of[g.human_id]
 	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2)
