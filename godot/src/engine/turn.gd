@@ -51,6 +51,10 @@ static func _tick(g: TBGame) -> void:
 					continue
 			else:
 				g.occ_turns[p] = 0
+		if g.rules >= 1 and g.army[p] > 20:
+			var lost := g.attrition(p)
+			if lost > 0:
+				g.army[p] -= lost; g.touch(p)
 		if o != 0 and warflag[o] == 0 and g.defense[p] < DEF_CAP:
 			g.defense[p] += 1
 		if g.b_building[p] != 0:

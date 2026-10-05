@@ -85,6 +85,12 @@ func rebuild() -> void:
 	elif g.b_building[p] != 0: bname = "%s · %d" % [T.call("b_" + D.BUILDINGS[g.b_building[p] - 1]["id"]), g.b_turns[p]]
 	var stats := K.vbox(6)
 	stats.add_child(K.row(T.call("army"), K.fmt(g.army[p]), K.GOLD2))
+	if g.rules >= 1 and g.army[p] > 1 and g.controller(p) == me and not mine:
+		var lost := g.attrition(p)
+		var sr := K.row(T.call("supply"), "%d" % g.supply_limit(p), K.RED if lost > 0 else K.TEXT)
+		sr.tooltip_text = T.call("supply_hint")
+		stats.add_child(sr)
+		if lost > 0: stats.add_child(K.row(T.call("attrition"), "−%d / %s" % [lost, T.call("turn").to_lower()], K.RED))
 	if g.rules >= 1 and g.gen[p] != 0 and not mine:
 		stats.add_child(K.row(T.call("general"), "%s  %s" % [TBGenerals.display_name(g, p), "★".repeat(TBGenerals.skill(g, p))], K.TEXT))
 	stats.add_child(K.row(T.call("pop"), K.fmt(g.pop[p] * 1000)))

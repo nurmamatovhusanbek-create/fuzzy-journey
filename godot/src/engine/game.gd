@@ -501,6 +501,21 @@ func combat_mul(n: int) -> float:
 	if rules >= 1: m *= TBRulers.combat_mul(self, n)
 	return m
 
+## rules >= 1: how many soldiers a province can feed. Armies above this in foreign land waste away.
+func supply_limit(p: int) -> int:
+	var lim := 18 + 8 * dev[p] + int(pop[p] / 20.0)
+	if building[p] == D.B_SUPPLYCAMP: lim += 40
+	elif building[p] == D.B_FARM: lim += 8 * b_level[p]
+	if terrain[p] == 2 or terrain[p] == 4: lim = int(lim * 0.7)       # mountains and marsh
+	return lim
+
+func attrition(p: int) -> int:
+	if rules < 1: return 0
+	var c := controller(p)
+	if c == 0 or owner[p] == c or c == rebel: return 0
+	var over := army[p] - supply_limit(p)
+	return maxi(0, int(ceil(over * 0.07))) if over > 0 else 0
+
 func sea_edge(from: int, to: int) -> int:
 	for i in range(nb_off[from], nb_off[from + 1]):
 		if nb[i] == to: return 1 if nb_sea[i] == 1 else 0
