@@ -229,7 +229,9 @@ func _draw() -> void:
 	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
 	var key := {}                                                  # provinces that deserve a plaque at lvl 1
 	if lvl == 1 and g.human_id != 0:
-		var own := g.owned(me)
+		var own: Array = []                                        # (not g.owned(): that may rebuild shared caches while a turn runs on a worker thread)
+		for p in g.P:
+			if g.owner[p] == me: own.append(p)
 		var big: Array = []
 		for p in own: if g.army[p] >= 20: big.append(p)
 		big.sort_custom(func(a, b): return g.army[a] > g.army[b])

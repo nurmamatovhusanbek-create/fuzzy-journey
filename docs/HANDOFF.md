@@ -11,6 +11,8 @@ Install the APK: download the artifact from the run page, unzip, copy `TerraBell
 
 CI status (verified on GitHub Actions): tests + oracle pass; Windows, Linux and the Android APK build and upload as `terra-bellum-builds`; the iOS Xcode project exports as `terra-bellum-ios-xcode-project`.
 
+UI smoke tests (random-input monkey on 4 seeds in all three languages, hot-seat flow) run locally with `tools/test_ui.sh` (needs xvfb; not in CI). They caught a broken modal animation and a worker-thread race, so run them after UI changes.
+
 ## Measuring performance on a real phone
 Settings → **Performance readout** shows fps, frame ms, map quality tier and render scale, memory, and the last end-turn time.
 Settings → Quality: *Auto* steps the map down by itself when drags are slow; *Low* uses the half-resolution ID texture and 60 % render scale.

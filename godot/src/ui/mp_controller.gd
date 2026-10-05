@@ -69,7 +69,7 @@ func _connect(then: Callable) -> void:
 
 func _lobby_toast(msg: String) -> void:
 	var l := K.label(msg, 15, K.RED.lightened(0.3)); l.position = Vector2(12, 60); main._overlay.add_child(l)
-	get_tree().create_timer(4.0).timeout.connect(func(): if is_instance_valid(l): l.queue_free())
+	get_tree().create_timer(4.0).timeout.connect(l.queue_free)
 
 var _reconnects := 0
 

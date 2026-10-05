@@ -228,7 +228,7 @@ func toast(msg: String, bad: bool = false) -> void:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toasts.add_child(l)
 	while _toasts.get_child_count() > 5: _toasts.get_child(0).queue_free(); break
-	get_tree().create_timer(5.5).timeout.connect(func(): if is_instance_valid(l): l.queue_free())
+	get_tree().create_timer(5.5).timeout.connect(l.queue_free)      # a method callable: dropped automatically if the toast is gone
 
 func set_lens_legend(lens: String) -> void:
 	if _legend != null: _legend.setup(lens)

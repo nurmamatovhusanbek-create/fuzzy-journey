@@ -386,7 +386,7 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 	parent.add_child(back)
 	if TBMapView.animate:                 # the card settles in: veil fades, card rises and scales up a touch
 		back.modulate.a = 0.0
-		card.pivot_offset_ratio = Vector2(0.5, 0.5)
+		card.resized.connect(func(): card.pivot_offset = card.size * 0.5)
 		card.scale = Vector2(0.965, 0.965)
 		var tw := back.create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_property(back, "modulate:a", 1.0, 0.16)
