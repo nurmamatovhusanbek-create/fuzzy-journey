@@ -9,6 +9,14 @@ func _init() -> void:
 	for it in TBHonours.LIST:
 		for k in ["honour_" + it[0], "honour_" + it[0] + "_d"]:
 			if not TBI18n.has_key(k): print("missing ", k); fails += 1
+	for lang in ["en", "ru"]:
+		TBI18n.load_lang(lang)
+		for id in TBModals.CODEX:
+			for k in ["codex_%s_t" % id, "codex_%s_b" % id]:
+				if not TBI18n.has_key(k): print("missing ", lang, " ", k); fails += 1
+		for it in TBHonours.LIST:
+			if not TBI18n.has_key("honour_" + it[0]): print("missing ", lang, " honour_", it[0]); fails += 1
+	TBI18n.load_lang("en")
 	var fresh := TBHonours.record(g, cfg, TBHonours.on_state(g))
 	print("turn 0 earned: ", fresh)
 	g.gold[a] = 6000

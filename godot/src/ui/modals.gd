@@ -235,6 +235,7 @@ static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_m
 	_segment(m[1], T.call("perf_overlay"), [["0", T.call("off")], ["1", T.call("on")]], "1" if cfg.get("perf", false) else "0", func(v): cfg["perf"] = (v == "1"); on_change.call())
 	_segment(m[1], T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], cfg.get("ui", "normal"), func(v): cfg["ui"] = v; on_change.call())
 	m[1].add_child(K.button(T.call("tut_help"), func(): close(m[0]); tutorial(parent, func(): pass)))
+	m[1].add_child(K.button(T.call("codex"), func(): close(m[0]); codex(parent)))
 	var row := K.hbox(8); m[1].add_child(row)
 	if on_menu.is_valid(): row.add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call()))
 	var bk := K.button(T.call("back"), func(): close(m[0]), true); bk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(bk)
@@ -437,6 +438,20 @@ static func goals(parent: Control, g: TBGame) -> void:
 		for k in mini(3, nearest.size()):
 			var h := K.hbox(6); h.add_child(K.label(T.call("realm_" + String(TBRealms.LIST[nearest[k][1]][0])), 14)); h.add_child(K.Leader.new()); h.add_child(K.num("%d%%" % int(nearest[k][0] * 100.0), 14, K.GOLD2))
 			m[1].add_child(h); m[1].add_child(K.Meter.new(nearest[k][0] * 100.0, K.GOLD2))
+	_footer_back(m)
+
+## Codex: a short reference for the interlocking systems
+const CODEX := ["infamy", "cb", "ultimatum", "generals", "supply", "rulers", "trade", "realms", "victory"]
+static func codex(parent: Control) -> void:
+	var m := K.modal(parent, T.call("codex"), 520, "book")
+	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 400); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var list := K.vbox(10); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list); m[1].add_child(scroll)
+	for id in CODEX:
+		list.add_child(K.title(T.call("codex_" + id + "_t"), 16, K.GOLD2))
+		var b := K.label(T.call("codex_" + id + "_b"), 13, K.TEXT); b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; b.custom_minimum_size = Vector2(440, 0)
+		list.add_child(b)
+		var hl := ColorRect.new(); hl.custom_minimum_size = Vector2(0, 1); hl.color = Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.25); list.add_child(hl)
 	_footer_back(m)
 
 ## Honours: cross-game achievements, earned ones in gold, locked ones as faint outlines
