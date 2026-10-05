@@ -319,7 +319,7 @@ class ChoiceCard extends PanelContainer:
 		mouse_entered.connect(func(): add_theme_stylebox_override("panel", _hot))
 		mouse_exited.connect(func(): add_theme_stylebox_override("panel", _normal))
 	func _gui_input(e: InputEvent) -> void:
-		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or (e is InputEventScreenTouch and e.pressed):
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:      # touches arrive as emulated mouse clicks
 			chosen.emit(); accept_event()
 
 static func choice_card(title_text: String, detail: String, cb: Callable, primary: bool = false) -> Control:
