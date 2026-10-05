@@ -10,6 +10,7 @@ run "save/load round trip (3 scenarios)" tests/saveload.gd
 run "rulers: historical seeds, succession, determinism" tests/rulers.gd
 run "diplomacy: casus belli, infamy, coalitions" tests/diplo.gd
 run "decisions" tests/decisions.gd
+run "trade deals" tests/trade.gd
 run "historical events: integrity + firing" tests/hist_events.gd
 echo "== oracle: GDScript engine vs JS reference (rules 0)"; tools/oracle.sh "$GODOT" || fail=1
 echo "== multiplayer: server + 2 clients (lockstep of mirrored state)"; tools/test_mp.sh "$GODOT" 2>&1 | tail -3; [ "${PIPESTATUS[0]}" -eq 0 ] || fail=1

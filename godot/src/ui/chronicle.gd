@@ -10,7 +10,7 @@ static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
 		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "independence": return "war"
 		"coalition", "coalition_end": return "diplo"
-		"ally", "vassal", "spy": return "diplo"
+		"ally", "vassal", "spy", "trade": return "diplo"
 		"event", "event_choice", "era", "bankrupt", "ruler", "decision": return "events"
 	return "events"
 
@@ -41,6 +41,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"coalition_end": return T.call("e_coalition_end", {"a": a})
 		"peace": return T.call("e_peace", {"a": a, "b": b})
 		"ally": return T.call("e_ally", {"a": a, "b": b})
+		"trade": return T.call("e_trade", {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"vassal": return T.call("e_vassal", {"a": a, "b": b})
 		"ceded": return T.call("e_ceded", {"a": a, "b": b, "k": int(e.get("k", 0))}) if int(e.get("k", 0)) > 0 else ""
 		"independence": return T.call("e_indep", {"a": a, "b": b})
@@ -79,7 +80,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 ## which entries pop up as toasts when they happen
 static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
-		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed": return involves(e, me)
+		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "trade": return involves(e, me)
 		"rebels", "bankrupt", "era", "ruler": return e.get("a", -1) == me
 		"coalition", "coalition_end": return true
 		"eliminated": return true

@@ -236,6 +236,7 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 		elif g.has_truce(me, n):
 			rows.append([T.call("truce_left", {"n": g.truce[me * g.N1 + n] - g.turn}), ""])
 		rows.append([T.call("grudge"), "%d" % g.grudge[n * g.N1 + me]])
+		if g.rules >= 1 and TBTrade.has(g, me, n): rows.append([T.call("trade"), "+%d" % TBTrade.value(g, n)])
 	for r in rows:
 		grid.add_child(K.label(r[0], 13, K.DIM)); grid.add_child(K.label(r[1], 14))
 	# allies / enemies lists
@@ -262,6 +263,9 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 			if rel == 0:
 				act.add_child(K.button(T.call("propose_nap"), func(): on_cmd.call({"cmd": "nap", "t": n}); close(m[0])))
 				act.add_child(K.button(T.call("propose_ally"), func(): on_cmd.call({"cmd": "ally", "t": n}); close(m[0])))
+			if g.rules >= 1:
+				if TBTrade.has(g, me, n): act.add_child(K.button(T.call("trade_cancel"), func(): on_cmd.call({"cmd": "cancelTrade", "t": n}); close(m[0])))
+				else: act.add_child(K.button(T.call("trade_propose"), func(): on_cmd.call({"cmd": "trade", "t": n}); close(m[0])))
 			if rel == 2 or rel == 3:
 				act.add_child(K.button(T.call("break_pact"), func(): on_cmd.call({"cmd": "breakPact", "t": n}); close(m[0])))
 	if n != me and g.rules >= 1:

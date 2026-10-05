@@ -78,6 +78,7 @@ export default {
   mp_host: 'host',
   fx_gold: '{d} gold', fx_manpower: '{d} manpower', fx_mp: '{d} move points', fx_dp: '{d} diplomacy points', fx_stability: 'stability {d}', fx_happy: 'happiness {d}', fx_infamy: 'infamy {d}', fx_research: '{d} research', fx_intel: '{d} intel', fx_army_pct: 'armies {d}%', fx_pop_pct: 'population {d}%', fx_dev: 'a province develops', fx_trade: '{d} gold next turn', fx_combat: 'army strength {d} for {t} turns',
   statistics: 'Statistics', stats_wait: 'History builds up as turns pass.',
+  trade: 'Trade deal', trade_propose: 'Trade deal (1 DP)', trade_cancel: 'Cancel trade deal', e_trade: '{a} and {b} signed a trade deal', err_tradefull: 'You have no free trade slots (more as your nation advances).', al_no_trade: 'You have no trade deals. Friendly nations pay gold every turn for access to your markets.',
   ev_worldwide: 'Worldwide event', ev_event: 'Event', ev_ack: 'Acknowledge', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Bountiful Harvest', ev_bountiful_harvest_f: 'Fields overflow with grain and the granaries are fuller than in living memory.',
   ev_bountiful_harvest_c0: 'Distribute the surplus', ev_bountiful_harvest_d0: '+40 gold, +25 manpower, +8 stability in the capital',

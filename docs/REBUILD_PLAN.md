@@ -24,7 +24,8 @@
 | **UI redesign** (war-table design system, see ARCHITECTURE): ribbon HUD + dock + End-Turn seal, typographic title screen with bezel ring, era timeline, ledger-style panels, heraldic army plaques, muted chart-wash nation colours, drawn icons, EN/RU fonts | done |
 | **Historical events** (item 5): ~100 new dated events with choices + consequences across 13 eras (EN/RU), richer effect ops, effect summary shown on choices; source in `tools/events_src.py` + `events_content.py` | done |
 | **Statistics** (item 6): history charts (provinces / army / gold / tech) for the leading powers, recorded from state so MP clients need no extra traffic | done |
-| Still to port from legacy | trade routes, generals, formable nations, ultimatums / war goals / marriage UI, data-spike lens, localized nation names |
+| **Trade deals** (item 7): bilateral deals (slots grow with era), income from partner size, war cancels, AI signs them, UI on nation card, MP-safe | done |
+| Still to port from legacy | generals, formable nations, ultimatums / war goals / marriage UI, data-spike lens, localized nation names |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 
 Legacy `index.html` stays untouched until feature parity. The JS engine written earlier is kept in `reference/engine-js` as a **test oracle** for the GDScript port (same seed ⇒ comparable results).
