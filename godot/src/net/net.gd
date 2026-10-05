@@ -259,7 +259,7 @@ func s_error(msg: String) -> void: error_received.emit(msg)
 const CMD_FIELDS := {
 	"move": ["from", "to", "troops"], "recruit": ["p", "amount"], "declareWar": ["t"], "peace": ["t", "kind"], "ally": ["t"], "nap": ["t"],
 	"breakPact": ["t"], "build": ["p", "b"], "budget": ["key", "val"], "colonize": ["p"], "relocate": ["p"], "regime": ["r"],
-	"develop": ["p"], "hire": ["p", "amount"], "spy": ["t", "op"], "eventChoice": ["uid", "i"], "decide": ["id"], "trade": ["t"], "marry": ["t"], "cancelTrade": ["t"], "appoint": ["p"],
+	"develop": ["p"], "hire": ["p", "amount"], "spy": ["t", "op"], "eventChoice": ["uid", "i"], "decide": ["id"], "trade": ["t"], "marry": ["t"], "cancelTrade": ["t"], "appoint": ["p"], "ultimatum": ["t", "p"],
 }
 const PROV_KEYS := ["from", "to", "p"]
 const NATION_KEYS := ["t"]

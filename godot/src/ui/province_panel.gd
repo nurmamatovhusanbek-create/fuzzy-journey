@@ -130,6 +130,10 @@ func rebuild() -> void:
 		else:
 			var wb := K.button(T.call("declare_war"), func(): command.emit({"cmd": "declareWar", "t": o}))
 			wb.add_theme_color_override("font_color", K.RED.lightened(0.3)); act.add_child(wb)
+			if rel == D.REL_PEACE and g.rules >= 1 and TBDiplo.can_ultimatum(g, me, o, p) == "":
+				var ub := K.button(T.call("ultimatum") + " (%d)" % TBDiplo.DP_ULT, func(): command.emit({"cmd": "ultimatum", "t": o, "p": p}))
+				ub.tooltip_text = T.call("ultimatum_hint", {"r": "%.1f" % TBDiplo.ult_ratio(g, me, o)})
+				act.add_child(ub)
 			if rel == D.REL_PEACE:
 				act.add_child(K.button(T.call("propose_nap"), func(): command.emit({"cmd": "nap", "t": o})))
 				act.add_child(K.button(T.call("propose_ally"), func(): command.emit({"cmd": "ally", "t": o})))

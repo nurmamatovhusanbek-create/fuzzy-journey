@@ -111,6 +111,7 @@ static func _nation(g: TBGame, n: int) -> void:
 		TBDecisions.ai_pick(g, n)
 		TBTrade.ai_step(g, n)
 		TBDiplo.ai_marry(g, n)
+		TBDiplo.ai_ultimatum(g, n, aggr)
 	# 4. war
 	if g.mp[n] >= D.MP_ATTACK: _maybe_declare(g, n, aggr, fr)
 	if at_war or g.at_war(n): _fight(g, n, fr)

@@ -600,6 +600,7 @@ func apply(c: Dictionary) -> Dictionary:
 		"develop": return _c_develop(c)
 		"decide": return TBDecisions.apply(self, n, String(c.get("id", "")))
 		"trade": return TBTrade.propose(self, n, int(c.get("t", 0)))
+		"ultimatum": return TBDiplo.ultimatum(self, n, int(c.get("t", 0)), int(c.get("p", -1)))
 		"marry": return TBDiplo.marry(self, n, int(c.get("t", 0)))
 		"cancelTrade":
 			TBTrade.set_deal(self, n, int(c.get("t", 0)), false)
@@ -642,11 +643,13 @@ func _c_declare_war(c: Dictionary) -> Dictionary:
 	if n == t or t <= 0 or t >= N1 or alive[t] == 0: return _err("target")
 	if get_rel(n, t) == D.REL_WAR: return _err("already")
 	if has_truce(n, t): return _err("truce")
-	if dp[n] < D.DP_WAR: return _err("dp")
+	var ult: bool = rules >= 1 and bool(c.get("_ult", false))
+	if dp[n] < D.DP_WAR and not ult: return _err("dp")
 	if overlord[n] == t or overlord[t] == n: return _err("vassal")
 	var was := get_rel(n, t)
-	dp[n] -= D.DP_WAR; set_rel(n, t, D.REL_WAR); last_war_turn[n] = turn
-	var cb_kind := TBDiplo.on_declare(self, n, t)
+	if not ult: dp[n] -= D.DP_WAR
+	set_rel(n, t, D.REL_WAR); last_war_turn[n] = turn
+	var cb_kind := TBDiplo.on_declare(self, n, t, ult)
 	var gi := t * N1 + n
 	grudge[gi] = mini(100, grudge[gi] + (80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)))
 	log.append({"turn": turn, "kind": "war", "a": n, "b": t, "cb": cb_kind})

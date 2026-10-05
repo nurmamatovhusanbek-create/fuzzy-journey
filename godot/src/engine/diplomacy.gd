@@ -24,7 +24,8 @@ static func cb(g: TBGame, n: int, t: int) -> String:
 	return ""
 
 ## called by declareWar
-static func on_declare(g: TBGame, n: int, t: int) -> String:
+static func on_declare(g: TBGame, n: int, t: int, ult: bool = false) -> String:
+	if ult: return "ultimatum"                # the demand itself was the justification
 	var k := cb(g, n, t)
 	if g.rules >= 1 and k == "": g.infamy[n] = minf(100.0, g.infamy[n] + NO_CB_INFAMY)
 	return k
@@ -134,3 +135,91 @@ static func offers_turn(g: TBGame) -> void:
 	if g.rules < 1 or g.humans().is_empty(): return
 	for n in range(1, g.N1):
 		if g.alive[n] != 0 and g.human[n] == 0: ai_offer(g, n)
+
+
+# ---------------------------------------------------------------- ultimatums (rules >= 1)
+## demand a border province without declaring war: yield and it changes hands quietly; refuse and the demander gets a free casus belli
+const DP_ULT := 2
+const ULT_RATIO := 2.4          # an AI target yields when the demander is this much stronger (allies of the target count)
+
+static func power(g: TBGame, n: int) -> float:
+	var s := 0.0
+	for p in g.owned(n): s += g.army[p]
+	return s * g.combat_mul(n)
+
+static func ult_ratio(g: TBGame, n: int, t: int) -> float:
+	var theirs := power(g, t)
+	for o in range(1, g.N1):
+		if o != n and g.alive[o] != 0 and g.get_rel(t, o) == D.REL_ALLY: theirs += 0.6 * power(g, o)
+	return power(g, n) / maxf(1.0, theirs)
+
+static func borders(g: TBGame, n: int, p: int) -> bool:
+	for i in range(g.nb_off[p], g.nb_off[p + 1]):
+		if g.nb_sea[i] == 0 and g.controller(g.nb[i]) == n: return true
+	return false
+
+static func can_ultimatum(g: TBGame, n: int, t: int, p: int) -> String:
+	if g.rules < 1 or n == t or t <= 0 or t >= g.N1 or t == g.rebel or n == g.rebel: return "target"
+	if g.alive[t] == 0 or g.owner[p] != t or g.controller(p) != t: return "target"
+	if g.get_rel(n, t) != D.REL_PEACE: return "notpeace"
+	if g.has_truce(n, t): return "truce"
+	if g.overlord[n] == t or g.overlord[t] == n: return "vassal"
+	if g.capital[p] != 0: return "capital"
+	if not borders(g, n, p): return "notadjacent"
+	return ""
+
+## the province of t that n would most like: highest value among those touching n's land
+static func ult_target(g: TBGame, n: int, t: int) -> int:
+	var best := -1; var bv := -1.0
+	for p in g.owned(t):
+		if can_ultimatum(g, n, t, p) != "": continue
+		var v := g.province_value(p)
+		if v > bv: bv = v; best = p
+	return best
+
+static func ultimatum(g: TBGame, n: int, t: int, p: int) -> Dictionary:
+	var why := can_ultimatum(g, n, t, p)
+	if why != "": return {"ok": false, "err": why}
+	if g.human[n] != 0 and g.dp[n] < DP_ULT: return {"ok": false, "err": "dp"}
+	g.dp[n] = maxf(0.0, g.dp[n] - DP_ULT)
+	if g.human[t] != 0:
+		for e in g.pending:
+			if int(e["n"]) == t and e["kind"] == "prop" and e["id"] == "ultimatum" and int(e["from"]) == n: return {"ok": true, "result": "pending"}
+		g.ev_uid += 1
+		g.pending.append({"uid": g.ev_uid, "n": t, "kind": "prop", "id": "ultimatum", "from": n, "p": p, "icon": "📜", "cat": "", "count": 2})
+		return {"ok": true, "result": "pending"}
+	if ult_ratio(g, n, t) >= ULT_RATIO: return resolve_ultimatum(g, n, t, p, true)
+	return resolve_ultimatum(g, n, t, p, false)
+
+static func resolve_ultimatum(g: TBGame, n: int, t: int, p: int, yielded: bool) -> Dictionary:
+	if g.alive[n] == 0 or g.alive[t] == 0 or g.get_rel(n, t) != D.REL_PEACE: return {"ok": false, "err": "gone"}
+	if yielded:
+		if g.owner[p] == t and g.capital[p] == 0: g.cede(p, n)
+		g.grudge[t * g.N1 + n] = mini(100, g.grudge[t * g.N1 + n] + 25)
+		g.truce[n * g.N1 + t] = g.turn + 8; g.truce[t * g.N1 + n] = g.turn + 8
+		g.log.append({"turn": g.turn, "kind": "ultimatum", "a": n, "b": t, "p": p, "k": "yield"})
+		return {"ok": true, "result": "yield"}
+	g.log.append({"turn": g.turn, "kind": "ultimatum", "a": n, "b": t, "p": p, "k": "refuse"})
+	var r := g.apply({"cmd": "declareWar", "n": n, "t": t, "_ult": true})
+	return {"ok": r["ok"], "result": "war"}
+
+## an aggressive AI that is clearly stronger sometimes presents a demand before reaching for the sword
+static func ai_ultimatum(g: TBGame, n: int, aggr: float) -> void:
+	if g.rules < 1 or g.human[n] != 0 or n == g.rebel or aggr < 0.5 or g.mp[n] < 1: return
+	if TBRulers._h(g, n, 61).next() > 0.04: return
+	var best := -1; var bt := 0; var br := 0.0
+	var seen := {}
+	for p in g.owned(n):
+		for i in range(g.nb_off[p], g.nb_off[p + 1]):
+			var q: int = g.nb[i]; var t := g.owner[q]
+			if t == 0 or t == n or seen.has(t): continue
+			seen[t] = true
+			var need := ULT_RATIO - 0.4 if g.human[t] != 0 else ULT_RATIO
+			var rr := ult_ratio(g, n, t)
+			if rr < need or rr < br: continue
+			var tp := ult_target(g, n, t)
+			if tp < 0: continue
+			best = tp; bt = t; br = rr
+	if best >= 0:
+		g.dp[n] += DP_ULT                  # AI nations do not pay diplomacy points for this
+		ultimatum(g, n, bt, best)

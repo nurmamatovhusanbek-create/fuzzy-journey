@@ -8,7 +8,7 @@ const CATS := ["mine", "all", "war", "diplo", "events"]
 
 static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
-		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "independence": return "war"
+		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "independence", "ultimatum": return "war"
 		"coalition", "coalition_end": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union": return "diplo"
 		"realm": return "events"
@@ -59,6 +59,9 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"ruler":
 			if String(e["k"]) == "elected" and not involves(e, g.human_id): return ""
 			return T.call("e_ruler_" + String(e["k"]), {"a": a, "old": TBRulers.name_of(e["old"], int(e["oldn"])), "new": TBRulers.name_of(e["new"], int(e["num"]))})
+		"ultimatum":
+			if not involves(e, g.human_id): return ""
+			return T.call("e_ult_" + String(e["k"]), {"a": a, "b": b, "p": pn})
 		"general_up", "general_fell":
 			if not involves(e, g.human_id): return ""
 			return T.call("e_" + String(e["kind"]), {"a": a, "g": TBI18n.T("rn_%d" % int(e["gn"])), "sk": int(e["sk"])})
@@ -84,6 +87,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 		"war", "rebels", "bankrupt", "independence": return e.get("b", -1) == me or e.get("a", -1) == me
 		"occupied": return e.get("b", -1) == me
 		"annexed": return e.get("b", -1) == me
+		"ultimatum": return e.get("b", -1) == me
 		"spy": return e.get("b", -1) == me and bool(e["ok"])
 		"general_fell": return true
 	return false
@@ -91,7 +95,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 ## which entries pop up as toasts when they happen
 static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
-		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "trade", "marriage", "marriage_end", "union": return involves(e, me)
+		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "ultimatum", "trade", "marriage", "marriage_end", "union": return involves(e, me)
 		"rebels", "bankrupt", "era", "ruler", "realm", "general_up", "general_fell": return e.get("a", -1) == me
 		"coalition", "coalition_end": return true
 		"eliminated": return true

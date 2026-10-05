@@ -189,6 +189,9 @@ static func resolve_choice(g: TBGame, n: int, uid: int, choice: int) -> Dictiona
 static func _resolve(g: TBGame, e: Dictionary, choice: int) -> void:
 	var n: int = e["n"]
 	choice = clampi(choice, 0, int(e["count"]) - 1)
+	if e["kind"] == "prop" and e["id"] == "ultimatum":
+		TBDiplo.resolve_ultimatum(g, int(e["from"]), n, int(e["p"]), choice == 0)
+		return
 	if e["kind"] == "prop":
 		if choice == 0: TBDiplo.accept_offer(g, int(e["from"]), n, String(e["id"]))
 		g.log.append({"turn": g.turn, "kind": "offer_" + ("yes" if choice == 0 else "no"), "a": int(e["from"]), "b": n, "id": e["id"]})

@@ -369,9 +369,10 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 		var hl := K.label("🤝", 38, K.GOLD2); hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(hl)
 		var tl := K.title(T.call("prop_title", {"a": from_name}), 22); tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(420, 0); mp[1].add_child(tl)
 		mp[1].add_child(K.ornament())
-		var fl2 := K.label(T.call("prop_" + String(e["id"])), 15); fl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; fl2.custom_minimum_size = Vector2(420, 0); fl2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(fl2)
-		mp[1].add_child(K.choice_card(T.call("mp_accept"), "", func(): close(mp[0]); on_choose.call(0), true))
-		mp[1].add_child(K.choice_card(T.call("mp_decline"), "", func(): close(mp[0]); on_choose.call(1)))
+		var ult: bool = e["id"] == "ultimatum"
+		var fl2 := K.label(T.call("prop_" + String(e["id"]), {"a": from_name, "p": TBI18n.place(g.world.name[int(e["p"])]) if ult and g != null else ""}), 15); fl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; fl2.custom_minimum_size = Vector2(420, 0); fl2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(fl2)
+		mp[1].add_child(K.choice_card(T.call("mp_yield") if ult else T.call("mp_accept"), "", func(): close(mp[0]); on_choose.call(0), not ult))
+		mp[1].add_child(K.choice_card(T.call("mp_defy") if ult else T.call("mp_decline"), T.call("mp_defy_d") if ult else "", func(): close(mp[0]); on_choose.call(1), ult))
 		return
 	var rand: bool = e["kind"] == "rand"
 	var id: String = e["id"]
