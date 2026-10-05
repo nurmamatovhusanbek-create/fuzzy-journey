@@ -183,7 +183,7 @@ export class Game {
     this.ownDirty = false;
   }
   ownCount(n) { if (this.ownDirty) this.rebuildOwned(); return this.ownStart[n + 1] - this.ownStart[n]; }
-  owned(n) { if (this.ownDirty) this.rebuildOwned(); return this.ownList.subarray(this.ownStart[n], this.ownStart[n + 1]); }
+  owned(n) { if (this.ownDirty) this.rebuildOwned(); return this.ownList.slice(this.ownStart[n], this.ownStart[n + 1]); }
   touch(p) { if (!this.dirtyFlag[p]) { this.dirtyFlag[p] = 1; this.dirtyList.push(p); } }
   takeDirty() { const l = this.dirtyList; for (const p of l) this.dirtyFlag[p] = 0; this.dirtyList = []; return l; }
   setOwner(p, n) { if (this.owner[p] === n) return; this.owner[p] = n; this.ownDirty = true; this.touch(p); }
@@ -368,7 +368,7 @@ Game.CMD = {
       // take occupied provinces worth up to ws budget
       let budget = ws * 0.9, taken = 0;
       const prov = []; for (const p of this.owned(t)) if (this.occupier[p] === n) prov.push(p);
-      prov.sort((a, b) => this.provinceValue(a) - this.provinceValue(b));
+      prov.sort((a, b) => (this.provinceValue(a) - this.provinceValue(b)) || (a - b));
       const totalVal = this.owned(t).reduce((s, p) => s + this.provinceValue(p), 0) || 1;
       for (const p of prov) { const pct = this.provinceValue(p) / totalVal * 100; if (pct > budget) continue; budget -= pct; this.cede(p, n); taken++; }
       this.log.push({ turn: this.turn, kind: 'ceded', a: n, b: t, k: taken });
