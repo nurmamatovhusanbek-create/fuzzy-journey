@@ -6,6 +6,7 @@ signal end_turn_pressed
 signal lens_selected(name: String)
 signal nations_pressed
 signal wars_pressed
+signal goals_pressed
 signal budget_pressed
 signal save_pressed
 signal settings_pressed
@@ -48,7 +49,7 @@ func build() -> void:
 		lens.add_item(T.call("lens_" + TBLenses.NAMES[i]), i)
 	lens.item_selected.connect(func(idx: int): lens_selected.emit(TBLenses.NAMES[lens.get_item_id(idx)]))
 	row.add_child(lens)
-	for spec in [["nations", T.call("nations"), nations_pressed], ["budget", T.call("budget"), budget_pressed], ["save", T.call("save"), save_pressed], ["settings", "⚙", settings_pressed]]:
+	for spec in [["goals", "🏆", goals_pressed], ["nations", T.call("nations"), nations_pressed], ["budget", T.call("budget"), budget_pressed], ["save", T.call("save"), save_pressed], ["settings", "⚙", settings_pressed]]:
 		var b := K.button(spec[1]); b.custom_minimum_size = Vector2(0, K.MIN_TOUCH - 8); b.pressed.connect(func(): spec[2].emit()); row.add_child(b)
 	# toasts
 	_toasts = VBoxContainer.new()

@@ -233,9 +233,25 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable) ->
 		b.custom_minimum_size = Vector2(0, 54)
 		m[1].add_child(b)
 
+## victory goals with progress bars
+static func goals(parent: Control, g: TBGame) -> void:
+	var m := K.modal(parent, T.call("goals_title"), 460)
+	var prog := TBTurn.victory_progress(g, g.human_id)
+	for id in TBTurn.VICTORY_IDS:
+		var pct: float = prog[id]
+		m[1].add_child(K.label("%s — %d%%" % [T.call("vc_" + id), int(pct * 100.0)], 15, K.GOLD2 if pct >= 0.9 else K.TEXT))
+		var d := K.label(T.call("vc_" + id + "_d"), 12, K.DIM); d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; d.custom_minimum_size = Vector2(400, 0)
+		m[1].add_child(d)
+		var bar := ProgressBar.new(); bar.max_value = 100; bar.value = pct * 100.0; bar.show_percentage = false; bar.custom_minimum_size = Vector2(0, 8)
+		m[1].add_child(bar)
+	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
+
 static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 	var won: bool = g.winner == g.human_id
-	var m := K.modal(parent, T.call("e_victory", {"a": g.nat_name[g.winner]}) if won else T.call("e_defeat"), 460)
+	var vtitle: String = T.call("e_victory", {"a": g.nat_name[g.winner]}) if won else T.call("e_defeat")
+	if won and g.victory_kind != "": vtitle = "%s — %s" % [T.call("vc_" + g.victory_kind), g.nat_name[g.winner]]
+	elif g.winner != 0 and not won: vtitle = T.call("e_lost_to", {"a": g.nat_name[g.winner]})
+	var m := K.modal(parent, vtitle, 460)
 	var rows: Array = []
 	for n in range(1, g.N1):
 		if g.alive[n] == 0 or n == g.rebel: continue

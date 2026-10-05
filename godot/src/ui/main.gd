@@ -40,6 +40,7 @@ func _ready() -> void:
 	hud.end_turn_pressed.connect(end_turn)
 	hud.lens_selected.connect(func(n): map.set_lens(n))
 	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation))
+	hud.goals_pressed.connect(func(): TBModals.goals(_overlay, g))
 	hud.wars_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation, true))
 	panel.nation_requested.connect(_open_nation)
 	hud.budget_pressed.connect(func(): TBModals.budget(_overlay, g, func(): hud.refresh()))

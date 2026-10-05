@@ -10,13 +10,14 @@
 ## Status (kept current)
 | Area | State |
 |---|---|
-| Engine (GDScript, bit-exact vs JS oracle at `rules=0`; tuned game at `rules=1`) | done, tested (`tools/test_all.sh`) |
-| GPU map (globe/flat, borders, lenses, selection, occupation hatch, 3 quality tiers, render scale) | done |
-| Single-player UI (menu, eras, nation pick, HUD, province panel, nation card, budget, save/load, tutorial, game-over standings, portrait + safe-area) | done |
-| Systems: economy, buildings, tech/eras, combat, war score, peace deals (white/land/vassal), NAP/alliance, rebels, colonization, events (random + 14 scheduled packs), covert ops, mercenaries, AI (personalities, budget, spying, anti-hegemon) | done |
-| Multiplayer: authoritative server (deployed on Render), lobby, delta sync, proposals, chat, timer, auto-reconnect | done; tested locally with 2 clients + UI |
-| Android / iOS builds | presets + CI workflow written, **not run** (no Android SDK / Mac available in the dev sandbox) |
-| Still to port from legacy | trade routes, generals, formable nations, ultimatums/war goals/coalitions/marriage UI, flags, data-spike lens, parchment theme |
+| Engine (GDScript; bit-exact vs JS oracle at `rules=0`, tuned game at `rules=1`) | done, tested (`tools/test_all.sh`) |
+| GPU map: globe/flat, smoothed province IDs, borders, 10 lenses, selection, move-target highlight, occupation hatch, nation names, 3 quality tiers + render scale + **adaptive auto quality**, parchment theme | done |
+| Single-player UI: menu, eras, nation pick, HUD, province panel, nation card (war score, diplomacy, covert ops), budget, goals, save/load, tutorial, game-over standings, flags, EN/RU, portrait + safe-area | done |
+| Systems: economy, buildings, tech/eras, combat, war score, peace deals (white / land / **vassal**), NAP/alliance, rebels, colonization, mercenaries, **events** (12 random + 14 scheduled packs), **covert ops**, **5 victory paths**, AI (personalities, budget mgmt, spies, anti-hegemon) | done |
+| Multiplayer: authoritative server (**deployed on Render**), lobby, delta sync, proposals, chat, turn timer, **auto-reconnect**, command validation + rate limit | done; tested with 2 clients + UI + reconnect |
+| Perf work: bake-time sea links (new game 289 ms to 11 ms), render only on change + low-processor mode, half-res ID texture on Low tier | done |
+| Android / iOS builds | presets + CI workflow written, **not run** (no Android SDK / Mac in the dev sandbox) |
+| Still to port from legacy | trade routes, generals, formable nations, ultimatums / war goals / coalitions / marriage UI, data-spike lens, localized nation names |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 
 Legacy `index.html` stays untouched until feature parity. The JS engine written earlier is kept in `reference/engine-js` as a **test oracle** for the GDScript port (same seed ⇒ comparable results).

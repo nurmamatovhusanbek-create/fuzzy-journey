@@ -20,6 +20,7 @@ var month_idx: int = 0
 var era_id: String
 var over: bool = false
 var winner: int = 0
+var victory_kind: String = ""
 var human_id: int = 0
 var rebel: int
 

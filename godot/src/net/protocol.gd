@@ -22,7 +22,7 @@ static func restore_snapshot(w: TBWorld, b: PackedByteArray) -> TBGame:
 
 ## prev: per-room Dictionary caching the last-sent matrices (updated in place when full_matrices)
 static func make_delta(g: TBGame, dirty: PackedInt32Array, log_from: int, full_matrices: bool, prev: Dictionary) -> PackedByteArray:
-	var d := {"turn": g.turn, "year": g.year, "mi": g.month_idx, "over": g.over, "winner": g.winner}
+	var d := {"turn": g.turn, "year": g.year, "mi": g.month_idx, "over": g.over, "winner": g.winner, "vk": g.victory_kind}
 	var pv := PackedInt32Array()
 	for p in dirty:
 		pv.append(p); pv.append(g.owner[p]); pv.append(g.occupier[p]); pv.append(g.army[p]); pv.append(g.pop[p])
@@ -61,7 +61,7 @@ static func make_delta(g: TBGame, dirty: PackedInt32Array, log_from: int, full_m
 ## returns the dirty province list (for repaint)
 static func apply_delta(g: TBGame, b: PackedByteArray) -> PackedInt32Array:
 	var d: Dictionary = unpack(b)
-	g.turn = d["turn"]; g.year = d["year"]; g.month_idx = d["mi"]; g.over = d["over"]; g.winner = d["winner"]
+	g.turn = d["turn"]; g.year = d["year"]; g.month_idx = d["mi"]; g.over = d["over"]; g.winner = d["winner"]; g.victory_kind = d.get("vk", "")
 	var dirty := PackedInt32Array()
 	var pv: PackedInt32Array = d["prov"]
 	var i := 0

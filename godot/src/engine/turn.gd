@@ -177,6 +177,27 @@ static func rebel_turn(g: TBGame) -> void:
 		if g.get_rel(r, former) != D.REL_WAR: g.set_rel(r, former, D.REL_WAR)
 		g.resolve_combat(r, p, tgt, int(floor(g.army[p] * 0.7)))
 
+## victory paths (rules >= 1): id -> progress 0..1 (>= 1 wins). Domination counts the share of the whole map.
+const VICTORY_IDS := ["domination", "economic", "technological", "diplomatic", "conquest"]
+const DOMINATION_SHARE := 0.25
+const ECONOMIC_GOLD := 5000.0
+const DIPLOMATIC_ALLIES := 8
+
+static func victory_progress(g: TBGame, n: int) -> Dictionary:
+	var allies := 0
+	var alive_others := 0
+	for o in range(1, g.N1):
+		if o == n or g.alive[o] == 0 or o == g.rebel: continue
+		alive_others += 1
+		if g.get_rel(n, o) == D.REL_ALLY: allies += 1
+	return {
+		"domination": clampf(float(g.own_count(n)) / g.P / DOMINATION_SHARE, 0.0, 1.0),
+		"economic": clampf(g.gold[n] / ECONOMIC_GOLD, 0.0, 1.0),
+		"technological": clampf(g.tech_level[n] / 5.0, 0.0, 1.0),
+		"diplomatic": clampf(float(allies) / DIPLOMATIC_ALLIES, 0.0, 1.0),
+		"conquest": 1.0 if alive_others == 0 else clampf(float(g.own_count(n)) / maxf(1.0, g.P - g.own_count(0)), 0.0, 0.99),
+	}
+
 static func check_victory(g: TBGame) -> void:
 	if g.over: return
 	var hs := g.humans()
@@ -185,11 +206,20 @@ static func check_victory(g: TBGame) -> void:
 	for h in hs:
 		if g.alive[h] != 0: alive_humans += 1
 	if alive_humans == 0:
-		g.over = true; g.winner = 0; g.log.append({"turn": g.turn, "kind": "defeat", "a": hs[0]}); return
-	var total := 0
-	for p in g.P:
-		if g.owner[p] != 0: total += 1
+		g.over = true; g.winner = 0; g.victory_kind = ""; g.log.append({"turn": g.turn, "kind": "defeat", "a": hs[0]}); return
+	if g.rules == 0:
+		var total := 0
+		for p in g.P:
+			if g.owner[p] != 0: total += 1
+		for h in hs:
+			if g.alive[h] == 0: continue
+			if float(g.own_count(h)) / (total if total != 0 else 1) >= 0.6:
+				g.over = true; g.winner = h; g.victory_kind = "domination"; g.log.append({"turn": g.turn, "kind": "victory", "a": h}); return
+		return
 	for h in hs:
 		if g.alive[h] == 0: continue
-		if float(g.own_count(h)) / (total if total != 0 else 1) >= 0.6:
-			g.over = true; g.winner = h; g.log.append({"turn": g.turn, "kind": "victory", "a": h}); return
+		var prog := victory_progress(g, h)
+		for id in VICTORY_IDS:
+			if prog[id] >= 1.0 and not (id == "technological" and g.tech_level[h] < 5.0):
+				g.over = true; g.winner = h; g.victory_kind = id
+				g.log.append({"turn": g.turn, "kind": "victory", "a": h, "id": id}); return
