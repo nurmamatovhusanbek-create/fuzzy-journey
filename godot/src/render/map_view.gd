@@ -20,6 +20,9 @@ var selected := -1
 var hover := -1
 
 var quality := 2
+var render_scale := 1.0        # SubViewport resolution relative to the control's logical size
+var _vp: SubViewport
+var _view_tex: TextureRect
 var labels: TBMapLabels
 var _mat: ShaderMaterial
 var _rect: ColorRect
@@ -41,13 +44,28 @@ func setup(game: TBGame) -> void:
 	g = game
 	world = game.world
 	if _rect == null:
+		# the shader draws into a SubViewport so low-end devices can render below native resolution
+		_vp = SubViewport.new()
+		_vp.disable_3d = true
+		_vp.transparent_bg = false
+		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		_vp.size = Vector2i(maxi(64, int(size.x)), maxi(64, int(size.y)))
+		add_child(_vp)
 		_rect = ColorRect.new()
-		_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_rect.size = Vector2(_vp.size)
 		_mat = ShaderMaterial.new()
 		_mat.shader = SHADER
 		_rect.material = _mat
-		add_child(_rect)
+		_vp.add_child(_rect)
+		_view_tex = TextureRect.new()
+		_view_tex.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_view_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_view_tex.stretch_mode = TextureRect.STRETCH_SCALE
+		_view_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_view_tex.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_view_tex.texture = _vp.get_texture()
+		add_child(_view_tex)
 		var img := Image.create_from_data(world.W, world.H, false, Image.FORMAT_RG8, world.ids)
 		_ids_tex = ImageTexture.create_from_image(img)
 		_mat.set_shader_parameter("ids", _ids_tex)
@@ -115,11 +133,15 @@ func flat_scale() -> float: return size.x / TAU * zoom
 
 func _push_view() -> void:
 	if _mat == null: return
-	_mat.set_shader_parameter("rect_size", size)
+	var vs := Vector2i(maxi(64, int(size.x * render_scale)), maxi(64, int(size.y * render_scale)))
+	if _vp.size != vs:
+		_vp.size = vs
+		_rect.size = Vector2(vs)
+	_mat.set_shader_parameter("rect_size", Vector2(vs))
 	_mat.set_shader_parameter("lon0", lon0)
 	_mat.set_shader_parameter("lat0", lat0)
-	_mat.set_shader_parameter("radius", radius_px())
-	_mat.set_shader_parameter("flat_scale", flat_scale())
+	_mat.set_shader_parameter("radius", radius_px() * render_scale)
+	_mat.set_shader_parameter("flat_scale", flat_scale() * render_scale)
 	_mat.set_shader_parameter("mode", mode)
 	_mat.set_shader_parameter("sel_id", selected + 1 if selected >= 0 else -1)
 	_mat.set_shader_parameter("hover_id", hover + 1 if hover >= 0 else -1)

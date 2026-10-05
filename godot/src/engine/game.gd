@@ -81,6 +81,7 @@ var own_dirty: bool = true
 
 var dirty_flag := PackedByteArray()
 var dirty_list := PackedInt32Array()
+var rel_dirty := PackedInt32Array()   # canonical (min*N1+max) pairs whose relation changed since last take (net deltas)
 var log: Array = []
 var nap_expiry: Dictionary = {}
 var occ_rev: int = 0
@@ -182,6 +183,18 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 func set_human(n: int) -> void:
 	human.fill(0); human[n] = 1; human_id = n
 	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"]; mp[n] = 10; dp[n] = 6
+
+## multiplayer: several human nations (human_id stays the first one, used by SP-centric helpers)
+func add_human(n: int) -> void:
+	human[n] = 1
+	if human_id == 0: human_id = n
+	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"]; mp[n] = 10; dp[n] = 6
+
+func humans() -> PackedInt32Array:
+	var out := PackedInt32Array()
+	for n in range(1, N1):
+		if human[n] != 0: out.append(n)
+	return out
 
 # ---------------------------------------------------------------- geometry helpers
 static func gc_dist(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
@@ -313,6 +326,7 @@ func get_rel(a: int, b: int) -> int: return rel[a * N1 + b]
 func set_rel(a: int, b: int, v: int) -> void:
 	var old: int = rel[a * N1 + b]
 	rel[a * N1 + b] = v; rel[b * N1 + a] = v
+	if old != v: rel_dirty.append(mini(a, b) * N1 + maxi(a, b))
 	if old == D.REL_WAR and v != D.REL_WAR:
 		if alive[b] != 0: war_cnt[a] -= 1
 		if alive[a] != 0: war_cnt[b] -= 1

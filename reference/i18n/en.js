@@ -20,5 +20,6 @@ export default {
   b_fortress: 'Fortress', b_armory: 'Armory', b_port: 'Port', b_market: 'Market', b_watchtower: 'Watchtower', b_supplycamp: 'Supply camp', b_library: 'Library', b_farm: 'Farm', b_workshop: 'Workshop',
   t_plains: 'Plains', t_hills: 'Hills', t_mountain: 'Mountains', t_forest: 'Forest', t_marsh: 'Marsh', t_steppe: 'Steppe',
   g_tribal: 'Tribal', g_feudal: 'Feudal', g_monarchy: 'Monarchy', g_republic: 'Republic', g_empire: 'Empire', g_democracy: 'Democracy', g_communism: 'Communism', g_fascism: 'Fascism', g_horde: 'Horde', g_citystate: 'City-state', g_rebels: 'Rebels',
+  mp_name: 'Your name', mp_server: 'Server', mp_code: 'Room code', mp_create: 'Create room', mp_join: 'Join room', mp_connecting: 'Connecting…', mp_failed: 'Could not connect', mp_lost: 'Connection lost', mp_room: 'Room', mp_pick_hint: 'Tap a province to claim its nation', mp_start: 'Start game', mp_proposal: 'Proposal', mp_accept: 'Accept', mp_decline: 'Decline', mp_kind_ally: 'proposes an alliance', mp_kind_nap: 'proposes a non-aggression pact', mp_kind_peace: 'proposes peace', mp_proposal_sent: 'Proposal sent', mp_chat: 'Chat…',
   mp_title: 'Multiplayer', mp_soon: 'Multiplayer arrives in the next milestone.',
 };

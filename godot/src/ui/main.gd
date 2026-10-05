@@ -18,6 +18,7 @@ var _turn_thread: Thread
 var _busy := false
 var _log_idx := 0
 var _spin := true
+var mp: TBMpController
 
 func _ready() -> void:
 	theme = K.theme()
@@ -33,6 +34,7 @@ func _ready() -> void:
 	panel.command.connect(_on_command); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
+	mp = TBMpController.new(); add_child(mp); mp.setup(self)
 	hud.end_turn_pressed.connect(end_turn)
 	hud.lens_selected.connect(func(n): map.set_lens(n))
 	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _goto_nation))
@@ -62,7 +64,9 @@ func _guess_quality() -> String:
 	return "high"
 
 func _apply_quality() -> void:
-	map.quality = {"low": 0, "medium": 1, "high": 2}.get(cfg["quality"], 1)
+	var q: int = {"low": 0, "medium": 1, "high": 2}.get(cfg["quality"], 1)
+	map.quality = q
+	map.render_scale = [0.6, 0.85, 1.0][q]      # fraction of logical resolution the map shader renders at
 	map._push_view()
 
 # ---------------------------------------------------------------- screens
@@ -87,7 +91,7 @@ func show_menu() -> void:
 	var cont := K.button(T.call("continue"), func(): _load_slot("auto"))
 	cont.visible = not TBSave.meta("auto").is_empty(); v.add_child(cont)
 	v.add_child(K.button(T.call("load"), func(): TBModals.save_load(_overlay, false, _save_slot, _load_slot)))
-	v.add_child(K.button(T.call("multiplayer"), func(): var mm := K.modal(_overlay, T.call("mp_title")); mm[1].add_child(K.label(T.call("mp_soon"), 14, K.DIM)); mm[1].add_child(K.button(T.call("back"), func(): mm[0].queue_free()))))
+	v.add_child(K.button(T.call("multiplayer"), func(): mp.open_menu()))
 	v.add_child(K.button(T.call("settings"), _open_settings))
 
 func _open_settings() -> void:
@@ -126,6 +130,8 @@ func _start_game(n: int) -> void:
 
 # ---------------------------------------------------------------- input
 func _on_pick(p: int, secondary: bool) -> void:
+	if mode == "mp_lobby":
+		mp.pick_province(p); return
 	if mode == "pick":
 		if p < 0 or g.owner[p] == 0: return
 		var n := g.owner[p]
@@ -163,6 +169,8 @@ func _goto_nation(n: int) -> void:
 
 # ---------------------------------------------------------------- commands
 func _on_command(c: Dictionary) -> void:
+	if mp.in_game:
+		mp.send_command(c); return
 	var cmd := c.duplicate(); cmd["n"] = g.human_id
 	var res := g.apply(cmd)
 	if not res["ok"]:
@@ -171,6 +179,8 @@ func _on_command(c: Dictionary) -> void:
 	_after_change()
 
 func _do_move(from: int, to: int) -> void:
+	if mp.in_game:
+		mp.send_command({"cmd": "move", "from": from, "to": to, "troops": g.army[from] - 1}); _select(to); return
 	var res := g.apply({"cmd": "move", "n": g.human_id, "from": from, "to": to, "troops": g.army[from] - 1})
 	if not res["ok"]:
 		var key := "err_" + String(res["err"])
@@ -189,6 +199,8 @@ func _after_change() -> void:
 
 # ---------------------------------------------------------------- end turn (worker thread so the UI never freezes)
 func end_turn() -> void:
+	if mp.in_game:
+		mp.end_turn(); return
 	if _busy or mode != "game": return
 	_busy = true; hud.set_busy(true); move_from = -1
 	_turn_thread = Thread.new()
@@ -245,3 +257,15 @@ func _process(delta: float) -> void:
 	if mode == "menu" and _spin:
 		map.lon0 += delta * 0.12
 		map._push_view()
+
+# ---------------------------------------------------------------- multiplayer hooks (called by TBMpController)
+func enter_mp_game(game: TBGame, nation: int) -> void:
+	g = game; mode = "game"; _spin = false; _clear_overlay(); _log_idx = g.log.size()
+	g.human_id = nation
+	map.setup(g); map.repaint_all()
+	var cap := g.capital_of[nation]
+	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2)
+	hud.g = g; hud.visible = true; hud.build(); hud.refresh(); _select(-1)
+
+func leave_mp() -> void:
+	mp.leave()

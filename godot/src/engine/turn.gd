@@ -162,13 +162,17 @@ static func rebel_turn(g: TBGame) -> void:
 
 static func check_victory(g: TBGame) -> void:
 	if g.over: return
-	var h := g.human_id
-	if h == 0: return
-	if g.alive[h] == 0:
-		g.over = true; g.winner = 0; g.log.append({"turn": g.turn, "kind": "defeat", "a": h}); return
+	var hs := g.humans()
+	if hs.is_empty(): return
+	var alive_humans := 0
+	for h in hs:
+		if g.alive[h] != 0: alive_humans += 1
+	if alive_humans == 0:
+		g.over = true; g.winner = 0; g.log.append({"turn": g.turn, "kind": "defeat", "a": hs[0]}); return
 	var total := 0
 	for p in g.P:
 		if g.owner[p] != 0: total += 1
-	var mine := g.own_count(h)
-	if float(mine) / (total if total != 0 else 1) >= 0.6:
-		g.over = true; g.winner = h; g.log.append({"turn": g.turn, "kind": "victory", "a": h})
+	for h in hs:
+		if g.alive[h] == 0: continue
+		if float(g.own_count(h)) / (total if total != 0 else 1) >= 0.6:
+			g.over = true; g.winner = h; g.log.append({"turn": g.turn, "kind": "victory", "a": h}); return

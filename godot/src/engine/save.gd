@@ -44,7 +44,12 @@ static func load_game(w: TBWorld, slot: String) -> TBGame:
 	if f == null: return null
 	var d = f.get_var()
 	f.close()
-	if not (d is Dictionary) or int(d.get("v", 0)) != VERSION: return null
+	if not (d is Dictionary): return null
+	return from_dict(w, d)
+
+## rebuild a game from a TBSave.to_dict() payload (also used for network snapshots)
+static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
+	if int(d.get("v", 0)) != VERSION: return null
 	var era_pack := TBWorld.load_era("res://data", String(d["era_id"])) if String(d["era_id"]) != "modern" else {}
 	var g := TBGame.new(w, era_pack, {"seed": int(d["seed_value"]), "difficulty": String(d["difficulty"])})
 	for k in FIELDS_PACKED: g.set(k, d[k])

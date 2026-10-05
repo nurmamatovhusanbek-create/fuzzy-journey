@@ -20,5 +20,6 @@ export default {
   b_fortress: 'Крепость', b_armory: 'Арсенал', b_port: 'Порт', b_market: 'Рынок', b_watchtower: 'Сторожевая башня', b_supplycamp: 'Лагерь снабжения', b_library: 'Библиотека', b_farm: 'Ферма', b_workshop: 'Мастерская',
   t_plains: 'Равнина', t_hills: 'Холмы', t_mountain: 'Горы', t_forest: 'Лес', t_marsh: 'Болото', t_steppe: 'Степь',
   g_tribal: 'Племенной', g_feudal: 'Феодальный', g_monarchy: 'Монархия', g_republic: 'Республика', g_empire: 'Империя', g_democracy: 'Демократия', g_communism: 'Коммунизм', g_fascism: 'Фашизм', g_horde: 'Орда', g_citystate: 'Город-государство', g_rebels: 'Повстанцы',
+  mp_name: 'Ваше имя', mp_server: 'Сервер', mp_code: 'Код комнаты', mp_create: 'Создать комнату', mp_join: 'Войти в комнату', mp_connecting: 'Подключение…', mp_failed: 'Не удалось подключиться', mp_lost: 'Соединение потеряно', mp_room: 'Комната', mp_pick_hint: 'Коснитесь провинции, чтобы выбрать державу', mp_start: 'Начать игру', mp_proposal: 'Предложение', mp_accept: 'Принять', mp_decline: 'Отклонить', mp_kind_ally: 'предлагает союз', mp_kind_nap: 'предлагает пакт о ненападении', mp_kind_peace: 'предлагает мир', mp_proposal_sent: 'Предложение отправлено', mp_chat: 'Чат…',
   mp_title: 'Сетевая игра', mp_soon: 'Сетевая игра появится на следующем этапе.',
 };
