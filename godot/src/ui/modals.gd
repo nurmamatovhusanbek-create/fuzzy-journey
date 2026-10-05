@@ -366,8 +366,9 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 	if e["kind"] == "prop":
 		var from_name: String = g.dname(int(e["from"])) if g != null else ""
 		var mp := K.modal(parent, "", 480)
-		var hl := K.label("🤝", 38, K.GOLD2); hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(hl)
-		var tl := K.title(T.call("prop_title", {"a": from_name}), 22); tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(420, 0); mp[1].add_child(tl)
+		var ult0: bool = e["id"] == "ultimatum"
+		var hl := K.label("⚔" if ult0 else "🤝", 38, K.RED.lightened(0.25) if ult0 else K.GOLD2); hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(hl)
+		var tl := K.title(T.call("prop_ult_title" if ult0 else "prop_title", {"a": from_name}), 22); tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(420, 0); mp[1].add_child(tl)
 		mp[1].add_child(K.ornament())
 		var ult: bool = e["id"] == "ultimatum"
 		var fl2 := K.label(T.call("prop_" + String(e["id"]), {"a": from_name, "p": TBI18n.place(g.world.name[int(e["p"])]) if ult and g != null else ""}), 15); fl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; fl2.custom_minimum_size = Vector2(420, 0); fl2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; mp[1].add_child(fl2)
