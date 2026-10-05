@@ -42,6 +42,9 @@ var alive := PackedByteArray()
 var human := PackedByteArray()
 var cap_lost := PackedByteArray()
 var tribute := PackedByteArray()
+var infamy := PackedFloat32Array()    # rules >= 1: raised by unjustified wars and conquest; >= 25 forms a coalition (engine/diplomacy.gd)
+var coalition := PackedByteArray()
+var core := PackedInt32Array()        # province -> original owner (rules >= 1: casus belli 'reclaim')
 var capital_of := PackedInt32Array()
 var overlord := PackedInt32Array()
 var last_war_turn := PackedInt32Array()
@@ -183,6 +186,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
+	infamy.resize(N1); coalition.resize(N1)
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
 	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:
 		a.resize(N1)
@@ -222,6 +226,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	else:
 		add_sea_links()
 	if rules >= 1:
+		core = owner.duplicate()
 		TBRegimes.assign(self)
 		TBRulers.init(self)
 
@@ -346,6 +351,7 @@ func take_dirty() -> PackedInt32Array:
 func set_owner(p: int, n: int) -> void:
 	if owner[p] == n: return
 	owner[p] = n; own_dirty = true; touch(p)
+	if n != 0 and not core.is_empty() and core[p] == 0: core[p] = n      # first settlers make it home land
 
 func controller(p: int) -> int:
 	return occupier[p] if occupier[p] != 0 else owner[p]
@@ -533,6 +539,7 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 func cede(p: int, to: int) -> void:
 	var from := owner[p]
 	set_owner(p, to); occupier[p] = 0; occ_rev += 1
+	TBDiplo.on_land_taken(self, p, from, to)
 	if from != 0 and capital[p] != 0:
 		capital[p] = 0; capital_of[from] = -1; reassign_capital(from)
 		if own_count(from) == 0 and from != rebel: eliminate(from)
@@ -603,9 +610,10 @@ func _c_declare_war(c: Dictionary) -> Dictionary:
 	if overlord[n] == t or overlord[t] == n: return _err("vassal")
 	var was := get_rel(n, t)
 	dp[n] -= D.DP_WAR; set_rel(n, t, D.REL_WAR); last_war_turn[n] = turn
+	var cb_kind := TBDiplo.on_declare(self, n, t)
 	var gi := t * N1 + n
 	grudge[gi] = mini(100, grudge[gi] + (80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)))
-	log.append({"turn": turn, "kind": "war", "a": n, "b": t})
+	log.append({"turn": turn, "kind": "war", "a": n, "b": t, "cb": cb_kind})
 	for o in range(1, N + 1):
 		if o != n and o != t and alive[o] != 0 and get_rel(t, o) == D.REL_ALLY and not friendly(n, o) and get_rel(n, o) != D.REL_WAR and not has_truce(n, o):
 			set_rel(n, o, D.REL_WAR)
@@ -622,6 +630,7 @@ func _c_peace(c: Dictionary) -> Dictionary:
 		if rules < 1 or ws < 50: return _err("warscore")
 		if overlord[t] != 0 or overlord[n] != 0: return _err("vassal")
 		overlord[t] = n; tribute[t] = 30; liberty[t] = 0.0
+		if rules >= 1: infamy[n] = minf(100.0, infamy[n] + TBDiplo.VASSAL_INFAMY)
 		log.append({"turn": turn, "kind": "vassal", "a": n, "b": t})
 	if kind == "cede":
 		if ws < 25: return _err("warscore")

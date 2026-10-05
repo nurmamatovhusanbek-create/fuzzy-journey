@@ -149,11 +149,17 @@ static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array)
 		if g.rules >= 1:
 			var share := float(g.own_count(t)) / maxf(1.0, total_owned)
 			if share > 0.04: s += (share - 0.04) * 25.0       # hegemon: everyone's favourite target
+			s += g.infamy[t] / 15.0 + (2.0 if g.coalition[t] != 0 else 0.0)      # coalition against the notorious
+			var cbk := TBDiplo.cb(g, n, t)
+			if cbk != "": s += 0.8
+			elif aggr < 0.5: s -= 1.5                             # peaceful rulers avoid unjustified wars
+			if cbk == "" and g.infamy[n] >= 18.0: s -= 2.0
 		if s > ts:
 			ts = s; tgt = t
 	if tgt != 0:
 		var cap := g.capital_of[n]
 		if g.stab[cap if cap >= 0 else 0] < 25: return
+		if g.rules >= 1 and aggr < 0.5 and TBDiplo.cb(g, n, tgt) == "" and g.rng.chance(0.6): return
 		g.apply({"cmd": "declareWar", "n": n, "t": tgt})
 
 static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
@@ -259,6 +265,7 @@ static func accepts_pact(g: TBGame, t: int, p: int, rel: int) -> bool:
 	var pers: Dictionary = D.PERSONALITIES[g.personality[t]]
 	if g.grudge[t * g.N1 + p] > 20 or (g.has_truce(t, p) and rel == D.REL_ALLY): return false
 	var s: float = float(pers["dipl"]) * 0.6 + (0.3 if rel == D.REL_NAP else 0.0)
+	if g.rules >= 1: s -= maxf(0.0, g.infamy[p] - 12.0) * 0.02
 	for o in range(1, g.N + 1):
 		if g.get_rel(t, o) == D.REL_WAR and g.get_rel(p, o) == D.REL_WAR: s += 0.3
 	var mine := g.own_count(t)

@@ -78,7 +78,7 @@ func refresh() -> void:
 	var net: int = inc["net"]
 	_chips["gold"].text = "%s %s (%s%d)" % [T.call("gold"), K.fmt(g.gold[n]), "+" if net >= 0 else "", net]
 	_chips["man"].text = "%s %s/%s" % [T.call("hud_man"), K.fmt(g.manpower[n]), K.fmt(inc["manCap"])]
-	_chips["mp"].text = "MP %d · DP %d%s" % [int(g.mp[n]), int(g.dp[n]), (" · %s %d" % [T.call("hud_intel"), int(g.intel[n])]) if g.rules >= 1 else ""]
+	_chips["mp"].text = "MP %d · DP %d%s" % [int(g.mp[n]), int(g.dp[n]), ((" · %s %d" % [T.call("hud_intel"), int(g.intel[n])]) + ((" · ☠ %d" % int(g.infamy[n])) if g.infamy[n] >= 5.0 else "")) if g.rules >= 1 else ""]
 	var lvl: float = g.tech_level[n]
 	_chips["lands"].text = "%s %d · %s %.1f" % [T.call("hud_prov"), inc["lands"], T.call("era_name_%d" % g.era[n]), lvl]
 	var wc := 0

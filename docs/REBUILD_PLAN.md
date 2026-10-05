@@ -19,7 +19,8 @@
 | Android / iOS builds | presets + CI workflow written, **not run** (no Android SDK / Mac in the dev sandbox) |
 | UX: **Chronicle** (filterable history), **Advisor** (alerts + tips, crisis toasts), richer log (occupation, annexation, bankruptcy, era) — from `docs/RESEARCH.md` item 1 | done |
 | **Rulers** (item 2): named leaders with skills + traits, ageing, succession / crises / elections, ~140 historical rulers across 11 eras (`data/rulers.json`), era-appropriate starting governments (`engine/regimes.gd`) | done |
-| Still to port from legacy | trade routes, generals, formable nations, ultimatums / war goals / coalitions / marriage UI, data-spike lens, localized nation names |
+| **Casus belli, infamy, coalitions** (item 3): 5 casus belli (coalition / reclaim / revenge / defend ally / rebels), infamy from unjustified wars + conquest, coalition at 22 (ends at 12), AI weighs infamy + CB, shown on nation card, advisor and chronicle | done |
+| Still to port from legacy | trade routes, generals, formable nations, ultimatums / war goals / marriage UI, data-spike lens, localized nation names |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 
 Legacy `index.html` stays untouched until feature parity. The JS engine written earlier is kept in `reference/engine-js` as a **test oracle** for the GDScript port (same seed ⇒ comparable results).

@@ -9,6 +9,7 @@ const CATS := ["mine", "all", "war", "diplo", "events"]
 static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
 		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "independence": return "war"
+		"coalition", "coalition_end": return "diplo"
 		"ally", "vassal", "spy": return "diplo"
 		"event", "event_choice", "era", "bankrupt", "ruler": return "events"
 	return "events"
@@ -32,7 +33,12 @@ static func text(g: TBGame, e: Dictionary) -> String:
 	var pn := ""
 	if e.has("p") and int(e["p"]) >= 0: pn = String(g.world.name[e["p"]])
 	match String(e["kind"]):
-		"war": return T.call("e_war", {"a": a, "b": b})
+		"war":
+			var cbk := String(e.get("cb", ""))
+			var base: String = T.call("e_war", {"a": a, "b": b})
+			return base if cbk == "" or cbk == "rebels" else "%s (%s)" % [base, T.call("cb_" + cbk)]
+		"coalition": return T.call("e_coalition", {"a": a})
+		"coalition_end": return T.call("e_coalition_end", {"a": a})
 		"peace": return T.call("e_peace", {"a": a, "b": b})
 		"ally": return T.call("e_ally", {"a": a, "b": b})
 		"vassal": return T.call("e_vassal", {"a": a, "b": b})
@@ -74,6 +80,7 @@ static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
 		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed": return involves(e, me)
 		"rebels", "bankrupt", "era", "ruler": return e.get("a", -1) == me
+		"coalition", "coalition_end": return true
 		"eliminated": return true
 		"event": return e.get("a", 0) == me or e.get("a", 0) == 0
 		"spy": return e.get("b", -1) == me

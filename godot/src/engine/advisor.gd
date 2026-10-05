@@ -35,6 +35,9 @@ static func alerts(g: TBGame, n: int) -> Array:
 	if threat_p >= 0: out.append(_a("threat", 2, threat_p, int(round(threat_ratio * 10.0))))
 	if occ > 0: out.append(_a("occupied", 1, occ_p, occ))
 	if unrest > 0: out.append(_a("unrest", 1, unrest_p, unrest))
+	if g.rules >= 1:
+		if g.coalition[n] != 0: out.append(_a("coalition", 2, -1, int(g.infamy[n])))
+		elif g.infamy[n] >= 12.0: out.append(_a("infamy", 1, -1, int(g.infamy[n])))
 	# opportunities
 	var best_ws := 0; var best_o := 0
 	var wars := 0

@@ -152,8 +152,13 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 	if n == me:
 		var inc := g.income(n)
 		rows.append([T.call("income_net"), "%+d" % int(inc["net"])])
+	if g.rules >= 1 and g.infamy[n] >= 1.0:
+		rows.append([T.call("infamy"), "%.0f%s" % [g.infamy[n], ("  ⚠ " + T.call("coalition")) if g.coalition[n] != 0 else ""]])
 	else:
 		rows.append([T.call("relation"), T.call(rel_key[rel])])
+		if g.rules >= 1 and rel != 1:
+			var cbk := TBDiplo.cb(g, me, n)
+			rows.append([T.call("cb"), T.call("cb_" + cbk) if cbk != "" else "%s (+%d %s)" % [T.call("cb_none"), int(TBDiplo.NO_CB_INFAMY), T.call("infamy")]])
 		if rel == 1:
 			rows.append([T.call("war_score"), "%d%% / %d%%" % [g.war_score[me * g.N1 + n], g.war_score[n * g.N1 + me]]])
 		elif g.has_truce(me, n):

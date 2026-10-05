@@ -16,6 +16,7 @@ static func end_turn(g: TBGame) -> PackedInt32Array:
 		g.year += 1
 	if g.rules >= 1:
 		TBRulers.tick(g)
+		TBDiplo.tick(g)
 		TBEvents.run(g)
 	check_victory(g)
 	return g.take_dirty()
