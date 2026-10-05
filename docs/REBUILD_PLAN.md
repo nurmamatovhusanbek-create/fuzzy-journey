@@ -28,7 +28,8 @@
 | Russian nation names (737 polities), interface-size setting, refreshed tutorial (7 steps) | done |
 | Synthesised sound set (7 cues, no asset files) with settings toggle | done |
 | **Royal marriages** (dynastic bond, lapse on succession, personal unions), map lens legend, pick-by-list, 13 more random events | done |
-| Still to port from legacy | generals, formable nations, ultimatums / war goals, data-spike lens |
+| **Regional unification** (28 realms, ≥75% of a region → reward + chronicle; progress in Goals), AI proposals to humans, Russian province names, engraved hatching/pinned footers | done |
+| Still to port from legacy | generals, (formables partially covered by regional unification), ultimatums / war goals, data-spike lens |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 
 Legacy `index.html` stays untouched until feature parity. The JS engine written earlier is kept in `reference/engine-js` as a **test oracle** for the GDScript port (same seed ⇒ comparable results).

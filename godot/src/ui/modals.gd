@@ -368,6 +368,17 @@ static func goals(parent: Control, g: TBGame) -> void:
 		m[1].add_child(d)
 		m[1].add_child(K.Meter.new(pct * 100.0, col))
 		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); m[1].add_child(gap)
+	var nearest: Array = []
+	for i in TBRealms.count():
+		if g.realm_done.size() != g.N1 * TBRealms.count() or g.realm_done[g.human_id * TBRealms.count() + i] != 0: continue
+		var sh := TBRealms.share(g, g.human_id, i)
+		if sh >= 0.25: nearest.append([sh, i])
+	nearest.sort_custom(func(a, b): return a[0] > b[0])
+	if not nearest.is_empty():
+		m[1].add_child(K.section(T.call("realms_title")))
+		for k in mini(3, nearest.size()):
+			var h := K.hbox(6); h.add_child(K.label(T.call("realm_" + String(TBRealms.LIST[nearest[k][1]][0])), 14)); h.add_child(K.Leader.new()); h.add_child(K.num("%d%%" % int(nearest[k][0] * 100.0), 14, K.GOLD2))
+			m[1].add_child(h); m[1].add_child(K.Meter.new(nearest[k][0] * 100.0, K.GOLD2))
 	_footer_back(m)
 
 static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:

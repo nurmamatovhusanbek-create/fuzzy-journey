@@ -44,6 +44,7 @@ var cap_lost := PackedByteArray()
 var tribute := PackedByteArray()
 var infamy := PackedFloat32Array()    # rules >= 1: raised by unjustified wars and conquest; >= 25 forms a coalition (engine/diplomacy.gd)
 var coalition := PackedByteArray()
+var realm_done := PackedByteArray()   # N1 * TBRealms.count(): 1 = unified (engine/realms.gd)
 var trade := PackedByteArray()        # N1*N1 symmetric: 1 = trade deal (engine/trade.gd)
 var trade_cnt := PackedByteArray()
 var dec_until := PackedInt32Array()   # N1 * TBDecisions.LIST.size(): turn when a decision's effect ends
@@ -234,6 +235,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		core = owner.duplicate()
 		TBRegimes.assign(self)
 		TBRulers.init(self)
+		TBRealms.init(self)
 
 ## nation name for display (localised)
 func dname(n: int) -> String: return TBI18n.nation(nat_name[n])

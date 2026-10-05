@@ -11,6 +11,7 @@ static func category(e: Dictionary) -> String:
 		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "independence": return "war"
 		"coalition", "coalition_end": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union": return "diplo"
+		"realm": return "events"
 		"event", "event_choice", "era", "bankrupt", "ruler", "decision": return "events"
 	return "events"
 
@@ -43,6 +44,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"ally": return T.call("e_ally", {"a": a, "b": b})
 		"offer_yes": return T.call("e_offer_yes", {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"offer_no": return ""
+		"realm": return T.call("e_realm", {"a": a, "r": T.call("realm_" + String(e["id"]))})
 		"marriage": return T.call("e_marriage", {"a": a, "b": b})
 		"marriage_end": return T.call("e_marriage_end", {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"union": return T.call("e_union", {"a": a, "b": b})
@@ -86,7 +88,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
 		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "trade", "marriage", "marriage_end", "union": return involves(e, me)
-		"rebels", "bankrupt", "era", "ruler": return e.get("a", -1) == me
+		"rebels", "bankrupt", "era", "ruler", "realm": return e.get("a", -1) == me
 		"coalition", "coalition_end": return true
 		"eliminated": return true
 		"event": return e.get("a", 0) == me or e.get("a", 0) == 0

@@ -18,6 +18,7 @@ static func end_turn(g: TBGame) -> PackedInt32Array:
 		TBRulers.tick(g)
 		TBDiplo.tick(g)
 		TBStats.record(g)
+		TBRealms.tick(g)
 		TBEvents.run(g)
 	check_victory(g)
 	return g.take_dirty()

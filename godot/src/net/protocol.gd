@@ -5,7 +5,7 @@ extends RefCounted
 const NAT_F := ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "infamy"]
 const NAT_B := ["era", "regime", "alive", "tribute", "cap_lost", "human", "personality", "coalition", "trade_cnt"]
 const NAT_I := ["capital_of", "overlord", "last_war_turn", "war_cnt", "color", "r_name", "r_num", "r_born", "r_since", "r_adm", "r_dip", "r_mil", "r_trait"]
-const MATRICES := ["war_score", "war_turns", "truce", "grudge", "dec_until", "trade"]
+const MATRICES := ["war_score", "war_turns", "truce", "grudge", "dec_until", "trade", "realm_done"]
 
 static func pack(v: Variant) -> PackedByteArray:
 	return var_to_bytes(v).compress(FileAccess.COMPRESSION_GZIP)
