@@ -14,6 +14,7 @@ static func end_turn(g: TBGame) -> PackedInt32Array:
 	if g.month_idx >= 12:
 		g.month_idx -= 12
 		g.year += 1
+	if g.rules >= 1: TBEvents.run(g)
 	check_victory(g)
 	return g.take_dirty()
 
@@ -31,9 +32,18 @@ static func _tick(g: TBGame) -> void:
 	var warflag := PackedByteArray(); warflag.resize(N1)
 	for n in range(1, N1):
 		warflag[n] = 1 if g.war_cnt[n] > 0 else 0
-	# defence accrual + construction
+	# defence accrual + construction (+ rules>=1: long occupation annexes the province)
 	for p in P:
 		var o := g.owner[p]
+		if g.rules >= 1:
+			var oc := g.occupier[p]
+			if oc != 0:
+				if g.occ_turns[p] < 250: g.occ_turns[p] += 1
+				if o != 0 and g.occ_turns[p] >= (10 if g.capital[p] != 0 else 5) and g.get_rel(o, oc) == D.REL_WAR:
+					g.cede(p, oc); g.army[p] = maxi(g.army[p], 6); g.stab[p] = mini(g.stab[p], 50); g.touch(p)
+					continue
+			else:
+				g.occ_turns[p] = 0
 		if o != 0 and warflag[o] == 0 and g.defense[p] < DEF_CAP:
 			g.defense[p] += 1
 		if g.b_building[p] != 0:
@@ -55,6 +65,7 @@ static func _tick(g: TBGame) -> void:
 		g.gold[n] = maxf(0.0, g.gold[n] + inc["net"])
 		g.manpower[n] = minf(inc["manCap"], g.manpower[n] + inc["manpower"])
 		g.mp[n] = minf(6 + era * 2, g.mp[n] + 1 + era * 0.4)
+		if g.rules >= 1 and g.human[n] == 0: g.mp[n] = minf(8 + era * 2, g.mp[n] + 1.2)    # AI acts less cleverly: extra action points
 		g.dp[n] = minf(4 + era * 2, g.dp[n] + 1 + era * 0.3)
 		var cap_shock: bool = inc["capLost"] and g.cap_lost[n] == 0
 		g.cap_lost[n] = 1 if inc["capLost"] else 0
@@ -73,18 +84,18 @@ static func _tick(g: TBGame) -> void:
 				tot += v
 				if g.occupier[q] == n: occ += v
 			g.war_score[i] = clampi(int(round(occ / (tot if tot != 0.0 else 1.0) * 100.0)), 0, 100)
-		var stab_delta: float = (-0.5 - weary / 100.0) if at_war else 2.0
+		var stab_delta: float = ((-0.5 - weary / 100.0) if g.rules == 0 else (-0.15 - weary / 250.0)) if at_war else 2.0
 		var bud := n * 4
 		var tax: int = g.budget[bud]; var goods: int = g.budget[bud + 1]; var res_pct: int = g.budget[bud + 2]; var inv_pct: int = g.budget[bud + 3]
 		var happy_target := clampf(50.0 + (goods - 20) * 0.6 - maxf(0.0, tax - 50) * 0.5 - (8.0 if at_war else 0.0) - weary * 0.15, 0.0, 100.0)
 		var invest_chance := inv_pct / 100.0 * 0.05
 		g.research[n] += D.tech_gain(inc["pop"], res_pct) + inc["researchBonus"]
-		var need := D.tech_needed(g.tech_level[n])
+		var need := _need(g, g.tech_level[n])
 		while g.research[n] >= need:
 			g.research[n] -= need
 			g.tech_level[n] = minf(5.0, round((g.tech_level[n] + D.TECH_STEP) * 100.0) / 100.0)
 			g.era[n] = mini(D.ERAS.size() - 1, int(floor(g.tech_level[n])))
-			need = D.tech_needed(g.tech_level[n])
+			need = _need(g, g.tech_level[n])
 		var dev_cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
 		var stab_ceil: int = reg["stabCeil"]
 		var rebel_chance: float = reg["rebelChance"]
@@ -127,6 +138,11 @@ static func _tick(g: TBGame) -> void:
 	if g.turn % 4 == 0:
 		for i in g.grudge.size():
 			if g.grudge[i] != 0: g.grudge[i] -= 1
+
+## research cost: rules>=1 makes eras reachable within a normal game
+static func _need(g: TBGame, lvl: float) -> int:
+	var base := D.tech_needed(lvl)
+	return base if g.rules == 0 else maxi(1, int(base * 0.4))
 
 static func spawn_rebel(g: TBGame, p: int) -> void:
 	var former := g.owner[p]

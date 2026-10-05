@@ -1,0 +1,71 @@
+[
+  {"id": "bountiful_harvest", "cat": "DOMESTIC", "icon": "🌾", "cooldown": 6,
+   "cond": [{"not_war": true}, {"chance": 0.4}],
+   "choices": [{"effects": [{"op": "gold", "d": 40}, {"op": "manpower", "d": 25}, {"op": "stab", "scope": "capital", "d": 8}]}]},
+
+  {"id": "trade_windfall", "cat": "TRADE", "icon": "💰", "cooldown": 5,
+   "cond": [{"lands_min": 2}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": 40}, {"op": "bonus", "kind": "trade", "amount": 30, "turns": 1}]},
+     {"effects": [{"op": "gold", "d": 80}]}]},
+
+  {"id": "mercenary_company", "cat": "MILITARY", "icon": "⚔", "cooldown": 7,
+   "cond": [{"gold_min": 80}, {"at_war": true}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -80}, {"op": "army", "scope": "best", "d": 40}]},
+     {"effects": []}]},
+
+  {"id": "plague", "cat": "CRISIS", "icon": "☠", "cooldown": 10,
+   "cond": [{"chance": 0.22}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -45}, {"op": "manpower", "d": -15}, {"op": "stab", "scope": "third", "d": -5}, {"op": "pop", "scope": "third", "pct": -7}]},
+     {"effects": [{"op": "stab", "scope": "half", "d": -12}, {"op": "pop", "scope": "half", "pct": -14}]}]},
+
+  {"id": "noble_revolt", "cat": "CRISIS", "icon": "🗡", "cooldown": 8,
+   "cond": [{"stab_below": 45}, {"chance": 0.3}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -60}, {"op": "army", "scope": "capital", "d": -20}, {"op": "stab", "scope": "capital", "d": -8}]},
+     {"effects": [{"op": "gold", "d": -40}, {"op": "dp", "d": -2}, {"op": "stab", "scope": "two", "d": 10}]}]},
+
+  {"id": "peasant_uprising", "cat": "CRISIS", "icon": "✊", "cooldown": 6,
+   "cond": [{"at_war": true}, {"chance": 0.28}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -50}, {"op": "stab", "scope": "all", "d": 15}]},
+     {"effects": [{"op": "army", "scope": "weakest", "d": -30}, {"op": "stab", "scope": "weakest", "d": 5}]}]},
+
+  {"id": "scholar_discovery", "cat": "ENLIGHTENMENT", "icon": "📜", "cooldown": 9,
+   "cond": [{"gold_min": 100}, {"chance": 0.35}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -80}, {"op": "dev", "scope": "best", "d": 1}]},
+     {"effects": [{"op": "gold", "d": 20}]}]},
+
+  {"id": "military_mutiny", "cat": "MILITARY", "icon": "🔴", "cooldown": 6,
+   "cond": [{"broke": true}, {"chance": 0.35}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -60}]},
+     {"effects": [{"op": "army", "scope": "all", "pct": -20}, {"op": "stab", "scope": "all", "d": -6}]}]},
+
+  {"id": "military_innovation", "cat": "MILITARY", "icon": "🛡", "cooldown": 8,
+   "cond": [{"era_min": 1}, {"chance": 0.3}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -40}, {"op": "army", "scope": "best", "d": 30}, {"op": "bonus", "kind": "combat", "amount": 5, "turns": 4}]},
+     {"effects": []}]},
+
+  {"id": "diplomatic_envoy", "cat": "DIPLOMACY", "icon": "🕊", "cooldown": 4,
+   "cond": [{"dp_min": 2}, {"has_neighbors": true}],
+   "choices": [
+     {"effects": [{"op": "dp", "d": 4}]},
+     {"effects": [{"op": "gold", "d": 40}]}]},
+
+  {"id": "natural_disaster", "cat": "DISASTER", "icon": "⛈", "cooldown": 7,
+   "cond": [{"chance": 0.18}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -30}, {"op": "army", "scope": "random", "d": -12}, {"op": "stab", "scope": "random", "d": 2}]},
+     {"effects": [{"op": "army", "scope": "random", "d": -20}, {"op": "stab", "scope": "random", "d": -18}, {"op": "pop", "scope": "random", "pct": -8}]}]},
+
+  {"id": "golden_age", "cat": "GOLDEN AGE", "icon": "✨", "cooldown": 15,
+   "cond": [{"lands_min": 3}, {"not_war": true}, {"gold_min": 150}, {"chance": 0.2}],
+   "choices": [
+     {"effects": [{"op": "gold", "d": -120}, {"op": "stab", "scope": "all", "d": 12}, {"op": "pop", "scope": "capital", "abs": 50}, {"op": "dev", "scope": "capital", "d": 1}]},
+     {"effects": [{"op": "stab", "scope": "all", "d": 3}]}]}
+]

@@ -35,6 +35,9 @@ static func _nation(g: TBGame, n: int) -> void:
 	var fr := _frontier(g, n)
 	var at_war := g.at_war(n)
 
+	# 0. rules>=1: AI manages its budget (rich nations convert tax into research/investment)
+	if g.rules >= 1 and (g.turn + n) % 4 == 0:
+		_budget(g, n, pers, at_war)
 	# 1. economy
 	if g.gold[n] > 150 and g.mp[n] >= 2 and g.rng.chance(0.3 + float(pers["econ"]) * 0.2):
 		var best := -1; var bs := -1
@@ -54,6 +57,15 @@ static func _nation(g: TBGame, n: int) -> void:
 			elif g.tech_level[n] > 0.8 and g.rng.chance(0.4): choice = D.B_LIBRARY
 			else: choice = D.B_MARKET if g.rng.chance(0.5) else D.B_FARM
 			g.apply({"cmd": "build", "n": n, "p": best, "b": choice})
+	# 1b. rules>=1: rich nations invest in development (gold sink, grows the economy)
+	if g.rules >= 1 and g.gold[n] > 300 and g.mp[n] >= 2 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
+		var bp := -1; var bsc := -1.0
+		for p in own:
+			if g.occupier[p] != 0: continue
+			var sc2: float = g.pop[p] / 100.0 + g.stab[p] / 50.0 - g.dev[p]
+			if sc2 > bsc:
+				bsc = sc2; bp = p
+		if bp >= 0: g.apply({"cmd": "develop", "n": n, "p": bp})
 	# 2. colonize adjacent neutral land
 	if g.gold[n] > 90 and g.mp[n] >= 2:
 		var i := 0
@@ -64,6 +76,7 @@ static func _nation(g: TBGame, n: int) -> void:
 			if g.apply({"cmd": "colonize", "n": n, "p": q})["ok"]: break
 	# 3. recruit (rich nations raise several levies)
 	var levies := 3 if g.gold[n] > 500 else (2 if g.gold[n] > 250 else 1)
+	if g.rules >= 1 and g.gold[n] > 900: levies = 5
 	var lv := 0
 	while lv < levies and g.gold[n] > 30 and g.manpower[n] > 40 and g.mp[n] >= 1 and (lv > 0 or g.rng.chance(0.3 + aggr * 0.4 + (0.3 if at_war else 0.0))):
 		var best2 := -1; var bs2 := -1e9
@@ -77,6 +90,22 @@ static func _nation(g: TBGame, n: int) -> void:
 				bs2 = s; best2 = p
 		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20})
 		lv += 1
+	# 3b. rules>=1: hoarded gold buys mercenaries (turns wealth into power; the game's main gold sink)
+	if g.rules >= 1 and g.gold[n] > 500:
+		var hires := mini(3, int(g.gold[n] / 400.0))
+		for h in hires:
+			if g.mp[n] < 1: break
+			var hb := -1; var hs := -1e9
+			var j := 0
+			while j < fr.size():
+				var pp := fr[j]; var qq := fr[j + 1]
+				j += 2
+				var sc3: float = (2.0 if g.owner[qq] != 0 and g.get_rel(n, g.controller(qq)) == D.REL_WAR else 0.6) - g.army[pp] / 80.0 + g.rng.next() * 0.2
+				if sc3 > hs:
+					hs = sc3; hb = pp
+			if hb < 0:
+				hb = own[g.rng.randi_n(own.size())]
+			g.apply({"cmd": "hire", "n": n, "p": hb, "amount": 40})
 	# 4. war
 	if g.mp[n] >= D.MP_ATTACK: _maybe_declare(g, n, aggr, fr)
 	if at_war or g.at_war(n): _fight(g, n, fr)
@@ -85,8 +114,19 @@ static func _nation(g: TBGame, n: int) -> void:
 	# 6. diplomacy
 	if g.dp[n] >= D.DP_NAP and g.rng.chance(float(pers["dipl"]) * 0.15): _diplomacy(g, n, fr)
 
+static func _budget(g: TBGame, n: int, pers: Dictionary, at_war: bool) -> void:
+	var o := n * 4
+	var tax: int; var goods: int; var res: int; var inv: int
+	if g.gold[n] > 800:       tax = 20; goods = 20; res = 40; inv = 20
+	elif g.gold[n] > 300:     tax = 35; goods = 20; res = 30; inv = 15
+	elif at_war or g.gold[n] < 80: tax = 60; goods = 15; res = 10; inv = 15
+	else:                     tax = 45; goods = 20; res = 20; inv = 15
+	if float(pers["econ"]) > 0.8: res += 5; tax -= 5
+	g.budget[o] = tax; g.budget[o + 1] = goods; g.budget[o + 2] = res; g.budget[o + 3] = inv
+
 static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array) -> void:
-	if g.turn < 6 or g.turn - g.last_war_turn[n] < 6 or g.dp[n] < D.DP_WAR: return
+	if g.turn < 6 or g.turn - g.last_war_turn[n] < (6 if g.rules == 0 else 10) or g.dp[n] < D.DP_WAR: return
+	if g.rules >= 1 and g.war_cnt[n] >= 2: return          # no endless multi-front wars
 	if not g.rng.chance(minf(1.0, aggr * 0.5)): return
 	var tgt := 0; var ts := -1.0
 	var seen := {}
@@ -169,10 +209,10 @@ static func _seek_peace(g: TBGame, n: int) -> void:
 				g.apply({"cmd": "peace", "n": n, "t": o, "kind": "white", "_force": true})
 			continue
 		var losing := theirs - mine
-		if losing > 15 or (dur > 8 and absi(losing) < 12 and g.rng.chance(0.3)):
+		if losing > 15 or (dur > (8 if g.rules == 0 else 14) and absi(losing) < 12 and g.rng.chance(0.3)):
 			var force: bool = (not accepts_peace(g, o, n, "white")) and losing > 35
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "cede" if mine >= 25 else "white", "_force": force})
-		elif mine >= 40 and g.rng.chance(0.3):
+		elif mine >= (40 if g.rules == 0 else 25) and g.rng.chance(0.3 if g.rules == 0 else 0.6):
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "cede"})
 
 static func _diplomacy(g: TBGame, n: int, fr: PackedInt32Array) -> void:

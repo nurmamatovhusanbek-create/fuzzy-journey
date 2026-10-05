@@ -107,6 +107,7 @@ func _on_delta(dirty: PackedInt32Array) -> void:
 	main._flush_log()
 	main.hud.refresh()
 	if main.selected >= 0: main.panel.rebuild()
+	main.show_events()
 	if g.turn != _last_turn:
 		_last_turn = g.turn
 		main.hud.set_busy(false)

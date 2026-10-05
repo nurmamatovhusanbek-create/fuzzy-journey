@@ -192,7 +192,20 @@ func _do_move(from: int, to: int) -> void:
 		_select(to)
 	_after_change()
 
+var _shown_events := {}
+
+## prompt the human for any pending event choice addressed to them (SP and MP share this)
+func show_events() -> void:
+	if g == null or g.human_id == 0: return
+	for e in g.pending:
+		if int(e["n"]) != g.human_id or _shown_events.has(e["uid"]): continue
+		_shown_events[e["uid"]] = true
+		var uid: int = e["uid"]
+		TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}))
+		return                      # one at a time; the next shows after this one is answered
+
 func _after_change() -> void:
+	show_events()
 	map.repaint(g.take_dirty())
 	hud.refresh()
 	if selected >= 0: panel.rebuild()
@@ -218,6 +231,7 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	_flush_log()
 	hud.refresh()
 	if selected >= 0: panel.rebuild()
+	show_events()
 	if g.over: TBModals.game_over(_overlay, T.call("e_victory", {"a": g.nat_name[g.winner]}) if g.winner == g.human_id else T.call("e_defeat"), show_menu)
 	else: _autosave()
 

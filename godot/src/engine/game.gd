@@ -11,6 +11,7 @@ var N: int
 var N1: int
 var rng: TBRng
 var seed_value: int
+var rules: int = 1                # 0 = legacy behaviour (oracle-exact vs JS reference), 1 = tuned game rules
 var difficulty: String
 var diff: Dictionary
 var turn: int = 1
@@ -54,6 +55,7 @@ var war_cnt := PackedInt32Array()   # per nation: number of ALIVE enemies it is 
 # provinces
 var owner := PackedInt32Array()
 var occupier := PackedInt32Array()
+var occ_turns := PackedByteArray()     # consecutive turns a province has been occupied (rules>=1: long occupation annexes)
 var army := PackedInt32Array()
 var pop := PackedInt32Array()
 var dev := PackedByteArray()
@@ -79,6 +81,18 @@ var own_start := PackedInt32Array()
 var own_list := PackedInt32Array()
 var own_dirty: bool = true
 
+# events (rules >= 1)
+var pending: Array = []                 # prompts awaiting a human choice: {uid, n, kind, id, ...}
+var ev_fired: Dictionary = {}           # scheduled event id -> true
+var ev_last: Dictionary = {}            # "nation:event" -> turn last fired
+var ev_last_any := PackedInt32Array()
+var ev_uid: int = 0
+var start_year: int = 2024
+var start_month: int = 0
+var trade_bonus := PackedInt32Array()   # extra gold granted next turn
+var combat_bonus := PackedFloat32Array()
+var combat_turns := PackedByteArray()
+
 var dirty_flag := PackedByteArray()
 var dirty_list := PackedInt32Array()
 var rel_dirty := PackedInt32Array()   # canonical (min*N1+max) pairs whose relation changed since last take (net deltas)
@@ -90,6 +104,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	world = w
 	P = w.P
 	seed_value = int(opts.get("seed", 1))
+	rules = int(opts.get("rules", 1))
 	rng = TBRng.new(seed_value)
 	difficulty = String(opts.get("difficulty", "normal"))
 	diff = D.DIFFICULTY.get(difficulty, D.DIFFICULTY["normal"])
@@ -123,7 +138,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	N1 = N + 1
 
 	# ---- provinces ----
-	occupier.resize(P); army.resize(P); pop.resize(P)
+	occupier.resize(P); army.resize(P); pop.resize(P); occ_turns.resize(P)
 	for a in [dev, econ, stab, happy, defense, terrain, building, b_level, b_building, b_turns, capital, discoverable, dirty_flag]:
 		a.resize(P)
 	if has_era:
@@ -156,6 +171,8 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	budget.resize(N1 * 4); rel.resize(N1 * N1); grudge.resize(N1 * N1)
 	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
+	ev_last_any.resize(N1); ev_last_any.fill(-99); trade_bonus.resize(N1); combat_bonus.resize(N1); combat_turns.resize(N1)
+	start_year = year
 	for n in range(1, N1):
 		gold[n] = 45 + rng.randi_n(35)
 		manpower[n] = 55 + rng.randi_n(40)
@@ -361,7 +378,7 @@ func province_value(p: int) -> float:
 	var e := clampi(econ[p], 1, 5)
 	var d := clampi(dev[p], 1, 5)
 	var v := 1.0 + e * 0.1 + d * 2.0 + pop[p] * 0.001
-	if capital[p] != 0: v *= 10.0
+	if capital[p] != 0: v *= (10.0 if rules == 0 else 4.0)
 	return v
 
 func income(n: int) -> Dictionary:
@@ -427,7 +444,10 @@ func def_mul(p: int) -> float:
 	return m + defense[p] / 100.0
 
 func combat_mul(n: int) -> float:
-	return float(D.ERAS[era[n]]["combatMul"]) if n != 0 else 1.0
+	if n == 0: return 1.0
+	var m: float = D.ERAS[era[n]]["combatMul"]
+	if combat_turns[n] > 0: m += combat_bonus[n]
+	return m
 
 func sea_edge(from: int, to: int) -> int:
 	for i in range(nb_off[from], nb_off[from + 1]):
@@ -466,7 +486,7 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 			occupier[to] = 0; occ_rev += 1
 		elif atk_n == rebel or def_n == rebel: cede(to, atk_n)
 		else:
-			occupier[to] = atk_n; occ_rev += 1
+			occupier[to] = atk_n; occ_turns[to] = 0; occ_rev += 1
 		army[to] = occ; defense[to] = 0
 		army[from] = maxi(0, avail - occ)
 		touch(from); touch(to)
@@ -508,6 +528,9 @@ func apply(c: Dictionary) -> Dictionary:
 		"colonize": return _c_colonize(c)
 		"relocate": return _c_relocate(c)
 		"regime": return _c_regime(c)
+		"develop": return _c_develop(c)
+		"hire": return _c_hire(c)
+		"eventChoice": return TBEvents.resolve_choice(self, n, int(c.get("uid", 0)), int(c.get("i", 0)))
 		"noop": return {"ok": true}
 	return {"ok": false, "err": "unknown"}
 
@@ -587,7 +610,8 @@ func _c_peace(c: Dictionary) -> Dictionary:
 			occupier[p] = 0; touch(p)
 	occ_rev += 1
 	set_rel(n, t, D.REL_PEACE)
-	truce[n * N1 + t] = turn + D.TRUCE_TURNS; truce[t * N1 + n] = turn + D.TRUCE_TURNS
+	var tt: int = D.TRUCE_TURNS if rules == 0 else 12
+	truce[n * N1 + t] = turn + tt; truce[t * N1 + n] = turn + tt
 	dp[n] = maxf(0.0, dp[n] - D.DP_PEACE)
 	log.append({"turn": turn, "kind": "peace", "a": n, "b": t})
 	return {"ok": true}
@@ -696,6 +720,30 @@ func _c_regime(c: Dictionary) -> Dictionary:
 	gold[n] -= 120; regime[n] = r
 	for p in owned(n):
 		stab[p] = maxi(5, stab[p] - 15)
+	return {"ok": true}
+
+## mercenaries: converts gold directly into troops (no manpower), pricey
+func _c_hire(c: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var p: int = c["p"]
+	if controller(p) != n or owner[p] != n: return _err("notyours")
+	var amount := clampi(int(c.get("amount", 30)), 10, 60)
+	var cost := int(ceil(amount * 5.0 * float(D.REGIMES[regime[n]]["recruitCost"])))
+	if gold[n] < cost: return _err("gold")
+	if mp[n] < 1: return _err("mp")
+	gold[n] -= cost; mp[n] -= 1
+	army[p] = mini(65000, army[p] + amount); touch(p)
+	return {"ok": true}
+
+func _c_develop(c: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var p: int = c["p"]
+	if owner[p] != n or occupier[p] != 0: return _err("notyours")
+	var cap := clampi(int(floor(tech_level[n])) + 1, 1, 5)
+	if dev[p] >= cap: return _err("max")
+	var cost := 80 + dev[p] * 80
+	if gold[n] < cost: return _err("gold")
+	if mp[n] < 2: return _err("mp")
+	gold[n] -= cost; mp[n] -= 2
+	dev[p] += 1; stab[p] = mini(100, stab[p] + 4); pop[p] = mini(2000, pop[p] + 20); touch(p)
 	return {"ok": true}
 
 # ---------------------------------------------------------------- misc

@@ -1,0 +1,21 @@
+[
+  { "id": "cw_marshall_1948", "icon": "💵", "scope": "world", "trigger": { "year": 1948, "monthIdx": 3 },
+    "title": { "en": "The Marshall Plan", "ru": "План Маршалла" },
+    "flavor": { "en": "American dollars rebuild a shattered Europe — and draw the lines of a new rivalry.", "ru": "Американские доллары восстанавливают Европу и чертят линии нового соперничества." },
+    "autoEffects": [] },
+  { "id": "cw_korea_1950", "icon": "⚔", "scope": "world", "trigger": { "year": 1950, "monthIdx": 5 },
+    "title": { "en": "The Korean War", "ru": "Корейская война" },
+    "flavor": { "en": "The Cold War turns hot on a divided peninsula.", "ru": "Холодная война становится горячей на разделённом полуострове." },
+    "autoEffects": [] },
+  { "id": "cw_sputnik_1957", "icon": "🛰", "scope": "world", "trigger": { "year": 1957, "monthIdx": 9 },
+    "title": { "en": "Sputnik", "ru": "Спутник" },
+    "flavor": { "en": "A beeping sphere in orbit launches the Space Race.", "ru": "Пищащий шар на орбите запускает космическую гонку." },
+    "autoEffects": [] },
+  { "id": "cw_cuban_1962", "icon": "☢", "scope": "world", "trigger": { "year": 1962, "monthIdx": 9 },
+    "title": { "en": "The Cuban Missile Crisis", "ru": "Карибский кризис" },
+    "flavor": { "en": "For thirteen days the world holds its breath at the edge of nuclear war.", "ru": "Тринадцать дней мир замирает на краю ядерной войны." },
+    "choices": [
+      { "label": { "en": "Stand firm", "ru": "Стоять твёрдо" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": -8 } ] },
+      { "label": { "en": "Negotiate a way out", "ru": "Искать выход" }, "effects": [ { "op": "nation.dp", "target": "self", "delta": -2 }, { "op": "nation.stability", "target": "self", "delta": 4 } ] }
+    ] }
+]

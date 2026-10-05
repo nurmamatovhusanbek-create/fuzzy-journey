@@ -7,7 +7,7 @@ func _init() -> void:
 	var era_id := args[2] if args.size() > 2 else ""
 	var w := TBWorld.load_from("res://data")
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "" else {}
-	var g := TBGame.new(w, era, {"seed": seed_v})
+	var g := TBGame.new(w, era, {"seed": seed_v, "rules": 0})
 	var out: Array = []
 	for t in range(0, turns + 1):
 		if t > 0: g.end_turn()

@@ -119,6 +119,31 @@ static func save_load(parent: Control, saving: bool, on_save: Callable, on_load:
 		if not saving and not meta.is_empty(): row.add_child(K.button(T.call("load"), func(): close(m[0]); on_load.call(slot)))
 	m[1].add_child(K.button(T.call("back"), func(): close(m[0])))
 
+static func _loc(d: Variant) -> String:
+	if d is Dictionary: return String(d.get(TBI18n.lang, d.get("en", "")))
+	return String(d)
+
+## event prompt with choices; on_choose(i) is called with the chosen index
+static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable) -> void:
+	var rand: bool = e["kind"] == "rand"
+	var id: String = e["id"]
+	var title: String = T.call("ev_%s_t" % id) if rand else _loc(e.get("title", {}))
+	var flavor: String = T.call("ev_%s_f" % id) if rand else _loc(e.get("flavor", {}))
+	var m := K.modal(parent, "%s  %s" % [e.get("icon", "📜"), title], 540)
+	if not rand: m[1].add_child(K.label(T.call("ev_worldwide") if e.get("world", false) else T.call("ev_event"), 12, K.DIM))
+	var fl := K.label(flavor, 15); fl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; fl.custom_minimum_size = Vector2(480, 0)
+	m[1].add_child(fl)
+	var count: int = e["count"]
+	var labels: Array = e.get("labels", [])
+	for i in count:
+		var txt: String
+		if rand: txt = "▸ %s\n%s" % [T.call("ev_%s_c%d" % [id, i]), T.call("ev_%s_d%d" % [id, i])]
+		elif i < labels.size(): txt = "▸ " + _loc(labels[i])
+		else: txt = T.call("ev_ack")
+		var b := K.button(txt, func(): close(m[0]); on_choose.call(i), i == 0)
+		b.custom_minimum_size = Vector2(0, 54)
+		m[1].add_child(b)
+
 static func game_over(parent: Control, text: String, on_menu: Callable) -> void:
 	var m := K.modal(parent, text, 420)
 	m[1].add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call(), true))

@@ -3,8 +3,8 @@ class_name TBSave
 extends RefCounted
 
 const VERSION := 1
-const FIELDS_PACKED := ["gold", "manpower", "mp", "dp", "tech_level", "research", "liberty", "era", "regime", "personality", "alive", "human", "cap_lost", "tribute", "capital_of", "overlord", "last_war_turn", "color", "budget", "rel", "truce", "war_score", "war_turns", "grudge", "war_cnt", "owner", "occupier", "army", "pop", "dev", "econ", "stab", "happy", "defense", "terrain", "building", "b_level", "b_building", "b_turns", "capital", "discoverable", "nb_off", "nb", "nb_sea"]
-const FIELDS_SCALAR := ["turn", "year", "month_idx", "era_id", "over", "winner", "human_id", "rebel", "seed_value", "difficulty", "occ_rev", "nap_expiry", "log"]
+const FIELDS_PACKED := ["gold", "manpower", "mp", "dp", "tech_level", "research", "liberty", "era", "regime", "personality", "alive", "human", "cap_lost", "tribute", "capital_of", "overlord", "last_war_turn", "color", "budget", "rel", "truce", "war_score", "war_turns", "grudge", "war_cnt", "ev_last_any", "trade_bonus", "combat_bonus", "combat_turns", "owner", "occupier", "occ_turns", "army", "pop", "dev", "econ", "stab", "happy", "defense", "terrain", "building", "b_level", "b_building", "b_turns", "capital", "discoverable", "nb_off", "nb", "nb_sea"]
+const FIELDS_SCALAR := ["turn", "year", "month_idx", "era_id", "over", "winner", "human_id", "rebel", "seed_value", "rules", "difficulty", "occ_rev", "nap_expiry", "log", "pending", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month"]
 
 static func path_for(slot: String) -> String:
 	return "user://save_%s.tbs" % slot
@@ -51,7 +51,7 @@ static func load_game(w: TBWorld, slot: String) -> TBGame:
 static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
 	if int(d.get("v", 0)) != VERSION: return null
 	var era_pack := TBWorld.load_era("res://data", String(d["era_id"])) if String(d["era_id"]) != "modern" else {}
-	var g := TBGame.new(w, era_pack, {"seed": int(d["seed_value"]), "difficulty": String(d["difficulty"])})
+	var g := TBGame.new(w, era_pack, {"seed": int(d["seed_value"]), "difficulty": String(d["difficulty"]), "rules": int(d.get("rules", 0))})
 	for k in FIELDS_PACKED: g.set(k, d[k])
 	for k in FIELDS_SCALAR: g.set(k, d[k])
 	g.nat_name = d["nat_name"]; g.nat_code = d["nat_code"]

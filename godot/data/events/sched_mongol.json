@@ -1,0 +1,17 @@
+[
+  { "id": "mon_ottoman_beylik", "icon": "🌙", "scope": "world", "trigger": { "year": 1299, "monthIdx": 0 },
+    "title": { "en": "The Rise of Osman", "ru": "Возвышение Османа" },
+    "flavor": { "en": "A small Anatolian beylik declares independence — the seed of an empire.", "ru": "Малый анатолийский бейлик объявляет независимость — зерно будущей империи." },
+    "autoEffects": [] },
+  { "id": "mon_khan_succession", "icon": "🏹", "scope": "country", "trigger": { "year": 1307, "monthIdx": 0, "nation": "Mongol Empire" },
+    "title": { "en": "Succession of the Khans", "ru": "Наследование ханов" },
+    "flavor": { "en": "The vast inheritance of Genghis strains under rival claimants.", "ru": "Огромное наследие Чингисхана трещит под натиском соперников." },
+    "choices": [
+      { "label": { "en": "Hold the empire together", "ru": "Сохранить империю" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -70 }, { "op": "nation.stability", "target": "self", "delta": 8 } ] },
+      { "label": { "en": "Let the khanates rule themselves", "ru": "Дать ханствам автономию" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": -10 } ] }
+    ] },
+  { "id": "mon_pax_mongolica", "icon": "🐎", "scope": "world", "trigger": { "year": 1310, "monthIdx": 0 },
+    "title": { "en": "The Pax Mongolica", "ru": "Pax Mongolica" },
+    "flavor": { "en": "The Silk Road flourishes under one peace from China to Persia.", "ru": "Шёлковый путь процветает под единым миром от Китая до Персии." },
+    "autoEffects": [ { "op": "nation.gold", "target": "self", "delta": 40 } ] }
+]

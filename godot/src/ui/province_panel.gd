@@ -83,6 +83,7 @@ func rebuild() -> void:
 	_body.add_child(act)
 	if mine:
 		act.add_child(K.button(T.call("recruit") + " +15", func(): command.emit({"cmd": "recruit", "p": p, "amount": 15})))
+		act.add_child(K.button(T.call("hire") + " +40 (%dg)" % int(ceil(40 * 5.0 * float(D.REGIMES[g.regime[me]]["recruitCost"]))), func(): command.emit({"cmd": "hire", "p": p, "amount": 40})))
 		if g.army[p] > 1: act.add_child(K.button(T.call("move"), func(): move_requested.emit(p)))
 		var ob := OptionButton.new(); ob.custom_minimum_size = Vector2(150, K.MIN_TOUCH); ob.focus_mode = Control.FOCUS_NONE
 		ob.add_item(T.call("build") + "…", 0)

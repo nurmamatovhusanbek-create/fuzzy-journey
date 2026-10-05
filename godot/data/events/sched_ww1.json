@@ -1,0 +1,19 @@
+[
+  { "id": "ww1_outbreak_1914", "icon": "💥", "scope": "world", "trigger": { "year": 1914, "monthIdx": 6 },
+    "title": { "en": "The Guns of August", "ru": "Августовские пушки" },
+    "flavor": { "en": "An assassination in Sarajevo drags the alliances into a continental war.", "ru": "Убийство в Сараево втягивает альянсы в континентальную войну." },
+    "autoEffects": [ { "op": "nation.stability", "target": "self", "delta": -6 } ] },
+
+  { "id": "ww1_october_revolution_1917", "icon": "⚒", "scope": "country", "trigger": { "year": 1917, "monthIdx": 10, "nation": "Russia" },
+    "title": { "en": "The October Revolution", "ru": "Октябрьская революция" },
+    "flavor": { "en": "Soviets rise in Petrograd. The old order totters — do you fight on or seek peace?", "ru": "Советы поднимаются в Петрограде." },
+    "choices": [
+      { "label": { "en": "Crush the soviets", "ru": "Подавить советы" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": -14 }, { "op": "nation.manpower", "target": "self", "delta": -20 } ] },
+      { "label": { "en": "Sue for peace (Brest-Litovsk)", "ru": "Брестский мир" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -80 }, { "op": "nation.stability", "target": "self", "delta": 6 } ] }
+    ] },
+
+  { "id": "ww1_us_entry_1917", "icon": "🗽", "scope": "country", "trigger": { "year": 1917, "monthIdx": 3, "nation": "United States" },
+    "title": { "en": "Over There", "ru": "Вступление США в войну" },
+    "flavor": { "en": "Unrestricted submarine warfare brings America into the Great War.", "ru": "США вступают в Великую войну." },
+    "autoEffects": [ { "op": "nation.manpower", "target": "self", "delta": 60 }, { "op": "nation.gold", "target": "self", "delta": 40 } ] }
+]

@@ -1,0 +1,14 @@
+[
+  { "id": "anc_hannibal_alps", "icon": "🐘", "scope": "world", "trigger": { "year": -218, "monthIdx": 9 },
+    "title": { "en": "Hannibal Crosses the Alps", "ru": "Ганнибал переходит Альпы" },
+    "flavor": { "en": "Carthage's general leads war elephants over the mountains to strike at Rome itself.", "ru": "Полководец Карфагена ведёт боевых слонов через горы на Рим." },
+    "autoEffects": [] },
+  { "id": "anc_cannae", "icon": "⚔", "scope": "world", "trigger": { "year": -216, "monthIdx": 7 },
+    "title": { "en": "The Disaster at Cannae", "ru": "Катастрофа при Каннах" },
+    "flavor": { "en": "A Roman army is annihilated in the bloodiest single day of the ancient world.", "ru": "Римская армия уничтожена в кровавейший день древнего мира." },
+    "autoEffects": [ { "op": "nation.stability", "target": "self", "delta": -6 } ] },
+  { "id": "anc_carthago_delenda", "icon": "🔥", "scope": "world", "trigger": { "year": -202, "monthIdx": 9 },
+    "title": { "en": "Zama", "ru": "Битва при Заме" },
+    "flavor": { "en": "Scipio defeats Hannibal. The Mediterranean tilts toward Rome.", "ru": "Сципион разбивает Ганнибала. Средиземноморье склоняется к Риму." },
+    "autoEffects": [] }
+]

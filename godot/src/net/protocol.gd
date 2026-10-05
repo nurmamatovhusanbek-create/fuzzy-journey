@@ -34,6 +34,10 @@ static func make_delta(g: TBGame, dirty: PackedInt32Array, log_from: int, full_m
 	for f in NAT_B: d["n_" + f] = g.get(f)
 	for f in NAT_I: d["n_" + f] = g.get(f)
 	d["n_budget"] = g.budget
+	d["pending"] = g.pending
+	d["n_trade_bonus"] = g.trade_bonus
+	d["n_combat_bonus"] = g.combat_bonus
+	d["n_combat_turns"] = g.combat_turns
 	var rp := PackedInt32Array()
 	for k in g.rel_dirty:
 		var a: int = k / g.N1
@@ -77,6 +81,8 @@ static func apply_delta(g: TBGame, b: PackedByteArray) -> PackedInt32Array:
 	for f in NAT_B: g.set(f, d["n_" + f])
 	for f in NAT_I: g.set(f, d["n_" + f])
 	g.budget = d["n_budget"]
+	g.pending = d["pending"]
+	g.trade_bonus = d["n_trade_bonus"]; g.combat_bonus = d["n_combat_bonus"]; g.combat_turns = d["n_combat_turns"]
 	var rp: PackedInt32Array = d["rel"]
 	i = 0
 	while i < rp.size():
