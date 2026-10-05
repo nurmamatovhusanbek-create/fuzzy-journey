@@ -48,4 +48,17 @@ func _init() -> void:
 	check(pr["ok"] and g3.war_cnt[me] == 0 and g3.has_truce(me, tgt), "white peace + truce, war counter cleared")
 	check(not g3.apply({"cmd": "declareWar", "n": me, "t": tgt})["ok"], "truce blocks war")
 	check(not g3.apply({"cmd": "recruit", "n": 0, "p": mine[0]})["ok"], "invalid nation rejected")
+	# --- network command sanitising (public server must reject malformed client input)
+	var net := TBNet.new()
+	var gg := TBGame.new(w, {}, {"seed": 2})
+	check(net._sanitize({"cmd": "recruit", "p": 5, "amount": 15}, gg) == {"cmd": "recruit", "p": 5, "amount": 15}, "sanitize: valid recruit passes")
+	check(net._sanitize({"cmd": "recruit", "p": 99999}, gg).is_empty(), "sanitize: province out of range rejected")
+	check(net._sanitize({"cmd": "rm -rf"}, gg).is_empty(), "sanitize: unknown command rejected")
+	check(net._sanitize({"cmd": "declareWar", "t": "x"}, gg).is_empty(), "sanitize: wrong type rejected")
+	check(net._sanitize({"cmd": "declareWar"}, gg).is_empty(), "sanitize: missing field rejected")
+	check(not net._sanitize({"cmd": "peace", "t": 3, "kind": "white", "_force": true, "n": 7}, gg).has("_force"), "sanitize: strips _force / n")
+	var ok_rate := 0
+	for i in 40: if net._allow(7): ok_rate += 1
+	check(ok_rate >= 28 and ok_rate <= 33, "rate limiter allows a burst then throttles (%d/40)" % ok_rate)
+	net.free()
 	quit(1 if failed > 0 else 0)

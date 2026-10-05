@@ -155,6 +155,11 @@ func c_cmd(seq: int, cmd: Dictionary) -> void:
 	if room == null or room.state != "playing": return
 	var n: int = room.players[peer]["nation"]
 	if n == 0 or room.ready.has(n): s_result.rpc_id(peer, seq, {"ok": false, "err": "notready"}); return
+	if not _allow(peer):
+		s_result.rpc_id(peer, seq, {"ok": false, "err": "ratelimit"}); return
+	cmd = _sanitize(cmd, room.g)
+	if cmd.is_empty():
+		s_result.rpc_id(peer, seq, {"ok": false, "err": "invalid"}); return
 	var kind: String = String(cmd.get("cmd", ""))
 	if kind in ["peace", "ally", "nap"] and int(cmd.get("t", 0)) > 0 and int(cmd.get("t", 0)) < room.g.N1 and room.g.human[int(cmd["t"])] != 0:
 		_make_proposal(room, peer, n, kind, int(cmd["t"]), String(cmd.get("kind", "white")), seq); return
@@ -250,6 +255,48 @@ func s_chat(from: String, text: String) -> void: chat_received.emit(from, text)
 func s_error(msg: String) -> void: error_received.emit(msg)
 
 # ================================================================= server internals
+# --- input validation: a public server must never trust client dictionaries
+const CMD_FIELDS := {
+	"move": ["from", "to", "troops"], "recruit": ["p", "amount"], "declareWar": ["t"], "peace": ["t", "kind"], "ally": ["t"], "nap": ["t"],
+	"breakPact": ["t"], "build": ["p", "b"], "budget": ["key", "val"], "colonize": ["p"], "relocate": ["p"], "regime": ["r"],
+	"develop": ["p"], "hire": ["p", "amount"], "spy": ["t", "op"], "eventChoice": ["uid", "i"],
+}
+const PROV_KEYS := ["from", "to", "p"]
+const NATION_KEYS := ["t"]
+const STR_KEYS := ["kind", "key", "op"]
+
+func _sanitize(cmd: Dictionary, g: TBGame) -> Dictionary:
+	var name: String = String(cmd.get("cmd", ""))
+	if not CMD_FIELDS.has(name): return {}
+	var out := {"cmd": name}
+	for k in CMD_FIELDS[name]:
+		if not cmd.has(k): 
+			if k == "troops" or k == "amount" or k == "kind": continue     # optional
+			return {}
+		var v = cmd[k]
+		if k in STR_KEYS:
+			if not (v is String) or String(v).length() > 12: return {}
+			out[k] = String(v)
+		else:
+			if not (v is int or v is float): return {}
+			var iv := int(v)
+			if k in PROV_KEYS and (iv < 0 or iv >= g.P): return {}
+			if k in NATION_KEYS and (iv < 1 or iv >= g.N1): return {}
+			if absi(iv) > 1000000: return {}
+			out[k] = iv
+	return out
+
+var _bucket := {}            # peer -> [tokens, last_ms]
+func _allow(peer: int) -> bool:
+	var now := Time.get_ticks_msec()
+	var b: Array = _bucket.get(peer, [30.0, now])
+	b[0] = minf(30.0, b[0] + (now - b[1]) / 1000.0 * 15.0)      # 15 commands/s sustained, bursts of 30
+	b[1] = now
+	var ok: bool = b[0] >= 1.0
+	if ok: b[0] -= 1.0
+	_bucket[peer] = b
+	return ok
+
 func _process(_d: float) -> void:
 	if not is_server_mode or not multiplayer.has_multiplayer_peer(): return
 	var now := Time.get_ticks_msec()
@@ -295,6 +342,7 @@ func _make_proposal(room: TBRoom, peer: int, from: int, kind: String, to: int, d
 func _on_peer_gone(peer: int, explicit: bool = false) -> void:
 	var room := _room_of(peer)
 	peer_room.erase(peer)
+	_bucket.erase(peer)
 	if room == null: return
 	var p: Dictionary = room.players[peer]
 	p["connected"] = false
