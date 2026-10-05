@@ -32,6 +32,7 @@
 | Honours (19 persistent achievements) | done: menu entry, toasts on unlock |
 | Supply limits / attrition (rules >= 1) | done: foreign-land armies above the limit waste away |
 | Hot-seat (2-4 humans on one device) | done: pass-the-device curtain between turns, picks in turn, saves reload as hot-seat |
+| Generals, ultimatums, doctrines, ruler cameos, briefing, codex, AI peace offers, battle replay arrows, army-plaque culling, command layer split into `commands.gd`, diagnostics button | done |
 | Still to port from legacy | (formables partially covered by regional unification), war goals, data-spike lens |
 | Perf on real low-end hardware | **unmeasured** — needs a physical phone |
 
