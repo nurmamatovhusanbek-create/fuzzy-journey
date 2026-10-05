@@ -3,6 +3,14 @@
 Turn-based grand strategy on a globe — **rebuilt natively in Godot 4** (GDScript) for Android, Windows and iOS.
 The original browser game is kept untouched in `index.html` until the rebuild reaches full feature parity.
 
+## What is in the game
+Province-level grand strategy on a GPU-rendered globe/flat map, 13 start eras (218 BC – today), ~250 nations.
+Economy, tech and eras, buildings, armies and combat, peace deals (white / land / vassal), alliances and pacts,
+**named rulers** with traits and succession (≈140 historical rulers), **casus belli, infamy and coalitions**,
+**national decrees**, **trade deals**, espionage, rebels, ~255 dated historical events with choices, random events,
+five victory paths, a chronicle, an advisor, statistics charts. EN/RU, authoritative multiplayer, synthesised sound.
+UI: "war table" design system (see `docs/ARCHITECTURE.md`).
+
 ## Layout
 | Path | What |
 |---|---|
