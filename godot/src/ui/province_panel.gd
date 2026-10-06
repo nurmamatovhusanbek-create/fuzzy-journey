@@ -30,6 +30,9 @@ var blocked_fn: Callable                  # () -> bool : a modal / text field ow
 var profile := "D"                        # D desktop card | L landscape-phone strip | P portrait sheet
 var drawer_open := false
 var reserve := 12.0                       # px kept free below the card (dock / seal in portrait)
+var band_fn: Callable                     # () -> Vector2 : the horizontal band (x0, x1) free of the rail and the End Turn seal (hud.card_band)
+var reserve_fn: Callable                  # () -> float : px kept free below the sheet in portrait (hud.bottom_reserve)
+var confirm_fn: Callable                  # () -> String : "smart" | "always" | "never" (hud.confirm_mode) for declare war / break pact
 
 var _col: VBoxContainer
 var _box: CC.PlateBox
@@ -41,6 +44,9 @@ var _share: CC.ShareSeg
 var _count: Label
 var _popover: Popover
 var _war_target := -1
+var _head2: HBoxContainer                 # second header row at large text sizes
+var _brk_target := -1                     # a nation whose pact the player is about to break (confirm row)
+var _card_w := 480.0
 var _atk_src := -1                        # attacker chosen for an enemy province by tapping an own army
 var _flash_v := 0
 var _busy := false
@@ -66,27 +72,38 @@ func _init() -> void:
 # ---------------------------------------------------------------- layout (call on resize)
 func layout_for(vp: Vector2) -> void:
 	_vp = vp
+	CC.sync_settings()
 	var prev := profile
 	profile = "P" if vp.y > vp.x else ("L" if vp.y <= 480.0 else "D")
 	CC.show_hotkeys = profile != "P" and not (OS.get_name() in ["Android", "iOS"])
+	# the band the card may use: right of the rail, left of the End Turn seal and its chip with a 16 u gap (never over End Turn)
+	var band := Vector2(8.0, vp.x - 8.0)
+	if band_fn.is_valid(): band = band_fn.call()
 	var w := 480.0
 	var side_pad := 10.0
 	match profile:
 		"D":
-			w = 480.0; _box.content_margin_top = 6; _box.content_margin_bottom = 6; reserve = 12.0
+			w = minf(480.0, band.y - band.x); _box.content_margin_top = 6; _box.content_margin_bottom = 6; reserve = 12.0
 		"L":
-			w = minf(464.0, vp.x - 200.0); _box.content_margin_top = 4; _box.content_margin_bottom = 4; side_pad = 8.0; reserve = 8.0
+			w = minf(560.0, band.y - band.x); _box.content_margin_top = 4; _box.content_margin_bottom = 4; side_pad = 8.0; reserve = 8.0
 		"P":
 			w = vp.x - 16.0; _box.content_margin_top = 4; _box.content_margin_bottom = 4; reserve = 104.0
+			if reserve_fn.is_valid(): reserve = float(reserve_fn.call())
+	var pw := _card_w
+	_card_w = w
 	_box.content_margin_left = side_pad; _box.content_margin_right = side_pad
 	_box.force_rebuild()
 	set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	grow_vertical = Control.GROW_DIRECTION_BEGIN
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
-	var shift := 0.0 if profile != "L" else 36.0                     # leave the dock rail: the card is handed to the open side
-	offset_left = -w * 0.5 + shift; offset_right = w * 0.5 + shift
+	# centred on the screen when it fits the band, else pushed to the band edge that keeps it clear of the seal / rail
+	var left: float = vp.x * 0.5 - w * 0.5
+	if profile == "P": left = 8.0
+	else: left = clampf(left, band.x, maxf(band.x, band.y - w))
+	offset_left = left - vp.x * 0.5; offset_right = left + w - vp.x * 0.5
 	_refit()
 	if prev != profile and visible: rebuild()
+	elif visible and profile == "L" and (pw >= 480.0) != (w >= 480.0) and false: rebuild()
 
 ## the card is bottom-anchored and grows upward: its top edge follows its content height (a container resize would grow it downward)
 func _refit() -> void:
@@ -103,13 +120,13 @@ func show_province(game: TBGame, province: int) -> void:
 	var changed := province != p
 	p = province
 	if p < 0:
-		_close_popover(); _war_target = -1; _atk_src = -1
+		_close_popover(); _war_target = -1; _brk_target = -1; _atk_src = -1
 		visible = false; return
-	if changed: _war_target = -1; _atk_src = -1; _close_popover()
+	if changed: _war_target = -1; _brk_target = -1; _atk_src = -1; _close_popover()
 	var was := visible
 	visible = true
 	rebuild()
-	if not was and TBMapView.animate:        # rises 16 px and fades in (160 ms); instant with reduced motion
+	if not was and not TBHudParts.reduced_motion():        # rises 16 px and fades in (160 ms); instant with reduced motion
 		modulate.a = 0.0
 		var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_property(self, "modulate:a", 1.0, 0.16)
@@ -127,7 +144,7 @@ func set_attacker(q: int) -> void:
 ## back one layer; true when something was consumed (popover -> war confirm -> preview -> armed -> drawer -> card)
 func back() -> bool:
 	if _popover != null and is_instance_valid(_popover) and _popover.visible: _close_popover(); return true
-	if _war_target >= 0: _war_target = -1; rebuild(); return true
+	if _war_target >= 0 or _brk_target >= 0: _war_target = -1; _brk_target = -1; rebuild(); return true
 	if flow != null and flow.mode == TBOrderFlow.Mode.PREVIEW: flow.cancel(); return true
 	if flow != null and flow.explicit: flow.disarm(); return true
 	if drawer_open: set_drawer(false); return true
@@ -139,7 +156,7 @@ func set_drawer(on: bool) -> void:
 	drawer_open = on
 	rebuild()
 
-## a rejected command: the cost line turns into a 3 s reason with a warning glyph and the card shakes (outline flash with reduced motion)
+## a rejected command: the cost line turns into a 3 s reason with a warning glyph and the outline flashes (no shake)
 func reject(why: String) -> void:
 	var key := "err_" + why
 	var text: String = T.call(key) if TBI18n.has_key(key) else why
@@ -152,14 +169,9 @@ func flash(text: String) -> void:
 	var v := _flash_v
 	if get_tree() != null:
 		get_tree().create_timer(3.0).timeout.connect(func(): if v == _flash_v: _update_cost_line())
-	if TBMapView.animate and visible:
-		var l0 := offset_left; var r0 := offset_right
-		var tw := create_tween()
-		tw.tween_property(self, "offset_left", l0 + 4.0, 0.03); tw.parallel().tween_property(self, "offset_right", r0 + 4.0, 0.03)
-		tw.tween_property(self, "offset_left", l0 - 4.0, 0.06); tw.parallel().tween_property(self, "offset_right", r0 - 4.0, 0.06)
-		tw.tween_property(self, "offset_left", l0, 0.03); tw.parallel().tween_property(self, "offset_right", r0, 0.03)
-	else:
-		_box.outline = "neg"; _box.force_rebuild(); queue_redraw()
+	# a rejected order flashes the card outline for 120 ms; the card never shakes (A11Y-MOT-002)
+	_box.outline = "neg"; _box.force_rebuild(); queue_redraw()
+	if get_tree() != null:
 		get_tree().create_timer(0.12).timeout.connect(func(): _box.outline = ""; _box.force_rebuild(); queue_redraw())
 
 func _process(_dt: float) -> void:
@@ -202,6 +214,7 @@ func _clear_col() -> void:
 
 func rebuild() -> void:
 	if p < 0 or g == null: return
+	CC.sync_settings()
 	var prev_focus := _focus_verb
 	var prev_id := ""
 	if prev_focus >= 0 and prev_focus < _verbs.size(): prev_id = _verbs[prev_focus]["id"]
@@ -213,33 +226,36 @@ func rebuild() -> void:
 	if drawer_open: _col.add_child(_build_drawer(subj, cs))
 	var head := _build_header(subj, cs)
 	var chips := _build_chips(subj, cs)
-	if profile == "L":                                    # landscape strip: header and chips share one row
+	if profile == "L" and _head2 == null:                 # landscape strip: header and chips share one row (lowest-priority chips drop when it is full)
 		head.add_child(chips)
 		_col.add_child(head)
+		head.resized.connect(_fit_header_chips.bind(head, chips))
+		_fit_header_chips.call_deferred(head, chips)
 	else:
-		_col.add_child(head); _col.add_child(chips)
+		_col.add_child(head)
+		if _head2 != null: _col.add_child(_head2)
+		_col.add_child(chips)
 	var order_mode := _order_mode()
 	var src := _source_for(cs) if order_mode != "war" else -1
 	var verbs_row: Control
-	var share_row: Control = null
 	match order_mode:
 		"preview", "war": verbs_row = _build_order_row(cs, src, order_mode)
 		"armed": verbs_row = _build_armed_row()
 		_: verbs_row = _build_verb_row(subj, cs, src)
-	share_row = _build_share_row(subj, cs, src)
-	if profile == "L":
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 6)
-		if _share != null and share_row != null:
-			share_row.get_parent().remove_child(share_row) if share_row.get_parent() != null else null
+	var share_row: Control = _build_share_row(subj, cs, src)
+	if profile == "L" and _card_w >= 480.0 and CC.text_scale < 1.3:
 		# strip: [share][verbs] on one row, the cost line below
-		var seg_holder := _share_holder
-		if seg_holder != null: row.add_child(seg_holder)
+		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 6)
+		if _share_holder != null: row.add_child(_share_holder)
 		verbs_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(verbs_row)
 		_col.add_child(row)
 		_col.add_child(_cost_holder)
 	else:
-		_col.add_child(share_row); _col.add_child(verbs_row)
+		_col.add_child(share_row)
+		if _share_holder != null and profile == "L": share_row.add_child(_share_holder)
+		_col.add_child(verbs_row)
+		if _cost_holder != null: _col.add_child(_cost_holder)
 	# keep the focused slot across rebuilds (stale state: the same verb stays focused if it is still there)
 	_focus_verb = 0
 	for i in _verbs.size():
@@ -251,7 +267,7 @@ func rebuild() -> void:
 	_refit.call_deferred()
 
 func _order_mode() -> String:
-	if _war_target >= 0: return "war"
+	if _war_target >= 0 or _brk_target >= 0: return "war"
 	if flow == null: return "idle"
 	if flow.mode == TBOrderFlow.Mode.PREVIEW: return "preview"
 	if flow.explicit and flow.src >= 0: return "armed"
@@ -272,10 +288,16 @@ static func _font_title() -> Font:
 	if _title_font == null: _title_font = TBKit.tracked(TBKit.display_hi(), 1)
 	return _title_font
 
+## the sheet's drag handle: a 4 px bar, but a 48 x 48 hit area (it reaches up over the sheet's top edge)
+class _Handle extends Control:
+	func _has_point(p: Vector2) -> bool:
+		var t: float = TBCmdCard.touch()
+		return Rect2(Vector2(0.0, size.y - t), Vector2(size.x, t)).has_point(p)
+
 func _build_handle() -> Control:
-	var h := Control.new()
-	h.custom_minimum_size = Vector2(0, 14); h.mouse_filter = Control.MOUSE_FILTER_STOP
-	h.draw.connect(func(): h.draw_rect(Rect2(h.size.x * 0.5 - 24.0, 5.0, 48.0, 4.0), CC.tk("ink_off")))
+	var h := _Handle.new()
+	h.custom_minimum_size = Vector2(0, 20); h.mouse_filter = Control.MOUSE_FILTER_STOP
+	h.draw.connect(func(): h.draw_rect(Rect2(h.size.x * 0.5 - 24.0, 8.0, 48.0, 4.0), CC.tk("ink_off")))
 	h.gui_input.connect(func(e: InputEvent):
 		if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 			if e.pressed: _drag_y = e.position.y
@@ -304,7 +326,13 @@ func _tag_for(cs: Dictionary) -> Array:        # [glyph, text, token]
 func _build_header(s: int, cs: Dictionary) -> HBoxContainer:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 6)
-	h.custom_minimum_size = Vector2(0, 32 if profile != "P" else 36)
+	h.custom_minimum_size = Vector2(0, 36 if profile != "P" else int(CC.touch()))
+	_head2 = null
+	var split := CC.text_scale >= 1.4                  # large text: identity + close on row 1, relation tag / owner link / Details on row 2
+	if split:
+		_head2 = HBoxContainer.new(); _head2.add_theme_constant_override("separation", 6)
+		_head2.custom_minimum_size = Vector2(0, int(CC.touch()))
+	var r2: HBoxContainer = _head2 if split else h
 	var o: int = cs["o"]
 	if o != 0:
 		var fl := TBFlags.chip(g, o, 0.5)
@@ -316,7 +344,9 @@ func _build_header(s: int, cs: Dictionary) -> HBoxContainer:
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nm.size_flags_vertical = Control.SIZE_FILL
 	nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	nm.custom_minimum_size = Vector2(70, 24)
+	var nlh: float = ceilf(_font_title().get_height(CC.fs(18 if profile == "D" else 17)))
+	nm.custom_minimum_size = Vector2(70, nlh)
+	h.custom_minimum_size.y = maxf(h.custom_minimum_size.y, nlh + 6.0)
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	h.add_child(nm)
 	_name_label = nm
@@ -328,15 +358,19 @@ func _build_header(s: int, cs: Dictionary) -> HBoxContainer:
 		h.add_child(cap)
 	if o != 0 and o != cs["me"] and profile != "L":
 		var nb := _link_button("%s ›" % g.dname(o), func(): nation_requested.emit(o))
-		h.add_child(nb)
+		r2.add_child(nb)
 	var tg := _tag_for(cs)
-	h.add_child(_RelTag.new(tg[0], tg[1], tg[2]))
+	r2.add_child(_RelTag.new(tg[0], tg[1], tg[2]))
 	# Details + close
 	var det := _text_button(T.call("cc_details"), "tri_up" if not drawer_open else "tri_down", func(): set_drawer(not drawer_open))
 	det.tooltip_text = T.call("cc_details") + " (I)"
-	h.add_child(det)
-	var cl := TBKit.icon_button("close", func(): closed.emit(), 44 if profile == "P" else 32)
+	if split:
+		var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sp.mouse_filter = Control.MOUSE_FILTER_IGNORE; r2.add_child(sp)
+	r2.add_child(det)
+	var cl := _CloseBtn.new(48.0 if profile == "P" else 36.0)
+	cl.pressed.connect(func(): closed.emit())
 	cl.tooltip_text = T.call("cc_close")
+	TBKit.a11y(cl, T.call("cc_close"), "button")
 	h.add_child(cl)
 	return h
 
@@ -346,7 +380,7 @@ func _link_button(text: String, cb: Callable) -> Button:
 	b.add_theme_font_override("font", TBKit.body_b())
 	b.add_theme_font_size_override("font_size", CC.fs(14))
 	b.add_theme_color_override("font_color", CC.tk("ink_0")); b.add_theme_color_override("font_hover_color", CC.tk("oxblood")); b.add_theme_color_override("font_pressed_color", CC.tk("oxblood"))
-	b.custom_minimum_size = Vector2(0, 32)
+	b.custom_minimum_size = Vector2(0, 36 if profile != "P" else int(CC.touch()))
 	b.pressed.connect(cb)
 	return b
 
@@ -375,15 +409,36 @@ class _RelTag extends Control:
 			TBCmdCard.glyph(self, gl, Vector2(8.0, size.y * 0.5), 14.0, c, 1.5); x = 18.0
 		draw_string(TBKit.body_b(), Vector2(x, size.y * 0.5 + 4.5), _label(), HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(12), c)
 
+## the card's close button: a drawn X with a 48 x 48 hit area whatever its visual size
+class _CloseBtn extends Button:
+	func _init(px: float) -> void:
+		flat = true; focus_mode = Control.FOCUS_ALL
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
+		custom_minimum_size = Vector2(px, px)
+		size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	func _has_point(p: Vector2) -> bool:
+		var t: float = TBCmdCard.touch()
+		var ex := Vector2(maxf(0.0, (t - size.x) * 0.5), maxf(0.0, (t - size.y) * 0.5))
+		return Rect2(-ex, size + ex * 2.0).has_point(p)
+	func _draw() -> void:
+		var hot := is_hovered() or button_pressed
+		if hot: draw_colored_polygon(TBCmdCard.chamfer(Rect2(Vector2.ZERO, size), 4.0), TBCmdCard.tk("paper_hover"))
+		TBCmdCard.glyph(self, "close", size * 0.5, 16.0, TBCmdCard.tk("oxblood") if hot else TBCmdCard.tk("ink_0"), 1.8)
+		if has_focus(): draw_rect(Rect2(Vector2.ZERO, size).grow(-1.0), TBCmdCard.tk("ink_0"), false, 2.0)
+
 ## "Details ⌃": a text button with a drawn glyph (32 px high, 48 on touch via hit-slop)
 class _GlyphText extends Button:
 	var gl := ""
 	func _init(t_: String, g_: String) -> void:
 		text = ""; gl = g_; focus_mode = Control.FOCUS_ALL; flat = true
 		for st in ["normal", "hover", "pressed", "focus", "disabled"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
-		custom_minimum_size = Vector2(TBKit.body_b().get_string_size(t_, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(14)).x + 30.0, 32.0)
+		custom_minimum_size = Vector2(maxf(TBCmdCard.touch() - 8.0, TBKit.body_b().get_string_size(t_, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(14)).x + 30.0), 36.0)
 		tooltip_text = t_
 		set_meta("label", t_)
+	func _has_point(p: Vector2) -> bool:               # a 48 x 48 hit area around the 36 px text button
+		var t: float = TBCmdCard.touch()
+		var ex := Vector2(maxf(0.0, (t - size.x) * 0.5), maxf(0.0, (t - size.y) * 0.5))
+		return Rect2(-ex, size + ex * 2.0).has_point(p)
 	func _draw() -> void:
 		var hot := is_hovered() or button_pressed
 		var c := TBCmdCard.tk("oxblood") if hot else TBCmdCard.tk("ink_0")
@@ -446,15 +501,41 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 			if int(cn["gold"]) > 0: list.append(CC.InfoChip.new("coin", "", CC.gold(int(cn["gold"])), "neg" if cn["short"].has("gold") else ""))
 	while list.size() > 4: list.pop_back()
 	for c in list: row.add_child(c)
-	# a narrow card drops the captions (icon + value stay; the tooltip carries the words)
-	row.resized.connect(func():
-		var need := 0.0
-		for c in row.get_children():
-			(c as CC.InfoChip).set_compact(false)
-			need += (c as CC.InfoChip).get_combined_minimum_size().x + 4.0
-		var compact := need > row.size.x + 0.5 and row.size.x > 0.0 or profile == "L"
-		for c in row.get_children(): (c as CC.InfoChip).set_compact(compact))
+	# a narrow card drops the captions (icon + value stay; the tooltip carries the words), then the lowest-priority chips
+	if profile != "L": row.resized.connect(func(): _fit_chip_row(row, row.size.x))
 	return row
+
+## chips of a row fit `avail`: captions off when too wide, then hide trailing (lowest-priority) chips; the first two always stay
+func _fit_chip_row(row: HBoxContainer, avail: float) -> void:
+	if avail <= 0.0: return
+	var kids := row.get_children()
+	for c in kids: (c as CC.InfoChip).visible = true
+	var need := 0.0
+	for c in kids:
+		(c as CC.InfoChip).set_compact(false)
+		need += (c as CC.InfoChip).get_combined_minimum_size().x + 4.0
+	var compact := need > avail + 0.5 or profile == "L"
+	for c in kids: (c as CC.InfoChip).set_compact(compact)
+	var i := kids.size() - 1
+	while i >= 2 and _row_need(kids) > avail + 0.5:
+		(kids[i] as Control).visible = false; i -= 1
+
+func _row_need(kids: Array) -> float:
+	var need := 0.0
+	for c in kids:
+		if (c as Control).visible: need += (c as Control).get_combined_minimum_size().x + 4.0
+	return need - 4.0
+
+## landscape strip: the chips share the header row with name, tag, Details and close; fit them to what is left
+func _fit_header_chips(head: HBoxContainer, chips: HBoxContainer) -> void:
+	if not is_instance_valid(head) or not is_instance_valid(chips): return
+	var others := 0.0
+	var n := 0
+	for c in head.get_children():
+		if c == chips or not (c as Control).visible: continue
+		others += (c as Control).get_combined_minimum_size().x; n += 1
+	var avail := head.size.x - others - 6.0 * (n + 1) - 8.0
+	_fit_chip_row(chips, avail)
 
 func _reach(s: int) -> String:
 	var me := g.human_id
@@ -477,9 +558,9 @@ var _cost_holder: Control
 func _build_share_row(s: int, cs: Dictionary, src: int) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
-	var tall := 36 if profile == "D" else 48
+	var tall := 36 if profile == "D" else int(CC.touch())
 	row.custom_minimum_size = Vector2(0, tall)
-	_share_holder = null
+	_share_holder = null; _cost_holder = null
 	_cost = CC.CostLine.new()
 	_cost.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_count = null; _share = null
@@ -488,8 +569,8 @@ func _build_share_row(s: int, cs: Dictionary, src: int) -> Control:
 		cap.text = cap.text.to_upper() if TBI18n.lang != "ru" else cap.text
 		cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_share = CC.ShareSeg.new()
-		_share.cell_h = tall if profile != "D" else 36
-		_share.cell_w = 36.0 if profile == "L" else (44.0 if profile == "P" else 40.0)
+		_share.cell_h = tall
+		_share.cell_w = 40.0 if profile == "D" else maxf(48.0, CC.touch())      # touch cells are >= 48 wide and high
 		_share.set_current(send_frac)
 		var army := g.army[src] - 1
 		for i in 4:                                    # duplicate presets of a small army are disabled
@@ -506,18 +587,18 @@ func _build_share_row(s: int, cs: Dictionary, src: int) -> Control:
 			row.add_child(cap)
 		var holder := HBoxContainer.new(); holder.add_theme_constant_override("separation", 6)
 		holder.add_child(_share)
-		if profile != "L": row.add_child(holder)
-		else: _share_holder = holder
-		row.add_child(_count)
+		if profile != "L": row.add_child(holder); row.add_child(_count)
+		else: holder.add_child(_count); _share_holder = holder
 		_refresh_count()
 	elif int(cs["kind"]) == 2 or (int(cs["kind"]) == 1):
 		var hint := CC.label(T.call("cc_raise_hint"), 13, "ink_1")
 		hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if int(cs["kind"]) == 2 and profile != "L": row.add_child(hint)
-	row.add_child(_cost) if profile != "L" else null
-	if profile == "L":
+	if profile == "D":
+		row.add_child(_cost)
+	else:                                              # touch layouts: the cost line gets its own full-width row and wraps
 		_cost_holder = _cost
-		_cost.custom_minimum_size = Vector2(0, 16)
+		_cost.size_flags_vertical = Control.SIZE_FILL
 	return row
 
 func _refresh_count() -> void:
@@ -697,8 +778,8 @@ func _build_verb_row(s: int, cs: Dictionary, src: int) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	var specs := _verb_specs(s, cs, src)
-	var h := 48 if profile != "L" else 44
-	if profile == "P": h = 56
+	var h := int(CC.touch())
+	if profile == "P": h = maxi(56, h)
 	row.custom_minimum_size = Vector2(0, h)
 	_verbs.clear(); _hotkeys.clear()
 	for i in specs.size():
@@ -707,7 +788,7 @@ func _build_verb_row(s: int, cs: Dictionary, src: int) -> HBoxContainer:
 			var gp := Control.new(); gp.custom_minimum_size = Vector2(12, 0); gp.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(gp)
 		var b := CC.VerbBtn.new().setup(v["id"], v["glyph"], v["label"], v["hot"], bool(v["primary"]), bool(v["danger"]))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size = Vector2(52.0 if profile == "L" else (64.0 if profile == "P" else 76.0), h)
+		b.custom_minimum_size = Vector2(CC.touch() if profile == "L" else (64.0 if profile == "P" else 76.0), h)
 		b.short_form = profile == "L"
 		b.set_blocked(not bool(v["can"]["ok"]))
 		var tip: String = "%s. %s" % [v["label"], _plain(v["parts"])] if v["why"] == "" else "%s. %s: %s" % [v["label"], T.call("cc_unavailable"), v["why"]]
@@ -738,6 +819,8 @@ func _update_cost_line() -> void:
 	if _cost == null: return
 	if _busy: _cost.set_parts([{"t": T.call("cc_resolving"), "short": false}]); return
 	var mode := _order_mode()
+	if mode == "war" and _brk_target >= 0:
+		_cost.set_parts([{"t": T.call("cc_break_ask", {"n": g.dname(_brk_target)}), "short": false}]); return
 	if mode == "war":
 		var cn := g.can({"cmd": "declareWar", "t": _war_target})
 		var parts: Array = [{"t": T.call("cc_war_ask", {"n": g.dname(_war_target)}), "short": false}]
@@ -761,9 +844,9 @@ func _update_cost_line() -> void:
 # ---------------------------------------------------------------- order rows (replace the verb row)
 func _build_armed_row() -> HBoxContainer:
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8)
-	row.custom_minimum_size = Vector2(0, 48 if profile != "L" else 44)
+	row.custom_minimum_size = Vector2(0, CC.touch())
 	var cb := CC.VerbBtn.new().setup("cancel", "close", T.call("pv_cancel"), "Esc", false, false)
-	cb.custom_minimum_size = Vector2(104, 48); cb.pressed.connect(func(): if flow != null: flow.disarm())
+	cb.custom_minimum_size = Vector2(104, CC.touch()); cb.pressed.connect(func(): if flow != null: flow.disarm())
 	row.add_child(cb)
 	var hint := CC.label(T.call("cc_pick_target_kb"), 13, "ink_1")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -772,11 +855,21 @@ func _build_armed_row() -> HBoxContainer:
 
 func _build_order_row(cs: Dictionary, src: int, mode: String) -> HBoxContainer:
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8)
-	row.custom_minimum_size = Vector2(0, 48 if profile != "L" else 44)
+	row.custom_minimum_size = Vector2(0, CC.touch())
 	var cancel := CC.VerbBtn.new().setup("cancel", "close", T.call("pv_cancel"), "Esc", false, false)
-	cancel.custom_minimum_size = Vector2(104, 48)
+	cancel.custom_minimum_size = Vector2(104, CC.touch())
 	var ok: CC.VerbBtn
-	if mode == "war":
+	if mode == "war" and _brk_target >= 0:
+		cancel.pressed.connect(func(): _brk_target = -1; rebuild())
+		var bt := _brk_target
+		var bcn := g.can({"cmd": "breakPact", "t": bt})
+		ok = CC.VerbBtn.new().setup("brk_ok", "swords", T.call("break_pact"), "", false, true)
+		ok.set_blocked(not bcn["ok"])
+		ok.pressed.connect(func():
+			if not bcn["ok"]: reject_can(bcn); return
+			_brk_target = -1
+			command.emit({"cmd": "breakPact", "t": bt}))
+	elif mode == "war":
 		cancel.pressed.connect(func(): _war_target = -1; rebuild())
 		var cn := g.can({"cmd": "declareWar", "t": _war_target})
 		ok = CC.VerbBtn.new().setup("war_ok", "swords", "%s · %d %s" % [T.call("cc_war"), int(cn["dp"]), T.call("u_dp")], "", false, true)
@@ -801,7 +894,7 @@ func _build_order_row(cs: Dictionary, src: int, mode: String) -> HBoxContainer:
 		ok.set_blocked(not cn2["ok"])
 		ok.pressed.connect(func(): if cn2["ok"]: flow.confirm() else: reject_can(cn2))
 	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ok.custom_minimum_size = Vector2(120, 48)
+	ok.custom_minimum_size = Vector2(120, CC.touch())
 	row.add_child(cancel); row.add_child(ok)
 	_verbs.clear()
 	_verbs.append({"id": "confirm", "btn": ok, "can": {"ok": true}, "parts": [], "why": ""})
@@ -824,7 +917,9 @@ func _press(i: int) -> void:
 		"attack": if flow != null: flow.preview_to(s, _source_for(_case))
 		"build": _open_list(v["btn"], _build_rows(v["items"]), s)
 		"diplo": _open_list(v["btn"], _diplo_rows(v["items"]), s)
-		"war": _war_target = int(_case["o"]); rebuild()
+		"war":
+			if _confirm_mode() == "never": command.emit({"cmd": "declareWar", "t": int(_case["o"])})
+			else: _war_target = int(_case["o"]); rebuild()
 		"ult": command.emit({"cmd": "ultimatum", "t": int(_case["o"]), "p": s})
 		"recruit": command.emit({"cmd": "recruit", "p": s, "amount": 15})
 		"hire": command.emit({"cmd": "hire", "p": s, "amount": 40})
@@ -832,6 +927,10 @@ func _press(i: int) -> void:
 		"colonize": command.emit({"cmd": "colonize", "p": s})
 		"peace": command.emit({"cmd": "peace", "t": int(_case["enemy"]), "kind": "white"})
 		"terms": command.emit({"cmd": "peace", "t": int(_case["enemy"]), "kind": "cede"})
+
+## the player's confirm setting for destructive orders (declare war, break pact): smart / always ask, never does not
+func _confirm_mode() -> String:
+	return String(confirm_fn.call()) if confirm_fn.is_valid() else "smart"
 
 func _build_rows(items: Array) -> Array:
 	var rows: Array = []
@@ -859,6 +958,8 @@ func _open_list(anchor: Control, rows: Array, _s: int) -> void:
 		var r: Dictionary = rows[i]
 		if not r["ok"]: flash(String(r["why"])); return
 		_close_popover()
+		if bool(r.get("danger", false)) and String(r["cmd"].get("cmd", "")) == "breakPact" and _confirm_mode() != "never":
+			_brk_target = int(r["cmd"]["t"]); rebuild(); return        # a destructive order asks first
 		command.emit(r["cmd"]))
 	_popover.closed.connect(func(): _popover = null)
 
@@ -885,7 +986,7 @@ class Popover extends PanelContainer:
 			var r: Dictionary = rows[i]
 			var b := TBCmdCard.VerbBtn.new().setup("row", "", "%s   %s" % [r["label"], r["detail"]], str(i + 1) if i < 9 else "", false, bool(r["danger"]))
 			b.set_blocked(not bool(r["ok"]))
-			b.custom_minimum_size = Vector2(300, 44)
+			b.custom_minimum_size = Vector2(300, TBCmdCard.touch())
 			b.tooltip_text = String(r["why"]) if not bool(r["ok"]) else String(r["detail"])
 			var idx := i
 			b.pressed.connect(func(): picked.emit(idx))
@@ -987,7 +1088,7 @@ func _unhandled_key_input(e: InputEvent) -> void:
 	if not visible: return
 	if k == KEY_ENTER or k == KEY_KP_ENTER:
 		if flow != null and flow.mode == TBOrderFlow.Mode.PREVIEW: flow.confirm(); get_viewport().set_input_as_handled()
-		elif _war_target >= 0 and not _verbs.is_empty(): _press_confirm(); get_viewport().set_input_as_handled()
+		elif (_war_target >= 0 or _brk_target >= 0) and not _verbs.is_empty(): _press_confirm(); get_viewport().set_input_as_handled()
 		return
 	if k == KEY_I: set_drawer(not drawer_open); get_viewport().set_input_as_handled(); return
 	if _share != null and not _busy:
@@ -996,7 +1097,7 @@ func _unhandled_key_input(e: InputEvent) -> void:
 		if k == KEY_BRACKETLEFT or k == KEY_BRACKETRIGHT:
 			var i := CC.ShareSeg.FRACS.find(_share.current)
 			_share._pick(clampi(i + (1 if k == KEY_BRACKETRIGHT else -1), 0, 3)); get_viewport().set_input_as_handled(); return
-	if _hotkeys.has(k) and _war_target < 0 and _order_mode() != "preview":
+	if _hotkeys.has(k) and _war_target < 0 and _brk_target < 0 and _order_mode() != "preview":
 		_press(int(_hotkeys[k])); get_viewport().set_input_as_handled()
 
 func _press_confirm() -> void:

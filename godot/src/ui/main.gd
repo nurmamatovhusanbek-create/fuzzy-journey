@@ -80,7 +80,9 @@ func _ready() -> void:
 	hud.nation_pressed.connect(_open_nation)
 	hud.offer_answered.connect(func(uid: int, i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}))
 	hud.event_requested.connect(func(uid: int): _shown_events.erase(uid); show_events())
-	resized.connect(func(): panel.layout_for(size); hud.layout_for(size))
+	panel.band_fn = hud.card_band; panel.reserve_fn = hud.bottom_reserve; panel.confirm_fn = func() -> String: return hud.confirm_mode
+	resized.connect(func(): hud.layout_for(size); panel.layout_for(size))        # the HUD first: the card fits the band the End Turn seal leaves
+	hud.layout_changed.connect(func(): panel.layout_for(size))
 	get_window().size_changed.connect(_update_ui_scale); _update_ui_scale()
 	_apply_quality()
 	_new_demo_game()
@@ -276,6 +278,7 @@ func _apply_a11y() -> void:
 	K.readable_fonts = bool(cfg.get("readable", false))
 	K.reduce_motion = bool(cfg.get("reduce_motion", false))
 	K.touch_large = bool(cfg.get("touch_large", false))
+	if hud != null: hud.set_text_scale(K.text_scale)
 	TBTokens.mode = TBTokens.Mode.HIGH_CONTRAST if bool(cfg.get("contrast", false)) else TBTokens.Mode.NORMAL
 	theme = K.theme()
 

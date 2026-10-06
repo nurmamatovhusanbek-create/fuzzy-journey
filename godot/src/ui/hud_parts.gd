@@ -11,13 +11,26 @@ static var text_scale: float = 1.0
 static var opacity: float = 0.94
 static var _f_nat: Font
 
-static func fs(px: float) -> int: return int(round(px * text_scale))
+## a font size through the text scale; never below the 12 px caption floor (A11Y-TXT-002)
+static func fs(px: float) -> int: return maxi(12, int(round(px * text_scale)))
 static func tk(token: String) -> Color: return TBTokens.c(token)
+## a kit setting read defensively (the kit may not define it yet): TBKit.get-style access on the script
+static func kit(setting: String, fallback: Variant) -> Variant:
+	var sc: Script = K
+	var v: Variant = sc.get(setting)
+	return fallback if v == null else v
+## pull the player's settings from the kit: text scale (100 / 125 / 150 / 200 %), called before every build / layout
+static func sync_settings() -> void:
+	text_scale = clampf(float(kit("text_scale", 1.0)), 1.0, 2.0)
+## minimum hit area in logical px: 48 always, 56 with "large targets" (A11Y-TCH-001; never gated on the platform)
+static func touch() -> float:
+	return 56.0 if (bool(kit("large_targets", false)) or bool(kit("touch_large", false))) else 48.0
 ## colour with another alpha
 static func al(c: Color, alpha: float) -> Color:
 	c.a = alpha
 	return c
-static func reduced_motion() -> bool: return not TBMapView.animate
+## true when the player asked for reduced motion (A11Y-MOT-001) or TB_NOANIM is set (tests): every HUD tween, roll and pulse checks this
+static func reduced_motion() -> bool: return bool(kit("reduce_motion", false)) or not TBMapView.animate
 
 static var _f_body: Font
 static var _f_body_b: Font
@@ -151,7 +164,7 @@ static func seat_index(g: TBGame, n: int) -> int:
 # ---------------------------------------------------------------- styleboxes and small widgets
 ## a StyleBox drawing the flat plate (popovers, tooltips, toast rows, buttons)
 class PlateBox extends StyleBox:
-	var fill: Color = Color.BLACK
+	var fill: Color = Color.TRANSPARENT
 	var border: Color = Color.TRANSPARENT
 	var cut: float = 4.0
 	var bar: Color = Color.TRANSPARENT
@@ -248,9 +261,13 @@ class Hit extends Control:
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	func set_a11y(name: String) -> void:
 		a11y = name; set_meta("a11y", name)
-	## hit area is taller than the visual chip (touch >= 48 where the bar allows it)
+	## the hit area is at least 48 x 48 (56 with large targets) around the visual, on both axes (A11Y-TCH-001)
+	func hit_rect() -> Rect2:
+		var t: float = TBHudParts.touch()
+		var ex := Vector2(maxf(2.0, (t - size.x) * 0.5), maxf(2.0, (t - size.y) * 0.5))
+		return Rect2(-ex, size + ex * 2.0)
 	func _has_point(p: Vector2) -> bool:
-		return Rect2(Vector2(-2, -8), size + Vector2(4, 16)).has_point(p)
+		return hit_rect().has_point(p)
 	func _gui_input(e: InputEvent) -> void:
 		if e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 			if (e as InputEventMouseButton).pressed:
@@ -259,7 +276,7 @@ class Hit extends Control:
 			else:
 				var was: bool = down
 				down = false; queue_redraw()
-				if was and not _long and Rect2(Vector2(-2, -8), size + Vector2(4, 16)).has_point((e as InputEventMouseButton).position):
+				if was and not _long and hit_rect().has_point((e as InputEventMouseButton).position):
 					tip_off.emit(); pressed.emit()
 				accept_event()
 		elif e.is_action_pressed("ui_accept"):
@@ -291,6 +308,7 @@ class Chip extends Hit:
 	var delta_on: bool = true
 	var state: int = 0                  # 0 normal, 1 caution "!", 2 critical "!!" + outline
 	var compact: bool = false
+	var tight: bool = false             # last-resort packing for narrow bars: smaller icon, 5 px padding
 	var glyph_col: Color = Color.TRANSPARENT     # override of the brass icon (wars / infamy use the negative hue)
 	var _shown: float = NAN
 	var _target: float = 0.0
@@ -298,12 +316,13 @@ class Chip extends Hit:
 	func _ready() -> void: set_process(false)
 	func fv() -> int: return TBHudParts.fs(14.0 if compact else 16.0)
 	func fd() -> int: return TBHudParts.fs(12.0)
-	func ico() -> float: return 18.0 if compact else 20.0
+	func ico() -> float: return 16.0 if tight else (18.0 if compact else 20.0)
+	func pad() -> float: return 5.0 if tight else 8.0
 	func dtext() -> String:
 		return ("+%s" % K.fmt(float(delta))) if delta >= 0 else ("−%s" % K.fmt(float(-delta)))
 	func desired_w() -> float:
 		var shown: String = final_text if final_text != "" else value
-		var w: float = 8.0 + ico() + 4.0 + TBHudParts.tw(K.mono_b(), shown, fv()) + 8.0
+		var w: float = pad() + ico() + 4.0 + TBHudParts.tw(K.mono_b(), shown, fv()) + pad()
 		if suffix != "": w += TBHudParts.tw(K.mono(), suffix, fv() - 2)
 		if delta_on and has_delta: w += 6.0 + 9.0 + 3.0 + TBHudParts.tw(K.mono(), dtext(), fd())
 		if state >= 1: w += 4.0 + 10.0 * state
@@ -330,7 +349,7 @@ class Chip extends Hit:
 		elif state == 1: edge = TBHudParts.tk("warn_bar")
 		TBHudParts.plate(self, r, TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.tk("bar_1"), edge, 2.0)
 		var cy: float = size.y * 0.5 + (1.0 if down else 0.0)
-		var x: float = 8.0
+		var x: float = pad()
 		TBGlyph.draw(self, glyph, Vector2(x + ico() * 0.5, cy), ico(), glyph_col if glyph_col.a > 0.0 else TBHudParts.tk("brass_lt"), 1.6)
 		x += ico() + 4.0
 		var fb: Font = K.mono_b()
@@ -476,26 +495,45 @@ class Surface extends Control:
 			_:
 				TBHudParts.plate(self, r, fill, TBHudParts.tk("rule_dark"), 4.0)
 
-# ---------------------------------------------------------------- End Turn plate
-## the one embossed object: a wax plate with a brass edge. States: idle / hint / busy / waiting / seat / over
+# ---------------------------------------------------------------- End Turn seal
+## the one wax object (art bible 7.5): an 80 px circle (72 compact / portrait) drawn by TBFrame.seal (wax grain + one brass ring), the
+## chevrons glyph and, when it fits, the caption inside. States: idle / hint (ring runs down) / busy (sweeping arc, static ring with
+## reduced motion) / waiting (multiplayer) / seat (hot-seat, "Pass to P2") / over (wax at 40 %). A long caption moves to the SealNote chip.
 class Seal extends Hit:
 	enum S { IDLE, HINT, BUSY, WAIT, SEAT, OVER }
 	var state: int = S.IDLE
 	var caption: String = ""
 	var sub: String = ""
-	var attention: int = 0
-	var pulse: bool = false
-	var hint_left: float = 0.0          # 0..1 remaining of the 3 s confirm window
+	var caption_inside: bool = true         # false: the caption is too long for the disc and is shown by the SealNote chip
+	var attention: int = 0                  # unresolved crisis alerts: diamond count badge
+	var pulse: bool = false                 # attention pulse until the first press (static ring with reduced motion)
+	var hint_left: float = 0.0              # 0..1 remaining of the 3 s confirm window
 	var compact: bool = false
 	var _t: float = 0.0
 	var _pulses: int = 0
 	var _lastk: float = 0.0
 	func _ready() -> void: set_process(false)
+	func diameter() -> float: return 72.0 if compact else 80.0
+	func caption_text() -> String: return caption if TBI18n.lang == "ru" else caption.to_upper()
+	func _animated() -> bool: return not TBHudParts.reduced_motion()
+	## the caption fits inside the disc in at most two lines at the current text scale
+	func fits_inside(text: String) -> bool:
+		var f: Font = TBHudParts.body_b()
+		var fsz: int = TBHudParts.fs(12.0)
+		var avail: float = diameter() * 0.74
+		var t: String = text if TBI18n.lang == "ru" else text.to_upper()
+		for wd in t.split(" "):
+			if TBHudParts.tw(f, wd, fsz) > avail: return false
+		var h: float = f.get_multiline_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, -1, TextServer.BREAK_WORD_BOUND).y
+		return h <= f.get_height(fsz) * 2.0 + 1.0
 	func _sync() -> void:
-		set_process(state == S.BUSY or state == S.HINT or (pulse and _pulses < 3 and not TBHudParts.reduced_motion()))
+		set_process(_animated() and (state == S.BUSY or state == S.HINT or (pulse and _pulses < 3)))
 		queue_redraw()
 	func set_state(s: int) -> void: state = s; _sync()
 	func set_pulse(p: bool) -> void: pulse = p; _pulses = 0; _sync()
+	func _has_point(p: Vector2) -> bool:
+		var r: float = maxf(diameter() * 0.5 + 3.0, TBHudParts.touch() * 0.5)
+		return (p - size * 0.5).length() <= r
 	func _process(d: float) -> void:
 		_t += d
 		var k: float = fposmod(_t * 0.5, 1.0)
@@ -505,54 +543,88 @@ class Seal extends Hit:
 		queue_redraw()
 		if state != S.BUSY and state != S.HINT and (not pulse or _pulses >= 3): set_process(false)
 	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO, size)
+		var d: float = minf(size.x, size.y)
+		var c := Vector2(size.x * 0.5, size.y * 0.5)
+		var rad: float = d * 0.5
 		var dead: bool = state == S.BUSY or state == S.WAIT or state == S.OVER
-		var wax: Color = TBHudParts.tk("wax_press") if (down and not dead) else (TBHudParts.tk("wax_hover") if (hover and not dead) else TBHudParts.tk("wax"))
-		if state == S.OVER: wax = TBHudParts.al(wax, 0.4)
-		if pulse and state != S.BUSY:
-			var k: float = fposmod(_t * 0.5, 1.0) if (_pulses < 3 and not TBHudParts.reduced_motion()) else 0.0
-			var grow: float = 3.0 + k * 7.0
-			var line: PackedVector2Array = TBHudParts.chamfer(r.grow(grow), 4.0 + grow)
-			line.append(line[0])
-			draw_polyline(line, TBHudParts.al(TBHudParts.tk("brass_lt"), 0.55 * (1.0 - k) if _pulses < 3 and not TBHudParts.reduced_motion() else 0.7), 2.0, true)
-		TBHudParts.plate(self, r, wax, TBHudParts.tk("brass"), 4.0, Color.TRANSPARENT, 0.0, 2.0)
-		draw_line(Vector2(6, 3.5), Vector2(size.x - 6, 3.5), TBHudParts.al(TBHudParts.tk("on_wax"), 0.16), 1.0)
 		var oy: float = 1.0 if (down and not dead) else 0.0
 		var on: Color = TBHudParts.tk("on_wax")
-		if state == S.OVER: on = TBHudParts.al(on, 0.6)
-		var fc: int = TBHudParts.fs(14.0 if compact else 15.0)
-		var f_sub: int = TBHudParts.fs(12.0)
-		var fcap: Font = K.display_hi()
-		var fsub: Font = TBHudParts.body()
-		var blk: float = fcap.get_height(fc) + 1.0 + fsub.get_height(f_sub)
-		var y0: float = (size.y - blk) * 0.5 + oy
-		var arrow_w: float = (18.0 if compact else 22.0) if (state == S.IDLE or state == S.HINT or state == S.SEAT) else 0.0
-		var cap: String = TBHudParts.fit(fcap, caption, fc, size.x - 24.0 - arrow_w)
-		draw_string(fcap, Vector2(12, y0 + fcap.get_ascent(fc)), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, fc, on)
-		var sb: String = TBHudParts.fit(fsub, sub, f_sub, size.x - 24.0 - arrow_w)
-		draw_string(fsub, Vector2(12, y0 + fcap.get_height(fc) + 1.0 + fsub.get_ascent(f_sub)), sb, HORIZONTAL_ALIGNMENT_LEFT, -1, f_sub, TBHudParts.al(on, 0.9))
-		if arrow_w > 0.0:
-			TBHudParts.chev(self, Vector2(size.x - 15.0, size.y * 0.5 + oy), 14.0, on, 2.4)
-		if state == S.BUSY:
-			var track := Rect2(10, size.y - 7.0, size.x - 20.0, 3.0)
-			draw_rect(track, TBHudParts.al(TBHudParts.tk("bar_0"), 0.35))
-			if TBHudParts.reduced_motion():
-				for i in 3: draw_rect(Rect2(track.position.x + i * 8.0, track.position.y, 4.0, 3.0), on)
+		if pulse and state != S.BUSY:                       # attention pulse: a ring that grows and fades (<= 3 cycles); static ring when motion is reduced
+			if _animated() and _pulses < 3:
+				var k: float = fposmod(_t * 0.5, 1.0)
+				draw_arc(c, rad + 3.0 + k * 7.0, 0.0, TAU, 40, TBHudParts.al(TBHudParts.tk("brass_lt"), 0.55 * (1.0 - k)), 2.0, true)
 			else:
-				var seg: float = 44.0
-				var sx: float = fposmod(_t * 140.0, track.size.x + seg) - seg
-				var x0: float = maxf(track.position.x, track.position.x + sx)
-				var x1: float = minf(track.end.x, track.position.x + sx + seg)
-				if x1 > x0: draw_rect(Rect2(x0, track.position.y, x1 - x0, 3.0), on)
+				draw_arc(c, rad + 4.0, 0.0, TAU, 40, TBHudParts.al(TBHudParts.tk("brass_lt"), 0.7), 2.0, true)
+		draw_style_box(TBFrame.seal(down and not dead, hover and not dead, state == S.OVER), Rect2(Vector2.ZERO, Vector2(d, d)))
+		if state == S.OVER: on = TBHudParts.al(on, 0.6)
+		# chevrons glyph, with the caption under it when it fits the disc: the group is centred in the disc
+		var inside: bool = caption_inside and caption != "" and state != S.OVER
+		var gs: float = rad * (0.34 if inside else 0.5)
+		var f: Font = TBHudParts.body_b()
+		var fsz: int = TBHudParts.fs(12.0)
+		var avail: float = d * 0.74
+		var th: float = f.get_multiline_string_size(caption_text(), HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, 2, TextServer.BREAK_WORD_BOUND).y if inside else 0.0
+		var top: float = c.y + oy - ((gs + 3.0 + th) * 0.5 if inside else gs * 0.5)
+		TBHudParts.chev(self, Vector2(c.x - gs * 0.28, top + gs * 0.5), gs, on, 2.4)
+		TBHudParts.chev(self, Vector2(c.x + gs * 0.28, top + gs * 0.5), gs, on, 2.4)
+		if inside:
+			draw_multiline_string(f, Vector2(c.x - avail * 0.5, top + gs + 3.0 + f.get_ascent(fsz)), caption_text(), HORIZONTAL_ALIGNMENT_CENTER, avail, fsz, 2, on, TextServer.BREAK_WORD_BOUND)
+		# busy: a sweeping arc on the ring (a static arc, with the text, when motion is reduced); hint: the confirm window running down
+		var ar: float = rad - 7.0
+		if state == S.BUSY or state == S.WAIT:
+			if _animated() and state == S.BUSY:
+				var a0: float = _t * TAU / 1.1
+				draw_arc(c, ar, a0, a0 + deg_to_rad(110.0), 20, on, 3.0, true)
+			else:
+				draw_arc(c, ar, -PI * 0.5, PI, 28, on, 3.0, true)
 		elif state == S.HINT:
-			draw_rect(Rect2(10, size.y - 6.0, (size.x - 20.0) * hint_left, 2.0), TBHudParts.tk("brass_lt"))
+			var left: float = hint_left if _animated() else 1.0
+			draw_arc(c, ar, -PI * 0.5, -PI * 0.5 + TAU * left, 36, TBHudParts.tk("brass_lt"), 3.0, true)
 		if attention > 0 and state == S.IDLE:
-			var dc: Vector2 = Vector2(size.x - 2.0, 2.0)
-			TBHudParts.diamond(self, dc, 24.0, TBHudParts.tk("brass_lt"))
+			var dc := Vector2(c.x + rad * 0.72, c.y - rad * 0.72)
+			TBHudParts.diamond(self, dc, 26.0, TBHudParts.tk("brass_lt"))
 			var fb: Font = K.mono_b()
 			var s: String = str(mini(attention, 9))
-			draw_string(fb, Vector2(dc.x - TBHudParts.tw(fb, s, TBHudParts.fs(12.0)) * 0.5, TBHudParts.base(fb, TBHudParts.fs(12.0), dc.y)), s, HORIZONTAL_ALIGNMENT_LEFT, -1, TBHudParts.fs(12.0), TBHudParts.tk("bar_0"))
-		if has_focus(): TBHudParts.focus_ring(self, r.grow(2.0))
+			var bs: int = TBHudParts.fs(12.0)
+			draw_string(fb, Vector2(dc.x - TBHudParts.tw(fb, s, bs) * 0.5, TBHudParts.base(fb, bs, dc.y)), s, HORIZONTAL_ALIGNMENT_LEFT, -1, bs, TBHudParts.tk("bar_0"))
+		if has_focus():
+			draw_arc(c, rad + 4.5, 0.0, TAU, 48, TBHudParts.tk("bar_0"), 1.0, true)
+			draw_arc(c, rad + 3.0, 0.0, TAU, 48, TBHudParts.tk("cream"), 2.0, true)
+
+## the label chip that belongs to the seal: the moves / turn / pending summary (and the caption when it does not fit the disc).
+## It never truncates: it wraps. Sits above the seal, right-aligned.
+class SealNote extends Control:
+	var head: String = ""
+	var body: String = ""
+	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func is_empty() -> bool: return head == "" and body == ""
+	func _fh() -> int: return TBHudParts.fs(14.0)
+	func _fb() -> int: return TBHudParts.fs(13.0)
+	## chip size for a maximum width
+	func measure(max_w: float) -> Vector2:
+		var fh: Font = TBHudParts.body_b()
+		var fb: Font = TBHudParts.body()
+		var inner: float = max_w - 20.0
+		var w: float = 0.0
+		var h: float = 12.0
+		if head != "":
+			var hs: Vector2 = fh.get_multiline_string_size(head, HORIZONTAL_ALIGNMENT_LEFT, inner, _fh(), -1, TextServer.BREAK_WORD_BOUND)
+			w = maxf(w, hs.x); h += hs.y
+		if body != "":
+			var bs: Vector2 = fb.get_multiline_string_size(body, HORIZONTAL_ALIGNMENT_LEFT, inner, _fb(), -1, TextServer.BREAK_WORD_BOUND)
+			w = maxf(w, bs.x); h += bs.y
+		return Vector2(ceilf(minf(max_w, w + 20.0)), ceilf(h))
+	func _draw() -> void:
+		TBHudParts.plate(self, Rect2(Vector2.ZERO, size), TBHudParts.al(TBHudParts.tk("bar_0"), 0.94), TBHudParts.tk("rule_dark"), 2.0)
+		var fh: Font = TBHudParts.body_b()
+		var fb: Font = TBHudParts.body()
+		var inner: float = size.x - 20.0
+		var y: float = 6.0
+		if head != "":
+			draw_multiline_string(fh, Vector2(10.0, y + fh.get_ascent(_fh())), head, HORIZONTAL_ALIGNMENT_LEFT, inner, _fh(), -1, TBHudParts.tk("cream"), TextServer.BREAK_WORD_BOUND)
+			y += fh.get_multiline_string_size(head, HORIZONTAL_ALIGNMENT_LEFT, inner, _fh(), -1, TextServer.BREAK_WORD_BOUND).y
+		if body != "":
+			draw_multiline_string(fb, Vector2(10.0, y + fb.get_ascent(_fb())), body, HORIZONTAL_ALIGNMENT_LEFT, inner, _fb(), -1, TBHudParts.tk("smoke"), TextServer.BREAK_WORD_BOUND)
 
 # ---------------------------------------------------------------- legend
 ## colour key for the active map lens: gradient bar for ramps, swatches + words for categories
