@@ -255,7 +255,7 @@ static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_m
 		var db := K.button(T.call("copy_diag"), func(): pass)
 		db.pressed.connect(func(): on_diag.call(); db.text = T.call("diag_copied"))
 		extra.add_child(db)
-	if on_menu.is_valid(): foot.add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call()))
+	if on_menu.is_valid(): foot.add_child(K.button(T.call("main_menu"), func(): close(m[0]); on_menu.call()))
 	var bk := K.button(T.call("back"), func(): close(m[0]), true); bk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; foot.add_child(bk)
 
 static func _segment(parent: Control, title: String, items: Array, current: String, cb: Callable) -> void:
@@ -554,7 +554,7 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
 		row.add_child(K.num("%d" % r[0], 14, K.GOLD2)); row.add_child(K.glyph_label("swords", K.fmt(r[2]), K.DIM, 11))
 		m[1].add_child(row)
 	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); m[1].add_child(gap)
-	m[1].add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call(), true))
+	m[1].add_child(K.button(T.call("main_menu"), func(): close(m[0]); on_menu.call(), true))
 
 ## Chronicle: persistent history with category filters (newest first)
 static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
