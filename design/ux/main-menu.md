@@ -30,35 +30,25 @@ The title is the root, not modal. Panels follow `modal-system.md`. Back at root:
 
 ## 4. Entry and Exit Points
 
-| Entry | Notes |
-|-------|-------|
-| Launch (after splash) | autosave meta read for the Continue plate |
-| Menu hub > Main menu, Game over > Main menu | Menu hub shows an L2 confirm "Leave game? Progress since turn N is lost" with [Save and exit] |
-| Back from setup / pick | selections kept |
-
-| Exit | Destination |
-|------|-------------|
-| Continue | Game at autosave (camera flies to capital, 800 ms) |
-| New Game | New Game page, defaults = last era/difficulty/players from `cfg` |
-| Load / Multiplayer / Honours / Settings / How to play | Saves / `mp.open_menu()` / panels |
+| Entry / Exit | Detail |
+|--------------|--------|
+| In: launch, Menu hub > Main menu (L2 confirm "Leave game? Progress since turn N is lost", [Save and exit]), Game over, Back from setup/pick | autosave meta read for Continue; selections kept on Back |
+| Out: Continue / New Game / Load / Multiplayer / panels | Game at autosave (camera flies to capital 800 ms) / New Game page with last era, difficulty, players from `cfg` / Saves / `mp.open_menu()` / panels |
 
 ## 5. Layout Specification
 
 ### 5.1 Wireframe
 
 ```
-LANDSCAPE (D/L/S)                                  PORTRAIT (P)
-    ╭── graduated bezel ring (turns) ──╮             ╭── bezel: min(w-24, 0.62h) ──╮
-   ╱  ┊     T E R R A  B E L L U M    ┊ ╲            │   TERRA BELLUM (38u)       │
-  │       ───────── ◆ ─────────          │           │   ─── ◆ ───  tagline       │
-  │    ┌──────────────────────────────┐  │           │  ┌──────────────────────┐  │
-  │    │▶ CONTINUE  France·T12·1804 AD│  │           │  │▶ CONTINUE  France...  │  │
-  │    │  NEW GAME                    │  │           │  │  NEW GAME            │  │
-  │    │  LOAD                        │  │           │  │  LOAD                │  │
-  │    │  MULTIPLAYER                 │  │           │  │  MULTIPLAYER         │  │
-   ╲   └──────────────────────────────┘ ╱            ╰──┴──────────────────────┴──╯
-    ╰──────────────────────────────────╯             [Honours][Settings][How to play][EN|RU|UZ]
-[Honours 5/19] [Settings] [How to play] [EN|RU|UZ]                       v0.9.3 (build 412)
+      ╭── graduated bezel ring (turns with globe) ──╮        P: same, ring = min(w-24, 0.62h),
+     ╱ ┊      T E R R A   B E L L U M       ┊ ╲        tools row sits below the ring
+    │        ────────── ◆ ──────────          │
+    │     ┌──────────────────────────────┐    │
+    │     │▶ CONTINUE  France·T12·1804 AD│    │   plates: Continue (if save) / New Game /
+    │     │  NEW GAME · LOAD · MULTIPLAYER│    │   Load / Multiplayer, stacked
+     ╲    └──────────────────────────────┘   ╱
+      ╰─────────────────────────────────────╯
+ [Honours 5/19] [Settings] [How to play] [EN|RU|UZ]                       v0.9.3 (build 412)
 ```
 
 | Zone | Content | Size | Notes |
@@ -68,7 +58,6 @@ LANDSCAPE (D/L/S)                                  PORTRAIT (P)
 | Entry plates | max 4, stacked; 340x56u (D) / 300x56u (P) | inside ring | dark glass alpha >= 0.8, 1 px brass border; primary plate brass-filled; flanking diamonds (kept) on hover **and focus** |
 | Tools row | 4 chips, 48u, text labels always | below ring (P) / bottom edge (D/L/S) | thumb zone in portrait, inside safe area |
 | Version | caps 12u, dim | bottom right | real version, not "godot build" |
-
 ### 5.3 Entry list
 
 | # | Entry | Shown when | Action | Plate subline |
@@ -85,8 +74,7 @@ Tools: **Honours n/19**, **Settings**, **How to play** (Codex + tutorial replay)
 | State | Trigger | Change |
 |-------|---------|--------|
 | First run | no saves | no Continue; New Game primary and focused; tutorial offered at first game start |
-| Returning | valid autosave | Continue primary and focused |
-| Autosave corrupt | meta fails | Continue disabled with reason; New Game primary |
+| Returning / corrupt | valid / unreadable autosave | Continue primary and focused / disabled with reason |
 | Loading | tap Continue/Load | plates disabled, busy ring on the plate, 400 ms minimum |
 | Panel open | Honours / Settings / How to play | spin stops, ring dims to 35 %, focus trapped in panel |
 | Reduced motion | setting (default follows OS) | globe and bezel static |
@@ -95,13 +83,10 @@ Tools: **Honours n/19**, **Settings**, **How to play** (Codex + tutorial replay)
 
 | Input | Action | Response |
 |-------|--------|----------|
-| Tap / click plate | activate | press tint 60 ms, `tap` sound |
-| Hover plate | highlight | brass border, diamonds extend |
+| Tap / click / Enter / Space on plate | activate | press tint 60 ms, `tap` sound; hover = brass border, diamonds extend |
 | Up / Down / Tab | move focus | 2 px focus ring; initial focus = primary plate |
-| Enter / Space | activate | |
 | `C` / `N` / `L` | Continue / New / Load | in tooltips |
 | Esc / Android Back | first: toast, second: quit | P-20 step 7 |
-| Drag on globe | spin by hand, resumes after 3 s | nice to have |
 
 ## 8. Data and Events
 
@@ -138,4 +123,3 @@ Events (analytics only): `menu.continue / new_game / load / multiplayer / honour
 | Approve moving Hot-seat into the New Game page and dropping the title entry? | creative-director | Recommended: yes |
 | Rejected: era dial on the bezel (panels hide it; drag fights panel scroll). Revisit as a pick-screen flourish? | creative-director | Recommend no |
 | Flat dark disc under the title vs plates only: how much globe does it hide? | art-director | test both |
-| Real version string and build number source | producer | Open |

@@ -23,7 +23,6 @@ Title → [1 New Game page: era · difficulty · players] → [2 Pick on the map
          page / wide panel                               map hero + shortlist    not a modal      first-turn alert chips
 ```
 Header shows three pips "Era - Nation - Play". Back steps back one stage and **keeps** selections (pick, setup, title); Android Back closes the confirm card first. Hot-seat adds "Player k of n" to stage 2.
-
 ## 4. Entry and Exit Points
 
 | Entry | Data in |
@@ -41,34 +40,29 @@ Header shows three pips "Era - Nation - Play". Back steps back one stage and **k
 ### 5.1 Stage 1: New Game page (wide panel on D/L/S, page on P)
 
 ```
-┌ [←] NEW GAME                         ◆ Era · ○ Nation · ○ Play ┐
-│ 218 BC Ancient │ 1804 AD  NAPOLEONIC ERA                        │  rail = chronology (existing EraRow)
-│ 117    Roman   │ blurb ...                                      │  detail = year, name, blurb,
-│ ▶1804  Napol.  │ GREAT POWERS [Russia 116][Ottoman 158][UK 31]  │  great powers as flag chips, "38 nations"
-│ ...            │ Difficulty [Easy][Normal][Hard]                │  segmented (P-10): filled + check
-│                │ Players    [1][2][3][4]   (1 = solo, 2-4 hot-seat) │
-├────────────────┴────────────────────────────────────────────────┤
-│ [Back]                                  [PICK NATION ▸]          │  verb, not "New Game"
-└─────────────────────────────────────────────────────────────────┘
+┌ [←] NEW GAME                          ◆ Era · ○ Nation · ○ Play ┐
+│ chronology rail │ 1804 AD NAPOLEONIC ERA · blurb · GREAT POWERS  │  great powers as flag chips
+│ (existing       │ [Russia 116][Ottoman 158][UK 31] · 38 nations  │  Difficulty [Easy][Normal][Hard]
+│  EraRow)        │ Players [1][2][3][4]  (1 solo, 2-4 hot-seat)   │  segmented (P-10), filled + check
+├─────────────────┴────────────────────────────────────────────────┤
+│ [Back]                                    [PICK NATION ▸]        │  verb, not "New Game"
+└──────────────────────────────────────────────────────────────────┘
 ```
 On P: era list first; tap pushes the detail with difficulty, players and footer.
 
 ### 5.2 Stages 2-3: pick on the map and confirm card
 
 ```
-D/L/S                                                   P
-[← Back] ◆Era ◆Nation ○Play  1804 · Normal      [▤ List]    [←] Pick your nation   [▤]
-                             ┌ card (right, 340u) ───────┐   ┌── map hero ~60 % ──────┐
-   MAP: chosen nation lit,   │ [flag] FRANCE         [✕] │   │ nation lit, others 25 %│
-   others dimmed 25 %        │ [ruler] Emperor Napoleon 35│   ├─ card ~190u ───────────┤
-                             │ 62 provinces #4 of 38      │   │ [flag] FRANCE      [✕] │
-                             │ Army 1,724 #2 · Industrial │   │ ruler · 62 #4 · 1,724  │
-                             │ 3.5 #3 · Empire           │   │ ◆ Balanced start       │
-                             │ ◆ BALANCED START          │   │ [  PLAY AS FRANCE  ]   │
-                             │   2 stronger neighbours   │   ├─ shortlist rail ───────┤
-                             │ [  PLAY AS FRANCE  ]      │   │ [Powers|Regional|Minor]│
-                             └───────────────────────────┘   │ [Random][Russia][..] → │
- [Random][Russia #1][Ottoman #2][France #3 ●] ...            └────────────────────────┘
+D/L/S: map hero; card right 340u            P: map ~60 % / card ~190u / rail 64u (bottom)
+[← Back] ◆Era ◆Nation ○Play  [▤ List]       ┌ [flag] FRANCE                       [✕] ┐
+  nation lit, rest dimmed 25 %              │ [ruler] Emperor Napoleon · 35           │
+  ┌ [flag] FRANCE            [✕] ┐         │ 62 provinces #4/38 · Army 1,724 #2      │
+  │ Emperor Napoleon · 35        │         │ Industrial 3.5 #3 · Empire              │
+  │ 62 provinces #4 of 38        │         │ ◆ BALANCED START: 2 stronger neighbours │
+  │ Army 1,724 #2 · Industrial 3.5 #3 │    │ [        PLAY AS FRANCE        ]        │
+  │ ◆ BALANCED START (2 stronger neighbours) │ [Powers|Regional|Minor]               │
+  │ [  PLAY AS FRANCE  ]         │         │ [Random][Russia][Ottoman][France ●] →   │
+  [Random][Russia #1][Ottoman #2][France ●]...
 ```
 
 | Component | Spec |
@@ -89,10 +83,7 @@ D/L/S                                                   P
 |-------|---------|-----------|
 | Preparing map | after Pick nation | "Preparing map..." chips disabled, 400 ms minimum |
 | Nation chosen | tap | nation lit, card in, primary focused |
-| Tier too small | under 3 nations | tier hidden |
-| Taken / unclaimed | hot-seat / neutral tap | as above |
-| Era load failed | missing data | dialog, falls back to Modern (P-19) |
-| First run | no `tutorial` flag | rail starts on Regional; optional "Good first game" tag (Q below) |
+| Era load failed / first run | missing data / no `tutorial` flag | dialog, falls back to Modern (P-19) / rail starts on Regional |
 
 ## 7. Interaction Map
 
@@ -100,10 +91,7 @@ D/L/S                                                   P
 |-------|--------|
 | Tap nation / chip | select (light, frame, card) |
 | X on card, Android Back, tap empty sea twice | dismiss card (rail stays); next Back leaves the stage |
-| Pinch / two-finger drag | zoom / pan (unchanged) |
-| Long-press nation (touch) | tooltip with rank and strength, no selection |
-| Mouse | hover outlines the nation and shows the hover card; click selects; wheel zooms |
-| Keyboard | arrows move a nation cursor, Tab to rail, Left/Right chips, Enter selects then focuses primary, Esc dismisses card then Back, `R` random |
+| Mouse / long-press / keyboard | hover outlines the nation and shows the hover card, click selects; touch long-press = tooltip without selecting; arrows move a nation cursor, Tab to rail, Left/Right chips, Enter selects then focuses primary, Esc dismisses card then Back, `R` random |
 
 ## 8. Data and Events
 
@@ -141,4 +129,3 @@ Events (analytics): `newgame.era / difficulty / players`, `pick.nation {via: map
 | Validate the start-difficulty formula and thresholds; tier cut-offs 8 / 40 for small eras | game-designer | Open |
 | "Good first game" tag on 3 nations per era needs curation (13 eras): Modern and Napoleonic first? | game-designer | Recommend yes |
 | Camera framing needs an offset-by-free-rect API in `TBMapView` | ui-programmer | Open |
-| Hot-seat: hide earlier picks from later seats? | creative-director | Recommend no (shared screen) |
