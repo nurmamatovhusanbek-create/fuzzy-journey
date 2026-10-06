@@ -86,7 +86,7 @@ func c_create_room(player_name: String, era: String, difficulty: String, turn_se
 	room.code = _new_code(); room.host_peer = peer; room.created_ms = Time.get_ticks_msec()
 	room.era_id = era if era in ["modern", "ancient", "roman", "medieval", "mongol", "timurid", "discovery", "gunpowder", "napoleonic", "victorian", "ww1", "ww2", "coldwar"] else "modern"
 	room.difficulty = difficulty if difficulty in ["easy", "normal", "hard"] else "normal"
-	room.turn_secs = clampi(turn_secs, 15, 900)
+	room.turn_secs = 0 if turn_secs <= 0 else clampi(turn_secs, 15, 900)      # 0 = Off: no clock, turns resolve when everyone is ready (A11Y-TIM-002)
 	var era_pack := TBWorld.load_era("res://data", room.era_id) if room.era_id != "modern" else {}
 	room.g = TBGame.new(world, era_pack, {"seed": randi() & 0x7fffffff | 1, "difficulty": room.difficulty})
 	var token := _new_token()
@@ -142,7 +142,7 @@ func c_start() -> void:
 	for pid in room.players:
 		room.g.add_human(room.players[pid]["nation"])
 	room.g.human_id = room.players[room.host_peer]["nation"]
-	room.state = "playing"; room.deadline_ms = Time.get_ticks_msec() + room.turn_secs * 1000
+	room.state = "playing"; room.deadline_ms = (Time.get_ticks_msec() + room.turn_secs * 1000) if room.turn_secs > 0 else 0
 	room.log_sent = room.g.log.size()
 	for pid in room.players: _send_snapshot(room, pid)
 	_broadcast_room(room)
@@ -302,13 +302,13 @@ func _process(_d: float) -> void:
 	var now := Time.get_ticks_msec()
 	for code in rooms.keys():
 		var room: TBRoom = rooms[code]
-		if room.state == "playing" and now >= room.deadline_ms: _resolve_turn(room)
+		if room.state == "playing" and room.turn_secs > 0 and now >= room.deadline_ms: _resolve_turn(room)
 
 func _resolve_turn(room: TBRoom) -> void:
 	room.g.end_turn()
 	room.ready.clear()
 	room.proposals.clear()
-	room.deadline_ms = Time.get_ticks_msec() + room.turn_secs * 1000
+	room.deadline_ms = (Time.get_ticks_msec() + room.turn_secs * 1000) if room.turn_secs > 0 else 0
 	if room.g.over: room.state = "over"
 	_broadcast_delta(room, true)
 	_broadcast_room(room)

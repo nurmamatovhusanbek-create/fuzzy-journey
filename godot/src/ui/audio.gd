@@ -3,15 +3,47 @@ class_name TBAudio
 extends Node
 
 const RATE := 22050
+## Buses (A11Y-AUD-001): Master (+ limiter, AUD-003) and the Music / SFX / UI children, each with its own 0-100 % slider (default 80).
+## Cues: tap and coin are UI sounds, everything else SFX; Music is created for the score that does not exist yet.
+const BUSES := ["Music", "SFX", "UI"]
+const UI_CUES := ["tap", "coin"]
 var enabled := true
 var _snd := {}
 var _players: Array[AudioStreamPlayer] = []
 var _next := 0
 
 func _ready() -> void:
+	setup_buses()
 	for i in 4:
 		var p := AudioStreamPlayer.new(); p.volume_db = -8.0; add_child(p); _players.append(p)
 	_build.call_deferred()
+
+## idempotent: creates the missing buses and the Master limiter
+static func setup_buses() -> void:
+	for nm in BUSES:
+		if AudioServer.get_bus_index(nm) < 0:
+			AudioServer.add_bus()
+			var i: int = AudioServer.bus_count - 1
+			AudioServer.set_bus_name(i, nm); AudioServer.set_bus_send(i, "Master")
+	var has_lim := false
+	for e in AudioServer.get_bus_effect_count(0):
+		if AudioServer.get_bus_effect(0, e) is AudioEffectLimiter: has_lim = true
+	if not has_lim: AudioServer.add_bus_effect(0, AudioEffectLimiter.new())
+
+## percent 0-100 -> bus volume (0 = silent); name is Master / Music / SFX / UI
+static func set_volume(bus_name: String, percent: float) -> void:
+	var i: int = AudioServer.get_bus_index(bus_name)
+	if i < 0: return
+	var lin: float = clampf(percent / 100.0, 0.0, 1.0)
+	AudioServer.set_bus_mute(i, lin <= 0.0)
+	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(lin, 0.0001)))
+
+## apply cfg vol_master / vol_music / vol_sfx / vol_ui (default 80)
+static func apply_volumes(cfg: Dictionary) -> void:
+	set_volume("Master", float(cfg.get("vol_master", 80)))
+	set_volume("Music", float(cfg.get("vol_music", 80)))
+	set_volume("SFX", float(cfg.get("vol_sfx", 80)))
+	set_volume("UI", float(cfg.get("vol_ui", 80)))
 
 func _build() -> void:
 	_snd["tap"] = _tone([[1320.0, 1.0], [1980.0, 0.3]], 0.07, 0.002, 38.0)
@@ -25,6 +57,7 @@ func _build() -> void:
 func play(name: String) -> void:
 	if not enabled or not _snd.has(name) or _players.is_empty(): return
 	var p := _players[_next]; _next = (_next + 1) % _players.size()
+	p.bus = "UI" if name in UI_CUES else "SFX"
 	p.stream = _snd[name]; p.play()
 
 func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:

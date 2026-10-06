@@ -44,6 +44,8 @@ var accent_w: int = 0
 var shift: int = 0                         # pressed: content moves 1 px down
 var on_bar := false                        # FOCUS: cream ring on dark furniture / map instead of ink on paper
 var inset: int = 0                         # FOCUS: draw the ring this many px inside the rect
+var ring_tok := ""                         # FOCUS: token of the ring (default ink_0 / cream)
+var line_tok := ""                         # FOCUS: token of the 1 px contrast line (default paper_0 / bar_0)
 var rule_side: int = SIDE_BOTTOM           # BAR: which edge carries the 1 px rule (-1 = none)
 var rule_col: Color = Color.TRANSPARENT
 var hot := false                           # SEAL: hover
@@ -82,11 +84,12 @@ static func seal(is_pressed: bool = false, is_hot: bool = false, is_disabled: bo
 	return f
 
 ## focus ring style, cached per variant: do not mutate
-static func focus(bar_ground: bool = false, cut_px: int = 4, inset_px: int = 0) -> TBFrame:
-	var key := "focus%d%d%d%d" % [int(bar_ground), cut_px, inset_px, TBTokens.mode]
+## ring_tok / line_tok name tokens for a ring that must sit on a special fill (the primary slab); empty = the ink-on-paper or cream-on-bar default
+static func focus(bar_ground: bool = false, cut_px: int = 4, inset_px: int = 0, ring_tok: String = "", line_tok: String = "") -> TBFrame:
+	var key := "focus%d%d%d%d%s%s" % [int(bar_ground), cut_px, inset_px, TBTokens.mode, ring_tok, line_tok]
 	if _inst.has(key): return _inst[key]
 	var f := TBFrame.new()
-	f.kind = Kind.FOCUS; f.on_bar = bar_ground; f.cut = cut_px; f.inset = inset_px
+	f.kind = Kind.FOCUS; f.on_bar = bar_ground; f.cut = cut_px; f.inset = inset_px; f.ring_tok = ring_tok; f.line_tok = line_tok
 	_inst[key] = f
 	return f
 
@@ -200,7 +203,7 @@ func _draw_plate(ci: RID, w: int, h: int) -> void:
 		var half := bw * 0.5
 		g = [chamfer(w, h, cut, corners, half), _closed(chamfer(w, h, cut, corners, half)), chamfer(w, h, cut, corners, 0.0, 0.0, TBTokens.SHADOW_DY[el])]
 		_geo_put(key, g)
-	if el > 0: RenderingServer.canvas_item_add_polygon(ci, g[2], _pc(Color(0.0, 0.0, 0.0, TBTokens.SHADOW_A[el])))
+	if el > 0: RenderingServer.canvas_item_add_polygon(ci, g[2], _pc(TBTokens.ca("table", TBTokens.SHADOW_A[el])))
 	if fill.a > 0.0: RenderingServer.canvas_item_add_polygon(ci, g[0], _pc(fill))
 	if bw > 0 and border.a > 0.0: RenderingServer.canvas_item_add_polyline(ci, g[1], _pc(border), float(bw), false)
 	if accent_w > 0 and accent.a > 0.0:
@@ -247,12 +250,12 @@ func _draw_sheet(ci: RID, w: int, h: int) -> void:
 			guards.append(PackedVector2Array([Vector2(cx + sx * gs, cy), Vector2(cx, cy + sy * gs), Vector2(cx + sx * gs, cy + sy * gs)]))
 		s = [edge, uvs, shadow, _closed(edge), rule1, rule2, guards]
 		_geo_put(skey, s)
-	RenderingServer.canvas_item_add_polygon(ci, s[2], _pc(Color(0.0, 0.0, 0.0, TBTokens.SHADOW_A[2])))
+	RenderingServer.canvas_item_add_polygon(ci, s[2], _pc(TBTokens.ca("table", TBTokens.SHADOW_A[2])))
 	RenderingServer.canvas_item_set_default_texture_repeat(ci, RenderingServer.CANVAS_ITEM_TEXTURE_REPEAT_ENABLED)
 	RenderingServer.canvas_item_add_polygon(ci, s[0], _pc(fill), s[1], TBPaper.texture(TBPaper.SHEET).get_rid())
-	RenderingServer.canvas_item_add_polyline(ci, s[3], _pc(Color(border, 0.30)), 1.0, false)
-	RenderingServer.canvas_item_add_polyline(ci, s[4], _pc(Color(border, 0.45)), 1.0, false)
-	RenderingServer.canvas_item_add_polyline(ci, s[5], _pc(Color(border, 0.22)), 1.0, false)
+	RenderingServer.canvas_item_add_polyline(ci, s[3], _pc(TBTokens.with_a(border, 0.30)), 1.0, false)
+	RenderingServer.canvas_item_add_polyline(ci, s[4], _pc(TBTokens.with_a(border, 0.45)), 1.0, false)
+	RenderingServer.canvas_item_add_polyline(ci, s[5], _pc(TBTokens.with_a(border, 0.22)), 1.0, false)
 	var brass := TBTokens.c("brass")
 	for tri in s[6]: RenderingServer.canvas_item_add_polygon(ci, tri, _pc(brass))
 
@@ -269,27 +272,28 @@ func _draw_seal(ci: RID, w: int, h: int) -> void:
 		g = [body, uvs, _circle(c + Vector2(0, TBTokens.SHADOW_DY[2]), r - 1.0), _closed(_circle(c, r - 1.5)), _closed(_circle(c, r - 4.0))]
 		_geo_put(key, g)
 	var a: float = 0.4 if disabled else 1.0
-	if not (pressed or disabled or hc): RenderingServer.canvas_item_add_polygon(ci, g[2], _pc(Color(0.0, 0.0, 0.0, TBTokens.SHADOW_A[2])))
-	var body_c := Color(fill, a)
+	if not (pressed or disabled or hc): RenderingServer.canvas_item_add_polygon(ci, g[2], _pc(TBTokens.ca("table", TBTokens.SHADOW_A[2])))
+	var body_c := TBTokens.with_a(fill, a)
 	if hc:
 		RenderingServer.canvas_item_add_polygon(ci, g[0], _pc(body_c))
 	else:
 		RenderingServer.canvas_item_set_default_texture_repeat(ci, RenderingServer.CANVAS_ITEM_TEXTURE_REPEAT_ENABLED)
 		RenderingServer.canvas_item_add_polygon(ci, g[0], _pc(body_c), g[1], TBPaper.texture(TBPaper.WAX).get_rid())
-	RenderingServer.canvas_item_add_polyline(ci, g[3], _pc(Color(border, a)), 1.0, true)
-	RenderingServer.canvas_item_add_polyline(ci, g[4], _pc(Color(rule_col, a)), 2.0, true)       # the single brass ring
+	RenderingServer.canvas_item_add_polyline(ci, g[3], _pc(TBTokens.with_a(border, a)), 1.0, true)
+	RenderingServer.canvas_item_add_polyline(ci, g[4], _pc(TBTokens.with_a(rule_col, a)), 2.0, true)       # the single brass ring
 
 func _draw_focus(ci: RID, w: int, h: int) -> void:
 	if not kbd_nav: return
-	var key := Vector4i(w, h, cut + inset * 64, 5)
+	var hc := TBTokens.is_hc()
+	var key := Vector4i(w, h, cut + inset * 64, 6 if hc else 5)
 	var g: Variant = _geo_get(key)
 	if g == null:
 		var i := float(inset)
-		g = [_closed(chamfer(w, h, cut, ALL, i + 0.5)), _closed(chamfer(w, h, cut, ALL, i + 2.0))]    # 1 px contrast line, then the 2 px ring
+		g = [_closed(chamfer(w, h, cut, ALL, i + 0.5)), _closed(chamfer(w, h, cut, ALL, i + (2.5 if hc else 2.0)))]    # 1 px contrast line, then the 2 px ring (3 px in high contrast)
 		_geo_put(key, g)
-	var ring: Color = TBTokens.c("cream" if on_bar else "ink_0")
-	var outer: Color = TBTokens.c("bar_0" if on_bar else "paper_0")
+	var ring: Color = TBTokens.c(ring_tok if ring_tok != "" else ("cream" if on_bar else "ink_0"))
+	var outer: Color = TBTokens.c(line_tok if line_tok != "" else ("bar_0" if on_bar else "paper_0"))
 	RenderingServer.canvas_item_add_polyline(ci, g[0], _pc(outer), 1.0, false)
-	RenderingServer.canvas_item_add_polyline(ci, g[1], _pc(ring), 2.0, false)
+	RenderingServer.canvas_item_add_polyline(ci, g[1], _pc(ring), 3.0 if hc else 2.0, false)
 
 ## ring for custom-drawn controls: `ctl.draw_style_box(TBFrame.focus(), Rect2(Vector2.ZERO, ctl.size))` when ctl.has_focus()

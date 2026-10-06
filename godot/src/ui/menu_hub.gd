@@ -158,67 +158,134 @@ static func _leave_confirm(parent: Control, ctx: Dictionary, h: TBPanel.Handle) 
 	if TBFrame.kbd_nav: cancel.grab_focus.call_deferred()
 
 # ---- Settings -------------------------------------------------------------------------------------------------------------------------------
-static func _seg(col: VBoxContainer, title: String, items: Array, cur: String, cb: Callable) -> void:
+## defaults of everything "Reset accessibility" restores (also read by main.gd for a fresh cfg)
+const ACCESS_DEFAULTS := {"text_scale": 1.0, "hc": "off", "cvd": "off", "reduce_motion": false, "touch_large": false, "readable": false, "confirm": "risky",
+	"tts": false, "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "sound": true}
+
+static func _seg(col: VBoxContainer, title: String, items: Array, cur: String, cb: Callable, compact: bool = false) -> void:
 	col.add_child(K.section(title))
-	col.add_child(K.segmented(items, cur, cb))
+	col.add_child(K.segmented(items, cur, cb, compact))
+
+## a group: caption + its rows; returns the VBox so the jump chips can scroll to it
+static func _group(title: String) -> VBoxContainer:
+	var g := K.vbox(8); g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	g.add_child(K.caps(title, 12, K.GOLD))
+	return g
 
 static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebuild: Callable, portrait: bool) -> void:
 	var cfg: Dictionary = ctx["cfg"]
 	var on_change: Callable = ctx["on_change"]
 	var wide: bool = not portrait and h.card.size.x >= 720.0 and K.text_scale < 1.4
 	var host: BoxContainer = BoxContainer.new(); host.vertical = not wide
-	host.add_theme_constant_override("separation", 28 if wide else 16)
+	host.add_theme_constant_override("separation", 28 if wide else 20)
 	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.body.add_child(host)
-	var c1 := K.vbox(8); c1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var c2 := K.vbox(8); c2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var c1 := K.vbox(20); c1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var c2 := K.vbox(20); c2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	host.add_child(c1); host.add_child(c2)
+	var keep_scroll := func() -> void: mem["scroll"] = h.scroll.scroll_vertical
 	var set := func(key: String, value: Variant, needs_rebuild: bool = false) -> void:
 		cfg[key] = value
+		keep_scroll.call()
 		on_change.call(key)
 		if needs_rebuild: rebuild.call()
-	# Display
-	c1.add_child(K.caps(T.call("set_display"), 12, K.GOLD))
-	_seg(c1, T.call("quality"), [["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], String(cfg["quality"]), func(v): set.call("quality", v))
-	_seg(c1, T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], String(cfg["view"]), func(v): set.call("view", v))
-	_seg(c1, T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")]], String(cfg.get("theme", "standard")), func(v): set.call("theme", v))
-	# Interface
-	c1.add_child(K.hair())
-	c1.add_child(K.caps(T.call("set_interface"), 12, K.GOLD))
-	_seg(c1, T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], String(cfg.get("ui", "normal")), func(v): set.call("ui", v))
-	_seg(c1, T.call("text_size"), [["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): set.call("text_scale", float(v), true))
-	# Language
-	c1.add_child(K.hair())
-	c1.add_child(K.caps(T.call("language"), 12, K.GOLD))
-	c1.add_child(K.segmented([["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], String(cfg["lang"]), func(v): set.call("lang", v, true)))
-	# Audio
-	c2.add_child(K.caps(T.call("set_audio"), 12, K.GOLD))
-	c2.add_child(TBPanel.toggle(T.call("sound"), bool(cfg.get("sound", true)), func(v): set.call("sound", v)))
-	# Accessibility
-	c2.add_child(K.hair())
-	c2.add_child(K.caps(T.call("set_access"), 12, K.GOLD))
-	c2.add_child(TBPanel.toggle(T.call("high_contrast"), bool(cfg.get("contrast", false)), func(v): set.call("contrast", v, true)))
-	c2.add_child(TBPanel.toggle(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): set.call("reduce_motion", v)))
-	c2.add_child(TBPanel.toggle(T.call("large_targets"), bool(cfg.get("touch_large", false)), func(v): set.call("touch_large", v, true)))
-	c2.add_child(TBPanel.toggle(T.call("readable_fonts"), bool(cfg.get("readable", false)), func(v): set.call("readable", v, true)))
-	# Advanced
-	c2.add_child(K.hair())
-	c2.add_child(K.caps(T.call("set_advanced"), 12, K.GOLD))
-	c2.add_child(TBPanel.toggle(T.call("perf_overlay"), bool(cfg.get("perf", false)), func(v): set.call("perf", v)))
+	# ---- Display: quality, map view and style, interface size, text size, language
+	var gd := _group(T.call("set_display"))
+	_seg(gd, T.call("quality"), [["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], String(cfg["quality"]), func(v): set.call("quality", v))
+	_seg(gd, T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], String(cfg["view"]), func(v): set.call("view", v))
+	_seg(gd, T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")], ["hc", T.call("style_hc")]], String(cfg.get("theme", "standard")), func(v): set.call("theme", v))
+	_seg(gd, T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], String(cfg.get("ui", "normal")), func(v): set.call("ui", v))
+	_seg(gd, T.call("text_size"), [["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): set.call("text_scale", float(v), true))
+	gd.add_child(TBPanel.para(T.call("text_preview"), 15, K.DIM))
+	_seg(gd, T.call("language"), [["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], String(cfg["lang"]), func(v): set.call("lang", v, true))
+	# ---- Access
+	var ga := _group(T.call("set_access"))
+	_seg(ga, T.call("high_contrast"), [["off", T.call("hc_off")], ["light", T.call("hc_light")], ["dark", T.call("hc_dark")]], _hc_id(cfg), func(v): cfg.erase("contrast"); set.call("hc", v, true))
+	_seg(ga, T.call("cvd_title"), [["off", T.call("cvd_off")], ["deuter", T.call("cvd_deuter")], ["protan", T.call("cvd_protan")], ["tritan", T.call("cvd_tritan")]], String(cfg.get("cvd", "off")), func(v): set.call("cvd", v))
+	ga.add_child(K.toggle(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): set.call("reduce_motion", v)))
+	ga.add_child(K.toggle(T.call("large_targets"), bool(cfg.get("touch_large", false)), func(v): set.call("touch_large", v, true)))
+	ga.add_child(K.toggle(T.call("readable_fonts"), bool(cfg.get("readable", false)), func(v): set.call("readable", v, true)))
+	_seg(ga, T.call("set_confirm"), [["off", T.call("confirm_off")], ["risky", T.call("confirm_risky")], ["all", T.call("confirm_all")]], String(cfg.get("confirm", "risky")), func(v): set.call("confirm", v))
+	var warn := K.label("", 13, K.DIM); warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; warn.visible = false
+	ga.add_child(K.toggle(T.call("set_tts"), bool(cfg.get("tts", false)), func(v): set.call("tts", v)))
+	var tb := K.button(T.call("tts_test"), func():
+		K.tts_test()
+		warn.text = K.tts_warning; warn.visible = K.tts_warning != "")
+	tb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	ga.add_child(tb); ga.add_child(warn)
+	ga.add_child(K.toggle(T.call("set_mirror"), bool(cfg.get("mirror", false)), func(v): set.call("mirror", v)))
+	# ---- Audio: mute-all, four buses with steppers, visual alert strip
+	var gu := _group(T.call("set_audio"))
+	gu.add_child(K.toggle(T.call("sound"), bool(cfg.get("sound", true)), func(v): set.call("sound", v)))
+	for it in [["vol_master", "vol_master"], ["vol_music", "vol_music"], ["vol_sfx", "vol_sfx"], ["vol_ui", "vol_ui"]]:
+		var key: String = it[0]
+		gu.add_child(K.label(T.call(String(it[1])), 13, K.DIM))
+		gu.add_child(K.slider_row(T.call(String(it[1])), 0, 100, 5, float(cfg.get(key, 80)), func(v: float): set.call(key, int(v))))
+	gu.add_child(K.toggle(T.call("set_vis_alerts"), bool(cfg.get("vis_alerts", false)) or not bool(cfg.get("sound", true)), func(v): set.call("vis_alerts", v)))
+	if not bool(cfg.get("sound", true)): gu.add_child(TBPanel.para(T.call("vis_alerts_muted"), 13, K.DIM))
+	# ---- Advanced
+	var gv := _group(T.call("set_advanced"))
+	gv.add_child(K.toggle(T.call("perf_overlay"), bool(cfg.get("perf", false)), func(v): set.call("perf", v)))
 	if ctx.has("on_diag") and (ctx["on_diag"] as Callable).is_valid():
 		var db := K.button(T.call("copy_diag"), Callable())
 		db.pressed.connect(func(): (ctx["on_diag"] as Callable).call(); db.text = T.call("diag_copied"))
-		c2.add_child(db)
+		db.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		gv.add_child(db)
 	var reset := K.button(T.call("reset_access"), func():
-		for k in ["contrast", "reduce_motion", "touch_large", "readable"]: cfg[k] = false
-		cfg["text_scale"] = 1.0
-		on_change.call("reset_access"); rebuild.call())
-	c2.add_child(reset)
+		TBPanel.confirm(parent, T.call("reset_confirm_t"), T.call("reset_confirm_b"), T.call("reset_do"), func():
+			for k in ACCESS_DEFAULTS: cfg[k] = ACCESS_DEFAULTS[k]
+			cfg.erase("contrast")
+			on_change.call("reset_access"); rebuild.call(), false, "info"))
+	reset.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	gv.add_child(reset)
+	c1.add_child(gd); c1.add_child(gu); c2.add_child(ga); c2.add_child(gv)
+	# ---- jump chips (everything is on this one page, so any setting is the Settings tab + one tap)
+	var jumps: Array = [["d", T.call("set_display")], ["a", T.call("set_access")], ["u", T.call("set_audio")], ["v", T.call("set_advanced")]]
+	var targets := {"d": gd, "a": ga, "u": gu, "v": gv}
+	var chips := K.segmented(jumps, "", func(id: String):
+		var tgt: Control = targets[id]
+		(func():
+			if is_instance_valid(h.scroll) and is_instance_valid(tgt): h.scroll.scroll_vertical = maxi(0, int(tgt.global_position.y - h.body.global_position.y) - 4)).call_deferred(), true)
+	K.a11y(chips, T.call("set_jump"), "")
+	h.body.add_child(K.caps(T.call("set_jump"), 12, K.DIM))
+	h.body.add_child(chips)
+	h.body.add_child(host)
+	if mem.has("scroll"):
+		var sv: int = int(mem["scroll"])
+		(func(): if is_instance_valid(h.scroll): h.scroll.scroll_vertical = sv).call_deferred()
 
 static func _scale_id(v: float) -> String:
+	if v >= 1.75: return "2.0"
 	if v >= 1.4: return "1.5"
 	if v >= 1.1: return "1.25"
 	return "1.0"
+
+static func _hc_id(cfg: Dictionary) -> String:
+	var hc: String = String(cfg.get("hc", "off"))
+	if hc == "off" and bool(cfg.get("contrast", false)): return "light"
+	return hc if hc in ["off", "light", "dark"] else "off"
+
+## First-run "Comfort and access" page (A11Y-SET-002): text size, contrast, motion on one dialog with a live preview (each change applies at once).
+## on_change(key) is main's setting handler; on_done runs after Continue or Skip. Built from kit helpers + TBPanel.
+static func comfort(parent: Control, cfg: Dictionary, on_change: Callable, on_done: Callable = Callable()) -> TBPanel.Handle:
+	var d := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("set_comfort_t"), "eye", {"width": 520, "dismissable": false})
+	var apply := func(key: String, value: Variant) -> void:
+		cfg[key] = value; on_change.call(key)
+		if key in ["text_scale", "hc"]:                    # sizes and colours changed: rebuild the dialog so it is its own live preview
+			d.close(); comfort(parent, cfg, on_change, on_done)
+	d.body.add_child(TBPanel.para(T.call("set_comfort_b"), 15))
+	_seg(d.body, T.call("text_size"), [["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): apply.call("text_scale", float(v)), true)
+	d.body.add_child(TBPanel.para(T.call("text_preview"), 15, K.DIM))
+	_seg(d.body, T.call("high_contrast"), [["off", T.call("hc_off")], ["light", T.call("hc_light")], ["dark", T.call("hc_dark")]], _hc_id(cfg), func(v): apply.call("hc", v), true)
+	d.body.add_child(K.toggle(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): apply.call("reduce_motion", v)))
+	var finish := func() -> void:
+		cfg["comfort_seen"] = true; on_change.call("comfort_seen")
+		d.close()
+		if on_done.is_valid(): on_done.call()
+	var skip := K.button(T.call("set_comfort_skip"), func(): finish.call())
+	var go := K.button(T.call("set_comfort_go"), func(): finish.call(), true)
+	d.actions(skip, go)
+	d.focus_target = go
+	return d
 
 # ---- How to play (Codex + tutorial replay) -------------------------------------------------------------------------------------------------------
 static func _howto(h: TBPanel.Handle, ctx: Dictionary, parent: Control, S: Dictionary, portrait: bool) -> void:

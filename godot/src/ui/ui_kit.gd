@@ -24,14 +24,28 @@ static var SMOKE: Color
 static var UMBER: Color
 static var RED_LT: Color
 static var GREEN_LT: Color
-const MIN_TOUCH := 48
+const MIN_TOUCH := 48                   # A11Y-TCH-001: unconditional (never gated on the platform); touch() returns 56 with Large targets
 
-## ---- player-facing accessibility settings (set by the settings screen, then call theme() and rebuild) --------------------------------
-static var text_scale := 1.0           # 1.0 / 1.25 / 1.5 / 2.0 (A11Y-TXT-001)
+## ---- player-facing accessibility settings (set by apply_settings(cfg); then rebuild the screens) --------------------------------
+static var text_scale: float = 1.0     # 1.0 / 1.25 / 1.5 / 2.0 (A11Y-TXT-001); independent of the layout scale (cfg "ui")
 static var readable_fonts := false     # A11Y-TXT-004: no tracked capitals, Alegreya Bold instead of Cinzel
-static var reduce_motion := false      # A11Y-MOT-001
-static var touch_large := false        # A11Y-TCH-001: 56 instead of 48
+static var reduce_motion := false      # A11Y-MOT-001: ask motion_ok() before every tween / spin / pulse
+static var large_targets := false      # A11Y-TCH-001: 56 instead of 48 (alias of touch_large)
+static var touch_large := false
 static var dp_scale := 1.0             # A11Y-TXT-005: logical px per dp
+static var cvd := "off"                # A11Y-CVD: "off" | "deuter" | "protan" | "tritan" (palettes are the map / lens agents' job)
+static var tts_on := false             # A11Y-SR-004: cfg["tts"]
+static var confirm := "risky"          # "off" | "risky" | "all": cfg["confirm"]; the HUD / order flow asks need_confirm(risky)
+static var mirror := false             # one-handed layout: HUD side controls swap sides (cfg["mirror"])
+static var vis_alerts := false         # A11Y-AUD-006: show the visual alert strip (forced on while sound is muted)
+static var sound_muted := false        # cfg["sound"] == false
+static var allow_shake := false        # A11Y-MOT-002 bans shake; kept false, shake() is a no-op unless a test flips it
+
+## settings bus: connect to K.settings_changed(cfg) to rebuild a screen after text size / contrast / motion / targets changed
+class _Bus extends RefCounted:
+	signal changed(cfg: Dictionary)
+static var _bus: _Bus = _Bus.new()
+static var settings_changed: Signal = _bus.changed
 
 static func _static_init() -> void:
 	sync_palette()
@@ -43,18 +57,147 @@ static func sync_palette() -> void:
 	BRASS_LT = TBTokens.c("brass_lt"); BRASS = TBTokens.c("brass"); CREAM = TBTokens.c("cream"); SMOKE = TBTokens.c("smoke")
 	UMBER = TBTokens.c("bar_1"); RED_LT = TBTokens.c("neg_bar"); GREEN_LT = TBTokens.c("pos_bar")
 
+## Read every accessibility key of cfg into the statics, rebuild the theme and tell open screens (settings_changed).
+## Returns the new Theme: `theme = K.apply_settings(cfg)` on the root Control. Missing keys fall back to defaults, "contrast": true migrates to hc "light".
+static func apply_settings(cfg: Dictionary) -> Theme:
+	text_scale = _snap_scale(float(cfg.get("text_scale", 1.0)))
+	readable_fonts = bool(cfg.get("readable", false))
+	reduce_motion = bool(cfg.get("reduce_motion", false))
+	touch_large = bool(cfg.get("touch_large", false)); large_targets = touch_large
+	var hc: String = String(cfg.get("hc", "off"))
+	if hc == "off" and bool(cfg.get("contrast", false)): hc = "light"
+	TBTokens.mode = TBTokens.mode_from_setting(hc)
+	cvd = String(cfg.get("cvd", "off")) if String(cfg.get("cvd", "off")) in ["off", "deuter", "protan", "tritan"] else "off"
+	tts_on = bool(cfg.get("tts", false))
+	confirm = String(cfg.get("confirm", "risky")) if String(cfg.get("confirm", "risky")) in ["off", "risky", "all"] else "risky"
+	mirror = bool(cfg.get("mirror", false))
+	sound_muted = not bool(cfg.get("sound", true))
+	vis_alerts = bool(cfg.get("vis_alerts", false))
+	if tts_on: ensure_speaker()
+	var t: Theme = theme()
+	_bus.changed.emit(cfg)
+	return t
+
+static func _snap_scale(v: float) -> float:
+	var best: float = 1.0
+	for st in [1.0, 1.25, 1.5, 2.0]:
+		if absf(v - st) < absf(v - best): best = st
+	return best
+
+## the OS "reduce motion" preference where Godot 4.4 can see it (no API: the TB_REDUCE_MOTION env var and Android's animator scale hint); else false
+static func os_prefers_reduced_motion() -> bool:
+	if OS.get_environment("TB_REDUCE_MOTION") != "": return OS.get_environment("TB_REDUCE_MOTION") != "0"
+	return false
+
+## true when the confirm setting wants a confirmation for this action ("risky" = irreversible / costly, "all" = every order)
+static func need_confirm(risky: bool) -> bool:
+	return confirm == "all" or (confirm == "risky" and risky)
+
 static func fs(px: float) -> int:                       ## a font size through the text scale, never below the 12 px caption floor
 	return maxi(roundi(px * text_scale), min_font())
 static func min_font() -> int: return roundi(12.0 * dp_scale)
 static func dp(n: float) -> int: return roundi(n * dp_scale)
 static func touch() -> int: return TBTokens.TOUCH_LARGE if touch_large else TBTokens.TOUCH
-static func motion_ok() -> bool: return TBMapView.animate and not reduce_motion
 static func contrast(a: Color, b: Color) -> float: return TBTokens.contrast(a, b)
 
-## accessible name / role / description (A11Y-SR-001): tooltip text plus meta for the later AccessKit binding
+# ---- motion (A11Y-MOT-001/002): every tween, spin, pulse and fade asks motion_ok() first --------------------------------------------------
+## false when the player chose Reduce motion (or the TB_NOANIM test override is set): skip the tween, cut instantly
+static func motion_ok() -> bool: return TBMapView.animate and not reduce_motion
+## 1.0 or 0.0: multiply any looping / easing amount by it (shader `motion` uniform, title spin speed, pulse amplitude)
+static func motion_factor() -> float: return 1.0 if motion_ok() else 0.0
+## the title globe may auto-spin only when this is true
+static func spin_ok() -> bool: return motion_ok()
+## duration through the setting: 0.0 when motion is reduced (tweens of 0 s finish at once)
+static func dur(seconds: float) -> float: return seconds if motion_ok() else 0.0
+## a tween that does nothing visible when motion is reduced: `K.tween(node, "modulate:a", 1.0, 0.18)`; returns null when it cut instantly
+static func tween(node: Node, prop: String, to: Variant, seconds: float, from: Variant = null) -> Tween:
+	if not motion_ok() or not node.is_inside_tree():
+		node.set_indexed(NodePath(prop), to); return null
+	var tw := node.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	var tp := tw.tween_property(node, prop, to, minf(seconds, 0.25))
+	if from != null: tp.from(from)
+	return tw
+## number roll helper (A11Y-MOT-002 allows none): sets the text at once; kept so callers have one place to ask
+static func roll_number(set_text: Callable, _from: float, to: float, fmt_fn: Callable = Callable()) -> void:
+	set_text.call(fmt_fn.call(to) if fmt_fn.is_valid() else str(int(round(to))))
+## shake is banned (A11Y-MOT-002): a no-op unless allow_shake is flipped by a test. Show the reason inline instead.
+static func shake(ctrl: Control, px: float = 4.0) -> void:
+	if not allow_shake or not motion_ok() or not ctrl.is_inside_tree(): return
+	var x0: float = ctrl.position.x
+	var tw := ctrl.create_tween()
+	tw.tween_property(ctrl, "position:x", x0 + px, 0.04); tw.tween_property(ctrl, "position:x", x0 - px, 0.08); tw.tween_property(ctrl, "position:x", x0, 0.04)
+
+# ---- semantics and speech (A11Y-SR-001/004/005) ---------------------------------------------------------------------------------------
+## accessible name / role / description: tooltip text plus meta for the later AccessKit binding. The tooltip is only set when empty or when it still
+## shows the previous auto name, so a better name given later replaces a default one.
 static func a11y(ctrl: Control, accessible_name: String, role: String = "", desc: String = "") -> void:
-	ctrl.set_meta("a11y", {"name": accessible_name, "role": role, "desc": desc})
-	if ctrl.tooltip_text == "": ctrl.tooltip_text = accessible_name if desc == "" else "%s. %s" % [accessible_name, desc]
+	var tip: String = accessible_name if desc == "" else "%s. %s" % [accessible_name, desc]
+	var prev: Variant = ctrl.get_meta("a11y") if ctrl.has_meta("a11y") else null
+	if ctrl.tooltip_text == "" or (prev is Dictionary and String((prev as Dictionary).get("tip", "")) == ctrl.tooltip_text): ctrl.tooltip_text = tip
+	ctrl.set_meta("a11y", {"name": accessible_name, "role": role, "desc": desc, "tip": tip})
+
+## what a control says when it receives focus: "Name, role, state"
+static func a11y_text(ctrl: Control) -> String:
+	if not ctrl.has_meta("a11y"): return ""
+	var m: Variant = ctrl.get_meta("a11y")
+	if not (m is Dictionary): return ""
+	var d: Dictionary = m
+	var parts: PackedStringArray = [String(d.get("name", ""))]
+	var role: String = String(d.get("role", ""))
+	if role != "":
+		var rk := "a11y_" + role
+		parts.append(TBI18n.T(rk) if TBI18n.has_key(rk) else role)
+	if String(d.get("desc", "")) != "": parts.append(String(d["desc"]))
+	return ", ".join(parts)
+
+static var tts_warning := ""             # set when the current language has no installed voice (shown beside the Test voice button)
+static var _utt := 0
+static func tts_available() -> bool:
+	return DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH)
+
+## voice id for the interface language: an exact language match, else the default voice (tts_warning says so; Uzbek often has none)
+static func tts_voice() -> String:
+	tts_warning = ""
+	if not tts_available(): return ""
+	var lang: String = TBI18n.lang
+	var vs: PackedStringArray = DisplayServer.tts_get_voices_for_language(lang)
+	if not vs.is_empty(): return vs[0]
+	tts_warning = TBI18n.T("tts_no_voice", {"lang": {"en": "English", "ru": "Русский", "uz": "O‘zbekcha"}.get(lang, lang)})
+	var all: Array[Dictionary] = DisplayServer.tts_get_voices()
+	return String(all[0]["id"]) if not all.is_empty() else ""
+
+## speak when "Speak alerts" is on (cfg["tts"]); interrupt = cut the current phrase. Safe on headless / unsupported platforms.
+static func announce(text: String, interrupt: bool = true) -> void:
+	if not tts_on or text.strip_edges() == "" or not tts_available(): return
+	_speak(text, interrupt)
+
+static func _speak(text: String, interrupt: bool) -> void:
+	_utt += 1
+	DisplayServer.tts_speak(text, tts_voice(), 80, 1.0, 1.0, _utt, interrupt)
+
+## the Test voice button: speaks even when the setting is off; returns false (and sets tts_warning) when speech is unavailable
+static func tts_test() -> bool:
+	if not tts_available():
+		tts_warning = TBI18n.T("tts_unavailable"); return false
+	_speak(TBI18n.T("tts_test_phrase"), true)
+	return true
+
+static func tts_stop() -> void:
+	if tts_available(): DisplayServer.tts_stop()
+
+## speaks the semantic name of whatever receives focus and stops on Esc; installed once when speech is turned on
+class Speaker extends Node:
+	func _ready() -> void:
+		name = "TBSpeaker"; process_mode = Node.PROCESS_MODE_ALWAYS
+		get_viewport().gui_focus_changed.connect(func(c: Control):
+			if TBKit.tts_on and c != null: TBKit.announce(TBKit.a11y_text(c)))
+	func _input(e: InputEvent) -> void:
+		if TBKit.tts_on and e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ESCAPE: TBKit.tts_stop()
+
+static func ensure_speaker() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null or tree.root.has_node("TBSpeaker"): return
+	tree.root.add_child.call_deferred(Speaker.new())
 
 ## a disabled control always says why (art bible 7.5)
 static func disable(ctrl: BaseButton, reason: String = "") -> void:
@@ -219,21 +362,25 @@ static func flat_plate(fill: Color, cut_px: int = 4) -> TBFrame:
 	_flat[key] = f
 	return f
 
-static func _pl(fill_tok: String, border_tok: String, cut_px: int = 4, elev: int = 0, px: float = 16.0, py: float = 10.0, pressed: bool = false, alpha: float = 1.0, mask: int = TBFrame.ALL) -> TBFrame:
-	var f := TBFrame.plate(TBTokens.ca(fill_tok, alpha) if fill_tok != "" else Color.TRANSPARENT, TBTokens.ca(border_tok, alpha) if border_tok != "" else Color.TRANSPARENT, cut_px, elev, px, py, pressed, 1, mask)
+static func _pl(fill_tok: String, border_tok: String, cut_px: int = 4, elev: int = 0, px: float = 16.0, py: float = 10.0, pressed: bool = false, alpha: float = 1.0, mask: int = TBFrame.ALL, border_px: int = 1) -> TBFrame:
+	var f := TBFrame.plate(TBTokens.ca(fill_tok, alpha) if fill_tok != "" else Color.TRANSPARENT, TBTokens.ca(border_tok, alpha) if border_tok != "" else Color.TRANSPARENT, cut_px, elev, px, py, pressed, border_px, mask)
 	return f
 
-static func _button_set(t: Theme, cls: String, fill: String, hover: String, press: String, border: String, text_tok: String, dis_alpha: float, ring_on_bar: bool, left_pad: float = 16.0) -> void:
-	t.set_stylebox("normal", cls, _pl(fill, border, 4, 0, left_pad, 10))
-	t.set_stylebox("hover", cls, _pl(hover, border, 4, 0, left_pad, 10))
-	t.set_stylebox("pressed", cls, _pl(press, border, 4, 0, left_pad, 10, true))
-	t.set_stylebox("hover_pressed", cls, _pl(press, border, 4, 0, left_pad, 10, true))
-	t.set_stylebox("disabled", cls, _pl(fill, "ink_off" if fill.begins_with("paper") else border, 4, 0, left_pad, 10, false, dis_alpha))
-	t.set_stylebox("focus", cls, TBFrame.focus(ring_on_bar, 4, 0))
+static func _button_set(t: Theme, cls: String, fill: String, hover: String, press: String, border: String, text_tok: String, dis_alpha: float, ring_on_bar: bool, left_pad: float = 16.0, border_px: int = 1) -> void:
+	var bw: int = border_px
+	t.set_stylebox("normal", cls, _pl(fill, border, 4, 0, left_pad, 10, false, 1.0, TBFrame.ALL, bw))
+	t.set_stylebox("hover", cls, _pl(hover, border, 4, 0, left_pad, 10, false, 1.0, TBFrame.ALL, bw))
+	t.set_stylebox("pressed", cls, _pl(press, border, 4, 0, left_pad, 10, true, 1.0, TBFrame.ALL, bw))
+	t.set_stylebox("hover_pressed", cls, _pl(press, border, 4, 0, left_pad, 10, true, 1.0, TBFrame.ALL, bw))
+	if fill == "act":          # a disabled primary drops to the locked secondary look (the dark slab must never look available)
+		t.set_stylebox("disabled", cls, _pl("paper_1", "ink_off", 4, 0, left_pad, 10, false, 1.0))
+	else:
+		t.set_stylebox("disabled", cls, _pl(fill, "ink_off" if fill.begins_with("paper") else border, 4, 0, left_pad, 10, false, dis_alpha, TBFrame.ALL, bw))
+	t.set_stylebox("focus", cls, TBFrame.focus(ring_on_bar, 4, 0, "on_act", "act_rim") if fill == "act" else TBFrame.focus(ring_on_bar, 4, 0))
 	t.set_color("font_color", cls, TBTokens.c(text_tok)); t.set_color("font_hover_color", cls, TBTokens.c(text_tok))
 	t.set_color("font_pressed_color", cls, TBTokens.c(text_tok)); t.set_color("font_focus_color", cls, TBTokens.c(text_tok))
 	t.set_color("font_hover_pressed_color", cls, TBTokens.c(text_tok))
-	t.set_color("font_disabled_color", cls, TBTokens.c("ink_off") if fill.begins_with("paper") else TBTokens.ca(text_tok, 0.7))
+	t.set_color("font_disabled_color", cls, TBTokens.c("ink_off") if (fill.begins_with("paper") or fill == "act") else TBTokens.ca(text_tok, 0.7))
 	t.set_font("font", cls, body_b()); t.set_font_size("font_size", cls, fs(15))
 
 static func theme() -> Theme:
@@ -248,7 +395,7 @@ static func theme() -> Theme:
 		_button_set(t, cls, "paper_1", "paper_hover", "paper_2", "rule", "ink_0", 0.6, false)
 	# primary (brass) and danger (flat wax) are theme variations: K.button(..., true), K.danger(...)
 	t.set_type_variation("PrimaryButton", "Button")
-	_button_set(t, "PrimaryButton", "brass", "brass_hover", "brass_press", "brass_ink", "ink_0", 0.4, false)
+	_button_set(t, "PrimaryButton", "act", "act_hover", "act_press", "act_rim", "on_act", 0.4, false, 16.0, 2)
 	t.set_type_variation("DangerButton", "Button")
 	_button_set(t, "DangerButton", "wax", "wax_hover", "wax_press", "wax_rim", "on_wax", 0.4, true)
 	t.set_type_variation("DangerGlyphButton", "Button")
@@ -301,7 +448,7 @@ static func theme() -> Theme:
 	t.set_stylebox("separator", "PopupMenu", _hline())
 	t.set_font("font", "PopupMenu", body_b()); t.set_font_size("font_size", "PopupMenu", fs(15))
 	t.set_color("font_color", "PopupMenu", TEXT); t.set_color("font_hover_color", "PopupMenu", TEXT); t.set_color("font_disabled_color", "PopupMenu", TBTokens.c("ink_off"))
-	t.set_constant("v_separation", "PopupMenu", 18)
+	t.set_constant("v_separation", "PopupMenu", maxi(18, touch() - roundi(fs(15) * 1.25)))
 	t.set_stylebox("separator", "HSeparator", _hline())
 	# tooltips: dark plate, cream text
 	t.set_stylebox("panel", "TooltipPanel", _pl("bar_0", "rule_dark", 4, 0, 10, 6, false, 0.96))
@@ -313,7 +460,7 @@ static func _hline() -> StyleBoxLine:
 	return sep
 
 # ---- buttons -----------------------------------------------------------------------------------------------------------------------
-## secondary by default, `primary` = brass (one per container). Focusable, 48 high, activates on release.
+## secondary by default, `primary` = the ink slab with brass text (one per container). Focusable, >= 48 high, activates on release.
 static func button(text: String, cb: Callable = Callable(), primary: bool = false) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -322,6 +469,7 @@ static func button(text: String, cb: Callable = Callable(), primary: bool = fals
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 	if primary: b.theme_type_variation = &"PrimaryButton"
 	if cb.is_valid(): b.pressed.connect(cb)
+	a11y(b, text, "button")
 	return b
 
 ## flat wax button for irreversible verbs (declare war, attack, break pact); a left glyph is drawn when given
@@ -343,6 +491,7 @@ static func danger(text: String, cb: Callable = Callable(), glyph: String = "swo
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 	b.theme_type_variation = &"DangerGlyphButton" if glyph != "" else &"DangerButton"
 	if cb.is_valid(): b.pressed.connect(cb)
+	a11y(b, text, "button")
 	return b
 
 ## a drawn glyph as a Control: K.glyph("coin", 20, K.TEXT)
@@ -375,6 +524,8 @@ class IconBtn extends Button:
 		action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		if cb.is_valid(): pressed.connect(cb)
+		var nm: String = {"gear": "settings"}.get(g, g)
+		TBKit.a11y(self, TBI18n.T(nm) if TBI18n.has_key(nm) else nm.replace("_", " ").capitalize(), "button")     # icon-only: always named (callers may refine with K.a11y)
 	func _draw() -> void:
 		var mode := get_draw_mode()
 		if preview_state == "hover": mode = BaseButton.DRAW_HOVER
@@ -428,7 +579,7 @@ class Pips extends Control:
 			var c := Vector2(7 + i * 14, roundf(size.y * 0.5))
 			if i < n: TBGlyph.draw(self, "diamond", c, 12.0, col)
 			else:
-				var o := Color(col.r, col.g, col.b, 0.5)
+				var o: Color = TBTokens.with_a(col, 0.5)
 				var pts: Array = [Vector2(0, -5.5), Vector2(5.5, 0), Vector2(0, 5.5), Vector2(-5.5, 0)]
 				for k in 4: draw_line(c + pts[k], c + pts[(k + 1) % 4], o, 1.0, true)
 
@@ -514,15 +665,17 @@ class ListRow extends Button:
 	func _init(l: String, r: String, cb: Callable, col: Color = Color.TRANSPARENT) -> void:
 		left = l; right = r; left_col = col; flat = true; focus_mode = Control.FOCUS_ALL
 		action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-		custom_minimum_size = Vector2(0, TBTokens.ROW_H)
+		custom_minimum_size = Vector2(0, maxf(float(TBKit.touch()), ceilf(TBKit.body_b().get_height(TBKit.fs(15))) + 16.0))     # grows with the text size
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		if cb.is_valid(): pressed.connect(cb)
+		TBKit.a11y(self, l if r == "" else "%s, %s" % [l, r], "button")
+	func _slot_w() -> float: return float(maxi(16, TBKit.fs(16))) + 6.0
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_RESIZED: _dirty = true
 	func _rebuild() -> void:
 		_dirty = false
 		_trt.clear(); _trt.add_string(right, TBKit.mono_b(), TBKit.fs(14))
-		var x0 := 12.0 + (22.0 if _slot else 0.0)
+		var x0 := 12.0 + (_slot_w() if _slot else 0.0)
 		_tl.clear(); _tl.add_string(left, TBKit.body_b(), TBKit.fs(15))
 		_tl.width = maxf(size.x - x0 - _trt.get_line_width() - 24.0, 24.0)
 		_tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -540,8 +693,8 @@ class ListRow extends Button:
 		elif mode == BaseButton.DRAW_HOVER: draw_rect(Rect2(0, 0, w, h - 1), TBTokens.c("paper_1"))
 		if selected: draw_rect(Rect2(0, 0, 3, h - 1), TBTokens.c("oxblood"))
 		if not TBTokens.is_hc(): draw_rect(Rect2(0, h - 1, w, 1), TBTokens.c("hair"))
-		var x0 := 12.0 + (22.0 if _slot else 0.0)
-		if selected: TBGlyph.draw_filled(self, "check", Vector2(23, roundf(h * 0.5)), 16.0, TBTokens.c("oxblood"))
+		var x0 := 12.0 + (_slot_w() if _slot else 0.0)
+		if selected: TBGlyph.draw_filled(self, "check", Vector2(12.0 + _slot_w() * 0.5 + 1.0, roundf(h * 0.5)), float(maxi(16, TBKit.fs(16))), TBTokens.c("oxblood"))
 		var lc: Color = TBTokens.c("ink_off") if disabled else (left_col if left_col.a > 0.0 else ink)
 		_tl.draw(get_canvas_item(), Vector2(x0, roundf((h - 1.0 - _tl.get_size().y) * 0.5)), lc)
 		_trt.draw(get_canvas_item(), Vector2(roundf(w - 12.0 - _trt.get_line_width()), roundf((h - 1.0 - _trt.get_size().y) * 0.5)), TBTokens.c("ink_off") if disabled else (right_col if right_col.a > 0.0 else ink))
@@ -550,48 +703,164 @@ class ListRow extends Button:
 static func list_row(l: String, r: String, cb: Callable, col: Color = Color.TRANSPARENT) -> Button: return ListRow.new(l, r, cb, col)
 
 # ---- segmented control and tabs ---------------------------------------------------------------------------------------------------------------
-## 4 equal cells in one 1 px rule frame (cut 4); the selected cell is ink-0 with cream text. Items: [[id, label], ...]
-class Segmented extends PanelContainer:
+## Equal cells in one 1 px rule frame (cut 4). Items: [[id, label], ...]. Selected = paper-2 fill + 3 px oxblood underline + filled check + ink text
+## (never a black slab, art review A-2); in high contrast also a 2 px ink outline. Cells are >= touch() high and >= 48 wide. When the labels do not fit one
+## row (long words, 150 / 200 % text, narrow phones) the cells wrap into a grid, and a cell grows in HEIGHT before its text is ever truncated.
+## compact = filter-chip density: 13 px text, tighter padding, no check glyph (the underline and fill still carry the state).
+class Segmented extends Container:
 	signal chosen(id: String)
 	var current := ""
+	var compact := false
 	var _btns := {}
 	var _order: Array = []
-	func setup(items: Array, cur: String) -> Segmented:
-		current = cur
-		add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1))
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 1); add_child(row)
+	var _items: Array = []
+	var _cell_h := 0.0
+	var _last_min := Vector2.ZERO
+	var _sig := ""
+	const GAP := 1.0
+	func setup(items: Array, cur: String, compact_cells: bool = false) -> Segmented:
+		current = cur; compact = compact_cells; _items = items
 		var n := items.size()
 		for i in n:
 			var id: String = items[i][0]
 			var b := Button.new(); b.text = items[i][1]; b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.custom_minimum_size = Vector2(0, TBKit.touch() - 2)
-			b.set_meta("mask", (TBFrame.TL | TBFrame.BL if i == 0 else 0) | (TBFrame.TR | TBFrame.BR if i == n - 1 else 0))
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.add_theme_font_size_override("font_size", TBKit.fs(13 if compact else 15))
 			b.pressed.connect(func(): select(id, true))
-			row.add_child(b); _btns[id] = b; _order.append(id)
+			b.draw.connect(func(): _draw_cell(id, b))
+			add_child(b); _btns[id] = b; _order.append(id)
 		_restyle()
 		return self
 	func select(id: String, emit: bool = false) -> void:
 		current = id; _restyle()
 		if emit: chosen.emit(id)
+	func _pad_x() -> float: return 8.0 if compact else 14.0
+	func _nat(i: int) -> float:
+		var f: Font = TBKit.body_b()
+		return maxf(f.get_string_size(String(_items[i][1]), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13 if compact else 15)).x + 2.0 * _pad_x(), float(TBKit.MIN_TOUCH))
+	## Layout for a width: {"rows": [[cell index, ...], ...], "prop": bool, "h": cell height}. Preferred: one equal-width grid (columns as many as fit);
+	## when packing the cells by their own widths needs fewer rows (one short word beside long ones) the proportional rows win.
+	func _plan(w: float) -> Dictionary:
+		var n := _order.size()
+		if n == 0: return {"rows": [], "prop": false, "h": float(TBKit.touch())}
+		var nat := PackedFloat32Array(); var widest: float = 0.0
+		for i in n:
+			nat.append(_nat(i)); widest = maxf(widest, nat[i])
+		var rows_eq: Array = []
+		var cols := 1
+		if w <= 1.0: cols = n
+		else:
+			for c in range(n, 0, -1):
+				if widest <= (w - (c - 1) * GAP) / c: cols = c; break
+		var r0 := 0
+		while r0 < n:
+			var row: Array = []
+			for k in range(r0, mini(r0 + cols, n)): row.append(k)
+			rows_eq.append(row); r0 += cols
+		var rows: Array = rows_eq; var prop := false
+		if w > 1.0 and cols < n:
+			var rows_pk: Array = []; var cur: Array = []; var used: float = 0.0
+			for i in n:
+				var need: float = nat[i] + (GAP if not cur.is_empty() else 0.0)
+				if not cur.is_empty() and used + need > w: rows_pk.append(cur); cur = []; used = 0.0; need = nat[i]
+				cur.append(i); used += need
+			if not cur.is_empty(): rows_pk.append(cur)
+			if rows_pk.size() < rows_eq.size(): rows = rows_pk; prop = true
+		var f: Font = TBKit.body_b()
+		var fsz: int = TBKit.fs(13 if compact else 15)
+		var lh: float = f.get_height(fsz)
+		var h: float = float(TBKit.touch())
+		for row in rows:
+			var widths := _row_widths(row, nat, w, prop)
+			for k in row.size():
+				var tw: float = f.get_string_size(String(_items[row[k]][1]), HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+				var lines: int = maxi(1, ceili(tw / maxf(widths[k] - 2.0 * _pad_x(), 16.0)))
+				h = maxf(h, ceilf(lines * lh) + (18.0 if lines > 1 else 16.0))
+		return {"rows": rows, "prop": prop, "h": h, "nat": nat}
+	func _row_widths(row: Array, nat: PackedFloat32Array, w: float, prop: bool) -> PackedFloat32Array:
+		var out := PackedFloat32Array()
+		var m: int = row.size()
+		var free: float = w - (m - 1) * GAP
+		if w <= 1.0: free = 0.0
+		if not prop:
+			for k in m: out.append(free / m)
+		else:
+			var sum: float = 0.0
+			for k in m: sum += nat[row[k]]
+			var extra: float = maxf(free - sum, 0.0) / m
+			for k in m: out.append(nat[row[k]] + extra if sum <= free else free * nat[row[k]] / sum)
+		return out
+	func _get_minimum_size() -> Vector2:
+		var p := _plan(size.x)
+		var widest: float = float(TBKit.MIN_TOUCH)
+		for i in _order.size(): widest = maxf(widest, minf(_nat(i), 140.0))
+		var rn: int = (p["rows"] as Array).size()
+		return Vector2(widest, rn * float(p["h"]) + maxi(rn - 1, 0) * GAP)
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_SORT_CHILDREN: _sort()
+	func _sort() -> void:
+		var n := _order.size()
+		if n == 0: return
+		var p := _plan(size.x)
+		var rows: Array = p["rows"]; var h: float = p["h"]
+		var nat: PackedFloat32Array = p["nat"]
+		var sig := "%d,%d,%s" % [rows.size(), int(h), str(rows)]
+		var mask_changed: bool = sig != _sig
+		_sig = sig; _cell_h = h
+		for r in rows.size():
+			var row: Array = rows[r]
+			var widths := _row_widths(row, nat, size.x, bool(p["prop"]))
+			var x: float = 0.0
+			for c in row.size():
+				var b: Button = _btns[_order[row[c]]]
+				var cw: float = roundf(widths[c]) if c < row.size() - 1 else size.x - x
+				fit_child_in_rect(b, Rect2(x, r * (h + GAP), cw, h))
+				x += cw + GAP
+				var m := 0
+				if r == 0 and c == 0: m |= TBFrame.TL
+				if r == 0 and c == row.size() - 1: m |= TBFrame.TR
+				if r == rows.size() - 1 and c == 0: m |= TBFrame.BL
+				if r == rows.size() - 1 and c == row.size() - 1: m |= TBFrame.BR
+				if int(b.get_meta("mask", -1)) != m: b.set_meta("mask", m); mask_changed = true
+		var need := Vector2(_get_minimum_size().x, rows.size() * h + (rows.size() - 1) * GAP)
+		if mask_changed: _restyle()
+		if need != _last_min: _last_min = need; update_minimum_size()
+	func _draw() -> void:
+		draw_style_box(TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1), Rect2(Vector2.ZERO, size))
+	func _draw_cell(id: String, b: Button) -> void:
+		if id != current: return
+		var w: float = b.size.x; var h: float = b.size.y
+		if TBTokens.is_hc(): b.draw_rect(Rect2(0, 0, w, h), TBTokens.c("ink_0"), false, 2.0)
+		b.draw_rect(Rect2(0, h - 3.0, w, 3.0), TBTokens.c("oxblood"))
+		if compact: return
+		var f: Font = TBKit.body_b()
+		var fsz: int = TBKit.fs(15)
+		var tw: float = minf(f.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, w - 2.0 * _pad_x())
+		var gs: float = float(maxi(14, int(fsz * 0.95)))
+		var x: float = (w - tw) * 0.5 - gs * 0.5 - 6.0
+		if x >= gs * 0.5 + 2.0 and tw < w - 2.0 * _pad_x() - 1.0:
+			TBGlyph.draw_filled(b, "check", Vector2(roundf(x), roundf((h - 3.0) * 0.5)), gs, TBTokens.c("oxblood"))
 	func _restyle() -> void:
 		for k in _btns:
 			var b: Button = _btns[k]
 			var on: bool = k == current
-			var m: int = b.get_meta("mask")
-			var fills: Array = ["ink_0", "ink_0", "ink_0"] if on else ["paper_1", "paper_hover", "paper_2"]
-			b.add_theme_stylebox_override("normal", TBKit._pl(fills[0], "", 4, 0, 12, 8, false, 1.0, m))
-			b.add_theme_stylebox_override("hover", TBKit._pl(fills[1], "", 4, 0, 12, 8, false, 1.0, m))
-			b.add_theme_stylebox_override("pressed", TBKit._pl(fills[2], "", 4, 0, 12, 8, false, 1.0, m))
-			b.add_theme_stylebox_override("hover_pressed", TBKit._pl(fills[2], "", 4, 0, 12, 8, false, 1.0, m))
-			b.add_theme_stylebox_override("focus", TBFrame.focus(on, 0, 2))
-			var tc: Color = TBTokens.c("cream" if on else "ink_0")
+			var m: int = int(b.get_meta("mask", TBFrame.ALL))
+			var fills: Array = ["paper_2", "paper_2", "paper_2"] if on else ["paper_1", "paper_hover", "paper_2"]
+			var py: float = 6.0
+			b.add_theme_stylebox_override("normal", TBKit._pl(fills[0], "", 4, 0, _pad_x(), py, false, 1.0, m))
+			b.add_theme_stylebox_override("hover", TBKit._pl(fills[1], "", 4, 0, _pad_x(), py, false, 1.0, m))
+			b.add_theme_stylebox_override("pressed", TBKit._pl(fills[2], "", 4, 0, _pad_x(), py, false, 1.0, m))
+			b.add_theme_stylebox_override("hover_pressed", TBKit._pl(fills[2], "", 4, 0, _pad_x(), py, false, 1.0, m))
+			b.add_theme_stylebox_override("focus", TBFrame.focus(false, 0, 2))
+			var tc: Color = TBTokens.c("ink_0")
 			for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]: b.add_theme_color_override(fc, tc)
 			b.set_pressed_no_signal(false)
 			b.tooltip_text = b.text if on else ""
+			TBKit.a11y(b, b.text, "option", TBI18n.T("a11y_selected") if on else "")
 			b.queue_redraw()
 
-static func segmented(items: Array, current: String, cb: Callable) -> Control:
-	var s := Segmented.new().setup(items, current)
+static func segmented(items: Array, current: String, cb: Callable, compact: bool = false) -> Control:
+	var s := Segmented.new().setup(items, current, compact)
 	s.chosen.connect(cb)
 	return s
 
@@ -606,6 +875,7 @@ class TabBtn extends Button:
 		add_theme_stylebox_override("hover", TBKit._pl("paper_1", "", 0, 0, 12, 8))
 		add_theme_stylebox_override("pressed", TBKit._pl("paper_2", "", 0, 0, 12, 8)); add_theme_stylebox_override("hover_pressed", TBKit._pl("paper_2", "", 0, 0, 12, 8))
 		add_theme_stylebox_override("focus", TBFrame.focus(false, 0, 2))
+		TBKit.a11y(self, txt, "tab")
 	func _draw() -> void:
 		if active: draw_rect(Rect2(0, size.y - 3, size.x, 3), TBTokens.c("oxblood"))
 
@@ -655,11 +925,131 @@ class KSlider extends HSlider:
 		draw_arc(c, TBTokens.THUMB * 0.5 + 2.5, 0.0, TAU, 36, TBTokens.c("paper_0"), 1.0, true)
 		draw_arc(c, TBTokens.THUMB * 0.5 + 4.0, 0.0, TAU, 36, TBTokens.c("ink_0"), 2.0, true)
 
-static func slider(min_v: float, max_v: float, step_v: float, value: float, cb: Callable = Callable()) -> HSlider:
+static func slider(min_v: float, max_v: float, step_v: float, value: float, cb: Callable = Callable(), accessible_name: String = "") -> HSlider:
 	var s := KSlider.new()
 	s.min_value = min_v; s.max_value = max_v; s.step = step_v; s.value = value
 	if cb.is_valid(): s.value_changed.connect(cb)
+	a11y(s, accessible_name if accessible_name != "" else TBI18n.T("a11y_slider"), "slider")
 	return s
+
+## [-] [slider] [+] [value]: a slider with 48 px steppers (A11Y-TCH-004); dragging is optional. Value text through `fmt` (default "NN%").
+class SliderRow extends HBoxContainer:
+	signal changed(v: float)
+	var slider: HSlider
+	var value_label: Label
+	var _fmt := Callable()
+	var _name := ""
+	func _init(min_v: float, max_v: float, step_v: float, value: float, label_text: String, fmt: Callable = Callable()) -> void:
+		_fmt = fmt; _name = label_text
+		add_theme_constant_override("separation", 6)
+		size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var minus := TBKit.button("−", func(): _nudge(-step_v)); minus.custom_minimum_size = Vector2(TBKit.touch(), TBKit.touch())
+		TBKit.a11y(minus, TBI18n.T("step_down", {"s": label_text}), "button")
+		var plus := TBKit.button("+", func(): _nudge(step_v)); plus.custom_minimum_size = Vector2(TBKit.touch(), TBKit.touch())
+		TBKit.a11y(plus, TBI18n.T("step_up", {"s": label_text}), "button")
+		slider = TBKit.slider(min_v, max_v, step_v, value, Callable(), label_text)
+		value_label = TBKit.num(_text(value), 14)
+		value_label.custom_minimum_size.x = maxf(48.0, TBKit.mono_b().get_string_size("100%", HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(14)).x + 12.0)
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		add_child(minus); add_child(slider); add_child(plus); add_child(value_label)
+		slider.value_changed.connect(func(v: float):
+			value_label.text = _text(v); TBKit.a11y(slider, "%s %s" % [_name, _text(v)], "slider")
+			changed.emit(v))
+	func _text(v: float) -> String: return String(_fmt.call(v)) if _fmt.is_valid() else "%d%%" % int(round(v))
+	func _nudge(d: float) -> void:
+		slider.value = clampf(slider.value + d, slider.min_value, slider.max_value)
+	func set_value(v: float) -> void:
+		slider.set_value_no_signal(v); value_label.text = _text(v)
+
+static func slider_row(label_text: String, min_v: float, max_v: float, step_v: float, value: float, cb: Callable = Callable(), fmt: Callable = Callable()) -> SliderRow:
+	var r := SliderRow.new(min_v, max_v, step_v, value, label_text, fmt)
+	if cb.is_valid(): r.changed.connect(cb)
+	return r
+
+## Switch row: the whole row is the target (>= touch() high, grows with the text), label left, the state as the WORD On / Off plus a drawn switch whose
+## knob carries a check (on) or a dash (off): never colour alone. cb(value: bool). Announces the new state when speech is on.
+class ToggleRow extends Button:
+	signal toggled_to(v: bool)
+	var on := false
+	var _word: Label
+	var _sw: Control
+	func _init(label_text: String, value: bool, cb: Callable) -> void:
+		on = value
+		flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+		custom_minimum_size = Vector2(0, TBKit.touch())
+		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
+		var row := TBKit.hbox(10); row.set_anchors_preset(Control.PRESET_FULL_RECT); row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.offset_left = 12; row.offset_right = -12
+		add_child(row)
+		var l := TBKit.label(label_text, 15); l.add_theme_font_override("font", TBKit.body_b())
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		l.custom_minimum_size.x = 40; l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(l); _l = l
+		resized.connect(_fit); l.minimum_size_changed.connect(_fit)
+		_word = TBKit.label("", 15); _word.add_theme_font_override("font", TBKit.body_b()); _word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_word.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_word.custom_minimum_size.x = TBKit.body_b().get_string_size(TBI18n.T("off"), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(15)).x
+		row.add_child(_word)
+		_sw = Control.new(); _sw.custom_minimum_size = Vector2(44, 26); _sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER; _sw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_sw.draw.connect(_draw_switch)
+		row.add_child(_sw)
+		pressed.connect(func():
+			set_on(not on)
+			if cb.is_valid(): cb.call(on)
+			toggled_to.emit(on)
+			TBKit.announce("%s %s" % [label_text, TBI18n.T("on") if on else TBI18n.T("off")]))
+		_label_text = label_text
+		_sync()
+	var _label_text := ""
+	var _l: Label
+	func set_on(v: bool) -> void:
+		on = v; _sync()
+	func _sync() -> void:
+		_word.text = TBI18n.T("on") if on else TBI18n.T("off")
+		TBKit.a11y(self, _label_text, "switch", _word.text)
+		if _sw != null: _sw.queue_redraw()
+		queue_redraw()
+	func _draw_switch() -> void:
+		var w: float = _sw.size.x; var h: float = _sw.size.y
+		_sw.draw_rect(Rect2(0, 0, w, h), TBTokens.c("rule"))
+		_sw.draw_rect(Rect2(1, 1, w - 2, h - 2), TBTokens.c("act") if on else TBTokens.c("paper_1"))
+		var k: float = h - 6.0
+		var kx: float = w - 3.0 - k if on else 3.0
+		_sw.draw_rect(Rect2(kx, 3, k, k), TBTokens.c("on_act") if on else TBTokens.c("ink_0"))
+		var c := Vector2(kx + k * 0.5, 3.0 + k * 0.5)
+		var ink: Color = TBTokens.c("act") if on else TBTokens.c("paper_1")
+		if on: TBGlyph.draw_filled(_sw, "check", c.round(), k - 2.0, ink)
+		else: _sw.draw_rect(Rect2(c.x - 4.0, c.y - 1.0, 8.0, 2.0), ink)
+	func _draw() -> void:
+		var w := size.x; var h := size.y
+		var mode := get_draw_mode()
+		if mode == BaseButton.DRAW_HOVER: draw_rect(Rect2(0, 0, w, h - 1), TBTokens.c("paper_1"))
+		elif mode == BaseButton.DRAW_PRESSED: draw_rect(Rect2(0, 0, w, h - 1), TBTokens.c("paper_2"))
+		if not TBTokens.is_hc(): draw_rect(Rect2(0, h - 1, w, 1), TBTokens.c("hair"))
+		if has_focus() and TBFrame.kbd_nav: draw_style_box(TBFrame.focus(false, 0, 2), Rect2(0, 0, w, h))
+	func _fit() -> void:                  # a wrapped label makes the row taller (never truncates)
+		if _l == null: return
+		var want: float = maxf(float(TBKit.touch()), _l.get_combined_minimum_size().y + 16.0)
+		if absf(custom_minimum_size.y - want) > 0.5: custom_minimum_size.y = want
+		if size.y > want + 0.5 and want <= float(TBKit.touch()) + 0.5: reset_size()
+
+static func toggle(text: String, value: bool, cb: Callable = Callable()) -> Button:
+	return ToggleRow.new(text, value, cb)
+
+## visual twin of a sound / alert (A11Y-AUD-006): an "Alert" glyph + word + the caption on a bar plate. kind: info | warn | neg
+static func alert_strip(text: String, kind: String = "info") -> Control:
+	var tone := "info" if kind == "info" else ("warn" if kind == "warn" else "neg")
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", _pl("bar_0", "rule_dark", 4, 0, 10, 6, false, 0.96))
+	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h := hbox(8); h.mouse_filter = Control.MOUSE_FILTER_IGNORE; pc.add_child(h)
+	var col: Color = TBTokens.c({"info": "info_bar", "warn": "warn_bar", "neg": "neg_bar"}[tone])
+	h.add_child(glyph({"info": "info", "warn": "warning", "neg": "warning"}[tone], 20, col))
+	var wd := caps(TBI18n.T("a11y_alert"), 12, col); h.add_child(wd)
+	var l := label(text, 14, TBTokens.c("cream")); l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size.x = 40
+	h.add_child(l)
+	a11y(pc, "%s: %s" % [TBI18n.T("a11y_alert"), text], "")
+	return pc
 
 # ---- command card, chip, glyph label -------------------------------------------------------------------------------------------------------------------
 static var _card_styles := {}
@@ -769,7 +1159,7 @@ static func chip(text: String, glyph_id: String = "", tone: String = "neutral", 
 		var tk: String = tone_tok[tone]
 		var colour: String = tk + suffix if tone != "own" else tk
 		if tone == "warn":
-			fill_tok = "warn_bar"; border_tok = "warn" if not on_bar else ""; text_tok = "ink_0"
+			fill_tok = "warn_bar"; border_tok = "warn" if not on_bar else ""; text_tok = "on_brass"
 			if gl == "": gl = "warning"
 		else:
 			border_tok = colour; text_tok = colour
@@ -779,7 +1169,7 @@ static func chip(text: String, glyph_id: String = "", tone: String = "neutral", 
 	pc.custom_minimum_size = Vector2(0, height); pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := hbox(4); h.alignment = BoxContainer.ALIGNMENT_CENTER; h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var ink: Color = TBTokens.c(text_tok)
-	if gl != "": h.add_child(glyph(gl, 16, ink))
+	if gl != "": h.add_child(glyph(gl, maxi(16, fs(16)), ink))
 	var l := label(text, 13, ink); l.add_theme_font_override("font", body_b()); l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(l)
 	pc.add_child(h)

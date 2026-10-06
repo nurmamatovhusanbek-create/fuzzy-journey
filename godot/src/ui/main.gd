@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "contrast": false}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -86,6 +86,14 @@ func _ready() -> void:
 	_new_demo_game()
 	show_menu()
 	panel.layout_for(size)
+	_offer_comfort.call_deferred()
+
+## first run: one "Comfort and access" page (text size, contrast, motion), offered once. Not in script runs (tests) unless TB_COMFORT=1.
+func _offer_comfort() -> void:
+	if bool(cfg.get("comfort_seen", false)): return
+	var scripted: bool = ("-s" in OS.get_cmdline_args() or "--script" in OS.get_cmdline_args()) and OS.get_environment("TB_COMFORT") == ""
+	if scripted: return
+	TBMenuHub.comfort(_overlay, cfg, _on_setting_changed)
 
 ## phones in portrait need a different logical base size, otherwise the landscape 1280x720 base shrinks the UI to a few px
 func _update_ui_scale() -> void:
@@ -127,8 +135,11 @@ func _load_cfg() -> void:
 	var f := ConfigFile.new()
 	if f.load("user://settings.cfg") == OK:
 		for k in cfg: cfg[k] = f.get_value("tb", k, cfg[k])
+		if bool(f.get_value("tb", "contrast", false)) and cfg["hc"] == "off": cfg["hc"] = "light"          # the old boolean became hc off / light / dark
+		if not f.has_section_key("tb", "reduce_motion"): cfg["reduce_motion"] = K.os_prefers_reduced_motion()
 	else:
 		cfg["quality"] = _guess_quality()
+		cfg["reduce_motion"] = K.os_prefers_reduced_motion()
 
 func _save_cfg() -> void:
 	var f := ConfigFile.new()
@@ -152,7 +163,7 @@ func _apply_quality() -> void:
 	if cfg["quality"] == "auto" and _auto_tier < 0: _auto_tier = {"low": 0, "medium": 1, "high": 2}.get(_guess_quality(), 1)
 	var q: int = _auto_tier if cfg["quality"] == "auto" else {"low": 0, "medium": 1, "high": 2}.get(cfg["quality"], 1)
 	map.quality = q
-	map.map_theme = 1 if cfg.get("theme", "standard") == "parchment" else 0
+	map.map_theme = {"parchment": 1, "hc": 2}.get(cfg.get("theme", "standard"), 0)
 	map.render_scale = [0.6, 0.85, 1.0][q]      # fraction of logical resolution the map shader renders at
 	map._push_view()
 
@@ -272,12 +283,8 @@ func _open_settings() -> void: _open_menu_hub("settings")
 
 ## apply the accessibility settings to the kit (text size, fonts, contrast, motion, targets) and refresh the theme
 func _apply_a11y() -> void:
-	K.text_scale = clampf(float(cfg.get("text_scale", 1.0)), 1.0, 2.0)
-	K.readable_fonts = bool(cfg.get("readable", false))
-	K.reduce_motion = bool(cfg.get("reduce_motion", false))
-	K.touch_large = bool(cfg.get("touch_large", false))
-	TBTokens.mode = TBTokens.Mode.HIGH_CONTRAST if bool(cfg.get("contrast", false)) else TBTokens.Mode.NORMAL
-	theme = K.theme()
+	theme = K.apply_settings(cfg)         # sets K.text_scale / reduce_motion / touch / hc / cvd / tts / confirm, rebuilds the theme, emits K.settings_changed
+	TBAudio.apply_volumes(cfg)
 
 func _on_setting_changed(key: String) -> void:
 	_save_cfg()
@@ -286,9 +293,12 @@ func _on_setting_changed(key: String) -> void:
 			TBI18n.load_lang(cfg["lang"]); _rebuild_screens()
 		"quality", "view", "theme", "ui":
 			_apply_quality(); _update_ui_scale(); map.set_mode(0 if cfg["view"] == "globe" else 1)
-		"sound": sfx.enabled = cfg.get("sound", true)
-		"text_scale", "readable", "touch_large", "contrast", "reduce_motion", "reset_access":
+		"sound": sfx.enabled = cfg.get("sound", true); _apply_a11y()
+		"vol_master", "vol_music", "vol_sfx", "vol_ui": TBAudio.apply_volumes(cfg)
+		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "tts", "confirm", "mirror", "vis_alerts":
 			_apply_a11y(); _rebuild_screens()
+		"reset_access":
+			sfx.enabled = cfg.get("sound", true); _apply_a11y(); _rebuild_screens()
 
 ## re-create the already-built screens after a language / text / contrast change (the open hub rebuilds itself)
 func _rebuild_screens() -> void:
@@ -618,7 +628,7 @@ func _replay_battles() -> void:
 		if int(b[4]) != me and int(b[3]) != me: continue
 		if int(b[3]) == me: continue                      # own attacks already play when ordered; AI-run turns of other humans skip
 		var held: bool = int(b[2]) == 0
-		var col := Color(0.5, 0.9, 0.55) if held else Color(1.0, 0.55, 0.5)
+		var col: Color = TBTokens.c("pos_bar") if held else TBTokens.c("neg_bar")
 		map.labels.add_fx("atk", int(b[0]), int(b[1]), col, i * 220)
 		map.labels.add_fx("cap", int(b[0]), int(b[1]), col, i * 220 + 250)
 		i += 1
@@ -736,7 +746,7 @@ func _process(delta: float) -> void:
 	_update_perf(delta)
 	_place_tip()
 	if map.labels != null and map.labels.visible != (mode != "menu"): map.labels.visible = mode != "menu"
-	if mode == "menu" and _spin:
+	if mode == "menu" and _spin and K.spin_ok():           # Reduce motion: the title globe stays still
 		map.lon0 += delta * 0.12
 		map._push_view()
 		if is_instance_valid(_bezel): _bezel.queue_redraw()

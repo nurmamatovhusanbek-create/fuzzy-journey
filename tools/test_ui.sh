@@ -9,6 +9,11 @@ run() {
   local bad; bad=$(echo "$out" | grep -E "SCRIPT ERROR|^ERROR:" | grep -vE "audio|ALSA|alsa|leaked|still in use|status < 0")
   if [ -n "$bad" ]; then echo "FAIL: $*"; echo "$bad" | sort | uniq -c | head -8; fail=1; else echo "ok: $*"; fi
 }
+# token gates: contrast (normal + both high-contrast variants) and the raw-colour lint
+for t in ui_contrast:UI.CONTRAST ui_lint_tokens:UI.LINT; do
+  out=$(timeout 120 "$GODOT" --headless --path . -s tests/${t%%:*}.gd 2>&1); mark=${t##*:}; mark=${mark/./ }
+  echo "$out" | grep -q "$mark PASS" && echo "ok: tests/${t%%:*}.gd" || { echo "FAIL: tests/${t%%:*}.gd"; echo "$out" | grep FAIL | head -8; fail=1; }
+done
 for sd in 1 2 3 4; do run tests/ui_monkey.gd -- 160 $sd; done
 run tests/ui_hotseat.gd
 out=$(TB_NOANIM=1 timeout 120 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_back.gd 2>&1); echo "$out" | grep -q "UIBACK OK" && echo "ok: tests/ui_back.gd" || { echo "FAIL: tests/ui_back.gd"; echo "$out" | grep -E "FAIL|SCRIPT"; fail=1; }

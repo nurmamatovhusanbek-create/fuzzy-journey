@@ -3,7 +3,8 @@
 class_name TBTokens
 extends RefCounted
 
-enum Mode { NORMAL, HIGH_CONTRAST }
+## mode: 0 NORMAL, 1 HIGH_CONTRAST (light variant), 2 HC_DARK (high-contrast dark variant). Test high contrast with is_hc(), never with == 1.
+enum Mode { NORMAL, HIGH_CONTRAST, HC_DARK }
 static var mode: int = Mode.NORMAL
 
 # ---- paper ground (documents) ------------------------------------------------------------------
@@ -21,6 +22,8 @@ const NORMAL := {
 	# ---- actions
 	"brass": Color("D9A93C"), "brass_hover": Color("E6B94C"), "brass_press": Color("BF9230"),
 	"wax": Color("8E1E16"), "wax_hover": Color("A3281A"), "wax_press": Color("741710"), "wax_rim": Color("5B120D"), "on_wax": Color("FBF3E0"),
+	# ---- primary action: an ink slab with brass text (the darkest object of a container, so it is found by luminance as well as hue) and text on bright fills
+	"act": Color("231A11"), "act_hover": Color("54442F"), "act_press": Color("0E0904"), "act_rim": Color("D9A93C"), "on_act": Color("F2C552"), "on_brass": Color("231A11"),
 }
 const HC := {
 	"paper_0": Color("FFF9E8"), "paper_1": Color("F5E8C8"), "paper_2": Color("E6D3A3"), "paper_hover": Color("FFF2CC"),
@@ -32,19 +35,50 @@ const HC := {
 	"pos_bar": Color("8DF0B4"), "neg_bar": Color("FF9D8C"), "warn_bar": Color("FFC95C"), "info_bar": Color("8CC4FF"), "foreign_bar": Color("C8D0DC"),
 	"brass": Color("FFD65A"), "brass_hover": Color("FFE27F"), "brass_press": Color("E6BC2F"),
 	"wax": Color("85100A"), "wax_hover": Color("A01A12"), "wax_press": Color("640C07"), "wax_rim": Color("2A0503"), "on_wax": Color("FFFFFF"),
+	"act": Color("0E0904"), "act_hover": Color("2B2013"), "act_press": Color("000000"), "act_rim": Color("FFD65A"), "on_act": Color("FFD65A"), "on_brass": Color("0E0904"),
+}
+## High contrast, DARK variant (A11Y-CON-005): near-black paper, white ink, black bar; every semantic hue is its light "bar" value.
+const HC_DARK := {
+	"paper_0": Color("0A0805"), "paper_1": Color("1A1610"), "paper_2": Color("332B1D"), "paper_hover": Color("262014"),
+	"ink_0": Color("FFFFFF"), "ink_1": Color("E8E0CC"), "ink_off": Color("A89C80"),
+	"oxblood": Color("FFB3A6"), "brass_ink": Color("FFD65A"), "rule": Color("D9D0B8"), "hair": Color("6B6048"),
+	"bar_0": Color("000000"), "bar_1": Color("1A1109"), "bar_2": Color("2B1E10"), "table": Color("000000"),
+	"cream": Color("FFFFFF"), "smoke": Color("E8DFC8"), "brass_lt": Color("FFD65A"), "rule_dark": Color("C9A445"),
+	"pos": Color("8DF0B4"), "neg": Color("FF9D8C"), "warn": Color("FFC95C"), "info": Color("8CC4FF"), "foreign": Color("C8D0DC"),
+	"pos_bar": Color("8DF0B4"), "neg_bar": Color("FF9D8C"), "warn_bar": Color("FFC95C"), "info_bar": Color("8CC4FF"), "foreign_bar": Color("C8D0DC"),
+	"brass": Color("FFD65A"), "brass_hover": Color("FFE27F"), "brass_press": Color("E6BC2F"),
+	"wax": Color("85100A"), "wax_hover": Color("A01A12"), "wax_press": Color("640C07"), "wax_rim": Color("FFB3A6"), "on_wax": Color("FFFFFF"),
+	"act": Color("FFD65A"), "act_hover": Color("FFE27F"), "act_press": Color("E6BC2F"), "act_rim": Color("FFFFFF"), "on_act": Color("0A0805"), "on_brass": Color("0A0805"),
 }
 
 ## token lookup honouring the active mode: TBTokens.c("ink_0")
 static func c(name: String) -> Color:
-	return (HC if mode == Mode.HIGH_CONTRAST else NORMAL)[name]
+	if mode == Mode.NORMAL: return NORMAL[name]
+	return (HC_DARK if mode == Mode.HC_DARK else HC)[name]
+
+## the dictionary of a mode (tests walk all three)
+static func dict(m: int) -> Dictionary:
+	if m == Mode.HC_DARK: return HC_DARK
+	return HC if m == Mode.HIGH_CONTRAST else NORMAL
+
+## cfg["hc"] value -> mode
+static func mode_from_setting(hc: String) -> int:
+	return Mode.HC_DARK if hc == "dark" else (Mode.HIGH_CONTRAST if hc == "light" else Mode.NORMAL)
 
 ## token with its own alpha: TBTokens.ca("table", 0.72)
 static func ca(name: String, alpha: float) -> Color:
 	var col: Color = c(name)
 	return Color(col.r, col.g, col.b, alpha)
 
+## colour with its alpha replaced (derive translucent variants without a raw Color literal)
+static func with_a(col: Color, a: float) -> Color:
+	return Color(col.r, col.g, col.b, a)
+
 static func is_hc() -> bool:
-	return mode == Mode.HIGH_CONTRAST
+	return mode != Mode.NORMAL
+
+static func is_dark_hc() -> bool:
+	return mode == Mode.HC_DARK
 
 ## ---- contrast (WCAG 2.x relative luminance; art bible appendix A) --------------------------------
 static func _lin(v: float) -> float:
@@ -78,13 +112,16 @@ const PAIRS := [
 	["warn_bar", "bar_0", 4.5, 7.0, "warning on bar"], ["warn_bar", "bar_1", 4.5, 7.0, "warning on chip"],
 	["info_bar", "bar_0", 4.5, 7.0, "info on bar"], ["info_bar", "bar_1", 4.5, 7.0, "info on chip"],
 	["foreign_bar", "bar_0", 4.5, 7.0, "foreign on bar"], ["foreign_bar", "bar_1", 4.5, 7.0, "foreign on chip"],
-	["ink_0", "brass", 4.5, 7.0, "primary button"], ["ink_0", "brass_hover", 4.5, 7.0, "primary button hover"], ["ink_0", "brass_press", 4.5, 7.0, "primary button pressed"],
+	["on_brass", "brass", 4.5, 7.0, "brass fill text"], ["on_brass", "brass_hover", 4.5, 7.0, "brass fill hover text"], ["on_brass", "brass_press", 4.5, 7.0, "brass fill pressed text"], ["on_brass", "warn_bar", 4.5, 7.0, "warning chip text"],
+	["on_act", "act", 7.0, 7.0, "primary button"], ["on_act", "act_hover", 4.5, 7.0, "primary button hover"], ["on_act", "act_press", 7.0, 7.0, "primary button pressed"],
 	["on_wax", "wax", 4.5, 7.0, "danger button"], ["on_wax", "wax_hover", 4.5, 7.0, "danger button hover"], ["on_wax", "wax_press", 4.5, 7.0, "danger button pressed"],
-	["cream", "ink_0", 4.5, 7.0, "segmented selected cell"],
+	["oxblood", "paper_2", 4.5, 7.0, "segmented selected underline and check"],
 	["ink_0", "paper_hover", 4.5, 7.0, "hover row text"], ["ink_1", "paper_hover", 4.5, 7.0, "hover row secondary"],
 	# non-text: control boundaries, disabled, focus ring, meters
 	["rule", "paper_0", 3.0, 4.5, "control border on panel"], ["rule", "paper_1", 3.0, 4.5, "control border on control"],
-	["brass_ink", "paper_0", 3.0, 4.5, "primary border on panel"], ["brass_ink", "paper_2", 3.0, 4.5, "own marker on pressed"],
+	["brass_ink", "paper_0", 3.0, 4.5, "armed border on panel"], ["brass_ink", "paper_2", 3.0, 4.5, "own marker on pressed"],
+	["act", "paper_0", 3.0, 4.5, "primary button edge on panel"], ["act", "paper_1", 3.0, 4.5, "primary button edge on control"], ["oxblood", "paper_1", 3.0, 4.5, "selected underline vs unselected cell"],
+	["wax_rim", "paper_0", 1.5, 4.5, "danger button edge on panel"],
 	["rule_dark", "bar_0", 3.0, 4.5, "bar border"], ["rule_dark", "bar_1", 3.0, 4.5, "chip / tooltip border"], ["rule_dark", "bar_2", 3.0, 4.5, "hover chip border"],
 	["ink_off", "paper_0", 3.0, 4.5, "disabled text on panel"], ["ink_off", "paper_1", 3.0, 4.5, "disabled text on control"],
 	["ink_0", "paper_0", 3.0, 4.5, "focus ring on paper"], ["cream", "bar_0", 3.0, 4.5, "focus ring on bar"], ["cream", "table", 3.0, 4.5, "focus ring on map"],

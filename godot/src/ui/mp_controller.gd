@@ -18,16 +18,20 @@ var _deadline_at := 0
 var _timer_label: Label
 var _chat_box: VBoxContainer
 var _last_turn := 0
+var turn_secs := 0            # A11Y-TIM-002: host option. 0 = Off (the accessible default), else 120 / 240 / 360; the server enforces it
+var _room_secs := 0           # what the room reports; 0 hides the clock
+const TIMER_CHOICES := [0, 120, 240, 360]
 
 func setup(app: Control) -> void:
 	main = app
 	var f := ConfigFile.new()
 	if f.load("user://settings.cfg") == OK:
 		url = f.get_value("mp", "url", url); player_name = f.get_value("mp", "name", player_name)
+		turn_secs = int(f.get_value("mp", "timer", 0)) if int(f.get_value("mp", "timer", 0)) in TIMER_CHOICES else 0
 
 func _save() -> void:
 	var f := ConfigFile.new(); f.load("user://settings.cfg")
-	f.set_value("mp", "url", url); f.set_value("mp", "name", player_name); f.save("user://settings.cfg")
+	f.set_value("mp", "url", url); f.set_value("mp", "name", player_name); f.set_value("mp", "timer", turn_secs); f.save("user://settings.cfg")
 
 # ---------------------------------------------------------------- entry dialog
 func open_menu() -> void:
@@ -39,9 +43,15 @@ func open_menu() -> void:
 	v.add_child(K.label(T.call("mp_name"), 13, K.DIM)); v.add_child(nm)
 	v.add_child(K.label(T.call("mp_server"), 13, K.DIM)); v.add_child(srv)
 	var status := K.label("", 13, K.DIM)
+	var tm_items: Array = []
+	for t in TIMER_CHOICES: tm_items.append([str(t), T.call("mp_timer_off") if t == 0 else T.call("mp_timer_s", {"s": t})])
+	var tm_hint := K.label(T.call("mp_timer_hint"), 13, K.DIM); tm_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var create := K.button(T.call("mp_create"), func():
 		player_name = nm.text; url = srv.text; _save(); m[0].queue_free()
-		TBModals.era_picker(main._overlay, main.cfg["difficulty"], func(era, diff): _connect(func(): net.create_room(player_name, era, diff, 120)), func(): open_menu()), true)
+		TBModals.era_picker(main._overlay, main.cfg["difficulty"], func(era, diff): _connect(func(): net.create_room(player_name, era, diff, turn_secs)), func(): open_menu()), true)
+	v.add_child(K.section(T.call("mp_timer")))
+	v.add_child(K.segmented(tm_items, str(turn_secs), func(id: String): turn_secs = int(id), true))
+	v.add_child(tm_hint)
 	v.add_child(create)
 	v.add_child(K.label(T.call("mp_code"), 13, K.DIM)); v.add_child(code)
 	v.add_child(K.button(T.call("mp_join"), func():
@@ -133,6 +143,8 @@ func _on_room(info: Dictionary) -> void:
 		_make_timer()
 	if in_game:
 		_deadline_at = Time.get_ticks_msec() + int(info.get("deadline_left", 0))
+		_room_secs = int(info.get("turn_secs", 0))
+		if is_instance_valid(_timer_label): _timer_label.visible = _room_secs > 0
 		var me_ready := false
 		for p in info["players"]:
 			if p["peer"] == multiplayer.get_unique_id() and p["ready"]: me_ready = true
@@ -159,8 +171,8 @@ func _on_result(seq: int, res: Dictionary) -> void:
 		main.hud.toast(T.call(key) if TBI18n.has_key(key) else String(res.get("err", "?")), true)
 	elif cmd.get("cmd", "") == "move":
 		var win: bool = res.get("result", "") == "win"
-		main.map.labels.add_fx("atk", cmd["from"], cmd["to"], Color(0.5, 0.9, 0.55) if win else Color(1.0, 0.55, 0.5))
-		if win: main.map.labels.add_fx("cap", cmd["from"], cmd["to"], Color(0.5, 0.9, 0.55))
+		main.map.labels.add_fx("atk", cmd["from"], cmd["to"], TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"))
+		if win: main.map.labels.add_fx("cap", cmd["from"], cmd["to"], TBTokens.c("pos_bar"))
 	elif res.get("pending", false):
 		main.hud.toast(T.call("mp_proposal_sent"))
 
@@ -224,7 +236,7 @@ func _make_timer() -> void:
 	main.hud.add_child(chat)
 
 func _process(_d: float) -> void:
-	if in_game and is_instance_valid(_timer_label):
+	if in_game and is_instance_valid(_timer_label) and _room_secs > 0:
 		var left := maxi(0, _deadline_at - Time.get_ticks_msec()) / 1000
 		_timer_label.text = "%d:%02d" % [left / 60, left % 60]
 

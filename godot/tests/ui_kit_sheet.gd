@@ -2,10 +2,12 @@ extends SceneTree
 ## Specimen boards of every kit control in all states -> /tmp/ui_foundation/*.png (art bible 7.5 check).
 ## TB_NOANIM=1 xvfb-run -a -s "-screen 0 1280x720x24" godot --path godot --rendering-driver opengl3 -s tests/ui_kit_sheet.gd
 const K = preload("res://src/ui/ui_kit.gd")
-const OUT := "/tmp/ui_foundation"
+var OUT := "/tmp/ui_foundation"          # first user arg overrides
 
-func _board(file: String, size: Vector2i, builder: Callable, hc: bool = false, kbd: bool = true) -> void:
-	TBTokens.mode = TBTokens.Mode.HIGH_CONTRAST if hc else TBTokens.Mode.NORMAL
+## mode: 0 normal, 1 high contrast light, 2 high contrast dark; scale = text size step (1.0 / 1.25 / 1.5 / 2.0)
+func _board(file: String, size: Vector2i, builder: Callable, mode: int = 0, kbd: bool = true, scale: float = 1.0) -> void:
+	TBTokens.mode = mode
+	K.text_scale = scale
 	TBFrame.kbd_nav = kbd
 	var vp := SubViewport.new()
 	vp.size = size
@@ -74,6 +76,8 @@ func _controls(r: Control) -> void:
 	var sd := K.slider(0, 100, 5, 40); sd.editable = false; p.add_child(sd)
 	var sf := K.slider(0, 100, 5, 70); p.add_child(sf)
 	sf.grab_focus.call_deferred()
+	p.add_child(K.caps("Slider with steppers"))
+	p.add_child(K.slider_row("Music", 0, 100, 5, 80))
 	var p2c := _panel(r, Vector2(490, 16), 390, "Segmented, tabs, rows")
 	p2c.add_child(K.caps("Segmented"))
 	p2c.add_child(K.segmented([["25", "25%"], ["50", "50%"], ["75", "75%"], ["100", "100%"]], "50", func(_i): pass))
@@ -82,8 +86,10 @@ func _controls(r: Control) -> void:
 	p2c.add_child(K.caps("Tabs"))
 	p2c.add_child(K.tabs([["a", "Orders"], ["b", "Ledger"], ["c", "Notes"]], "b", func(_i): pass))
 	p2c.add_child(K.caps("Toggles"))
-	var cb := CheckBox.new(); cb.text = "Reduce motion"; cb.button_pressed = true; p2c.add_child(cb)
-	var cb2 := CheckBox.new(); cb2.text = "Readable fonts"; p2c.add_child(cb2)
+	p2c.add_child(K.toggle("Reduce motion", true))
+	p2c.add_child(K.toggle("Readable fonts", false))
+	p2c.add_child(K.caps("Compact segmented (filter chips, wraps)"))
+	p2c.add_child(K.segmented([["a", "All"], ["b", "Earned"], ["c", "Locked"], ["d", "Wars"], ["e", "Diplomacy"], ["f", "Events"]], "b", func(_i): pass, true))
 	p2c.add_child(K.caps("List rows"))
 	var lr1 := K.list_row("Byzantium", "1 204", Callable()); p2c.add_child(lr1)
 	var lr2 := K.list_row("Hover row", "88", Callable()); lr2.preview_state = "hover"; p2c.add_child(lr2)
@@ -218,7 +224,27 @@ func _modal_portrait(r: Control) -> void:
 	m[2].add_child(K.button("Main menu"))
 	var b := K.button("Back", Callable(), true); b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; m[2].add_child(b)
 
+## one narrow column of the controls that carry text, to judge 200 % text (no clipping, cells grow in height)
+func _scale_board(r: Control) -> void:
+	var p := _panel(r, Vector2(12, 12), 536, "Text 200%")
+	p.add_child(K.segmented([["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], "2.0", func(_i): pass))
+	p.add_child(K.segmented([["auto", "Auto"], ["low", "Low"], ["medium", "Medium"], ["high", "High"]], "medium", func(_i): pass))
+	p.add_child(K.segmented([["off", "Off"], ["deuter", "Deuteranopia"], ["protan", "Protanopia"], ["tritan", "Tritanopia"]], "off", func(_i): pass))
+	p.add_child(K.segmented([["a", "All"], ["b", "Earned"], ["c", "Locked"], ["d", "Wars"], ["e", "Diplomacy"]], "b", func(_i): pass, true))
+	p.add_child(K.tabs([["a", "Saves"], ["b", "Settings"]], "b", func(_i): pass))
+	p.add_child(K.toggle("Reduce motion (stops spinning, sliding and pulsing)", true))
+	p.add_child(K.toggle("Large touch targets", false))
+	p.add_child(K.slider_row("Music", 0, 100, 5, 80))
+	p.add_child(K.list_row("Byzantium and a very long nation name", "1 204", Callable()))
+	var sel := K.list_row("Selected row", "312", Callable()); sel.selected = true; p.add_child(sel)
+	var br := K.hbox(8); br.add_child(K.button("Cancel")); br.add_child(K.button("Continue", Callable(), true)); p.add_child(br)
+	var cr := K.hbox(6); cr.add_child(K.chip("Peace")); cr.add_child(K.chip("+608", "", "pos")); cr.add_child(K.chip("Low supply", "", "warn")); p.add_child(cr)
+	p.add_child(K.command_card("swords", "Recruit levies", "+15 men this turn", "120", func(): pass))
+	var ir := K.hbox(8); ir.add_child(K.icon_button("close", Callable())); ir.add_child(K.icon_button("gear", Callable())); p.add_child(ir)
+
 func _init() -> void:
+	var ua := OS.get_cmdline_user_args()
+	if ua.size() > 0: OUT = ua[0]
 	DirAccess.make_dir_recursive_absolute(OUT)
 	TBI18n.load_lang("en")
 	await _board("01_controls_paper", Vector2i(1280, 1000), _controls)
@@ -227,8 +253,14 @@ func _init() -> void:
 	await _board("04_modal_landscape", Vector2i(1280, 720), _modal_landscape)
 	await _board("05_modal_hero", Vector2i(1280, 720), _modal_hero)
 	await _board("06_modal_portrait", Vector2i(540, 960), _modal_portrait)
-	await _board("07_controls_hc", Vector2i(1280, 1000), _controls, true)
-	await _board("08_furniture_hc", Vector2i(1280, 720), _furniture, true)
+	await _board("07_controls_hc", Vector2i(1280, 1000), _controls, 1)
+	await _board("08_furniture_hc", Vector2i(1280, 720), _furniture, 1)
+	await _board("09_controls_hc_dark", Vector2i(1280, 1000), _controls, 2)
+	await _board("10_furniture_hc_dark", Vector2i(1280, 720), _furniture, 2)
+	await _board("11_text200_controls", Vector2i(560, 1900), _scale_board, 0, true, 2.0)
+	await _board("12_text200_hc_dark", Vector2i(560, 1900), _scale_board, 2, true, 2.0)
+	await _board("13_text150_portrait_modal", Vector2i(540, 960), _modal_portrait, 0, true, 1.5)
 	TBTokens.mode = TBTokens.Mode.NORMAL
+	K.text_scale = 1.0
 	print("UI KIT SHEET written to ", OUT)
 	quit()
