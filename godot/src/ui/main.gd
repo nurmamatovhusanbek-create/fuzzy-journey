@@ -62,6 +62,12 @@ func _ready() -> void:
 	hud.budget_pressed.connect(func(): TBModals.budget(_overlay, g, func(): hud.refresh()))
 	hud.save_pressed.connect(func(): TBModals.save_load(_overlay, true, _save_slot, _load_slot))
 	hud.settings_pressed.connect(_open_settings)
+	hud.input_blocked_fn = func() -> bool: return mode != "game" or _overlay.get_child_count() > 0
+	hud.mp_waiting_fn = func() -> bool: return mp.in_game
+	hud.goto_province.connect(_goto_province)
+	hud.nation_pressed.connect(_open_nation)
+	hud.offer_answered.connect(func(uid: int, i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}))
+	hud.event_requested.connect(func(uid: int): _shown_events.erase(uid); show_events())
 	resized.connect(func(): panel.layout_for(size); hud.layout_for(size))
 	get_window().size_changed.connect(_update_ui_scale); _update_ui_scale()
 	_apply_quality()
@@ -74,12 +80,27 @@ func _update_ui_scale() -> void:
 	var w := get_window()
 	var s := w.size
 	var k: float = {"small": 1.18, "normal": 1.0, "large": 0.84}.get(cfg.get("ui", "normal"), 1.0)      # bigger logical size = smaller UI
-	var base := Vector2(540, 960) if s.y > s.x else Vector2(1280, 720)
-	w.content_scale_size = Vector2i(int(base.x * k), int(base.y * k))
+	var ppu: float = _px_per_unit(s) / k
+	w.content_scale_size = Vector2i(maxi(320, int(round(s.x / ppu))), maxi(240, int(round(s.y / ppu))))
 	_apply_safe_area()
+
+## physical pixels per logical unit "u" (design/ux/hud.md Q1): ~1 dp on phones (DPI based), 1.5 px/u on a 1080p desktop,
+## and never below 1.0 so an 800x360 window is 800x360u. TB_UI_SCALE overrides it (tests emulating a phone's density).
+func _px_per_unit(s: Vector2i) -> float:
+	var env := OS.get_environment("TB_UI_SCALE")
+	if env != "": return clampf(float(env), 0.5, 4.0)
+	if OS.get_name() in ["Android", "iOS"]:
+		return clampf(DisplayServer.screen_get_dpi() / 160.0, 1.0, 4.0)
+	if s.y > s.x: return clampf(s.x / 360.0, 1.0, 3.0)         # portrait window: 540 px = 360u
+	return clampf(s.y / 720.0, 1.0, 3.0)
 
 ## keep UI clear of notches / rounded corners / gesture bars on phones
 func _apply_safe_area() -> void:
+	var emu := OS.get_environment("TB_SAFE")          # "left,top,right,bottom" in logical units: cutout emulation for screenshots / tests
+	if emu != "":
+		var p := emu.split_floats(",")
+		if p.size() == 4:
+			offset_left = p[0]; offset_top = p[1]; offset_right = -p[2]; offset_bottom = -p[3]; return
 	if not (OS.get_name() in ["Android", "iOS"]):
 		offset_left = 0; offset_top = 0; offset_right = 0; offset_bottom = 0; return
 	var w := get_window()
@@ -559,7 +580,7 @@ func _flush_log() -> void:
 		if not TBChron.toast_worthy(g, e, me): continue
 		var tx := TBChron.text(g, e)
 		if tx != "":
-			hud.toast(tx, TBChron.is_bad(e, me))
+			hud.report_line(tx, TBChron.is_bad(e, me), TBChron.category(e))
 			if String(e["kind"]) == "war" and TBChron.involves(e, me): sfx.play("war")
 			elif String(e["kind"]) in ["event", "ruler"]: sfx.play("event")
 	earned.append_array(TBHonours.on_state(g))
@@ -567,13 +588,7 @@ func _flush_log() -> void:
 	for id in TBHonours.record(g, cfg, earned):
 		hud.toast("%s: %s" % [T.call("honour_earned"), T.call("honour_" + id)], false)
 		sfx.play("event"); _save_cfg()
-	# new crises (since last turn) get an advisor toast
-	var al := TBAdvisor.alerts(g, me)
-	var now := TBAdvisor.crisis_ids(al)
-	for a in al:
-		if a["sev"] == 2 and not _crisis.has(a["id"]):
-			hud.toast(T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)}), true)
-	_crisis = now
+	hud.report_flush(g.battle_fx.size())            # one Turn report chip instead of a toast per line; crises are alert chips (state-based)
 	if g.log.size() > 900:
 		g.log = g.log.slice(g.log.size() - 600); _log_idx = g.log.size()
 
