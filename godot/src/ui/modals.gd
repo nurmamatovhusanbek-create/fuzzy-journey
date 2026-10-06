@@ -277,10 +277,18 @@ static func save_load(parent: Control, saving: bool, on_save: Callable, on_load:
 ## detailed nation card with diplomacy actions; on_cmd(cmd Dictionary), on_goto(n)
 static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, on_goto: Callable) -> void:
 	var me := g.human_id
-	var m := K.modal(parent, g.dname(n), 460)
+	var vs := parent.get_viewport_rect().size
+	var wide := vs.x >= 820.0 and vs.x > vs.y            # landscape: facts on the left, what you can do on the right
+	var m := K.modal(parent, g.dname(n), 860 if wide else 460)
 	var v: VBoxContainer = m[1]
 	v.add_child(TBFlags.chip(g, n, 1.1))
 	v.move_child(v.get_child(v.get_child_count() - 1), 0)
+	var L: Control = v; var R: Control = v
+	if wide:
+		var cols := K.hbox(30); v.add_child(cols)
+		var lv := K.vbox(8); lv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cols.add_child(lv)
+		var rv := K.vbox(8); rv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cols.add_child(rv)
+		L = lv; R = rv
 	var rel := g.get_rel(me, n) if n != me else -1
 	var army := 0
 	for p in g.owned(n): army += g.army[p]
@@ -297,10 +305,10 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 			var tl := K.label("%s — %s" % [T.call("rtr_" + tr), T.call("rtr_%s_d" % tr)], 13, K.DIM)
 			tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size = Vector2(300, 0)
 			rc.add_child(tl)
-		hb.add_child(rc); v.add_child(hb)
+		hb.add_child(rc); L.add_child(hb)
 	var grid := GridContainer.new(); grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 18)
-	v.add_child(grid)
+	L.add_child(grid)
 	var rel_key := ["rel_peace", "rel_war", "rel_nap", "rel_ally", "rel_marriage"]
 	var rows := [
 		[T.call("lands"), str(g.own_count(n))], [T.call("total_army"), K.fmt(army)],
@@ -333,10 +341,11 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 		elif r == 1: enemies.append(g.dname(o))
 	var info := func(title: String, arr: Array):
 		var l := K.label("%s: %s" % [title, ", ".join(arr.slice(0, 6)) + (" …" if arr.size() > 6 else "") if not arr.is_empty() else T.call("none_yet")], 13, K.DIM)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.custom_minimum_size = Vector2(400, 0); v.add_child(l)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.custom_minimum_size = Vector2(300 if wide else 400, 0); L.add_child(l)
 	info.call(T.call("allies"), allies); info.call(T.call("at_war_with"), enemies)
 	var act := HFlowContainer.new(); act.add_theme_constant_override("h_separation", 6); act.add_theme_constant_override("v_separation", 6)
-	v.add_child(act)
+	if wide: R.add_child(K.section(T.call("actions")))
+	R.add_child(act)
 	if n != me:
 		if rel == 1:
 			act.add_child(K.button(T.call("white_peace"), func(): on_cmd.call({"cmd": "peace", "t": n, "kind": "white"}); close(m[0])))
@@ -355,14 +364,16 @@ static func nation_detail(parent: Control, g: TBGame, n: int, on_cmd: Callable, 
 			if rel == 2 or rel == 3:
 				act.add_child(K.button(T.call("break_pact"), func(): on_cmd.call({"cmd": "breakPact", "t": n}); close(m[0])))
 	if n != me and g.rules >= 1:
-		v.add_child(K.label("%s  (%s %.0f)" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]], 13, K.DIM))
-		var sp := HFlowContainer.new(); sp.add_theme_constant_override("h_separation", 6); v.add_child(sp)
+		R.add_child(K.label("%s  (%s %.0f)" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]], 13, K.DIM))
+		var sp := HFlowContainer.new(); sp.add_theme_constant_override("h_separation", 6); sp.add_theme_constant_override("v_separation", 6); R.add_child(sp)
 		for op in ["steal", "sabotage", "incite"]:
 			var cost: float = TBCommands.SPY_COST[op]
 			var b := K.button("%s (%d)" % [T.call("spy_" + op), int(cost)], func(): on_cmd.call({"cmd": "spy", "t": n, "op": op}); close(m[0]))
 			b.disabled = g.intel[me] < cost or g.friendly(me, n)
 			sp.add_child(b)
-	var row := K.hbox(8); v.add_child(row)
+	var row := K.hbox(8)
+	if wide: m[2].add_child(row)
+	else: v.add_child(row)
 	row.add_child(K.button(T.call("back"), func(): close(m[0])))
 	var go := K.button(T.call("goto"), func(): close(m[0]); on_goto.call(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(go)
 

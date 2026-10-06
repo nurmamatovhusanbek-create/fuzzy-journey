@@ -141,13 +141,16 @@ func show_menu() -> void:
 	var bez := MP_.Bezel.new(); bez.map = map; _overlay.add_child(bez); _bezel = bez
 	var holder := CenterContainer.new(); holder.set_anchors_preset(Control.PRESET_FULL_RECT); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.add_child(holder)
+	var card := PanelContainer.new()                       # the title cartouche: a laid sheet over the turning globe
+	card.add_theme_stylebox_override("panel", TBFrame.sheet(40, 30))
+	holder.add_child(card)
 	var v := K.vbox(2)
 	v.custom_minimum_size = Vector2(380, 0)
-	holder.add_child(v)
+	card.add_child(v)
 	var portrait := size.y > size.x
 	var t := K.label(T.call("title"), 54 if not portrait else 38, K.GOLD2)
 	t.add_theme_font_override("font", K.tracked(K.display_hi(), 4 if not portrait else 2))
-	t.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.75)); t.add_theme_constant_override("shadow_offset_y", 2); t.add_theme_constant_override("shadow_offset_x", 0); t.add_theme_constant_override("shadow_outline_size", 5)
+	t.add_theme_color_override("font_shadow_color", Color(1, 0.96, 0.82, 0.55)); t.add_theme_constant_override("shadow_offset_y", 2); t.add_theme_constant_override("shadow_offset_x", 0)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(t)
 	v.add_child(K.ornament())
 	var tag := K.caps(T.call("tagline"), 11, K.TEXT); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(tag)
@@ -160,7 +163,7 @@ func show_menu() -> void:
 	v.add_child(MP_.Entry.new("%s  %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], false, func(): TBModals.honours(_overlay, cfg)))
 	v.add_child(MP_.Entry.new(T.call("settings"), false, _open_settings))
 	var gap2 := Control.new(); gap2.custom_minimum_size = Vector2(0, 10); v.add_child(gap2)
-	var ver := K.caps("terra bellum · godot build", 9, K.DIM); ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(ver)
+	var ver := K.caps("terra bellum · godot build", 10, K.DIM); ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(ver)
 
 func _open_settings() -> void:
 	var prev_lang: String = TBI18n.lang
