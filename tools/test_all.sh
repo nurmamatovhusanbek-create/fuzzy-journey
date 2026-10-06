@@ -24,6 +24,7 @@ run "chronicle/advisor texts have no missing keys" tests/chron_keys.gd
 run "Russian nation names" tests/names_ru.gd
 run "Russian place names" tests/places_ru.gd
 run "synth audio" tests/audio.gd
+run "UI contrast: tokens vs art bible 4.2-4.7 (normal + high contrast)" tests/ui_contrast.gd
 run "soak: random human, 7 eras, invariants" tests/soak.gd
 run "historical events: integrity + firing" tests/hist_events.gd
 echo "== oracle: GDScript engine vs JS reference (rules 0)"; tools/oracle.sh "$GODOT" || fail=1

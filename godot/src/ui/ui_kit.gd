@@ -179,6 +179,10 @@ class VecTex extends Texture2D:
 	func _get_width() -> int: return px if kind != "tick" else 1
 	func _get_height() -> int: return px
 	func _has_alpha() -> bool: return true
+	func _draw_rect(to_canvas_item: RID, rect: Rect2, _tile: bool, _modulate: Color, _transpose: bool) -> void:
+		_draw(to_canvas_item, rect.position + ((rect.size - Vector2(_get_width(), _get_height())) * 0.5).floor(), _modulate, false)
+	func _draw_rect_region(to_canvas_item: RID, rect: Rect2, _src: Rect2, _modulate: Color, _transpose: bool, _clip: bool) -> void:
+		_draw(to_canvas_item, rect.position + ((rect.size - Vector2(_get_width(), _get_height())) * 0.5).floor(), _modulate, false)
 	func _draw(to_canvas_item: RID, pos: Vector2, _modulate: Color, _transpose: bool) -> void:
 		match kind:
 			"thumb":
