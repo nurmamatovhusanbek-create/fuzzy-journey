@@ -44,8 +44,14 @@ class Handle extends RefCounted:
 	var body_wrap: MarginContainer
 	var body: VBoxContainer
 	var footer_wrap: Control
-	var footer: HBoxContainer
+	var footer: BoxContainer
 	var handle_ctl: Control
+	var head_row: HBoxContainer          # header row (tabs and actions move into it on short screens)
+	var short := false                   # viewport height < 480u: page presentation, merged header, no footer
+	var pinned: VBoxContainer            # split dialogs: choices pinned beside / beneath the scrolling narrative
+	var pinned_sc: ScrollContainer
+	var split_wide := false
+	var narrow := false                  # viewport narrower than 480u: footer buttons may wrap
 	var snap := 0.56
 	var pad := 24
 	var fit_pending := false
@@ -55,6 +61,9 @@ class Handle extends RefCounted:
 	func set_title(t: String) -> void:
 		if title_label != null: title_label.text = t; title_label.tooltip_text = t
 	func set_chip(c: Control) -> void:
+		if narrow and K.text_scale >= 1.4:               # no room for a context chip in the header at large text
+			if c != null: c.queue_free()
+			return
 		for ch in chip_slot.get_children(): ch.queue_free()
 		if c != null: chip_slot.add_child(c)
 	func set_tabs(c: Control) -> void:
@@ -64,13 +73,33 @@ class Handle extends RefCounted:
 		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER; sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		sc.follow_focus = true; sc.custom_minimum_size = Vector2(0, TBKit.touch())
 		sc.add_child(c); c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tabs_slot.add_child(sc); tabs_slot.visible = true
+		if short and head_row != null:                 # short screens: the tabs live in the header row (title, tabs, chip, actions)
+			sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			head_row.add_child(sc); head_row.move_child(sc, title_label.get_index() + 1)
+			title_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			tabs_slot.visible = false
+		else:
+			tabs_slot.add_child(sc); tabs_slot.visible = true
 		(func():
 			var tb := c as TBKit.Tabs
 			if tb != null and is_instance_valid(sc) and tb._btns.has(tb.current): sc.ensure_control_visible(tb._btns[tb.current])).call_deferred()
 	func inner_w() -> float: return card.size.x - 2.0 * pad
-	## secondary left, primary right (the primary takes the larger share of the free width)
+	func clear_actions() -> void:
+		for c in footer.get_children(): c.queue_free()
+		if action_slot != null:
+			for c in action_slot.get_children(): c.queue_free()
+	## secondary left, primary right (the primary takes the larger share of the free width). Short pages put the actions in the header.
 	func actions(secondary: Control, primary: Control) -> void:
+		if short and action_slot != null and form == "page":
+			if secondary != null: action_slot.add_child(secondary)
+			if primary != null: action_slot.add_child(primary)
+			return
+		for b in [secondary, primary]:                   # long labels wrap instead of widening the card (narrow screens, text size 150 / 200 %)
+			if (narrow or K.text_scale >= 1.4) and b is Button and (b as Button).autowrap_mode == TextServer.AUTOWRAP_OFF: (b as Button).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; (b as Button).clip_text = false
+		if footer.vertical:                               # narrow + large text: stacked, the primary first (top)
+			for b2 in [primary, secondary]:
+				if b2 != null: (b2 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL; footer.add_child(b2)
+			return
 		if secondary != null: footer.add_child(secondary)
 		var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sp.size_flags_stretch_ratio = 0.35; sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		footer.add_child(sp)
@@ -88,6 +117,16 @@ static func profile(vs: Vector2) -> String:
 	return "D"
 
 static func is_portrait(vs: Vector2) -> bool: return vs.y > vs.x
+
+## below this height (logical px) wide panels and drawers become full-screen pages (modal-system.md 5.2)
+const SHORT_H := 480.0
+static func is_short(vs: Vector2) -> bool: return vs.y < SHORT_H and vs.y <= vs.x
+
+## page presentation (list / detail stacked with a Back arrow): portrait phones and short landscape screens
+static func stacked(vs: Vector2) -> bool: return vs.y > vs.x or vs.y < SHORT_H
+
+## hardware input expected (desktop, or a keyboard / pad was used): modals focus their first control so Tab / arrows / Enter work from a cold start
+static func wants_focus() -> bool: return TBFrame.kbd_nav or not OS.has_feature("mobile")
 
 static func top(overlay: Node) -> Handle:
 	var t: Handle = null
@@ -172,15 +211,18 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	h.dismissable = bool(opts.get("dismissable", true))
 	h.on_back = opts.get("on_back", Callable())
 	h.on_dismiss = opts.get("on_dismiss", Callable())
-	h.modal = kind != Kind.DRAWER
 	var vp0: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
 	var portrait := is_portrait(vp0)
+	var short := is_short(vp0)
 	h.wide = bool(opts.get("wide", false))
 	match kind:
 		Kind.DIALOG: h.form = "dialog"
-		Kind.DRAWER: h.form = "sheet" if portrait else "drawer"
-		_: h.form = "page" if portrait else "panel"
-	h.pad = 16 if portrait else 24
+		Kind.DRAWER: h.form = "sheet" if portrait else ("page" if short else "drawer")
+		_: h.form = "page" if (portrait or short) else "panel"
+	h.modal = kind != Kind.DRAWER or h.form == "page"
+	h.short = short and h.form in ["page", "dialog"]
+	h.narrow = vp0.x < 480.0
+	h.pad = 16 if portrait else (12 if short else 24)
 	# at most one panel: a new drawer / panel replaces the old one (dialogs may stack above a panel)
 	if kind != Kind.DIALOG:
 		for ch in parent.get_children():
@@ -249,16 +291,19 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	if title_text != "" and not h.hero:
 		var hm := MarginContainer.new()
 		hm.add_theme_constant_override("margin_left", 12 if h.form == "page" else 16); hm.add_theme_constant_override("margin_right", 6)
-		var hb := K.hbox(10); hb.custom_minimum_size = Vector2(0, K.touch() + 4)
-		hm.add_child(hb)
+		var hb := K.hbox(10 if not h.short else 8); hb.custom_minimum_size = Vector2(0, K.touch() + (4 if not h.short else 0))
+		hm.add_child(hb); h.head_row = hb
 		if h.form == "page":
 			var bb := K.IconBtn.new("back", func(): pop_handle(h), 40)
 			K.a11y(bb, T.call("back"), "button"); hb.add_child(bb); h.back_btn = bb
 		elif glyph_id != "":
 			var gl := K.glyph(glyph_id, 24, TBTokens.c("oxblood")); gl.custom_minimum_size = Vector2(28, 28); hb.add_child(gl)
-		var tl := K.title(title_text, 20 if portrait else 22)
+		var tl := K.title(title_text, 20 if (portrait or short) else 22)
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; tl.custom_minimum_size.x = 40; tl.tooltip_text = title_text
+		tl.custom_minimum_size.x = 40; tl.tooltip_text = title_text
+		if h.form == "dialog": tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART           # a dialog title wraps (a confirm names the act), page titles ellipsize
+		else: tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		if h.short: tl.custom_minimum_size.x = 120
 		hb.add_child(tl); h.title_label = tl
 		var chips := K.hbox(6); chips.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(chips); h.chip_slot = chips
 		var acts := K.hbox(4); hb.add_child(acts); h.action_slot = acts
@@ -279,12 +324,33 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	var wrap := MarginContainer.new()
 	var side: int = pad if padded else 0
 	wrap.add_theme_constant_override("margin_left", side); wrap.add_theme_constant_override("margin_right", side)
-	wrap.add_theme_constant_override("margin_top", 12 if padded else 0); wrap.add_theme_constant_override("margin_bottom", 12 if padded else 0)
-	var body := K.vbox(10)
+	wrap.add_theme_constant_override("margin_top", (12 if not h.short else 6) if padded else 0); wrap.add_theme_constant_override("margin_bottom", (12 if not h.short else 6) if padded else 0)
+	var body := K.vbox(10 if not h.short else 8)
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrap.add_child(body)
 	h.body_wrap = wrap; h.body = body
-	if bool(opts.get("scroll", true)):
+	var split: bool = bool(opts.get("split", false)) and kind == Kind.DIALOG
+	if split:
+		# hero dialog with pinned choices: the narrative scrolls, the choices (h.pinned) stay on screen beside it (wide) or beneath it
+		h.split_wide = bool(opts.get("split_wide", false))
+		var sp := BoxContainer.new(); sp.vertical = not h.split_wide
+		sp.add_theme_constant_override("separation", 24 if h.split_wide else 8)
+		sp.size_flags_vertical = Control.SIZE_EXPAND_FILL; sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var sc0 := ScrollContainer.new()
+		sc0.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		sc0.follow_focus = true; sc0.scroll_deadzone = 12
+		sc0.size_flags_vertical = Control.SIZE_EXPAND_FILL; sc0.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sc0.add_child(wrap); wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sp.add_child(sc0); h.scroll = sc0
+		var psc := ScrollContainer.new()
+		psc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		psc.follow_focus = true; psc.scroll_deadzone = 12
+		psc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; psc.size_flags_vertical = Control.SIZE_EXPAND_FILL if h.split_wide else Control.SIZE_SHRINK_END
+		var pv := K.vbox(10 if not h.short else 8); pv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		psc.add_child(pv); sp.add_child(psc)
+		h.pinned = pv; h.pinned_sc = psc
+		outer.add_child(sp)
+	elif bool(opts.get("scroll", true)):
 		var sc := ScrollContainer.new()
 		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		sc.follow_focus = true; sc.scroll_deadzone = 12
@@ -302,8 +368,9 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	fw.add_child(frule)
 	var fm := MarginContainer.new()
 	fm.add_theme_constant_override("margin_left", side if padded else pad); fm.add_theme_constant_override("margin_right", side if padded else pad)
-	fm.add_theme_constant_override("margin_top", 8); fm.add_theme_constant_override("margin_bottom", 8)
-	var foot := K.hbox(8)
+	fm.add_theme_constant_override("margin_top", 8 if not h.short else 4); fm.add_theme_constant_override("margin_bottom", 8 if not h.short else 4)
+	var foot := BoxContainer.new(); foot.add_theme_constant_override("separation", 8)
+	foot.vertical = K.text_scale >= 1.4 and vp0.x < 700.0               # narrow and large text: the buttons stack instead of overflowing
 	fm.add_child(foot); fw.add_child(fm)
 	outer.add_child(fw); h.footer_wrap = fw; h.footer = foot
 	foot.child_order_changed.connect(func(): fw.visible = foot.get_child_count() > 0; _queue_fit(h))
@@ -313,11 +380,15 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	var guard := Guard.new(); guard.h = h
 	root.add_child(guard)
 	if opener != null and h.modal: parent.get_viewport().gui_release_focus()
-	root.tree_exiting.connect(func(): if is_instance_valid(opener) and opener.is_inside_tree() and opener.focus_mode != Control.FOCUS_NONE: opener.grab_focus.call_deferred())
+	var opener_ref: WeakRef = weakref(opener)                    # a weak reference: the opener (a title entry, a card) may be gone when this closes
+	root.tree_exiting.connect(func():
+		var op: Object = opener_ref.get_ref()
+		if op is Control and is_instance_valid(op) and (op as Control).is_inside_tree() and (op as Control).focus_mode != Control.FOCUS_NONE: (op as Control).grab_focus.call_deferred())
 	h.focus_target = opts.get("focus", null)
-	if TBFrame.kbd_nav: _focus_first.call_deferred(h)
+	if wants_focus(): _focus_first.call_deferred(h)
 	root.resized.connect(func(): _layout(h))
 	body.minimum_size_changed.connect(func(): _queue_fit(h))
+	if h.pinned != null: h.pinned.minimum_size_changed.connect(func(): _queue_fit(h))
 	foot.minimum_size_changed.connect(func(): _queue_fit(h))
 	_layout(h)
 	_queue_fit(h)
@@ -388,7 +459,7 @@ static func _fit_dialog(h: Handle) -> void:
 	else: w = minf(vs.x - 32.0, 460.0 if portrait else 440.0)
 	var c := h.card
 	c.custom_minimum_size = Vector2(w, 0)
-	var cap: float = vs.y - (24.0 if portrait else 40.0)
+	var cap: float = vs.y - (24.0 if (portrait or h.short) else 40.0)
 	if h.scroll != null:
 		var chrome: float = 0.0
 		if h.head != null: chrome += h.head.get_combined_minimum_size().y + 1.0
@@ -396,7 +467,18 @@ static func _fit_dialog(h: Handle) -> void:
 		if h.footer_wrap.visible: chrome += h.footer_wrap.get_combined_minimum_size().y
 		var frame: float = 4.0 if not h.hero else float(h.pad * 2 + 8)
 		var body_min: float = h.body_wrap.get_combined_minimum_size().y
-		h.scroll.custom_minimum_size.y = maxf(minf(body_min, cap - chrome - frame), 40.0)
+		var avail: float = cap - chrome - frame
+		if h.pinned != null:
+			var pm: float = h.pinned.get_combined_minimum_size().y
+			if h.split_wide:
+				h.scroll.custom_minimum_size.y = clampf(maxf(body_min, pm), 40.0, maxf(avail, 40.0))
+				h.pinned_sc.custom_minimum_size.y = 0.0
+			else:
+				var ph: float = minf(pm, avail * 0.6)
+				h.pinned_sc.custom_minimum_size.y = ph
+				h.scroll.custom_minimum_size.y = clampf(body_min, 40.0, maxf(avail - ph - 8.0, 40.0))
+		else:
+			h.scroll.custom_minimum_size.y = maxf(minf(body_min, avail), 40.0)
 	c.size = Vector2(w, 0)
 	c.reset_size()
 	c.position = ((vs - c.size) * 0.5).floor()
@@ -424,6 +506,14 @@ static func para(text: String, size: int = 15, color: Color = Color.TRANSPARENT)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.custom_minimum_size.x = 40
 	return l
+
+## section caption + hairline; at large text the caption wraps instead of widening the page
+static func section(text: String) -> HBoxContainer:
+	var h := K.section(text)
+	if K.text_scale >= 1.4 and h.get_child_count() > 0 and h.get_child(0) is Label:
+		var l: Label = h.get_child(0)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.custom_minimum_size.x = 40; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return h
 
 ## row of equal wrapping chips
 static func flow(sep: int = 6) -> HFlowContainer:
@@ -507,7 +597,7 @@ static func confirm(parent: Control, title_text: String, text: String, confirm_l
 	var yes: Button = K.danger(confirm_label, func(): h.close(); on_yes.call(), "warning") if danger else K.button(confirm_label, func(): h.close(); on_yes.call(), true)
 	h.actions(cancel, yes)
 	h.focus_target = cancel
-	if TBFrame.kbd_nav: cancel.grab_focus.call_deferred()
+	if wants_focus(): cancel.grab_focus.call_deferred()
 	return h
 
 # ---- card: command-card look with effect / cost chips (event choices, diplomacy and spy actions) ------------------------------------------------
@@ -586,7 +676,7 @@ class Card extends PanelContainer:
 static func card(glyph_id: String, title_text: String, detail: String, chips: Array, cb: Callable, reason: String = "", rec: bool = false, below: bool = true) -> Card:
 	return Card.new(glyph_id, title_text, detail, chips, cb, reason, rec, below)
 
-# ---- selectable chip button (filters, tiers, legend toggles): selected = ink fill + cream text + check glyph, never colour alone -----------------------------
+# ---- selectable chip button (filters, tiers, legend toggles): selected = paper-2 fill + 3 px oxblood bar + check glyph (never a black slab, never colour alone) ----
 class ChipBtn extends Button:
 	var on := false
 	func _init(txt: String, selected: bool, cb: Callable) -> void:
@@ -596,21 +686,77 @@ class ChipBtn extends Button:
 		set_on(selected)
 	func set_on(v: bool) -> void:
 		on = v
-		var fills: Array = ["ink_0", "ink_0", "ink_0"] if on else ["paper_1", "paper_hover", "paper_2"]
-		var border: String = "" if on else "rule"
-		var px: float = 10.0 if not on else 10.0
-		var sf := TBKit._pl(fills[0], border, 4, 0, px, 6); if on: sf.set_content_margin(SIDE_LEFT, 26.0)
-		var hf := TBKit._pl(fills[1], border, 4, 0, px, 6); if on: hf.set_content_margin(SIDE_LEFT, 26.0)
-		var pf := TBKit._pl(fills[2], border, 4, 0, px, 6); if on: pf.set_content_margin(SIDE_LEFT, 26.0)
+		var fills: Array = ["paper_2", "paper_2", "paper_2"] if on else ["paper_0", "paper_hover", "paper_2"]
+		var border: String = "ink_1" if on else "rule"
+		var sf := TBKit._pl(fills[0], border, 4, 0, 10.0, 6); if on: sf.set_content_margin(SIDE_LEFT, 28.0)
+		var hf := TBKit._pl(fills[1], border, 4, 0, 10.0, 6); if on: hf.set_content_margin(SIDE_LEFT, 28.0)
+		var pf := TBKit._pl(fills[2], border, 4, 0, 10.0, 6); if on: pf.set_content_margin(SIDE_LEFT, 28.0)
 		add_theme_stylebox_override("normal", sf); add_theme_stylebox_override("hover", hf)
 		add_theme_stylebox_override("pressed", pf); add_theme_stylebox_override("hover_pressed", pf)
 		add_theme_font_size_override("font_size", TBKit.fs(14))
-		add_theme_stylebox_override("focus", TBFrame.focus(on, 4, 0))
-		var tc: Color = TBTokens.c("cream" if on else "ink_0")
+		add_theme_font_override("font", TBKit.body_b() if on else TBKit.body())
+		add_theme_stylebox_override("focus", TBFrame.focus(false, 4, 0))
+		var tc: Color = TBTokens.c("ink_0")
 		for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]: add_theme_color_override(fc, tc)
 		queue_redraw()
 	func _draw() -> void:
-		if on: TBGlyph.draw_filled(self, "check", Vector2(15, roundf(size.y * 0.5)), 14.0, TBTokens.c("cream"))
+		if on:
+			TBGlyph.draw_filled(self, "check", Vector2(15, roundf(size.y * 0.5)), 14.0, TBTokens.c("oxblood"))
+			draw_rect(Rect2(4, size.y - 3, size.x - 8, 3), TBTokens.c("oxblood"))
+
+
+# ---- compact segmented control: 40 high, selected = paper-2 fill + heavier text + 3 px oxblood bottom bar (the lighter treatment of art review A-2) ----
+class SegCell extends Button:
+	var on := false
+	func _draw() -> void:
+		if on: draw_rect(Rect2(0, size.y - 3, size.x, 3), TBTokens.c("oxblood"))
+
+class Seg extends PanelContainer:
+	signal chosen(id: String)
+	var current := ""
+	var _btns := {}
+	func setup(items: Array, cur: String) -> Seg:
+		current = cur
+		add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1))
+		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 1); add_child(row)
+		var n := items.size()
+		for i in n:
+			var id: String = items[i][0]
+			var b := SegCell.new(); b.text = String(items[i][1]); b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.custom_minimum_size = Vector2(0, TBKit.touch() - 8)
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.set_meta("mask", (TBFrame.TL | TBFrame.BL if i == 0 else 0) | (TBFrame.TR | TBFrame.BR if i == n - 1 else 0))
+			b.pressed.connect(func(): select(id, true))
+			row.add_child(b); _btns[id] = b
+		_restyle()
+		return self
+	func select(id: String, emit: bool = false) -> void:
+		current = id; _restyle()
+		if emit: chosen.emit(id)
+	func _restyle() -> void:
+		for k in _btns:
+			var b: SegCell = _btns[k]
+			var on: bool = k == current
+			var m: int = b.get_meta("mask")
+			var fills: Array = ["paper_2", "paper_2", "paper_2"] if on else ["paper_0", "paper_hover", "paper_2"]
+			b.add_theme_stylebox_override("normal", TBKit._pl(fills[0], "", 4, 0, 10.0, 6, false, 1.0, m))
+			b.add_theme_stylebox_override("hover", TBKit._pl(fills[1], "", 4, 0, 10.0, 6, false, 1.0, m))
+			b.add_theme_stylebox_override("pressed", TBKit._pl(fills[2], "", 4, 0, 10.0, 6, false, 1.0, m))
+			b.add_theme_stylebox_override("hover_pressed", TBKit._pl(fills[2], "", 4, 0, 10.0, 6, false, 1.0, m))
+			b.add_theme_stylebox_override("focus", TBFrame.focus(false, 0, 2))
+			b.add_theme_font_override("font", TBKit.body_b() if on else TBKit.body())
+			b.add_theme_font_size_override("font_size", TBKit.fs(14))
+			var tc: Color = TBTokens.c("ink_0")
+			for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]: b.add_theme_color_override(fc, tc)
+			b.on = on
+			b.set_pressed_no_signal(false)
+			b.tooltip_text = b.text if on else ""
+			b.queue_redraw()
+
+static func seg(items: Array, current: String, cb: Callable) -> Seg:
+	var s := Seg.new().setup(items, current)
+	s.chosen.connect(cb)
+	return s
 
 static func chip_button(txt: String, selected: bool, cb: Callable) -> ChipBtn:
 	return ChipBtn.new(txt, selected, cb)

@@ -77,10 +77,22 @@ static func text(g: TBGame, e: Dictionary) -> String:
 			return T.call("e_spy_hit", {"a": a, "op": op}) if e["ok"] else T.call("e_spy_caught", {"a": a})
 		"event":
 			var t: String = T.call("ev_%s_t" % e["id"]) if TBI18n.has_key("ev_%s_t" % e["id"]) else _loc(e.get("title", {}))
-			return "%s %s" % [e.get("icon", "📜"), t if a == "" or e.get("world", false) else "%s: %s" % [a, t]]
+			return t if a == "" or e.get("world", false) else "%s: %s" % [a, t]
 		"event_choice":
 			return ""
 	return ""
+
+## icon of an event entry as a TBGlyph id (data icons are glyph ids; old emoji values are mapped so nothing renders as tofu); "" for other entries
+const EMOJI_GLYPH := {"⚔": "swords", "🗡": "swords", "🪖": "men", "💥": "swords", "🏹": "swords", "☢": "warning", "⚡": "warning", "🔥": "warning", "🌊": "warning", "⛈": "warning", "❄": "warning", "🥶": "warning", "☄": "warning",
+	"👑": "crown", "⚜": "crown", "🏛": "crown", "🏰": "crown", "🌹": "crown", "🕊": "dove", "🤝": "dove", "☮": "dove", "📜": "scroll", "📨": "scroll", "🗺": "scroll", "📚": "book", "🎓": "book",
+	"☠": "skull", "⚰": "skull", "🦠": "skull", "🤒": "skull", "💰": "coins", "💸": "coins", "💵": "coins", "💎": "coins", "🏦": "coins", "🛡": "shield", "🧱": "shield", "⛓": "shield",
+	"🚩": "flag", "🏴": "flag", "🇮🇹": "flag", "🇫🇷": "flag", "🇪🇸": "flag", "🇩🇪": "flag", "🇺🇸": "flag", "🇮🇳": "flag", "🇨🇳": "flag", "🌍": "globe", "🌏": "globe", "⚓": "globe", "🚢": "globe", "⛵": "globe"}
+
+static func glyph(e: Dictionary) -> String:
+	if String(e.get("kind", "")) != "event": return ""
+	var raw := String(e.get("icon", ""))
+	if raw != "" and TBGlyph.G.has(raw): return raw
+	return String(EMOJI_GLYPH.get(raw, "scroll"))
 
 ## toast severity: true = bad news for `me`
 static func is_bad(e: Dictionary, me: int) -> bool:

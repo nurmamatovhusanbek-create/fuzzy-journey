@@ -23,10 +23,47 @@ func _walk(n: Node, vp: Rect2, clip_depth: int) -> void:
 				if ctl is Label and (ctl as Label).autowrap_mode == TextServer.AUTOWRAP_OFF and (ctl as Label).text_overrun_behavior == TextServer.OVERRUN_NO_TRIMMING:
 					var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 					if w > gr.size.x + 2: _add("clipped-label", ctl, "'%s' needs %d has %d" % [txt.left(30), int(w), int(gr.size.x)])
-				elif ctl is Button and not (ctl as Button).clip_text:
+				elif ctl is Button and not (ctl as Button).clip_text and (ctl as Button).autowrap_mode == TextServer.AUTOWRAP_OFF:
 					var w2 := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 					if w2 > gr.size.x - 4: _add("clipped-button", ctl, "'%s' needs %d has %d" % [txt.left(30), int(w2), int(gr.size.x)])
 		_walk(c, vp, sd)
+
+## layout assertions (ux review gate): answers / primaries fully on screen, title entries never overlap each other or the tools row
+func _collect(n: Node, out: Array) -> void:
+	for c in n.get_children():
+		if c is Control and (c as Control).is_visible_in_tree():
+			if c is Button or c.get_script() != null and (c as Control).focus_mode == Control.FOCUS_ALL: out.append(c)
+		_collect(c, out)
+
+func _widest(n: Node, out: Array, depth: int = 0) -> void:
+	for c in n.get_children():
+		if c is Control and (c as Control).is_visible_in_tree():
+			out.append([(c as Control).get_combined_minimum_size().x, "%s%s %s" % ["  ".repeat(depth), c.get_class(), str(c.name)]])
+		_widest(c, out, depth + 1)
+
+func _in_hscroll(c: Node) -> bool:
+	var p := c.get_parent()
+	while p != null:
+		if p is ScrollContainer and (p as ScrollContainer).horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED: return true
+		p = p.get_parent()
+	return false
+
+func _assert_rects(name: String, root: Node, vp: Rect2) -> void:
+	var btns: Array = []
+	_collect(root, btns)
+	if name in ["title", "pick_card", "event_rand", "event_sched", "ultimatum", "confirm"]:
+		for b in btns:
+			var r: Rect2 = (b as Control).get_global_rect()
+			if r.size.x < 2.0: continue
+			if text_scale > 1.4 and name == "title": continue                    # the title column scrolls at large text
+			if _in_hscroll(b): continue                                         # a horizontally scrolling rail (shortlist, tabs)
+			if not vp.grow(2.0).encloses(r): _add("NOT-ON-SCREEN", b, "%s %s" % [str(r), (b as Button).text if b is Button else b.get_class()])
+	if name == "title":
+		for i in btns.size():
+			for j in range(i + 1, btns.size()):
+				var a: Control = btns[i]; var b2: Control = btns[j]
+				if a.is_ancestor_of(b2) or b2.is_ancestor_of(a): continue
+				if a.get_global_rect().grow(-1.0).intersects(b2.get_global_rect().grow(-1.0)) and text_scale <= 1.4: _add("OVERLAP", a, "%s x %s" % [str(a.get_global_rect()), str(b2.get_global_rect())])
 
 func _add(kind: String, ctl: Control, extra: String) -> void:
 	var key := "%s | %s | %s" % [_ctx, kind, ctl.get_class()]
@@ -118,6 +155,12 @@ func _init() -> void:
 				main.map.fly_to(main.world.lon[g.capital_of[fr]], main.world.lat[g.capital_of[fr]], 3.0)
 				await _frames(6)
 			_walk(main._overlay, vp, 0)
+			_assert_rects(name, main._overlay, vp)
+			if OS.get_environment("TB_DEBUG_W") == name:
+				var ws: Array = []
+				_widest(main._overlay, ws)
+				ws.sort_custom(func(a, b): return a[0] > b[0])
+				for k in mini(14, ws.size()): print("WIDE ", ws[k][0], " ", ws[k][1])
 			root.get_viewport().get_texture().get_image().save_png("%s/%s_%s.png" % [out, tag, name])
 			if name in ["pick", "pick_card", "pick_list", "title", "newgame"]:
 				main.g = g

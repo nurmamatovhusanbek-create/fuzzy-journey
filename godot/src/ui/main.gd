@@ -170,43 +170,70 @@ var _bezel: Control
 
 func show_menu() -> void:
 	mode = "menu"; _spin = true; _pick_flow = null
-	if map.mode == 0:                                       # back to the whole globe inside the ring (the game may have left it zoomed)
+	var vs: Vector2 = size if size.x > 2.0 else get_viewport_rect().size
+	var portrait := vs.y > vs.x
+	var short: bool = vs.y < 480.0 and not portrait
+	var tools_h: float = float(K.touch())
+	if map.mode == 0:                                       # whole globe inside the ring, sized so the ring clears the tools row (and fits the width in portrait)
 		map.set_mode(0)
-		if size.y > size.x: map.zoom = 1.09; map._push_view()          # portrait: ring = min(w - 24, 0.62 h)
+		var base: float = minf(vs.x, vs.y) * 0.44
+		var r_max: float = ((vs.y * 0.5 - tools_h - 10.0) / 1.103) if not portrait else minf((vs.x - 28.0) * 0.5 / 1.103, (vs.y - tools_h * 2.0 - 30.0) * 0.5 / 1.103)
+		if short: r_max = maxf(r_max, 120.0)
+		map.zoom = clampf(r_max / base, 0.55, 1.0); map._push_view()
 	hud.visible = false; panel.visible = false; _clear_overlay(); map.labels.visible = false
 	var bez := MP_.Bezel.new(); bez.map = map; _overlay.add_child(bez); _bezel = bez
-	var portrait := size.y > size.x
-	var holder := CenterContainer.new(); holder.set_anchors_preset(Control.PRESET_FULL_RECT); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_overlay.add_child(holder)
-	var v := K.vbox(8)                                      # light-on-dark text straight on the dimmed globe, inside the bezel ring
-	v.custom_minimum_size = Vector2(340, 0)
+	# layout: [ scrolling centre column (wordmark + text rows) ] over [ tools row ]; the column scrolls instead of covering anything
+	var frame := VBoxContainer.new(); frame.set_anchors_preset(Control.PRESET_FULL_RECT); frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_theme_constant_override("separation", 0)
+	frame.offset_left = 12; frame.offset_right = -12; frame.offset_top = 6; frame.offset_bottom = -6
+	_overlay.add_child(frame)
+	var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.follow_focus = true; sc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(sc)
+	var holder := CenterContainer.new(); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.add_child(holder)
+	sc.resized.connect(_sync_title_holder.bind(sc, holder))      # centre vertically while it fits, scroll when it does not
+	var colw: float = clampf(vs.x - 40.0, 240.0, 380.0)
+	var v := K.vbox(2 if short else 8)
 	holder.add_child(v)
-	var t := K.label(T.call("title"), 54 if not portrait else 34, TBTokens.c("brass_lt"))
-	t.add_theme_font_override("font", K.tracked(K.wordmark(), 4 if not portrait else 2))
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(t)
-	var orn := K.ornament(); orn.col = TBTokens.ca("brass_lt", 0.7); v.add_child(orn)
-	var tag := K.caps(T.call("tagline"), 12, TBTokens.c("smoke")); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(tag)
-	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 10); v.add_child(gap)
+	var wm: String = T.call("title")
+	var wm_max: int = 30 if short else (54 if not portrait else 40)
+	var wm_font: Font = K.tracked(K.wordmark(), 2 if (portrait or short) else 4)
+	var wm_avail: float = vs.x - 32.0 if portrait else minf(vs.x - 32.0, 420.0 if short else 560.0)
+	var wm_size: int = wm_max
+	while wm_size > 14 and wm_font.get_string_size(wm, HORIZONTAL_ALIGNMENT_LEFT, -1, K.fs(wm_size)).x > wm_avail: wm_size -= 1        # fits at every text size
+	var t := K.label(wm, wm_size, TBTokens.c("brass_lt"))
+	t.add_theme_font_override("font", wm_font)
+	t.add_theme_constant_override("outline_size", 4); t.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9))
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(t)
+	if not short:
+		var orn := K.ornament(); orn.col = TBTokens.ca("brass_lt", 0.7); v.add_child(orn)
+		var tag := K.caps(T.call("tagline"), 12, TBTokens.c("smoke")); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tag.custom_minimum_size.x = 40; tag.add_theme_constant_override("outline_size", 3); tag.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9)); v.add_child(tag)
+		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); v.add_child(gap)
 	var am := TBSave.meta("auto")
 	var plates: Array = []
+	var cmp: bool = short
 	if not am.is_empty():
 		var yr: int = int(am.get("year", 0))
 		var sub := "%s · %s %d%s" % [String(am.get("nation", "")), T.call("turn"), int(am.get("turn", 0)), (" · " + (("%d BC" % -yr) if yr < 0 else ("%d AD" % yr))) if yr != 0 else ""]
-		plates.append(MP_.Plate.new(T.call("continue"), sub, true, func(): _load_slot("auto")))
+		plates.append(MP_.Plate.new(T.call("continue"), sub, true, func(): _load_slot("auto"), "", cmp))
 	elif FileAccess.file_exists(TBSave.path_for("auto")):
-		plates.append(MP_.Plate.new(T.call("continue"), "", false, Callable(), T.call("autosave_unreadable")))
-	plates.append(MP_.Plate.new(T.call("new_game"), "", am.is_empty() and not FileAccess.file_exists(TBSave.path_for("auto")), func(): _open_era_picker()))
+		plates.append(MP_.Plate.new(T.call("continue"), "", false, Callable(), T.call("autosave_unreadable"), cmp))
+	plates.append(MP_.Plate.new(T.call("new_game"), "", am.is_empty() and not FileAccess.file_exists(TBSave.path_for("auto")), func(): _open_era_picker(), "", cmp))
 	var saves := 0
 	for sl in ["auto", "1", "2", "3", "4", "5"]:
 		if not TBSave.meta(sl).is_empty(): saves += 1
-	plates.append(MP_.Plate.new(T.call("load"), T.call("n_saves", {"n": saves}) if saves > 0 else "", false, func(): _open_menu_hub("saves"), T.call("no_saves_yet") if saves == 0 else ""))
-	plates.append(MP_.Plate.new(T.call("multiplayer"), "", false, func(): mp.open_menu()))
-	for pl in plates: v.add_child(pl)
-	# tools row: Honours n/19, Settings, How to play, language
-	var tools := HFlowContainer.new(); tools.alignment = FlowContainer.ALIGNMENT_CENTER
-	tools.add_theme_constant_override("h_separation", 8); tools.add_theme_constant_override("v_separation", 8)
-	tools.set_anchors_preset(Control.PRESET_BOTTOM_WIDE); tools.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	tools.offset_left = 12; tools.offset_right = -12; tools.offset_bottom = -14
+	plates.append(MP_.Plate.new(T.call("load"), T.call("n_saves", {"n": saves}) if saves > 0 else "", false, func(): _open_menu_hub("saves"), T.call("no_saves_yet") if saves == 0 else "", cmp))
+	plates.append(MP_.Plate.new(T.call("multiplayer"), "", false, func(): mp.open_menu(), "", cmp))
+	for pl in plates: pl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; (pl as Control).custom_minimum_size.x = minf(colw, 340.0); v.add_child(pl)
+	# tools row: Honours n/19, Settings, How to play, EN | RU | UZ (small text buttons, wraps in portrait)
+	var tools := HFlowContainer.new(); tools.alignment = FlowContainer.ALIGNMENT_CENTER; tools.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tools.add_theme_constant_override("h_separation", 6); tools.add_theme_constant_override("v_separation", 0)
+	tools.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tools.add_child(MP_.ToolChip.new("trophy", "%s %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], func(): _open_menu_hub("honours")))
 	tools.add_child(MP_.ToolChip.new("gear", T.call("settings"), func(): _open_menu_hub("settings")))
 	tools.add_child(MP_.ToolChip.new("book", T.call("tut_help"), func(): _open_menu_hub("howto")))
@@ -214,14 +241,19 @@ func show_menu() -> void:
 	ls.chosen.connect(func(code: String):
 		cfg["lang"] = code; _save_cfg(); TBI18n.load_lang(code); show_menu())
 	tools.add_child(ls)
-	_overlay.add_child(tools)
+	frame.add_child(tools)
 	var vtxt := str(ProjectSettings.get_setting("application/config/version", "")).strip_edges().trim_prefix("v")
 	var ver := K.label("v" + (vtxt if vtxt != "" else "dev"), 12, TBTokens.c("smoke"))
-	ver.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT); ver.grow_horizontal = Control.GROW_DIRECTION_BEGIN; ver.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	ver.offset_right = -12; ver.offset_bottom = -4 if portrait else -26
-	if not portrait: ver.offset_bottom = -4
+	ver.set_anchors_preset(Control.PRESET_TOP_RIGHT); ver.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	ver.offset_right = -10; ver.offset_top = 6; ver.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ver.add_theme_constant_override("outline_size", 3); ver.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9))
 	_overlay.add_child(ver)
-	if TBFrame.kbd_nav and not plates.is_empty(): (plates[0] as Control).grab_focus.call_deferred()
+	if TBPanel.wants_focus():                                # keyboard / gamepad cold start: the first enabled entry has focus (Up / Down / Enter / Space)
+		for pl in plates:
+			if not (pl as Button).disabled: (pl as Control).grab_focus.call_deferred(); break
+
+func _sync_title_holder(sc: Control, holder: Control) -> void:
+	if is_instance_valid(holder) and is_instance_valid(sc): holder.custom_minimum_size = Vector2(0, sc.size.y)
 
 ## a panel over the title: the globe stops, the ring dims; both come back when the last panel closes
 func _title_panel_opened(h: TBPanel.Handle) -> void:
@@ -396,11 +428,9 @@ func _start_game(n: int) -> void:
 	hud.set_seal_pulse(not cfg.get("seal_seen", false))
 	_select(-1)
 	_autosave()
-	if not cfg.get("tutorial", false):
-		cfg["tutorial"] = true; _save_cfg()
-		TBModals.tutorial(_overlay, func(): TBModals.briefing(_overlay, g, func(): pass))
-	else:
-		TBModals.briefing(_overlay, g, func(): pass)
+	var first_run: bool = not cfg.get("tutorial", false)
+	if first_run: cfg["tutorial"] = true; _save_cfg()
+	TBModals.first_turn(_overlay, g, first_run)                  # tutorial (first game) + briefing; Skip on the tutorial skips both in one tap
 
 # ---------------------------------------------------------------- input
 func _on_pick(p: int, secondary: bool) -> void:
@@ -541,8 +571,17 @@ func show_events() -> void:
 		_shown_events[e["uid"]] = true
 		sfx.play("event")
 		var uid: int = e["uid"]
-		TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}), g)
+		TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}), g, func(): _defer_event(uid))
 		return                      # one at a time; the next shows after this one is answered
+
+## "Decide later": the prompt closes, the event stays pending and waits as an Event chip in the ticker (HUD API defer_event); without it, a toast and a re-prompt after End Turn
+func _defer_event(uid: int) -> void:
+	if hud.has_method("defer_event"): hud.call("defer_event", uid)
+	else:
+		hud.toast(T.call("decide_later_toast"))
+		hud.end_turn_pressed.connect(func(): _shown_events.erase(uid), CONNECT_ONE_SHOT)
+	hud.refresh()
+	show_events()
 
 func _after_change() -> void:
 	show_events()
