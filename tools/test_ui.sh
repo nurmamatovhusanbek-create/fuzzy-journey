@@ -12,6 +12,11 @@ run() {
 for sd in 1 2 3 4; do run tests/ui_monkey.gd -- 160 $sd; done
 run tests/ui_hotseat.gd
 out=$(TB_NOANIM=1 timeout 120 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_back.gd 2>&1); echo "$out" | grep -q "UIBACK OK" && echo "ok: tests/ui_back.gd" || { echo "FAIL: tests/ui_back.gd"; echo "$out" | grep -E "FAIL|SCRIPT"; fail=1; }
+mkdir -p /tmp/tb_map
+for t in map_arrows map_a11y; do
+  out=$(TB_NOANIM=1 timeout 500 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/$t.gd -- /tmp/tb_map 2>&1)
+  if echo "$out" | grep -qE "^(ARROWS|MAPA11Y) OK" && ! echo "$out" | grep -qE "SCRIPT ERROR|^FAIL"; then echo "ok: tests/$t.gd"; else echo "FAIL: tests/$t.gd"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; fi
+done
 mkdir -p /tmp/tb_cc; run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960
 [ $fail -eq 0 ] && echo "UI PASS" || echo "UI FAIL"

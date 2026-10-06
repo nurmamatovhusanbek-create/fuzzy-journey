@@ -1,5 +1,5 @@
 ## Overlay drawn above the GPU map (art bible 5 and 6.3): zoom-disclosed army markers (dot / pennant / gonfalon) with
-## affiliation outlines, general stars, capital rings, order arrows with casing, the Tab focus ring, nation and province names and
+## affiliation outlines, general stars, capital rings, order arrows with casing, the keyboard cursor, nation and province names and
 ## battle effects. Redraws only when the view or game state changed; hidden while dragging. Polygons are cached (no per-frame
 ## PackedVector2Array allocation in _draw). Never calls g.owned() (a turn may be running on the worker thread).
 class_name TBMapLabels
@@ -12,25 +12,39 @@ var _unit := PackedVector3Array()
 var _fx: Array = []          # {kind, from, to, col, t0, dur}
 var hidden_while_dragging := false
 var _tracked: Font
+var _tracked_own: Font
+var _tracked_for := -1       # readable-fonts state the cached faces were built for
 
 # ---------------------------------------------------------------- order arrow (set by TBOrderFlow)
-var _order := {}             # {from, to, attack, dashed, label}
+var _order := {}             # {from, to, attack, dashed, label, hover}
 var _path := PackedVector2Array()
 var _path_key := ""
+var _cut := PackedVector2Array()
 var _tri := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
 var _chev := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
 var _seg := PackedVector2Array([Vector2.ZERO, Vector2.ZERO])
 var _fx_pts := PackedVector2Array([Vector2.ZERO, Vector2.ZERO])
+var _push_p := -1            # the order's target marker is slid away from the source so the shaft stays visible between them
+var _push_v := Vector2.ZERO
+var _push_sp := -1           # ... and, when the order is committed or previewed (not on hover), the source marker slides back by a share
+var _push_sv := Vector2.ZERO
+var last_shaft := 0.0        # visible shaft length of the current order arrow (px; tests assert it)
+var _order_box := Rect2()    # screen bounds of the arrow + label + source marker (the preview chip keeps out of it)
+const SHAFT_MIN := 30.0      # visible shaft between the two marker rims (px)
 
-func set_order(from: int, to: int, attack: bool, dashed: bool, label: String = "") -> void:
-	_order = {"from": from, "to": to, "attack": attack, "dashed": dashed, "label": label}
+func set_order(from: int, to: int, attack: bool, dashed: bool, label: String = "", hover: bool = false) -> void:
+	_order = {"from": from, "to": to, "attack": attack, "dashed": dashed, "label": label, "hover": hover}
 	_path_key = ""
 	queue_redraw()
 
 func clear_order() -> void:
 	if _order.is_empty(): return
 	_order = {}
+	_push_p = -1; _order_box = Rect2()
 	queue_redraw()
+
+## screen bounds of the current order arrow (control-local); empty Rect2 when there is none
+func order_bounds() -> Rect2: return _order_box
 
 func attach(m: TBMapView) -> void:
 	map = m
@@ -46,6 +60,7 @@ func set_game(game: TBGame) -> void:
 		var cl := cos(lat)
 		_unit[p] = Vector3(cl * sin(lon), sin(lat), cl * cos(lon))   # x east, y north, z toward lon=0
 	_order = {}
+	_core_sig = -1
 	queue_redraw()
 
 func add_fx(kind: String, from: int, to: int, col: Color, delay_ms: int = 0) -> void:
@@ -57,18 +72,26 @@ static func _a(c: Color, al: float) -> Color:
 	c.a *= al
 	return c
 
+## relation / selection patterns are subtle in the standard look and strong in colour-vision or high-contrast modes
+static func strong() -> bool: return TBLenses.cvd != "off" or TBTokens.is_hc()
+## marker geometry follows the text size up to 1.5x (labels follow it fully)
+static func mk() -> float: return clampf(TBKit.text_scale, 1.0, 1.5)
+
 var _hex := {}
 func _nat_col(o: int) -> Color:
-	var v: int = g.color[o]
+	var v: int = map.lenses.marker_rgb(o)
 	if not _hex.has(v): _hex[v] = Color.hex((v << 8) | 0xFF)
 	return _hex[v]
 
 var _core_sig := -1
 var _core_v := PackedVector3Array()
 var _core_n := PackedInt32Array()
+var _ax_dir := PackedVector3Array()      # unit tangent along each nation's long axis at its core
+var _ax_ext := PackedFloat32Array()      # angular half extent (radians) along that axis
 
 ## the label anchor of each nation: the centroid of its main body (provinces within ~30 degrees of the province nearest the overall
-## centroid), so overseas colonies do not drag the name into the ocean. Rebuilt only when ownership changed.
+## centroid), so overseas colonies do not drag the name into the ocean. Also its long axis and extent: a colliding label slides along
+## the axis. Rebuilt only when ownership changed.
 func _rebuild_cores() -> void:
 	var sig := 0
 	for p in g.P: sig = (sig * 31 + g.owner[p] + p) & 0x3fffffff
@@ -98,69 +121,189 @@ func _rebuild_cores() -> void:
 	for n in range(1, n1):
 		core[n] = core[n].normalized() if core[n].length() > 0.0001 else Vector3.ZERO
 	_core_v = core
+	# principal axis of the core provinces in the tangent plane at the core
+	var east := PackedVector3Array(); east.resize(n1)
+	var north := PackedVector3Array(); north.resize(n1)
+	var sxx := PackedFloat32Array(); sxx.resize(n1)
+	var syy := PackedFloat32Array(); syy.resize(n1)
+	var sxy := PackedFloat32Array(); sxy.resize(n1)
+	var cn := PackedInt32Array(); cn.resize(n1)
+	for n in range(1, n1):
+		if core[n] == Vector3.ZERO: continue
+		var e := Vector3(0, 1, 0).cross(core[n])
+		e = e.normalized() if e.length() > 0.001 else Vector3(1, 0, 0)
+		east[n] = e; north[n] = core[n].cross(e)
+	for p in g.P:
+		var o := g.owner[p]
+		if o == 0 or core[o] == Vector3.ZERO or _unit[p].dot(core[o]) < 0.866: continue
+		var a := _unit[p].dot(east[o]); var b := _unit[p].dot(north[o])
+		sxx[o] += a * a; syy[o] += b * b; sxy[o] += a * b; cn[o] += 1
+	_ax_dir = PackedVector3Array(); _ax_dir.resize(n1)
+	_ax_ext = PackedFloat32Array(); _ax_ext.resize(n1)
+	for n in range(1, n1):
+		if cn[n] < 2: continue
+		var th := 0.5 * atan2(2.0 * sxy[n], sxx[n] - syy[n])
+		_ax_dir[n] = east[n] * cos(th) + north[n] * sin(th)
+		_ax_ext[n] = 1.5 * sqrt(maxf(sxx[n], syy[n]) / float(cn[n]))
 
-## nation names at their centroid (Cinzel 700, cream, 2 px table halo); bigger nations get bigger text; overlapping names are skipped
+var _nl_rects: Array = []     # nation label rects drawn this frame (province names keep out of them)
+
+## screen position + depth of a unit vector for the current camera
+func _proj_vec(v: Vector3) -> Vector3:
+	if map.mode == 0:
+		var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
+		return _project_v(v, c0, s0, sl, cl, map.radius_px(), map.size.x * 0.5, map.size.y * 0.5)
+	var lon := atan2(v.x, v.z); var lat := asin(clampf(v.y, -1.0, 1.0))
+	var pt := map.project(rad_to_deg(lon), rad_to_deg(lat))
+	return Vector3(pt.x, pt.y, 1.0)
+
+func _project_v(u: Vector3, c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> Vector3:
+	var x := u.x * cl - u.z * sl
+	var z0 := u.x * sl + u.z * cl
+	var y := u.y * c0 - z0 * s0
+	var z := u.y * s0 + z0 * c0
+	return Vector3(cx + R * x, cy - R * y, z)
+
+func _label_fonts() -> void:
+	var rf := 1 if TBKit.readable_fonts else 0
+	if _tracked != null and _tracked_for == rf: return
+	_tracked_for = rf
+	if TBKit.readable_fonts:
+		_tracked = TBKit.display(); _tracked_own = TBKit.display()
+	else:
+		_tracked = TBKit.tracked(TBKit.display(), 2); _tracked_own = TBKit.tracked(TBKit.wordmark(), 2)
+
+## halo alpha chosen from the land under the label: pale land gets the full halo, dark land a lighter one (CON-006). Opaque in high contrast.
+func _halo_alpha(pos: Vector2) -> float:
+	if TBTokens.is_hc(): return 1.0
+	var p := map.pick_at(pos)
+	if p < 0 or map.lenses == null: return 0.9
+	var l := TBLenses.lum(map.lenses.color(p))
+	return lerpf(0.78, 1.0, smoothstep(0.08, 0.4, l))
+
+func _two_lines(txt: String) -> PackedStringArray:
+	var out := PackedStringArray()
+	if txt.length() <= 14 or not txt.contains(" "): return out
+	var words := txt.split(" ")
+	var best := 0; var bd := 999
+	for i in range(1, words.size()):
+		var a := " ".join(words.slice(0, i)); var b := " ".join(words.slice(i))
+		var d := absi(a.length() - b.length())
+		if d < bd: bd = d; best = i
+	out.append(" ".join(words.slice(0, best))); out.append(" ".join(words.slice(best)))
+	return out
+
+## nation names (Cinzel 700 cream, 2 px halo, never faded, own realm in the heavier face): bigger nations get bigger text; a name that
+## collides with a marker, a HUD panel, the order arrow or a higher-priority name slides along the nation's axis, wraps to two lines,
+## drops to its first word, and is dropped only when none of that fits.
 func _draw_nation_names() -> void:
+	_nl_rects.clear()
 	if map.zoom > (4.0 if map.mode == 0 else 5.5): return
-	if _tracked == null: _tracked = TBKit.tracked(TBKit.display_hi(), 2)
-	var font := _tracked
+	_label_fonts()
 	var N1 := g.N1
 	_rebuild_cores()
-	var sx := _core_v; var cnt := _core_n
+	var cnt := _core_n
 	var order: Array = []
 	for n in range(1, N1):
 		if cnt[n] >= 3 and g.alive[n] != 0 and n != g.rebel: order.append(n)
-	order.sort_custom(func(a, b): return cnt[a] > cnt[b])
-	var placed: Array = []
+	order.sort_custom(func(a, b): return (a == g.human_id) or (b != g.human_id and cnt[a] > cnt[b]))      # your own realm is placed first
 	var shown := 0
-	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
-	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
-	var halo := tk("table"); var cream := tk("cream"); var brass := tk("brass_lt")
+	var cream := tk("cream"); var halo := tk("table")
+	var hc := TBTokens.is_hc()
+	var hsz := 5 if hc else 3
+	var lens_wars: bool = map.lenses.mode == "wars"
+	var tsc := TBKit.text_scale
+	var mnx := 16.0
+	var strong_on := strong()
+	var steps := [0.0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9, 1.2, -1.2, 1.6, -1.6]
 	for n in order:
 		if shown >= 70: break
-		var v: Vector3 = sx[n]
-		if v == Vector3.ZERO: continue
-		var pos: Vector2
-		var depth := 1.0
-		if map.mode == 0:
-			var x := v.x * cl - v.z * sl
-			var z0 := v.x * sl + v.z * cl
-			var y := v.y * c0 - z0 * s0
-			depth = v.y * s0 + z0 * c0
-			if depth < 0.25: continue
-			pos = Vector2(cx + R * x, cy - R * y)
-		else:
-			var lon := atan2(v.x, v.z); var lat := asin(clampf(v.y, -1.0, 1.0))
-			var pt := map.project(rad_to_deg(lon), rad_to_deg(lat))
-			pos = Vector2(pt.x, pt.y)
-		if pos.x < 0 or pos.y < 0 or pos.x > map.size.x or pos.y > map.size.y: continue
-		var fs := int(clampf(8.0 + sqrt(float(cnt[n])) * 1.4 * minf(map.zoom, 2.2), 12.0, 28.0))
-		var txt: String = g.dname(n)
-		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
-		var rect := Rect2(pos - tw * 0.5, tw).grow(3.0)
-		var clash := _blocked(rect)
-		for r in placed:
-			if clash: break
-			if r.intersects(rect): clash = true
-		if clash: continue
-		placed.append(rect); shown += 1
-		var a := clampf(depth * 1.6, 0.5, 0.97)
-		for fr in _frame_rects:                      # standards sit on top of the name: soften it where they cross
-			if (fr as Rect2).intersects(rect): a *= 0.45; break
+		var core: Vector3 = _core_v[n]
+		if core == Vector3.ZERO: continue
+		var fs := int(clampf(8.0 + sqrt(float(cnt[n])) * 1.4 * minf(map.zoom, 2.2), 12.0, 28.0) * tsc)
+		fs = clampi(maxi(fs, TBKit.min_font()), TBKit.min_font(), 44)
 		var mine: bool = n == g.human_id
-		draw_string_outline(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, _a(halo, a * 0.85))
-		draw_string(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _a(brass if mine else cream, a))
+		var font: Font = _tracked_own if mine else _tracked
+		var txt: String = g.dname(n)
+		if lens_wars and map.lenses.war_bloc.size() > n and map.lenses.war_bloc[n] >= 0: txt += " " + char(65 + map.lenses.war_bloc[n] % 26)
+		var variants: Array = [[txt]]
+		var two := _two_lines(txt)
+		if not two.is_empty(): variants.append([two[0], two[1]])
+		if txt.contains(" "): variants.append([txt.split(" ")[0]])
+		var rel := -1 if mine else g.get_rel(g.human_id, n)
+		var placed_ok := false
+		var ext := _ax_ext[n]
+		var perp := core.cross(_ax_dir[n]).normalized() if _ax_dir[n] != Vector3.ZERO else Vector3.ZERO
+		for ci in steps.size() * 3:
+			if placed_ok: break
+			var st: float = steps[ci / 3]
+			var ps: float = [0.0, 0.35, -0.35][ci % 3]
+			if (st != 0.0 or ps != 0.0) and (ext <= 0.001 or _ax_dir[n] == Vector3.ZERO): break
+			var a: float = clampf(st * ext, -0.22, 0.22)               # never drift far from the body of the nation
+			var v := core
+			if st != 0.0 or ps != 0.0:
+				v = (core * cos(a) + _ax_dir[n] * sin(a)).normalized()
+				v = (v * cos(clampf(ps * ext, -0.12, 0.12)) + perp * sin(clampf(ps * ext, -0.12, 0.12))).normalized()
+			var pr := _proj_vec(v)
+			if map.mode == 0 and pr.z < 0.25: continue
+			var pos := Vector2(pr.x, pr.y)
+			for vr in variants:
+				var lines: Array = vr
+				var lh := font.get_height(fs)
+				var w := 0.0
+				for ln in lines: w = maxf(w, font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+				var gw := float(fs) + 4.0 if (strong_on and (mine or rel >= 1)) else 0.0
+				var rect := Rect2(pos - Vector2((w + gw) * 0.5, lh * lines.size() * 0.5), Vector2(w + gw, lh * lines.size())).grow(3.0)
+				if rect.position.x < mnx or rect.position.y < 56.0 or rect.end.x > map.size.x - mnx or rect.end.y > map.size.y - mnx: continue
+				if _blocked(rect) or _hits_marker(rect) or _hits_order(rect): continue
+				var clash := false
+				for r in _nl_rects:
+					if (r as Rect2).intersects(rect): clash = true; break
+				if clash: continue
+				_nl_rects.append(rect); shown += 1; placed_ok = true
+				var ha := _halo_alpha(pos)
+				var tx := rect.position.x + 3.0 + gw
+				for li in lines.size():
+					var ln: String = lines[li]
+					var lw := font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+					var bp := Vector2(tx + (w - lw) * 0.5, rect.position.y + 3.0 + lh * li + font.get_ascent(fs))
+					draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(halo, ha))
+					draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
+				if gw > 0.0: _rel_glyph(Vector2(rect.position.x + 3.0 + float(fs) * 0.5, rect.get_center().y), rel, mine, fs, ha)
+				break
 
-## province names when zoomed in far enough to read them (Alegreya 500 12, cream, 2 px halo; no overlaps, capitals in Alegreya 700)
+func _hits_marker(r: Rect2) -> bool:
+	for fr in _frame_rects:
+		if (fr as Rect2).intersects(r): return true
+	return false
+
+func _hits_order(r: Rect2) -> bool:
+	return not _order_box.size.is_zero_approx() and _order_box.intersects(r)
+
+## relation glyph beside a nation name in colour-vision / high-contrast modes: swords (war), linked rings (ally), hourglass (truce), ring + square (own)
+func _rel_glyph(c: Vector2, rel: int, mine: bool, fs: int, ha: float) -> void:
+	var sz := float(fs)
+	draw_circle(c, sz * 0.62, _a(tk("table"), ha))
+	if mine:
+		draw_arc(c, sz * 0.32, 0.0, TAU, 16, tk("brass_lt"), 1.5, true)
+		draw_rect(Rect2(c - Vector2(2, 2), Vector2(4, 4)), tk("brass_lt"))
+	elif rel == 1: TBGlyph.draw(self, "swords", c, sz * 0.9, tk("neg_bar"), 1.6)
+	elif rel == 3 or rel == 4: TBGlyph.draw(self, "link", c, sz * 0.9, tk("info_bar"), 1.6)
+	elif rel == 2: TBGlyph.draw(self, "hourglass", c, sz * 0.9, tk("cream"), 1.5)
+
+## province names when zoomed in far enough to read them (Alegreya 500 12+, cream, halo; no overlaps, capitals in Alegreya 700)
 func _draw_province_names() -> void:
 	if map.zoom < (4.0 if map.mode == 0 else 5.5): return
 	var f: Font = TBKit.body()
 	var fb: Font = TBKit.body_b()
+	var fs := TBKit.fs(12.0)
 	var placed: Array = _frame_rects.duplicate()     # markers claim their space first
+	placed.append_array(_nl_rects)
 	var shown := 0
 	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
 	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
-	var halo := _a(tk("table"), 0.85); var cream := _a(tk("cream"), 0.95)
+	var cream := tk("cream")
+	var hsz := 5 if TBTokens.is_hc() else 3
 	for p in g.P:
 		if shown >= 70: break
 		var pos: Vector2
@@ -175,16 +318,17 @@ func _draw_province_names() -> void:
 		var txt: String = TBI18n.place(g.world.name[p])
 		var cap := g.capital[p] != 0
 		var ff: Font = fb if cap else f
-		var tw := ff.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12)
+		var tw := ff.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 		var rect := Rect2(pos + Vector2(-tw.x * 0.5, 8), tw).grow(2.0)
-		var clash := _blocked(rect)
+		var clash := _blocked(rect) or _hits_order(rect)
 		for r in placed:
 			if clash: break
 			if r.intersects(rect): clash = true
 		if clash: continue
 		placed.append(rect); shown += 1
-		draw_string_outline(ff, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, halo)
-		draw_string(ff, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, cream)
+		var bp := rect.position + Vector2(2, ff.get_ascent(fs) + 2)
+		draw_string_outline(ff, bp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(tk("table"), _halo_alpha(pos)))
+		draw_string(ff, bp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
 
 ## true when r overlaps nothing placed so far (and records it)
 func _claim(grid: Dictionary, r: Rect2) -> bool:
@@ -204,15 +348,9 @@ func _claim(grid: Dictionary, r: Rect2) -> bool:
 
 ## screen position + visibility for province p given the map camera
 func _project(p: int, c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> Vector3:
-	var u := _unit[p]
-	# rotate: first about y by -lon0, then about x by lat0
-	var x := u.x * cl - u.z * sl
-	var z0 := u.x * sl + u.z * cl
-	var y := u.y * c0 - z0 * s0
-	var z := u.y * s0 + z0 * c0
-	return Vector3(cx + R * x, cy - R * y, z)
+	return _project_v(_unit[p], c0, s0, sl, cl, R, cx, cy)
 
-# ---------------------------------------------------------------- army markers (stateful: they fade, pop and count)
+# ---------------------------------------------------------------- army markers (stateful: they fade and count)
 var _pl := {}                  # province -> {a: alpha, t: target alpha, shown: displayed army, last: army last seen, pop: 0..1, dn: pending delta, dt: delta timer, x, y, tier, extra, gen}
 var _frame_rects: Array = []
 var _stars := {}               # province -> {a, t, x, y, limb}: capital rings without an army marker
@@ -227,14 +365,15 @@ func _tier(a: int) -> int:
 func _state(p: int) -> Dictionary:
 	var st: Dictionary = _pl.get(p, {})
 	if st.is_empty():
-		st = {"a": 0.0, "t": 0.0, "shown": float(g.army[p]), "last": g.army[p], "pop": 0.0, "dn": 0, "dt": 0.0, "x": 0.0, "y": 0.0, "tier": _tier(g.army[p]), "limb": 1.0, "extra": 0, "zt": 2}
+		st = {"a": 0.0, "t": 0.0, "shown": float(g.army[p]), "last": g.army[p], "pop": 0.0, "dn": 0, "dt": 0.0, "x": 0.0, "y": 0.0, "tier": _tier(g.army[p]), "limb": 1.0, "extra": 0, "zt": 2, "tx": 0.0, "ty": 0.0}
 		_pl[p] = st
 	return st
 
 ## advance fades, count roll-ups and pops; ask for a redraw while anything is moving
 func _process(delta: float) -> void:
 	var busy := not _fx.is_empty()
-	if not _order.is_empty() and bool(_order["dashed"]) and TBMapView.animate: busy = true       # marching dashes
+	var motion := TBKit.motion_ok()
+	if not _order.is_empty() and bool(_order["dashed"]) and motion: busy = true       # marching dashes
 	if g != null:
 		var dead: Array = []
 		for p in _pl:
@@ -243,14 +382,15 @@ func _process(delta: float) -> void:
 			if a != st["last"]:
 				var d: int = a - int(st["last"])
 				if st["a"] > 0.2:                      # only visible markers announce changes
-					st["pop"] = 1.0
+					st["pop"] = 1.0 if motion else 0.0
 					st["dn"] = int(st["dn"]) + d if float(st["dt"]) > 0.0 else d
 					st["dt"] = 1.3
 				st["last"] = a
 				st["tier"] = _tier(a)
-			if not TBMapView.animate:
+			if not motion:
 				if st["a"] != st["t"]: busy = true
 				st["a"] = st["t"]; st["shown"] = float(a)
+				st["dt"] = maxf(0.0, st["dt"] - delta)
 			else:
 				st["a"] = move_toward(st["a"], st["t"], delta * 6.0)
 				st["shown"] += (float(a) - st["shown"]) * (1.0 - exp(-11.0 * delta))
@@ -264,7 +404,7 @@ func _process(delta: float) -> void:
 		for p in _stars:
 			var ss: Dictionary = _stars[p]
 			var sa: float = ss["a"]
-			ss["a"] = ss["t"] if not TBMapView.animate else move_toward(ss["a"], ss["t"], delta * 6.0)
+			ss["a"] = ss["t"] if not motion else move_toward(ss["a"], ss["t"], delta * 6.0)
 			if ss["a"] != ss["t"] or sa != ss["a"]: busy = true
 			if ss["a"] <= 0.0 and ss["t"] <= 0.0: sdead.append(p)
 		for p in sdead: _stars.erase(p)
@@ -281,10 +421,31 @@ func prov_px() -> float:
 	var k := sqrt(3.7 / float(maxi(1, g.P)))
 	return (map.radius_px() if map.mode == 0 else map.flat_scale()) * k
 
+## half extent of a marker along direction d (unit) at tier zt, for the arrow trim and the target push
+func _ext_tier(zt: int, army: int, d: Vector2, hot: bool = false) -> float:
+	var m := mk()
+	if hot: return _ext_tier(zt, army, d) + 5.0 * m
+	if zt == 0: return 9.0 * m
+	if zt == 1: return (absf(d.x) * 17.0 + absf(d.y) * 14.0) * m
+	var hw := _gon_w(TBKit.mono_b(), maxi(army, 1)) * 0.5 + 5.0
+	return (absf(d.x) * hw + absf(d.y) * 21.0 + maxf(0.0, d.x) * 26.0) * m          # + room for a "+n" tab on the right
+
+## claim rectangle of a marker at pos for the tier: covers everything it draws (outline, pip, tab room), so no two markers overlap
+func _marker_rect(pos: Vector2, ztier: int, army: int, gen: bool, gw: float) -> Rect2:
+	var m := mk()
+	match ztier:
+		0: return Rect2(pos.x - 8.0 * m, pos.y - 8.0 * m, 16.0 * m, 16.0 * m)
+		1:
+			var k := 1.0 if army < 20 else (1.2 if army < 100 else 1.4)
+			return Rect2(pos.x - (10.0 * k + 4.0) * m, pos.y - 14.0 * k * m, (26.0 * k + 7.0) * m, (21.0 * k + 3.0) * m)
+	return Rect2(pos.x - (gw * 0.5 + 5.0) * m, pos.y - (29.0 if gen else 20.0) * m, (gw + 10.0) * m, (47.0 if gen else 40.0) * m)
+
 func _draw() -> void:
 	if map == null or g == null or hidden_while_dragging: return
 	_refresh_keepout()
+	_nl_rects.clear()
 	if g.human_id == 0:                 # nation-pick screen: names only
+		_frame_rects.clear(); _order_box = Rect2()
 		_draw_nation_names()
 		return
 	var me := g.human_id
@@ -293,7 +454,24 @@ func _draw() -> void:
 	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
 	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
 	var sel := map.selected; var hov := map.hover
-	# ---- candidates: (province, x, y, priority, limb factor, army, wants a marker)
+	# ---- the order's target marker slides away from the source when the two would leave no visible shaft between them
+	_push_p = -1; _push_v = Vector2.ZERO; _push_sp = -1; _push_sv = Vector2.ZERO
+	if not _order.is_empty():
+		var of: int = _order["from"]; var ot: int = _order["to"]
+		var pa := _screen(of, c0, s0, sl, cl, R, cx, cy); var pb := _screen(ot, c0, s0, sl, cl, R, cx, cy)
+		var dv := Vector2(pb.x - pa.x, pb.y - pa.y)
+		var dl := dv.length()
+		if dl > 1.0 and (map.mode != 0 or (pa.z > 0.2 and pb.z > 0.2)):
+			var dn := dv / dl
+			var head := 14.0 if bool(_order["attack"]) else 12.0
+			var req := _ext_tier(ztier, g.army[of], dn, of == sel) + (_ext_tier(ztier, g.army[ot], -dn) if g.army[ot] > 0 else 5.0) + SHAFT_MIN + head + 4.0
+			if dl < req:
+				var need := req - dl
+				if bool(_order.get("hover", false)): _push_p = ot; _push_v = dn * minf(need, 90.0)
+				else:
+					var share := minf(need * 0.5, 70.0)
+					_push_p = ot; _push_v = dn * share; _push_sp = of; _push_sv = -dn * share
+		# ---- candidates: (province, x, y, priority, limb factor, army, wants a marker)
 	var vis: Array = []
 	for p in g.P:
 		var o := g.owner[p]
@@ -316,8 +494,11 @@ func _draw() -> void:
 			if pr.z < 0.2: continue
 			limb = smoothstep(0.2, 0.55, pr.z)                         # nothing near the horizon
 		elif pr.x < -24 or pr.y < -24 or pr.x > map.size.x + 24 or pr.y > map.size.y + 24: continue
+		if p == _push_p: pr.x += _push_v.x; pr.y += _push_v.y
+		elif p == _push_sp: pr.x += _push_sv.x; pr.y += _push_sv.y
 		var shown_before := _pl.has(p) and float(_pl[p]["t"]) > 0.5
 		var pri := 0 if (o == me or p == sel) else (1 if war else (2 if cap else 3))
+		if not _order.is_empty() and (p == int(_order["from"]) or p == int(_order["to"])): pri = -1      # the order's two ends always get their markers
 		vis.append([p, pr.x, pr.y, pri * 4 + (0 if shown_before else 1), limb, a, want])
 	vis.sort_custom(func(a, b): return a[3] < b[3] if a[3] != b[3] else (a[5] > b[5] if a[5] != b[5] else a[0] < b[0]))
 	# ---- choose without overlap; stacks that would overlap collapse into one marker with a "+n" tab
@@ -347,11 +528,7 @@ func _draw() -> void:
 		if a <= 0: continue
 		var st := _state(p)
 		var gw := _gon_w(nfont, maxi(a, int(st["shown"])))
-		var prect: Rect2
-		match ztier:
-			0: prect = Rect2(pos.x - 6.0, pos.y - 6.0, 12.0, 12.0)
-			1: prect = Rect2(pos.x - 16.0, pos.y - 12.0, 32.0, 24.0)
-			_: prect = Rect2(pos.x - gw * 0.5 - 4.0, pos.y - (28.0 if g.gen[p] != 0 else 19.0), gw + 8.0, 38.0 if g.gen[p] == 0 else 47.0)
+		var prect := _marker_rect(pos, ztier, a, g.gen[p] != 0, gw)
 		if _blocked(prect): continue
 		if not _claim(grid, prect):
 			# collapse into the same nation's marker that already holds this spot
@@ -363,7 +540,7 @@ func _draw() -> void:
 		st["t"] = 1.0; st["x"] = pos.x; st["y"] = pos.y; st["limb"] = v[4]; st["zt"] = ztier
 		chosen.append(p); chosen_set[p] = true; chosen_rects.append(prect)
 		drawn += 1
-	# ---- draw: fading markers (underneath), then the chosen, own realm on top, then the order arrow (above, so a short arrow is never hidden)
+	# ---- draw: fading markers (underneath), then the chosen, own realm on top
 	var order: Array = []
 	for p in _pl:
 		if float(_pl[p]["a"]) > 0.01 and not chosen_set.has(p): order.append(p)
@@ -381,6 +558,9 @@ func _draw() -> void:
 			if map.mode == 0 and pr2.z < 0.04: continue
 			pos = Vector2(pr2.x, pr2.y)
 		_draw_marker(p, pos, st, al, nfont, me, int(st["zt"]))
+	for p in order:                             # "+n" tabs last: a neighbouring marker never covers them
+		var st2: Dictionary = _pl[p]
+		if int(st2["extra"]) > 0 and int(st2["zt"]) == 2 and chosen_set.has(p): _draw_tab(st2, float(st2["a"]) * float(st2["limb"]))
 	_draw_order()
 	_draw_focus()
 	_draw_nation_names()
@@ -407,8 +587,6 @@ var _star_poly := PackedVector2Array()
 var _star_line := PackedVector2Array()
 var _penn_poly := PackedVector2Array([Vector2(-10, -7), Vector2(10, -7), Vector2(10, 7), Vector2(0, 3), Vector2(-10, 7)])
 var _penn_line := PackedVector2Array([Vector2(-10, -7), Vector2(10, -7), Vector2(10, 7), Vector2(0, 3), Vector2(-10, 7), Vector2(-10, -7)])
-var _diamond := PackedVector2Array([Vector2(0, -6), Vector2(6, 0), Vector2(0, 6), Vector2(-6, 0)])
-var _diamond_line := PackedVector2Array([Vector2(0, -6), Vector2(6, 0), Vector2(0, 6), Vector2(-6, 0), Vector2(0, -6)])
 
 func _gon_w(f: Font, n: int) -> float:
 	return maxf(32.0, f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 10.0)
@@ -439,6 +617,21 @@ func _capital_mark(pos: Vector2, al: float, mine: bool) -> void:
 	draw_arc(pos, 5.0, 0.0, TAU, 20, c, 1.5, true)
 	draw_rect(Rect2(pos - Vector2(3, 3), Vector2(6, 6)), c)
 
+## far tier: an 8 px dot. Affiliation by outline: own = 2 px brass + ink outer, war = 2 px red outline, others 1 px ink
+func _draw_dot(pos: Vector2, al: float, own: bool, war: bool, hot: bool, nat: Color) -> void:
+	var m := mk()
+	var r := 4.0 * m
+	var ink := tk("ink_0")
+	if hot: draw_circle(pos, r + 5.0, _a(ink, al)); draw_circle(pos, r + 4.0, _a(tk("cream"), al)); draw_circle(pos, r + 1.0, _a(ink, al))
+	if own:
+		draw_circle(pos, r + 3.0, _a(ink, al)); draw_circle(pos, r + 2.0, _a(tk("brass_lt"), al))
+	elif war:
+		draw_circle(pos, r + 3.0, _a(ink, al)); draw_circle(pos, r + 2.0, _a(tk("neg_bar"), al))
+	else:
+		draw_circle(pos, r + 1.0, _a(ink, al))
+	draw_circle(pos, r, _a(ink, al) if (own or war) else _a(nat, al))
+	draw_circle(pos, r - 1.0, _a(nat, al))
+
 ## one army marker for the current zoom tier: dot (far), pennant (mid) or gonfalon (near); affiliation by outline, never by colour alone
 func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, me: int, ztier: int) -> void:
 	var o := g.owner[p]
@@ -450,23 +643,13 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var army: int = g.army[p]
 	if not own and not war and not ally and not hot and p != map.hover: al *= 0.7        # quiet foreign stacks recede
 	var ease_in: float = float(st["a"])
-	var sc := 0.6 + 0.4 * (1.0 + 1.70158 * pow(ease_in - 1.0, 3.0) + 2.70158 * pow(ease_in - 1.0, 2.0))   # easeOutBack on appear
+	var sc := (0.6 + 0.4 * (1.0 - pow(1.0 - ease_in, 3.0))) * mk()                       # out-cubic appear, no overshoot
 	sc *= 1.0 + 0.26 * float(st["pop"]) * float(st["pop"])
-	if p == map.hover and not hot: sc *= 1.1
 	var nat := _nat_col(o)
 	var ink := tk("ink_0"); var paper := tk("paper_0")
 	var lift := -4.0 if (hot and ztier == 2) else 0.0
 	if ztier == 0:
-		var r := 4.0 * sc
-		if war:
-			draw_set_transform(pos, 0.0, Vector2(sc, sc))
-			draw_colored_polygon(_diamond, _a(nat, al)); draw_polyline(_diamond_line, _a(tk("neg_bar"), al), 2.0 / sc, true)
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		else:
-			draw_circle(pos, r + (2.0 if own else 1.0), _a(tk("brass_lt") if own else ink, al))
-			draw_circle(pos, r + (0.8 if own else 0.0), _a(ink, al) if own else _a(nat, al))
-			draw_circle(pos, r - (0.4 if own else 0.0), _a(nat, al))
-		if hot: draw_arc(pos, r + 5.0, 0.0, TAU, 24, _a(tk("cream"), al), 2.0, true)
+		_draw_dot(pos, al, own, war, hot, nat)
 		_floater(p, pos, st, o, me, nfont)
 		return
 	if ztier == 1:
@@ -486,7 +669,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var d := _gon(w)
 	if hot:
 		draw_set_transform(pos + Vector2(0, 3.0 + lift), 0.0, Vector2(sc, sc))
-		draw_colored_polygon(d["poly"], _a(Color.BLACK, 0.26 * al))                          # the one hard shadow (elevation 1)
+		draw_colored_polygon(d["poly"], _a(tk("table"), 0.4 * al))                           # the one hard shadow (elevation 1)
 	draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(sc, sc))
 	var h := w * 0.5
 	draw_rect(Rect2(-h - 2.0, -15.0, w + 4.0, 4.0), _a(ink, al))                             # crossbar
@@ -496,12 +679,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var fnt: Font = nfont
 	var tw := fnt.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	draw_string(fnt, Vector2(-tw * 0.5, 6.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _a(ink, al))
-	var extra := int(st["extra"])
-	if extra > 0:                                                                            # "+n" tab: stacked armies collapse here
-		var et := "+%d" % extra
-		var ew := TBKit.mono_b().get_string_size(et, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 6.0
-		draw_rect(Rect2(h + 1.0, -9.0, ew, 14.0), _a(ink, al))
-		draw_string(TBKit.mono_b(), Vector2(h + 4.0, 2.0), et, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, _a(tk("cream"), al))
+	st["tx"] = pos.x + (h + 1.0) * sc; st["ty"] = pos.y + (-9.0 + lift) * sc                 # where the "+n" tab goes (drawn after all markers)
 	if g.gen[p] != 0:                                                                        # general: 1-5 brass stars above the crossbar
 		_ensure_star()
 		var n := mini(5, TBGenerals.skill(g, p))
@@ -514,6 +692,18 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	_pip(pos + Vector2((h + 1.0) * sc, (-13.0 + lift) * sc), war, ally, al, 1.0)
 	if g.capital[p] != 0: _capital_mark(pos + Vector2((-h - 7.0) * sc, (-12.0 + lift) * sc), al, own)
 	_floater(p, pos, st, o, me, nfont)
+
+## "+n" tab: stacked armies collapse into one gonfalon (12 px Mono 700, drawn above every marker)
+func _draw_tab(st: Dictionary, al: float) -> void:
+	var et := "+%d" % int(st["extra"])
+	var fs := TBKit.fs(12.0)
+	var f: Font = TBKit.mono_b()
+	var ew := f.get_string_size(et, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 8.0
+	var eh := float(fs) + 4.0
+	var r := Rect2(float(st["tx"]), float(st["ty"]), ew, eh)
+	draw_rect(r.grow(1.0), _a(tk("cream"), al))
+	draw_rect(r, _a(tk("ink_0"), al))
+	draw_string(f, r.position + Vector2(4.0, f.get_ascent(fs) + 2.0), et, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _a(tk("cream"), al))
 
 ## affiliation outline in the CURRENT transform. own: 2 px brass + 1 px ink outer; ally: double 1 px info line; war: 2 px neg + ink outer; foreign: 1 px ink
 func _outline(line: PackedVector2Array, d: Variant, own: bool, war: bool, ally: bool, hot: bool, al: float, sc: float, wmul: float) -> void:
@@ -536,30 +726,41 @@ func _outline(line: PackedVector2Array, d: Variant, own: bool, war: bool, ally: 
 func _pip(c: Vector2, war: bool, ally: bool, al: float, k: float) -> void:
 	if not (war or ally): return
 	draw_circle(c, 5.5 * k, _a(tk("bar_0"), 0.95 * al))
-	TBCmdCard.glyph(self, "swords" if war else "link", c, 8.0 * k, _a(tk("neg_bar") if war else tk("info_bar"), al), 1.2)
+	TBGlyph.draw(self, "swords" if war else "link", c, 8.0 * k, _a(tk("neg_bar") if war else tk("info_bar"), al), 1.2)
 
 func _floater(p: int, pos: Vector2, st: Dictionary, o: int, me: int, nfont: Font) -> void:
-	# floating change: +15 / -12 rises and fades
+	# floating change: +15 / -12 rises and fades (static for the same 1.3 s under reduced motion), signed with a glyph
 	if float(st["dt"]) > 0.0 and int(st["dn"]) != 0 and (o == me or absi(int(st["dn"])) >= 10):
 		var k := 1.0 - float(st["dt"]) / 1.3
-		var dcol := _a(tk("pos_bar") if int(st["dn"]) > 0 else tk("neg_bar"), 1.0 - k)
-		var dtxt := "%+d" % int(st["dn"])
-		var dp := pos + Vector2(-nfont.get_string_size(dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x * 0.5, -26.0 - 16.0 * k)
-		draw_string_outline(nfont, dp, dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, _a(tk("table"), 0.85 * (1.0 - k)))
-		draw_string(nfont, dp, dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, dcol)
+		var moving := TBKit.motion_ok()
+		var fade := (1.0 - k) if moving else 1.0
+		var dcol := _a(tk("pos_bar") if int(st["dn"]) > 0 else tk("neg_bar"), fade)
+		var dtxt := "%s%s" % ["▲" if int(st["dn"]) > 0 else "▼", TBKit.fmt(absi(int(st["dn"])))]
+		var fs := TBKit.fs(12.0)
+		var dp := pos + Vector2(-nfont.get_string_size(dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * 0.5, -26.0 - (16.0 * k if moving else 8.0))
+		draw_string_outline(nfont, dp, dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, _a(tk("table"), 0.85 * fade))
+		draw_string(nfont, dp, dtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, dcol)
 
+## keyboard cursor (A11Y-KBD-004 / CVD-007): a static double ring with corner brackets; never colour-only, never animated
 func _draw_focus() -> void:
 	var f := map.focus_province
 	if f < 0 or f >= g.P: return
 	var pt := map.project(g.world.lon[f], g.world.lat[f])
 	if pt.z <= 0.0: return
 	var c := Vector2(pt.x, pt.y)
-	draw_arc(c, 24.0, 0.0, TAU, 32, _a(tk("bar_0"), 0.9), 5.0, true)
-	draw_arc(c, 24.0, 0.0, TAU, 32, tk("cream"), 2.0, true)
+	var r := 22.0 * mk()
+	draw_arc(c, r, 0.0, TAU, 40, _a(tk("table"), 0.95), 6.0, true)
+	draw_arc(c, r, 0.0, TAU, 40, tk("cream"), 3.0, true)
+	var b := r + 7.0; var l := 9.0
+	for sx in [-1.0, 1.0]:
+		for sy in [-1.0, 1.0]:
+			var corner := c + Vector2(b * sx, b * sy)
+			draw_line(corner, corner - Vector2(l * sx, 0), tk("table"), 5.0, true); draw_line(corner, corner - Vector2(0, l * sy), tk("table"), 5.0, true)
+			draw_line(corner, corner - Vector2(l * sx, 0), tk("cream"), 2.0, true); draw_line(corner, corner - Vector2(0, l * sy), tk("cream"), 2.0, true)
 
 # ---------------------------------------------------------------- order arrows (4 px core + 2 px casing, double chevron for attacks, dashed preview)
 func _order_path(from: int, to: int) -> int:
-	var key := "%d>%d|%.4f|%.4f|%.3f|%d" % [from, to, map.lon0, map.lat0, map.zoom, map.mode]
+	var key := "%d>%d|%.4f|%.4f|%.3f|%d|%d,%d|%d,%d" % [from, to, map.lon0, map.lat0, map.zoom, map.mode, int(_push_v.x * 4.0), int(_push_v.y * 4.0), int(_push_sv.x * 4.0), int(_push_sv.y * 4.0)]
 	if key == _path_key: return _path.size()
 	_path_key = key
 	var n := 14
@@ -568,63 +769,121 @@ func _order_path(from: int, to: int) -> int:
 	if map.mode == 0:
 		var a := _unit[from]; var b := _unit[to]
 		var om := acos(clampf(a.dot(b), -1.0, 1.0))
-		var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
-		var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
 		for i in n:
 			var t := float(i) / float(n - 1)
 			var v: Vector3 = a.lerp(b, t) if om < 0.001 else (a * sin((1.0 - t) * om) + b * sin(t * om)) / sin(om)
-			var x := v.x * cl - v.z * sl
-			var z0 := v.x * sl + v.z * cl
-			var y := v.y * c0 - z0 * s0
-			var z := v.y * s0 + z0 * c0
-			if z < 0.05: ok = false
-			_path[i] = Vector2(cx + R * x, cy - R * y)
+			var pr := _proj_vec(v)
+			if pr.z < 0.05: ok = false
+			_path[i] = Vector2(pr.x, pr.y)
 	else:
 		var pa := map.project(g.world.lon[from], g.world.lat[from]); var pb := map.project(g.world.lon[to], g.world.lat[to])
 		for i in n: _path[i] = Vector2(pa.x, pa.y).lerp(Vector2(pb.x, pb.y), float(i) / float(n - 1))
 		if absf(pa.x - pb.x) > map.size.x * 0.6: ok = false          # across the seam: skip
+	if ok and _push_p == to:
+		for i in n:
+			var t2 := float(i) / float(n - 1)
+			_path[i] += _push_v * (t2 * t2) + _push_sv * ((1.0 - t2) * (1.0 - t2))
 	if not ok: _path.resize(0)
 	return _path.size()
 
+func _path_len(pts: PackedVector2Array, n: int) -> float:
+	var l := 0.0
+	for i in range(n - 1): l += pts[i].distance_to(pts[i + 1])
+	return l
+
+## point at arc length s along the polyline
+func _pt_at(pts: PackedVector2Array, n: int, s: float) -> Vector2:
+	var acc := 0.0
+	for i in range(n - 1):
+		var l := pts[i].distance_to(pts[i + 1])
+		if acc + l >= s and l > 0.0001: return pts[i].lerp(pts[i + 1], (s - acc) / l)
+		acc += l
+	return pts[n - 1]
+
+## the polyline between arc lengths s0 and s1 into _cut; returns the point count
+func _clip(pts: PackedVector2Array, n: int, s0: float, s1: float) -> int:
+	_cut.resize(n + 2)
+	var k := 0
+	var acc := 0.0
+	for i in range(n - 1):
+		var a := pts[i]; var b := pts[i + 1]
+		var l := a.distance_to(b)
+		if l < 0.001: continue
+		var lo := maxf(s0, acc); var hi := minf(s1, acc + l)
+		if hi > lo:
+			if k == 0: _cut[0] = a.lerp(b, (lo - acc) / l); k = 1
+			_cut[k] = a.lerp(b, (hi - acc) / l); k += 1
+		acc += l
+	return k
+
+## where a marker's rim is along the arrow: half extent of the marker drawn (or a small allowance when none is)
+func _rim(p: int, d: Vector2) -> float:
+	if not _pl.has(p) or float(_pl[p]["t"]) < 0.5: return 6.0
+	var st: Dictionary = _pl[p]
+	return _ext_tier(int(st["zt"]), g.army[p], d, p == map.selected)
+
 func _draw_order() -> void:
+	_order_box = Rect2()
 	if _order.is_empty(): return
-	var n := _order_path(int(_order["from"]), int(_order["to"]))
+	var of: int = _order["from"]; var ot: int = _order["to"]
+	var n := _order_path(of, ot)
 	if n < 2: return
 	var phase := 0.0
-	if bool(_order["dashed"]) and TBMapView.animate: phase = fmod(Time.get_ticks_msec() / 1000.0 * 24.0, 14.0)
-	_draw_arrow(_path, n, bool(_order["attack"]), bool(_order["dashed"]), 1.0, phase)
+	if bool(_order["dashed"]) and TBKit.motion_ok(): phase = fmod(Time.get_ticks_msec() / 1000.0 * 24.0, 14.0)
+	var attack := bool(_order["attack"])
+	var total := _path_len(_path, n)
+	var d0 := (_path[1] - _path[0]).normalized()
+	var d1 := (_path[n - 1] - _path[n - 2]).normalized()
+	var ta := _rim(of, d0) + 2.0
+	var tb := _rim(ot, -d1) + 3.0
+	var head := 14.0 if attack else 12.0
+	var avail := total - ta - tb
+	if avail < head + 10.0:                                        # no room: keep the arrow, trim the ends less
+		var f := clampf((total - head - 10.0) / maxf(1.0, ta + tb), 0.0, 1.0)
+		ta *= f; tb *= f
+	var s_tip := total - tb
+	var s_base := maxf(ta, s_tip - head)
+	var tip := _pt_at(_path, n, s_tip); var base := _pt_at(_path, n, s_base)
+	var dir := (tip - base).normalized() if tip.distance_to(base) > 0.5 else d1
+	var k := _clip(_path, n, ta, s_base)
+	last_shaft = s_base - ta
+	_draw_arrow_cut(k, tip, dir, attack, bool(_order["dashed"]), 1.0, phase)
+	# bounds for the chip placement: the shaft, the head and the source marker
+	var bb := Rect2(tip, Vector2.ZERO).expand(_path[0]).grow(26.0)
+	for i in k: bb = bb.expand(_cut[i])
+	_order_box = bb.grow(8.0)
 	var lab: String = _order["label"]
 	if lab != "":
-		var mid := _path[n / 2]
+		var mid := _pt_at(_path, n, (ta + s_base) * 0.5)
 		var f: Font = TBKit.mono_b()
-		var tw := f.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-		var r := Rect2(mid - Vector2(tw * 0.5 + 5.0, 30.0), Vector2(tw + 10.0, 16.0))
-		draw_rect(r.grow(1.0), _a(tk("table"), 0.85))
+		var fs := TBKit.fs(12.0)
+		var tw := f.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var cw := maxf(20.0, tw + 10.0); var ch := float(fs) + 6.0
+		var nrm := Vector2(-dir.y, dir.x)
+		if nrm.y > 0.0: nrm = -nrm                                # the chip sits on the side of the shaft with the fewer markers (upper first)
+		var off := 7.0 + absf(nrm.x) * cw * 0.5 + absf(nrm.y) * ch * 0.5
+		var r := Rect2(mid + nrm * off - Vector2(cw, ch) * 0.5, Vector2(cw, ch))
+		var r2 := Rect2(mid - nrm * off - Vector2(cw, ch) * 0.5, Vector2(cw, ch))
+		var bad1 := (4 if _blocked(r) else 0) + (1 if _hits_marker(r) else 0)
+		var bad2 := (4 if _blocked(r2) else 0) + (1 if _hits_marker(r2) else 0)
+		if bad2 < bad1: r = r2
+		draw_rect(r.grow(2.0), _a(tk("table"), 0.85))
 		draw_rect(r, tk("paper_0"))
-		draw_string(f, r.position + Vector2(5.0, 12.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, tk("ink_0"))
+		draw_string(f, r.position + Vector2(5.0, f.get_ascent(fs) + 3.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tk("ink_0"))
+		_order_box = _order_box.merge(r.grow(6.0))
 
-## polyline arrow along pts[0..n): casing under a 4 px core, then a filled triangle (move) or a double chevron (attack) head
-func _draw_arrow(pts: PackedVector2Array, n: int, attack: bool, dashed: bool, alpha: float, phase: float) -> void:
+## arrow body = _cut[0..k) (casing 2 px each side under a 4 px core), then the head at tip pointing along dir
+func _draw_arrow_cut(k: int, tip: Vector2, d1: Vector2, attack: bool, dashed: bool, alpha: float, phase: float) -> void:
 	var core := _a(tk("neg_bar") if attack else tk("brass_lt"), alpha)
 	var casing := _a(tk("table"), 0.85 * alpha)
-	var d0 := (pts[1] - pts[0]).normalized()
-	var d1 := (pts[n - 1] - pts[n - 2]).normalized()
-	var span := pts[0].distance_to(pts[n - 1])
-	var trim := clampf(span * 0.3, 8.0, 21.0)                   # leave the markers at both ends uncovered
-	var start := pts[0] + d0 * trim
-	var tip := pts[n - 1] - d1 * trim
-	var hl := 14.0 if attack else 12.0
-	var base := tip - d1 * hl
 	var side := Vector2(-d1.y, d1.x)
-	# body: the path with trimmed ends. Solid arrows stroke the casing for the whole path first, then the core (no seams at joints)
 	if not dashed:
-		_stroke(pts, n, start, base, casing, 8.0)
-		_stroke(pts, n, start, base, core, 4.0)
+		for i in range(1, k): draw_line(_cut[i - 1], _cut[i], casing, 8.0, true)
+		for i in range(1, k): draw_line(_cut[i - 1], _cut[i], core, 4.0, true)
 	else:
-		var prev := start
 		var run := 0.0
-		for i in range(1, n):
-			var q := pts[i] if i < n - 1 else base
+		for i in range(1, k):
+			var prev := _cut[i - 1]; var q := _cut[i]
 			var seg_len: float = prev.distance_to(q)
 			if seg_len < 0.5: continue
 			var dir := (q - prev) / seg_len
@@ -639,39 +898,40 @@ func _draw_arrow(pts: PackedVector2Array, n: int, attack: bool, dashed: bool, al
 				draw_line(_seg[0], _seg[1], core, 4.0, true)
 				s = e
 			run += seg_len
-			prev = q
-	# head
+	# head (fixed size in px)
 	if attack:
-		for k in 2:
-			var off := -7.0 * k
-			_chev[0] = tip + d1 * off - d1 * 7.0 + side * 6.0
-			_chev[1] = tip + d1 * off
-			_chev[2] = tip + d1 * off - d1 * 7.0 - side * 6.0
-			draw_polyline(_chev, casing, 8.0, true)
-		for k in 2:
-			var off2 := -7.0 * k
-			_chev[0] = tip + d1 * off2 - d1 * 7.0 + side * 6.0
-			_chev[1] = tip + d1 * off2
-			_chev[2] = tip + d1 * off2 - d1 * 7.0 - side * 6.0
-			draw_polyline(_chev, core, 4.0, true)
+		for pass_i in 2:
+			for kk in 2:
+				var off := -7.0 * kk
+				_chev[0] = tip + d1 * off - d1 * 7.0 + side * 6.0
+				_chev[1] = tip + d1 * off
+				_chev[2] = tip + d1 * off - d1 * 7.0 - side * 6.0
+				draw_polyline(_chev, casing if pass_i == 0 else core, 8.0 if pass_i == 0 else 4.0, true)
 	else:
+		var base := tip - d1 * 12.0
 		_tri[0] = tip + d1 * 2.0; _tri[1] = base + side * 6.5; _tri[2] = base - side * 6.5
 		draw_colored_polygon(_tri, casing)
 		draw_polyline(_tri, casing, 4.0, true)
 		_tri[0] = tip; _tri[1] = base + side * 5.0; _tri[2] = base - side * 5.0
 		draw_colored_polygon(_tri, core)
 
-func _stroke(pts: PackedVector2Array, n: int, start: Vector2, base: Vector2, col: Color, w: float) -> void:
-	var prev := start
-	for i in range(1, n):
-		var q := pts[i] if i < n - 1 else base
-		if prev.distance_to(q) >= 0.5: draw_line(prev, q, col, w, true)
-		prev = q
+## polyline arrow along pts[0..n) for battle effects (no marker trimming)
+func _draw_arrow(pts: PackedVector2Array, n: int, attack: bool, dashed: bool, alpha: float, phase: float) -> void:
+	var span := pts[0].distance_to(pts[n - 1])
+	var d1 := (pts[n - 1] - pts[n - 2]).normalized()
+	var trim := clampf(span * 0.3, 8.0, 21.0)
+	var head := 14.0 if attack else 12.0
+	var total := _path_len(pts, n)
+	var s_tip := total - trim
+	var s_base := maxf(trim, s_tip - head)
+	var k := _clip(pts, n, trim, s_base)
+	_draw_arrow_cut(k, _pt_at(pts, n, s_tip), d1, attack, dashed, alpha, phase)
 
 ## battle arrows (same arrow language, solid, fading over 120 ms at the end) and impact rings
 func _draw_fx() -> void:
 	var now := Time.get_ticks_msec()
 	var keep: Array = []
+	var motion := TBKit.motion_ok()
 	for f in _fx:
 		var k: float = float(now - int(f["t0"])) / float(f["dur"])
 		if k >= 1.0: continue
@@ -685,7 +945,7 @@ func _draw_fx() -> void:
 			var pt_from := map.project(g.world.lon[f["from"]], g.world.lat[f["from"]])
 			if pt_from.z <= 0.0: continue
 			var from2 := Vector2(pt_from.x, pt_from.y)
-			var e := minf(1.0, k * 1.8)
+			var e := minf(1.0, k * 1.8) if motion else 1.0
 			e = 1.0 - pow(1.0 - e, 3.0)
 			var fade := 1.0 - maxf(0.0, (k - 0.7) / 0.3)
 			if from2.distance_to(to2) > 30.0:
@@ -693,8 +953,9 @@ func _draw_fx() -> void:
 				if _fx_pts[0].distance_to(_fx_pts[1]) > 30.0: _draw_arrow(_fx_pts, 2, f["kind"] == "atk", false, fade, 0.0)
 		else:
 			col.a = 1.0 - k
-			draw_arc(to2, 6.0 + k * 28.0, 0.0, TAU, 28, col, 2.5 * (1.0 - k * 0.6), true)
-			if k < 0.35:
-				var c3 := col; c3.a = (0.35 - k) / 0.35 * 0.6
-				draw_circle(to2, 5.0 + k * 20.0, c3)
+			var rk := k if motion else 0.5
+			draw_arc(to2, 6.0 + rk * 28.0, 0.0, TAU, 28, col, 2.5 * (1.0 - rk * 0.6), true)
+			if rk < 0.35:
+				var c3 := col; c3.a = (0.35 - rk) / 0.35 * 0.6
+				draw_circle(to2, 5.0 + rk * 20.0, c3)
 	_fx = keep

@@ -22,12 +22,10 @@ var selected := -1
 var hover := -1
 ## camera / highlight animation (the GPU view is re-rendered only while something is moving)
 static var animate := OS.get_environment("TB_NOANIM") == ""
-var _time := 0.0
 var _sel_t := 1.0
 var _hover_t := 0.0
 var _hover_prev := -1
 var _hover_prev_t := 0.0
-var _pulse_until := 0
 var _fly := {}
 var _vel := Vector2.ZERO                  # drag velocity (px/s) for flick inertia
 var _vel_us := 0
@@ -45,6 +43,7 @@ var _peeked := false
 var last_pick_touch := DisplayServer.is_touchscreen_available()
 var quality := 2
 var map_theme := 0               # 0 standard, 1 parchment
+var _hi_owner := -1              # nation highlighted on the pick screen (others dim)
 var render_scale := 1.0        # SubViewport resolution relative to the control's logical size
 var _vp: SubViewport
 var _view_tex: TextureRect
@@ -112,6 +111,7 @@ func setup(game: TBGame) -> void:
 
 # ---------------------------------------------------------------- palette
 func repaint_all() -> void:
+	_rel_changed()
 	lenses.refresh_nations()
 	lenses.prepare()
 	for p in g.P:
@@ -120,11 +120,24 @@ func repaint_all() -> void:
 
 ## repaint only changed provinces (engine dirty list); lenses that depend on global stats repaint everything
 func repaint(dirty: PackedInt32Array, full: bool = false) -> void:
-	if full or dirty.size() > g.P / 3:
+	if full or dirty.size() > g.P / 3 or _rel_changed():
+		repaint_all(); return
+	if lenses.cvd_active() and lenses.refresh_nations():     # an owner change re-solved the adjacency colouring
 		repaint_all(); return
 	for p in dirty:
 		_write(p)
 	_upload()
+
+var _rel_sig := -1
+## true when the player's relations changed since the last full paint (a war or pact recolours every province of that nation)
+func _rel_changed() -> bool:
+	var me := g.human_id
+	if me == 0: return false
+	var sig := me
+	for n in range(1, g.N1): sig = (sig * 31 + g.rel[me * g.N1 + n] + 1) & 0x3fffffff
+	if sig == _rel_sig: return false
+	_rel_sig = sig
+	return true
 
 func _write(p: int) -> void:
 	var id := p + 1
@@ -133,10 +146,15 @@ func _write(p: int) -> void:
 	_pal[o] = (c >> 16) & 255; _pal[o + 1] = (c >> 8) & 255; _pal[o + 2] = c & 255; _pal[o + 3] = 255
 	var ow := g.owner[p]
 	var me := g.human_id
-	var fl := 0
-	if me != 0 and ow != 0:
+	var fl := 0                                  # relation class for the shader's border patterns: 1 own, 2 war, 3 ally, 4 truce / NAP, 5 rebel
+	if ow != 0 and ow == g.rebel: fl = 5
+	elif me != 0 and ow != 0:
 		if ow == me: fl = 1
-		elif g.get_rel(me, ow) == 1: fl = 2
+		else:
+			var r := g.get_rel(me, ow)
+			if r == 1: fl = 2
+			elif r == 3 or r == 4: fl = 3
+			elif r == 2: fl = 4
 	var r1 := (PAL_W + id) * 4
 	_pal[r1] = ow & 255; _pal[r1 + 1] = (ow >> 8) & 255; _pal[r1 + 2] = fl; _pal[r1 + 3] = 255
 	var r2 := (2 * PAL_W + id) * 4
@@ -204,10 +222,13 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("hover_t", _hover_t)
 	_mat.set_shader_parameter("hover_prev", _hover_prev + 1 if _hover_prev >= 0 else -1)
 	_mat.set_shader_parameter("hover_prev_t", _hover_prev_t)
-	_mat.set_shader_parameter("time", _time)
 	_mat.set_shader_parameter("dim_others", 1.0 if dim_others else 0.0)
 	_mat.set_shader_parameter("quality", quality)
 	_mat.set_shader_parameter("theme", map_theme)
+	_mat.set_shader_parameter("hc", 1 if TBTokens.is_hc() else 0)
+	_mat.set_shader_parameter("strong", 1 if (TBTokens.is_hc() or TBLenses.cvd != "off") else 0)
+	_mat.set_shader_parameter("px_scale", render_scale)
+	_mat.set_shader_parameter("hi_owner", _hi_owner)
 	_select_ids_texture()
 	if labels != null:
 		labels.max_labels = [30, 70, 110][quality]
@@ -222,15 +243,13 @@ func set_mode(m: int) -> void:
 	_push_view()
 
 func select(p: int) -> void:
-	if p != selected and animate:
-		_sel_t = 0.0
-		_pulse_until = Time.get_ticks_msec() + 2400
+	if p != selected and TBKit.motion_ok(): _sel_t = 0.0
 	selected = p
 	_push_view()
 
 func _set_hover(h: int) -> void:
 	if h == hover: return
-	if animate:
+	if TBKit.motion_ok():
 		_hover_prev = hover; _hover_prev_t = _hover_t
 		_hover_t = 0.0
 	hover = h
@@ -242,7 +261,7 @@ func fly_to(lon_deg: float, lat_deg: float, z: float = -1.0) -> void:
 	var tla := clampf(deg_to_rad(lat_deg), -1.45, 1.45)
 	var tz := z if z > 0.0 else zoom
 	_vel = Vector2.ZERO; _zoom_target = -1.0
-	if not animate or size.x < 8.0 or _mat == null:
+	if not TBKit.motion_ok() or size.x < 8.0 or _mat == null:
 		lon0 = tl; lat0 = tla; zoom = tz
 		_clamp_flat(); _push_view(); return
 	var dl := wrapf(tl - lon0, -PI, PI)
@@ -253,7 +272,7 @@ func zoom_by(f: float, smooth: bool = false) -> void:
 	var lo := 0.6 if mode == 0 else maxf(0.5, (size.y / PI) / (size.x / TAU))
 	var hi := 14.0 if mode == 0 else 24.0
 	_fly = {}
-	if smooth and animate:
+	if smooth and TBKit.motion_ok():
 		var base := _zoom_target if _zoom_target > 0.0 else zoom
 		_zoom_target = clampf(base * f, lo, hi)
 		_push_view(); return
@@ -263,8 +282,8 @@ func zoom_by(f: float, smooth: bool = false) -> void:
 
 func _process(delta: float) -> void:
 	if _mat == null: return
-	_time += delta
 	var busy := false
+	var motion := TBKit.motion_ok()
 	# flight
 	if not _fly.is_empty():
 		_fly["t"] += delta
@@ -284,7 +303,7 @@ func _process(delta: float) -> void:
 		_clamp_flat()
 		busy = true
 	# flick inertia
-	if not _pressed and _vel.length() > 12.0:
+	if motion and not _pressed and _vel.length() > 12.0:
 		drag_by(_vel * delta)
 		_vel *= exp(-4.2 * delta)
 		busy = true
@@ -292,15 +311,13 @@ func _process(delta: float) -> void:
 		_vel = Vector2.ZERO
 	# highlight fades and the breathing pulse
 	var was := _hover_t + _hover_prev_t + _sel_t
-	if animate:
+	if motion:
 		_hover_t = move_toward(_hover_t, 1.0 if hover >= 0 else 0.0, delta * 9.0)
 		_hover_prev_t = move_toward(_hover_prev_t, 0.0, delta * 7.0)
 		_sel_t = move_toward(_sel_t, 1.0, delta * 8.0)
 	else:
 		_hover_t = 1.0 if hover >= 0 else 0.0; _hover_prev_t = 0.0; _sel_t = 1.0
 	if absf(_hover_t + _hover_prev_t + _sel_t - was) > 0.0001: busy = true
-	if selected >= 0 and Time.get_ticks_msec() < _pulse_until:
-		busy = true
 	if busy:
 		_push_view()
 
@@ -417,8 +434,8 @@ func _gui_input(event: InputEvent) -> void:
 					if _peeked: province_peeked.emit(-1); _peeked = false
 					elif _pressed and _drag_moved < _tap_slop():
 						last_pick_touch = event.device == InputEvent.DEVICE_ID_EMULATION
-						province_picked.emit(pick_at(event.position), false); _vel = Vector2.ZERO
-					elif Time.get_ticks_usec() - _vel_us > 90000 or not animate: _vel = Vector2.ZERO      # finger rested before lifting: no flick
+						province_picked.emit(_pick_tap(event.position), false); _vel = Vector2.ZERO
+					elif Time.get_ticks_usec() - _vel_us > 90000 or not TBKit.motion_ok(): _vel = Vector2.ZERO      # finger rested before lifting: no flick
 					_pressed = false
 					_last_drag_us = 0
 					_push_view()
@@ -439,3 +456,43 @@ func _gui_input(event: InputEvent) -> void:
 			var h := pick_at(event.position)
 			if h != hover:
 				_set_hover(h); province_hovered.emit(h)
+
+# ---------------------------------------------------------------- accessibility + nation pick helpers
+## colour-vision mode and high contrast (called by main when the settings change); `cfg["cvd"]` in off / deuter / protan / tritan
+func apply_a11y(cfg: Dictionary) -> void:
+	var changed := TBLenses.set_cvd(String(cfg.get("cvd", "off")))
+	if lenses != null and changed: repaint_all()
+	_push_view()
+
+## the pick screen lights the whole nation and dims the rest (pass the nation index); clear_highlight() restores the map
+func highlight_nation(n: int) -> void:
+	if n == _hi_owner: return
+	_hi_owner = n; _push_view()
+
+func clear_highlight() -> void:
+	highlight_nation(-1)
+
+## move the keyboard / list cursor to a province and bring it into view
+func focus_on(p: int) -> void:
+	if g == null or p < 0 or p >= g.P: return
+	focus_province = p
+	fly_to(world.lon[p], world.lat[p])
+	if labels != null: labels.queue_redraw()
+
+## tap magnet for the nation-pick screen: a tap within 20 dp of a much smaller nation (or of land when the tap hit the sea) snaps to it,
+## so the tiniest nations stay selectable with a finger. Elsewhere it is plain picking.
+func _pick_tap(pos: Vector2) -> int:
+	var p := pick_at(pos)
+	if g == null or g.human_id != 0: return p
+	var counts := PackedInt32Array(); counts.resize(g.N1)
+	for q in g.P: counts[g.owner[q]] += 1
+	var best := p
+	var best_n := counts[g.owner[p]] if (p >= 0 and g.owner[p] != 0) else 1000000
+	var rad := float(TBKit.dp(20.0))
+	for ring in [rad * 0.35, rad * 0.7, rad]:
+		for k in 12:
+			var q := pick_at(pos + Vector2.from_angle(k * TAU / 12.0) * ring)
+			if q < 0 or g.owner[q] == 0: continue
+			var c := counts[g.owner[q]]
+			if c * 3 <= best_n: best = q; best_n = c
+	return best

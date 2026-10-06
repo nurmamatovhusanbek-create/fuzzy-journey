@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "contrast": false}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "contrast": false, "cvd": "off", "navpad": "auto"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -56,6 +56,7 @@ func _ready() -> void:
 	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
 	panel.select_requested.connect(func(q: int): _select(q))
 	tip = TBMapTip.new(); add_child(tip)
+	TBMapCursor.install(self)                       # keyboard map cursor + on-screen nav pad (accessibility)
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
@@ -154,7 +155,7 @@ func _apply_quality() -> void:
 	map.quality = q
 	map.map_theme = 1 if cfg.get("theme", "standard") == "parchment" else 0
 	map.render_scale = [0.6, 0.85, 1.0][q]      # fraction of logical resolution the map shader renders at
-	map._push_view()
+	map.apply_a11y(cfg)
 
 # ---------------------------------------------------------------- screens
 func _new_demo_game() -> void:
@@ -278,6 +279,8 @@ func _apply_a11y() -> void:
 	K.touch_large = bool(cfg.get("touch_large", false))
 	TBTokens.mode = TBTokens.Mode.HIGH_CONTRAST if bool(cfg.get("contrast", false)) else TBTokens.Mode.NORMAL
 	theme = K.theme()
+	TBNavPad.setting = String(cfg.get("navpad", "auto"))
+	if map != null: map.apply_a11y(cfg)                     # colour-vision palette + high-contrast map
 
 func _on_setting_changed(key: String) -> void:
 	_save_cfg()
@@ -287,6 +290,7 @@ func _on_setting_changed(key: String) -> void:
 		"quality", "view", "theme", "ui":
 			_apply_quality(); _update_ui_scale(); map.set_mode(0 if cfg["view"] == "globe" else 1)
 		"sound": sfx.enabled = cfg.get("sound", true)
+		"cvd", "navpad": _apply_a11y()
 		"text_scale", "readable", "touch_large", "contrast", "reduce_motion", "reset_access":
 			_apply_a11y(); _rebuild_screens()
 
@@ -618,7 +622,7 @@ func _replay_battles() -> void:
 		if int(b[4]) != me and int(b[3]) != me: continue
 		if int(b[3]) == me: continue                      # own attacks already play when ordered; AI-run turns of other humans skip
 		var held: bool = int(b[2]) == 0
-		var col := Color(0.5, 0.9, 0.55) if held else Color(1.0, 0.55, 0.5)
+		var col := TBTokens.c("pos_bar") if held else TBTokens.c("neg_bar")
 		map.labels.add_fx("atk", int(b[0]), int(b[1]), col, i * 220)
 		map.labels.add_fx("cap", int(b[0]), int(b[1]), col, i * 220 + 250)
 		i += 1
@@ -736,7 +740,7 @@ func _process(delta: float) -> void:
 	_update_perf(delta)
 	_place_tip()
 	if map.labels != null and map.labels.visible != (mode != "menu"): map.labels.visible = mode != "menu"
-	if mode == "menu" and _spin:
+	if mode == "menu" and _spin and K.motion_ok():
 		map.lon0 += delta * 0.12
 		map._push_view()
 		if is_instance_valid(_bezel): _bezel.queue_redraw()
