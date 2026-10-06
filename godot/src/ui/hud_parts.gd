@@ -89,9 +89,9 @@ class DockButton extends Button:
 		draw_arc(c, R - 4.0, 0, TAU, 40, Color(K.BRASS.r, K.BRASS.g, K.BRASS.b, 0.3), 1.0, true)
 		draw_arc(c, R - 0.5, PI * 1.1, PI * 1.55, 12, Color(1, 0.95, 0.75, 0.55), 1.4, true)       # rim highlight
 		TBGlyph.draw(self, glyph, c, 19.0, K.BRASS_LT if hot else K.BRASS, 1.6)
-		var f := K.body_b()
+		var f := K.body()
 		var w := f.get_string_size(cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-		draw_string_outline(f, Vector2((size.x - w) * 0.5, size.y - 2.0), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, Color(0.02, 0.015, 0.01, 0.85))
+		draw_string_outline(f, Vector2((size.x - w) * 0.5, size.y - 2.0), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(0.02, 0.015, 0.01, 0.8))
 		draw_string(f, Vector2((size.x - w) * 0.5, size.y - 2.0), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, K.CREAM if hot else Color(0.93, 0.88, 0.76))
 		if badge > 0:
 			var bc := Vector2(size.x - 8, 8)
