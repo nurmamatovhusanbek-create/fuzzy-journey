@@ -15,7 +15,7 @@ class Bezel extends Control:
 		var R := minf(size.x, size.y) * 0.44 * map.zoom
 		var spin := -map.lon0
 		var gold := Color(0.83, 0.63, 0.09)
-		draw_circle(c, R * 1.0, Color(0.015, 0.025, 0.06, 0.5))      # dims the globe so the title reads over any continent
+		draw_circle(c, R * 1.0, Color(0.015, 0.025, 0.06, 0.62))      # dims the globe so the title reads over any continent
 		draw_arc(c, R * 1.06, 0, TAU, 96, Color(gold.r, gold.g, gold.b, 0.55), 1.0, true)
 		draw_arc(c, R * 1.075, 0, TAU, 96, Color(gold.r, gold.g, gold.b, 0.2), 1.0, true)
 		for i in 120:
@@ -83,8 +83,8 @@ class Entry extends Button:
 		for st in ["normal", "hover", "pressed", "disabled", "focus"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
 		add_theme_font_override("font", K.display_hi() if is_big else K.display())
 		add_theme_font_size_override("font_size", 28 if is_big else 19)
-		for k in ["font_color", "font_hover_color", "font_pressed_color"]: add_theme_color_override(k, K.GOLD2 if is_big else K.TEXT)
-		add_theme_color_override("font_hover_color", Color(0.72, 0.13, 0.1))
+		for k in ["font_color", "font_hover_color", "font_pressed_color"]: add_theme_color_override(k, Color(0.953, 0.773, 0.322) if is_big else Color(0.91, 0.863, 0.8))
+		add_theme_color_override("font_hover_color", Color(1, 0.9, 0.6))
 		if cb.is_valid(): pressed.connect(cb)
 	func _draw() -> void:
 		var hot := is_hovered() or button_pressed or big
@@ -94,7 +94,7 @@ class Entry extends Button:
 		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var cy := size.y * 0.5
 		var gap := 16.0
-		var col := Color(0.62, 0.14, 0.1, 0.95 if (is_hovered() or button_pressed) else 0.7)
+		var col := Color(0.953, 0.773, 0.322, 0.95 if (is_hovered() or button_pressed) else 0.6)
 		for s in [-1.0, 1.0]:
 			var x: float = size.x * 0.5 + s * (w * 0.5 + gap)
 			draw_colored_polygon(PackedVector2Array([Vector2(x - 5, cy), Vector2(x, cy - 5), Vector2(x + 5, cy), Vector2(x, cy + 5)]), col)
