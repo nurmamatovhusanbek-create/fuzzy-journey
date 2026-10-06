@@ -5,10 +5,9 @@
 > **Last Updated**: 2026-10-06
 > **Game**: Terra Bellum (single document for the whole in-game screen)
 > **Platform Targets**: Android, iOS (touch-first, 540x960 portrait to 2340x1080 landscape), Windows (mouse + keyboard, 1920x1080). Gamepad not required.
-> **Related GDDs**: none yet; inputs are `design/game-brief.md` and `godot/src/ui/{hud,hud_parts,province_panel,main}.gd`, `render/map_labels.gd`, `engine/advisor.gd`
+> **Related GDDs**: none yet; inputs are `design/game-brief.md` and `godot/src/ui/{hud,hud_parts,province_panel,main}.gd`, `render/map_labels.gd`, `engine/advisor.gd`; companion spec `design/ux/command-card.md` (replaces the right-hand province panel)
 > **Accessibility Tier**: Comprehensive
 > **Style Reference**: `design/art/` (paper / ink / brass kept; ornament reduced, see 1)
-> **Companion**: `design/ux/command-card.md` (replaces the right-hand province panel)
 > **Template**: HUD Design
 
 **Units.** All sizes are `u` (logical px after content scaling, ~1 dp on phones). Reference viewports: Desktop 1920x1080 px at 1.5 px/u = **1280x720u**; Landscape phone 2340x1080 px at ~2.6 px/u = **900x415u**; Short 800x360 px at 1.0 = **800x360u**; Portrait 540x960 px at 1.5 = **360x640u** (up to 411x891u). Touch target >= 48u, mouse target >= 32u, text >= 12u. Current code (`_update_ui_scale`, fixed 1280x720 / 540x960 base) does not yield this on phones: see Open Questions Q1.
@@ -24,7 +23,6 @@
 **Decoration budget (structure over ornament):** one brass hairline per panel edge; no ornaments/dividers/corner studs; flat paper chips (no wax, no medallion rings, no drop-shadow stacks); the only embossed object is the End Turn plate. Max one texture layer under any text.
 
 ## 2. Information Architecture
-
 | Information | Always | Contextual | On demand | Hidden | Reasoning |
 |---|---|---|---|---|---|
 | Gold + net per turn | X | | | | Every build/hire/recruit decision; delta predicts bankruptcy |
@@ -40,12 +38,8 @@
 | Selected-place command card | | X (on selection) | Details drawer | | Verbs + costs; ledger one tap deeper |
 | Army gonfalons | X (map layer) | zoom-disclosed tiers | | | Existing; own = brass rim, war = red + hatch, quiet foreign recedes |
 | Battle preview | | X (attack target chosen) | | | Exact outcome before irreversible attack |
-| Intel, lands count, tech/era, ruler, regime | | | Realm sheet (tap nation chip) | | Do not change this turn's orders; demoted from top bar |
-| Population, development, economy, terrain, happiness | | terrain on enemy/at-war targets | Details drawer | | Ledger; see command-card.md |
 | Supply / attrition | | X (army outside own land: Supply alert + card chip) | Details drawer | | Only matters when an army is starving |
-| Advisor opportunities (idle gold, no trade, peacetime, ult chance, idle moves) | | | Advice screen + dot on its icon | | Opportunities are never ticker alerts; they never interrupt |
-| Turn report (what happened) | | X (one summary chip after End Turn) | Annals | | Replaces the 5-toast stack |
-| Hot-seat round status | | X (hot-seat only) | | | Who has ended this round |
+| Hot-seat status, turn report, opportunities | | X | Annals / Advice dot | | One summary chip after End Turn replaces 5 toasts; opportunities never interrupt; Intel, lands, tech, ruler, ledger figures are on demand (realm sheet / details drawer) |
 
 ## 3. Layout Zones
 
@@ -53,84 +47,89 @@
 
 **Desktop 1280x720u (1920x1080 px)**
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│A ▣ FRANCE ▾ │1804 AD T12│◎ 4,585 ▲+608│☗ 90/1965 ▲+3│⚑ 10/10│✉ 6 ▲+1│ ⚔2 ☠7 │ Lens: Political ▾│40u
-├──┬───────────────────────────┬───────────────────────────────────────────────┬───────────┤
-│B │C ┌─⚔ Threat Lyon 1.8× ──┐ │                                               │F Economic │
-│▢N │  ├─✉ Prussia: alliance ─┤ │            M A P  (hero)                      │ ▭▭▭▭▭▭ ▭  │
-│▢B │  └─◇ Unrest: 3 provs ───┘ │                                               └───────────┘
-│▢D │      (max 4 rows + "+N")  │             ⚔ → ◎  order arrow + preview tag                │
-│▢A!│                           │            ┌ 119 vs 32 · Win · −32 men ┐                    │
-│⋯ │                           │                                                             │
-│64u│   ┌ D COMMAND CARD  480x160u (expands up +200u) ┐                  ┌ E END TURN ────┐  │
-│   │   │ Ariège ★ France › OWN     ⌃ Details  ✕     │                  │ End Turn   ›   │  │
-│   │   │ ⚔33  ★★Ney  Supply 4  Stab 84 ▲           │                  │ 10 moves left  │  │
-│   │   │ SEND [25][50][75][100] [➜M][⚒R][$H][★G][⌂B]│                  └────────────────┘  │
-└───┴───┴────────────────────────────────────────────┴──────────────────────────────────────┘
- margins 8u · card centred (x 400-880) · End Turn 168x56u bottom-right · rail left, ticker beside it
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ▣ FRANCE ▾ │1804 AD T12│◎ 4,585 ▲+608│☗ 90/1965 ▲+3│⚑ 10/10│✉ 6 ▲+1│⚔2 ☠7│ Lens: Political ▾ │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ B          ┌─ C ticker 280u ─────────┐                                    ┌─ F legend ─────┐ │
+│ ▢ Nations  │⚔ Threat Lyon 1.8× ▲     │                                    │Economic        │ │
+│ ▢ Budget   │✉ Prussia: alliance      │                                    │lo ▭▭▭▭▭▭ hi    │ │
+│ ▢ Decree   │◇ Unrest: 3 provinces    │     M A P  (hero)                  └────────────────┘ │
+│ ▢ Advice!  └─────────────────────────┘                                                       │
+│ ⋯ More      (max 4 rows, then "+N")   ⚔ ───────► ◎  order arrow                              │
+│                                           ┌ 119 vs 32 · Win · −32 men ┐                      │
+│                      ┌─ D COMMAND CARD 480x160u (expands up) ─────────┐                      │
+│                      │ Ariège ★ France › OWN            ⌃ Details  ✕  │                      │
+│                      │ ⚔33  ★★ Ney  Supply 4  Stab 84 ▲               │    ┌─ E ───────────┐ │
+│                      │ SEND [25][50][75][100%]  [➜M][⚒R][$H][★G][⌂B]  │    │ End Turn   ›  │ │
+│                      │                                                │    │ 10 moves left │ │
+│                      └────────────────────────────────────────────────┘    └───────────────┘ │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 **Landscape phone 900x415u (2340x1080 px)**: safe-area insets (cutout/rounded) applied first: 44u left/right, 0 top (status hidden), 21u bottom.
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│A▣│T12 1804│◎4.6k+608│☗90│⚑10│✉6│⚔2│                                     │Lens▾│        │36u
-├─┬───────────────────┬──────────────────────────────────────────────────────────────────┤
-│B│C ⚔ Threat Lyon ▲  │                                                                   │
-│▢│  ✉ +2 more  (1 row│                  MAP                                              │
-│▢│  + count pill)    │                       ┌ 119 vs 32 · Win ┐                         │
-│▢│                   │                                                                   │
-│▢│       ┌ D CARD STRIP 464x104u, handed right ───────────────────┐ ┌E END TURN┐        │
-│⋯│       │Ariège ★ OWN  ⚔33 ★★ Sup4  Stab84▲                    │ │ End Turn›│        │
-│ │       │[25|50|75|100]  [➜][⚒][$][★][⌂]   (48u targets)        │ │10 moves  │        │
-└─┴───────┴────────────────────────────────────────────────────────┴─┴──────────┴────────┘
- left thumb: rail, ticker, lens · right thumb: card strip + End Turn · details = side sheet (right, 300u)
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ▣ │T12 1804│◎4.6k▲608│☗90│⚑10│✉6│⚔2│                                   │Lens▾│  A 36u        │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ▢     ┌─ C ticker ───────────┐                                                               │
+│ ▢     │⚔ Threat Lyon ▲       │                                                               │
+│ ▢     │✉ +2 more   (1 row + pill)           M A P                                            │
+│ ▢     └──────────────────────┘      ┌ 119 vs 32 · Win ┐                                      │
+│ ⋯                                                                                            │
+│                                ┌─ D CARD STRIP 464x104u ──────────────┐   ┌─ E ──────────┐   │
+│                                │ Ariège ★ OWN  ⚔33 ★★ Sup4 Stab84▲    │   │ End Turn  ›  │   │
+│                                │ [25|50|75|100] [➜][⚒][$][★][⌂]  48u  │   │ 10 moves     │   │
+│                                └──────────────────────────────────────┘   └──────────────┘   │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 **Short 800x360u (small phone / small window)**
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│▣│T12│◎4.6k+608│☗90│⚑10│⚔2│                                │Lens▾│≡ (menu)  │32u
-├─┬────────────────────────────────────────────────────────────────────────────┤
-│≡│ C: single ticker row, 1 chip + pill                                         │
-│ │                         MAP (>= 60% of height stays map)                     │
-│ │      ┌ CARD STRIP 440x96u: name+chips row / share+verbs (icons, label on focus)┐ [End]│
-└─┴──────┴────────────────────────────────────────────────────────────────────────┴─────┘
- rail collapses to ONE "≡" (opens screens grid) · Diplo + deltas hidden (in popover) · End Turn 112x48u
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ▣│T12│◎4.6k▲608│☗90│⚑10│⚔2│                                       │Lens▾│  ≡ menu   A 32u    │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ≡     C: 1 ticker row + pill                                                                 │
+│                                   MAP (>= 60% of height stays map)                           │
+│                       ┌─ CARD STRIP 440x96u ─────────────────────────────┐                   │
+│                       │ Ariège ★ OWN ⚔33 Sup4 Stab84  (labels on focus)  │    ┌─ E ────────┐ │
+│                       │ [25|50|75|100] [➜][⚒][$][★][⌂]                   │    │ End Turn › │ │
+│                       └──────────────────────────────────────────────────┘    └────────────┘ │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 **Portrait phone 360x640u (540x960 px; up to 411x891u)**: insets: top 28-44u (notch/status), bottom 24u (gesture bar).
 ```
-┌──────────────────────────────────┐
-│A▣ │◎4.6k▲608│☗90 │⚑10 │✉6 │ ⋯   │40u   (⋯ = realm sheet: date, intel, lands, tech, infamy)
-├──────────────────────────────────┤
-│C ⚔ Threat Lyon ▲ 1.8×   │+3 ▾  │36u   (1 chip + pill; pill opens list sheet <= 40% height)
-│                                  │
-│            M A P                 │
-│      ┌ 119 vs 32 · Win ┐         │
-│                                  │
-├──────────────────────────────────┤ ┐ D COMMAND SHEET (bottom sheet)
-│ ▔▔ drag handle (48u)             │ │ peek 180u (<= 30% height)
-│ Ariège ★ France › OWN            │ │ half 360u = details (drawer)
-│ ⚔33 ★★Ney Sup4 Stab84▲           │ │ full 560u max; map stays visible above
-│ [25|50|75|100]                   │ │
-│ [➜Move][⚒Rec][$Hire][★Gen][⌂Bld] │ ┘
-├──────────────────────────────────┤
-│B ▢N ▢B ▢D ▢A! ⋯ │ Lens▾ │E End Turn›│56u  bottom bar, thumb zone; E = 168x48u right
-└──────────────────────────────────┘
+┌────────────────────────────────────────────┐
+│ ▣│◎4.6k▲608│☗90│⚑10│✉6│  ⋯    A 40u        │
+├────────────────────────────────────────────┤
+│ C ⚔ Threat Lyon ▲ 1.8×      │ +3 ▾ │       │
+├────────────────────────────────────────────┤
+│               M A P                        │
+│       ┌ 119 vs 32 · Win ┐                  │
+├────────────────────────────────────────────┤
+│ D SHEET ▔▔ drag handle 48u                 │
+│ Ariège ★ France › OWN  ⚔33 ★★ Sup4         │
+│ [25|50|75|100]                             │
+│ [➜Move][⚒Rec][$Hire][★Gen][⌂Bld]           │
+│ peek 180u · half 360u · full 560u          │
+├────────────────────────────────────────────┤
+│ B ▢N ▢B ▢D ▢A! ⋯│Lens▾│E End Turn ›        │
+│ bottom bar 56u = thumb zone                │
+└────────────────────────────────────────────┘
 ```
 **Hot-seat (desktop shown; phone = seat badge in nation chip, strip collapses to "Round 4 · P2/4")**
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│A ■P2 NAPOLEON ▾│1804 AD T12│◎ 4,585 ▲+608│☗ 90/1965│⚑ 10/10│✉ 6│          │Lens▾│        │40u
-├────────────────────────────────────────────────────────────────────────────────────────┤
-│G   Round 4:  ■P1 ✓ ended   ▲P2 ● playing   ●P3 ○ waiting   ◆P4 ○ waiting             │20u strip (centre)
-│ ...same zones B/C/D/F as desktop; C shows ONLY this seat's alerts...                    │
-│                                          ┌ E ────────────────┐                          │
-│                                          │ Pass to P3  ›     │  last seat: "End Round ›" │
-│                                          └───────────────────┘                          │
-└────────────────────────────────────────────────────────────────────────────────────────┘
- on End: full-screen opaque curtain "Pass the device to P3 · [Ready]" (HUD, ticker, map details hidden)
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ■P2 NAPOLEON ▾│1804 AD T12│◎ 4,585 ▲+608│☗ 90/1965│⚑ 10/10│✉ 6│            │Lens▾│  A        │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│           G  Round 4:  ■P1 ✓ ended    ▲P2 ● playing    ●P3 ○ waiting    ◆P4 ○ waiting        │
+│ rail B, ticker C (this seat only), card D, legend F as desktop                               │
+│ on End: opaque curtain "Pass the device to P3 · [Ready]"  (no HUD, ticker, values)           │
+│                                                                 ┌─ E ──────────────────────┐ │
+│                                                                 │ Pass to P3  ›            │ │
+│                                                                 │ (last seat: End Round ›) │ │
+│                                                                 └──────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 3.2 Zone Specification Table
-
 | Zone | Position (D / L / P) | Size (D / L / P) | Primary elements | Max simult. | Notes |
 |---|---|---|---|---|---|
 | A Top bar | top, full width / same / same | 40u (5.6%) / 36u / 40u | nation chip, date, 4 resource chips, wars, infamy, lens (D/L) | 9 | Read-only; tap chip = breakdown popover |
@@ -138,8 +137,7 @@
 | C Alert ticker | top-left beside rail / same / under top bar | 280u wide / 240u / full width | alert chips (36u rows) | 4 + pill / 1 + pill / 1 + pill | Only rows with a true condition |
 | D Command card | bottom-centre / bottom, handed / bottom sheet | 480x160u / 464x104u / 360x180u peek | see command-card.md | 1 | Collapsed by default; details drawer on demand |
 | E End Turn | bottom-right / bottom-right / bottom bar right | 168x56u / 128x56u / 168x48u | one plate | 1 | Only embossed object |
-| F Legend | top-right under bar / popover in lens menu / popover | 200x64u | lens key | 1 (contextual) | Hidden for political lens |
-| G Hot-seat strip | top centre under bar | 20u | seat chips | 1 (hot-seat) | Desktop only; phones fold into A |
+| F Legend, G hot-seat strip | top-right under bar; G top-centre 20u (desktop only, phones fold into A) | 200x64u | lens key, seat chips | 1 each (contextual) | F hidden for political lens; popover in L/P |
 | Map layer | full | n/a | selection ring, target markers, order arrow, preview tag, gonfalons, floaters | see 7 | Not a panel; keep-out registered for labels |
 
 **Safe areas** (u): use OS safe area first, then minimum margin.
@@ -161,33 +159,23 @@
 ## 4. HUD Element Specifications
 
 ### 4.1 Element Overview
-
 | Element | Zone | Always | Trigger | Data source | Update | Max size | Min size | Overlap prio | Accessibility alt |
 |---|---|---|---|---|---|---|---|---|---|
-| Nation chip | A | Yes | n/a | TBGame nation, seat | on load, hot-seat swap | 14% W | 32u tall | 2 | Name text + seat shape (■▲●◆) |
-| Date / turn | A | Yes | n/a | g.year, turn | end turn | 8% W | 12u text | 5 | Text |
+| Nation chip + date/turn | A | Yes | n/a | TBGame nation, seat, year, turn | on load, hot-seat swap | 14% W | 32u tall | 2 | Name text + seat shape (■▲●◆) |
 | Resource chip x4 | A | Yes | Diplo if rules >= 1 | g.income, gold, manpower, mp, dp | after every command + end turn | 10% W each | 48u hit | 1 | Value + ▲▼ sign + label word |
-| Wars chip | A | No | >= 1 war | g.get_rel | end turn, declare/peace | 5% W | 32u | 3 | Icon + count text |
-| Infamy chip | A | No | infamy >= 5 | g.infamy, coalition | end turn | 5% W | 32u | 4 | Icon + number + "Coalition" word |
-| Lens chip | A | Yes | n/a | TBLenses | on select | 12% W | 40u | 3 | Name text; popover grid with icons |
 | Screens rail | B | Yes | n/a | n/a | n/a | 64u W | 48u | 2 | Icon + 12u label; Advice dot has count |
 | Alert chip | C | No | condition true | TBAdvisor + pending | each refresh | 22% W | 36u rows | 1 | Class glyph + word + severity mark |
 | Command card | D | No | selection | see command-card.md | each refresh | 38% W | see spec | 2 | see spec |
 | End Turn plate | E | Yes | n/a | mp, pending, busy | each refresh | 13% W | 48u | 1 | Text label, state word |
-| Lens legend | F | No | lens != political | TBLenses | on lens change | 16% W | 12u text | 6 | Swatch + text (never colour only) |
-| Selection ring | Map | No | selection | map.selected | on select | n/a | 2u stroke | 1 | Thick outline + animated dash (static if reduced motion) |
 | Target markers | Map | No | army selected | move_check | on select | n/a | 24u glyph | 2 | Move = chevron; Attack = crossed-swords + hatch |
 | Order arrow + preview tag | Map | No | target chosen | combat_preview | on target / share change | tag 18% W | 12u text | 1 | Tag text states outcome in words |
 | Hover tooltip (desktop) | Overlay | No | hover 250ms | owner, rel, army, terrain | on hover | 22% W | 12u | 1 | Same content on keyboard focus |
-| Turn report chip | C | No | after end turn | g.log | once per turn | 22% W | 36u | 4 | Text summary; opens Annals |
 
 ### 4.2 Element behaviour (replaces per-element blocks)
-
 | Element | Visual | Data / update behaviour | Urgency states | Interaction | Customisation |
 |---|---|---|---|---|---|
 | Resource chip | Flat paper chip: 20u glyph, value (mono 16u), delta line (12u) `▲+608` / `▼-40` | Value rolls 300ms then holds; delta = per-turn projection. Gain flash = text weight + arrow, not colour only | Normal / Caution (gold runs out in <= 5 turns, or manpower at cap) `!` badge / Critical (negative treasury) `!!` + outline | Hover/long-press: tooltip breakdown (below). Tap: pin popover with "Open Budget ›" | Show deltas on/off; text scale |
-| Gold tooltip | n/a | "Treasury 4,585 · Income +1,020 (taxes, trade, tribute) · Upkeep −412 (army, buildings) · Net +608/turn · Runs out: never" | n/a | n/a | n/a |
-| Manpower / Moves / Diplo tooltip | n/a | Men: "90 of 1,965 · +3/turn · recruit costs". Moves: "10 of 10 · refills to 10 next turn · Move 1, Attack 2, Recruit 1, Colonize 2". Diplo: "6 · +1/turn · Ultimatum 2 · Alliance 3" | n/a | n/a | n/a |
+| Chip tooltips | n/a | Gold: "treasury 4,585 · income +1,020 (taxes, trade, tribute) · upkeep −412 · net +608/turn · runs out: never". Men: "90 of 1,965 · +3/turn · recruit costs". Moves: "10 of 10 · refills to 10 next turn · Move 1, Attack 2, Recruit 1, Colonize 2". Diplo: "6 · +1/turn · Ultimatum 2 · Alliance 3" | n/a | n/a | n/a |
 | Alert chip | 36u row, class glyph (shape differs per class) + 1-line text + severity mark (▲ critical, none otherwise) | State-based: re-evaluated every refresh; appears 160ms, collapses 400ms after condition clears (shows ✓ first, 600ms) | Info / Warning / Critical (critical = double rule + ▲, sorts first) | Tap/click: focus map on subject + select; Offers expand inline (Accept / Decline). Swipe right / ✕: dismiss for this turn | Max rows; auto-fade on/off; announce via TTS |
 | End Turn plate | Flat brass-edged plate, caption + sub-line; 3 states (6) | Sub-line = "N moves left" (0 = "All moves used") | idle / confirm-hint / busy / waiting / hot-seat | Click, tap, Enter; see 6 | Confirm mode Smart/Always/Never |
 | Lens chip | Text + glyph, opens 2-col grid (icon + name + hotkey) | Legend updates with lens | n/a | Click, tap, `L`, `Alt+1..9` | n/a |
@@ -196,7 +184,6 @@
 | Hover tooltip | Chip stack: [flag Province] / [owner · relation icon+word] / [⚔Army · Terrain] / in order mode a result line `Win: hold 87, lose 32` | 250ms delay, follows cursor (+18,+20), flips at edges | n/a | Esc hides | Delay 0-800ms |
 
 ## 5. HUD States by Gameplay Context
-
 | Context | Shown | Hidden | Modified | Transition in |
 |---|---|---|---|---|
 | Idle (nothing selected) | A, B, C (if any), E, gonfalons, F if lens | D | Moves chip sub-line on E | Tap empty sea / Esc, 160ms fade |
@@ -204,34 +191,23 @@
 | Order mode (target pick) | + target markers, order arrow follows pointer (desktop) | Verb row replaced by Order row (Cancel / share) | Non-targets dim 25% | Tap own army (implicit) or `M`/Move |
 | Battle preview | + preview tag on target, card Order row = [Cancel] [Attack ⚔ N moves] | Ticker collapses to pill | Others dim | Tap/right-click enemy target |
 | Details drawer open | + drawer (up on D, side sheet on L, half-sheet on P) | Ticker collapses to pill on S/P | Card header becomes drawer title | Tap header / `I` |
-| Turn busy | A, E (busy), map pan/zoom | D inputs (read-only, 40% dim), selection | E shows "Resolving…" | End Turn, 0ms; map locked from picks |
-| Turn report | + one Turn report chip, battle replays on map (max 8, 220ms apart) | none | Ticker refilled | `_turn_done` |
+| Turn busy / MP waiting / report | A, E (busy), map pan/zoom; afterwards one Turn report chip + battle replays (max 8, 220ms apart) | D inputs (read-only, 40% dim), selection | E shows "Resolving…" | End Turn, 0ms; map locked from picks |
 | Modal / screen open | A dimmed 40%, rest hidden behind scrim | B, C, D, E | Esc / back closes top-most | Rail, hotkey, event |
 | Event / proposal prompt | scrim + event card (one at a time) | HUD input | "Decide later" turns it into an Event/Offer chip | Turn start |
-| Lens != political | + legend F | none | Gonfalons unchanged | Lens select |
 | Hot-seat curtain | opaque full-screen curtain only | all HUD + map detail | n/a | Last action of seat |
-| Game over | game-over modal | all | n/a | engine |
-| MP waiting | A, E ("Waiting for N players") | D orders disabled after End | n/a | End Turn in MP |
 
 ## 6. Information Hierarchy
-
 | Element | Tier | Reasoning | If hidden |
 |---|---|---|---|
 | Moves chip | MUST KEEP | Budget of the turn | none (never hidden) |
-| Gold chip | MUST KEEP | Drives every purchase | none |
+| Gold + Manpower chips | MUST KEEP | Drive every purchase / recruit | Card cost line |
 | End Turn | MUST KEEP | The one required action | none |
-| Manpower chip | MUST KEEP | Gates recruiting | Card Recruit cost line |
 | Command card verbs | MUST KEEP | Orders | none |
 | Alert chips (critical) | MUST KEEP | War/revolt cannot be silent | Advice-icon dot |
 | Nation chip | SHOULD KEEP | Identity; flag only on small screens | Realm sheet |
-| Lens chip | SHOULD KEEP | Mode switch | Rail "more" |
-| Diplo chip | SHOULD KEEP | Only rules >= 1 | Realm sheet / card cost line |
-| Date / turn | SHOULD KEEP | Orientation | On End Turn plate (P) |
+| Lens, Date, Diplo (rules >= 1), Wars/Infamy, deltas, legend | SHOULD KEEP / CAN HIDE | Mode and context; collapse order below | Popovers, End Turn sub-line, realm sheet |
 | Alert chips (info) / Turn report | CAN HIDE | Reference material | Annals |
 | Screens rail | CAN HIDE | Reachable by hotkey / more menu | "≡" menu (S), bottom bar (P) |
-| Wars / Infamy chips | CAN HIDE | Present in ticker + realm sheet | Ticker war chip |
-| Resource deltas | CAN HIDE | Tooltip has them | Tooltip |
-| Legend | CAN HIDE | Lens popover has it | Lens popover |
 | Ruler cameo, ornaments, medallion rings, corner studs, dividers | ALWAYS HIDE | Decorative | Ruler in realm sheet |
 | Intel, lands, tech | ALWAYS HIDE (HUD) | Not a this-turn decision | Realm sheet |
 
@@ -243,7 +219,7 @@ Area base 1280x720u = 921,600u². Hard limits; additions must displace.
 
 | Constraint | Limit | Measurement | Estimate | Status |
 |---|---|---|---|---|
-| Persistent elements, idle (no selection, no alerts) | 11 | Count visible non-faded: nation, date, 4 chips, lens, rail 4 + more... counted as zones: A(7) + B(1 group) + E | 9 | To verify |
+| Persistent elements, idle (nothing selected, no alerts) | 12 | Count non-faded: A 7 (nation, date, 4 chips, lens) + rail group + End Turn | 9 | To verify |
 | Elements with 4 alerts + card + wars/infamy | 22 | same | 20 | To verify |
 | HUD area, idle | <= 10% | px area of all HUD rects / screen | A 5.6 + B 2.1 + E 1.0 = 8.7% | To verify |
 | HUD area, selected, drawer closed | <= 22% | same | + card 9.2 + ticker 2.3 = 20.2% | To verify |
@@ -266,9 +242,8 @@ Classes (priority order, then severity, then newest first). Tap/click on any chi
 | 3 Offers (✉) | AI proposal (NAP/ally/trade/marry/peace), ultimatum received | C | Until answered or turn ends (unanswered = declined) | same; expand inline | all (cap 3 + pill) | High | Each its own chip; inline Accept / Decline / View nation | No (answer) |
 | 4 Event (✦ quill) | event with choice deferred ("Decide later"), succession | C | Until answered | same | 2 | Medium | Events show as a modal at turn start first | No |
 | 5 Supply (⛟) | attrition on army outside supply, bankrupt / low treasury, manpower idle at cap | C | While true | same | merge per kind | Medium | Treasury critical is promoted to class 1 | Dismiss for turn |
-| Turn report (▤) | end-of-turn log summary: battles, revolts, deals | C bottom | 6 s, or until tapped | fade | 1 | Low | Replaces all toasts; details in Annals | Yes |
+| Turn report / Info (▤) | end-of-turn log summary (battles, revolts, deals); also "Saved", honours (2.5 s) | C bottom | 6 s, or until tapped | fade | 1 | Low | Replaces all toasts; details in Annals | Yes |
 | Command error | rejected command (moves, gold, rules) | On card footer + shake 120ms | 3 s | fade | 1 | Medium | Replaces previous | n/a |
-| Info (saved, honour earned) | misc | Top-centre under A | 2.5 s | fade | 1 | Low | Dropped silently if a critical chip is shown | n/a |
 
 **Queue rules**
 1. Criticals (class 1) never queue, never merge into other classes, and re-sort to the top.
@@ -290,7 +265,6 @@ Classes (priority order, then severity, then newest first). Tap/click on any chi
 | Disabled | game over | greyed + "Game over" | n/a |
 
 ## 9. Platform Adaptation
-
 | Platform | Safe zone | Resolution (u) | Input | HUD-specific notes |
 |---|---|---|---|---|
 | Windows | 8u margin | 1280x720 to 2560x1440 px windowed/full (u = px / 1.5) | Mouse + keyboard | Hover tooltips, right-click orders, hotkeys; ticker width fixed 280u |
@@ -303,7 +277,6 @@ Map-label keep-outs: every HUD rect (A, B, C, D, E, F, G) must be returned by th
 ## 10. Accessibility (Comprehensive)
 
 ### 10.1 Colour-independence
-
 | Element | Colour-only risk | Fix |
 |---|---|---|
 | Resource deltas | green/red gain/loss | ▲▼ glyph + sign + word in tooltip |
@@ -318,23 +291,15 @@ Map-label keep-outs: every HUD rect (A, B, C, D, E, F, G) must be returned by th
 Resource chip: delta line drops first, then chips wrap to a 2nd bar row (A grows to 72u). Alert chip: wraps to 2 lines (56u) then "…" with full text in tooltip/list. End Turn: sub-line wraps, plate grows to 200x64u. Rail: labels truncate; at >= 150% rail becomes the "≡" grid menu. Card: see command-card.md.
 
 ### 10.3 Motion
-
 | Motion | Severity | Reduced-motion | Replacement |
 |---|---|---|---|
 | Rolling numbers, gain flash | Mild | Disabled | Instant value, arrow stays |
 | Selection dash march, End Turn bezel sweep | Moderate | Disabled | Static dashes, static "Resolving…" text |
-| Alert slide / card rise | Mild | Disabled | Instant |
 | Floating +15/−12 | Mild | Optional | Static for 1.5 s |
-| Gonfalon pop | Mild | Disabled | Instant |
-| Preview arrow draw | Mild | Disabled | Fully drawn |
 
 No element flashes more than 2 times per second; none above 3 flashes.
 
-### 10.4 Subtitles / captions
-No voiced dialogue. Sound cues (turn, war, event, coin) mirror alert chips; "Captions for sounds" (default Off) writes them to the ticker's Info row.
-
-### 10.5 Settings (Accessibility menu)
-
+### 10.4 Settings (Accessibility menu). No voiced dialogue; sound cues mirror alert chips; "Captions for sounds" (default Off) writes them to the ticker Info row.
 | Setting | Range | Default | Effect |
 |---|---|---|---|
 | UI text scale | 100 / 125 / 150 / 175% | 100% | Scales all HUD text; layouts per 10.2 |
@@ -351,55 +316,27 @@ No voiced dialogue. Sound cues (turn, war, event, coin) mirror alert chips; "Cap
 Keyboard (desktop): Enter/Ctrl+Enter End Turn; `A` / Shift+A next/prev alert; F1-F4 Nations, Budget, Decrees, Advice; F5 Annals; F6 Goals; `L` lens menu; Esc layered back (see command-card.md). Screen reader: Godot 4.4 has no AccessKit; accessible names are set on every control and mirrored by TTS announcements (Q5).
 
 ## 11. Tuning Knobs
-
 | Parameter | Value | Range | Increase | Decrease | Player-adjustable | Notes |
 |---|---|---|---|---|---|---|
-| Ticker max rows (D) | 4 | 2-6 | more clutter | more "+N" | No | |
-| Alert collapse delay | 600ms | 200-1500 | slower clear | abrupt | No | |
+| Ticker max rows (D) / card default state | 4 / Collapsed | 2-6 / Collapsed-Expanded | clutter | more "+N" | Card default only | |
 | Hover tooltip delay | 250ms | 0-800 | calmer | twitchy | Yes (hold time) | |
 | Long-press peek | 450ms | 300-800 | fewer accidents | accidental peeks | Yes | |
-| Turn report duration | 6 s | 3-12 | longer | shorter | No | |
-| Hint-state duration | 3 s | 2-6 | | | No | |
-| Chip count roll | 300ms | 0-600 | | | Reduced motion | |
-| Card default state | Collapsed | Collapsed / Expanded | | | Yes | |
-| Dismiss-for-turn | on | on/off | | | No | |
 
 ## 12. Acceptance Criteria
-
-**Layout and visibility**
-- [ ] All HUD elements stay inside OS safe areas at 1920x1080, 2340x1080, 800x360, 540x960 and 1080x2340 (test with cutout emulation).
-- [ ] No two HUD rects overlap in any state of section 5; the keep-out list contains A-G and map labels avoid them.
-- [ ] Idle HUD <= 10%, selected <= 22%, drawer open <= 32% of screen area at reference sizes.
-- [ ] Nothing but preview tag, tooltip, arrow occupies the centre 40%x40% of the screen.
-- [ ] Every touch control >= 48u (mouse >= 32u); every text >= 12u at 100% scale.
-- [ ] Collapse order of section 6 is applied in sequence as width shrinks; Moves, Gold, Manpower, End Turn, verbs never collapse.
-
-**Per-context correctness**
-- [ ] Each context row in section 5 shows exactly its listed elements, incl. hot-seat curtain (no resource, ticker or card values visible to the next seat).
-- [ ] Selecting an own army highlights valid targets without pressing Move; preview shows before any attack is committed.
-- [ ] End Turn in Hint state never ends the turn on first press; Busy state ignores map picks but allows pan/zoom.
-- [ ] Hot-seat: seat shape + "P#" text always visible; last seat shows "End Round".
-
-**Alerts**
-- [ ] Each alert class appears when its condition is true and clears (with ✓) within 1 s of it becoming false, without user action.
-- [ ] Tapping a chip focuses the map on its subject and selects it; offer chips Accept/Decline without opening a modal.
-- [ ] Criticals sort first and are never merged into another class; overflow shows "+N" and the full list.
-- [ ] No more than one toast-style message (Turn report or Info) is visible at once.
-
-**Accessibility**
-- [ ] 100% of text passes 4.5:1 over light and dark map regions; glyphs/borders 3:1.
-- [ ] Removing all colour (greyscale test) leaves every relation, severity, delta and preview outcome distinguishable.
-- [ ] Text scale 150% causes no overlap or clipping in any state; 175% reflows to the documented fallbacks.
-- [ ] Reduced motion removes every animation in 10.3.
-- [ ] All HUD settings in 10.5 persist across sessions.
-- [ ] Every control is reachable by Tab/arrows on desktop and has an accessible name.
-
-**Platform**
-- [ ] Thumb test: on 2340x1080 and 540x960 every in-turn action (select, order, confirm, End Turn) is doable one-handed (portrait) or by outer-40% thumbs (landscape).
-- [ ] Backgrounding the app autosaves; resize between profiles reflows without a rebuild glitch.
+- [ ] **Safe areas**: all HUD stays inside OS safe areas at 1920x1080, 2340x1080, 800x360, 540x960, 1080x2340 (cutout emulation on).
+- [ ] **No overlap / keep-out**: no two HUD rects overlap in any state of section 5; keep-out list holds A-G; map labels avoid them.
+- [ ] **Budget**: idle HUD <= 10%, selected <= 22%, drawer open <= 32% of screen area; centre 40%x40% holds only preview tag, tooltip, arrow.
+- [ ] **Sizes**: touch controls >= 48u, mouse >= 32u, text >= 12u at 100% scale; collapse order of section 6 applies in sequence; Moves, Gold, Manpower, End Turn, verbs never collapse.
+- [ ] **Context correctness**: each row of section 5 shows exactly its listed elements; hot-seat curtain leaks no values, ticker or card to the next seat; seat shape + "P#" always visible; last seat reads "End Round".
+- [ ] **Orders on map**: selecting an own army highlights valid targets without pressing Move; a preview is shown before any attack is committed.
+- [ ] **End Turn**: Hint state never ends the turn on first press; Busy ignores map picks but allows pan/zoom; never hard-disabled by alerts.
+- [ ] **Alerts**: each class appears when its condition is true and clears (✓ then gone) within 1 s of it turning false; tap focuses and selects the subject; offers Accept/Decline inline; criticals sort first and never merge across classes; overflow shows "+N" + full list; <= 1 toast-style message (Turn report or Info) at once.
+- [ ] **Contrast / colour**: text >= 4.5:1 over light and dark map regions, glyphs/borders >= 3:1; greyscale test leaves every relation, severity, delta and preview outcome distinguishable.
+- [ ] **Scale / motion**: 150% text causes no clipping or overlap, 175% reflows per 10.2; reduced motion removes every animation in 10.3; all 10.5 settings persist.
+- [ ] **Input**: every control reachable by Tab/arrows on desktop and has an accessible name; thumb test passes (portrait one-handed; landscape outer-40% thumbs) for select, order, confirm, End Turn.
+- [ ] **Lifecycle**: backgrounding autosaves; resizing between profiles reflows without rebuild glitches.
 
 ## 13. Open Questions
-
 | Question | Owner | Deadline | Resolution |
 |---|---|---|---|
 | Q1 Scale: current fixed 1280x720 / 540x960 content base gives 25-30dp touch targets on 2340x1080 and ~0.5x UI at 800x360. Derive scale from DPI so 1u ~ 1dp on phones? | ui-programmer | before implementation | Recommend yes |
@@ -408,6 +345,4 @@ Keyboard (desktop): Enter/Ctrl+Enter End Turn; `A` / Shift+A next/prev alert; F1
 | Q4 Hint state blocks on pending offers/events only. Should unspent moves during war also count? | creative-director | | Recommend no (nagging) |
 | Q5 Screen-reader: Godot 4.4 lacks AccessKit; accept TTS + accessible names until engine upgrade? | accessibility-specialist | | Recommend yes |
 | Q6 Contested: phone-landscape card as bottom strip handed to the dominant thumb (A, recommended) vs right-docked 292u column (B: saves height, loses brief's bottom-centre). | creative-director | | Recommend A |
-| Q7 Free HUD repositioning (console-style layout editor) not planned; is Controls side + card default enough for Comprehensive? | accessibility-specialist | | |
-| Q8 Intel / lands / tech demoted to realm sheet; confirm with player feedback that no one needs them at a glance. | creative-director | playtest | |
-| Q9 Gamepad not a target; focus order is defined but no on-map cursor. Accept as intentional limitation? | creative-director | | Recommend yes |
+| Q7 Accept as intentional limitations: no free HUD repositioning (Controls side + card default only), no gamepad on-map cursor (focus order defined), Intel/lands/tech demoted to realm sheet (confirm in playtest)? | creative-director, accessibility-specialist | playtest | Recommend yes |

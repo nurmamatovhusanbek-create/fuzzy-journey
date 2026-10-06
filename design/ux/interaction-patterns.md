@@ -92,14 +92,11 @@
 | Selection pulse (once) | 240 | static ring |
 | Ghost-arrow dash march (loop) | 1000 linear | static dashes |
 
-**Audio hooks** (existing `TBAudio` ids): `tap` (any press), `coin` (spend), `turn`, `event`, `war`, `alert`, `win`. Add `cancel`, `error`, `confirm`. Sound is never the only channel.
+**Audio** (existing `TBAudio` ids): `tap` (any press), `coin` (spend), `turn`, `event`, `war`, `alert`, `win`. Add `cancel`, `error`, `confirm`. Sound is never the only channel.
 
 **Accessibility baseline all patterns inherit**: contrast 4.5:1 text, 3:1 UI edges/glyphs (computed approx. on laid paper: TEXT 12:1, DIM 4.9:1 on PANEL but 4.1:1 on PANEL2, GOLD 3.8:1, GREEN 4.2:1 and the 28 %-alpha locked Honours fail small text: darken GOLD/GREEN and stop fading text; verify in tooling). UI size Small/Normal/Large exists; add independent **Text size** 100/125/150 %, **High contrast** palette (no paper texture behind text, 2 px borders), **Reduced motion**, **Toast duration** 3-10 s, **Narration** via `DisplayServer.tts_speak` (AccessKit screen-reader support arrives in Godot 4.5; on 4.4 narration is the fallback).
 
----
-
 ## 4. Map Patterns
-
 ### P-01 Selection and Hover
 
 | Aspect | Spec |
@@ -110,7 +107,6 @@
 | Input T/M/K | T: tap selects, 12 dp slop, tap empty sea deselects; no hover, facts appear on the command bar identity chip. M: hover 120 ms delay opens card, click selects, Esc/right-click-empty deselects. K: arrow keys move a map cursor along province adjacency, Enter selects, Tab / Shift+Tab cycle provinces with idle armies (`N` jumps to next), Esc deselects. |
 | A11y | Selection and legality never by colour only (ring plus dash plus marker); cursor ring visible at 3:1; narration reads "Paris, France, army 120, plains". |
 | Godot | Overlay `Control` above the map for rings/dashes drawn in `_draw`; hover card `PanelContainer` in a high `CanvasLayer`, `mouse_filter = IGNORE`, clamped to viewport (existing `_on_hover`); keyboard cursor = Vector adjacency walk using `g.nb_off/nb`. |
-
 ### P-02 Order / Preview / Confirm
 
 | Aspect | Spec |
@@ -122,7 +118,6 @@
 | Cancel | tap empty sea, X on the command bar, Esc, Android Back (first pop in P-20). |
 | A11y | Explicit Confirm button exists (second tap alone is invisible); outcome expressed as text and sign, not green/red alone; narration "Attack Ariege: expected win, you hold 38". |
 | Godot | Preview state lives in `main.gd` (`_pv_to`); outcome chip = `PanelContainer` positioned from map screen coords each frame in `map.labels` layer; arrow via existing `labels.add_fx`; troops selector = P-13 in the options row above the command bar. |
-
 ### P-03 Context Command Bar
 
 | Aspect | Spec |
@@ -136,7 +131,6 @@
 | Godot | `PanelContainer` > `HBoxContainer`; verb = `Button` with `icon`, `icon_alignment = TOP`, `expand_icon`, `custom_minimum_size 72x64`; options row `HFlowContainer`; register both rects in `map.keepout_fn`. |
 
 ## 5. HUD and Feedback Patterns
-
 ### P-04 Info Chip (readout)
 
 | Aspect | Spec |
@@ -147,7 +141,6 @@
 | Input | T: long-press = tooltip (what it means, what moves it, link to Codex topic). M: hover tooltip. K: focusable in ribbon order, Enter opens the owning screen (gold -> Budget). |
 | A11y | Delta carries sign and arrow, not colour alone; value is never truncated, chip wraps below at CP. |
 | Godot | `HFlowContainer` of `Control` subclass (existing `P.Readout`); fixed-width monospaced digits so rolling never reflows; `tooltip_text` or custom (P-07). |
-
 ### P-05 Alert Chip
 
 | Aspect | Spec |
@@ -158,7 +151,6 @@
 | Input T/M/K | T: tap flies the camera to the subject and selects it; long-press = why. M: click same; hover = tooltip with fix hint. K: Tab into chip row, Enter acts, Delete snoozes. |
 | A11y | Narration announces new crisis chips once per turn ("Crisis: Revolt in Lyon"); text never replaced by icon. |
 | Godot | `HBoxContainer` under the ribbon; chip = flat `Button` with `_draw` shape; `Tween` for fade; source = `TBAdvisor.alerts()` (sev 0-2 maps to shape). |
-
 ### P-06 Toast
 
 | Aspect | Spec |
@@ -170,7 +162,6 @@
 | Input | T/M: tap dismisses or runs action. K: `Esc` clears toasts when no panel is open. |
 | A11y | Announced without taking focus (TTS); bad news carries a glyph, not just red; never the only channel for actionable info. |
 | Godot | existing `_toasts` `VBoxContainer`, `mouse_filter = IGNORE` except action buttons; `Timer` per slip, `Tween` modulate. |
-
 ### P-07 Tooltip (hover / focus / long-press)
 
 | Aspect | Spec |
@@ -180,7 +171,6 @@
 | Trigger | Mouse hover 400 ms; keyboard focus 300 ms; **touch long-press 450 ms** with 10 ms haptic tick, card sits above the finger, stays until next touch/scroll/Back (so it can be read); short tap still performs the normal action. |
 | A11y | Same text is narrated on focus; dismiss with Esc; contrast 4.5:1; honours reduced motion (no fade). |
 | Godot | Hover: override `_make_custom_tooltip(for_text)` returning a styled `PanelContainer`. Touch: a `TooltipHost` node that watches `InputEventScreenTouch` with a `Timer`, shows the card in a `CanvasLayer` (layer 90), clamps to viewport; `Input.vibrate_handheld(10)` on Android. |
-
 ### P-15 Number Roll
 
 | Aspect | Spec |
@@ -191,7 +181,6 @@
 | Godot | `Label` with mono font and `Tween` on a float property; fixed `custom_minimum_size.x` from the widest digits (existing `P.Readout.set_num`). |
 
 ## 6. Container and Navigation Patterns
-
 ### P-08 Dialog / Drawer / Sheet / Page
 
 Decision rule (full spec in `modal-system.md`):
@@ -201,8 +190,8 @@ Decision rule (full spec in `modal-system.md`):
 | Blocking, needs an answer, under one screen? | **Dialog** (centered, backdrop, focus trap) |
 | Player should keep seeing and using the map while tuning/reading? | **Drawer** (landscape right rail, non-modal) / **Sheet** (portrait bottom, drag handle) |
 | Browse, compare or configure, wants width, map not needed? | **Wide panel** (landscape) / **Page** (portrait full screen) |
-Never open a drawer over a wide panel; never more than one panel plus one dialog.
 
+Never a drawer over a wide panel; never more than one panel plus one dialog.
 ### P-09 Tab Bar
 
 | Aspect | Spec |
@@ -212,7 +201,6 @@ Never open a drawer over a wide panel; never more than one panel plus one dialog
 | Input T/M/K | T: tap, no swipe (conflicts with sliders and map). M: click. K: Left/Right moves and activates, Home/End, Ctrl+Tab cycles tabs from anywhere in the panel, `[`/`]` also. |
 | A11y | Role tab/tablist semantics in narration ("Alerts, tab 1 of 2"); label never truncated: width follows text, min 72. |
 | Godot | Native `TabBar` (`scrolling_enabled`, `tab_changed`) above a script-swapped body; theme `tab_selected` stylebox with underline. Avoid `TabContainer` (frame and focus styling fight the paper theme). |
-
 ### P-10 Segmented Control
 
 | Aspect | Spec |
@@ -222,7 +210,6 @@ Never open a drawer over a wide panel; never more than one panel plus one dialog
 | Input | T/M: tap. K: Left/Right moves selection, Space/Enter confirms (or applies live, per screen), Home/End. |
 | A11y | Differs visually from tabs on purpose (box vs underline) so sections and values are never confused. |
 | Godot | `HBoxContainer` of `Button` with `toggle_mode = true` and a shared `ButtonGroup`; `pressed` stylebox = filled; replace today's `K.Segmented` underline look when it is used for values. |
-
 ### P-20 Back Navigation (Android Back, Esc, X)
 
 Pop order, one step per press (implemented in `main.gd _on_back`):
@@ -238,7 +225,6 @@ Pop order, one step per press (implemented in `main.gd _on_back`):
 | 7 | Title screen | First press toast "Press Back again to exit" (2 s), second quits |
 
 Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event prompt that was already marked shown (never re-prompted) and skips step 7's guard. Requires `application/config/quit_on_go_back = false` (handled via `NOTIFICATION_WM_GO_BACK_REQUEST`). `Esc` and `ui_cancel` map to the same stack; every X button, backdrop tap (dismissable dialogs only) and Back share one `pop()` function. Drawer/sheet/page Back arrow in header is a visible duplicate for touch.
-
 ### P-21 Focus Order and Keyboard Shortcuts
 
 | Rule | Spec |
@@ -251,7 +237,6 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Godot | Set `focus_mode = FOCUS_ALL` on interactives (today `FOCUS_NONE`), restore focus `StyleBox`, `focus_neighbor_*` for grids, `ScrollContainer.follow_focus = true`, handle global keys in `_unhandled_key_input`, gated by `_overlay.get_child_count() == 0`. |
 
 ## 7. Input Control Patterns
-
 ### P-11 List Row
 
 | Aspect | Spec |
@@ -263,7 +248,6 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Input T/M/K | T: tap row; long-press = peek tooltip; no swipe actions. M: click, hover tint. K: Up/Down, Enter, Home/End, type-ahead on first letter. |
 | A11y | Narrate "Spain, 208 provinces, rank 1 of 250". Do not silently cap: the Nations list stops at 60 of 250 with no indicator (gap). |
 | Godot | `ScrollContainer` (`follow_focus`) > `VBoxContainer` of pooled row `Control`s (visible window plus 4) when over 60 rows; rows keep today's `K.ListRow` custom draw but add focus ring. `Tree` rejected: poor touch kinetic scrolling. |
-
 ### P-12 Slider
 
 | Aspect | Spec |
@@ -273,7 +257,6 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Input T/M/K | T: drag the bead or tap the rail; vertical drags starting off the bead scroll the panel. M: drag, wheel disabled (`scrollable = false`) so wheel scrolls the panel. K: arrows 1, Shift 5-10, PgUp/PgDn 10, Home/End. |
 | A11y | Value text always visible; delta chip carries sign; step 5 for coarse, stepper for exact. |
 | Godot | `HSlider` with `step`, `scrollable = false`, `ScrollContainer.scroll_deadzone = 12`, grabber icons existing (`bead_tex`), `value_changed` -> `g.apply` live with a "Revert" footer action. |
-
 ### P-13 Stepper
 
 | Aspect | Spec |
@@ -283,7 +266,6 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Input | T/M: tap/hold. K: Up/Down arrows, PgUp/PgDn x10, typed digits if focused. |
 | A11y | Narrate value changes (debounced 300 ms). |
 | Godot | `HBoxContainer`: `Button`, `Label`, `Button` plus a `Timer`; do not use `SpinBox` (tiny hit area, text-edit caret on touch). |
-
 ### P-14 Toggle
 
 | Aspect | Spec |
@@ -292,7 +274,6 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Anatomy | Whole row is the target: label left, switch plus visible "On"/"Off" word right (position and word, not colour). 48 dp high. |
 | Input | T/M: tap row. K: Space/Enter toggles. Applies immediately. |
 | Godot | `CheckButton` re-themed (custom `checked`/`unchecked` icons drawn by `TBGlyph`) stretched across the row; `focus_mode = ALL`. |
-
 ### P-22 Button and Meter basics
 
 | Aspect | Spec |
@@ -301,7 +282,6 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Meter | Thin bar with ticks 25/50/75, numeric label always, threshold marker shape (diamond at goal). Colour (STEEL under 40 %, GOLD2 40-90, GREEN over 90) plus the % text. Godot: existing `K.Meter` or `ProgressBar` with `show_percentage = false`. |
 
 ## 8. Feedback State Patterns
-
 ### P-16 Confirmation of Destructive Actions
 
 | Level | Examples | Pattern |
@@ -310,8 +290,8 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | L1 consequential, previewable | declare war, break pact, yield to ultimatum, demand land | on-map preview (P-02) or Dialog stating the consequence ("Infamy +8; truce ends"); confirm button names the act |
 | L2 data loss | overwrite save, delete save, abandon campaign to menu (progress since autosave) | Dialog, default focus **Cancel**, red labelled confirm ("Overwrite slot 2"), shows what is lost ("Turn 19, 1850 AD") and offers "Save and exit" when leaving a game |
 | Soft | End Turn while a crisis chip is open | the seal morphs to "Confirm?" for 3 s (inline, no modal) |
-No hold-to-confirm (motor accessibility). Gaps today: Save overwrites slots silently; Main menu from Settings exits without a prompt.
 
+No hold-to-confirm (motor accessibility). Gaps today: Save overwrites slots silently; Main menu from Settings exits without a prompt.
 ### P-17 Loading / Busy
 
 | Case | Pattern |
@@ -319,6 +299,7 @@ No hold-to-confirm (motor accessibility). Gaps today: Save overwrites slots sile
 | End turn (worker thread) | After 150 ms seal shows a spinning ring and "Turn 12 -> 13"; minimum 400 ms to avoid flicker; if over 1 s show progress text ("Nations acting"); orders and commit buttons disabled with reason "Turn in progress"; camera and read-only panels stay usable. |
 | Era/save load | Inline "Loading era..." row with skeleton rows; never a blank panel; Cancel available over 3 s. |
 | Multiplayer wait | persistent top banner "Waiting for 2 players" plus count. |
+
 A11y: narrate "Turn processing" and "Turn 13 begins"; reduced motion: static hourglass glyph.
 
 ### P-18 Empty State
@@ -333,7 +314,6 @@ Rule: glyph (48, dim), one line stating what, one line stating why or next, opti
 | Save slot | "Empty slot" + [Save here] |
 | Honours earned filter | "None yet. Try: occupy an enemy province." (shows the nearest honour) |
 | Decisions all locked | reasons per row instead of an empty list |
-
 ### P-19 Error State
 
 | Type | Pattern | Tone |
@@ -343,8 +323,6 @@ Rule: glyph (48, dim), one line stating what, one line stating why or next, opti
 | Corrupt / newer-version save | Row disabled, reason line, never crash | factual |
 | Multiplayer lost | banner "Reconnecting 2/5", then Dialog [Retry] [Main menu] | reassuring |
 | Missing data (era) | Dialog "Could not load Napoleonic Era. Using Modern World." | recovers by default |
-
----
 
 ## 9. Gaps Found in the Current Build (feed to ui-programmer)
 
@@ -356,8 +334,6 @@ Rule: glyph (48, dim), one line stating what, one line stating why or next, opti
 | 4 | Nations list truncated at 60 of 250 without notice | P-11 |
 | 5 | Captions at 9-11 px, locked Honours at 28 % alpha, GOLD captions below 4.5:1 | R7 |
 | 6 | `MIN_TOUCH = 44` logical is under 48 dp on high-DPI phones | Sec. 3 |
-| 7 | Event prompt pre-highlights choice 0 as primary and uses an emoji icon | modal-system |
-| 8 | Province panel hosts main verbs and a long button list | P-03 |
 
 ## 10. Open Questions
 
@@ -365,7 +341,5 @@ Rule: glyph (48, dim), one line stating what, one line stating why or next, opti
 |----------|-------|----------|-----------|
 | Does `g.apply({"cmd":"budget"})` normalise to 100, or are the four sliders independent? Linked sliders need game-designer sign-off. | game-designer | before Budget build | Open |
 | Godot 4.4 has no AccessKit: accept TTS narration as the Comprehensive screen-reader substitute, or upgrade to 4.5+? | technical-director | before Pre-Production gate | Open |
-| Can the map expose a province adjacency cursor for keyboard play without a perf cost in GL Compatibility? | ui-programmer | prototype | Open |
 | Right-click attack: should veterans get immediate commit (Shift+RMB) or is preview-always acceptable? | creative-director | playtest | Open |
-| Max toasts and alert chips (3 / 3) are guesses. | ux-designer | first playtest | Open |
 | Which Android back convention for the hot-seat pass curtain: swallow or open Menu? | creative-director | before hot-seat polish | Open |
