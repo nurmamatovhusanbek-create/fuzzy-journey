@@ -1,136 +1,184 @@
-## Engraved line icons drawn with primitives (no emoji / icon fonts: those are missing or inconsistent on phones).
+## Icon grammar (art bible 7.3): every glyph is drawn from primitives on a 24 x 24 grid (live area 20 x 20, origin at the centre),
+## square caps, 45 / 90 degree angles, stroke by optical size (<= 17 px: 1.5, 18-27 px: 2, larger: 2.5), coordinates snapped to the pixel.
+## Outline = available / default, filled = active (TBGlyph.draw_filled). Single colour per icon. The shapes are const data, so a draw allocates nothing.
+## Ops: ["p", [x0,y0,x1,y1,...], closed]  straight strokes with square caps (closed: 1 = fillable, 2 = outline only)
+##      ["P", [...], closed]               smooth polyline (curves)         ["c", x, y, r]  ring       ["d", x, y, r]  dot
+##      ["a", x, y, r, deg0, deg1]         arc                              ["E", x, y, rx, ry]  ellipse ring
+##      ["f", [...]]                       filled polygon (delta triangles, arrow head)
+##      ["pk" / "dk" ...]                  marks that are knocked out of a filled glyph (the ! of warning, the i of info)
 class_name TBGlyph
 extends RefCounted
 
-static func _poly(ci: CanvasItem, pts: Array, c: Vector2, r: float, col: Color, w: float, closed: bool = false) -> void:
-	var p := PackedVector2Array()
-	for v in pts: p.append(c + (v as Vector2) * r)
-	if closed: p.append(p[0])
-	ci.draw_polyline(p, col, w, true)
+const G := {
+	"coin": [["c", 0, 0, 9], ["p", [0, -4, 0, 4]], ["p", [-2.5, -4, 2.5, -4]], ["p", [-2.5, 4, 2.5, 4]]],
+	"men": [["c", 0, -4.5, 3.5], ["p", [-8, 9, -8, 5, -4, 2, 4, 2, 8, 5, 8, 9], 1]],
+	"swords": [["p", [-8, -8, 8, 8]], ["p", [8, -8, -8, 8]], ["p", [1.5, 6.5, 6.5, 1.5]], ["p", [-6.5, 1.5, -1.5, 6.5]]],
+	"scroll": [["p", [-8, -9, 4, -9, 8, -5, 8, 9, -8, 9], 1], ["p", [-4, -3, 4, -3]], ["p", [-4, 1, 4, 1]], ["p", [-4, 5, 1, 5]]],
+	"book": [["p", [-10, -6, 0, -4, 10, -6, 10, 6, 0, 8, -10, 6], 1], ["p", [0, -4, 0, 8]]],
+	"eye": [["P", [-10, 0, -7.5, -2.2, -5, -3.75, -2.5, -4.7, 0, -5, 2.5, -4.7, 5, -3.75, 7.5, -2.2, 10, 0, 7.5, 2.2, 5, 3.75, 2.5, 4.7, 0, 5, -2.5, 4.7, -5, 3.75, -7.5, 2.2], 1], ["c", 0, 0, 2.6], ["d", 0, 0, 1.0]],
+	"flag": [["p", [-6, -10, -6, 10]], ["p", [-6, -9, 9, -4, -6, 1], 1]],
+	"globe": [["c", 0, 0, 9], ["E", 0, 0, 4, 9], ["p", [-9, 0, 9, 0]]],
+	"scales": [["p", [0, -9, 0, 8]], ["p", [-4, 9, 4, 9]], ["p", [-6.5, -6, 6.5, -6]], ["p", [-6.5, -6, -3, 1, -10, 1], 1], ["p", [6.5, -6, 10, 1, 3, 1], 1]],
+	"coins": [["E", 0, -5, 8, 2.6], ["E", 0, 0, 8, 2.6], ["E", 0, 5, 8, 2.6], ["p", [-8, -5, -8, 5]], ["p", [8, -5, 8, 5]]],
+	"trophy": [["p", [-6, -9, 6, -9, 5, -2, 2, 2, 2, 5, 5, 8, -5, 8, -2, 5, -2, 2, -5, -2], 1], ["a", -7, -4.5, 3.5, 90, 270], ["a", 7, -4.5, 3.5, -90, 90]],
+	"lamp": [["a", 0, -1.5, 5.5, 144, 396], ["p", [-3, 5, 3, 5]], ["p", [-2, 8, 2, 8]], ["p", [0, -9.5, 0, -8]], ["p", [-6.6, -8.1, -5.5, -7]], ["p", [6.6, -8.1, 5.5, -7]]],
+	"save": [["p", [-8, 2, -8, 8, 8, 8, 8, 2]], ["p", [0, -9, 0, 3]], ["p", [-4, -1, 0, 3, 4, -1]]],
+	"crown": [["p", [-8, 6, -8, -5, -4, 0, 0, -8, 4, 0, 8, -5, 8, 6], 1]],
+	"skull": [["a", 0, -1.5, 8.5, 180, 360], ["p", [-8.5, -1.5, -6, 5, -3, 5, -3, 9, 3, 9, 3, 5, 6, 5, 8.5, -1.5]], ["d", -3.5, 0, 2], ["d", 3.5, 0, 2]],
+	"pin": [["a", 0, -2.5, 6.5, 140, 400], ["p", [-5, 1.7, 0, 10, 5, 1.7]], ["d", 0, -2.5, 2]],
+	"flask": [["p", [-2.5, -9, -2.5, -2, -8, 8, 8, 8, 2.5, -2, 2.5, -9], 1], ["p", [-4.5, -9, 4.5, -9]]],
+	"hourglass": [["p", [-6, -9, 6, -9, -6, 9, 6, 9], 2]],
+	"chevrons": [["p", [-8, -7, -1, 0, -8, 7]], ["p", [0, -7, 7, 0, 0, 7]]],
+	"back": [["p", [6, -8, -4, 0, 6, 8]]],
+	"close": [["p", [-6, -6, 6, 6]], ["p", [6, -6, -6, 6]]],
+	"shield": [["p", [-8, -9, 8, -9, 8, 0, 0, 10, -8, 0], 1], ["p", [0, -9, 0, 10]]],
+	"dove": [["E", -1, 2, 6.5, 3.4], ["c", 6.2, -2.4, 2.4], ["p", [-6.5, 1, -10, -1.5, -9, 4.5]], ["a", -1.5, 0, 6, 215, 320]],
+	"warning": [["p", [0, -9, 10, 8, -10, 8], 1], ["pk", [0, -3, 0, 2]], ["dk", 0, 5, 1.1]],
+	"info": [["c", 0, 0, 9], ["dk", 0, -4, 1.2], ["pk", [0, -1, 0, 5]]],
+	"link": [["c", -4.5, 0, 5], ["c", 4.5, 0, 5]],
+	"lock": [["p", [-6, -1, 6, -1, 6, 9, -6, 9], 1], ["a", 0, -4, 4, 180, 360], ["p", [-4, -4, -4, -1]], ["p", [4, -4, 4, -1]], ["dk", 0, 4, 1.4]],
+	"check": [["p", [-8, 0, -3, 6, 8, -6]]],
+	"filter": [["p", [-9, -8, 9, -8, 2, 0, 2, 8, -2, 6, -2, 0], 1]],
+	"supply": [["p", [-9, -6, 6, -6, 4, 2, -7, 2], 1], ["p", [6, -6, 10, -6]], ["c", -4, 6, 2.6], ["c", 3, 6, 2.6]],
+	"diamond": [["f", [0, -8, 8, 0, 0, 8, -8, 0]]],
+	"tri_up": [["f", [0, -7, 8, 6, -8, 6]]],
+	"tri_down": [["f", [0, 7, 8, -6, -8, -6]]],
+	"arrowhead": [["f", [-6, -6.5, 8, 0, -6, 6.5]]],
+}
+## drawn only from 20 px up (16 px icons keep to the essentials)
+const G_DETAIL := {
+	"globe": [["p", [-7.5, -4.5, 7.5, -4.5]], ["p", [-7.5, 4.5, 7.5, 4.5]]],
+	"shield": [["p", [-8, -3, 8, -3]]],
+	"book": [["p", [-7, -1, -3, 0], 0], ["p", [3, 0, 7, -1], 0]],
+}
 
-static func _ell(ci: CanvasItem, c: Vector2, rx: float, ry: float, col: Color, w: float) -> void:
-	var p := PackedVector2Array()
-	for i in 25: p.append(c + Vector2(cos(i * TAU / 24.0) * rx, sin(i * TAU / 24.0) * ry))
-	ci.draw_polyline(p, col, w, true)
+static var _ci: CanvasItem
+static var _c := Vector2.ZERO
+static var _u := 1.0
+static var _s := 2.0
+static var _st := 1.0
+static var _col := Color.WHITE
+static var _knock := Color.BLACK
+static var _fill := false
+static var _scratch := PackedVector2Array()
 
-static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, w: float = 1.6) -> void:
-	var r := size * 0.5
+## stroke width for an icon drawn at `size` px (art bible 7.3)
+static func stroke_for(size: float) -> float:
+	return 1.5 if size <= 17.0 else (2.0 if size <= 27.0 else 2.5)
+
+static func _pt(x: float, y: float) -> Vector2:
+	var v := _c + Vector2(x, y) * _u
+	return Vector2(roundf(v.x / _st) * _st, roundf(v.y / _st) * _st)
+
+static func _seg(a: Vector2, b: Vector2) -> void:
+	var d := b - a
+	var l := d.length()
+	if l < 0.01: return
+	var e := d / l * (_s * 0.5)              # square caps: extend both ends by half the stroke
+	_ci.draw_line(a - e, b + e, _col, _s, not (is_equal_approx(a.x, b.x) or is_equal_approx(a.y, b.y)))
+
+static func _poly(f: Array, closed: int, knock: bool) -> void:
+	var n: int = f.size() / 2
+	var col := _col
+	if knock: col = _knock
+	if closed == 1 and _fill and not knock:
+		_scratch.resize(n)
+		for i in n: _scratch[i] = _pt(f[i * 2], f[i * 2 + 1])
+		_ci.draw_colored_polygon(_scratch, _col)
+		return
+	var saved := _col
+	_col = col
+	for i in n - 1: _seg(_pt(f[i * 2], f[i * 2 + 1]), _pt(f[i * 2 + 2], f[i * 2 + 3]))
+	if closed != 0: _seg(_pt(f[n * 2 - 2], f[n * 2 - 1]), _pt(f[0], f[1]))
+	_col = saved
+
+static func _smooth(f: Array, closed: int) -> void:
+	var n: int = f.size() / 2
+	_scratch.resize(n + (1 if closed != 0 else 0))
+	for i in n: _scratch[i] = _c + Vector2(f[i * 2], f[i * 2 + 1]) * _u
+	if closed != 0: _scratch[n] = _scratch[0]
+	_ci.draw_polyline(_scratch, _col, _s, true)
+
+static func _ellipse(x: float, y: float, rx: float, ry: float) -> void:
+	_scratch.resize(25)
+	for i in 25: _scratch[i] = _c + Vector2(x + cos(i * TAU / 24.0) * rx, y + sin(i * TAU / 24.0) * ry) * _u
+	_ci.draw_polyline(_scratch, _col, _s, true)
+
+static func _ops(ops: Array) -> void:
+	for op in ops:
+		match op[0]:
+			"p": _poly(op[1], op[2] if op.size() > 2 else 0, false)
+			"pk": _poly(op[1], 0, _fill)
+			"P": _smooth(op[1], op[2] if op.size() > 2 else 0)
+			"c":
+				var cc := _c + Vector2(op[1], op[2]) * _u
+				if _fill: _ci.draw_circle(cc, op[3] * _u + _s * 0.5, _col)
+				else: _ci.draw_arc(cc, op[3] * _u, 0.0, TAU, 32, _col, _s, true)
+			"d": _ci.draw_circle(_c + Vector2(op[1], op[2]) * _u, maxf(op[3] * _u, _s * 0.5), _col)
+			"dk": _ci.draw_circle(_c + Vector2(op[1], op[2]) * _u, maxf(op[3] * _u, _s * 0.5), _knock if _fill else _col)
+			"a": _ci.draw_arc(_c + Vector2(op[1], op[2]) * _u, op[3] * _u, deg_to_rad(op[4]), deg_to_rad(op[5]), 20, _col, _s, true)
+			"E": _ellipse(op[1], op[2], op[3], op[4])
+			"f":
+				var f: Array = op[1]
+				var n: int = f.size() / 2
+				_scratch.resize(n)
+				for i in n: _scratch[i] = _pt(f[i * 2], f[i * 2 + 1])
+				_ci.draw_colored_polygon(_scratch, _col)
+
+static func _star(r_out: float, r_in: float, filled: bool) -> void:
+	_scratch.resize(11)
+	for i in 11: _scratch[i] = _c + Vector2(sin(i * PI / 5.0), -cos(i * PI / 5.0)) * (r_out if i % 2 == 0 else r_in) * _u
+	if filled:
+		_scratch.resize(10)
+		_ci.draw_colored_polygon(_scratch, _col)
+		_scratch.resize(11); _scratch[10] = _scratch[0]
+	_ci.draw_polyline(_scratch, _knock if filled else _col, 1.0 if filled else _s, true)
+
+static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, _w: float = 1.6) -> void:
+	_run(ci, name, c, size, col, false, TBTokens.c("bar_0"))
+
+## active / on state: closed shapes filled, marks knocked out in `knock` (default the bar colour; pass the plate colour on paper)
+static func draw_filled(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, knock: Color = Color.TRANSPARENT) -> void:
+	_run(ci, name, c, size, col, true, knock if knock.a > 0.0 else TBTokens.c("bar_0"))
+
+static func _run(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, filled: bool, knock: Color) -> void:
+	_ci = ci; _c = c; _u = size / 24.0; _s = stroke_for(size); _st = 1.0 if _s == 2.0 else 0.5; _col = col; _knock = knock; _fill = filled
 	match name:
-		"coin":
-			ci.draw_arc(c, r * 0.9, 0, TAU, 28, col, w, true)
-			ci.draw_arc(c, r * 0.58, 0, TAU, 20, col, w * 0.7, true)
-			ci.draw_line(c + Vector2(0, -r * 0.28), c + Vector2(0, r * 0.28), col, w, true)
-		"men":      # a bust: head over shoulders
-			ci.draw_arc(c + Vector2(0, -r * 0.38), r * 0.3, 0, TAU, 14, col, w, true)
-			ci.draw_arc(c + Vector2(0, r * 0.82), r * 0.76, PI, TAU, 16, col, w, true)
-			ci.draw_line(c + Vector2(-r * 0.76, r * 0.82), c + Vector2(r * 0.76, r * 0.82), col, w, true)
-		"swords":
-			for s in [-1.0, 1.0]:
-				ci.draw_line(c + Vector2(-0.8 * s, -0.8) * r, c + Vector2(0.8 * s, 0.8) * r, col, w, true)
-				var g := c + Vector2(0.35 * s, 0.35) * r
-				ci.draw_line(g + Vector2(0.28 * s, -0.28) * r, g + Vector2(-0.28 * s, 0.28) * r, col, w, true)
-		"scroll":
-			ci.draw_rect(Rect2(c + Vector2(-0.62, -0.62) * r, Vector2(1.24, 1.24) * r), col, false, w)
-			for i in 3: ci.draw_line(c + Vector2(-0.35, -0.3 + i * 0.3) * r, c + Vector2(0.35, -0.3 + i * 0.3) * r, col, w * 0.8, true)
-			ci.draw_arc(c + Vector2(-0.62, -0.62) * r, r * 0.16, 0, TAU, 8, col, w * 0.8, true)
-			ci.draw_arc(c + Vector2(0.62, 0.62) * r, r * 0.16, 0, TAU, 8, col, w * 0.8, true)
-		"book":
-			_poly(ci, [Vector2(-0.8, -0.6), Vector2(0, -0.45), Vector2(0.8, -0.6), Vector2(0.8, 0.6), Vector2(0, 0.75), Vector2(-0.8, 0.6)], c, r, col, w, true)
-			ci.draw_line(c + Vector2(0, -0.45) * r, c + Vector2(0, 0.75) * r, col, w, true)
-		"eye":
-			var up := PackedVector2Array(); var dn := PackedVector2Array()
-			for i in 13:
-				var t := -1.0 + i / 6.0
-				up.append(c + Vector2(t * 0.95, -0.5 * (1.0 - t * t)) * r); dn.append(c + Vector2(t * 0.95, 0.5 * (1.0 - t * t)) * r)
-			ci.draw_polyline(up, col, w, true); ci.draw_polyline(dn, col, w, true)
-			ci.draw_arc(c, r * 0.26, 0, TAU, 12, col, w, true)
-			ci.draw_circle(c, r * 0.1, col)
-		"flag":
-			ci.draw_line(c + Vector2(-0.55, -0.85) * r, c + Vector2(-0.55, 0.85) * r, col, w, true)
-			_poly(ci, [Vector2(-0.55, -0.8), Vector2(0.85, -0.42), Vector2(-0.55, -0.02)], c, r, col, w, true)
-		"globe":
-			ci.draw_arc(c, r * 0.88, 0, TAU, 28, col, w, true)
-			_ell(ci, c, r * 0.38, r * 0.88, col, w * 0.8)
-			ci.draw_line(c + Vector2(-0.88, 0) * r, c + Vector2(0.88, 0) * r, col, w * 0.8, true)
-			ci.draw_line(c + Vector2(-0.75, -0.45) * r, c + Vector2(0.75, -0.45) * r, col, w * 0.6, true)
-			ci.draw_line(c + Vector2(-0.75, 0.45) * r, c + Vector2(0.75, 0.45) * r, col, w * 0.6, true)
-		"scales":
-			ci.draw_line(c + Vector2(0, -0.8) * r, c + Vector2(0, 0.7) * r, col, w, true)
-			ci.draw_line(c + Vector2(-0.4, 0.8) * r, c + Vector2(0.4, 0.8) * r, col, w, true)
-			ci.draw_line(c + Vector2(-0.8, -0.5) * r, c + Vector2(0.8, -0.5) * r, col, w, true)
-			for s in [-1.0, 1.0]:
-				ci.draw_line(c + Vector2(0.8 * s, -0.5) * r, c + Vector2(0.55 * s, 0.05) * r, col, w * 0.7, true)
-				ci.draw_line(c + Vector2(0.8 * s, -0.5) * r, c + Vector2(1.05 * s, 0.05) * r, col, w * 0.7, true)
-				ci.draw_arc(c + Vector2(0.8 * s, 0.05) * r, r * 0.26, 0, PI, 10, col, w, true)
-		"coins":
-			for i in 3: _ell(ci, c + Vector2(0, (0.45 - i * 0.42)) * r, r * 0.72, r * 0.26, col, w * 0.9)
-			ci.draw_line(c + Vector2(-0.72, 0.45) * r, c + Vector2(-0.72, -0.4) * r, col, w * 0.8, true)
-			ci.draw_line(c + Vector2(0.72, 0.45) * r, c + Vector2(0.72, -0.4) * r, col, w * 0.8, true)
-		"trophy":
-			_poly(ci, [Vector2(-0.55, -0.75), Vector2(0.55, -0.75), Vector2(0.45, -0.05), Vector2(0.14, 0.3), Vector2(0.14, 0.58), Vector2(0.45, 0.82), Vector2(-0.45, 0.82), Vector2(-0.14, 0.58), Vector2(-0.14, 0.3), Vector2(-0.45, -0.05)], c, r, col, w, true)
-			ci.draw_arc(c + Vector2(-0.58, -0.38) * r, r * 0.26, PI * 0.5, PI * 1.5, 8, col, w * 0.8, true)
-			ci.draw_arc(c + Vector2(0.58, -0.38) * r, r * 0.26, -PI * 0.5, PI * 0.5, 8, col, w * 0.8, true)
-		"lamp":
-			ci.draw_arc(c + Vector2(0, -0.25) * r, r * 0.5, PI * 0.8, PI * 2.2, 18, col, w, true)
-			ci.draw_line(c + Vector2(-0.28, 0.45) * r, c + Vector2(0.28, 0.45) * r, col, w, true)
-			ci.draw_line(c + Vector2(-0.2, 0.7) * r, c + Vector2(0.2, 0.7) * r, col, w, true)
-			for a in [-1.0, 0.0, 1.0]:
-				var d := Vector2(sin(a * 0.9), -cos(a * 0.9))
-				ci.draw_line(c + Vector2(0, -0.25) * r + d * r * 0.72, c + Vector2(0, -0.25) * r + d * r * 0.95, col, w * 0.8, true)
-		"save":
-			_poly(ci, [Vector2(-0.7, 0.15), Vector2(-0.7, 0.7), Vector2(0.7, 0.7), Vector2(0.7, 0.15)], c, r, col, w)
-			ci.draw_line(c + Vector2(0, -0.8) * r, c + Vector2(0, 0.35) * r, col, w, true)
-			_poly(ci, [Vector2(-0.35, 0.0), Vector2(0, 0.38), Vector2(0.35, 0.0)], c, r, col, w)
 		"gear":
-			ci.draw_arc(c, r * 0.36, 0, TAU, 16, col, w, true)
+			_ci.draw_arc(c, 3.5 * _u, 0.0, TAU, 20, col, _s, true)
+			_ci.draw_arc(c, 6.5 * _u, 0.0, TAU, 28, col, _s, true)
 			for i in 8:
 				var d := Vector2(cos(i * TAU / 8.0), sin(i * TAU / 8.0))
-				ci.draw_line(c + d * r * 0.58, c + d * r * 0.9, col, w * 1.6, true)
-			ci.draw_arc(c, r * 0.62, 0, TAU, 24, col, w * 0.8, true)
-		"crown":
-			_poly(ci, [Vector2(-0.8, 0.6), Vector2(-0.8, -0.5), Vector2(-0.4, 0.0), Vector2(0, -0.7), Vector2(0.4, 0.0), Vector2(0.8, -0.5), Vector2(0.8, 0.6)], c, r, col, w, true)
-		"skull":
-			ci.draw_arc(c + Vector2(0, -0.1) * r, r * 0.75, PI * 0.95, PI * 2.05, 18, col, w, true)
-			_poly(ci, [Vector2(-0.7, 0.05), Vector2(-0.5, 0.55), Vector2(-0.25, 0.55), Vector2(-0.25, 0.8), Vector2(0.25, 0.8), Vector2(0.25, 0.55), Vector2(0.5, 0.55), Vector2(0.7, 0.05)], c, r, col, w)
-			ci.draw_circle(c + Vector2(-0.3, 0.0) * r, r * 0.17, col); ci.draw_circle(c + Vector2(0.3, 0.0) * r, r * 0.17, col)
-		"pin":
-			ci.draw_arc(c + Vector2(0, -0.2) * r, r * 0.55, PI * 0.78, PI * 2.22, 16, col, w, true)
-			_poly(ci, [Vector2(-0.38, 0.2), Vector2(0, 0.85), Vector2(0.38, 0.2)], c, r, col, w)
-			ci.draw_circle(c + Vector2(0, -0.2) * r, r * 0.16, col)
-		"flask":
-			_poly(ci, [Vector2(-0.22, -0.8), Vector2(-0.22, -0.15), Vector2(-0.8, 0.7), Vector2(0.8, 0.7), Vector2(0.22, -0.15), Vector2(0.22, -0.8)], c, r, col, w)
-			ci.draw_line(c + Vector2(-0.34, -0.8) * r, c + Vector2(0.34, -0.8) * r, col, w, true)
-		"hourglass":
-			_poly(ci, [Vector2(-0.6, -0.8), Vector2(0.6, -0.8), Vector2(-0.6, 0.8), Vector2(0.6, 0.8)], c, r, col, w, true)
-		"chevrons":
-			_poly(ci, [Vector2(-0.7, -0.6), Vector2(-0.05, 0.0), Vector2(-0.7, 0.6)], c, r, col, w * 1.3)
-			_poly(ci, [Vector2(0.0, -0.6), Vector2(0.65, 0.0), Vector2(0.0, 0.6)], c, r, col, w * 1.3)
-		"back":
-			_poly(ci, [Vector2(0.6, -0.7), Vector2(-0.5, 0.0), Vector2(0.6, 0.7)], c, r, col, w * 1.3)
-		"close":
-			ci.draw_line(c + Vector2(-0.6, -0.6) * r, c + Vector2(0.6, 0.6) * r, col, w * 1.3, true)
-			ci.draw_line(c + Vector2(0.6, -0.6) * r, c + Vector2(-0.6, 0.6) * r, col, w * 1.3, true)
-		"shield":
-			_poly(ci, [Vector2(-0.7, -0.75), Vector2(0.7, -0.75), Vector2(0.7, 0.05), Vector2(0, 0.9), Vector2(-0.7, 0.05)], c, r, col, w, true)
-			ci.draw_line(c + Vector2(0, -0.75) * r, c + Vector2(0, 0.9) * r, col, w * 0.7, true)
-			ci.draw_line(c + Vector2(-0.7, -0.2) * r, c + Vector2(0.7, -0.2) * r, col, w * 0.7, true)
-		"dove":
-			_ell(ci, c + Vector2(-0.05, 0.15) * r, r * 0.55, r * 0.28, col, w)
-			ci.draw_arc(c + Vector2(0.5, -0.2) * r, r * 0.2, 0, TAU, 10, col, w, true)
-			_poly(ci, [Vector2(-0.55, 0.1), Vector2(-0.95, -0.1), Vector2(-0.8, 0.35)], c, r, col, w)
-			ci.draw_arc(c + Vector2(-0.1, -0.1) * r, r * 0.55, PI * 1.1, PI * 1.7, 10, col, w, true)
-		"star":
-			var p := PackedVector2Array()
-			for i in 11: p.append(c + Vector2(sin(i * PI / 5.0), -cos(i * PI / 5.0)) * r * (0.9 if i % 2 == 0 else 0.4))
-			ci.draw_polyline(p, col, w, true)
+				_ci.draw_line(c + d * 7.0 * _u, c + d * 10.0 * _u, col, _s * 1.5, true)
+		"star": _star(10.0, 4.2, filled)
+		"general_star":
+			_col = TBTokens.c("brass_lt"); _col.a = col.a; _knock = TBTokens.c("ink_0")
+			_star(10.0, 4.2, true)
+		"revolt":                                    # unrest: a jagged burst
+			_scratch.resize(17)
+			for i in 17: _scratch[i] = c + Vector2(sin(i * PI / 8.0), -cos(i * PI / 8.0)) * (10.0 if i % 2 == 0 else 4.5) * _u
+			_scratch[16] = _scratch[0]
+			if filled:
+				_scratch.resize(16); _ci.draw_colored_polygon(_scratch, col); _scratch.resize(17); _scratch[16] = _scratch[0]
+			_ci.draw_polyline(_scratch, col, _s, true)
+		"capital":                                   # a 10 px ring around a filled 6 px square (a star always means "general")
+			var rr := size * 0.5
+			_ci.draw_arc(c, rr - _s * 0.5, 0.0, TAU, 28, col, _s, true)
+			var q := roundf(size * 0.6 * 0.5) * 2.0
+			_ci.draw_rect(Rect2(Vector2(roundf(c.x - q * 0.5), roundf(c.y - q * 0.5)), Vector2(q, q)), col)
 		_:
-			ci.draw_arc(c, r * 0.7, 0, TAU, 16, col, w, true)
+			if G.has(name):
+				_ops(G[name])
+				if size >= 20.0 and G_DETAIL.has(name): _ops(G_DETAIL[name])
+			else:
+				_ci.draw_arc(c, 7.0 * _u, 0.0, TAU, 20, col, _s, true)
 
-## ornamental divider: ——— ◆ ———
+## ornamental divider: --- + --- for hero sheets and the title screen only (D3); whole-pixel lines and a 5 px diamond
 static func rule(ci: CanvasItem, x0: float, x1: float, y: float, col: Color) -> void:
-	var mid := (x0 + x1) * 0.5
-	ci.draw_line(Vector2(x0, y), Vector2(mid - 9, y), col, 1.0, true)
-	ci.draw_line(Vector2(mid + 9, y), Vector2(x1, y), col, 1.0, true)
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(mid - 5, y), Vector2(mid, y - 4), Vector2(mid + 5, y), Vector2(mid, y + 4)]), col)
-	ci.draw_line(Vector2(x0, y + 3), Vector2(mid - 22, y + 3), Color(col.r, col.g, col.b, col.a * 0.45), 1.0, true)
-	ci.draw_line(Vector2(mid + 22, y + 3), Vector2(x1, y + 3), Color(col.r, col.g, col.b, col.a * 0.45), 1.0, true)
+	var yy := floorf(y) + 0.5
+	var mid := roundf((x0 + x1) * 0.5)
+	ci.draw_line(Vector2(roundf(x0), yy), Vector2(mid - 9.0, yy), col, 1.0)
+	ci.draw_line(Vector2(mid + 9.0, yy), Vector2(roundf(x1), yy), col, 1.0)
+	_scratch.resize(4)
+	_scratch[0] = Vector2(mid - 5.0, yy); _scratch[1] = Vector2(mid, yy - 5.0); _scratch[2] = Vector2(mid + 5.0, yy); _scratch[3] = Vector2(mid, yy + 5.0)
+	ci.draw_colored_polygon(_scratch, col)

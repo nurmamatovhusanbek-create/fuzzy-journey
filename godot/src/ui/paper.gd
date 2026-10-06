@@ -1,9 +1,9 @@
-## Procedural materials for the "cartographer's table" look: laid paper, aged vellum, wax, umber leather.
-## Everything is generated once from native noise (a fraction of a second) and cached; no image assets.
+## The only two procedural textures of the interface (art bible 8.2): laid paper (hero sheet) and wax (End Turn seal).
+## Generated once, lazily, from native noise and cached; no image assets. Leather and vellum are retired.
 class_name TBPaper
 extends RefCounted
 
-enum { SHEET, VELLUM, WAX, LEATHER }
+enum { SHEET, WAX }
 const SIZE := 256
 
 static var _tex := {}
@@ -15,20 +15,17 @@ static func _make(kind: int) -> ImageTexture:
 	n.seed = 1 + kind * 7
 	n.fractal_type = FastNoiseLite.FRACTAL_FBM
 	n.fractal_octaves = 4
-	n.frequency = 0.018 if kind != LEATHER else 0.05
+	n.frequency = 0.018
 	var cloud := n.get_image(SIZE, SIZE, false, true)           # seamless
 	var g := FastNoiseLite.new()
 	g.noise_type = FastNoiseLite.TYPE_SIMPLEX
 	g.seed = 99 + kind
-	g.frequency = 0.55 if kind != LEATHER else 0.9              # grain
+	g.frequency = 0.55                                          # grain
 	var grain := g.get_image(SIZE, SIZE, false, true)
 	var cd := cloud.get_data(); var gd := grain.get_data()
 	var out := PackedByteArray(); out.resize(SIZE * SIZE * 4)
-	var base := Color(1, 1, 1); var low := 0.88; var gw := 0.05; var cw := 0.10
-	match kind:
-		VELLUM: low = 0.80; cw = 0.2
-		WAX: low = 0.8; gw = 0.04; cw = 0.2
-		LEATHER: low = 0.62; gw = 0.2; cw = 0.2
+	var low := 0.92; var gw := 0.03; var cw := 0.05            # paper: about +-4 % luminance (art bible 7.5)
+	if kind == WAX: low = 0.8; gw = 0.04; cw = 0.2
 	for i in SIZE * SIZE:
 		var c := float(cd[i]) / 255.0
 		var gr := float(gd[i]) / 255.0

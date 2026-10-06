@@ -1,141 +1,295 @@
-## Surfaces of the "cartographer's table".
-##   SHEET   a laid-paper document with a soft shadow, uneven cut edges, an inked double rule and brass corner guards
-##   CHIT    a small paper slip (buttons, toasts, tooltips)
-##   WAX     a wax-seal button / stamp: red, organic outline, embossed rim
-##   LEATHER the umber instrument strip of the HUD with brass rules and studs
-## All are StyleBoxes, so every PanelContainer / Button in the theme can use them.
+## Surfaces of the interface (art bible 3 and 7.5). Everything is a StyleBox so any PanelContainer / Button / custom control can use it.
+##   PLATE  flat chamfered rectangle: fill, 1 px border, cut 4 / 2 / 6, elevation 0 / 1 / 2 (one hard shadow). Panels, buttons, chips, cards.
+##   SHEET  THE hero sheet (one per screen, ceremony only): paper grain, <= 1.5 px ragged edge, double rule, 6 px brass corner guards.
+##   BAR    flat bar-0 strip with a 1 px rule-dark edge (top bar, dock rail). No leather, no studs.
+##   SEAL   the End Turn wax disc with a single brass ring (the one wax object).
+##   FOCUS  keyboard focus ring: 2 px ring + 2 px gap + 1 px contrast line, hue-independent (A11Y-KBD-003); drawn only while keyboard / pad navigating.
+## Polygons are cached per size (no per-draw allocation); strokes are whole pixels. In high contrast: no texture, no ragged edge, no shadow, 2 px borders.
+## Colours are resolved from TBTokens when a style is built: after switching TBTokens.mode rebuild the theme (TBKit.theme()).
 class_name TBFrame
 extends StyleBox
 
-enum Kind { SHEET, CHIT, WAX, LEATHER }
+enum Kind { PLATE, SHEET, BAR, SEAL, FOCUS }
+## corner bits for the chamfer mask
+const TL := 1
+const TR := 2
+const BR := 4
+const BL := 8
+const ALL := 15
 
-const INK := Color(0.165, 0.125, 0.082)
-const PAPER := Color(0.918, 0.862, 0.735)
-const BRASS := Color(0.62, 0.45, 0.13)
+const _DIAG := 0.5857864             # 2 - sqrt(2): a 45 degree chamfer offset inwards by d shrinks by this fraction of d
+const _CACHE_MAX := 600
 
-var kind: int = Kind.SHEET
-var tint := PAPER
-var ink := INK
-var accent := BRASS            # corner guards / studs
-var shadow := 1.0              # 0 = none
-var sunk := false              # pressed: slightly darker, no lift
-var alert := false             # red border (warnings, bad news)
-var seed_v := 7
+## legacy colour names that older call sites still read (TBFrame.PAPER ...)
+static var PAPER: Color = TBTokens.NORMAL["paper_0"]
+static var INK: Color = TBTokens.NORMAL["ink_0"]
+static var BRASS: Color = TBTokens.NORMAL["brass"]
 
-static func make(fill_c: Color, rule_c: Color, _notch: float = 10.0, double: bool = true, pad_x: float = 16.0, pad_y: float = 12.0) -> TBFrame:
+## true once the player navigates by keyboard / pad, false again on a mouse or touch press (a focus ring is drawn only while true)
+static var kbd_nav := false
+static var _geo := {}
+static var _pcs := {}
+static var _inst := {}
+static var _watch: Node = null
+
+var kind: int = Kind.PLATE
+var fill: Color = Color.TRANSPARENT
+var border: Color = Color.TRANSPARENT
+var cut: int = 4
+var corners: int = ALL
+var elevation: int = 0
+var border_w: int = 1
+var accent: Color = Color.TRANSPARENT      # PLATE: a bar along the left edge (selected row, armed / recommended card, toast meaning)
+var accent_w: int = 0
+var shift: int = 0                         # pressed: content moves 1 px down
+var on_bar := false                        # FOCUS: cream ring on dark furniture / map instead of ink on paper
+var inset: int = 0                         # FOCUS: draw the ring this many px inside the rect
+var rule_side: int = SIDE_BOTTOM           # BAR: which edge carries the 1 px rule (-1 = none)
+var rule_col: Color = Color.TRANSPARENT
+var hot := false                           # SEAL: hover
+var pressed := false                       # SEAL: pressed (shadow removed)
+var disabled := false                      # SEAL: 40 %
+
+# ---- constructors --------------------------------------------------------------------------------------------------------
+static func plate(fill_c: Color, border_c: Color, cut_px: int = 4, elev: int = 0, pad_x: float = 16.0, pad_y: float = 12.0, pressed_shift: bool = false, border_px: int = 1, mask: int = ALL) -> TBFrame:
 	var f := TBFrame.new()
-	f.kind = Kind.SHEET if double else Kind.CHIT
-	if fill_c.get_luminance() > 0.5: f.tint = Color(fill_c.r, fill_c.g, fill_c.b, 1.0)
-	f.alert = rule_c.r > rule_c.g * 1.8 and rule_c.r > rule_c.b * 1.8
-	f.shadow = 1.0 if double else 0.55
+	f.kind = Kind.PLATE; f.fill = fill_c; f.border = border_c; f.cut = cut_px; f.elevation = elev
+	f.border_w = border_px; f.corners = mask; f.shift = 1 if pressed_shift else 0
 	f._margins(pad_x, pad_y)
 	return f
 
-static func sheet(pad_x: float = 20.0, pad_y: float = 16.0, tint_c: Color = PAPER) -> TBFrame:
-	var f := TBFrame.new(); f.kind = Kind.SHEET; f.tint = tint_c; f._margins(pad_x, pad_y); return f
+## the one hero sheet; use for ceremony only (event, ultimatum, treaty, era, game over, chronicle)
+static func hero(pad_x: float = 28.0, pad_y: float = 24.0, tint_c: Color = Color.TRANSPARENT) -> TBFrame:
+	var f := TBFrame.new()
+	f.kind = Kind.SHEET; f.fill = tint_c if tint_c.a > 0.0 else TBTokens.c("paper_0"); f.border = TBTokens.c("ink_0"); f.cut = TBTokens.CUT_PANEL; f.elevation = 2
+	f._margins(pad_x, pad_y)
+	return f
 
-static func chit(tint_c: Color = PAPER, pad_x: float = 14.0, pad_y: float = 8.0, is_alert: bool = false) -> TBFrame:
-	var f := TBFrame.new(); f.kind = Kind.CHIT; f.tint = tint_c; f.shadow = 0.55; f.alert = is_alert; f._margins(pad_x, pad_y); return f
+static func bar(pad_x: float = 12.0, pad_y: float = 6.0, alpha: float = 0.94, rule_edge: int = SIDE_BOTTOM) -> TBFrame:
+	var f := TBFrame.new()
+	f.kind = Kind.BAR; f.fill = TBTokens.ca("bar_0", alpha); f.rule_col = TBTokens.c("rule_dark"); f.rule_side = rule_edge
+	f._margins(pad_x, pad_y)
+	return f
 
-static func wax(pad_x: float = 16.0, pad_y: float = 10.0, pressed: bool = false) -> TBFrame:
-	var f := TBFrame.new(); f.kind = Kind.WAX; f.sunk = pressed; f._margins(pad_x, pad_y); return f
+## End Turn wax disc. Cached per state: do not mutate the returned style.
+static func seal(is_pressed: bool = false, is_hot: bool = false, is_disabled: bool = false) -> TBFrame:
+	var key := "seal%d%d%d%d" % [int(is_pressed), int(is_hot), int(is_disabled), TBTokens.mode]
+	if _inst.has(key): return _inst[key]
+	var f := TBFrame.new()
+	f.kind = Kind.SEAL; f.pressed = is_pressed; f.hot = is_hot; f.disabled = is_disabled; f.elevation = 2
+	f.fill = TBTokens.c("wax_press" if is_pressed else ("wax_hover" if is_hot else "wax")); f.border = TBTokens.c("wax_rim"); f.rule_col = TBTokens.c("brass")
+	_inst[key] = f
+	return f
+
+## focus ring style, cached per variant: do not mutate
+static func focus(bar_ground: bool = false, cut_px: int = 4, inset_px: int = 0) -> TBFrame:
+	var key := "focus%d%d%d%d" % [int(bar_ground), cut_px, inset_px, TBTokens.mode]
+	if _inst.has(key): return _inst[key]
+	var f := TBFrame.new()
+	f.kind = Kind.FOCUS; f.on_bar = bar_ground; f.cut = cut_px; f.inset = inset_px
+	_inst[key] = f
+	return f
+
+# ---- shims for the previous kinds (SHEET / CHIT / WAX / LEATHER) --------------------------------------------------------
+static func make(fill_c: Color, rule_c: Color, _notch: float = 10.0, double: bool = true, pad_x: float = 16.0, pad_y: float = 12.0) -> TBFrame:
+	return plate(fill_c, rule_c, TBTokens.CUT_PANEL if double else TBTokens.CUT, 1 if double else 0, pad_x, pad_y)
+
+## old "sheet" = a panel (flat plate); the real hero sheet is TBFrame.hero()
+static func sheet(pad_x: float = 20.0, pad_y: float = 16.0, tint_c: Color = Color.TRANSPARENT) -> TBFrame:
+	return plate(tint_c if tint_c.a > 0.0 else TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 1, pad_x, pad_y)
+
+## old "chit" = the secondary plate (paper-1, 1 px rule, cut 4)
+static func chit(tint_c: Color = Color.TRANSPARENT, pad_x: float = 14.0, pad_y: float = 8.0, is_alert: bool = false) -> TBFrame:
+	return plate(tint_c if tint_c.a > 0.0 else TBTokens.c("paper_1"), TBTokens.c("neg" if is_alert else "rule"), TBTokens.CUT, 0, pad_x, pad_y)
+
+## old "wax" button = the flat danger plate
+static func wax(pad_x: float = 16.0, pad_y: float = 10.0, is_pressed: bool = false) -> TBFrame:
+	return plate(TBTokens.c("wax_press" if is_pressed else "wax"), TBTokens.c("wax_rim"), TBTokens.CUT, 0, pad_x, pad_y, is_pressed)
 
 static func leather(pad_x: float = 12.0, pad_y: float = 6.0) -> TBFrame:
-	var f := TBFrame.new(); f.kind = Kind.LEATHER; f.tint = Color(0.20, 0.145, 0.095); f.ink = Color(0.04, 0.03, 0.02); f.accent = Color(0.85, 0.66, 0.28); f._margins(pad_x, pad_y); return f
+	return bar(pad_x, pad_y)
 
 func _margins(px: float, py: float) -> void:
 	set_content_margin(SIDE_LEFT, px); set_content_margin(SIDE_RIGHT, px)
-	set_content_margin(SIDE_TOP, py); set_content_margin(SIDE_BOTTOM, py)
+	set_content_margin(SIDE_TOP, py + shift); set_content_margin(SIDE_BOTTOM, maxf(py - shift, 0.0))
 
-func _poly(ci: RID, pts: PackedVector2Array, col: Color) -> void:
-	RenderingServer.canvas_item_add_polygon(ci, pts, PackedColorArray([col]))
+# ---- input watcher: the focus ring follows the input device --------------------------------------------------------------
+class FocusWatch extends Node:
+	func _init() -> void:
+		name = "TBFocusWatch"; process_mode = Node.PROCESS_MODE_ALWAYS
+	func _input(e: InputEvent) -> void:
+		var was := TBFrame.kbd_nav
+		if e is InputEventKey and e.pressed: TBFrame.kbd_nav = true
+		elif e is InputEventJoypadButton and e.pressed: TBFrame.kbd_nav = true
+		elif e is InputEventJoypadMotion and absf(e.axis_value) > 0.5: TBFrame.kbd_nav = true
+		elif e is InputEventMouseButton and e.pressed: TBFrame.kbd_nav = false
+		elif e is InputEventScreenTouch and e.pressed: TBFrame.kbd_nav = false
+		if was != TBFrame.kbd_nav:
+			var f := get_viewport().gui_get_focus_owner() if get_viewport() != null else null
+			if f != null: f.queue_redraw()
 
-func _textured(ci: RID, pts: PackedVector2Array, r: Rect2, tex_kind: int, col: Color) -> void:
-	var uvs := PackedVector2Array()
-	for p in pts: uvs.append(Vector2((p.x - r.position.x) / 256.0, (p.y - r.position.y) / 256.0))      # texel = pixel: the grain never stretches with the button
-	RenderingServer.canvas_item_set_default_texture_repeat(ci, RenderingServer.CANVAS_ITEM_TEXTURE_REPEAT_ENABLED)
-	RenderingServer.canvas_item_add_polygon(ci, pts, PackedColorArray([col]), uvs, TBPaper.texture(tex_kind).get_rid())
+static func ensure_watch() -> void:
+	if _watch != null and is_instance_valid(_watch): return
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null: return
+	_watch = FocusWatch.new()
+	tree.root.add_child.call_deferred(_watch)
 
-func _line(ci: RID, pts: PackedVector2Array, col: Color, w: float, closed: bool = true) -> void:
-	var p := pts
-	if closed:
-		p = pts.duplicate(); p.append(pts[0])
-	RenderingServer.canvas_item_add_polyline(ci, p, PackedColorArray([col]), w, true)
+# ---- cached colour arrays and polygons ------------------------------------------------------------------------------------
+static func _pc(col: Color) -> PackedColorArray:
+	if _pcs.has(col): return _pcs[col]
+	if _pcs.size() > 400: _pcs.clear()
+	var a := PackedColorArray([col])
+	_pcs[col] = a
+	return a
 
+## chamfered rectangle outline inset by d px from a w x h box whose own chamfer is c px on the corners in `mask`
+static func chamfer(w: float, h: float, c: float, mask: int, d: float = 0.0, ox: float = 0.0, oy: float = 0.0) -> PackedVector2Array:
+	var k := maxf(c - _DIAG * d, 0.0)
+	var x0 := d + ox; var y0 := d + oy; var x1 := w - d + ox; var y1 := h - d + oy
+	var p := PackedVector2Array()
+	if mask & TL and k > 0.0: p.append(Vector2(x0, y0 + k)); p.append(Vector2(x0 + k, y0))
+	else: p.append(Vector2(x0, y0))
+	if mask & TR and k > 0.0: p.append(Vector2(x1 - k, y0)); p.append(Vector2(x1, y0 + k))
+	else: p.append(Vector2(x1, y0))
+	if mask & BR and k > 0.0: p.append(Vector2(x1, y1 - k)); p.append(Vector2(x1 - k, y1))
+	else: p.append(Vector2(x1, y1))
+	if mask & BL and k > 0.0: p.append(Vector2(x0 + k, y1)); p.append(Vector2(x0, y1 - k))
+	else: p.append(Vector2(x0, y1))
+	return p
+
+static func _closed(p: PackedVector2Array) -> PackedVector2Array:
+	var q := p.duplicate()
+	q.append(p[0])
+	return q
+
+static func _circle(c: Vector2, r: float, n: int = 48) -> PackedVector2Array:
+	var p := PackedVector2Array()
+	for i in n: p.append(c + Vector2(cos(i * TAU / n), sin(i * TAU / n)) * r)
+	return p
+
+static func _geo_get(key: Variant) -> Variant:
+	return _geo.get(key)
+
+static func _geo_put(key: Variant, v: Variant) -> void:
+	if _geo.size() > _CACHE_MAX: _geo.clear()
+	_geo[key] = v
+
+# ---- drawing -----------------------------------------------------------------------------------------------------------------
 func _draw(ci: RID, rect: Rect2) -> void:
+	var w: int = roundi(rect.size.x); var h: int = roundi(rect.size.y)
+	if w < 3 or h < 3: return
+	var off := rect.position.round()
+	var moved: bool = off != Vector2.ZERO
+	if moved: RenderingServer.canvas_item_add_set_transform(ci, Transform2D(0.0, off))
 	match kind:
-		Kind.SHEET: _draw_sheet(ci, rect)
-		Kind.CHIT: _draw_chit(ci, rect)
-		Kind.WAX: _draw_wax(ci, rect)
-		Kind.LEATHER: _draw_leather(ci, rect)
+		Kind.PLATE: _draw_plate(ci, w, h)
+		Kind.SHEET: _draw_sheet(ci, w, h)
+		Kind.BAR: _draw_bar(ci, w, h)
+		Kind.SEAL: _draw_seal(ci, w, h)
+		Kind.FOCUS: _draw_focus(ci, w, h)
+	if moved: RenderingServer.canvas_item_add_set_transform(ci, Transform2D.IDENTITY)
 
-func _draw_sheet(ci: RID, rect: Rect2) -> void:
-	var r := Rect2(rect.position + Vector2(1.5, 1.5), rect.size - Vector2(3, 3))
-	var seed_i := int(r.size.x) * 31 + int(r.size.y) + seed_v
-	if shadow > 0.0 and r.size.x > 24:
-		for k in 3:
-			var o := Vector2(2.0 + k * 1.6, 3.0 + k * 2.2)
-			_poly(ci, TBPaper.ragged(Rect2(r.position + o, r.size).grow(k * 0.8), 0.0, 400.0, 1, 2.0), Color(0.02, 0.01, 0.0, 0.13 * shadow))
-	var edge := TBPaper.ragged(r, 1.5, 36.0, seed_i, 2.5)
-	_textured(ci, edge, r, TBPaper.SHEET, tint)
-	# aged margins: concentric translucent strokes darken the rim
-	for k in 4:
-		var inset := Rect2(r.position + Vector2(k * 1.6, k * 1.6), r.size - Vector2(k * 3.2, k * 3.2))
-		if inset.size.x > 4 and inset.size.y > 4: _line(ci, TBPaper.ragged(inset, 0.0, 400.0, 1, 2.0), Color(0.35, 0.22, 0.08, 0.06 - k * 0.012), 2.0)
-	_line(ci, edge, Color(ink.r, ink.g, ink.b, 0.30), 0.9)
-	if r.size.x > 90 and r.size.y > 60:
-		var rc := ink if not alert else Color(0.62, 0.14, 0.1)
-		var i1 := Rect2(r.position + Vector2(8, 8), r.size - Vector2(16, 16))
-		_line(ci, TBPaper.ragged(i1, 0.0, 400.0, 1, 0.0), Color(rc.r, rc.g, rc.b, 0.45), 1.0)
-		var i2 := Rect2(r.position + Vector2(11.5, 11.5), r.size - Vector2(23, 23))
-		_line(ci, TBPaper.ragged(i2, 0.0, 400.0, 1, 0.0), Color(rc.r, rc.g, rc.b, 0.20), 0.7)
-		# brass corner guards: small folded triangles
-		var s := 9.0
+func _draw_plate(ci: RID, w: int, h: int) -> void:
+	var hc := TBTokens.is_hc()
+	var bw: int = border_w if (border_w == 0 or not hc) else maxi(border_w, 2)
+	var el: int = 0 if (hc or shift > 0) else elevation
+	var key := Vector4i(w, h, cut + corners * 64, bw + el * 8)
+	var g: Variant = _geo_get(key)
+	if g == null:
+		var half := bw * 0.5
+		g = [chamfer(w, h, cut, corners, half), _closed(chamfer(w, h, cut, corners, half)), chamfer(w, h, cut, corners, 0.0, 0.0, TBTokens.SHADOW_DY[el])]
+		_geo_put(key, g)
+	if el > 0: RenderingServer.canvas_item_add_polygon(ci, g[2], _pc(Color(0.0, 0.0, 0.0, TBTokens.SHADOW_A[el])))
+	if fill.a > 0.0: RenderingServer.canvas_item_add_polygon(ci, g[0], _pc(fill))
+	if bw > 0 and border.a > 0.0: RenderingServer.canvas_item_add_polyline(ci, g[1], _pc(border), float(bw), false)
+	if accent_w > 0 and accent.a > 0.0:
+		var inner_cut: int = cut if (corners & TL) else 0
+		RenderingServer.canvas_item_add_rect(ci, Rect2(bw, maxi(bw, inner_cut), accent_w, h - 2 * maxi(bw, inner_cut)), accent)
+
+func _draw_bar(ci: RID, w: int, h: int) -> void:
+	RenderingServer.canvas_item_add_rect(ci, Rect2(0, 0, w, h), fill)
+	var rw: int = 2 if TBTokens.is_hc() else 1
+	match rule_side:
+		SIDE_BOTTOM: RenderingServer.canvas_item_add_rect(ci, Rect2(0, h - rw, w, rw), rule_col)
+		SIDE_TOP: RenderingServer.canvas_item_add_rect(ci, Rect2(0, 0, w, rw), rule_col)
+		SIDE_LEFT: RenderingServer.canvas_item_add_rect(ci, Rect2(0, 0, rw, h), rule_col)
+		SIDE_RIGHT: RenderingServer.canvas_item_add_rect(ci, Rect2(w - rw, 0, rw, h), rule_col)
+
+func _draw_sheet(ci: RID, w: int, h: int) -> void:
+	if TBTokens.is_hc():                        # high contrast: flat, no grain, no ragged edge, no guards, 2 px border
+		var key := Vector4i(w, h, cut + ALL * 64, 2)
+		var g: Variant = _geo_get(key)
+		if g == null:
+			g = [chamfer(w, h, cut, ALL, 1.0), _closed(chamfer(w, h, cut, ALL, 1.0)), chamfer(w, h, cut, ALL)]
+			_geo_put(key, g)
+		RenderingServer.canvas_item_add_polygon(ci, g[0], _pc(fill))
+		RenderingServer.canvas_item_add_polyline(ci, g[1], _pc(border), 2.0, false)
+		return
+	var skey := Vector3i(w, h, 7)
+	var s: Variant = _geo_get(skey)
+	if s == null:
+		var r := Rect2(0, 0, w, h)
+		var seed_i: int = w * 31 + h + 7
+		var edge := TBPaper.ragged(r, 1.5, 36.0, seed_i, float(cut))
+		var uvs := PackedVector2Array()
+		for p in edge: uvs.append(p / 256.0)                  # one texel per pixel: the grain never stretches
+		var shadow := TBPaper.ragged(Rect2(0, TBTokens.SHADOW_DY[2], w, h), 1.5, 36.0, seed_i, float(cut))
+		var rule1 := _closed(chamfer(w, h, 0.0, 0, 8.0))
+		var rule2 := _closed(chamfer(w, h, 0.0, 0, 11.0))
+		var gs := float(cut)
+		var guards := []
 		for c in 4:
-			var cx := r.position.x if c % 2 == 0 else r.end.x
-			var cy := r.position.y if c < 2 else r.end.y
-			var sx := 1.0 if c % 2 == 0 else -1.0
-			var sy := 1.0 if c < 2 else -1.0
-			var tri := PackedVector2Array([Vector2(cx, cy), Vector2(cx + sx * s, cy), Vector2(cx, cy + sy * s)])
-			_poly(ci, tri, Color(accent.r, accent.g, accent.b, 0.95))
-			_line(ci, tri, Color(0.25, 0.17, 0.05, 0.55), 0.7)
-			_line(ci, PackedVector2Array([Vector2(cx + sx * 2.2, cy + sy * 4.6), Vector2(cx + sx * 4.6, cy + sy * 2.2)]), Color(1.0, 0.92, 0.6, 0.6), 0.8, false)
+			var cx: float = 0.0 if c % 2 == 0 else float(w)
+			var cy: float = 0.0 if c < 2 else float(h)
+			var sx: float = 1.0 if c % 2 == 0 else -1.0
+			var sy: float = 1.0 if c < 2 else -1.0
+			guards.append(PackedVector2Array([Vector2(cx + sx * gs, cy), Vector2(cx, cy + sy * gs), Vector2(cx + sx * gs, cy + sy * gs)]))
+		s = [edge, uvs, shadow, _closed(edge), rule1, rule2, guards]
+		_geo_put(skey, s)
+	RenderingServer.canvas_item_add_polygon(ci, s[2], _pc(Color(0.0, 0.0, 0.0, TBTokens.SHADOW_A[2])))
+	RenderingServer.canvas_item_set_default_texture_repeat(ci, RenderingServer.CANVAS_ITEM_TEXTURE_REPEAT_ENABLED)
+	RenderingServer.canvas_item_add_polygon(ci, s[0], _pc(fill), s[1], TBPaper.texture(TBPaper.SHEET).get_rid())
+	RenderingServer.canvas_item_add_polyline(ci, s[3], _pc(Color(border, 0.30)), 1.0, false)
+	RenderingServer.canvas_item_add_polyline(ci, s[4], _pc(Color(border, 0.45)), 1.0, false)
+	RenderingServer.canvas_item_add_polyline(ci, s[5], _pc(Color(border, 0.22)), 1.0, false)
+	var brass := TBTokens.c("brass")
+	for tri in s[6]: RenderingServer.canvas_item_add_polygon(ci, tri, _pc(brass))
 
-func _draw_chit(ci: RID, rect: Rect2) -> void:
-	var r := Rect2(rect.position + Vector2(1, 1), rect.size - Vector2(2.5, 3.0))
-	if sunk: r.position += Vector2(0.0, 1.0)
-	var seed_i := int(rect.size.x) * 17 + int(rect.size.y) * 3 + seed_v
-	if shadow > 0.0 and not sunk:
-		_poly(ci, TBPaper.ragged(Rect2(r.position + Vector2(1.2, 2.0), r.size), 0.0, 400.0, 1, 1.5), Color(0.02, 0.01, 0.0, 0.14 * shadow))
-	var pts := TBPaper.ragged(r, 0.5, 30.0, seed_i, 1.4)
-	var col := tint if not sunk else tint.darkened(0.12)
-	_textured(ci, pts, r, TBPaper.SHEET, col)
-	_line(ci, pts, Color((Color(0.62, 0.14, 0.1) if alert else ink).r, (Color(0.62, 0.14, 0.1) if alert else ink).g, (Color(0.62, 0.14, 0.1) if alert else ink).b, 0.7 if alert else 0.34), 0.8)
-	if r.size.x > 40 and r.size.y > 22:
-		_line(ci, PackedVector2Array([r.position + Vector2(3.5, r.size.y - 3.5), r.position + Vector2(r.size.x - 3.5, r.size.y - 3.5)]), Color(ink.r, ink.g, ink.b, 0.10), 0.7, false)
+func _draw_seal(ci: RID, w: int, h: int) -> void:
+	var hc := TBTokens.is_hc()
+	var r: float = minf(w, h) * 0.5
+	var c := Vector2(w * 0.5, h * 0.5)
+	var key := Vector3i(w, h, 11)
+	var g: Variant = _geo_get(key)
+	if g == null:
+		var body := _circle(c, r - 1.0)
+		var uvs := PackedVector2Array()
+		for p in body: uvs.append(p / 256.0)
+		g = [body, uvs, _circle(c + Vector2(0, TBTokens.SHADOW_DY[2]), r - 1.0), _closed(_circle(c, r - 1.5)), _closed(_circle(c, r - 4.0))]
+		_geo_put(key, g)
+	var a: float = 0.4 if disabled else 1.0
+	if not (pressed or disabled or hc): RenderingServer.canvas_item_add_polygon(ci, g[2], _pc(Color(0.0, 0.0, 0.0, TBTokens.SHADOW_A[2])))
+	var body_c := Color(fill, a)
+	if hc:
+		RenderingServer.canvas_item_add_polygon(ci, g[0], _pc(body_c))
+	else:
+		RenderingServer.canvas_item_set_default_texture_repeat(ci, RenderingServer.CANVAS_ITEM_TEXTURE_REPEAT_ENABLED)
+		RenderingServer.canvas_item_add_polygon(ci, g[0], _pc(body_c), g[1], TBPaper.texture(TBPaper.WAX).get_rid())
+	RenderingServer.canvas_item_add_polyline(ci, g[3], _pc(Color(border, a)), 1.0, true)
+	RenderingServer.canvas_item_add_polyline(ci, g[4], _pc(Color(rule_col, a)), 2.0, true)       # the single brass ring
 
-func _draw_wax(ci: RID, rect: Rect2) -> void:
-	var r := Rect2(rect.position + Vector2(1.5, 1.0), rect.size - Vector2(3, 4.0))
-	var seed_i := int(rect.size.x) * 13 + int(rect.size.y) + seed_v
-	var rad := minf(r.size.y * 0.42, 12.0)
-	# a stamp of wax: rounded body with a gently uneven edge, a pressed inner ring, a lit upper rim
-	var outer := TBPaper.stamp(r, rad, 0.9, seed_i)
-	if not sunk: _poly(ci, TBPaper.stamp(Rect2(r.position + Vector2(1.0, 2.2), r.size), rad, 0.9, seed_i), Color(0.02, 0.0, 0.0, 0.32))
-	var base := Color(0.64, 0.15, 0.12) if not sunk else Color(0.5, 0.1, 0.08)
-	_textured(ci, outer, r, TBPaper.WAX, base)
-	_line(ci, outer, Color(0.26, 0.04, 0.03, 0.6), 0.9)
-	var ring := Rect2(r.position + Vector2(3.5, 3.5), r.size - Vector2(7, 7))
-	_line(ci, TBPaper.stamp(ring, rad - 2.5, 0.35, seed_i + 5), Color(0.33, 0.05, 0.04, 0.32), 0.9)
-	_line(ci, PackedVector2Array([r.position + Vector2(rad, 1.8), Vector2(r.end.x - rad, r.position.y + 1.8)]), Color(1.0, 0.7, 0.6, 0.30), 1.2, false)
+func _draw_focus(ci: RID, w: int, h: int) -> void:
+	if not kbd_nav: return
+	var key := Vector4i(w, h, cut + inset * 64, 5)
+	var g: Variant = _geo_get(key)
+	if g == null:
+		var i := float(inset)
+		g = [_closed(chamfer(w, h, cut, ALL, i + 0.5)), _closed(chamfer(w, h, cut, ALL, i + 2.0))]    # 1 px contrast line, then the 2 px ring
+		_geo_put(key, g)
+	var ring: Color = TBTokens.c("cream" if on_bar else "ink_0")
+	var outer: Color = TBTokens.c("bar_0" if on_bar else "paper_0")
+	RenderingServer.canvas_item_add_polyline(ci, g[0], _pc(outer), 1.0, false)
+	RenderingServer.canvas_item_add_polyline(ci, g[1], _pc(ring), 2.0, false)
 
-func _draw_leather(ci: RID, rect: Rect2) -> void:
-	var r := rect
-	_textured(ci, PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]), r, TBPaper.LEATHER, tint)
-	# stitching and brass rules along the lower edge
-	_line(ci, PackedVector2Array([Vector2(r.position.x, r.end.y - 1.5), Vector2(r.end.x, r.end.y - 1.5)]), Color(accent.r, accent.g, accent.b, 0.95), 2.0, false)
-	_line(ci, PackedVector2Array([Vector2(r.position.x, r.end.y - 5.0), Vector2(r.end.x, r.end.y - 5.0)]), Color(accent.r, accent.g, accent.b, 0.35), 1.0, false)
-	var x := r.position.x + 6.0
-	while x < r.end.x - 4.0:
-		_line(ci, PackedVector2Array([Vector2(x, r.end.y - 9.0), Vector2(x + 3.0, r.end.y - 9.0)]), Color(0.9, 0.78, 0.5, 0.22), 1.0, false)
-		x += 8.0
-	_line(ci, PackedVector2Array([r.position + Vector2(0, 1), Vector2(r.end.x, r.position.y + 1)]), Color(1, 1, 1, 0.06), 1.0, false)
+## ring for custom-drawn controls: `ctl.draw_style_box(TBFrame.focus(), Rect2(Vector2.ZERO, ctl.size))` when ctl.has_focus()

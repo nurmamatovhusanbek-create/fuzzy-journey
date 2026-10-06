@@ -38,6 +38,60 @@ const HC := {
 static func c(name: String) -> Color:
 	return (HC if mode == Mode.HIGH_CONTRAST else NORMAL)[name]
 
+## token with its own alpha: TBTokens.ca("table", 0.72)
+static func ca(name: String, alpha: float) -> Color:
+	var col: Color = c(name)
+	return Color(col.r, col.g, col.b, alpha)
+
+static func is_hc() -> bool:
+	return mode == Mode.HIGH_CONTRAST
+
+## ---- contrast (WCAG 2.x relative luminance; art bible appendix A) --------------------------------
+static func _lin(v: float) -> float:
+	return v / 12.92 if v <= 0.04045 else pow((v + 0.055) / 1.055, 2.4)
+
+static func luminance(col: Color) -> float:
+	return 0.2126 * _lin(col.r) + 0.7152 * _lin(col.g) + 0.0722 * _lin(col.b)
+
+static func contrast(a: Color, b: Color) -> float:
+	var la: float = luminance(a); var lb: float = luminance(b)
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+## Registered text / boundary pairs, art bible 4.2-4.5 and 4.7: [foreground token, background token, min NORMAL, min HC, role].
+## Text >= 4.5 (HC 7); non-text boundaries, focus, disabled >= 3 (HC 4.5). Where the bible itself states a lower HC figure
+## (semantic text on paper-1: >= 6.84) the HC minimum is 6.8.
+const PAIRS := [
+	["ink_0", "paper_0", 7.0, 7.0, "primary text"], ["ink_0", "paper_1", 7.0, 7.0, "primary text on control"], ["ink_0", "paper_2", 7.0, 7.0, "primary text on pressed"],
+	["ink_1", "paper_0", 4.5, 7.0, "secondary text"], ["ink_1", "paper_1", 4.5, 7.0, "secondary text on control"], ["ink_1", "paper_2", 4.5, 7.0, "secondary text on pressed"],
+	["oxblood", "paper_0", 4.5, 7.0, "title"], ["oxblood", "paper_1", 4.5, 7.0, "title on control"], ["oxblood", "paper_2", 4.5, 7.0, "oxblood on pressed"],
+	["brass_ink", "paper_0", 4.5, 7.0, "own text"], ["brass_ink", "paper_1", 4.5, 7.0, "own text on control"],
+	["pos", "paper_0", 4.5, 7.0, "positive"], ["pos", "paper_1", 4.5, 6.8, "positive on control"],
+	["neg", "paper_0", 4.5, 7.0, "negative"], ["neg", "paper_1", 4.5, 6.8, "negative on control"],
+	["warn", "paper_0", 4.5, 7.0, "warning"], ["warn", "paper_1", 4.5, 6.8, "warning on control"],
+	["info", "paper_0", 4.5, 7.0, "info"], ["info", "paper_1", 4.5, 6.8, "info on control"],
+	["foreign", "paper_0", 4.5, 7.0, "foreign"], ["foreign", "paper_1", 4.5, 6.8, "foreign on control"],
+	["cream", "bar_0", 4.5, 7.0, "bar text"], ["cream", "bar_1", 4.5, 7.0, "chip text"], ["cream", "bar_2", 4.5, 7.0, "hover chip text"],
+	["smoke", "bar_0", 4.5, 7.0, "bar secondary"], ["smoke", "bar_1", 4.5, 7.0, "chip secondary"], ["smoke", "bar_2", 4.5, 7.0, "hover chip secondary"],
+	["brass_lt", "bar_0", 4.5, 7.0, "accent on bar"], ["brass_lt", "bar_1", 4.5, 7.0, "accent on chip"], ["brass_lt", "bar_2", 4.5, 7.0, "accent on hover chip"],
+	["pos_bar", "bar_0", 4.5, 7.0, "positive on bar"], ["pos_bar", "bar_1", 4.5, 7.0, "positive on chip"],
+	["neg_bar", "bar_0", 4.5, 7.0, "negative on bar"], ["neg_bar", "bar_1", 4.5, 7.0, "negative on chip"],
+	["warn_bar", "bar_0", 4.5, 7.0, "warning on bar"], ["warn_bar", "bar_1", 4.5, 7.0, "warning on chip"],
+	["info_bar", "bar_0", 4.5, 7.0, "info on bar"], ["info_bar", "bar_1", 4.5, 7.0, "info on chip"],
+	["foreign_bar", "bar_0", 4.5, 7.0, "foreign on bar"], ["foreign_bar", "bar_1", 4.5, 7.0, "foreign on chip"],
+	["ink_0", "brass", 4.5, 7.0, "primary button"], ["ink_0", "brass_hover", 4.5, 7.0, "primary button hover"], ["ink_0", "brass_press", 4.5, 7.0, "primary button pressed"],
+	["on_wax", "wax", 4.5, 7.0, "danger button"], ["on_wax", "wax_hover", 4.5, 7.0, "danger button hover"], ["on_wax", "wax_press", 4.5, 7.0, "danger button pressed"],
+	["cream", "ink_0", 4.5, 7.0, "segmented selected cell"],
+	["ink_0", "paper_hover", 4.5, 7.0, "hover row text"], ["ink_1", "paper_hover", 4.5, 7.0, "hover row secondary"],
+	# non-text: control boundaries, disabled, focus ring, meters
+	["rule", "paper_0", 3.0, 4.5, "control border on panel"], ["rule", "paper_1", 3.0, 4.5, "control border on control"],
+	["brass_ink", "paper_0", 3.0, 4.5, "primary border on panel"], ["brass_ink", "paper_2", 3.0, 4.5, "own marker on pressed"],
+	["rule_dark", "bar_0", 3.0, 4.5, "bar border"], ["rule_dark", "bar_1", 3.0, 4.5, "chip / tooltip border"], ["rule_dark", "bar_2", 3.0, 4.5, "hover chip border"],
+	["ink_off", "paper_0", 3.0, 4.5, "disabled text on panel"], ["ink_off", "paper_1", 3.0, 4.5, "disabled text on control"],
+	["ink_0", "paper_0", 3.0, 4.5, "focus ring on paper"], ["cream", "bar_0", 3.0, 4.5, "focus ring on bar"], ["cream", "table", 3.0, 4.5, "focus ring on map"],
+	["pos", "paper_2", 3.0, 4.5, "meter fill vs pressed"], ["neg", "paper_2", 3.0, 4.5, "meter fill vs pressed"], ["warn", "paper_2", 3.0, 4.5, "meter fill vs pressed"],
+	["info", "paper_2", 3.0, 4.5, "info marker vs pressed"], ["foreign", "paper_2", 3.0, 4.5, "foreign marker vs pressed"],
+]
+
 # ---- metrics (logical px at Standard density) ---------------------------------------------------
 const CUT := 4                  # chamfer for plates, buttons, chips
 const CUT_CHIP := 2             # chips <= 28 px high
@@ -54,6 +108,15 @@ const BAR_H_PHONE := 44
 const DOCK_W := 56
 const PANEL_W := 360
 const MODAL_W_MAX := 920
+const TOUCH_LARGE := 56         # "Large targets" setting
+const ICON_VISUAL := 40         # visual square of an icon button (hit area stays 48)
+const THUMB := 24               # slider thumb diameter
+const SCRIM_ALPHA := 0.72       # modal scrim = `table` at 72 %
+const SHADOW_DY := [0, 3, 6]    # hard shadow offset per elevation (art bible 3.3)
+const SHADOW_A := [0.0, 0.26, 0.32]
+const FOCUS_RING := 2           # focus ring: 2 px ring + 2 px gap + 1 px contrast line
+const FOCUS_GAP := 2
+const FOCUS_OUT := 1
 
 # ---- type roles (px at 100 %); sizes are multiplied by the text scale elsewhere -----------------
 const FS_TITLE := 20
