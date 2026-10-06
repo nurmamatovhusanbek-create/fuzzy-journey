@@ -482,13 +482,25 @@ static func hotseat_setup(parent: Control, on_go: Callable) -> void:
 ## Codex: a short reference for the interlocking systems
 const CODEX := ["infamy", "cb", "ultimatum", "generals", "battle", "supply", "rulers", "doctrine", "trade", "realms", "victory"]
 static func codex(parent: Control) -> void:
-	var m := K.modal(parent, T.call("codex"), 520, "book")
-	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, clampf(parent.get_viewport_rect().size.y * 0.6, 340.0, 620.0)); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var list := K.vbox(10); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list); m[1].add_child(scroll)
-	for id in CODEX:
+	var vs := parent.get_viewport_rect().size
+	var wide := vs.x >= 820.0 and vs.x > vs.y            # landscape: the rules read as two newspaper columns
+	var m := K.modal(parent, T.call("codex"), 920 if wide else 520, "book")
+	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, clampf(vs.y * 0.6, 340.0, 620.0)); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var host: Container = K.vbox(10)
+	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(host); m[1].add_child(scroll)
+	var cols: Array = [host]
+	if wide:
+		host = K.hbox(34); host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.remove_child(scroll.get_child(0)); scroll.add_child(host)
+		cols = [K.vbox(10), K.vbox(10)]
+		for c in cols: c.size_flags_horizontal = Control.SIZE_EXPAND_FILL; host.add_child(c)
+	var half := int(ceil(CODEX.size() / 2.0))
+	for i in CODEX.size():
+		var id: String = CODEX[i]
+		var list: Container = cols[(0 if i < half else 1) if wide else 0]
 		list.add_child(K.title(T.call("codex_" + id + "_t"), 16, K.GOLD2))
-		var b := K.label(T.call("codex_" + id + "_b"), 13, K.TEXT); b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; b.custom_minimum_size = Vector2(440, 0)
+		var b := K.label(T.call("codex_" + id + "_b"), 14 if wide else 13, K.TEXT); b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; b.custom_minimum_size = Vector2(380 if wide else 440, 0)
 		list.add_child(b)
 		var hl := ColorRect.new(); hl.custom_minimum_size = Vector2(0, 1); hl.color = Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.25); list.add_child(hl)
 	_footer_back(m)

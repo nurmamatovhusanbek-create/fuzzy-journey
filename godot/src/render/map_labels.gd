@@ -111,6 +111,8 @@ func _draw_nation_names(font: Font) -> void:
 		if clash: continue
 		placed.append(rect); shown += 1
 		var a := clampf(depth * 1.6, 0.35, 0.95)
+		for fr in _frame_rects:                      # standards sit on top of the name: soften it where they cross
+			if (fr as Rect2).intersects(rect): a *= 0.45; break
 		var mine: bool = n == g.human_id
 		draw_string_outline(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.02, 0.03, 0.07, a * 0.85))
 		draw_string(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.95, 0.8, 0.4, a) if mine else Color(0.94, 0.9, 0.82, a * 0.92))
