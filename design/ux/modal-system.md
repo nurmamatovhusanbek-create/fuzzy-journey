@@ -7,7 +7,8 @@
 > **Platform Target**: Android, iOS, Windows. Touch-first, mouse/keyboard supported. 540x960 portrait to 2340x1080 landscape phone to 1920x1080 desktop
 > **Related GDDs**: none (UI redo, input `design/game-brief.md`)
 > **Related ADRs**: none yet (see Open Questions)
-> **Related UX Specs**: `interaction-patterns.md`, `main-menu.md`, `nation-pick.md`
+> **Related UX Specs**: `hud.md` (zones A-G, units `u`, rail, ticker, End Turn), `command-card.md` (selection, details drawer), `interaction-patterns.md`, `main-menu.md`, `nation-pick.md`
+> **Units**: `u` as in `hud.md` (logical px, about 1 dp on phones). Profiles: D 1280x720u, L 900x415u, S 800x360u, P 360x640u. Touch target 48u, mouse 32u, text 12u minimum.
 > **Accessibility Tier**: Comprehensive
 > **Template**: UX Spec
 
@@ -40,29 +41,28 @@
 ```
 Game (map + HUD)
   ├── Dialog        event, ultimatum, confirm, pass-device, game over*, tutorial step
-  ├── Drawer/Sheet  Budget, Annals, Council (Advisor+Goals), Province
+  ├── Drawer/Sheet  Budget, Annals, Council (Advisor+Goals)
   └── Wide panel/Page  Nations (list, rankings, nation card), Decisions, Menu hub
         └── Menu hub → Saves, Settings, How to play (Codex+Tutorial), Honours, Main menu
 Title → New game page (era, difficulty, players) → Pick (map) → Game
 ```
 \* Game over is a Page (blocking), listed as dialog family for dismissal rules.
-
 **Modal behaviour**: Dialog = modal (backdrop, focus trap). Drawer/Sheet = non-modal over the map (map pannable; orders blocked while a Sheet is above 60 % height). Wide panel/Page = modal. **Depth rule**: one panel plus at most one dialog. Opening a panel while another is open *replaces* it (120 ms crossfade); drill-in inside a panel (Nations list to Nation detail on portrait) pushes within the same container with a header Back arrow.
 
 **Reachability**
 
 | Entry point | Trigger | Notes |
 |-------------|---------|-------|
-| Dock / keyboard shortcut | Tap, `N B D A C`, Esc to Menu | dock = Nations, Budget, Decisions, Annals, Council, Menu (6, from 8) |
+| Screens rail (hud.md zone B) / shortcut | Tap, `N B D C Y`, Esc to Menu | rail primary: Nations, Budget, Decrees, Council (Advice dot); More: Annals, Menu (see Open Questions) |
 | Ribbon chip | Tap chip (gold to Budget, army to Nations, infamy to Codex topic) | chips are shortcuts, not new entry points |
-| Map | Identity chip on command bar to Province drawer; diplomacy verb to Nations detail | |
+| Map | command card owner link or Diplomacy verb to Nations detail | province details stay in the card's Details drawer |
 | System | Event/ultimatum queue, turn end, game over, hot-seat hand-over | shown one at a time |
 | Title | Continue/Load/Settings/Honours/New game | uses same containers |
 ## 4. Entry and Exit Points
 
 | Trigger | Source | Transition | Data in |
 |---------|--------|-----------|---------|
-| Open from dock/shortcut | map | Dialog scale+fade 160; Drawer slide 180; Page fade 160 | `g`, `cfg`, screen id, optional deep-link (nation id, tab, filter) |
+| Open from rail/shortcut | map | Dialog scale+fade 160; Drawer slide 180; Page fade 160 | `g`, `cfg`, screen id, optional deep-link (nation id, tab, filter) |
 | Replace panel | other panel | crossfade 120 | same |
 | Event queued | `show_events()` | Dialog; next shows after answer | event dict |
 
@@ -71,7 +71,7 @@ Title → New game page (era, difficulty, players) → Pick (map) → Game
 | X (header), Esc, Android Back | map; focus returns to opener | none (changes applied live) | all share `pop()` |
 | Backdrop tap | map | none | **info dialogs only**; never event, confirm with input, game over, pass-device |
 | Primary footer action | map or next step | command via `on_cmd` | closes only if the action completes the task |
-| "Show on map" / row jump | map, camera flies, selection set | province/nation id | panel closes on CP, stays on landscape drawer |
+| "Show on map" / row jump | map, camera flies, selection set | province/nation id | panel closes on P, stays on landscape drawer |
 
 ## 5. Layout Specification
 
@@ -80,7 +80,7 @@ Title → New game page (era, difficulty, players) → Pick (map) → Game
 Shared anatomy (every presentation): **Header bar, Tab row (optional), Scrolling body, Pinned footer (optional)**.
 
 ```
-WIDE PANEL (CD/CL landscape, 1040 x 632)           DRAWER (landscape right rail, 560)
+WIDE PANEL (D/L/S landscape, 960 x 600u on D)      DRAWER (landscape right rail, 400u on D)
 ╔══════════════════════════════════════════╗       ┌─────────────────────────────┐
 ║ [◈] NATIONS      (chip: 62 · #4)    [find][✕]║     │ [◈] BUDGET   net +112/t  [✕]│
 ╟[Nations][Rankings]──────────────────────────╢     ├[Allocation][Presets]────────┤
@@ -90,27 +90,28 @@ WIDE PANEL (CD/CL landscape, 1040 x 632)           DRAWER (landscape right rail,
 ║ [Secondary]                    [PRIMARY act] ║   │ [Revert]          [Done]    │
 ╚══════════════════════════════════════════╝       └──── (ends above End Turn) ──┘
 
-SHEET (CP portrait)                    PAGE (CP portrait)               DIALOG (all)
+SHEET (P portrait)                     PAGE (P portrait)               DIALOG (all)
 ┌────────── map ──────────┐            ┌[←] SETTINGS          ┐         ┌──────────────────────┐
 │                         │            ├[Display][Audio][Acc.]┤         │ kicker               │
 ├───── ▬▬ (drag handle) ──┤            │ body                 │         │ TITLE                │
 │ [◈] BUDGET        [✕]   │            │                      │         │ text / choice cards  │
 │ body (56 % tall, drags  │            ├──────────────────────┤         │ [Cancel]  [CONFIRM]  │
 │ to 92 %)                │            │ [secondary] [PRIMARY]│         └──────────────────────┘
-├─ dock stays visible ────┤            └──────────────────────┘
+├─ rail + End Turn visible ┤            └──────────────────────┘
 ```
 
-### 5.2 Size classes and presentation (logical px after content scale)
+### 5.2 Size profiles and presentation (units `u`)
 
-Class is computed from viewport aspect, input and physical size (dp = physical px / (dpi/160)); **never from logical width alone** because a 1920x1080 desktop and an 800x360 phone both map to ~1280x720 logical.
+Profile comes from viewport in `u`, input type and physical size, **never from logical width alone**.
 
-| Class | Detect | Dialog | Drawer / Sheet | Wide panel / Page |
-|-------|--------|--------|----------------|-------------------|
-| **CP** compact portrait | h > w | 92 % width, max 480 | **Sheet**: full width, snap 56 % / 92 % height, handle, sits above dock + seal | **Page**: 100 % x 100 % minus safe area, header Back arrow, no X |
-| **CL** landscape phone | landscape, physical h < 600 dp, touch | width 440-560; wide dialog 760 | **Drawer** 480, top = ribbon bottom, bottom = End Turn seal top minus 8 | w = clamp(84 % vw, 760, 1040), h = 92 % vh |
-| **CD** desktop / tablet | landscape, other | same | **Drawer** 560 | w = clamp(84 % vw, 760, 1040), h = min(88 % vh, 640) |
+| Profile | Dialog | Drawer / Sheet | Wide panel / Page |
+|---------|--------|----------------|-------------------|
+| **P** portrait (360x640u) | width min(vw - 32, 328); wide dialog n/a | **Sheet**: full width, snap 56 % / 92 % height, handle, rises above rail and End Turn | **Page**: full screen minus safe area, header Back arrow, no X |
+| **L** landscape phone (900x415u) | 360-440; wide dialog 640 | **Drawer** 340, top = bar A bottom, bottom = End Turn top minus 8 | w = 90 % vw (810), h = 92 % vh (380) |
+| **S** short (800x360u) | same as L | **Drawer** 320 | w = 90 % vw (720), h = 92 % vh (331); footer actions move into header |
+| **D** desktop / tablet (1280x720u) | 400-480; wide dialog 640 | **Drawer** 400 | w = clamp(90 % vw, 640, 960), h = min(88 % vh, 600) |
 
-Short windows (logical h < 520, e.g. split-screen): header 48, footer actions move into the header trailing slot, body gets the saved height.
+On L and S the command card collapses to its header while a drawer is open (selection kept).
 
 ### 5.3 Presentation decision rule
 
@@ -120,39 +121,39 @@ Short windows (logical h < 520, e.g. split-screen): header 48, footer actions mo
 | About tuning/reading something the map shows, so the map should stay live? | **Drawer** (landscape) / **Sheet** (portrait) |
 | Browse, compare, configure; needs width; map not the subject (includes title and setup) | **Wide panel** / **Page** |
 
-Right-rail rule: the right rail holds **one** occupant (Province drawer or another drawer, never both). Command bar (bottom-centre) and ribbon stay live above all drawers; End Turn stays visible and tappable (drawer stops above it).
+Right-rail rule: the right rail holds **one** management drawer at a time. Province details are the command card's own Details drawer (`command-card.md`), not a right-rail occupant. Top bar A stays live above all drawers; End Turn stays visible and tappable (the drawer stops above it).
 
 ### 5.4 Width rules and two-column rules
 
 | Rule | Spec |
 |------|------|
-| Body text column | max 66 characters (about 520 px); wider panels split into columns, never stretch a paragraph |
-| Single column | any container under 840 inner width: all Drawers, Sheets, Dialogs, CP Pages |
-| Two columns | only wide panels at 840 inner width or more, only when the content has two independent groups |
-| Column roles | **Left = what is** (list, facts, status). **Right = what you can do** (detail, actions, parameters). Columns equal width unless a master list: master 36 %, detail 64 % |
+| Body text column | max 66 characters (about 440u); wider panels split into columns, never stretch a paragraph |
+| Single column | any container under 640u inner width: all Drawers, Sheets, Dialogs, P Pages |
+| Two columns | only wide panels at 640u inner width or more (all of D, L, S), only when the content has two independent groups |
+| Column roles | **Left = what is** (list, facts, status). **Right = what you can do** (detail, actions, parameters). Equal width unless master-detail: master 240-300u, detail the rest |
 | Scrolling | one scroll per column (master-detail) or one shared scroll (two groups of equal length); never nested scrolls horizontally |
-| Collapse | below 840: right column stacks under the left in reading order; master-detail becomes list page then detail page (push) |
-| Wide dialog (760) | landscape only, two columns: narrative left, choices right (Events, Game over) |
+| Collapse | below 640u: right column stacks under the left in reading order; master-detail becomes list page then detail page (push) |
+| Wide dialog (640u) | landscape only, two columns: narrative left, choices right (Events, Game over) |
 
 ### 5.5 Density rule for lists
 
-| Context | Row height | Lines | Notes |
+| Profile | Row height | Lines | Notes |
 |---------|-----------|-------|-------|
-| CD pointer | 40 | 1 (+1 dim) | dense by default; Settings "Density" can switch to comfortable |
-| CL touch | 52 | 1-2 | |
-| CP touch | 56 | 1-2 | |
+| D pointer | 36 | 1 (+1 dim) | dense by default; Settings "Density" can switch to comfortable |
+| L / S touch | 48 | 1-2 | 48u is the touch minimum |
+| P touch | 52 | 1-2 | |
 Rules: **one entity per row, at most two text lines, at most three chips**; trailing figure right-aligned mono; whole row is the target; one trailing action max; group by sticky section header instead of repeating a date/category per row; hairline separators only (no ornament rules, no per-row panels); more than 12 rows requires search and sort; more than 60 rows is pooled; never silently truncate (show "Showing 120 of 412, [Older]").
 
 ### 5.6 Component inventory and shared anatomy
 
 | Component | Spec | Reuses |
 |-----------|------|--------|
-| Header bar | 56 high (48 short windows), tinted band, 1 px bottom rule. Left: glyph 24 (page: Back arrow); title Cinzel 20 single line, ellipsis; optional **context chip** (count/net figure); right: optional header action (search/filter, 48 dp), **X close 48x48** (landscape/dialog). No double rule, no ornament diamond | P-22, P-04 |
-| Tab row | optional, pinned under header, 44 (48 dp), max 5 tabs | P-09 |
+| Header bar | 48u high (S: 44), flat band, one 1 px brass hairline (no double rule). Left: glyph 24 (page: Back arrow); title Cinzel 20u single line, ellipsis; optional **context chip** (count/net figure); right: optional header action (search/filter, 48u), **X close 48x48u** (landscape/dialog). No ornament diamond | P-22, P-04 |
+| Tab row | optional, pinned under header, 44u (48u touch), max 5 tabs | P-09 |
 | Body | `ScrollContainer`, visible 3 px scrollbar, fade edge 16 px, `follow_focus` | P-11 |
-| Footer | optional, pinned, 64, 1 px top rule, safe-area bottom inset; **secondary left, primary right (min 40 % width)**; max 2 buttons; hidden on live-apply screens. The footer "Back" button is removed (X, Esc, Back key exist) | P-22 |
+| Footer | optional, pinned, 56u, 1 px top rule, safe-area bottom inset; **secondary left, primary right (min 40 % width)**; max 2 buttons; hidden on live-apply screens. The footer "Back" button is removed (X, Esc, Back key exist) | P-22 |
 | Backdrop | Dialog and Page only, 70 % dark (not 86 %), map still faintly readable; Drawer/Sheet no backdrop | |
-| Drag handle | Sheet: 36 x 4 plus 48 dp touch area; double-tap toggles snap | |
+| Drag handle | Sheet: 36 x 4u plus 48u touch area; double-tap toggles snap | |
 | Option cards | Event choices | neutral style, no pre-highlighted primary |
 
 **Decoration budget** (art-director to confirm the visual form): remove corner brackets, ornament rule under titles, paper cloud texture behind small text; keep laid-paper fill, one 1 px ink border, brass accent for selected/primary, wax plate for the single primary. Title uses Cinzel; captions use Alegreya/mono at 12 minimum; borders and type weight lighter (earlier feedback: "too bold").
@@ -161,13 +162,13 @@ Rules: **one entity per row, at most two text lines, at most three chips**; trai
 
 ### 5.7 Information hierarchy and per-screen recommendations
 
-Order everywhere: **headline number or status** (context chip), then the **lever**, then the **reason/effect**, then history/detail behind a tab or scroll. Panels: Dock reduces to Nations, Budget, Decisions, Annals, Council, Menu.
+Order everywhere: **headline number or status** (context chip), then the **lever**, then the **reason/effect**, then history/detail behind a tab or scroll. IA merges (rail stays at 4 primary plus More, as hud.md): Goals + Advisor = **Council**; Save, Options, How to play, Honours, Main menu = **Menu hub**.
 
 | Screen | Presentation (landscape / portrait) | Moves up | Dropped or changed |
 |--------|-------------------------------------|----------|--------------------|
 | **Nations** (list + Statistics + Nation card, one screen) | Wide panel, master-detail / Page list then detail | Left: list (rank, flag, name, provinces, army, relation glyph) with filter chips All, Neighbours, At war, Allies and search; right: **Nation card** for the selected row (ruler, facts grid, relations, actions) with "Show on map" in footer. Tab 2 **Rankings** (chart + table) | The 60-row cap; separate Nation card modal; "Wars" as a separate dock path becomes the At-war filter |
 | **Statistics** (tab of Nations) | same panel, tab Rankings | Metric segmented (Provinces / Army / Gold / Tech), 6 series plus You, legend chips that toggle series | Chart alone: add a **Table** toggle (same numbers, accessible alternative), distinct dash patterns per series, direct end-labels |
-| **Budget** | Drawer / Sheet (map stays live, ribbon numbers roll) | Context chip **Net/turn** with before to after; four allocation sliders each with its effect line ("Tax 50 %: +112 gold, unrest +2"); optional Preset segmented (Balanced / War / Growth) | Footer Back; label-only sliders; footer = [Revert] [Done] |
+| **Budget** | Drawer / Sheet (map stays live, top-bar numbers roll) | Context chip **Net/turn** with before to after; four allocation sliders each with its effect line ("Tax 50 %: +112 gold, unrest +2"); optional Preset segmented (Balanced / War / Growth) | Footer Back; label-only sliders; footer = [Revert] [Done] |
 | **Decisions** | Wide panel two-column grid (current structure works) / Page | Doctrine as a 3-way segmented with the current one selected and its effect; decisions grouped Active (with turns left), Available, Unavailable; cost chips (gold, military points) with X glyph when unaffordable; one-line **reason** on locked rows | Per-row oversized buttons; description lines over two; Enact is the row trailing action |
 | **Annals** (Chronicle) | Drawer / Sheet | Filter chips Mine, All, War, Diplomacy, Events; rows grouped by turn with a sticky "Turn 12 - 1804" header; whole row jumps to the map; bad news with a v glyph | Date repeated per row; fixed 360 px scroll box; cap 120 silently (use "Older") |
 | **Goals** | Drawer / Sheet, tab 2 of **Council** | Closest goal first with % and the missing amount ("-2,300 gold"); meters with 25/50/75 ticks; realms section only when over 25 % | Full list when only the top 3 matter: show top 3, "All goals" expands |
@@ -179,13 +180,12 @@ Order everywhere: **headline number or status** (context chip), then the **lever
 | **Codex** | Wide panel master-detail / Page topic list then page | Left topic list (11), right topic text (max 66 chars per line); deep-links from tooltips ("Open in Codex") | Two newspaper columns in one scroll; a 600 px scroll box inside a modal |
 | **Era picker** (New game page) | Wide panel two columns / Page | Left chronology rail; right: year, name, blurb, **great powers as flag chips**, nation count; below: difficulty and players segmented; footer [Back] [Next: Pick nation] | Separate Hot-seat dialog; "New Game" label (it only advances); empty right pane filler |
 | **Hot-seat setup** | folded into the New game page as a Players segmented 1-4 | none | Standalone dialog removed; title entry removed (main-menu.md) |
-| **Event / Ultimatum** | Dialog; wide dialog 760 on landscape (narrative left, choices right) | Category kicker, title, <= 280 characters flavour, **choice cards with effect chips** (gold -40, stability -8, signed with ^/v); ultimatum adds a strength comparison chip and "Defy: war with X" | Emoji icon (use drawn glyph); choice 0 pre-styled as primary; Back/backdrop dismissal |
+| **Event / Ultimatum** | Dialog; wide dialog 640u on landscape (narrative left, choices right) | Category kicker, title, <= 280 characters flavour, **choice cards with effect chips** (gold -40, stability -8, signed with ^/v); ultimatum adds a strength comparison chip and "Defy: war with X" | Emoji icon (use drawn glyph); choice 0 pre-styled as primary; Back/backdrop dismissal |
 | **Game over** | Page (wide dialog on landscape) | Result headline, rank table (top 5 plus You), key numbers (turns, peak provinces), [Main menu] primary, [View final map] secondary (hides the panel, a chip brings it back) | Single "Main menu" dead end |
-| **Tutorial** | **Coach marks**, not a modal: spotlight plus small card anchored to the real HUD element, 5 steps (ribbon, select, move/preview, End Turn, Council); card 2 lines, [Skip] [Next] with pips | Replay from Menu > How to play | 7-step centered carousel over a blank card |
+| **Tutorial** | **Coach marks**, not a modal: spotlight plus small card anchored to the real HUD element, 5 steps (top bar, select, move/preview, End Turn, Council); card 2 lines, [Skip] [Next] with pips | Replay from Menu > How to play | 7-step centered carousel over a blank card |
 | **Briefing** | removed as a modal | Neighbour threat and 2 advisor tips become first-turn alert chips; facts live on the pick confirm card | one tap fewer before the first turn |
 | **Pass-device curtain** | opaque Dialog | Seat colour chip, flag, "Pass to Player 2", turn and date, [Ready] | Back is swallowed (P-20) |
-| **Province** | Drawer / Sheet from the identity chip | Ledger and meters (today's province panel body) | the long action list moves to the command bar |
-| **Menu hub** (new) | Dialog (short list) | Resume, Save, Load, Settings, How to play, Honours, Main menu (L2 confirm) | frees 2 dock slots |
+| **Menu hub** (new) | Dialog (short list) | Resume, Save, Load, Settings, How to play, Honours, Main menu (L2 confirm) | rail More holds Annals + Menu |
 
 ## 6. States and Variants
 
@@ -280,7 +280,7 @@ Rule: panels never write game state; they emit commands (`on_cmd`) and the game 
 - [ ] Hover states and tooltips on all controls; right-click does nothing inside panels (defined no-op)
 - [ ] Wheel scrolls the body, never changes a slider
 **Touch**
-- [ ] All targets 48 dp or more; one-handed reachable footer (bottom) in portrait
+- [ ] All targets 48u or more; one-handed reachable footer (bottom) in portrait
 - [ ] Long-press tooltip; no swipe gestures that fight the system back swipe (Sheet handle only)
 - [ ] Android Back follows the P-20 stack
 
@@ -296,7 +296,7 @@ Rule: panels never write game state; they emit commands (`on_cmd`) and the game 
 | Narration | `DisplayServer.tts_speak` (opt-in): panel title and tab on open, row on focus, value changes debounced 300 ms |
 | Timing | No timed dismissal of panels; toasts 3-10 s configurable and pause on focus |
 | Alternatives | Charts have a table view; tooltips' content also reachable by focus; no information only in hover |
-| Motor | No hold-to-confirm, no path-dependent gestures, 48 dp targets, 12 dp tap slop |
+| Motor | No hold-to-confirm, no path-dependent gestures, 48u targets, 12u tap slop |
 
 **Cognitive load**: each screen shows at most 5-7 groups; headline number first; details behind tabs; no more than two actions in the footer.
 
@@ -309,30 +309,30 @@ Rule: panels never write game state; they emit commands (`on_cmd`) and the game 
 | Segmented label | 8 | 14 | stacks as list if row overflows |
 | Row primary | 24 | 36 | ellipsis; secondary line wraps to 2 |
 | Footer button | 16 | 28 | grows to 40-60 % width; max 2 lines |
-| Chip caption | 10 | 16 | wraps below value on CP |
+| Chip caption | 10 | 16 | wraps below value on P |
 RU and UZ run about 35 % longer; RU is not upper-cased (existing rule); Uzbek apostrophes (O‘zbekcha) need a font fallback test; no text in images; RTL not targeted.
 
 ## 14. Acceptance Criteria
 
 **Layout**
-- [ ] Every screen renders without overlap or clipping at 540x960, 800x360 physical, 1280x720, 1920x1080, 2340x1080, in EN/RU/UZ at Text size 150 %
-- [ ] Landscape popups use the wide widths of 5.2; no landscape panel narrower than 480 except dialogs
-- [ ] Wide panel two-column only at 840 inner width or more; single column below
+- [ ] Every screen renders without overlap or clipping in profiles D, L, S, P (540x960, 800x360, 1920x1080, 2340x1080 px) in EN/RU/UZ at Text size 150 %
+- [ ] Landscape browse/compare screens use the wide panel of 5.2 (never a 380-560u centered card); drawers only for tuning screens
+- [ ] Wide panel two-column only at 640u inner width or more; single column below
 - [ ] Footer never overlaps the End Turn seal; drawer ends above it
 - [ ] No list silently truncated; lists over 60 rows pooled and scroll at 60 fps on mid-range Android
 
 **Behaviour**
 - [ ] Exactly one right-rail occupant; at most one panel plus one dialog
 - [ ] Android Back follows P-20 including swallowed Back on unanswered events
-- [ ] Opening a screen from the dock and from a ribbon chip give the same result
-- [ ] Budget changes update ribbon chips while the drawer is open
+- [ ] Opening a screen from the rail and from a top-bar chip give the same result
+- [ ] Budget changes update top-bar chips while the drawer is open
 
 **Input and accessibility**
 - [ ] Complete flow of each screen using keyboard only; focus visible; trapped; restored
-- [ ] All targets 48 dp or more on touch (measured physical)
+- [ ] All touch targets 48u or more (measured on device)
 - [ ] No state conveyed by colour alone (grayscale screenshot test)
 - [ ] Reduced motion produces no slides or scales
-- [ ] Text contrast 4.5:1 verified on every text style over paper and over the dark ribbon
+- [ ] Text contrast 4.5:1 verified on every text style over paper and over the dark top bar
 
 **Performance**
 - [ ] First frame within 200 ms of trigger on min-spec Android; interactive within 500 ms
@@ -341,10 +341,10 @@ RU and UZ run about 35 % longer; RU is not upper-cased (existing rule); Uzbek ap
 
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|-----------|
-| Approve IA merges: Nations+Statistics+Nation card; Goals+Advisor into Council; Save/Options into Menu hub (dock 8 to 6)? | creative-director | before ui-programmer starts | Recommended: yes |
+| Approve IA merges: Nations+Statistics+Nation card; Goals+Advisor into Council; Save/Options into Menu hub (hud.md rail More = Annals + Menu instead of Annals, Goals, Save, Options)? | creative-director | before ui-programmer starts | Recommended: yes |
 | Drop Briefing modal and Hot-seat dialog (folded elsewhere)? | creative-director | same | Recommended: yes |
 | Decoration budget: art-director to define the thinner frame, border weight and header band. | art-director | before art pass | Open |
-| Does the Drawer allow map orders while open on CL (800x360 physical)? Tested only by playtest. | ux-designer | first playtest | Open |
+| Does the Drawer allow map orders while open on L/S (card collapsed)? Tested only by playtest. | ux-designer | first playtest | Open |
 | Save thumbnails and `saved_at`/`version` meta: cost and storage on mobile? | lead-programmer | before Save screen | Open |
 | Tutorial as coach marks needs HUD anchors and a step runner: scope? | producer | sprint planning | Open |
 | Screen-reader route on Godot 4.4 (TTS only) vs upgrading to 4.5+ | technical-director | Pre-Production gate | Open |
