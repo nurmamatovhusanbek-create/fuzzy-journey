@@ -80,7 +80,7 @@ func _ready() -> void:
 	hud.nation_pressed.connect(_open_nation)
 	hud.offer_answered.connect(func(uid: int, i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}))
 	hud.event_requested.connect(func(uid: int): _shown_events.erase(uid); show_events())
-	panel.band_fn = hud.card_band; panel.reserve_fn = hud.bottom_reserve; panel.confirm_fn = func() -> String: return hud.confirm_mode
+	panel.band_fn = hud.card_band; panel.reserve_fn = hud.bottom_reserve; panel.confirm_fn = func() -> String: return _confirm_mode()
 	resized.connect(func(): hud.layout_for(size); panel.layout_for(size))        # the HUD first: the card fits the band the End Turn seal leaves
 	hud.layout_changed.connect(func(): panel.layout_for(size))
 	get_window().size_changed.connect(_update_ui_scale); _update_ui_scale()
@@ -283,11 +283,17 @@ func _open_menu_hub(tab: String = "") -> void:
 
 func _open_settings() -> void: _open_menu_hub("settings")
 
+## kit setting (off | risky | all) -> HUD / card wording (never | smart | always)
+func _confirm_mode() -> String:
+	return {"off": "never", "risky": "smart", "all": "always"}.get(K.confirm, "smart")
+
 ## apply the accessibility settings to the kit (text size, fonts, contrast, motion, targets) and refresh the theme
 func _apply_a11y() -> void:
 	theme = K.apply_settings(cfg)         # sets K.text_scale / reduce_motion / touch / hc / cvd / tts / confirm, rebuilds the theme, emits K.settings_changed
 	TBAudio.apply_volumes(cfg)
-	if hud != null: hud.set_text_scale(K.text_scale)
+	if hud != null:
+		hud.set_text_scale(K.text_scale)
+		hud.confirm_mode = _confirm_mode()
 
 func _on_setting_changed(key: String) -> void:
 	_save_cfg()
