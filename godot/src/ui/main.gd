@@ -12,7 +12,7 @@ var panel: TBProvincePanel
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "contrast": false}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -29,6 +29,7 @@ func _ready() -> void:
 	theme = K.theme()
 	_load_cfg()
 	TBI18n.load_lang(cfg["lang"])
+	_apply_a11y()
 	world = TBWorld.load_from("res://data")
 	map = TBMapView.new()
 	map.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -52,15 +53,15 @@ func _ready() -> void:
 		if not cfg.get("seal_seen", false): cfg["seal_seen"] = true; _save_cfg(); hud.set_seal_pulse(false))
 	hud.tapped.connect(func(): sfx.play("tap"))
 	hud.lens_selected.connect(func(n): map.set_lens(n); hud.set_lens_legend(n))
-	hud.nations_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation))
-	hud.goals_pressed.connect(func(): TBModals.goals(_overlay, g))
-	hud.decisions_pressed.connect(func(): TBModals.decisions(_overlay, g, _on_command))
-	hud.chronicle_pressed.connect(func(): TBModals.chronicle(_overlay, g, _goto_province))
-	hud.advisor_pressed.connect(func(): TBModals.advisor(_overlay, g, _goto_province))
-	hud.wars_pressed.connect(func(): TBModals.nations(_overlay, g, _open_nation, true))
+	hud.nations_pressed.connect(func(): _open_nations())
+	hud.goals_pressed.connect(func(): _open_council("goals"))
+	hud.decisions_pressed.connect(func(): _open_decisions())
+	hud.chronicle_pressed.connect(func(): _open_annals())
+	hud.advisor_pressed.connect(func(): _open_council("advice"))
+	hud.wars_pressed.connect(func(): _open_nations(-1, "war"))
 	panel.nation_requested.connect(_open_nation)
-	hud.budget_pressed.connect(func(): TBModals.budget(_overlay, g, func(): hud.refresh()))
-	hud.save_pressed.connect(func(): TBModals.save_load(_overlay, true, _save_slot, _load_slot))
+	hud.budget_pressed.connect(func(): _open_budget())
+	hud.save_pressed.connect(func(): _open_menu_hub("saves"))
 	hud.settings_pressed.connect(_open_settings)
 	resized.connect(func(): panel.layout_for(size); hud.layout_for(size))
 	get_window().size_changed.connect(_update_ui_scale); _update_ui_scale()
@@ -136,41 +137,146 @@ const MP_ = preload("res://src/ui/menu_parts.gd")
 var _bezel: Control
 
 func show_menu() -> void:
-	mode = "menu"; _spin = true
+	mode = "menu"; _spin = true; _pick_flow = null
+	if map.mode == 0:                                       # back to the whole globe inside the ring (the game may have left it zoomed)
+		map.set_mode(0)
+		if size.y > size.x: map.zoom = 1.09; map._push_view()          # portrait: ring = min(w - 24, 0.62 h)
 	hud.visible = false; panel.visible = false; _clear_overlay(); map.labels.visible = false
 	var bez := MP_.Bezel.new(); bez.map = map; _overlay.add_child(bez); _bezel = bez
+	var portrait := size.y > size.x
 	var holder := CenterContainer.new(); holder.set_anchors_preset(Control.PRESET_FULL_RECT); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.add_child(holder)
-	var v := K.vbox(2)                                      # the title sits straight on the turning globe, inside the bezel ring
-	v.custom_minimum_size = Vector2(380, 0)
+	var v := K.vbox(8)                                      # light-on-dark text straight on the dimmed globe, inside the bezel ring
+	v.custom_minimum_size = Vector2(340, 0)
 	holder.add_child(v)
-	var portrait := size.y > size.x
-	var t := K.label(T.call("title"), 54 if not portrait else 38, Color(0.953, 0.773, 0.322))
-	t.add_theme_font_override("font", K.tracked(K.display_hi(), 4 if not portrait else 2))
-	t.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.75)); t.add_theme_constant_override("shadow_offset_y", 2); t.add_theme_constant_override("shadow_offset_x", 0); t.add_theme_constant_override("shadow_outline_size", 5)
+	var t := K.label(T.call("title"), 54 if not portrait else 34, TBTokens.c("brass_lt"))
+	t.add_theme_font_override("font", K.tracked(K.wordmark(), 4 if not portrait else 2))
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(t)
-	var orn := K.ornament(); orn.col = Color(0.83, 0.63, 0.09, 0.7); v.add_child(orn)
-	var tag := K.caps(T.call("tagline"), 11, Color(0.91, 0.863, 0.8)); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(tag)
-	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 18); v.add_child(gap)
-	v.add_child(MP_.Entry.new(T.call("new_game"), true, func(): _hot_n = 0; _hot_list = PackedInt32Array(); _open_era_picker()))
-	v.add_child(MP_.Entry.new(T.call("hotseat"), false, func(): TBModals.hotseat_setup(_overlay, func(k: int): _hot_n = k; _hot_list = PackedInt32Array(); _open_era_picker())))
-	if not TBSave.meta("auto").is_empty(): v.add_child(MP_.Entry.new(T.call("continue"), false, func(): _load_slot("auto")))
-	v.add_child(MP_.Entry.new(T.call("load"), false, func(): TBModals.save_load(_overlay, false, _save_slot, _load_slot)))
-	v.add_child(MP_.Entry.new(T.call("multiplayer"), false, func(): mp.open_menu()))
-	v.add_child(MP_.Entry.new("%s  %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], false, func(): TBModals.honours(_overlay, cfg)))
-	v.add_child(MP_.Entry.new(T.call("settings"), false, _open_settings))
-	var gap2 := Control.new(); gap2.custom_minimum_size = Vector2(0, 10); v.add_child(gap2)
-	var ver := K.caps("terra bellum · godot build", 10, Color(0.66, 0.6, 0.5)); ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(ver)
+	var orn := K.ornament(); orn.col = TBTokens.ca("brass_lt", 0.7); v.add_child(orn)
+	var tag := K.caps(T.call("tagline"), 12, TBTokens.c("smoke")); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(tag)
+	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 10); v.add_child(gap)
+	var am := TBSave.meta("auto")
+	var plates: Array = []
+	if not am.is_empty():
+		var yr: int = int(am.get("year", 0))
+		var sub := "%s · %s %d%s" % [String(am.get("nation", "")), T.call("turn"), int(am.get("turn", 0)), (" · " + (("%d BC" % -yr) if yr < 0 else ("%d AD" % yr))) if yr != 0 else ""]
+		plates.append(MP_.Plate.new(T.call("continue"), sub, true, func(): _load_slot("auto")))
+	elif FileAccess.file_exists(TBSave.path_for("auto")):
+		plates.append(MP_.Plate.new(T.call("continue"), "", false, Callable(), T.call("autosave_unreadable")))
+	plates.append(MP_.Plate.new(T.call("new_game"), "", am.is_empty() and not FileAccess.file_exists(TBSave.path_for("auto")), func(): _open_era_picker()))
+	var saves := 0
+	for sl in ["auto", "1", "2", "3", "4", "5"]:
+		if not TBSave.meta(sl).is_empty(): saves += 1
+	plates.append(MP_.Plate.new(T.call("load"), T.call("n_saves", {"n": saves}) if saves > 0 else "", false, func(): _open_menu_hub("saves"), T.call("no_saves_yet") if saves == 0 else ""))
+	plates.append(MP_.Plate.new(T.call("multiplayer"), "", false, func(): mp.open_menu()))
+	for pl in plates: v.add_child(pl)
+	# tools row: Honours n/19, Settings, How to play, language
+	var tools := HFlowContainer.new(); tools.alignment = FlowContainer.ALIGNMENT_CENTER
+	tools.add_theme_constant_override("h_separation", 8); tools.add_theme_constant_override("v_separation", 8)
+	tools.set_anchors_preset(Control.PRESET_BOTTOM_WIDE); tools.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	tools.offset_left = 12; tools.offset_right = -12; tools.offset_bottom = -14
+	tools.add_child(MP_.ToolChip.new("trophy", "%s %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], func(): _open_menu_hub("honours")))
+	tools.add_child(MP_.ToolChip.new("gear", T.call("settings"), func(): _open_menu_hub("settings")))
+	tools.add_child(MP_.ToolChip.new("book", T.call("tut_help"), func(): _open_menu_hub("howto")))
+	var ls := MP_.LangSwitch.new(String(cfg["lang"]))
+	ls.chosen.connect(func(code: String):
+		cfg["lang"] = code; _save_cfg(); TBI18n.load_lang(code); show_menu())
+	tools.add_child(ls)
+	_overlay.add_child(tools)
+	var vtxt := str(ProjectSettings.get_setting("application/config/version", "")).strip_edges().trim_prefix("v")
+	var ver := K.label("v" + (vtxt if vtxt != "" else "dev"), 12, TBTokens.c("smoke"))
+	ver.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT); ver.grow_horizontal = Control.GROW_DIRECTION_BEGIN; ver.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	ver.offset_right = -12; ver.offset_bottom = -4 if portrait else -26
+	if not portrait: ver.offset_bottom = -4
+	_overlay.add_child(ver)
+	if TBFrame.kbd_nav and not plates.is_empty(): (plates[0] as Control).grab_focus.call_deferred()
 
-func _open_settings() -> void:
-	var prev_lang: String = TBI18n.lang
-	TBModals.settings(_overlay, cfg, func():
-		_save_cfg(); TBI18n.load_lang(cfg["lang"]); _apply_quality(); _update_ui_scale(); sfx.enabled = cfg.get("sound", true)
-		map.set_mode(0 if cfg["view"] == "globe" else 1)
-		if TBI18n.lang != prev_lang:          # re-create already-built screens in the new language
-			prev_lang = TBI18n.lang
-			if mode == "game": hud.build(); hud.refresh(); if selected >= 0: panel.rebuild()
-			elif mode == "menu": show_menu(), func(): show_menu() if mode == "game" else Callable(), _copy_diagnostics)
+## a panel over the title: the globe stops, the ring dims; both come back when the last panel closes
+func _title_panel_opened(h: TBPanel.Handle) -> void:
+	if mode != "menu" or h == null: return
+	_spin = false
+	if is_instance_valid(_bezel): _bezel.dim = 0.35; _bezel.queue_redraw()
+	h.root.tree_exited.connect(func(): _title_restore.call_deferred())
+
+func _title_restore() -> void:
+	if mode != "menu" or TBPanel.any_open(_overlay): return
+	_spin = true
+	if is_instance_valid(_bezel): _bezel.dim = 1.0
+
+# ================================================================================================================================
+# UI ENTRY POINTS (modals): the HUD dock, ribbon chips and shortcuts call these. Everything below this marker up to the
+# "end of UI entry points" marker belongs to the modal system; keep HUD wiring to one-line calls.
+# ================================================================================================================================
+func _open_nations(select: int = -1, filter: String = "", tab: String = "") -> void:
+	if g == null: return
+	var o := {"on_cmd": _on_command, "on_goto": _goto_nation}
+	if select > 0: o["select"] = select
+	if filter != "": o["filter"] = filter
+	if tab != "": o["tab"] = tab
+	TBModals.nations_screen(_overlay, g, o)
+
+func _open_nation(n: int) -> void: _open_nations(n)
+
+func _open_council(tab: String = "") -> void:
+	if g != null: TBModals.council(_overlay, g, _goto_province, tab)
+
+func _open_budget() -> void:
+	if g != null: TBModals.budget(_overlay, g, func(): hud.refresh())
+
+func _open_decisions() -> void:
+	if g != null: TBModals.decisions(_overlay, g, _on_command)
+
+func _open_annals() -> void:
+	if g != null: TBModals.chronicle(_overlay, g, _goto_province)
+
+## Saves / Settings / How to play / Honours in one panel; tab = "saves" | "settings" | "howto" | "honours"
+func _open_menu_hub(tab: String = "") -> void:
+	var ctx := {"cfg": cfg, "in_game": mode == "game", "g": g if mode == "game" else null, "on_change": _on_setting_changed, "on_save": _save_slot, "on_load": _load_slot,
+		"on_menu": show_menu, "on_diag": _copy_diagnostics, "on_tutorial": func(): TBModals.tutorial(_overlay, func(): pass), "on_open": _title_panel_opened}
+	if tab != "": ctx["tab"] = tab
+	TBModals.menu_hub(_overlay, ctx)
+
+func _open_settings() -> void: _open_menu_hub("settings")
+
+## apply the accessibility settings to the kit (text size, fonts, contrast, motion, targets) and refresh the theme
+func _apply_a11y() -> void:
+	K.text_scale = clampf(float(cfg.get("text_scale", 1.0)), 1.0, 2.0)
+	K.readable_fonts = bool(cfg.get("readable", false))
+	K.reduce_motion = bool(cfg.get("reduce_motion", false))
+	K.touch_large = bool(cfg.get("touch_large", false))
+	TBTokens.mode = TBTokens.Mode.HIGH_CONTRAST if bool(cfg.get("contrast", false)) else TBTokens.Mode.NORMAL
+	theme = K.theme()
+
+func _on_setting_changed(key: String) -> void:
+	_save_cfg()
+	match key:
+		"lang":
+			TBI18n.load_lang(cfg["lang"]); _rebuild_screens()
+		"quality", "view", "theme", "ui":
+			_apply_quality(); _update_ui_scale(); map.set_mode(0 if cfg["view"] == "globe" else 1)
+		"sound": sfx.enabled = cfg.get("sound", true)
+		"text_scale", "readable", "touch_large", "contrast", "reduce_motion", "reset_access":
+			_apply_a11y(); _rebuild_screens()
+
+## re-create the already-built screens after a language / text / contrast change (the open hub rebuilds itself)
+func _rebuild_screens() -> void:
+	if mode == "game":
+		hud.build(); hud.refresh()
+		if selected >= 0: panel.rebuild()
+	elif mode == "menu":
+		var keep := TBPanel.top(_overlay)
+		if keep == null: show_menu()
+		else:
+			# title behind an open panel: rebuild the title parts only, keep the panel
+			var panels: Array = []
+			for c in _overlay.get_children():
+				if c.has_meta("tb_handle"): panels.append(c)
+			for c in panels: _overlay.remove_child(c)
+			show_menu()
+			for c in panels: _overlay.add_child(c)
+			_bezel.dim = 0.35
+
+# ---------------------------------------------------------------- end of UI entry points
 
 ## everything needed to judge performance on a device, copied to the clipboard (and saved to user://diagnostics.txt)
 func _copy_diagnostics() -> void:
@@ -196,49 +302,47 @@ func _alive_count() -> int:
 	return c
 
 func _open_era_picker() -> void:
-	_clear_overlay(); _spin = false
-	TBModals.era_picker(_overlay, cfg["difficulty"], _begin_pick, show_menu)
+	if mode != "menu": show_menu()
+	TBModals.new_game(_overlay, {"world": world, "era": cfg.get("era", "modern"), "difficulty": cfg["difficulty"], "players": int(cfg.get("players", 1)),
+		"on_next": func(era: String, diff: String, players: int):
+			cfg["era"] = era; cfg["players"] = players; _hot_n = players if players > 1 else 0; _hot_list = PackedInt32Array()
+			_begin_pick(era, diff),
+		"on_back": show_menu})
+	_title_panel_opened(TBPanel.top(_overlay))
 
 func _begin_pick(era_id: String, difficulty: String) -> void:
 	cfg["difficulty"] = difficulty; _save_cfg()
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty})
 	map.setup(g)
-	mode = "pick"; _spin = false; _clear_overlay()
-	_pick_hint(T.call("pick_nation") if _hot_n == 0 else T.call("hot_pick", {"k": _hot_list.size() + 1, "n": _hot_n}))
-	_add_pick_buttons()
+	mode = "pick"; _spin = false
+	_show_pick()
 
-## the instruction slip at the top of the nation-pick screen: ink on paper, readable over any backdrop
-func _pick_hint(text: String) -> void:
-	var hint_box := PanelContainer.new(); hint_box.set_anchors_preset(Control.PRESET_CENTER_TOP); hint_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_box.add_theme_stylebox_override("panel", TBFrame.chit(TBFrame.PAPER, 26, 9))
-	hint_box.grow_horizontal = Control.GROW_DIRECTION_BOTH; hint_box.offset_top = 12
-	var hint := K.title(text, 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint)
-	_overlay.add_child(hint_box)
+var _pick_flow: TBPickFlow
 
-func _add_pick_buttons() -> void:
-	_overlay.add_child(_back_btn())
-	var lb := K.button(T.call("nations"), func(): TBModals.nations(_overlay, g, func(n: int): _pick_nation_from_list(n), false, false))
-	lb.anchor_left = 1.0; lb.anchor_right = 1.0; lb.offset_left = -150; lb.offset_right = -10; lb.offset_top = 10
-	_overlay.add_child(lb)
+## the nation-pick overlay (back, instruction slip, shortlist rail, confirm card); rebuilt after every hot-seat pick
+func _show_pick() -> void:
+	_clear_overlay()
+	_pick_flow = TBPickFlow.new().setup(g, map, _hot_n, _hot_list)
+	_pick_flow.play.connect(_confirm_pick)
+	_pick_flow.back_requested.connect(_open_era_picker)
+	_pick_flow.list_requested.connect(_open_pick_list)
+	_overlay.add_child(_pick_flow)
+
+func _open_pick_list() -> void:
+	var seats := {}
+	for i in _hot_list.size(): seats[_hot_list[i]] = "P%d" % (i + 1)
+	TBModals.nations_screen(_overlay, g, {"pick": true, "taken": Array(_hot_list), "seats": seats, "on_play": _confirm_pick, "on_goto": _pick_nation_from_list})
 
 ## hot-seat: every player picks in turn, then the game starts
 func _confirm_pick(n: int) -> void:
 	if _hot_n <= 1: _start_game(n); return
 	_hot_list.append(n)
 	if _hot_list.size() >= _hot_n: _start_game(n); return
-	_clear_overlay()
-	_pick_hint(T.call("hot_pick", {"k": _hot_list.size() + 1, "n": _hot_n}))
-	_add_pick_buttons()
+	_show_pick()
 
 func _pick_nation_from_list(n: int) -> void:
-	var cap := g.capital_of[n]
-	if cap < 0: cap = g.owned(n)[0]
-	map.fly_to(world.lon[cap], world.lat[cap], 2.4 if map.mode == 0 else maxf(map.zoom, 3.0))
-	_on_pick(cap, false)
-
-func _back_btn() -> Button:
-	var b := K.button(T.call("back"), func(): show_menu()); b.position = Vector2(10, 10); return b
+	if _pick_flow != null and is_instance_valid(_pick_flow): _pick_flow.select_nation(n, true)
 
 const HOT_COLORS := [0xC63A4A, 0x3A7AC6, 0x3AA66A, 0xC6A23A]
 
@@ -271,32 +375,7 @@ func _on_pick(p: int, secondary: bool) -> void:
 	if mode == "mp_lobby":
 		mp.pick_province(p); return
 	if mode == "pick":
-		if p < 0 or g.owner[p] == 0: return
-		var n := g.owner[p]
-		map.select(p)
-		_clear_overlay()
-		_add_pick_buttons()
-		var m := K.modal(_overlay, g.dname(n), 380, "flag")
-		m[0].color = Color(0, 0, 0, 0)
-		var army := 0
-		var rank := 1
-		for q in g.P:
-			if g.owner[q] == n: army += g.army[q]
-		for o in range(1, g.N1):
-			if o != n and g.alive[o] != 0 and g.own_count(o) > g.own_count(n): rank += 1
-		var facts := K.hbox(12); m[1].add_child(facts)
-		if g.rules >= 1 and g.r_name[n] != "":
-			facts.add_child(TBPortrait.new().setup(g, n, 64))
-		var fv := K.vbox(2); fv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; fv.size_flags_vertical = Control.SIZE_SHRINK_CENTER; facts.add_child(fv)
-		if g.rules >= 1 and g.r_name[n] != "":
-			fv.add_child(K.label("%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], 15, K.GOLD2))
-		fv.add_child(K.label("%d %s · %s" % [g.own_count(n), T.call("lands").to_lower(), T.call("rank_size", {"n": rank})], 14, K.TEXT))
-		fv.add_child(K.label("%s %s · %s %.1f" % [T.call("total_army"), K.fmt(army), T.call("era_name_%d" % g.era[n]), g.tech_level[n]], 13, K.DIM))
-		fv.add_child(K.label("%s · %s" % [T.call("g_" + TBData.REGIME_ID[g.regime[n]]), T.call("pers_" + TBData.PERSONALITIES[g.personality[n]]["id"])], 13, K.DIM))
-		var row := K.hbox(8); m[1].add_child(row)
-		row.add_child(K.button(T.call("back"), func(): m[0].queue_free()))
-		var taken: bool = _hot_list.has(n)
-		var go := K.button(T.call("play_as", {"nation": g.dname(n)}), func(): _confirm_pick(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; go.disabled = taken; row.add_child(go)
+		if _pick_flow != null and is_instance_valid(_pick_flow): _pick_flow.on_map_pick(p)
 		return
 	if mode != "game" or _busy: return
 	if p < 0: _select(-1); return
@@ -375,9 +454,6 @@ func _set_move_from(p: int) -> void:
 			if g.nb_sea[e] != 0 and g.building[p] != TBData.B_PORT: continue
 			t.append(g.nb[e])
 	map.set_targets(t)
-
-func _open_nation(n: int) -> void:
-	TBModals.nation_detail(_overlay, g, n, _on_command, _goto_nation)
 
 func _goto_province(p: int) -> void:
 	map.fly_to(world.lon[p], world.lat[p])
@@ -500,13 +576,7 @@ func _hot_switch(n: int, new_round: bool) -> void:
 	var cap := g.capital_of[n]
 	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2 if map.mode == 0 else maxf(map.zoom, 3.0))
 	hud.refresh()
-	var m := K.modal(_overlay, g.dname(n), 420, "flag")
-	m[0].color = Color(0.012, 0.02, 0.045, 1.0)
-	var c := K.caps(T.call("hot_pass"), 11, K.GOLD); c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; m[1].add_child(c)
-	var fl := TBFlags.chip(g, n, 1.6); fl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; m[1].add_child(fl)
-	var tl := K.label("%s %d · %s" % [T.call("turn"), g.turn, TBChron.date(g, g.turn)], 14, K.DIM); tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; m[1].add_child(tl)
-	var rb := K.button(T.call("hot_ready"), func(): m[0].queue_free(); show_events(), true); rb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	m[2].add_child(rb)
+	TBModals.pass_device(_overlay, g, n, func(): show_events())
 
 func _turn_worker() -> void:
 	var dirty := g.end_turn()
@@ -603,21 +673,48 @@ func _notification(what: int) -> void:
 			_autosave()
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST: _on_back()
 
-## Android back button: close the open dialog, then the province sheet, then offer the menu; quit only from the title screen
+var _exit_armed := false
+
+## Android Back / Esc / X share one stack (P-20): tooltip, order, the top panel or dialog, selection, then the menu; the title asks twice before quitting.
+## An unanswered event, game over or pass-device curtain swallows Back. HUD / order code may define `_cancel_order_back() -> bool` to take step 2.
 func _on_back() -> void:
-	var top: Node = null
+	var res := TBPanel.pop(_overlay)
+	if res == "locked":
+		if hud != null and hud.visible: hud.toast(T.call("choose_option"), true)
+		return
+	if res != "none": return
+	var legacy: Node = null                                  # multiplayer dialogs still use the old container
 	for c in _overlay.get_children():
-		if c is ColorRect: top = c
-	if top != null and mode != "menu":
-		top.queue_free(); return
+		if c is ColorRect and c.has_meta("tb_modal") and not c.is_queued_for_deletion(): legacy = c
+	if legacy != null: legacy.queue_free(); return
+	if has_method("_cancel_order_back") and bool(call("_cancel_order_back")): return
 	match mode:
 		"menu":
-			if top != null: show_menu()
-			else: get_tree().quit()
-		"pick", "mp_lobby": show_menu()
+			if _exit_armed: get_tree().quit(); return
+			_exit_armed = true
+			_title_toast(T.call("press_back_again"))
+			get_tree().create_timer(2.0).timeout.connect(func(): _exit_armed = false)
+		"pick":
+			if _pick_flow != null and is_instance_valid(_pick_flow) and _pick_flow.pop(): return
+			_open_era_picker()
+		"mp_lobby": show_menu()
 		"game":
 			if panel.visible: _select(-1)
-			else: _open_settings()
+			else: _open_menu_hub()
+
+func _unhandled_key_input(e: InputEvent) -> void:
+	if e.is_action_pressed("ui_cancel") and not e.is_echo():
+		_on_back(); get_viewport().set_input_as_handled()
+
+## a short slip over the title (the HUD toast is not available there)
+func _title_toast(text: String) -> void:
+	var pc := PanelContainer.new(); pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pc.add_theme_stylebox_override("panel", TBFrame.bar(14, 8))
+	var l := K.label(text, 14, TBTokens.c("cream")); pc.add_child(l)
+	pc.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); pc.grow_horizontal = Control.GROW_DIRECTION_BOTH; pc.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	pc.offset_bottom = -90
+	_overlay.add_child(pc)
+	get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(pc): pc.queue_free())
 
 func _update_perf(delta: float) -> void:
 	if not cfg.get("perf", false):

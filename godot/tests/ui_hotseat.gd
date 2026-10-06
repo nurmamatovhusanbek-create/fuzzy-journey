@@ -21,6 +21,7 @@ func _init() -> void:
 	await process_frame
 	print("after P1 end: human=", g.human_id, " turn=", g.turn)
 	if g.human_id != pr or g.turn != t0: fails += 1
+	if TBPanel.pop(main._overlay) != "locked": print("curtain must swallow Back"); fails += 1
 	main._clear_overlay()
 	main.end_turn()                                   # player 2 done -> real turn runs
 	var guard := 0

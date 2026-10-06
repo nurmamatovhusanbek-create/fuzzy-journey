@@ -33,7 +33,7 @@ func _init() -> void:
 	root.get_viewport().get_texture().get_image().save_png(out + "/chronicle.png")
 	main._clear_overlay()
 	main.g.gold[me] = 400.0
-	TBModals.advisor(main._overlay, g, main._goto_province)
+	main._open_council("advice")
 	await process_frame; await process_frame
 	root.get_viewport().get_texture().get_image().save_png(out + "/advisor.png")
 	# RU

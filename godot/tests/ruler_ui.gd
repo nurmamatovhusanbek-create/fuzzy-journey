@@ -9,12 +9,12 @@ func _init() -> void:
 	var g: TBGame = main.g
 	var fr := g.nat_code.find("france")
 	main._start_game(fr)
-	TBModals.nation_detail(main._overlay, g, g.nat_code.find("russian_empire"), main._on_command, main._goto_nation)
+	main._open_nations(g.nat_code.find("russian_empire"))
 	await process_frame; await process_frame
 	root.get_viewport().get_texture().get_image().save_png(out + "/ruler_card.png")
 	main._clear_overlay()
 	TBI18n.load_lang("ru")
-	TBModals.nation_detail(main._overlay, g, fr, main._on_command, main._goto_nation)
+	main._open_nations(fr)
 	await process_frame; await process_frame
 	root.get_viewport().get_texture().get_image().save_png(out + "/ruler_card_ru.png")
 	quit()
