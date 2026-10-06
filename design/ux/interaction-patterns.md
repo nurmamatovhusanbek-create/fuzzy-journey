@@ -7,10 +7,10 @@
 > **Engine**: Godot 4.4 (GDScript, GL Compatibility)
 > **UI Framework**: Godot Control nodes, procedural drawing (`TBKit`, `TBFrame`, `TBGlyph`), no image assets
 > **Accessibility Tier**: Comprehensive
-> **Related Documents**: `design/game-brief.md` (pillars), `design/ux/modal-system.md` (containers), `design/ux/main-menu.md`, `design/ux/nation-pick.md`
+> **Related Documents**: `design/game-brief.md` (pillars), `hud.md` (zones A-G, units `u`, End Turn, ticker), `command-card.md` (verbs, order flow), `modal-system.md` (containers), `main-menu.md`, `nation-pick.md`
 > **Template**: Interaction Pattern Library
 
-> Scope: this file specs **behaviour, sizes and structure**. Colour, material and ornament belong to art-director; the only visual rule imposed here is the *decoration budget* (modal-system.md section 5.6). Direction (creative director): keep the paper-table language, but read as a **command table** (Total War / HoI4): grouped info chips, orders on the map, panels that confirm and explain.
+> Scope: this file specs **behaviour, sizes and structure**. Colour, material and ornament belong to art-director; the only visual rule imposed here is the *decoration budget* (`modal-system.md` 5.6, same budget as `hud.md` 1). Direction (creative director): keep the paper-table language, but read as a **command table** (Total War / HoI4): grouped info chips, orders on the map, panels that confirm and explain.
 
 ---
 
@@ -24,21 +24,12 @@
 | R2 | Irreversible or war-starting actions are always previewed, then confirmed by a second explicit act. Reversible ones commit at once with an Undo toast. | 2, 4 |
 | R3 | A number is shown only with a reason it matters (delta, threshold, cost, comparison). Costs are chips; unaffordable = chip with an X glyph plus colour. | 3 |
 | R4 | Never colour alone: every state pairs colour with a shape, glyph, sign or text (RED/GREEN/STEEL on paper are redundant channels). | Accessibility |
-| R5 | One right-rail occupant at a time (province details OR a drawer), at most one dialog above it. Panels never stack. | 1 |
+| R5 | One management panel at a time (drawer / sheet / wide panel), at most one dialog above it; the command card is not a panel. Panels never stack. | 1 |
 | R6 | Disabled never means silent: activating a disabled control states why, in a tooltip/toast with a glyph. | 3 |
 | R7 | Text floor 12 logical px (body 15-16, captions 12). The current 9-11 px caps captions are non-conformant. | Accessibility |
 | R8 | Everything reachable by touch, mouse and keyboard; focus is always visible (today `focus_mode = FOCUS_NONE` everywhere: gap). | Accessibility |
 
-**HUD zones the patterns anchor to** (landscape; portrait moves the dock to the bottom, drawer becomes a sheet)
-
-```
-┌ Ribbon: flag · date · INFO CHIPS (grouped) ........... lens ┐
-│ Dock │ [ALERT CHIPS]            [TOAST stack]    right rail: │
-│      │                                           province /  │
-│      │            MAP (hero)                     drawer     │
-│      │        [ COMMAND BAR / options row ]    [ END TURN ]  │
-└──────┴──────────────────────────────────────────────────────┘
-```
+**Naming and units are shared with `hud.md`** (the source of truth for zones and sizes): all sizes are `u` (logical px, about 1 dp on phones, 1.5 px on 1080p desktop); zones **A** top bar ("ribbon"), **B** screens rail ("dock"), **C** alert ticker, **D** command card, **E** End Turn, **F** legend, **G** hot-seat strip. Reference viewports: D 1280x720u, L 900x415u, S 800x360u, P 360x640u. HUD owns the HUD shortcuts (`A` next alert, Enter/Space End Turn, "Confirm End Turn: Smart") and the Turn report; this file owns panel-level behaviour.
 
 ## 2. Pattern Catalog Index
 
@@ -46,7 +37,7 @@
 |----|---------|----------|---------|--------|
 | P-01 | Selection and Hover | Map | Map, nation pick | Draft |
 | P-02 | Order / Preview / Confirm | Map | Move, attack, recruit, ultimatum | Draft |
-| P-03 | Context Command Bar | Map / Layout | Any selection | Draft |
+| P-03 | Command Card (rules; spec in command-card.md) | Map / Layout | Any selection | Draft |
 | P-04 | Info Chip (readout) | HUD | Ribbon, cards, rows | Draft |
 | P-05 | Alert Chip | HUD / Feedback | Top-left zone | Draft |
 | P-06 | Toast | Feedback | Outcomes, log lines | Draft |
@@ -69,15 +60,16 @@
 
 ## 3. Shared Standards
 
-**Size classes** (resolved at runtime from logical viewport, input and DPI; full rules in modal-system.md section 5.2)
+**Size classes** (profiles of `hud.md`; computed from viewport in `u`, input type and physical size, never from logical width alone)
 
-| Class | When | Min touch target | Row height |
-|-------|------|------------------|-----------|
-| CP compact portrait | height > width (540 x 960 logical) | 48 dp physical | 56 |
-| CL landscape phone | landscape and physical height under 600 dp, touch | 48 dp physical | 52 |
-| CD desktop / tablet | landscape and not CL, pointer or large touch | 36 logical (48 dp on touch) | 40 |
+| Profile | Viewport (u) | Min touch target | List row |
+|---------|--------------|------------------|----------|
+| D desktop / tablet | 1280x720 (pointer) | 32 mouse, 48 touch | 36 |
+| L landscape phone | 900x415 | 48 | 48 |
+| S short window | 800x360 | 48 | 48 |
+| P portrait phone | 360x640 (to 411x891) | 48 | 52 |
 
-48 dp is physical (~7.5 mm). `MIN_TOUCH = 44` logical is only ~4 mm on a 2340x1080 phone (scale 1.5, ~420 dpi): derive logical min target as `ceil(48 * dpi / 160 / content_scale)`. Hit area may exceed the drawn glyph; draw 24-28, hit 48.
+Targets 48u touch, 32u mouse, text 12u minimum (hud.md). Draw glyphs at 24-28u, keep the hit area at 48u. The code still uses fixed 1280x720 / 540x960 base sizes with `MIN_TOUCH = 44`, which is about 4 mm on a 2340x1080 phone: the `u` mapping (px per u from DPI) must replace `_update_ui_scale` (hud.md Q1).
 
 **Timing** (reduced-motion column replaces slides/scales by a fade at 50 % duration, stops loops)
 
@@ -94,7 +86,7 @@
 
 **Audio** (existing `TBAudio` ids): `tap` (any press), `coin` (spend), `turn`, `event`, `war`, `alert`, `win`. Add `cancel`, `error`, `confirm`. Sound is never the only channel.
 
-**Accessibility baseline all patterns inherit**: contrast 4.5:1 text, 3:1 UI edges/glyphs (computed approx. on laid paper: TEXT 12:1, DIM 4.9:1 on PANEL but 4.1:1 on PANEL2, GOLD 3.8:1, GREEN 4.2:1 and the 28 %-alpha locked Honours fail small text: darken GOLD/GREEN and stop fading text; verify in tooling). UI size Small/Normal/Large exists; add independent **Text size** 100/125/150 %, **High contrast** palette (no paper texture behind text, 2 px borders), **Reduced motion**, **Toast duration** 3-10 s, **Narration** via `DisplayServer.tts_speak` (AccessKit screen-reader support arrives in Godot 4.5; on 4.4 narration is the fallback).
+**Accessibility baseline all patterns inherit**: contrast 4.5:1 text, 3:1 UI edges/glyphs (computed approx. on laid paper: TEXT 12:1, DIM 4.9:1 on PANEL but 4.1:1 on PANEL2, GOLD 3.8:1, GREEN 4.2:1 and the 28 %-alpha locked Honours fail small text: darken GOLD/GREEN and stop fading text; verify in tooling). UI size Small/Normal/Large exists; add independent **Text size** 100/125/150/175 % (hud.md 10.4), **High contrast** palette (no paper texture behind text, 2 px borders), **Reduced motion** (default follows OS), **Toast duration** 3-10 s, **Narration** via `DisplayServer.tts_speak` (AccessKit screen-reader support arrives in Godot 4.5; on 4.4 narration is the fallback).
 
 ## 4. Map Patterns
 ### P-01 Selection and Hover
@@ -104,7 +96,7 @@
 | Use | Choosing a province/army/nation on the map; peeking at facts. |
 | Anatomy | Hover outline (1 px bright) plus **hover card** (desktop only: flag, name, owner-relation glyph, army, terrain; in armed mode adds outcome line). Selection ring (2 px brass-light, drawn double-line so it survives any province fill) plus one pulse. Legal targets: dashed outline and a small marker; illegal provinces unmarked. |
 | States | idle, hover, pressed (touch tint 60 ms), selected, armed (targets lit), previewed (see P-02). |
-| Input T/M/K | T: tap selects, 12 dp slop, tap empty sea deselects; no hover, facts appear on the command bar identity chip. M: hover 120 ms delay opens card, click selects, Esc/right-click-empty deselects. K: arrow keys move a map cursor along province adjacency, Enter selects, Tab / Shift+Tab cycle provinces with idle armies (`N` jumps to next), Esc deselects. |
+| Input T/M/K | T: tap selects, 12u slop, tap empty sea deselects; no hover, facts appear in the command card header. M: hover 120 ms delay opens card, click selects, Esc/right-click-empty deselects. K: arrow keys move a map cursor along province adjacency, Enter selects, Tab / Shift+Tab cycle provinces with idle armies (`N` jumps to next), Esc deselects. |
 | A11y | Selection and legality never by colour only (ring plus dash plus marker); cursor ring visible at 3:1; narration reads "Paris, France, army 120, plains". |
 | Godot | Overlay `Control` above the map for rings/dashes drawn in `_draw`; hover card `PanelContainer` in a high `CanvasLayer`, `mouse_filter = IGNORE`, clamped to viewport (existing `_on_hover`); keyboard cursor = Vector adjacency walk using `g.nb_off/nb`. |
 ### P-02 Order / Preview / Confirm
@@ -112,23 +104,23 @@
 | Aspect | Spec |
 |--------|------|
 | Use | Move, attack, declare war, recruit/build with a target, ultimatum defiance. |
-| Anatomy | Verb armed from the command bar (or right-click/Shift) -> target chosen -> **ghost arrow** from to, **outcome chip** on the target ("Win, hold 38" / "Lose, -120" with ^/v glyph and %), troops badge. Command bar swaps to [Cancel] [Confirm (primary)]. |
-| Commit rule | Plain move into own/neutral land commits on first tap (Undo toast 5 s). Any attack, war declaration or irreversible spend requires preview then confirm (R2). Touch: tap target = preview pinned, tap same target or press Confirm = commit. Mouse: hover shows the same preview live, a click commits (player has seen it). Keyboard: cursor over target previews, Enter commits. Right-click today bypasses the preview: change so attacks always preview (Shift+right-click = fast order for veterans). |
+| Anatomy | Verb armed from the command card (or right-click) -> target chosen -> **ghost arrow** from to, **outcome chip** on the target ("Win, hold 38" / "Lose, -120" with ^/v glyph and %), troops badge. The card swaps to an order row [Cancel] [Confirm (primary)] (`command-card.md`). |
+| Commit rule | Plain move into own/neutral land commits on first tap (Undo toast 5 s). Any attack, war declaration or irreversible spend requires preview then confirm (R2). Touch: tap target = preview pinned, tap same target or press Confirm = commit. Mouse: hover shows the same preview live, a click commits (player has seen it). Keyboard: cursor over target previews, Enter commits. Right-click today commits attacks without a preview: make it preview first, right-click again confirms (as `command-card.md`). |
 | States | idle, armed, previewed, committing (march fx 450 ms), cancelled, rejected (P-19). |
-| Cancel | tap empty sea, X on the command bar, Esc, Android Back (first pop in P-20). |
+| Cancel | tap empty sea, X on the card, Esc, Android Back (first pop in P-20). |
 | A11y | Explicit Confirm button exists (second tap alone is invisible); outcome expressed as text and sign, not green/red alone; narration "Attack Ariege: expected win, you hold 38". |
-| Godot | Preview state lives in `main.gd` (`_pv_to`); outcome chip = `PanelContainer` positioned from map screen coords each frame in `map.labels` layer; arrow via existing `labels.add_fx`; troops selector = P-13 in the options row above the command bar. |
-### P-03 Context Command Bar
+| Godot | Preview state lives in `main.gd` (`_pv_to`); outcome chip = `PanelContainer` positioned from map screen coords each frame in `map.labels` layer; arrow via existing `labels.add_fx`; troops selector = share segmented plus P-13 in the order row. |
+### P-03 Command Card (verbs on the selection)
 
-| Aspect | Spec |
-|--------|------|
-| Use | Replaces the province panel's long button list. Shown for any selection; map stays visible. |
-| Anatomy | Bottom-centre bar (landscape) / above dock (portrait): **identity chip** (flag, name, owner, terrain; tap opens province drawer for ledger and meters) then max **5 verb buttons** (icon over label, 72x64 min, cost chip on the button), then `More` (overflow into the drawer). Verb with parameters opens an **options row** above the bar (troops P-13, building choices as chips). |
-| Verb sets | Own army: Move, Recruit, Build, Develop, More. Foreign/neutral: Attack (if own army adjacent), Diplomacy (opens Nations detail), Intel. |
-| States | hidden, shown, armed (one verb highlighted, others dimmed), disabled verb (stays, shows reason R6), busy. |
-| Input T/M/K | T: tap verb; bar never overlaps thumb zone of End Turn (gap 16 dp). M: hover tooltip with cost and effect. K: keys `M` move, `R` recruit, `B` build, `D` develop, Enter on focused verb, `.` More. |
-| A11y | Verbs have text labels (never icon-only), focus order left to right after the identity chip, costs read as "40 gold, you have 22". |
-| Godot | `PanelContainer` > `HBoxContainer`; verb = `Button` with `icon`, `icon_alignment = TOP`, `expand_icon`, `custom_minimum_size 72x64`; options row `HFlowContainer`; register both rects in `map.keepout_fn`. |
+Full spec: `command-card.md` (zone D, replaces `TBProvincePanel`). Pattern-level rules this library adds:
+
+| Rule | Spec |
+|------|------|
+| Verbs | max 5 slots with stable positions, icon over text label (never icon-only), cost chip on the button, unaffordable = chip with X glyph; disabled verb stays and states why on activation (R6) |
+| Parameters | verbs with parameters (troops, building choice) open the **order row** above the card using P-13 / P-10; the card never scrolls |
+| Details | ledger and meters live one tap deeper in the card's Details drawer, not in the default card |
+| Overlap | card rect registered in `map.keepout_fn`; 16u gap to End Turn; Declare War isolated from End Turn |
+| Godot | `PanelContainer` > `HBoxContainer`; verb = `Button` (`icon`, `icon_alignment = TOP`, `expand_icon`, min 88x48u); order row `HFlowContainer`; collapsed state = header only |
 
 ## 5. HUD and Feedback Patterns
 ### P-04 Info Chip (readout)
@@ -136,7 +128,7 @@
 | Aspect | Spec |
 |--------|------|
 | Use | Ribbon figures, card facts, list trailing figures. |
-| Anatomy | glyph, mono value, optional delta (+/-, ^/v), caption on hover. Ribbon groups separated by a 1 px gap: **Economy** (gold, net/turn, manpower), **Military** (army, wars), **Politics** (diplomatic pts, intel, infamy), **Realm** (provinces, tech). Max 9 chips visible; extras fold into a "more" chip on CP. |
+| Anatomy | glyph, mono value, optional delta (+/-, ^/v), caption on hover. Top-bar groups (zone A, `hud.md` 4) separated by a 1 px gap: **Economy** (gold, net/turn, manpower), **Military** (army, wars), **Politics** (diplomatic pts, intel, infamy), **Realm** (provinces, tech). Max 9 chips visible; extras fold into a "more" chip on CP. |
 | States | normal, changed (delta flash 1.5 s), threshold (warning shape plus colour), disabled/unknown ("--"). |
 | Input | T: long-press = tooltip (what it means, what moves it, link to Codex topic). M: hover tooltip. K: focusable in ribbon order, Enter opens the owning screen (gold -> Budget). |
 | A11y | Delta carries sign and arrow, not colour alone; value is never truncated, chip wraps below at CP. |
@@ -146,7 +138,7 @@
 | Aspect | Spec |
 |--------|------|
 | Use | Quiet-until-it-matters surfacing: war on you, revolt, offers/ultimatum, supply shortfall, opportunity. |
-| Anatomy | Shape-coded severity (diamond info, triangle warning, square crisis) plus 2-4 word text plus count. Max 3 visible plus a `+N` chip that opens Council (Alerts). Priority: war > revolt > offers > supply > opportunity. |
+| Anatomy | Shape-coded severity (diamond info, triangle warning, square crisis) plus 2-4 word text plus count. Visible rows per `hud.md` zone C (4 on D, 1 on L/P) plus a `+N` pill that opens Council (Alerts). Priority: war > revolt > offers > supply > opportunity. |
 | States | appear (fade 160), crisis pulses **once**, persistent until resolved, resolved (fade out and collapse), snoozed this turn (swipe/x). |
 | Input T/M/K | T: tap flies the camera to the subject and selects it; long-press = why. M: click same; hover = tooltip with fix hint. K: Tab into chip row, Enter acts, Delete snoozes. |
 | A11y | Narration announces new crisis chips once per turn ("Crisis: Revolt in Lyon"); text never replaced by icon. |
@@ -156,8 +148,8 @@
 | Aspect | Spec |
 |--------|------|
 | Use | Outcome of the player's own action and notable log lines. Not for decisions or errors that need action (use P-19 dialog). |
-| Anatomy | single-line slip (max 2 lines) with glyph, text, optional action ("Undo", "Show"). Top-centre under the ribbon, max 3 stacked, oldest first out. |
-| States | in, held (paused while hovered/focused or narration speaking), out, queued (overflow beyond 3 coalesces: "+4 events" opens Annals). |
+| Anatomy | single-line slip (max 2 lines) with glyph, text, optional action ("Undo", "Show"). One at a time (hud.md: at most one toast-style message); end-of-turn events are summarised by the **Turn report**, not by toasts. |
+| States | in, held (paused while hovered/focused or narration speaking), out, queued (overflow coalesces: "+4 events" opens Annals). |
 | Timing | info 4 s, error 6 s, user setting 3-10 s; never under 3 s. |
 | Input | T/M: tap dismisses or runs action. K: `Esc` clears toasts when no panel is open. |
 | A11y | Announced without taking focus (TTS); bad news carries a glyph, not just red; never the only channel for actionable info. |
@@ -197,7 +189,7 @@ Never a drawer over a wide panel; never more than one panel plus one dialog.
 | Aspect | Spec |
 |--------|------|
 | Use | Switching the **view** of a screen (Annals filters excluded: those are P-10). 2-5 tabs; more scroll with edge fade. |
-| Anatomy | Text tabs on a tinted band, 44 high (48 dp touch), selected = underline 3 px plus bold weight plus filled tick (not colour alone). Badge dot for new content. |
+| Anatomy | Text tabs on a tinted band, 44 high (48u touch), selected = underline 3 px plus bold weight plus filled tick (not colour alone). Badge dot for new content. |
 | Input T/M/K | T: tap, no swipe (conflicts with sliders and map). M: click. K: Left/Right moves and activates, Home/End, Ctrl+Tab cycles tabs from anywhere in the panel, `[`/`]` also. |
 | A11y | Role tab/tablist semantics in narration ("Alerts, tab 1 of 2"); label never truncated: width follows text, min 72. |
 | Godot | Native `TabBar` (`scrolling_enabled`, `tab_changed`) above a script-swapped body; theme `tab_selected` stylebox with underline. Avoid `TabContainer` (frame and focus styling fight the paper theme). |
@@ -206,7 +198,7 @@ Never a drawer over a wide panel; never more than one panel plus one dialog.
 | Aspect | Spec |
 |--------|------|
 | Use | One value or filter inside content: difficulty, players 1-4, filter All/War/Allies, map view. 2-4 options; more -> list or dropdown. Binary on/off uses P-14. |
-| Anatomy | Joined cells, **selected = filled cell plus check glyph**, others outlined; height 44 (48 dp touch); equal width unless a label overflows (RU/UZ +35 %), then content width, then wrap into stacked list. |
+| Anatomy | Joined cells, **selected = filled cell plus check glyph**, others outlined; height 44 (48u touch); equal width unless a label overflows (RU/UZ +35 %), then content width, then wrap into stacked list. |
 | Input | T/M: tap. K: Left/Right moves selection, Space/Enter confirms (or applies live, per screen), Home/End. |
 | A11y | Differs visually from tabs on purpose (box vs underline) so sections and values are never confused. |
 | Godot | `HBoxContainer` of `Button` with `toggle_mode = true` and a shared `ButtonGroup`; `pressed` stylebox = filled; replace today's `K.Segmented` underline look when it is used for values. |
@@ -233,7 +225,7 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Tab order | Reading order: tab row, body (top to bottom, left column then right), footer actions, Close last. Focus is trapped in the open dialog/panel (map input disabled while an overlay exists). |
 | Return | On close, focus returns to the element that opened it (dock button, chip). |
 | Visibility | Every interactive control draws a 2 px focus ring offset 2 px (oxblood on paper, brass-light on dark); custom `_draw` controls (`ListRow`, `Segmented`, `IconBtn`, `Entry`) must draw it. |
-| Shortcuts | Space = End Turn (guarded by P-16 soft confirm if a crisis alert is open), `N` Nations, `B` Budget, `D` Decisions, `A` Annals, `C` Council, `Esc` Back/Menu, `F5` quick-save, `F9` quick-load, `M/R/B/D` verbs when a selection exists (context beats global), `+/-` zoom, `Tab` focus, `?` shortcut list. Shown in tooltips; remappable in Settings (Comprehensive). |
+| Shortcuts | Panel level: `Esc` back, `Ctrl+Tab`/`[` `]` tabs, `/` search a list, `F5` quick-save, `F9` quick-load, `?` shortcut list. Screens: `N` Nations, `B` Budget, `D` Decisions, `C` Council, `Y` Annals (`A` is next alert, hud.md), `Esc` with nothing open = Menu. Verb keys, `Tab` targets, End Turn: `hud.md` / `command-card.md`. Shown in tooltips; remappable in Settings (Comprehensive). |
 | Godot | Set `focus_mode = FOCUS_ALL` on interactives (today `FOCUS_NONE`), restore focus `StyleBox`, `focus_neighbor_*` for grids, `ScrollContainer.follow_focus = true`, handle global keys in `_unhandled_key_input`, gated by `_overlay.get_child_count() == 0`. |
 
 ## 7. Input Control Patterns
@@ -262,7 +254,7 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Aspect | Spec |
 |--------|------|
 | Use | Exact small numbers: troops to send (with quick fractions 1/4, 1/2, 3/4, All above it), players 2-4, budget fine-tune. |
-| Anatomy | [-] value [+] with 48 dp buttons, value mono centred, optional unit. Hold-to-repeat: 400 ms delay, then 80 ms interval, accelerating. At min/max the button disables and shows the limit in the tooltip. |
+| Anatomy | [-] value [+] with 48u buttons, value mono centred, optional unit. Hold-to-repeat: 400 ms delay, then 80 ms interval, accelerating. At min/max the button disables and shows the limit in the tooltip. |
 | Input | T/M: tap/hold. K: Up/Down arrows, PgUp/PgDn x10, typed digits if focused. |
 | A11y | Narrate value changes (debounced 300 ms). |
 | Godot | `HBoxContainer`: `Button`, `Label`, `Button` plus a `Timer`; do not use `SpinBox` (tiny hit area, text-edit caret on touch). |
@@ -271,14 +263,14 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | Aspect | Spec |
 |--------|------|
 | Use | Binary settings (Sound, Perf readout, Reduced motion, High contrast). Replaces two-cell On/Off segmented rows. |
-| Anatomy | Whole row is the target: label left, switch plus visible "On"/"Off" word right (position and word, not colour). 48 dp high. |
+| Anatomy | Whole row is the target: label left, switch plus visible "On"/"Off" word right (position and word, not colour). 48u high. |
 | Input | T/M: tap row. K: Space/Enter toggles. Applies immediately. |
 | Godot | `CheckButton` re-themed (custom `checked`/`unchecked` icons drawn by `TBGlyph`) stretched across the row; `focus_mode = ALL`. |
 ### P-22 Button and Meter basics
 
 | Aspect | Spec |
 |--------|------|
-| Button | **Primary** = one per container (wax plate, right of footer), label = verb plus object ("Play as France", "Enact Decree"); **Secondary** = outline; **Destructive** = text red plus warning glyph, never executes directly (P-16); **Icon** = needs tooltip and a narration name. Never label "OK", "Yes", "Back" in footers (X plus Back key already exist). Height 48 dp touch; disabled stays focusable and explains (R6). |
+| Button | **Primary** = one per container (wax plate, right of footer), label = verb plus object ("Play as France", "Enact Decree"); **Secondary** = outline; **Destructive** = text red plus warning glyph, never executes directly (P-16); **Icon** = needs tooltip and a narration name. Never label "OK", "Yes", "Back" in footers (X plus Back key already exist). Height 48u touch; disabled stays focusable and explains (R6). |
 | Meter | Thin bar with ticks 25/50/75, numeric label always, threshold marker shape (diamond at goal). Colour (STEEL under 40 %, GOLD2 40-90, GREEN over 90) plus the % text. Godot: existing `K.Meter` or `ProgressBar` with `show_percentage = false`. |
 
 ## 8. Feedback State Patterns
@@ -289,7 +281,7 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 | L0 reversible | plain move, budget change, toggle | no confirm; Toast with Undo 5 s |
 | L1 consequential, previewable | declare war, break pact, yield to ultimatum, demand land | on-map preview (P-02) or Dialog stating the consequence ("Infamy +8; truce ends"); confirm button names the act |
 | L2 data loss | overwrite save, delete save, abandon campaign to menu (progress since autosave) | Dialog, default focus **Cancel**, red labelled confirm ("Overwrite slot 2"), shows what is lost ("Turn 19, 1850 AD") and offers "Save and exit" when leaving a game |
-| Soft | End Turn while a crisis chip is open | the seal morphs to "Confirm?" for 3 s (inline, no modal) |
+| Soft | End Turn with unhandled critical alert (setting Confirm End Turn: Smart, hud.md) | the plate morphs to "Confirm?" for 3 s (inline, no modal) |
 
 No hold-to-confirm (motor accessibility). Gaps today: Save overwrites slots silently; Main menu from Settings exits without a prompt.
 ### P-17 Loading / Busy
@@ -333,7 +325,7 @@ Rule: glyph (48, dim), one line stating what, one line stating why or next, opti
 | 3 | Save overwrites silently; Main menu from Settings loses unsaved turns | P-16 |
 | 4 | Nations list truncated at 60 of 250 without notice | P-11 |
 | 5 | Captions at 9-11 px, locked Honours at 28 % alpha, GOLD captions below 4.5:1 | R7 |
-| 6 | `MIN_TOUCH = 44` logical is under 48 dp on high-DPI phones | Sec. 3 |
+| 6 | `MIN_TOUCH = 44` logical is under 48u on high-DPI phones | Sec. 3 |
 
 ## 10. Open Questions
 
