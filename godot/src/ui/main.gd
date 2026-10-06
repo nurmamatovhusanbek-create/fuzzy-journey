@@ -208,11 +208,16 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty})
 	map.setup(g)
 	mode = "pick"; _spin = false; _clear_overlay()
-	var hint_box := VBoxContainer.new(); hint_box.set_anchors_preset(Control.PRESET_CENTER_TOP); hint_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_box.custom_minimum_size = Vector2(360, 0); hint_box.offset_left = -180; hint_box.offset_right = 180; hint_box.offset_top = 16
-	var hint := K.title(T.call("pick_nation") if _hot_n == 0 else T.call("hot_pick", {"k": _hot_list.size() + 1, "n": _hot_n}), 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint); hint_box.add_child(K.ornament())
-	_overlay.add_child(hint_box)
+	_pick_hint(T.call("pick_nation") if _hot_n == 0 else T.call("hot_pick", {"k": _hot_list.size() + 1, "n": _hot_n}))
 	_add_pick_buttons()
+
+## the instruction slip at the top of the nation-pick screen: ink on paper, readable over any backdrop
+func _pick_hint(text: String) -> void:
+	var hint_box := PanelContainer.new(); hint_box.set_anchors_preset(Control.PRESET_CENTER_TOP); hint_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_box.add_theme_stylebox_override("panel", TBFrame.chit(TBFrame.PAPER, 26, 9))
+	hint_box.grow_horizontal = Control.GROW_DIRECTION_BOTH; hint_box.offset_top = 12
+	var hint := K.title(text, 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint)
+	_overlay.add_child(hint_box)
 
 func _add_pick_buttons() -> void:
 	_overlay.add_child(_back_btn())
@@ -226,10 +231,7 @@ func _confirm_pick(n: int) -> void:
 	_hot_list.append(n)
 	if _hot_list.size() >= _hot_n: _start_game(n); return
 	_clear_overlay()
-	var hint_box := VBoxContainer.new(); hint_box.set_anchors_preset(Control.PRESET_CENTER_TOP); hint_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_box.custom_minimum_size = Vector2(360, 0); hint_box.offset_left = -180; hint_box.offset_right = 180; hint_box.offset_top = 16
-	var hint := K.title(T.call("hot_pick", {"k": _hot_list.size() + 1, "n": _hot_n}), 17); hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint_box.add_child(hint); hint_box.add_child(K.ornament())
-	_overlay.add_child(hint_box)
+	_pick_hint(T.call("hot_pick", {"k": _hot_list.size() + 1, "n": _hot_n}))
 	_add_pick_buttons()
 
 func _pick_nation_from_list(n: int) -> void:
@@ -279,7 +281,21 @@ func _on_pick(p: int, secondary: bool) -> void:
 		_add_pick_buttons()
 		var m := K.modal(_overlay, g.dname(n), 380, "flag")
 		m[0].color = Color(0, 0, 0, 0)
-		m[1].add_child(K.label("%d %s" % [g.own_count(n), T.call("lands").to_lower()], 14, K.DIM))
+		var army := 0
+		var rank := 1
+		for q in g.P:
+			if g.owner[q] == n: army += g.army[q]
+		for o in range(1, g.N1):
+			if o != n and g.alive[o] != 0 and g.own_count(o) > g.own_count(n): rank += 1
+		var facts := K.hbox(12); m[1].add_child(facts)
+		if g.rules >= 1 and g.r_name[n] != "":
+			facts.add_child(TBPortrait.new().setup(g, n, 64))
+		var fv := K.vbox(2); fv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; fv.size_flags_vertical = Control.SIZE_SHRINK_CENTER; facts.add_child(fv)
+		if g.rules >= 1 and g.r_name[n] != "":
+			fv.add_child(K.label("%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], 15, K.GOLD2))
+		fv.add_child(K.label("%d %s · %s" % [g.own_count(n), T.call("lands").to_lower(), T.call("rank_size", {"n": rank})], 14, K.TEXT))
+		fv.add_child(K.label("%s %s · %s %.1f" % [T.call("total_army"), K.fmt(army), T.call("era_name_%d" % g.era[n]), g.tech_level[n]], 13, K.DIM))
+		fv.add_child(K.label("%s · %s" % [T.call("g_" + TBData.REGIME_ID[g.regime[n]]), T.call("pers_" + TBData.PERSONALITIES[g.personality[n]]["id"])], 13, K.DIM))
 		var row := K.hbox(8); m[1].add_child(row)
 		row.add_child(K.button(T.call("back"), func(): m[0].queue_free()))
 		var taken: bool = _hot_list.has(n)

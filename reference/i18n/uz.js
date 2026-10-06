@@ -661,6 +661,7 @@ export default {
   codex_battle_t: "Janglar", codex_battle_b: "Jang aniq hisoblanadi: sizning kuchingiz davr, relyef, hukmdor va sarkarda ustamalari bilan himoyachilar kuchiga (relyef, qal‘a, sarkarda) qarshi. Hujumni tanlaganingizda natija oldindan aniq ko‘rsatiladi. Viloyat panelidagi «Yuborish» qo‘shinning 25 dan 100 foizigacha qismini yuboradi.",
   pv_win_short: "Hujum muvaffaqiyatli: {k} ushlab qoladi", pv_lose_short: "Hujum muvaffaqiyatsiz: −{a} jangchi",
   main_menu: "Bosh menyu",
+  rank_size: "Hajmi bo‘yicha #{n}",
   ev_worldwide: "Butun dunyo voqeasi",
   ev_event: "Voqea",
   ev_ack: "Tushunarli",
