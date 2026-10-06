@@ -5,3 +5,4 @@ dist/
 *.translation
 export/
 build/
+.claude/worktrees/
