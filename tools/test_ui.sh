@@ -19,5 +19,10 @@ run tests/ui_hotseat.gd
 out=$(TB_NOANIM=1 timeout 120 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_back.gd 2>&1); echo "$out" | grep -q "UIBACK OK" && echo "ok: tests/ui_back.gd" || { echo "FAIL: tests/ui_back.gd"; echo "$out" | grep -E "FAIL|SCRIPT"; fail=1; }
 mkdir -p /tmp/tb_cc; run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960
+# HUD / command-card layout: no overlap with End Turn, nothing off screen, 48 u hit areas (sizes x text scales)
+for cfg in "800 360 1.0" "800 360 2.0" "900 415 1.0" "1280 720 1.5" "540 960 1.0" "540 960 2.0"; do
+  out=$(TB_NOANIM=1 timeout 120 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_hud_layout.gd -- /tmp/tb_cc $cfg 2>&1)
+  echo "$out" | grep -q "UI_HUD_LAYOUT OK" && echo "ok: ui_hud_layout $cfg" || { echo "FAIL: ui_hud_layout $cfg"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+done
 [ $fail -eq 0 ] && echo "UI PASS" || echo "UI FAIL"
 exit $fail

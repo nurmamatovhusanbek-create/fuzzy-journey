@@ -23,6 +23,8 @@ signal nation_pressed(n: int)
 signal offer_answered(uid: int, choice: int)
 ## a deferred event chip was tapped: show its prompt again
 signal event_requested(uid: int)
+## the End Turn footprint or the bar changed: the command card re-fits its band
+signal layout_changed
 
 const K = preload("res://src/ui/ui_kit.gd")
 const P = preload("res://src/ui/hud_parts.gd")
@@ -64,9 +66,13 @@ var _menu_btn: P.IconBtn
 var _dots_btn: P.IconBtn
 var _dock: Array = []
 var _dock_more: P.IconBtn
-var _lens_bottom: P.IconBtn
 var _ticker: TBAlertTicker
 var _seal: P.Seal
+var _note: P.SealNote                         # the End Turn summary chip above the seal
+var _rows: int = 1                            # top bar rows (2 when the chips no longer fit one row)
+var _rail_mode: bool = false                  # the screens rail is shown (else the menu button / bottom bar)
+var _rail_w: float = 0.0
+var _comp: Dictionary = {}
 var _legend: P.Legend
 var _strip: P.SeatStrip
 var _catcher: Control
@@ -96,6 +102,7 @@ func _init() -> void:
 
 # ================================================================== build
 func build() -> void:
+	P.sync_settings(); TBCmdCard.text_scale = P.text_scale
 	for c in get_children(): c.queue_free()
 	_chips.clear(); _suffix.clear(); _lens_btns.clear(); _dock.clear()
 	_pop = null; _catcher = null; _tip = null; _preview = null; _active = ""
@@ -110,20 +117,20 @@ func build() -> void:
 	_war = P.Chip.new(); _war.glyph = "swords"; _war.set_a11y(T.call("hud_wars")); _wire(_war, _tip_chip.bind("wars")); _war.pressed.connect(func(): tapped.emit(); wars_pressed.emit()); add_child(_war)
 	_inf = P.Chip.new(); _inf.glyph = "skull"; _inf.set_a11y(T.call("infamy")); _wire(_inf, _tip_chip.bind("infamy")); _inf.pressed.connect(_pin_chip.bind("infamy")); add_child(_inf)
 	for lens in LENS_PINNED:
-		var b := P.IconBtn.new(); b.glyph = P.lens_glyph(lens); b.sq = 32.0; b.icon_px = 20.0; b.show_label = false; b.edge = 1
+		var b := P.IconBtn.new(); b.glyph = P.lens_glyph(lens); b.sq = 40.0; b.icon_px = 20.0; b.show_label = false; b.edge = 1
 		b.set_a11y(T.call("lens_" + lens))
 		b.pressed.connect(func(): tapped.emit(); _pick_lens(lens))
 		_wire(b, _tip_lens.bind(lens))
 		b.set_meta("lens", lens)
 		add_child(b); _lens_btns.append(b)
-	var more_l := P.IconBtn.new(); more_l.glyph = "dots"; more_l.sq = 32.0; more_l.icon_px = 20.0; more_l.show_label = false; more_l.edge = 1
+	var more_l := P.IconBtn.new(); more_l.glyph = "dots"; more_l.sq = 40.0; more_l.icon_px = 20.0; more_l.show_label = false; more_l.edge = 1
 	more_l.set_a11y(T.call("tk_more_lenses")); more_l.pressed.connect(func(): tapped.emit(); _open_lens_pop(more_l)); _wire(more_l, _tip_text.bind(T.call("tk_more_lenses"), "L"))
 	more_l.set_meta("lens", "")
 	add_child(more_l); _lens_btns.append(more_l)
 	_lens_chip = LensChip.new(); _lens_chip.set_a11y(T.call("tk_lens")); _lens_chip.pressed.connect(func(): tapped.emit(); _open_lens_pop(_lens_chip)); _wire(_lens_chip, _tip_text.bind(T.call("tk_lens"), "L")); add_child(_lens_chip)
-	_menu_btn = P.IconBtn.new(); _menu_btn.glyph = "menu"; _menu_btn.sq = 32.0; _menu_btn.icon_px = 20.0; _menu_btn.show_label = false; _menu_btn.edge = 1
+	_menu_btn = P.IconBtn.new(); _menu_btn.glyph = "menu"; _menu_btn.sq = 40.0; _menu_btn.icon_px = 20.0; _menu_btn.show_label = false; _menu_btn.edge = 1
 	_menu_btn.set_a11y(T.call("tk_menu")); _menu_btn.pressed.connect(func(): tapped.emit(); _open_menu(_menu_btn, false)); add_child(_menu_btn)
-	_dots_btn = P.IconBtn.new(); _dots_btn.glyph = "dots"; _dots_btn.sq = 36.0; _dots_btn.icon_px = 22.0; _dots_btn.show_label = false; _dots_btn.edge = 1
+	_dots_btn = P.IconBtn.new(); _dots_btn.glyph = "dots"; _dots_btn.sq = 40.0; _dots_btn.icon_px = 22.0; _dots_btn.show_label = false; _dots_btn.edge = 1
 	_dots_btn.set_a11y(T.call("tk_realm")); _dots_btn.pressed.connect(func(): tapped.emit(); _open_realm()); add_child(_dots_btn)
 	# ---- rail (landscape) / bottom bar (portrait)
 	_rail = P.Surface.new(); _rail.kind = "rail"; add_child(_rail)
@@ -139,8 +146,6 @@ func build() -> void:
 		add_child(b2); _dock.append(b2)
 	_dock_more = P.IconBtn.new(); _dock_more.glyph = "dots"; _dock_more.label = T.call("tk_more"); _dock_more.set_a11y(T.call("tk_more"))
 	_dock_more.pressed.connect(func(): tapped.emit(); _open_menu(_dock_more, true)); add_child(_dock_more)
-	_lens_bottom = P.IconBtn.new(); _lens_bottom.label = T.call("tk_lens_short"); _lens_bottom.set_a11y(T.call("tk_lens")); _lens_bottom.edge = 2
-	_lens_bottom.pressed.connect(func(): tapped.emit(); _open_lens_pop(_lens_bottom)); add_child(_lens_bottom)
 	# ---- ticker, legend, hot-seat strip, End Turn plate
 	_ticker = TBAlertTicker.new()
 	_ticker.activated.connect(_on_alert); _ticker.answered.connect(func(uid: int, c: int): tapped.emit(); offer_answered.emit(uid, c))
@@ -149,6 +154,7 @@ func build() -> void:
 	add_child(_ticker)
 	_legend = P.Legend.new(); add_child(_legend)
 	_strip = P.SeatStrip.new(); _strip.visible = false; add_child(_strip)
+	_note = P.SealNote.new(); _note.visible = false; add_child(_note)
 	_seal = P.Seal.new(); _seal.set_a11y(T.call("end_turn")); _seal.pressed.connect(_seal_pressed); add_child(_seal)
 	_wire(_seal, _tip_seal)
 	_lens_changed()
@@ -157,6 +163,7 @@ func build() -> void:
 ## player text scale (1.0 / 1.25 / 1.5 / 1.75): every HUD font goes through TBHudParts.fs(); rebuilds the HUD
 func set_text_scale(f: float) -> void:
 	P.text_scale = clampf(f, 1.0, 2.0)
+	TBCmdCard.text_scale = P.text_scale
 	if g != null and _bar != null:
 		build(); refresh()
 
@@ -170,12 +177,14 @@ func _chip_h() -> float:
 	var base: float = [32.0, 28.0, 26.0, 32.0][_prof]
 	return maxf(base, P.fs(14.0 if (_prof == Prof.PHONE_L or _prof == Prof.SHORT) else 16.0) + 10.0)
 
+## top bar height: one row, or two rows (row 1 identity + controls, row 2 the resource chips) when the chips no longer fit one row
 func _bar_h() -> float:
 	var base: float = [40.0, 36.0, 32.0, 40.0][_prof]
-	return maxf(base, _chip_h() + (6.0 if _prof == Prof.SHORT else 8.0))
+	var one: float = maxf(base, _chip_h() + (6.0 if _prof == Prof.SHORT else 8.0))
+	return one if _rows == 1 else _chip_h() * 2.0 + 14.0
 
 func _row_pitch() -> float:
-	return (P.fs(12.0) + 10.0 + _sq()) if _show_labels() else _sq() + 8.0
+	return maxf(P.touch(), P.fs(12.0) + 10.0 + _sq())
 func _sq() -> float: return 40.0 if _prof == Prof.DESKTOP else 36.0
 func _show_labels() -> bool: return true
 
@@ -186,16 +195,27 @@ static func profile_for(vp: Vector2) -> int:
 	if vp.y < 560.0: return Prof.PHONE_L
 	return Prof.DESKTOP
 
+## the screens rail fits below the bar (it turns into the single menu button at large text sizes, hud.md 10.2)
+func _rail_fits(bh: float) -> bool:
+	if _prof != Prof.DESKTOP and _prof != Prof.PHONE_L: return false
+	return bh + (8.0 if _prof == Prof.DESKTOP else 6.0) + _row_pitch() * 5.0 + 8.0 <= _vp.y - 8.0
+
 func layout_for(vp: Vector2) -> void:
 	if _bar == null: return
+	P.sync_settings(); TBCmdCard.text_scale = P.text_scale
 	var old: int = _prof
 	_vp = vp
 	_prof = profile_for(vp)
 	_tip_hide(); _close_pop()
 	var m: float = 8.0
+	var portrait: bool = _prof == Prof.PORTRAIT
+	_rail_mode = _rail_fits(_bar_h())
+	_plan_bar()
+	if _rail_mode != _rail_fits(_bar_h()):                 # two bar rows pushed the rail off the screen: plan again with the menu button
+		_rail_mode = not _rail_mode
+		_plan_bar()
 	var bh: float = _bar_h()
 	_bar.position = Vector2.ZERO; _bar.size = Vector2(vp.x, bh)
-	var portrait: bool = _prof == Prof.PORTRAIT
 	# ---- rail (landscape) or bottom bar (portrait)
 	var sq: float = _sq()
 	var pitch: float = _row_pitch()
@@ -204,50 +224,44 @@ func layout_for(vp: Vector2) -> void:
 		(b as P.IconBtn).sq = sq; (b as P.IconBtn).icon_px = 24.0 if _prof == Prof.DESKTOP else 22.0; (b as P.IconBtn).edge = 0; (b as P.IconBtn).show_label = true
 		rail_w = maxf(rail_w, P.tw(P.body_b(), (b as P.IconBtn).label, P.fs(12.0)) + 14.0)
 	rail_w = clampf(maxf(rail_w, 56.0 if _prof != Prof.DESKTOP else 64.0), 56.0, 96.0)
-	var has_rail: bool = _prof == Prof.DESKTOP or _prof == Prof.PHONE_L
-	_rail.visible = has_rail
+	_rail.visible = _rail_mode
 	_bottom.visible = portrait
 	var rail_top: float = bh + (8.0 if _prof == Prof.DESKTOP else 6.0)
-	if has_rail:
+	_rail_w = rail_w if _rail_mode else 0.0
+	var all: Array = _dock + [_dock_more]
+	var bottom_h: float = 56.0
+	_seal.compact = _prof == Prof.SHORT or portrait
+	var sd: float = _seal.diameter()
+	if _rail_mode:
 		_rail.position = Vector2(m, rail_top); _rail.size = Vector2(rail_w, pitch * 5.0 + 8.0)
-		var all: Array = _dock + [_dock_more]
 		for i in all.size():
 			var b2: P.IconBtn = all[i]
 			b2.visible = true; b2.position = Vector2(m, rail_top + 4.0 + i * pitch); b2.size = Vector2(rail_w, pitch)
-	else:
-		for b3 in _dock: (b3 as P.IconBtn).visible = portrait
-		_dock_more.visible = false
-	_lens_bottom.visible = portrait
-	var bottom_h: float = 56.0
-	if portrait:
+	elif portrait:
 		var by: float = vp.y - bottom_h
 		_bottom.position = Vector2(0, by); _bottom.size = Vector2(vp.x, bottom_h)
-		var cell: float = 40.0
-		var labels_fit: bool = true                      # labels on the bottom bar only when every one fits its cell
-		for b4 in _dock + [_lens_bottom]: labels_fit = labels_fit and P.tw(P.body_b(), (b4 as P.IconBtn).label, P.fs(12.0)) <= cell - 2.0
-		for i in _dock.size():
-			var bb: P.IconBtn = _dock[i]
+		var cell: float = clampf(floorf((vp.x - m - 4.0 - sd - 8.0) / 5.0), 48.0, 64.0)
+		var labels_fit: bool = P.fs(12.0) + 36.0 + 3.0 <= bottom_h - 4.0        # labels on the bottom bar only when every one fits its cell
+		for b4 in all: labels_fit = labels_fit and P.tw(P.body_b(), (b4 as P.IconBtn).label, P.fs(12.0)) <= cell - 2.0
+		for i in all.size():
+			var bb: P.IconBtn = all[i]
+			bb.visible = true
 			bb.sq = 36.0; bb.icon_px = 22.0; bb.edge = 2
 			bb.show_label = labels_fit
-			bb.position = Vector2(m + i * cell, by + 2.0); bb.size = Vector2(cell, bottom_h - 4.0)
-		_lens_bottom.sq = 36.0; _lens_bottom.icon_px = 22.0; _lens_bottom.show_label = labels_fit
-		_lens_bottom.position = Vector2(m + _dock.size() * cell, by + 2.0); _lens_bottom.size = Vector2(cell, bottom_h - 4.0)
-	# ---- ticker
+			bb.position = Vector2(4.0 + i * cell, by + 2.0); bb.size = Vector2(cell, bottom_h - 4.0)
+	else:
+		for b3 in all: (b3 as Control).visible = false
+	# ---- ticker (row heights are touch sized; 4 rows + pill on the desktop, 1 + pill elsewhere)
 	var tx: float = m
-	if has_rail: tx = m + rail_w + 8.0
-	_ticker.max_rows = 3 if _prof == Prof.DESKTOP else 1
+	if _rail_mode: tx = m + rail_w + 8.0
+	_ticker.max_rows = 4 if _prof == Prof.DESKTOP else 1
 	_ticker.inline_pill = _prof != Prof.DESKTOP
 	_ticker.row_w = 280.0 if _prof == Prof.DESKTOP else (vp.x - m * 2.0 if portrait else (280.0 if _prof == Prof.PHONE_L else 260.0))
 	_ticker.position = Vector2(tx, bh + (8.0 if _prof == Prof.DESKTOP else 6.0))
-	if portrait and _prof != old: pass
 	_ticker._layout()
-	# ---- seal
-	_seal.compact = _prof != Prof.DESKTOP
-	var sw: float = 168.0 if _prof == Prof.DESKTOP else 128.0
-	var sh: float = 56.0 if _prof != Prof.PORTRAIT else 48.0
-	if portrait: sw = clampf(vp.x - m * 3.0 - (_dock.size() + 1) * 40.0, 112.0, 168.0)
-	_seal.size = Vector2(sw, sh)
-	_seal.position = Vector2(vp.x - m - sw, vp.y - m - sh if not portrait else vp.y - bottom_h + (bottom_h - sh) * 0.5)
+	# ---- End Turn seal: a circle at the bottom-right corner (in portrait it sits in the bottom bar's right end), the summary chip above it
+	_seal.size = Vector2(sd, sd)
+	_seal.position = Vector2(vp.x - m - sd, vp.y - (4.0 if portrait else m) - sd)
 	# ---- legend (desktop only; the other profiles show it inside the lens popover)
 	_legend.framed = true
 	_place_legend()
@@ -255,6 +269,27 @@ func layout_for(vp: Vector2) -> void:
 	if _prof != old: refresh()
 	else: _layout_bar()
 	_sync_seal()
+	layout_changed.emit()
+
+## rectangle (hud coordinates) the End Turn seal and its summary chip occupy: the command card keeps 16 u clear of it
+func end_turn_rect() -> Rect2:
+	if _seal == null: return Rect2()
+	var r := Rect2(_seal.position, _seal.size)
+	if _note != null and _note.visible: r = r.merge(Rect2(_note.position, _note.size))
+	return r
+
+## horizontal band (x0, x1; hud coordinates) the command card may use: right of the rail, left of the End Turn seal minus a 16 u gap
+func card_band() -> Vector2:
+	var x0: float = 8.0
+	if _rail_mode and _rail != null: x0 = _rail.position.x + _rail.size.x + 8.0
+	var x1: float = _vp.x - 8.0
+	if _prof != Prof.PORTRAIT: x1 = end_turn_rect().position.x - 16.0
+	return Vector2(x0, maxf(x0 + 200.0, x1))
+
+## space the portrait sheet keeps free at the bottom (bottom bar and the seal poking above it, plus the summary chip)
+func bottom_reserve() -> float:
+	if _prof != Prof.PORTRAIT: return 12.0
+	return maxf(_bottom.size.y, _vp.y - end_turn_rect().position.y) + 16.0
 
 func _place_legend() -> void:
 	if _legend == null: return
@@ -277,81 +312,119 @@ func _place_strip() -> void:
 	_strip.position = Vector2((_vp.x - w) * 0.5, _bar_h() + 6.0)
 	_strip.queue_redraw()
 
-## compose the bar for a collapse stage (design/ux/hud.md section 6) and report its width
+## compose the bar for a collapse stage (design/ux/hud.md section 6): {nat: identity items, chips: resource items, right: controls};
+## an item is [control, gap before, width]
 func _compose_bar(stage: int) -> Dictionary:
 	var compact: bool = _prof != Prof.DESKTOP
 	var portrait: bool = _prof == Prof.PORTRAIT
-	var left: Array = []
+	var nat_items: Array = []
+	var chip_items: Array = []
 	var right: Array = []
 	var dl: int = 2 if stage < 2 else (1 if stage < 3 else 0)
 	var group: bool = stage < 4 and not portrait
+	var tight: bool = stage >= 8
 	_nat.show_name = stage < 7 and not portrait
 	_nat.badge = 0 if group else (_wars + (1 if _inf_on else 0))
 	_nat.compact = compact
-	left.append([_nat, 0.0, _nat.desired_w()])
+	nat_items.append([_nat, 0.0, _nat.desired_w()])
 	if stage < 6 and not portrait:
 		_date.compact = compact
-		left.append([_date, 10.0, _date.desired_w()])
+		nat_items.append([_date, 10.0, _date.desired_w()])
 	var first: bool = true
 	for key in ["gold", "man", "mp", "dp"]:
 		if key == "dp" and (g == null or g.rules < 1 or stage >= 5): continue
 		var c: P.Chip = _chips[key]
-		c.compact = compact
+		c.compact = compact; c.tight = tight
 		c.delta_on = dl == 2 or (dl == 1 and key == "gold")
 		c.suffix = String(_suffix.get(key, "")) if stage < 3 else ""
-		left.append([c, 12.0 if first else 4.0, c.desired_w()]); first = false
+		chip_items.append([c, 12.0 if first else (2.0 if tight else 4.0), c.desired_w()]); first = false
 	if group:
 		if _wars > 0:
-			_war.compact = compact; _war.delta_on = false; left.append([_war, 8.0, _war.desired_w()])
+			_war.compact = compact; _war.tight = tight; _war.delta_on = false; chip_items.append([_war, 8.0, _war.desired_w()])
 		if _inf_on:
-			_inf.compact = compact; _inf.delta_on = false; left.append([_inf, 4.0 if _wars > 0 else 8.0, _inf.desired_w()])
+			_inf.compact = compact; _inf.tight = tight; _inf.delta_on = false; chip_items.append([_inf, 4.0 if _wars > 0 else 8.0, _inf.desired_w()])
 	if _prof == Prof.DESKTOP and stage < 1:
-		for i in _lens_btns.size():
-			var lb: P.IconBtn = _lens_btns[i]
-			lb.sq = 32.0
-			right.append([lb, 2.0, 36.0])
+		for i in _lens_btns.size(): right.append([_lens_btns[i], 0.0, 48.0])
 	elif not portrait:
 		_lens_chip.compact = compact
 		right.append([_lens_chip, 0.0, _lens_chip.desired_w()])
-		if _prof == Prof.SHORT: right.append([_menu_btn, 4.0, 36.0])
-	else:
-		right.append([_dots_btn, 0.0, 40.0])
-	var total: float = 0.0
-	for it in left: total += float(it[1]) + float(it[2])
-	for it in right: total += float(it[1]) + float(it[2])
-	total += 16.0
-	return {"left": left, "right": right, "total": total}
+	if not portrait and not _rail_mode: right.append([_menu_btn, 4.0, 48.0])
+	if portrait: right.append([_dots_btn, 0.0, 48.0])
+	return {"nat": nat_items, "chips": chip_items, "right": right}
+
+static func _row_w(items: Array) -> float:
+	var w: float = 0.0
+	for i in items.size(): w += float(items[i][2]) + (float(items[i][1]) if i > 0 else 0.0)
+	return w
+
+## width of the one-row bar (identity, chips and controls with at least 8 u between the groups)
+func _one_row_w(comp: Dictionary) -> float:
+	var left: Array = (comp["nat"] as Array) + (comp["chips"] as Array)
+	return _row_w(left) + 8.0 + _row_w(comp["right"])
+
+## choose the collapse stage and the row count: collapse in the order of hud.md section 6 first, wrap the chips to a second row last
+func _plan_bar() -> void:
+	if _nat == null: return
+	var avail: float = _vp.x - 16.0
+	var s0: int = 2 if _prof == Prof.PORTRAIT else 0
+	var stage: int = s0
+	var comp: Dictionary = _compose_bar(stage)
+	_rows = 1
+	while _one_row_w(comp) > avail and stage < 9:
+		stage += 1
+		comp = _compose_bar(stage)
+	if _one_row_w(comp) > avail:
+		_rows = 2
+		stage = s0
+		comp = _compose_bar(stage)
+		while maxf(_row_w(comp["nat"]) + 8.0 + _row_w(comp["right"]), _row_w(comp["chips"])) > avail and stage < 9:
+			stage += 1
+			comp = _compose_bar(stage)
+	_stage = stage
+	_comp = comp
 
 func _layout_bar() -> void:
 	if _nat == null: return
+	var rows0: int = _rows
+	_plan_bar()
+	if _rows != rows0:
+		layout_for(_vp)
+		return
 	var m: float = 8.0
-	var avail: float = _vp.x - m * 2.0
-	var stage: int = 0 if _prof != Prof.PORTRAIT else 2
-	var comp: Dictionary = _compose_bar(stage)
-	while float(comp["total"]) > avail and stage < 8:
-		stage += 1
-		comp = _compose_bar(stage)
-	_stage = stage
 	var ch: float = _chip_h()
 	var bh: float = _bar_h()
-	var y: float = (bh - ch) * 0.5
+	var rh: float = bh if _rows == 1 else bh * 0.5
+	var y: float = (rh - ch) * 0.5
 	for c in [_nat, _date, _war, _inf, _lens_chip, _menu_btn, _dots_btn]: (c as Control).visible = false
 	for c in _chips.values(): (c as Control).visible = false
 	for b in _lens_btns: (b as Control).visible = false
 	var x: float = m
-	for it in comp["left"]:
+	var first: bool = true
+	var top: Array = (_comp["nat"] as Array) + ((_comp["chips"] as Array) if _rows == 1 else [])
+	for it in top:
 		var c2: Control = it[0]
-		x += float(it[1])
+		x += float(it[1]) if not first else 0.0
+		first = false
 		c2.visible = true; c2.position = Vector2(x, y); c2.size = Vector2(float(it[2]), ch)
 		x += float(it[2])
+	if _rows == 2:
+		var x2: float = m
+		var f2: bool = true
+		for it in (_comp["chips"] as Array):
+			var c5: Control = it[0]
+			x2 += float(it[1]) if not f2 else 0.0
+			f2 = false
+			c5.visible = true; c5.position = Vector2(x2, rh + y); c5.size = Vector2(float(it[2]), ch)
+			x2 += float(it[2])
 	var rx: float = _vp.x - m
-	for k in range((comp["right"] as Array).size() - 1, -1, -1):
-		var it2: Array = (comp["right"] as Array)[k]
+	var rit: Array = _comp["right"]
+	for k in range(rit.size() - 1, -1, -1):
+		var it2: Array = rit[k]
 		var c3: Control = it2[0]
 		rx -= float(it2[2])
 		c3.visible = true
 		if c3 is P.IconBtn:
-			c3.position = Vector2(rx, (bh - 36.0) * 0.5); c3.size = Vector2(float(it2[2]), 36.0)
+			c3.position = Vector2(rx, 0.0); c3.size = Vector2(float(it2[2]), rh)
 		else:
 			c3.position = Vector2(rx, y); c3.size = Vector2(float(it2[2]), ch)
 		rx -= float(it2[1])
@@ -369,6 +442,7 @@ func keepouts() -> Array:
 	var tr: Rect2 = _ticker.occupied_rect()
 	if tr.size.x > 0.0: out.append(tr.grow(4.0))
 	out.append(_seal.get_global_rect().grow(10.0))
+	if _note != null and _note.visible: out.append(_note.get_global_rect().grow(4.0))
 	if _legend.visible: out.append(_legend.get_global_rect().grow(4.0))
 	if _strip.visible: out.append(_strip.get_global_rect().grow(4.0))
 	return out
@@ -400,6 +474,7 @@ func _tag() -> String:
 
 func refresh() -> void:
 	if g == null or _nat == null: return
+	_pull_cfg()
 	var n: int = g.human_id
 	var inc: Dictionary = g.income(n)
 	var bd: Dictionary = TBAdvisor.breakdown(g, n, inc)
@@ -442,7 +517,6 @@ func refresh() -> void:
 	for a in al: if int(a["sev"]) == 2: crit += 1
 	var adv: P.IconBtn = _dock[3]
 	adv.badge = al.size(); adv.badge_crit = crit > 0; adv.queue_redraw()
-	_lens_bottom.glyph = P.lens_glyph(_lens)
 	_seal.attention = crit
 	_layout_bar()
 	_place_strip()
@@ -495,8 +569,7 @@ func _announce_new() -> void:
 		_announced[k] = true
 		var tx: String = ("%s: %s" % [T.call("cls_" + String(e["cls"])), String(e["text"])])
 		_feed_add(tx, int(e["sev"]) >= 2)
-		if tts_mode == "all" or (tts_mode == "critical" and int(e["sev"]) >= 2):
-			DisplayServer.tts_speak(tx, "", 80)
+		announce(tx, int(e["sev"]) >= 2)
 	for k in _announced.keys():
 		if not seen.has(k): _announced.erase(k)
 
@@ -521,6 +594,31 @@ func cycle_alert(dir: int) -> void:
 var _alert_i: int = -1
 
 # ================================================================== feed + turn report + toast
+## the player's settings dictionary (the parent scene's cfg), read defensively: {} when absent
+func _cfg() -> Dictionary:
+	var par: Node = get_parent()
+	if par != null:
+		var c: Variant = par.get("cfg")
+		if c is Dictionary: return c
+	return {}
+
+## pull the settings the HUD honours from cfg (confirm mode, text-to-speech); missing keys keep the current value
+func _pull_cfg() -> void:
+	var c: Dictionary = _cfg()
+	var cm: Variant = c.get("confirm_mode", null)
+	if cm is String and (cm as String) in ["smart", "always", "never"]: confirm_mode = cm
+	var t: Variant = c.get("tts", null)
+	if t is bool: tts_mode = "all" if t else "off"
+	elif t is String and (t as String) in ["off", "critical", "all"]: tts_mode = t
+
+## speak a line with the OS text-to-speech when the player turned it on (cfg["tts"]; "critical" speaks only critical lines)
+func announce(text: String, critical: bool = true) -> void:
+	_pull_cfg()
+	if tts_mode == "off" or text == "": return
+	if tts_mode == "critical" and not critical: return
+	if not DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH): return
+	DisplayServer.tts_speak(text, "", 80)
+
 func _feed_add(text: String, bad: bool) -> void:
 	if g == null: return
 	feed.append({"turn": g.turn, "date": _year(g.year), "text": text, "bad": bad})
@@ -533,6 +631,7 @@ func feed_lines(count: int = 20) -> Array:
 ## one toast-style message at a time (a new one replaces the old); mirrored to the text feed
 func toast(msg: String, bad: bool = false) -> void:
 	_feed_add(msg, bad)
+	announce(msg, bad)
 	if _ticker == null: return
 	_ticker.show_info(msg, "warn" if bad else "info", clampf(5.0 + maxf(0.0, msg.length() - 40.0) * 0.05, 5.0, 10.0))
 
@@ -738,7 +837,6 @@ func _lens_changed() -> void:
 		ib.queue_redraw()
 	if _lens_chip != null:
 		_lens_chip.lens = _lens; _lens_chip.label = T.call("lens_" + _lens); _lens_chip.queue_redraw()
-	if _lens_bottom != null: _lens_bottom.glyph = P.lens_glyph(_lens); _lens_bottom.queue_redraw()
 
 ## "L" / chip: 4 pinned lenses, the rest behind "More", the legend of the active lens underneath
 func _open_lens_pop(anchor: Control) -> void:
@@ -755,7 +853,7 @@ func _open_lens_pop(anchor: Control) -> void:
 	var more := GridContainer.new(); more.columns = 2; more.add_theme_constant_override("h_separation", 4); more.add_theme_constant_override("v_separation", 4)
 	for r in rest: more.add_child(_lens_row(String(r[0]), int(r[1])))
 	more.visible = _lens_more or not LENS_PINNED.has(_lens)
-	var tog := RowBtn.new(); tog.glyph = "dots"; tog.label = T.call("tk_more_lenses"); tog.custom_minimum_size = Vector2(0, 40)
+	var tog := RowBtn.new(); tog.glyph = "dots"; tog.label = T.call("tk_more_lenses"); tog.custom_minimum_size = Vector2(0, P.touch())
 	tog.pressed.connect(func(): more.visible = not more.visible; _lens_more = more.visible; pc.reset_size(); _place_near(pc, anchor))
 	v.add_child(tog); v.add_child(more)
 	if _legend.has_key() and _prof != Prof.DESKTOP:
@@ -764,23 +862,29 @@ func _open_lens_pop(anchor: Control) -> void:
 
 func _lens_row(lens: String, i: int) -> RowBtn:
 	var r := RowBtn.new(); r.glyph = P.lens_glyph(lens); r.label = T.call("lens_" + lens); r.hint = ("Alt+%d" % (i + 1)) if (_prof == Prof.DESKTOP and i < 9) else ""
-	r.active = lens == _lens; r.custom_minimum_size = Vector2(minf(196.0, (_vp.x - 56.0) * 0.5), 44); r.set_a11y(r.label)
+	r.active = lens == _lens; r.custom_minimum_size = Vector2(minf(196.0, (_vp.x - 56.0) * 0.5), P.touch()); r.set_a11y(r.label)
 	r.pressed.connect(func(): tapped.emit(); _pick_lens(lens))
 	return r
 
-## every screen as a list (SHORT "menu" button, "More" on the rail, the portrait overflow)
+## every screen as a list (SHORT "menu" button, "More" on the rail and the portrait bottom bar); portrait adds the map lens
 func _open_menu(anchor: Control, only_more: bool) -> void:
 	var pc := PanelContainer.new()
 	pc.add_theme_stylebox_override("panel", P.bar_box(8, 8, 4, true))
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4); pc.add_child(v)
+	var rw: float = minf(240.0, _vp.x - 32.0)
 	for i in SCREENS.size():
 		if only_more and i < PRIMARY: continue
 		var sc: Array = SCREENS[i]
-		var r := RowBtn.new(); r.glyph = sc[1]; r.label = T.call(sc[2]); r.hint = sc[3]; r.custom_minimum_size = Vector2(190, 48); r.set_a11y(r.label)
+		var r := RowBtn.new(); r.glyph = sc[1]; r.label = T.call(sc[2]); r.hint = sc[3]; r.custom_minimum_size = Vector2(rw, P.touch()); r.set_a11y(r.label)
 		var sid: String = sc[0]
 		r.pressed.connect(func(): _close_pop(); _screen(sid))
 		if sid == "advisor": r.badge = (_dock[3] as P.IconBtn).badge
 		v.add_child(r)
+	if only_more and _prof == Prof.PORTRAIT:
+		var lr := RowBtn.new(); lr.glyph = P.lens_glyph(_lens); lr.label = T.call("tk_lens"); lr.hint = T.call("lens_" + _lens)
+		lr.custom_minimum_size = Vector2(rw, P.touch()); lr.set_a11y(lr.label)
+		lr.pressed.connect(func(): tapped.emit(); _close_pop(); _open_lens_pop(anchor))
+		v.add_child(lr)
 	_open_pop("menu", pc, anchor)
 
 # ================================================================== realm sheet
@@ -800,7 +904,7 @@ func _open_realm() -> void:
 	if g.rules >= 1 and g.r_name[n] != "":
 		var rt: Label = K.label("%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], P.fs(14.0), P.tk("ink_1"))
 		hv.add_child(rt)
-	if _is_hot(): hv.add_child(K.label("%s · %s" % [_tag(), T.call("tk_round", {"k": g.turn})], P.fs(13.0), P.tk("brass_ink")))
+	if _is_hot(): hv.add_child(K.label(_round_text(), P.fs(13.0), P.tk("brass_ink")))
 	v.add_child(_sheet_row(T.call("lands"), str(int(inc["lands"]))))
 	if g.rules >= 1: v.add_child(_sheet_row(T.call("hud_intel"), str(int(floorf(g.intel[n])))))
 	v.add_child(_sheet_row(T.call("tech"), "%.1f · %s" % [g.tech_level[n], T.call("era_name_%d" % g.era[n])]))
@@ -822,6 +926,11 @@ func _open_realm() -> void:
 	pc.custom_minimum_size = Vector2(minf(300.0, _vp.x - 16.0), 0)
 	_open_pop("realm", pc, _nat if _prof != Prof.PORTRAIT else _dots_btn)
 
+## "Round 4 · P1/2": the hot-seat round and this seat (realm sheet, End Turn summary)
+func _round_text() -> String:
+	var hs: PackedInt32Array = g.humans()
+	return T.call("tk_round_seat", {"k": g.turn, "p": hs.find(g.human_id) + 1, "n": hs.size()})
+
 func _sheet_row(cap: String, val: String) -> HBoxContainer:
 	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 8)
 	var l: Label = K.label(cap, P.fs(13.0), P.tk("ink_1")); l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.add_child(l)
@@ -841,7 +950,7 @@ func _open_drawer() -> void:
 		if String(e["cls"]) != last:
 			last = String(e["cls"]); v.add_child(_cap_label(T.call("cls_" + last)))
 		var row := AT.AlertRow.new(); row.drawer = true; row.set_entry(e, String(e["text"]))
-		row.custom_minimum_size = Vector2(minf(300.0, _vp.x - 40.0), row.base_h())
+		row.set_width(minf(300.0, _vp.x - 40.0)); row.custom_minimum_size = Vector2(minf(300.0, _vp.x - 40.0), row.base_h())
 		row.pressed.connect(func(): _close_pop(); _on_alert(e) if String(e["cls"]) != "offer" else null)
 		v.add_child(row)
 	var msgs: Array = feed_lines(8)
@@ -935,12 +1044,14 @@ func _sync_seal() -> void:
 		var nx: int = _next_seat()
 		_seal.set_state(S.SEAT)
 		_seal.caption = T.call("tk_pass_to", {"p": "P%d" % (g.humans().find(nx) + 1)}) if nx != 0 else T.call("tk_end_round")
-		_seal.sub = lead + _moves_text()
+		_seal.sub = _round_text() + " · " + lead + _moves_text()
 	else:
 		_seal.set_state(S.IDLE)
 		_seal.caption = T.call("end_turn"); _seal.sub = lead + _moves_text()
 	_seal.set_a11y("%s. %s" % [_seal.caption, _seal.sub])
+	_seal.caption_inside = _seal.fits_inside(_seal.caption)
 	_seal.queue_redraw()
+	_place_note()
 	# hot-seat strip
 	if _is_hot() and _strip != null:
 		var hs: PackedInt32Array = g.humans()
@@ -951,6 +1062,21 @@ func _sync_seal() -> void:
 			var st: int = 0 if i < cur else (1 if i == cur else 2)
 			_strip.seats.append({"i": i, "tag": "P%d" % (i + 1), "state": st, "word": T.call(["tk_ended", "tk_playing", "tk_waiting_seat"][st])})
 		_place_strip()
+
+## the summary chip above the seal: the sub-line, and the caption too when it does not fit the disc (never truncated, it wraps)
+func _place_note() -> void:
+	if _note == null or _seal == null: return
+	var old: Rect2 = end_turn_rect()
+	_note.head = "" if _seal.caption_inside else _seal.caption
+	if _seal.state == P.Seal.S.OVER: _note.head = _seal.caption
+	_note.body = _seal.sub
+	_note.visible = not _note.is_empty()
+	if _note.visible:
+		var sz: Vector2 = _note.measure(minf(240.0, _vp.x * 0.62))
+		_note.size = sz
+		_note.position = Vector2(_seal.position.x + _seal.size.x - sz.x, _seal.position.y - 6.0 - sz.y)
+		_note.queue_redraw()
+	if end_turn_rect() != old: layout_changed.emit()
 
 func set_seal_pulse(on: bool) -> void:
 	if _seal: _seal.set_pulse(on)
@@ -991,7 +1117,7 @@ func _unhandled_key_input(e: InputEvent) -> void:
 				if i < TBLenses.NAMES.size(): _pick_lens(TBLenses.NAMES[i]); handled = true
 			elif not (k.ctrl_pressed or k.alt_pressed or k.meta_pressed):
 				match k.keycode:
-					KEY_L: _open_lens_pop(_lens_chip if _lens_chip.visible else (_lens_bottom if _lens_bottom.visible else _nat)); handled = true
+					KEY_L: _open_lens_pop(_lens_chip if _lens_chip.visible else (_dock_more if _dock_more.visible else _nat)); handled = true
 					KEY_A: cycle_alert(-1 if k.shift_pressed else 1); handled = true
 					KEY_N: _screen("nations"); handled = true
 					KEY_B: _screen("budget"); handled = true
@@ -1057,7 +1183,7 @@ class RowBtn extends P.Hit:
 	var badge: int = 0
 	func _init() -> void:
 		super()
-		custom_minimum_size = Vector2(150, 44)
+		custom_minimum_size = Vector2(150, P.touch())
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		P.plate(self, r, P.tk("bar_2") if (hover or down or active) else P.tk("bar_1"), Color.TRANSPARENT, 2.0, P.tk("brass_lt") if active else Color.TRANSPARENT, 3.0)

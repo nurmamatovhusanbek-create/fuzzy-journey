@@ -44,7 +44,7 @@ func _init() -> void:
 	# ---- lens popover (economic) from the lens control
 	main.hud.set_lens_legend("economic"); main.map.set_lens("economic")
 	await _shot(main, dir, tag + "_3lens_set")
-	main.hud._open_lens_pop(main.hud._lens_chip if main.hud._lens_chip.visible else (main.hud._lens_bottom if main.hud._lens_bottom.visible else main.hud._nat))
+	main.hud._open_lens_pop(main.hud._lens_chip if main.hud._lens_chip.visible else (main.hud._dock_more if main.hud._dock_more.visible else main.hud._nat))
 	await _shot(main, dir, tag + "_4lenspop")
 	main.hud._close_pop(); main.hud.set_lens_legend("political"); main.map.set_lens("political")
 	main.hud._pin_chip("gold")

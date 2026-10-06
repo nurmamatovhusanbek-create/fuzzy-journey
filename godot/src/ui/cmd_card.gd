@@ -7,7 +7,12 @@ extends RefCounted
 
 static var text_scale := 1.0                     # text-size setting (A11Y-TXT-001): 1.0 / 1.25 / 1.5 / 2.0
 static var show_hotkeys := not (OS.get_name() in ["Android", "iOS"])
-static func fs(px: int) -> int: return int(round(px * text_scale))
+## a font size through the text scale, never below the 12 px floor (A11Y-TXT-002)
+static func fs(px: int) -> int: return maxi(12, int(round(px * text_scale)))
+## pull the player's text scale from the kit (called by the card before every rebuild)
+static func sync_settings() -> void:
+	text_scale = clampf(float(TBHudParts.kit("text_scale", 1.0)), 1.0, 2.0)
+static func touch() -> float: return TBHudParts.touch()
 static func tk(name: String) -> Color: return TBTokens.c(name)
 
 ## 8-point chamfered rectangle
@@ -99,8 +104,8 @@ class PlateBox extends StyleBox:
 	var _c_fill := PackedColorArray()
 	var _c_shadow := PackedColorArray()
 	var _c_bar := PackedColorArray()
-	var _col_border := Color()
-	var _col_out := Color()
+	var _col_border := Color.TRANSPARENT
+	var _col_out := Color.TRANSPARENT
 	var _bar_rect := PackedVector2Array()
 
 	func _init(f: String = "paper_0", b: String = "rule", c: float = 4.0, e: int = 0) -> void:
@@ -114,7 +119,7 @@ class PlateBox extends StyleBox:
 		_shadow = TBCmdCard.chamfer(Rect2(rr.position + Vector2(0, 3), rr.size), cut) if elev > 0 else PackedVector2Array()
 		var f := TBCmdCard.tk(fill); f.a = fill_a
 		_c_fill = PackedColorArray([f])
-		var sh := Color.BLACK; sh.a = 0.26
+		var sh := TBTokens.ca("table", TBTokens.SHADOW_A[1])
 		_c_shadow = PackedColorArray([sh])
 		_col_border = TBCmdCard.tk(border) if border != "" else Color.TRANSPARENT
 		if bar != "":
@@ -222,13 +227,14 @@ class VerbBtn extends Button:
 		if blocked == b: return
 		blocked = b; queue_redraw()
 	func _get_minimum_size() -> Vector2:
-		return Vector2(48.0 if short_form else 76.0, 44.0)
+		return Vector2(48.0 if short_form else 76.0, TBCmdCard.touch())
 	func _text_colour() -> Color:
 		if blocked: return TBCmdCard.tk("ink_off")
 		if danger: return TBCmdCard.tk("on_wax")
 		return TBCmdCard.tk("ink_0")
 	func _draw() -> void:
 		var rect := Rect2(Vector2.ZERO, size)
+		var sf := short_form and size.x < 84.0                  # icon only just while the button is narrow; wide strips show the verb
 		var box := _bn
 		if blocked: box = _bb
 		elif button_pressed: box = _bp
@@ -236,12 +242,12 @@ class VerbBtn extends Button:
 		var shift := Vector2(0, 1) if (button_pressed and not blocked) else Vector2.ZERO
 		box.draw(get_canvas_item(), rect)
 		var tc := _text_colour()
-		var gx := 18.0 if not short_form else size.x * 0.5
+		var gx := 18.0 if not sf else size.x * 0.5
 		if glyph != "":
 			var gcol := tc
-			TBCmdCard.glyph(self, glyph, Vector2(gx, size.y * 0.5 - (6.0 if short_form and TBCmdCard.show_hotkeys else 0.0)) + shift, 20.0, gcol, 1.7)
+			TBCmdCard.glyph(self, glyph, Vector2(gx, size.y * 0.5 - (6.0 if sf and TBCmdCard.show_hotkeys else 0.0)) + shift, 20.0, gcol, 1.7)
 		if blocked: TBCmdCard.glyph(self, "lock", Vector2(size.x - 9.0, 9.0), 10.0, tc, 1.3)
-		if not short_form:
+		if not sf:
 			var f: Font = TBKit.body_b()
 			var fsz := TBCmdCard.fs(13)
 			var avail := size.x - 36.0 - (0.0 if hot == "" or not TBCmdCard.show_hotkeys else 0.0)
@@ -249,15 +255,20 @@ class VerbBtn extends Button:
 			var th := f.get_multiline_string_size(lines, HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, 2).y
 			var longest := 0.0
 			for wd in label.split(" "): longest = maxf(longest, f.get_string_size(wd, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x)
-			if longest > avail: fsz = maxi(TBTokens.FS_CAPTION, fsz - 1); th = f.get_multiline_string_size(lines, HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, 2).y
+			while longest > avail and fsz > TBTokens.FS_CAPTION:           # never an ellipsis on a verb: shrink to the 12 px floor, then break the word
+				fsz -= 1
+				longest = 0.0
+				for wd2 in label.split(" "): longest = maxf(longest, f.get_string_size(wd2, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x)
+			th = f.get_multiline_string_size(lines, HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, 3).y
 			var y0 := (size.y - th) * 0.5 + f.get_ascent(fsz) + shift.y - (3.0 if hot != "" and TBCmdCard.show_hotkeys and th < 20.0 else 0.0)
-			f.draw_multiline_string(get_canvas_item(), Vector2(32.0, y0), lines, HORIZONTAL_ALIGNMENT_LEFT, avail + 4.0, fsz, 2, tc, TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE)
-		if hot != "" and TBCmdCard.show_hotkeys:
+			f.draw_multiline_string(get_canvas_item(), Vector2(32.0, y0), lines, HORIZONTAL_ALIGNMENT_LEFT, avail + 4.0, fsz, 3, tc, TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE)
+		if hot != "" and TBCmdCard.show_hotkeys and TBCmdCard.text_scale < 1.5:
 			var m: Font = TBKit.mono_b()
-			var bw := maxf(14.0, m.get_string_size(hot, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 6.0)
-			var br := Rect2(size.x - bw - 4.0, size.y - 14.0 - 3.0, bw, 14.0)
+			var hs := TBCmdCard.fs(12)
+			var bw := maxf(16.0, m.get_string_size(hot, HORIZONTAL_ALIGNMENT_LEFT, -1, hs).x + 6.0)
+			var br := Rect2(size.x - bw - 4.0, size.y - float(hs) - 5.0, bw, float(hs) + 2.0)
 			draw_rect(br, TBCmdCard.tk("ink_1") if not danger else TBCmdCard.tk("on_wax"), false, 1.0)
-			draw_string(m, br.position + Vector2(3.0, 11.0), hot, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TBCmdCard.tk("ink_1") if not danger else TBCmdCard.tk("on_wax"))
+			draw_string(m, br.position + Vector2(3.0, float(hs) - 0.5), hot, HORIZONTAL_ALIGNMENT_LEFT, -1, hs, TBCmdCard.tk("ink_1") if not danger else TBCmdCard.tk("on_wax"))
 		if has_focus():
 			draw_rect(rect.grow(-1.0), TBCmdCard.tk("ink_0"), false, 2.0)
 			draw_rect(rect.grow(1.0), TBCmdCard.tk("paper_0"), false, 1.0)
@@ -276,7 +287,12 @@ class ShareSeg extends Control:
 		focus_mode = Control.FOCUS_ALL
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		_box = TBCmdCard.plate("paper_1", "rule", TBTokens.CUT)
-	func _get_minimum_size() -> Vector2: return Vector2(cell_w * 4.0, cell_h)
+	func _cw() -> float: return maxf(cell_w, TBKit.mono_b().get_string_size("100%", HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13)).x + 14.0)
+	func _get_minimum_size() -> Vector2: return Vector2(_cw() * 4.0, cell_h)
+	## the hit area is at least 48 high even where the cells are 36 (desktop pointer cards)
+	func _has_point(p: Vector2) -> bool:
+		var ex: float = maxf(0.0, (TBCmdCard.touch() - size.y) * 0.5)
+		return Rect2(Vector2(0.0, -ex), Vector2(size.x, size.y + ex * 2.0)).has_point(p)
 	func set_current(f: float) -> void:
 		current = f; queue_redraw()
 	func _idx_at(x: float) -> int: return clampi(int(x / (size.x / 4.0)), 0, 3)
@@ -308,48 +324,67 @@ class ShareSeg extends Control:
 		if has_focus():
 			draw_rect(Rect2(Vector2.ZERO, size).grow(-1.0), TBCmdCard.tk("ink_0"), false, 2.0)
 
-# ---------------------------------------------------------------- cost line (one line; the shortfall part is underlined as well as red)
+# ---------------------------------------------------------------- cost line (wraps to as many lines as it needs; the shortfall part is underlined as well as red)
 class CostLine extends Control:
 	var parts: Array = []                       # [{t: String, short: bool}]
 	var error := false                          # a rejected command: whole line in neg with a warning glyph
-	var _elided := ""
-	var _key := ""
+	var _lines := 1
+	var _w := -1.0
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_PASS
 		size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		clip_contents = true
-	func _get_minimum_size() -> Vector2: return Vector2(40, 18)
+		resized.connect(_relines)
+	func _fsz() -> int: return TBCmdCard.fs(13)
+	func _lh() -> float: return TBKit.body().get_height(_fsz())
+	func _get_minimum_size() -> Vector2: return Vector2(40, maxf(18.0, _lines * _lh() + 2.0))
 	func set_parts(p: Array, is_error: bool = false) -> void:
 		parts = p; error = is_error
 		var full := ""
 		for q in p: full += String(q["t"])
 		tooltip_text = full
+		_w = -1.0
+		_relines()
 		queue_redraw()
+	## flow the parts onto lines: [{t, short, x, y}] and the line count for the current width
+	func _flow(room: float) -> Array:
+		var f: Font = TBKit.body()
+		var out: Array = []
+		var x := 0.0; var line := 0
+		for q in parts:
+			var t: String = String(q["t"])
+			var tw := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, _fsz()).x
+			if x > 0.0 and x + tw > room:
+				line += 1; x = 0.0
+				t = t.trim_prefix(" · ").trim_prefix(" ")
+				tw = f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, _fsz()).x
+			out.append({"t": t, "short": bool(q["short"]), "x": x, "y": line, "w": tw})
+			x += tw
+		return out
+	func _room() -> float: return maxf(40.0, (size.x if size.x > 1.0 else 300.0) - (20.0 if error else 0.0))
+	func _relines() -> void:
+		if absf(size.x - _w) < 0.5: return
+		_w = size.x
+		var fl := _flow(_room())
+		var n := 1
+		for q in fl: n = maxi(n, int(q["y"]) + 1)
+		n = mini(n, 3)
+		if n != _lines:
+			_lines = n; update_minimum_size()
 	func _draw() -> void:
 		var f: Font = TBKit.body()
-		var fsz := TBCmdCard.fs(13)
-		var x := 0.0
-		var base := size.y * 0.5 + 5.0
+		var fsz := _fsz()
+		var x0 := 0.0
+		var lh := _lh()
 		if error:
-			TBCmdCard.glyph(self, "warning", Vector2(8.0, size.y * 0.5), 14.0, TBCmdCard.tk("neg"), 1.5); x = 20.0
-		var room := size.x - x
-		var total := 0.0
-		for q in parts: total += f.get_string_size(String(q["t"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+			TBCmdCard.glyph(self, "warning", Vector2(8.0, lh * 0.5 + 1.0), 14.0, TBCmdCard.tk("neg"), 1.5); x0 = 20.0
 		var ink := TBCmdCard.tk("ink_1"); var neg := TBCmdCard.tk("neg")
-		if total <= room:
-			for q in parts:
-				var t: String = q["t"]
-				var tw := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-				var col := neg if (bool(q["short"]) or error) else ink
-				draw_string(f, Vector2(x, base), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, col)
-				if bool(q["short"]): draw_line(Vector2(x, base + 2.0), Vector2(x + tw, base + 2.0), neg, 1.0)
-				x += tw
-		else:                                    # too long: clip the whole text with an ellipsis (the full text is the tooltip)
-			var full := ""
-			for q in parts: full += String(q["t"])
-			var lim := full.length()
-			while lim > 1 and f.get_string_size(full.left(lim) + "…", HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x > room: lim -= 1
-			draw_string(f, Vector2(x, base), full.left(lim) + "…", HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, neg if error else ink)
+		for q in _flow(maxf(40.0, size.x - x0)):
+			var base: float = float(q["y"]) * lh + f.get_ascent(fsz) + 1.0
+			var col := neg if (bool(q["short"]) or error) else ink
+			var px: float = x0 + float(q["x"])
+			draw_string(f, Vector2(px, base), String(q["t"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, col)
+			if bool(q["short"]): draw_line(Vector2(px, base + 2.0), Vector2(px + float(q["w"]), base + 2.0), neg, 1.0)
 
 # ---------------------------------------------------------------- small drawn widgets for the Details drawer
 class Pips extends Control:

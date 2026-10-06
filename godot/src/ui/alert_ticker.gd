@@ -18,7 +18,7 @@ signal tip_hidden
 
 const GAP := 4.0
 
-var max_rows: int = 3
+var max_rows: int = 4
 var row_w: float = 280.0
 var inline_pill: bool = false               ## 1-row layouts: the "+n" pill sits beside the row instead of under it
 var rows: Dictionary = {}                   ## key -> AlertRow
@@ -34,7 +34,7 @@ var _entries: Array = []
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-func row_h() -> float: return maxf(36.0, P.fs(14.0) + 18.0)
+func row_h() -> float: return maxf(P.touch(), P.fs(14.0) + 18.0)
 
 # ---------------------------------------------------------------- look of an entry
 static func bar_color(e: Dictionary) -> Color:
@@ -76,13 +76,29 @@ class AlertRow extends P.Hit:
 	var dismissible: bool = true
 	var drawer: bool = false
 	var _buttons: HBoxContainer
-	func base_h() -> float: return maxf(36.0, TBHudParts.fs(14.0) + 18.0)
-	func full_h() -> float: return base_h() + (46.0 if expanded else 0.0)
+	var lines: int = 1                   # 1 or 2 text lines (a long chip wraps; the full text is also the tooltip)
+	var _w: float = 0.0
+	func line_h() -> float: return TBHudParts.body_b().get_height(TBHudParts.fs(14.0))
+	func base_h() -> float:
+		var one: float = maxf(TBHudParts.touch(), TBHudParts.fs(14.0) + 18.0)
+		return one if lines <= 1 else maxf(one, lines * line_h() + 16.0)
+	func text_x() -> float: return 16.0 + 14.0 + 8.0 + 18.0 + 8.0
+	func text_right() -> float: return 10.0 + (24.0 if dismissible and not drawer and not done else 0.0)
+	## decide one or two lines for a row width
+	func set_width(w: float) -> void:
+		_w = w
+		var avail: float = maxf(40.0, w - text_x() - text_right())
+		var f: Font = TBHudParts.body_b()
+		var need: float = TBHudParts.tw(f, text, TBHudParts.fs(14.0))
+		var n: int = 1 if need <= avail else 2
+		if n != lines: lines = n; queue_redraw()
+	func full_h() -> float: return base_h() + (TBHudParts.touch() + 6.0 if expanded else 0.0)
 	func _init() -> void:
 		super()
 		clip_contents = true
 	func set_entry(e: Dictionary, t: String) -> void:
 		entry = e; text = t
+		if _w > 0.0: set_width(_w)
 		dismissible = int(e["uid"]) < 0 and String(e["cls"]) != "offer" and String(e["cls"]) != "event"
 		set_a11y(t)
 		queue_redraw()
@@ -93,7 +109,7 @@ class AlertRow extends P.Hit:
 		var ult: bool = bool(entry["ult"])
 		var yes: Button = TBHudParts.btn(TBI18n.T("mp_yield") if ult else TBI18n.T("mp_accept"), "primary", func(): on_answer.call(int(entry["uid"]), 0), true, 14)
 		var no: Button = TBHudParts.btn(TBI18n.T("mp_defy") if ult else TBI18n.T("mp_decline"), "secondary", func(): on_answer.call(int(entry["uid"]), 1), true, 14)
-		yes.custom_minimum_size = Vector2(96, 40); no.custom_minimum_size = Vector2(96, 40)
+		yes.custom_minimum_size = Vector2(96, TBHudParts.touch()); no.custom_minimum_size = Vector2(96, TBHudParts.touch())
 		_buttons.add_child(yes); _buttons.add_child(no)
 		add_child(_buttons)
 	func clear_flash() -> void:
@@ -106,7 +122,7 @@ class AlertRow extends P.Hit:
 	func _gui_input(e: InputEvent) -> void:
 		if e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and not (e as InputEventMouseButton).pressed and dismissible and not drawer:
 			var pos: Vector2 = (e as InputEventMouseButton).position
-			if pos.x > size.x - 34.0 and pos.y < base_h() and down:
+			if pos.x > size.x - 48.0 and pos.y < base_h() and down:
 				down = false; queue_redraw(); dismiss_pressed.emit(); accept_event(); return
 		super(e)
 	func _draw() -> void:
@@ -129,10 +145,14 @@ class AlertRow extends P.Hit:
 			x += 18.0 + 8.0
 		var f: Font = P.body_b()
 		var fsz: int = TBHudParts.fs(14.0)
-		var right: float = 10.0 + (24.0 if dismissible and not drawer and not done else 0.0)
-		var s: String = TBHudParts.fit(f, text, fsz, size.x - x - right)
-		draw_string(f, Vector2(x, TBHudParts.base(f, fsz, cy)), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, cream)
-		if dismissible and not drawer and not done and (hover or TBHudParts.reduced_motion() or true):
+		var right: float = text_right()
+		if lines <= 1:
+			var s1: String = TBHudParts.fit(f, text, fsz, size.x - x - right)
+			draw_string(f, Vector2(x, TBHudParts.base(f, fsz, cy)), s1, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, cream)
+		else:
+			var y0: float = (bh - 2.0 * line_h()) * 0.5 + f.get_ascent(fsz)
+			draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, size.x - x - right, fsz, 2, cream, TextServer.BREAK_WORD_BOUND)
+		if dismissible and not drawer and not done:
 			TBGlyph.draw(self, "close", Vector2(size.x - 18.0, cy), 12.0, TBHudParts.tk("smoke"), 1.5)
 		if flash > 0.0:
 			var line: PackedVector2Array = TBHudParts.chamfer(Rect2(0, 0, size.x, bh).grow(-1.0), 2.0)
@@ -231,7 +251,7 @@ func _add(e: Dictionary) -> void:
 		rw._buttons.visible = false
 	rows[String(e["key"])] = rw
 	add_child(rw)
-	if TBMapView.animate:
+	if not P.reduced_motion():
 		rw.ap = 0.0
 		var tw := rw.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_method(func(v: float): rw.ap = v; _layout(), 0.0, 1.0, 0.16)
@@ -239,7 +259,7 @@ func _add(e: Dictionary) -> void:
 func _resolve(k: String) -> void:
 	var rw: AlertRow = rows[k]
 	rw.done = true; rw.set_expanded(false); rw.queue_redraw()
-	if not TBMapView.animate:
+	if P.reduced_motion():
 		_drop(k); return
 	var tw := rw.create_tween()
 	tw.tween_interval(0.6)
@@ -304,7 +324,7 @@ func show_info(text: String, kind: String, seconds: float) -> void:
 	_info_gen += 1
 	var gen: int = _info_gen
 	info.ap = 1.0
-	if TBMapView.animate:
+	if not P.reduced_motion():
 		info.modulate.a = 0.0
 		create_tween().tween_property(info, "modulate:a", 1.0, 0.16)
 	else:
@@ -332,13 +352,15 @@ func _layout() -> void:
 	var pill_y: float = 0.0
 	for k in order:
 		var rw: AlertRow = rows[k]
+		var fw: float = row_w if not (inline_pill and live_total > max_rows) else row_w - 60.0
+		rw.set_width(fw)
 		var fh: float = rw.full_h()
 		if not rw.done and shown >= max_rows:
 			rw.visible = false; continue
 		rw.visible = true
 		if not rw.done: shown += 1
 		var h: float = fh * rw.collapse
-		rw.size = Vector2(row_w if not (inline_pill and live_total > max_rows) else row_w - 60.0, fh)
+		rw.size = Vector2(fw, fh)
 		rw.position = Vector2(-12.0 * (1.0 - rw.ap), y)
 		rw.modulate.a = rw.ap * (1.0 if rw.collapse > 0.999 else rw.collapse)
 		rw.custom_minimum_size = Vector2.ZERO
