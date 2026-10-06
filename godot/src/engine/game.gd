@@ -635,6 +635,9 @@ func eliminate(n: int) -> void:
 # ---------------------------------------------------------------- commands: see commands.gd (the ONLY mutation API)
 func apply(c: Dictionary) -> Dictionary: return TBCommands.apply(self, c)
 
+## read-only: would this command pass validation, and what does it cost? {ok, reason, gold, moves, men, dp, short, ...} (engine/can.gd). "n" defaults to the human.
+func can(c: Dictionary) -> Dictionary: return TBCan.check(self, c)
+
 # ---------------------------------------------------------------- misc
 static func gen_color(n: int) -> int:
 	var h := fposmod(n * 137.508, 360.0)

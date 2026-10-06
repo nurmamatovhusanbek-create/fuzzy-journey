@@ -4,6 +4,7 @@ extends Control
 
 signal province_picked(p: int, secondary: bool)
 signal province_hovered(p: int)
+signal province_peeked(p: int)       # touch long-press (450 ms): tooltip peek, no selection; -1 when released
 signal view_changed
 signal performance_low        # sustained slow frames while interacting -> UI may lower the quality tier
 
@@ -32,6 +33,16 @@ var _vel := Vector2.ZERO                  # drag velocity (px/s) for flick inert
 var _vel_us := 0
 var _zoom_target := -1.0
 
+## orders: valid targets are lit, everything else recedes to 60 % (art bible 5.3); the focus ring marks the Tab-selected province
+var dim_others := false:
+	set(v):
+		if dim_others == v: return
+		dim_others = v; _push_view()
+var focus_province := -1
+var _press_id := 0
+var _peeked := false
+## the last pick came from a finger (touch orders on a lit target; mouse selects and orders with the right button)
+var last_pick_touch := DisplayServer.is_touchscreen_available()
 var quality := 2
 var map_theme := 0               # 0 standard, 1 parchment
 var render_scale := 1.0        # SubViewport resolution relative to the control's logical size
@@ -194,6 +205,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("hover_prev", _hover_prev + 1 if _hover_prev >= 0 else -1)
 	_mat.set_shader_parameter("hover_prev_t", _hover_prev_t)
 	_mat.set_shader_parameter("time", _time)
+	_mat.set_shader_parameter("dim_others", 1.0 if dim_others else 0.0)
 	_mat.set_shader_parameter("quality", quality)
 	_mat.set_shader_parameter("theme", map_theme)
 	_select_ids_texture()
@@ -287,7 +299,7 @@ func _process(delta: float) -> void:
 	else:
 		_hover_t = 1.0 if hover >= 0 else 0.0; _hover_prev_t = 0.0; _sel_t = 1.0
 	if absf(_hover_t + _hover_prev_t + _sel_t - was) > 0.0001: busy = true
-	if not _targets.is_empty() or (selected >= 0 and Time.get_ticks_msec() < _pulse_until):
+	if selected >= 0 and Time.get_ticks_msec() < _pulse_until:
 		busy = true
 	if busy:
 		_push_view()
@@ -367,6 +379,14 @@ func project(lon_deg: float, lat_deg: float) -> Vector3:
 ## fingers wobble: on touch devices a tap may move a little before it stops being a tap
 func _tap_slop() -> float: return 16.0 if DisplayServer.is_touchscreen_available() else 6.0
 
+## touch long-press: after 450 ms of a still finger the tooltip peeks at the province without selecting it
+func _arm_peek(id: int, pos: Vector2) -> void:
+	if not is_inside_tree(): return
+	get_tree().create_timer(0.45).timeout.connect(func():
+		if id == _press_id and _pressed and _drag_moved < _tap_slop() and _touches.size() < 2:
+			_peeked = true
+			province_peeked.emit(pick_at(pos)))
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed: _touches[event.index] = event.position
@@ -389,15 +409,21 @@ func _gui_input(event: InputEvent) -> void:
 			MOUSE_BUTTON_WHEEL_UP: if event.pressed: zoom_by(1.18, true)
 			MOUSE_BUTTON_WHEEL_DOWN: if event.pressed: zoom_by(1.0 / 1.18, true)
 			MOUSE_BUTTON_LEFT:
-				if event.pressed: _pressed = true; _drag_moved = 0.0; _vel = Vector2.ZERO; _fly = {}; _zoom_target = -1.0; _vel_us = 0
+				if event.pressed:
+					_press_id += 1; _peeked = false
+					if event.device == InputEvent.DEVICE_ID_EMULATION: _arm_peek(_press_id, event.position)
+					_pressed = true; _drag_moved = 0.0; _vel = Vector2.ZERO; _fly = {}; _zoom_target = -1.0; _vel_us = 0
 				else:
-					if _pressed and _drag_moved < _tap_slop(): province_picked.emit(pick_at(event.position), false); _vel = Vector2.ZERO
+					if _peeked: province_peeked.emit(-1); _peeked = false
+					elif _pressed and _drag_moved < _tap_slop():
+						last_pick_touch = event.device == InputEvent.DEVICE_ID_EMULATION
+						province_picked.emit(pick_at(event.position), false); _vel = Vector2.ZERO
 					elif Time.get_ticks_usec() - _vel_us > 90000 or not animate: _vel = Vector2.ZERO      # finger rested before lifting: no flick
 					_pressed = false
 					_last_drag_us = 0
 					_push_view()
 			MOUSE_BUTTON_RIGHT:
-				if event.pressed: province_picked.emit(pick_at(event.position), true)
+				if event.pressed: last_pick_touch = false; province_picked.emit(pick_at(event.position), true)
 	elif event is InputEventMouseMotion:
 		if _pressed:
 			_drag_moved += event.relative.length()

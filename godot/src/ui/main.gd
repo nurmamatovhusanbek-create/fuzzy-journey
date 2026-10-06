@@ -9,6 +9,8 @@ var g: TBGame
 var map: TBMapView
 var hud: TBHud
 var panel: TBProvincePanel
+var flow: TBOrderFlow          # orders on the map (select -> targets -> preview -> confirm)
+var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
@@ -35,6 +37,7 @@ func _ready() -> void:
 	add_child(map)
 	map.province_picked.connect(_on_pick)
 	map.province_hovered.connect(_on_hover)
+	map.province_peeked.connect(_on_peek)
 	map.performance_low.connect(_on_perf_low)
 	sfx = TBAudio.new(); add_child(sfx); sfx.enabled = cfg.get("sound", true)
 	hud = TBHud.new(); add_child(hud); hud.visible = false
@@ -43,7 +46,15 @@ func _ready() -> void:
 		var r: Array = hud.keepouts()
 		if panel.visible: r.append(panel.get_global_rect())
 		return r
-	panel.command.connect(_on_command); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
+	flow = TBOrderFlow.new(); flow.map = map; flow.panel = panel; flow.host = self
+	flow.do_move = func(from: int, to: int): _do_move(from, to)
+	flow.is_busy = func() -> bool: return _busy
+	panel.flow = flow
+	panel.busy_fn = func() -> bool: return _busy
+	panel.blocked_fn = func() -> bool: return mode != "game" or _overlay.get_child_count() > 0
+	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
+	panel.select_requested.connect(func(q: int): _select(q))
+	tip = TBMapTip.new(); add_child(tip)
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
@@ -320,82 +331,56 @@ func _on_pick(p: int, secondary: bool) -> void:
 		var go := K.button(T.call("play_as", {"nation": g.dname(n)}), func(): _confirm_pick(n), true); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL; go.disabled = taken; row.add_child(go)
 		return
 	if mode != "game" or _busy: return
-	if p < 0: _select(-1); return
-	if secondary and selected >= 0 and g.controller(selected) == g.human_id: _do_move(selected, p); return
-	if move_from >= 0:
-		_try_move(move_from, p); return
-	_select(p)
+	flow.g = g
+	if p < 0:
+		if flow.mode == TBOrderFlow.Mode.PREVIEW: flow.cancel()
+		else: _select(-1)
+		return
+	if flow.pick(p, secondary, map.last_pick_touch): return
+	if not secondary: _select(p)
 
-var _tip: PanelContainer
-var _tip_label: Label
-## desktop-only hover card: province, owner and relation, army, terrain; in move mode the outcome of an attack
-var _tip_name: Label
-var _tip_sub: Label
-var _tip_note: Label
-var _tip_flag: TextureRect
+## touch long-press: the same tooltip content as the desktop hover, shown above the finger, released with it
+func _on_peek(p: int) -> void:
+	if mode != "game" or g == null or p < 0:
+		if tip != null: tip.visible = false
+		return
+	flow.g = g
+	tip.show_for(g, p, flow)
+	tip.position = (get_local_mouse_position() + Vector2(-tip.size.x * 0.5, -tip.size.y - 40.0)).clamp(Vector2.ZERO, size - tip.size)
+
+## desktop-only hover card (dark plate): flag + place, owner and relation, army and terrain, and in an armed state the attack outcome
 func _on_hover(p: int) -> void:
 	if mode != "game" or p < 0 or OS.has_feature("mobile") or g == null:
-		if _tip != null: _tip.visible = false
+		if tip != null: tip.visible = false
+		if flow != null: flow.hover(-1)
 		return
-	if _tip == null:
-		_tip = PanelContainer.new(); _tip.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tip.z_index = 50
-		_tip.add_theme_stylebox_override("panel", TBFrame.make(Color(0.035, 0.055, 0.11, 0.95), Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.6), 7, false, 11, 7))
-		var v := K.vbox(1); _tip.add_child(v)
-		var top := K.hbox(7); v.add_child(top)
-		_tip_flag = TextureRect.new(); _tip_flag.custom_minimum_size = Vector2(22, 15); _tip_flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; _tip_flag.stretch_mode = TextureRect.STRETCH_SCALE; _tip_flag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		top.add_child(_tip_flag)
-		_tip_name = K.title("", 15); top.add_child(_tip_name)
-		_tip_sub = K.label("", 12, K.DIM); v.add_child(_tip_sub)
-		_tip_note = K.label("", 12, K.TEXT); v.add_child(_tip_note)
-		add_child(_tip)
-	var o := g.owner[p]
-	var me := g.human_id
-	_tip_name.text = TBI18n.place(world.name[p])
-	_tip_flag.visible = o != 0
-	if o != 0: _tip_flag.texture = TBFlags.texture(g.nat_code[o], g.color[o])
-	var rel_txt := ""
-	if o == 0: rel_txt = T.call("neutral")
-	elif o == me: rel_txt = g.dname(o)
-	else:
-		var r := g.get_rel(me, o)
-		rel_txt = "%s · %s" % [g.dname(o), T.call(["rel_peace", "rel_war", "rel_nap", "rel_ally", "rel_marriage"][clampi(r, 0, 4)])]
-	_tip_sub.text = "%s  ·  %s %s  ·  %s" % [rel_txt, T.call("army"), K.fmt(g.army[p]), T.call("t_" + TBData.TERRAIN_ID[g.terrain[p]])]
-	_tip_note.visible = false
-	if move_from >= 0 and g.rules >= 1 and g.move_check(me, move_from, p) == "attack":
-		var pv := g.combat_preview(me, move_from, p, _troops_for(move_from))
-		_tip_note.visible = true
-		_tip_note.text = T.call("pv_win_short", {"k": int(pv["hold"])}) if pv["win"] else T.call("pv_lose_short", {"a": int(pv["lost"])})
-		_tip_note.add_theme_color_override("font_color", K.GREEN if pv["win"] else K.RED)
-	if not _tip.visible and TBMapView.animate:
-		_tip.modulate.a = 0.0
-		_tip.create_tween().tween_property(_tip, "modulate:a", 1.0, 0.1)
-	_tip.visible = true
-	_tip.reset_size()
+	flow.g = g
+	flow.hover(p)
+	tip.show_for(g, p, flow)
 	_place_tip()
 
 func _place_tip() -> void:
-	if _tip == null or not _tip.visible: return
-	_tip.position = (get_local_mouse_position() + Vector2(18, 20)).clamp(Vector2.ZERO, size - _tip.size)
+	if tip == null or not tip.visible: return
+	tip.position = (get_local_mouse_position() + Vector2(18, 20)).clamp(Vector2.ZERO, size - tip.size)
 
 func _select(p: int) -> void:
 	selected = p
 	map.select(p)
+	flow.g = g
+	flow.on_select(p)
 	panel.show_province(g, p) if p >= 0 else panel.show_province(g, -1)
 
+## the Move verb / M: arm the selected army (own armies become targets too)
 func _on_move_requested(p: int) -> void:
-	_set_move_from(p)
-	hud.toast(T.call("move") + " ▸")
+	flow.g = g
+	flow.arm(p)
 
-## highlight where the selected army may go (adjacent land, or sea hops from ports)
+## kept for older callers: forget any armed / previewed order
 func _set_move_from(p: int) -> void:
 	move_from = p
-	if p < 0: hud.hide_preview(); _pv_to = -1
-	var t := PackedInt32Array()
-	if p >= 0:
-		for e in range(g.nb_off[p], g.nb_off[p + 1]):
-			if g.nb_sea[e] != 0 and g.building[p] != TBData.B_PORT: continue
-			t.append(g.nb[e])
-	map.set_targets(t)
+	if p < 0:
+		if flow != null: flow.clear()
+		hud.hide_preview(); _pv_to = -1
 
 func _open_nation(n: int) -> void:
 	TBModals.nation_detail(_overlay, g, n, _on_command, _goto_nation)
@@ -411,14 +396,16 @@ func _goto_nation(n: int) -> void:
 		_select(cp)
 
 # ---------------------------------------------------------------- commands
-func _on_command(c: Dictionary) -> void:
+func _on_command(c: Dictionary, from_card: bool = false) -> void:
 	if mp.in_game:
 		mp.send_command(c); return
 	var cmd := c.duplicate(); cmd["n"] = g.human_id
 	var res := g.apply(cmd)
 	if not res["ok"]:
-		var key := "err_" + String(res["err"])
-		hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
+		if from_card and panel.visible: panel.reject(String(res["err"]))      # the card's reason line replaces the toast
+		else:
+			var key := "err_" + String(res["err"])
+			hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
 	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop", "hire", "recruit"]:
 		sfx.play("coin")
 	elif res.has("success"):
@@ -426,43 +413,41 @@ func _on_command(c: Dictionary) -> void:
 	_after_change()
 
 var _pv_to := -1
-## how many men a move sends from `from`, following the 25/50/75/100 % choice on the province panel
+## how many men a move sends from `from`, following the 25/50/75/100 % choice on the command card
 func _troops_for(from: int) -> int:
-	var frac: float = panel.send_frac
-	if frac >= 0.999: return g.army[from] - 1
-	return maxi(1, int(floor((g.army[from] - 1) * frac)))
+	return flow.troops_for(from)
 
-## attacks show the exact outcome first; a second tap on the same target (or Attack) commits
+## compatibility entry (tests, monkey): order from -> to as the flow would after the source was selected
 func _try_move(from: int, to: int) -> void:
-	var tr := _troops_for(from)
-	if mp.in_game or g.rules < 1 or g.move_check(g.human_id, from, to) != "attack":
-		hud.hide_preview(); _pv_to = -1; _set_move_from(-1); _do_move(from, to); return
-	if _pv_to == to: _commit_move(from, to); return
-	_pv_to = to
-	map.set_targets(PackedInt32Array([to]))
-	hud.show_preview(g.combat_preview(g.human_id, from, to, tr), TBI18n.place(world.name[to]), func(): _commit_move(from, to), func(): _pv_to = -1; _set_move_from(from))
+	flow.g = g
+	flow.src = from
+	flow.mode = TBOrderFlow.Mode.ARMED
+	var c := flow.check(to)
+	if not c["valid"]: _set_move_from(-1); return
+	if c["preview"]: flow.preview_to(to)
+	else: _do_move(from, to)
 
 func _commit_move(from: int, to: int) -> void:
-	hud.hide_preview(); _pv_to = -1
-	_set_move_from(-1)
+	flow.clear()
 	_do_move(from, to)
 
 func _do_move(from: int, to: int) -> void:
 	var tr := _troops_for(from)
+	flow.clear()
 	if mp.in_game:
 		mp.send_command({"cmd": "move", "from": from, "to": to, "troops": tr}); _select(to); return
 	var res := g.apply({"cmd": "move", "n": g.human_id, "from": from, "to": to, "troops": tr})
 	if not res["ok"]:
-		var key := "err_" + String(res["err"])
-		hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
+		panel.reject(String(res["err"]))
+		if g.controller(from) == g.human_id: _select(from)
 	else:
 		var rs: String = res.get("result", "")
 		if rs == "move":
-			map.labels.add_fx("march", from, to, Color(0.95, 0.8, 0.35))
+			map.labels.add_fx("march", from, to, TBTokens.c("brass_lt"))
 		else:
 			var win: bool = rs == "win"
-			map.labels.add_fx("atk", from, to, Color(0.5, 0.9, 0.55) if win else Color(1.0, 0.55, 0.5))
-			map.labels.add_fx("cap", from, to, Color(0.5, 0.9, 0.55) if win else Color(1.0, 0.55, 0.5), 450)
+			map.labels.add_fx("atk", from, to, TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"))
+			map.labels.add_fx("cap", from, to, TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"), 450)
 		_select(to)
 	_after_change()
 
@@ -487,7 +472,7 @@ func _after_change() -> void:
 	show_events()
 	map.repaint(g.take_dirty())
 	hud.refresh()
-	if selected >= 0: panel.rebuild()
+	if selected >= 0: flow.refresh(); panel.rebuild()
 
 # ---------------------------------------------------------------- end turn (worker thread so the UI never freezes)
 func end_turn() -> void:
@@ -501,6 +486,7 @@ func end_turn() -> void:
 			_set_move_from(-1)
 			_hot_switch(nxt, false); return
 	_busy = true; hud.set_busy(true); _set_move_from(-1); hud.hide_preview(); _pv_to = -1
+	if tip != null: tip.visible = false
 	_turn_t0 = Time.get_ticks_msec()
 	_turn_thread = Thread.new()
 	_turn_thread.start(_turn_worker)
@@ -547,7 +533,7 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	_flush_log()
 	_replay_battles()
 	hud.refresh()
-	if selected >= 0: panel.rebuild()
+	if selected >= 0: flow.refresh(); panel.rebuild()
 	if hot and not g.over: _hot_switch(g.human_id, true)
 	else: show_events()
 	if g.over: sfx.play("win" if g.winner == g.human_id else "alert")
@@ -631,7 +617,7 @@ func _on_back() -> void:
 			else: get_tree().quit()
 		"pick", "mp_lobby": show_menu()
 		"game":
-			if panel.visible: _select(-1)
+			if panel.visible: panel.back()
 			else: _open_settings()
 
 func _update_perf(delta: float) -> void:
