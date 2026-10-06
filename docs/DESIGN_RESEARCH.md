@@ -46,4 +46,10 @@ as occupied space. No label is drawn where the interface would hide it.
 Wrapped rows of different-width buttons looked ragged and the panel overflowed when two columns were forced. Chosen: one
 column of full-width buttons (clear tap targets, no overflow at any width); figures follow below.
 
+## Q6 — Wide windows for pop-ups
+Tested on landscape ≥ 820 px: Settings (7 choice rows, previously a scrolling 440 px column with Back below the fold), Honours
+(19 rows) and Decisions. Two-column layouts of 780–920 px show everything at once: Settings and Decisions need no scrolling,
+Honours shows 18 of 19, and the action buttons are pinned in the footer. **Chosen: wide two-column sheets on landscape,
+single column on portrait and short phones** (fallback: the single column, unchanged). Candidate next: nations list, codex.
+
 (continued below as decisions are made)

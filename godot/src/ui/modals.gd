@@ -226,23 +226,37 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> void:
 	_footer_back(m)
 
 static func settings(parent: Control, cfg: Dictionary, on_change: Callable, on_menu: Callable, on_diag: Callable = Callable()) -> void:
-	var m := K.modal(parent, T.call("settings"), 440, "gear")
-	_segment(m[1], T.call("quality"), [["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
-	_segment(m[1], T.call("language"), [["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
-	_segment(m[1], T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], cfg["view"], func(v): cfg["view"] = v; on_change.call())
-	_segment(m[1], T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")]], cfg.get("theme", "standard"), func(v): cfg["theme"] = v; on_change.call())
-	_segment(m[1], T.call("sound"), [["1", T.call("on")], ["0", T.call("off")]], "1" if cfg.get("sound", true) else "0", func(v): cfg["sound"] = (v == "1"); on_change.call())
-	_segment(m[1], T.call("perf_overlay"), [["0", T.call("off")], ["1", T.call("on")]], "1" if cfg.get("perf", false) else "0", func(v): cfg["perf"] = (v == "1"); on_change.call())
-	_segment(m[1], T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], cfg.get("ui", "normal"), func(v): cfg["ui"] = v; on_change.call())
-	m[1].add_child(K.button(T.call("tut_help"), func(): close(m[0]); tutorial(parent, func(): pass)))
-	m[1].add_child(K.button(T.call("codex"), func(): close(m[0]); codex(parent)))
+	var vs := parent.get_viewport_rect().size
+	var wide := vs.x >= 820.0 and vs.x > vs.y            # landscape desktop/tablet: two columns of settings, actions pinned beneath
+	var m := K.modal(parent, T.call("settings"), 780 if wide else 440, "gear")
+	var host: Control = m[1]
+	if wide:
+		var grid := GridContainer.new(); grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 34); grid.add_theme_constant_override("v_separation", 6)
+		m[1].add_child(grid); host = grid
+	var seg := func(title: String, items: Array, cur: String, cb: Callable):
+		if wide:
+			var col := K.vbox(2); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; host.add_child(col)
+			_segment(col, title, items, cur, cb)
+		else: _segment(host, title, items, cur, cb)
+	seg.call(T.call("quality"), [["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], cfg["quality"], func(v): cfg["quality"] = v; on_change.call())
+	seg.call(T.call("language"), [["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], cfg["lang"], func(v): cfg["lang"] = v; on_change.call())
+	seg.call(T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], cfg["view"], func(v): cfg["view"] = v; on_change.call())
+	seg.call(T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")]], cfg.get("theme", "standard"), func(v): cfg["theme"] = v; on_change.call())
+	seg.call(T.call("sound"), [["1", T.call("on")], ["0", T.call("off")]], "1" if cfg.get("sound", true) else "0", func(v): cfg["sound"] = (v == "1"); on_change.call())
+	seg.call(T.call("perf_overlay"), [["0", T.call("off")], ["1", T.call("on")]], "1" if cfg.get("perf", false) else "0", func(v): cfg["perf"] = (v == "1"); on_change.call())
+	seg.call(T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], cfg.get("ui", "normal"), func(v): cfg["ui"] = v; on_change.call())
+	# actions: pinned in the footer so closing never needs scrolling
+	var foot: Control = m[2]
+	var extra: Control = foot if wide else m[1]
+	extra.add_child(K.button(T.call("tut_help"), func(): close(m[0]); tutorial(parent, func(): pass)))
+	extra.add_child(K.button(T.call("codex"), func(): close(m[0]); codex(parent)))
 	if on_diag.is_valid():
 		var db := K.button(T.call("copy_diag"), func(): pass)
 		db.pressed.connect(func(): on_diag.call(); db.text = T.call("diag_copied"))
-		m[1].add_child(db)
-	var row := K.hbox(8); m[1].add_child(row)
-	if on_menu.is_valid(): row.add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call()))
-	var bk := K.button(T.call("back"), func(): close(m[0]), true); bk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(bk)
+		extra.add_child(db)
+	if on_menu.is_valid(): foot.add_child(K.button(T.call("title"), func(): close(m[0]); on_menu.call()))
+	var bk := K.button(T.call("back"), func(): close(m[0]), true); bk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; foot.add_child(bk)
 
 static func _segment(parent: Control, title: String, items: Array, current: String, cb: Callable) -> void:
 	parent.add_child(K.section(title))
@@ -470,10 +484,16 @@ static func codex(parent: Control) -> void:
 
 ## Honours: cross-game achievements, earned ones in gold, locked ones as faint outlines
 static func honours(parent: Control, cfg: Dictionary) -> void:
-	var m := K.modal(parent, "%s  %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], 500, "trophy")
+	var vs := parent.get_viewport_rect().size
+	var wide := vs.x >= 820.0 and vs.x > vs.y
+	var m := K.modal(parent, "%s  %d/%d" % [T.call("honours"), TBHonours.count(cfg), TBHonours.LIST.size()], 900 if wide else 500, "trophy")
 	var d: Dictionary = cfg.get("honours", {})
-	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, clampf(parent.get_viewport_rect().size.y * 0.6, 340.0, 620.0)); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var list := K.vbox(8); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, clampf(vs.y * 0.6, 340.0, 620.0)); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var list: Container
+	if wide:
+		var gr := GridContainer.new(); gr.columns = 2; gr.add_theme_constant_override("h_separation", 30); gr.add_theme_constant_override("v_separation", 8); list = gr
+	else: list = K.vbox(8)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list); m[1].add_child(scroll)
 	for it in TBHonours.LIST:
 		var id: String = it[0]
@@ -484,12 +504,14 @@ static func honours(parent: Control, cfg: Dictionary) -> void:
 		row.add_child(gl)
 		var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		col.add_child(K.title(T.call("honour_" + id), 15, K.GOLD2 if got else K.DIM))
-		var ds := K.label(T.call("honour_" + id + "_d"), 12, K.TEXT if got else K.DIM); ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; ds.custom_minimum_size = Vector2(340, 0)
+		var ds := K.label(T.call("honour_" + id + "_d"), 12, K.TEXT if got else K.DIM); ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; ds.custom_minimum_size = Vector2(210 if wide else 340, 0)
 		col.add_child(ds)
 		row.add_child(col)
 		if got: row.add_child(K.caps(String(d[id]), 10, K.GOLD))
-		list.add_child(row)
-		var hl := ColorRect.new(); hl.custom_minimum_size = Vector2(0, 1); hl.color = Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.35 if got else 0.12); list.add_child(hl)
+		var cell := K.vbox(6); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.add_child(row)
+		var hl := ColorRect.new(); hl.custom_minimum_size = Vector2(0, 1); hl.color = Color(K.GOLD.r, K.GOLD.g, K.GOLD.b, 0.35 if got else 0.12); cell.add_child(hl)
+		list.add_child(cell)
 	_footer_back(m)
 
 static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> void:
@@ -563,7 +585,9 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> void:
 const DEC_GLYPH := {"mil_reform": "swords", "trade_fair": "scales", "centralize": "crown", "conscript": "men", "propaganda": "scroll", "patronage": "book", "fortify": "shield", "amnesty": "dove"}
 
 static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> void:
-	var m := K.modal(parent, T.call("decisions"), 560, "scales")
+	var vs := parent.get_viewport_rect().size
+	var wide := vs.x >= 820.0 and vs.x > vs.y
+	var m := K.modal(parent, T.call("decisions"), 920 if wide else 560, "scales")
 	var me := g.human_id
 	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = Vector2(0, 380); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var list := K.vbox(0); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -586,6 +610,10 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> void:
 			var cd := K.label(T.call("doc_%s_d" % cur_id), 13, K.GOLD2); cd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cd.custom_minimum_size = Vector2(420, 0); list.add_child(cd)
 		var sp := Control.new(); sp.custom_minimum_size = Vector2(0, 8); list.add_child(sp)
 		list.add_child(K.section(T.call("decisions")))
+	var target: Container = list
+	if wide:
+		var gr := GridContainer.new(); gr.columns = 2; gr.add_theme_constant_override("h_separation", 30); gr.add_theme_constant_override("v_separation", 0)
+		gr.size_flags_horizontal = Control.SIZE_EXPAND_FILL; list.add_child(gr); target = gr
 	for i in TBDecisions.LIST.size():
 		var d: Dictionary = TBDecisions.LIST[i]
 		var active := TBDecisions.is_active(g, me, i)
@@ -607,10 +635,12 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> void:
 			b.custom_minimum_size = Vector2(0, 34); b.disabled = why != ""
 			right.add_child(b)
 		row.add_child(right)
-		list.add_child(row)
+		var cell := K.vbox(0); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.add_child(row)
 		var rl := Control.new(); rl.custom_minimum_size = Vector2(0, 9)
 		rl.draw.connect(func(): rl.draw_line(Vector2(0, 4), Vector2(rl.size.x, 4), Color(0.83, 0.63, 0.09, 0.22), 1.0))
-		list.add_child(rl)
+		cell.add_child(rl)
+		target.add_child(cell)
 	_footer_back(m)
 
 ## Advisor: current alerts and tips; tapping one jumps to the province concerned

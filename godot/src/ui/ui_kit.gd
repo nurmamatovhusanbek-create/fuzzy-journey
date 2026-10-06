@@ -95,7 +95,8 @@ static func theme() -> Theme:
 	le.content_margin_left = 10; le.content_margin_right = 10; le.content_margin_top = 8; le.content_margin_bottom = 8
 	t.set_stylebox("normal", "LineEdit", le)
 	t.set_stylebox("focus", "LineEdit", le)
-	t.set_color("font_color", "LineEdit", TEXT); t.set_color("caret_color", "LineEdit", GOLD2); t.set_font("font", "LineEdit", mono()); t.set_font_size("font_size", "LineEdit", 14)
+	t.set_color("font_color", "LineEdit", TEXT); t.set_color("caret_color", "LineEdit", GOLD2); t.set_font("font", "LineEdit", body()); t.set_font_size("font_size", "LineEdit", 16)
+	t.set_color("font_placeholder_color", "LineEdit", Color(TEXT.r, TEXT.g, TEXT.b, 0.5))
 	# sliders: an inked rail with a brass bead
 	var rail := StyleBoxFlat.new(); rail.bg_color = Color(LINE.r, LINE.g, LINE.b, 0.35); rail.content_margin_top = 1; rail.content_margin_bottom = 1
 	var fill := StyleBoxFlat.new(); fill.bg_color = GOLD2; fill.content_margin_top = 1; fill.content_margin_bottom = 1
