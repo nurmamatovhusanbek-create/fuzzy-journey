@@ -277,9 +277,14 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 # =====================================================================================================================================================
 # Annals (drawer / sheet): filter chips, rows grouped by turn, whole row jumps to the map, "Older" instead of a silent cap
 # =====================================================================================================================================================
-static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> TBPanel.Handle:
+static func chronicle(parent: Control, g: TBGame, on_goto: Callable, feed: Array = []) -> TBPanel.Handle:
 	var h := TBPanel.open(parent, TBPanel.Kind.DRAWER, T.call("dk_chronicle"), "book")
 	var S := {"cat": "mine", "limit": 40}
+	if not feed.is_empty():                      # text mirror of the toasts and alerts of this session (A11Y-SR-003): readable, selectable, screen-reader friendly
+		h.body.add_child(TBPanel.section(T.call("recent_notices")))
+		for line in feed.slice(maxi(0, feed.size() - 6)):
+			var t: String = line if line is String else String((line as Dictionary).get("text", line))
+			h.body.add_child(TBPanel.para(t, 14, K.TEXT))
 	var chips := TBPanel.flow(6); h.body.add_child(chips)
 	var list := K.vbox(0); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.body.add_child(list)

@@ -421,6 +421,8 @@ export default {
   ml_title: 'Провинции и армии', ml_provinces: 'Провинции', ml_armies: 'Армии', ml_more: 'Ещё {n}: уточните поиск',
   nav_left: 'Сдвиг влево', nav_right: 'Сдвиг вправо', nav_up: 'Сдвиг вверх', nav_down: 'Сдвиг вниз', nav_zoom_in: 'Приблизить', nav_zoom_out: 'Отдалить', nav_home: 'К выбранной провинции', nav_list: 'Список провинций и армий',
   cvd_legend_hint: 'Буквы на образцах совпадают с картой',
+  recent_notices: 'Недавние уведомления',
+  navpad_title: 'Кнопки карты', navpad_auto: 'Авто', navpad_on: 'Всегда', navpad_off: 'Скрыты',
   ev_worldwide: 'Мировое событие', ev_event: 'Событие', ev_ack: 'Принять', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Обильный урожай', ev_bountiful_harvest_f: 'Поля ломятся от зерна, а амбары полны как никогда.',
   ev_bountiful_harvest_c0: 'Раздать излишки', ev_bountiful_harvest_d0: '+40 золота, +25 людей, +8 к стабильности в столице',

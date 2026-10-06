@@ -305,7 +305,7 @@ func _open_decisions() -> void:
 	if g != null: TBModals.decisions(_overlay, g, _on_command)
 
 func _open_annals() -> void:
-	if g != null: TBModals.chronicle(_overlay, g, _goto_province)
+	if g != null: TBModals.chronicle(_overlay, g, _goto_province, hud.feed_lines(8))
 
 ## Saves / Settings / How to play / Honours in one panel; tab = "saves" | "settings" | "howto" | "honours"
 func _open_menu_hub(tab: String = "") -> void:

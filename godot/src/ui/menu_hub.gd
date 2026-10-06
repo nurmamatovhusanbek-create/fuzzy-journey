@@ -159,7 +159,7 @@ static func _leave_confirm(parent: Control, ctx: Dictionary, h: TBPanel.Handle) 
 
 # ---- Settings -------------------------------------------------------------------------------------------------------------------------------
 ## defaults of everything "Reset accessibility" restores (also read by main.gd for a fresh cfg)
-const ACCESS_DEFAULTS := {"text_scale": 1.0, "hc": "off", "cvd": "off", "reduce_motion": false, "touch_large": false, "readable": false, "confirm": "risky",
+const ACCESS_DEFAULTS := {"text_scale": 1.0, "hc": "off", "cvd": "off", "navpad": "auto", "reduce_motion": false, "touch_large": false, "readable": false, "confirm": "risky",
 	"tts": false, "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "sound": true}
 
 static func _seg(col: VBoxContainer, title: String, items: Array, cur: String, cb: Callable, compact: bool = false) -> void:
@@ -201,6 +201,7 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 	var ga := _group(T.call("set_access"))
 	_seg(ga, T.call("high_contrast"), [["off", T.call("hc_off")], ["light", T.call("hc_light")], ["dark", T.call("hc_dark")]], _hc_id(cfg), func(v): cfg.erase("contrast"); set.call("hc", v, true))
 	_seg(ga, T.call("cvd_title"), [["off", T.call("cvd_off")], ["deuter", T.call("cvd_deuter")], ["protan", T.call("cvd_protan")], ["tritan", T.call("cvd_tritan")]], String(cfg.get("cvd", "off")), func(v): set.call("cvd", v))
+	_seg(ga, T.call("navpad_title"), [["auto", T.call("navpad_auto")], ["on", T.call("navpad_on")], ["off", T.call("navpad_off")]], String(cfg.get("navpad", "auto")), func(v): set.call("navpad", v))
 	ga.add_child(K.toggle(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): set.call("reduce_motion", v)))
 	ga.add_child(K.toggle(T.call("large_targets"), bool(cfg.get("touch_large", false)), func(v): set.call("touch_large", v, true)))
 	ga.add_child(K.toggle(T.call("readable_fonts"), bool(cfg.get("readable", false)), func(v): set.call("readable", v, true)))

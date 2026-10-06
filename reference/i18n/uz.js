@@ -1006,6 +1006,8 @@ export default {
   ml_title: "Viloyatlar va qo‘shinlar", ml_provinces: "Viloyatlar", ml_armies: "Qo‘shinlar", ml_more: "Yana {n} ta: qidiruvni toraytiring",
   nav_left: "Chapga surish", nav_right: "O‘ngga surish", nav_up: "Yuqoriga surish", nav_down: "Pastga surish", nav_zoom_in: "Yaqinlashtirish", nav_zoom_out: "Uzoqlashtirish", nav_home: "Tanlanganga o‘tish", nav_list: "Viloyatlar va qo‘shinlar ro‘yxati",
   cvd_legend_hint: "Namunalardagi harflar xaritaga mos",
+  recent_notices: "So‘nggi xabarlar",
+  navpad_title: "Xarita tugmalari", navpad_auto: "Avto", navpad_on: "Doim", navpad_off: "Yashirin",
   ev_worldwide: "Butun dunyo voqeasi",
   ev_event: "Voqea",
   ev_ack: "Tushunarli",

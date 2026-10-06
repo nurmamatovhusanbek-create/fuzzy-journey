@@ -421,6 +421,8 @@ export default {
   ml_title: 'Provinces and armies', ml_provinces: 'Provinces', ml_armies: 'Armies', ml_more: '{n} more: type to narrow the list',
   nav_left: 'Pan left', nav_right: 'Pan right', nav_up: 'Pan up', nav_down: 'Pan down', nav_zoom_in: 'Zoom in', nav_zoom_out: 'Zoom out', nav_home: 'Centre on selection', nav_list: 'Provinces and armies list',
   cvd_legend_hint: 'Letters on the swatches match the map',
+  recent_notices: 'Recent notices',
+  navpad_title: 'Map buttons', navpad_auto: 'Auto', navpad_on: 'Always', navpad_off: 'Hidden',
   ev_worldwide: 'Worldwide event', ev_event: 'Event', ev_ack: 'Acknowledge', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Bountiful Harvest', ev_bountiful_harvest_f: 'Fields overflow with grain and the granaries are fuller than in living memory.',
   ev_bountiful_harvest_c0: 'Distribute the surplus', ev_bountiful_harvest_d0: '+40 gold, +25 manpower, +8 stability in the capital',
