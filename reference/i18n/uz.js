@@ -1008,6 +1008,7 @@ export default {
   cvd_legend_hint: "Namunalardagi harflar xaritaga mos",
   recent_notices: "So‘nggi xabarlar",
   navpad_title: "Xarita tugmalari", navpad_auto: "Avto", navpad_on: "Doim", navpad_off: "Yashirin",
+  pv_confirm_hint: "Enter — tasdiqlash · Esc — bekor qilish",
   ev_worldwide: "Butun dunyo voqeasi",
   ev_event: "Voqea",
   ev_ack: "Tushunarli",

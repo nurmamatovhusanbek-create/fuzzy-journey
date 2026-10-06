@@ -856,6 +856,17 @@ func _build_armed_row() -> HBoxContainer:
 func _build_order_row(cs: Dictionary, src: int, mode: String) -> HBoxContainer:
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8)
 	row.custom_minimum_size = Vector2(0, CC.touch())
+	if mode == "preview" and flow != null and flow.has_method("summary"):
+		# the preview chip beside the target owns Cancel / Attack; the card only restates the order (Enter and Esc still work)
+		var sm: Dictionary = flow.summary()
+		var atk: bool = String(sm.get("kind", "")) == "attack"
+		var line := "%s · %s" % [T.call("cc_attack") if atk else T.call("move"), CC.unit(int(sm.get("moves", 1)), "u_move")]
+		if atk and int(sm.get("lost", 0)) > 0: line += " · −%s" % CC.unit(int(sm["lost"]), "u_man")
+		var hint: Label = TBKit.label("%s   —   %s" % [line, T.call("pv_confirm_hint")], CC.fs(13), TBTokens.c("ink_1"))
+		hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(hint)
+		_verbs.clear()
+		return row
 	var cancel := CC.VerbBtn.new().setup("cancel", "close", T.call("pv_cancel"), "Esc", false, false)
 	cancel.custom_minimum_size = Vector2(104, CC.touch())
 	var ok: CC.VerbBtn
