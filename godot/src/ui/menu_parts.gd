@@ -5,86 +5,87 @@ extends RefCounted
 
 const K = preload("res://src/ui/ui_kit.gd")
 
-## graduated bezel (like an armillary / compass ring) that turns with the globe; a flat dark disc under the text keeps it readable
+## graduated bezel (like an armillary / compass ring) that turns with the globe; a dark disc (alpha ~0.55) dims the globe under the text but keeps it visible
 class Bezel extends Control:
 	var map: TBMapView
 	var dim := 1.0                          # 0.35 while a panel is open
 	func _init() -> void:
 		set_anchors_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func ring_radius() -> float:
+		return minf(size.x, size.y) * 0.44 * (map.zoom if map != null else 1.0)
 	func _draw() -> void:
 		if map == null: return
 		var c := size * 0.5
-		var R := minf(size.x, size.y) * 0.44 * map.zoom
+		var R := ring_radius()
 		var spin := -map.lon0
-		var gold: Color = TBTokens.c("brass_lt")
 		var a: float = dim
-		draw_circle(c, R * 1.0, TBTokens.ca("table", 0.78 * a))          # flat dark disc: text never sits on bright land
-		draw_arc(c, R * 1.06, 0, TAU, 96, Color(gold.r, gold.g, gold.b, 0.6 * a), 1.0, true)
-		draw_arc(c, R * 1.075, 0, TAU, 96, Color(gold.r, gold.g, gold.b, 0.25 * a), 1.0, true)
+		draw_circle(c, R * 1.0, TBTokens.ca("table", 0.55 * a))          # dimmed disc: the turning globe stays visible, text carries its own outline
+		draw_arc(c, R * 1.06, 0, TAU, 96, TBTokens.ca("brass_lt", 0.6 * a), 1.0, true)
+		draw_arc(c, R * 1.075, 0, TAU, 96, TBTokens.ca("brass_lt", 0.25 * a), 1.0, true)
 		for i in 120:
 			var ang := i * TAU / 120.0 + spin
 			var d := Vector2(cos(ang), sin(ang))
 			var big := i % 10 == 0
 			var mid := i % 5 == 0
-			draw_line(c + d * R * 1.06, c + d * R * (1.103 if big else (1.088 if mid else 1.075)), Color(gold.r, gold.g, gold.b, (0.85 if big else 0.5) * a), 1.0, true)
+			draw_line(c + d * R * 1.06, c + d * R * (1.103 if big else (1.088 if mid else 1.075)), TBTokens.ca("brass_lt", (0.85 if big else 0.5) * a), 1.0, true)
 		for q in 4:                                                          # four fixed lubber marks (N/E/S/W)
 			var ang2 := q * PI * 0.5 - PI * 0.5
 			var d2 := Vector2(cos(ang2), sin(ang2))
 			var p := c + d2 * R * 1.06
-			draw_colored_polygon(PackedVector2Array([p, p + d2.rotated(0.09) * R * 0.045, p + d2.rotated(-0.09) * R * 0.045]), Color(gold.r, gold.g, gold.b, 0.95 * a))
+			draw_colored_polygon(PackedVector2Array([p, p + d2.rotated(0.09) * R * 0.045, p + d2.rotated(-0.09) * R * 0.045]), TBTokens.ca("brass_lt", 0.95 * a))
 
-## entry plate: dark glass (alpha >= 0.8) with a 1 px brass border; primary = brass fill; diamonds flank it on hover and focus
+## light text with a dark outline so it reads on any part of the globe
+static func glow_text(ci: Control, f: Font, pos: Vector2, t: String, w: float, fsz: int, col: Color) -> void:
+	ci.draw_string_outline(f, pos, t, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, 5, TBTokens.ca("table", 0.9))
+	ci.draw_string(f, pos, t, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, col)
+
+## title entry: a plain text row on the dimmed globe (cream, outlined). Only the primary / focused / hovered entry is brass; the primary also gets a 3 px brass bar.
 class Plate extends Button:
 	var primary := false
 	var subline := ""
 	var reason := ""
 	var _ttl := ""
-	func _init(title_text: String, sub: String, is_primary: bool, cb: Callable, why_disabled: String = "") -> void:
-		_ttl = title_text; subline = sub; primary = is_primary; reason = why_disabled
+	var compact := false
+	func _init(title_text: String, sub: String, is_primary: bool, cb: Callable, why_disabled: String = "", compact_mode: bool = false) -> void:
+		_ttl = title_text; subline = sub; primary = is_primary; reason = why_disabled; compact = compact_mode
 		text = ""; flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-		var hh: int = 64 if sub != "" or why_disabled != "" else 56
-		custom_minimum_size = Vector2(340, TBKit.dp(hh))
+		var two: bool = sub != "" or why_disabled != ""
+		var hh: int = (58 if two else 40) if compact_mode else (66 if two else 52)
+		custom_minimum_size = Vector2(240, maxi(hh, TBKit.touch() if not two else 0))
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		if why_disabled != "":
 			disabled = true; tooltip_text = why_disabled
 		if cb.is_valid(): pressed.connect(cb)
 		TBKit.a11y(self, title_text, "button", sub if why_disabled == "" else why_disabled)
-		mouse_entered.connect(queue_redraw); mouse_exited.connect(queue_redraw)
+		mouse_entered.connect(queue_redraw); mouse_exited.connect(queue_redraw); focus_entered.connect(queue_redraw); focus_exited.connect(queue_redraw)
 	func _draw() -> void:
 		var w := size.x; var h := size.y
-		var hot := (is_hovered() or has_focus()) and not disabled
+		var hot := (is_hovered() or (has_focus() and TBFrame.kbd_nav)) and not disabled
+		var lit: bool = (primary or hot) and not disabled
 		var pressed_now := get_draw_mode() == BaseButton.DRAW_PRESSED
-		var fill: Color
-		var line: Color = TBTokens.c("brass_lt") if hot else TBTokens.ca("brass_lt", 0.7)
-		if primary:
-			fill = TBTokens.c("brass_press" if pressed_now else ("brass_hover" if hot else "brass"))
-			line = TBTokens.c("brass_ink")
-		else:
-			fill = TBTokens.ca("bar_2" if hot else "bar_0", 0.9)
-		if disabled: fill.a = 0.6
-		draw_style_box(TBFrame.plate(fill, line, 4, 0, 0, 0, false, 2 if has_focus() and TBFrame.kbd_nav else 1), Rect2(0, 0, w, h))
-		var ink: Color = TBTokens.c("ink_0") if primary else (TBTokens.c("smoke") if disabled else TBTokens.c("cream"))
+		var ink: Color = TBTokens.c("smoke") if disabled else (TBTokens.c("brass_lt") if lit else TBTokens.c("cream"))
+		if pressed_now: ink = TBTokens.c("brass_hover")
 		var f := TBKit.body_b()
-		var fsz := TBKit.fs(20)
-		var tw: float = f.get_string_size(_ttl, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+		var fsz := TBKit.fs(20 if compact else 22)
+		var maxw: float = w - 24.0
+		var tw: float = minf(f.get_string_size(_ttl, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, maxw)
 		var sub: String = reason if reason != "" else subline
 		var two := sub != ""
-		var ty: float = roundf(h * 0.5 - (9.0 if two else 0.0) + f.get_ascent(fsz) * 0.5 - 1.0)
-		draw_string(f, Vector2(roundf((w - minf(tw, w - 48.0)) * 0.5), ty), _ttl, HORIZONTAL_ALIGNMENT_LEFT, w - 48.0, fsz, ink)
+		var ty: float = roundf(h * 0.5 - (8.0 if two else 0.0) + f.get_ascent(fsz) * 0.5 - 2.0)
+		TBMenuParts.glow_text(self, f, Vector2(roundf((w - tw) * 0.5), ty), _ttl, maxw, fsz, ink)
 		if two:
 			var sf := TBKit.body()
 			var ssz := TBKit.fs(13)
-			var sw: float = sf.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, ssz).x
-			draw_string(sf, Vector2(roundf((w - minf(sw, w - 32.0)) * 0.5), roundf(h * 0.5 + 12.0 + sf.get_ascent(ssz) * 0.5 - 1.0)), sub, HORIZONTAL_ALIGNMENT_LEFT, w - 32.0, ssz, ink if primary else TBTokens.c("smoke"))
-		if hot:                                                              # flanking diamonds on hover and focus
-			var col: Color = TBTokens.c("ink_0") if primary else TBTokens.c("brass_lt")
-			var cy := h * 0.5
-			for s in [-1.0, 1.0]:
-				var x: float = w * 0.5 + s * (minf(tw, w - 48.0) * 0.5 + 18.0)
-				if absf(x - w * 0.5) < w * 0.5 - 12.0:
-					draw_colored_polygon(PackedVector2Array([Vector2(x - 5, cy), Vector2(x, cy - 5), Vector2(x + 5, cy), Vector2(x, cy + 5)]), col)
+			var sw: float = minf(sf.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, ssz).x, maxw)
+			TBMenuParts.glow_text(self, sf, Vector2(roundf((w - sw) * 0.5), roundf(h * 0.5 + 12.0 + sf.get_ascent(ssz) * 0.5 - 2.0)), sub, maxw, ssz, TBTokens.c("smoke"))
+		if primary and not disabled:                                           # the one brass element: a 3 px bar under the primary entry
+			draw_rect(Rect2(roundf((w - tw) * 0.5) - 6.0, h - 4.0, tw + 12.0, 3.0), TBTokens.c("brass_lt"))
+		elif hot:
+			draw_rect(Rect2(roundf((w - tw) * 0.5) - 6.0, h - 3.0, tw + 12.0, 1.0), TBTokens.c("brass_lt"))
+		if has_focus() and TBFrame.kbd_nav:
+			draw_style_box(TBFrame.focus(true, 4, 0), Rect2(0, 0, w, h))
 
-## tools row chip: glyph + label on dark furniture, 48 high
+## tools row entry: a small text button (glyph + label), cream on the dark ground, outlined
 class ToolChip extends Button:
 	var glyph := ""
 	var _lbl := ""
@@ -92,40 +93,54 @@ class ToolChip extends Button:
 		glyph = g; _lbl = label_text; text = ""; flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		var f := TBKit.body_b()
-		var w: float = f.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(14)).x + 56.0
-		custom_minimum_size = Vector2(maxf(w, 96.0), TBKit.touch())
+		var w: float = f.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(14)).x + (40.0 if g != "" else 20.0)
+		custom_minimum_size = Vector2(maxf(w, 64.0), TBKit.touch())
 		if cb.is_valid(): pressed.connect(cb)
 		TBKit.a11y(self, label_text, "button")
 		mouse_entered.connect(queue_redraw); mouse_exited.connect(queue_redraw)
 	func _draw() -> void:
 		var hot := is_hovered() or get_draw_mode() == BaseButton.DRAW_PRESSED
-		draw_style_box(TBFrame.plate(TBTokens.ca("bar_2" if hot else "bar_1", 0.92), TBTokens.ca("rule_dark", 0.8), 4, 0, 0, 0), Rect2(0, 0, size.x, size.y))
-		TBGlyph.draw(self, glyph, Vector2(26, roundf(size.y * 0.5)), 20.0, TBTokens.c("brass_lt"))
+		var col: Color = TBTokens.c("brass_lt") if hot else TBTokens.c("cream")
+		var x0: float = 10.0
+		if glyph != "":
+			TBGlyph.draw(self, glyph, Vector2(18, roundf(size.y * 0.5)), 18.0, col); x0 = 32.0
 		var f := TBKit.body_b()
-		draw_string(f, Vector2(46, roundf(size.y * 0.5 + f.get_ascent(TBKit.fs(14)) * 0.5 - 1.0)), _lbl, HORIZONTAL_ALIGNMENT_LEFT, size.x - 52.0, TBKit.fs(14), TBTokens.c("cream"))
+		var fsz := TBKit.fs(14)
+		TBMenuParts.glow_text(self, f, Vector2(x0, roundf(size.y * 0.5 + f.get_ascent(fsz) * 0.5 - 2.0)), _lbl, size.x - x0 - 6.0, fsz, col)
+		if hot: draw_rect(Rect2(x0, size.y * 0.5 + 12.0, maxf(size.x - x0 - 8.0, 8.0), 1), col)
 		if has_focus() and TBFrame.kbd_nav: draw_style_box(TBFrame.focus(true, 4, 0), Rect2(0, 0, size.x, size.y))
 
-## EN | RU | UZ in one chip: one tap, live
+## EN | RU | UZ as plain text: the current language is bold cream with an underline bar, the others smoke; one tap, live
 class LangSwitch extends HBoxContainer:
 	signal chosen(code: String)
+	class Cell extends Button:
+		var on := false
+		var _t := ""
+		func _init(t: String, is_on: bool) -> void:
+			_t = t; on = is_on; text = ""; flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+			for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
+			custom_minimum_size = Vector2(48, TBKit.touch())
+			mouse_entered.connect(queue_redraw); mouse_exited.connect(queue_redraw)
+		func _draw() -> void:
+			var f := TBKit.body_b()
+			var fsz := TBKit.fs(14)
+			var tw: float = f.get_string_size(_t, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+			var col: Color = TBTokens.c("cream") if (on or is_hovered()) else TBTokens.c("smoke")
+			TBMenuParts.glow_text(self, f, Vector2(roundf((size.x - tw) * 0.5), roundf(size.y * 0.5 + f.get_ascent(fsz) * 0.5 - 2.0)), _t, -1, fsz, col)
+			if on: draw_rect(Rect2(roundf((size.x - tw) * 0.5) - 2.0, size.y * 0.5 + 11.0, tw + 4.0, 2.0), TBTokens.c("cream"))
+			if has_focus() and TBFrame.kbd_nav: draw_style_box(TBFrame.focus(true, 4, 0), Rect2(0, 0, size.x, size.y))
 	func _init(cur: String) -> void:
 		add_theme_constant_override("separation", 0)
 		var codes := ["en", "ru", "uz"]
 		for i in 3:
 			var code: String = codes[i]
-			var b := Button.new(); b.text = code.to_upper(); b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-			b.custom_minimum_size = Vector2(52, TBKit.touch())
-			var on: bool = code == cur
-			var mask: int = (TBFrame.TL | TBFrame.BL if i == 0 else 0) | (TBFrame.TR | TBFrame.BR if i == 2 else 0)
-			var fill: String = "brass" if on else "bar_1"
-			for st in ["normal", "hover", "pressed", "hover_pressed"]:
-				b.add_theme_stylebox_override(st, TBFrame.plate(TBTokens.c(fill) if (on or st == "normal") else TBTokens.c("bar_2"), TBTokens.ca("rule_dark", 0.8), 4, 0, 4, 6, false, 1, mask))
-			b.add_theme_stylebox_override("focus", TBFrame.focus(true, 4, 0))
-			var tc: Color = TBTokens.c("ink_0") if on else TBTokens.c("cream")
-			for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]: b.add_theme_color_override(fc, tc)
+			var b := Cell.new(code.to_upper(), code == cur)
 			b.pressed.connect(func(): chosen.emit(code))
 			TBKit.a11y(b, {"en": "English", "ru": "Русский", "uz": "O‘zbekcha"}[code], "button")
 			add_child(b)
+			if i < 2:
+				var sep := Label.new(); sep.text = "|"; sep.add_theme_color_override("font_color", TBTokens.c("smoke")); sep.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+				add_child(sep)
 
 ## three pips: Era - Nation - Play (current one filled)
 class Steps extends Control:

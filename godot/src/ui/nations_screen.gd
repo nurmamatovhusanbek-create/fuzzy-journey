@@ -54,7 +54,7 @@ static func start_rating(g: TBGame, n: int, st: Dictionary) -> Dictionary:
 static func rating_chip(r: Dictionary) -> Control:
 	var id: String = r["id"]
 	var tone: String = {"easy": "pos", "balanced": "info", "hard": "warn"}[id]
-	var glyph_id: String = {"easy": "tri_up", "balanced": "diamond", "hard": "warning"}[id]
+	var glyph_id: String = {"easy": "check", "balanced": "diamond", "hard": "warning"}[id]          # a rating, not a delta: no up / down triangles
 	return K.chip(T.call("sr_" + id), glyph_id, tone)
 
 static func rating_reason(r: Dictionary) -> String:
@@ -153,7 +153,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	var taken: Array = opts.get("taken", [])
 	var seats: Dictionary = opts.get("seats", {})
 	var vs: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
-	var portrait := TBPanel.is_portrait(vs)
+	var portrait := TBPanel.stacked(vs)                          # portrait or short landscape (< 480u): list page, then detail page with a Back arrow
 	var S := {"sel": int(opts.get("select", -1)), "filter": String(opts.get("filter", mem["filter"] if not pick else "all")), "sort": String(mem["sort"]), "q": "", "tab": String(opts.get("tab", mem["tab"])), "detail": false}
 	if pick and S["filter"] in ["near", "war", "ally"]: S["filter"] = "all"
 	if not pick and S["filter"] in ["powers", "regional", "minor"]: S["filter"] = "all"
@@ -190,10 +190,11 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		split.add_child(lm)
 		var srow := K.hbox(8); left.add_child(srow)
 		var search := LineEdit.new(); search.placeholder_text = T.call("search"); search.clear_button_enabled = true
-		search.custom_minimum_size = Vector2(0, K.touch()); search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		search.custom_minimum_size = Vector2(80, K.touch()); search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		search.text = String(S["q"]); search.tooltip_text = T.call("search")
 		srow.add_child(search)
 		var sort_btn := K.button("", Callable()); sort_btn.custom_minimum_size = Vector2(0, K.touch())
+		if K.text_scale >= 1.4 or TBPanel.is_portrait(vs): sort_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; sort_btn.custom_minimum_size = Vector2(90, K.touch())      # wraps instead of widening the page
 		srow.add_child(sort_btn)
 		var fl := TBPanel.flow(6); left.add_child(fl)
 		var filters: Array = [["all", T.call("f_all")], ["powers", T.call("tier_powers")], ["regional", T.call("tier_regional")], ["minor", T.call("tier_minor")]] if pick else [["all", T.call("f_all")], ["near", T.call("f_near")], ["war", T.call("f_war")], ["ally", T.call("f_ally")]]
@@ -293,7 +294,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		for k in rows: (rows[k] as NationRow).selected = (k == n)
 		var dv: VBoxContainer = ui["detail_box"]
 		for c in dv.get_children(): c.queue_free()
-		_card(dv, g, n, st, {"h": h, "parent": parent, "pick": pick, "wide": not portrait and h.card.size.x >= 800.0 and K.text_scale < 1.4, "on_cmd": on_cmd, "taken": taken, "me": me,
+		_card(dv, g, n, st, {"h": h, "parent": parent, "pick": pick, "wide": h.card.size.x >= 800.0 and K.text_scale < 1.4, "on_cmd": on_cmd, "taken": taken, "me": me,
 			"on_select": func(o: int) -> void:
 				(ui["select"] as Callable).call(o, true)
 				if rows.has(o): (ui["list_scroll"] as ScrollContainer).ensure_control_visible.call_deferred(rows[o]),
@@ -312,7 +313,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	# ---- rankings tab
 	var build_rank := func() -> void:
 		for c in content.get_children(): c.queue_free()
-		for c in h.footer.get_children(): c.queue_free()
+		h.clear_actions()
 		var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; sc.size_flags_vertical = Control.SIZE_EXPAND_FILL; sc.follow_focus = true
 		var mg := MarginContainer.new()
 		for s in ["left", "right"]: mg.add_theme_constant_override("margin_" + s, h.pad)
@@ -331,16 +332,17 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			S["detail"] = false
 			(ui["master"] as Control).visible = true; (ui["detail_scroll"] as Control).visible = false
 			h.set_title(T.call("nations"))
-			for c in h.footer.get_children(): c.queue_free()
+			h.clear_actions()
 			return true
 		return false
 	if String(S["tab"]) == "rank" and not pick: build_rank.call()
 	else: build_list.call()
 	if portrait and int(S["sel"]) > 0 and rows.has(int(S["sel"])): (ui["select"] as Callable).call(int(S["sel"]), true)
+	elif rows.has(int(S["sel"])): h.focus_target = rows[int(S["sel"])]          # keyboard / pad: focus starts on the selected nation row
 	return h
 
 static func _footer(h: TBPanel.Handle, g: TBGame, n: int, pick: bool, taken: Array, on_goto: Callable, on_play: Callable, opts: Dictionary) -> void:
-	for c in h.footer.get_children(): c.queue_free()
+	h.clear_actions()
 	var show := K.button(T.call("goto"), func(): h.close(); if on_goto.is_valid(): on_goto.call(n))
 	if pick:
 		var go: Button = K.button(T.call("play_as", {"nation": g.dname(n)}), func(): h.close(); on_play.call(n), true)
@@ -383,8 +385,9 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 		var tr: String = TBRulers.TRAITS[g.r_trait[n]]
 		if tr != "none": rc.add_child(TBPanel.para("%s: %s" % [T.call("rtr_" + tr), T.call("rtr_%s_d" % tr)], 13, K.DIM))
 		hb.add_child(rc); v.add_child(hb)
-	# facts
 	var rel := g.get_rel(me, n) if (n != me and me > 0) else -1
+	if not pick and n != me and me > 0: _actions(v, g, n, ctx, rel)
+	# facts
 	var rows: Array = [
 		[T.call("lands"), "%d · #%d" % [int(st["prov"][n]), int(st["rank_p"].get(n, 0))]],
 		[T.call("total_army"), "%s · #%d" % [K.fmt(float(st["army"][n])), int(st["rank_a"].get(n, 0))]],
@@ -404,7 +407,7 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 			elif g.has_truce(me, n): rows.append([T.call("truce_left", {"n": g.truce[me * g.N1 + n] - g.turn}), "—"])
 			rows.append([T.call("grudge"), "%d" % g.grudge[n * g.N1 + me]])
 			if g.rules >= 1 and TBTrade.has(g, me, n): rows.append([T.call("trade"), "+%d" % TBTrade.value(g, n)])
-	v.add_child(K.section(T.call("facts")))
+	v.add_child(TBPanel.section(T.call("facts")))
 	v.add_child(TBPanel.facts_grid(rows, 2 if wide else 1))
 	# allies / enemies
 	var allies: Array = []; var enemies: Array = []
@@ -415,19 +418,25 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 		elif r == 1: enemies.append(o)
 	for grp in [[T.call("allies"), allies], [T.call("at_war_with"), enemies]]:
 		var arr: Array = grp[1]
-		v.add_child(K.section(String(grp[0])))
+		v.add_child(TBPanel.section(String(grp[0])))
 		if arr.is_empty(): v.add_child(K.label(T.call("none_yet"), 13, K.DIM)); continue
 		var fw := TBPanel.flow(6); v.add_child(fw)
 		for i in mini(6, arr.size()):
 			var o: int = arr[i]
 			fw.add_child(TBPanel.nation_button(g, o, func(): (ctx["on_select"] as Callable).call(o)))
 		if arr.size() > 6: fw.add_child(K.chip("+%d" % (arr.size() - 6), "", "neutral"))
-	if pick or n == me or me <= 0: return
-	# ---- actions: Diplomacy then Intel
+
+## what you can do with this nation (diplomacy, then intel): shown directly under the header and ruler, above the facts (modal-system.md 5.4)
+static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: int) -> void:
+	var me: int = ctx["me"]
+	var wide: bool = ctx["wide"]
+	var on_cmd: Callable = ctx["on_cmd"]
+	var parent: Control = ctx["parent"]
+	var refresh: Callable = ctx["refresh"]
 	var dp: float = g.dp[me]
 	var dpw := func(cost: int) -> String: return "" if dp >= float(cost) else T.call("err_dp")
 	var cost_chip := func(cost: int, unit: String) -> Array: return [["%d %s" % [cost, unit], "scales" if unit == T.call("hud_dp") else "eye", "neg" if (unit == T.call("hud_dp") and dp < float(cost)) else "neutral"]]
-	v.add_child(K.section(T.call("diplomacy")))
+	v.add_child(TBPanel.section(T.call("diplomacy")))
 	var acts := GridContainer.new(); acts.columns = 2 if wide else 1
 	acts.add_theme_constant_override("h_separation", 10); acts.add_theme_constant_override("v_separation", 8); acts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(acts)
@@ -458,6 +467,7 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 			var cbk := TBDiplo.cb(g, me, n)
 			var body: String = T.call("confirm_war_cb", {"cb": T.call("cb_" + cbk)}) if cbk != "" else T.call("confirm_war_nocb", {"k": int(TBDiplo.NO_CB_INFAMY)})
 			TBPanel.confirm(parent, T.call("confirm_war_t", {"a": g.dname(n)}), body + " " + T.call("confirm_war_b", {"dp": D.DP_WAR}), T.call("declare_war_on", {"a": g.dname(n)}), func(): done.call({"cmd": "declareWar", "t": n}), true, "swords"))
+		wb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		if why != "": K.disable(wb, why)
 		wr.add_child(wb)
 		if why != "": wr.add_child(TBPanel.para(why, 13, K.RED))
@@ -465,7 +475,7 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 		v.add_child(wr)
 	# intel
 	if g.rules >= 1:
-		v.add_child(K.section("%s  ·  %s %.0f" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]]))
+		v.add_child(TBPanel.section("%s  ·  %s %.0f" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]]))
 		var sp := GridContainer.new(); sp.columns = 2 if wide else 1
 		sp.add_theme_constant_override("h_separation", 10); sp.add_theme_constant_override("v_separation", 8); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		v.add_child(sp)
@@ -477,13 +487,14 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 			var o: String = op
 			sp.add_child(TBPanel.card("eye", T.call("spy_" + op), "", [["%d %s" % [int(cost), T.call("hud_intel")], "eye", "neg" if g.intel[me] < cost else "neutral"]], func(): done.call({"cmd": "spy", "t": n, "op": o}), reason, false, false))
 
+
 # ---- rankings tab: chart or table of the leading powers ----------------------------------------------------------------------------------------
 static func _rankings(v: VBoxContainer, g: TBGame, st: Dictionary, parent: Control) -> void:
 	var S := {"hidden": {}}
 	var metrics: Array = [["p", T.call("hud_prov")], ["a", T.call("army")], ["g", T.call("gold")], ["k", T.call("tech")]]
-	var seg := K.segmented(metrics, String(mem["metric"]), func(id: String): mem["metric"] = id; (S["draw"] as Callable).call())
+	var seg := TBPanel.seg(metrics, String(mem["metric"]), func(id: String): mem["metric"] = id; (S["draw"] as Callable).call())
 	v.add_child(seg)
-	var view := K.segmented([["chart", T.call("chart")], ["table", T.call("table")]], "table" if bool(mem["table"]) else "chart", func(id: String): mem["table"] = id == "table"; (S["draw"] as Callable).call())
+	var view := TBPanel.seg([["chart", T.call("chart")], ["table", T.call("table")]], "table" if bool(mem["table"]) else "chart", func(id: String): mem["table"] = id == "table"; (S["draw"] as Callable).call())
 	v.add_child(view)
 	var chart := TBStatChart.new(); chart.custom_minimum_size = Vector2(0, 220)
 	chart.x_label = func(t: float) -> String:

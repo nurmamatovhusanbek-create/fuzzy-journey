@@ -50,14 +50,14 @@ static func facts(id: String, world: TBWorld) -> Dictionary:
 ## opts: world, era, difficulty, players, mp (bool: no players selector), on_next(era, diff, players), on_back, next_label
 static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 	var vs: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
-	var portrait := TBPanel.is_portrait(vs)
+	var portrait := TBPanel.stacked(vs)
 	var mp: bool = bool(opts.get("mp", false))
 	var S := {"era": String(opts.get("era", "modern")), "diff": String(opts.get("difficulty", "normal")), "players": int(opts.get("players", 1)), "detail": false}
 	if not ERA_YEAR.has(S["era"]): S["era"] = "modern"
 	var on_back: Callable = opts.get("on_back", Callable())
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("new_game_t"), "hourglass", {"scroll": false, "padded": false, "dismissable": true})
 	if not mp:
-		var steps := TBMenuParts.Steps.new(0, portrait)
+		var steps := TBMenuParts.Steps.new(0, TBPanel.is_portrait(vs))
 		h.set_chip(steps)
 	var world: TBWorld = opts.get("world", null)
 	# ---- columns
@@ -99,7 +99,7 @@ static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 		var nl := K.title(T.call("era_" + id), 26); nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; nl.custom_minimum_size.x = 40
 		det.add_child(nl)
 		det.add_child(TBPanel.para(T.call("blurb_" + id), 15, K.TEXT))
-		det.add_child(K.section(T.call("great_powers")))
+		det.add_child(TBPanel.section(T.call("great_powers")))
 		var f := facts(id, world)
 		var fw := TBPanel.flow(6); det.add_child(fw)
 		for p in f["powers"]:
@@ -107,12 +107,12 @@ static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 			fw.add_child(TBPanel.flag_tag(TBFlags.texture(code, TBGame.gen_wash(int(p["n"]))), TBI18n.nation(String(p["name"])), str(int(p["prov"]))))
 		fw.add_child(K.chip(T.call("n_nations", {"n": f["count"] if int(f["count"]) > 0 else 250}), "globe", "neutral"))
 		det.add_child(K.hair())
-		det.add_child(K.section(T.call("difficulty")))
-		det.add_child(K.segmented([["easy", T.call("easy")], ["normal", T.call("normal")], ["hard", T.call("hard")]], String(S["diff"]), func(v: String): S["diff"] = v))
+		det.add_child(TBPanel.section(T.call("difficulty")))
+		det.add_child(TBPanel.seg([["easy", T.call("easy")], ["normal", T.call("normal")], ["hard", T.call("hard")]], String(S["diff"]), func(v: String): S["diff"] = v))
 		if not mp:
-			det.add_child(K.section(T.call("hot_players")))
+			det.add_child(TBPanel.section(T.call("hot_players")))
 			var hint := TBPanel.para(T.call("players_hint_1") if int(S["players"]) <= 1 else T.call("players_hint_n", {"n": S["players"]}), 13, K.DIM)
-			det.add_child(K.segmented([["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]], str(S["players"]), func(v: String):
+			det.add_child(TBPanel.seg([["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]], str(S["players"]), func(v: String):
 				S["players"] = int(v)
 				hint.text = T.call("players_hint_1") if int(S["players"]) <= 1 else T.call("players_hint_n", {"n": S["players"]})))
 			det.add_child(hint)
@@ -128,6 +128,7 @@ static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 		rail.add_child(r); rows[id] = r
 	if portrait: det_sc.visible = false
 	show.call(String(S["era"]), false)
+	if rows.has(String(S["era"])): h.focus_target = rows[String(S["era"])]
 	# ---- footer: the verb, not "New Game"
 	var go := K.button(String(opts.get("next_label", T.call("pick_nation_btn"))), func():
 		h.close()

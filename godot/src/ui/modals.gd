@@ -44,7 +44,8 @@ static func fx_text(effects: Array) -> String:
 		parts.append(T.call("fx_" + op, {"d": ds.replace("-", "−"), "t": int(e.get("turns", 6))}))
 	return " · ".join(parts)
 
-## the same effects as chips [[text, glyph, tone]]: sign shown with an arrow glyph and colour (infamy is bad when it rises)
+## the same effects as chips [[text, glyph, tone]]. One rule everywhere (art bible 4.4): the glyph follows the SIGN of the number (up = +, down = U+2212),
+## the colour follows meaning (good / bad). Infamy and upkeep are bad when they rise: they keep the up glyph in the negative colour.
 static func fx_chips(effects: Array) -> Array:
 	var out: Array = []
 	for e in effects:
@@ -54,25 +55,32 @@ static func fx_chips(effects: Array) -> Array:
 		if d == 0.0 or not TBI18n.has_key("fx_" + op): continue
 		var ds := "%+d" % int(d) if op != "combat" else "%+d%%" % int(d)
 		var txt: String = T.call("fx_" + op, {"d": ds.replace("-", "−"), "t": int(e.get("turns", 6))})
-		var good: bool = d > 0.0
-		if op == "infamy": good = not good
-		out.append([txt, "tri_up" if d > 0.0 else "tri_down", "pos" if good else "neg"])
+		out.append([txt, "tri_up" if d > 0.0 else "tri_down", delta_tone(d > 0.0, op == "infamy")])
 	return out
 
-## chips from a prose effect line ("−60 gold · +30 research"): split on the middle dot, tone from the sign
+## tone of a change: `up` = the number rises; `bad_when_up` = a rising number hurts (infamy)
+static func delta_tone(up: bool, bad_when_up: bool = false) -> String:
+	return "pos" if (up != bad_when_up) else "neg"
+
+static var _minus_re: RegEx
+## a hyphen-minus before a digit becomes the true minus U+2212
+static func true_minus(t: String) -> String:
+	if _minus_re == null:
+		_minus_re = RegEx.new(); _minus_re.compile("(^|[\\s(])-(?=\\d)")
+	return _minus_re.sub(t, "$1−", true)
+
+## chips from a prose effect line ("−60 gold · +30 research"): split on the middle dot; the glyph follows the sign, the tone the meaning
 static func chips_from_text(line: String) -> Array:
 	var out: Array = []
 	if line.strip_edges() == "": return out
 	var inf: String = T.call("infamy").to_lower()
 	for part in line.split(" · "):
-		var p: String = part.strip_edges()
+		var p: String = true_minus(part.strip_edges())
 		if p == "": continue
-		var neg: bool = p.contains("−") or (p.contains("-") and not p.contains("--"))
+		var neg: bool = p.contains("−")
 		var pos: bool = p.contains("+")
-		if p.to_lower().contains(inf):
-			var t := neg; neg = pos; pos = t
-		if pos and not neg: out.append([p, "tri_up", "pos"])
-		elif neg and not pos: out.append([p, "tri_down", "neg"])
+		if pos != neg:
+			out.append([p, "tri_up" if pos else "tri_down", delta_tone(pos, p.to_lower().contains(inf))])
 		else: out.append([p, "", "neutral"])
 	return out
 
@@ -102,7 +110,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 	var fxs: Array = []
 	var net_slot := K.hbox(6)
 	h.body.add_child(net_slot)
-	var preset_seg: TBKit.Segmented
+	var preset_seg: Control
 	var sync := func() -> void:
 		var inc := g.income(n)
 		var net: int = int(inc["net"])
@@ -122,12 +130,18 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 			(vls[i] as Label).text = "%d%%" % int(g.budget[n * 4 + i])
 			(fxs[i] as Label).text = lines[i]
 		on_change.call()
+	var vsb: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
+	var grid := GridContainer.new(); grid.columns = 2 if (TBPanel.is_short(vsb) and K.text_scale < 1.4) else 1
+	grid.add_theme_constant_override("h_separation", 24); grid.add_theme_constant_override("v_separation", 6)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.body.add_child(grid)
 	for i in 4:
 		var idx := i
+		var blk := K.vbox(2); blk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var head := K.hbox(8); head.add_child(K.title(T.call(BUDGET_KEYS[i]), 16, K.TEXT))
 		var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL; head.add_child(sp)
 		var vl := K.num("", 16, K.TEXT); head.add_child(vl); vls.append(vl)
-		h.body.add_child(head)
+		blk.add_child(head)
 		var row := K.hbox(6)
 		var minus := K.button("−", func(): g.apply({"cmd": "budget", "n": n, "key": BUDGET_KEYS[idx], "val": maxi(0, int(g.budget[n * 4 + idx]) - 5)}); sync.call())
 		minus.custom_minimum_size = Vector2(K.touch(), K.touch()); K.a11y(minus, "−5%", "button")
@@ -136,10 +150,11 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		var plus := K.button("+", func(): g.apply({"cmd": "budget", "n": n, "key": BUDGET_KEYS[idx], "val": mini(100, int(g.budget[n * 4 + idx]) + 5)}); sync.call())
 		plus.custom_minimum_size = Vector2(K.touch(), K.touch()); K.a11y(plus, "+5%", "button")
 		row.add_child(minus); row.add_child(s); row.add_child(plus)
-		h.body.add_child(row); sliders.append(s)
-		var fx := TBPanel.para("", 13, K.DIM); h.body.add_child(fx); fxs.append(fx)
-	h.body.add_child(K.section(T.call("preset")))
-	preset_seg = K.segmented([["balanced", T.call("pre_balanced")], ["war", T.call("pre_war")], ["growth", T.call("pre_growth")]], "", func(id: String): _budget_set(g, n, PRESETS[id]); sync.call())
+		blk.add_child(row); sliders.append(s)
+		var fx := TBPanel.para("", 13, K.DIM); blk.add_child(fx); fxs.append(fx)
+		grid.add_child(blk)
+	h.body.add_child(TBPanel.section(T.call("preset")))
+	preset_seg = TBPanel.seg([["balanced", T.call("pre_balanced")], ["war", T.call("pre_war")], ["growth", T.call("pre_growth")]], "", func(id: String): _budget_set(g, n, PRESETS[id]); sync.call())
 	h.body.add_child(preset_seg)
 	var revert := K.button(T.call("revert"), func(): _budget_set(g, n, start); sync.call())
 	var done := K.button(T.call("done"), func(): h.close(), true)
@@ -224,14 +239,14 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 		lv = h.body; rv = h.body
 	# ---- doctrine
 	if g.rules >= 1:
-		lv.add_child(K.section(T.call("doctrine")))
+		lv.add_child(TBPanel.section(T.call("doctrine")))
 		lv.add_child(TBPanel.para(T.call("doctrine_hint", {"c": TBDoctrine.cost(g, me)}), 13, K.DIM))
 		var items: Array = []
 		for di in range(1, TBDoctrine.IDS.size()): items.append([TBDoctrine.IDS[di], T.call("doc_" + TBDoctrine.IDS[di])])
 		var cur_id: String = TBDoctrine.IDS[g.doctrine[me]] if g.doctrine[me] != 0 else ""
 		var fx := TBPanel.para("", 13, K.GOLD2)
 		var shown := {"id": cur_id}
-		var seg := K.segmented(items, cur_id, func(id: String):
+		var seg := TBPanel.seg(items, cur_id, func(id: String):
 			if id == String(shown["id"]): return
 			if g.dp[me] < TBDoctrine.cost(g, me):
 				fx.text = T.call("err_dp"); fx.add_theme_color_override("font_color", K.RED)
@@ -253,7 +268,7 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 	for gk in ["active", "avail", "locked"]:
 		var arr: Array = groups[gk]
 		if arr.is_empty(): continue
-		rv.add_child(K.section("%s  (%d)" % [T.call("dec_g_" + gk), arr.size()]))
+		rv.add_child(TBPanel.section("%s  (%d)" % [T.call("dec_g_" + gk), arr.size()]))
 		for idx in arr:
 			var i2: int = idx
 			rv.add_child(DecisionRow.new(g, i2, me, func(): on_cmd.call({"cmd": "decide", "id": String(TBDecisions.LIST[i2]["id"])}); h.close()))
@@ -286,7 +301,7 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> TBPanel.
 			var tn: int = int(e["turn"])
 			if tn != last_turn:
 				last_turn = tn
-				var sec := K.section("%s %d · %s" % [T.call("turn"), tn, TBChron.date(g, tn)])
+				var sec := TBPanel.section("%s %d · %s" % [T.call("turn"), tn, TBChron.date(g, tn)])
 				sec.add_theme_constant_override("separation", 8)
 				var pad := MarginContainer.new(); pad.add_theme_constant_override("margin_top", 8); pad.add_child(sec); list.add_child(pad)
 			var bad := TBChron.is_bad(e, g.human_id)
@@ -294,7 +309,9 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable) -> TBPanel.
 			if e.has("p") and int(e["p"]) >= 0:
 				var pp: int = e["p"]
 				jump = func(): h.close(); on_goto.call(pp)
-			list.add_child(TBPanel.entry(tx, "tri_down" if bad else "", K.RED if bad else K.TEXT, jump, K.RED, "pin" if jump.is_valid() else ""))
+			var egl: String = TBChron.glyph(e)
+			if egl == "" and bad: egl = "warning"
+			list.add_child(TBPanel.entry(tx, egl, TBTokens.c("neg") if bad else TBTokens.c("ink_0"), jump, TBTokens.c("neg") if bad else TBTokens.c("ink_1"), "pin" if jump.is_valid() else ""))
 			shown += 1
 		if total == 0:
 			list.add_child(TBPanel.empty_state("book", T.call("chron_empty"), T.call("chron_empty_why"), T.call("chron_all") if S["cat"] == "mine" else "", func(): S["cat"] = "all"; for k in cbs: (cbs[k] as TBPanel.ChipBtn).set_on(k == "all"); (S["draw"] as Callable).call()))
@@ -330,7 +347,7 @@ static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String =
 	var crisis := 0
 	for a in al:
 		if int(a["sev"]) == 2: crisis += 1
-	h.set_tabs(K.tabs([["advice", T.call("dk_advisor") + ((" (%d)" % al.size()) if not al.is_empty() else "")], ["goals", T.call("dk_goals")]], _council_tab, func(id: String): _council_tab = id; render.call()))
+	h.set_tabs(K.tabs([["advice", T.call("council_advice") + ((" (%d)" % al.size()) if not al.is_empty() else "")], ["goals", T.call("dk_goals")]], _council_tab, func(id: String): _council_tab = id; render.call()))
 	render.call()
 	return h
 
@@ -344,7 +361,7 @@ static func _advice_tab(h: TBPanel.Handle, g: TBGame, on_goto: Callable) -> void
 		var sev: int = a["sev"]
 		if sev != last_sev:
 			last_sev = sev
-			h.body.add_child(K.section(T.call("sev_" + str(sev))))
+			h.body.add_child(TBPanel.section(T.call("sev_" + str(sev))))
 		var glyph_id: String = "warning" if sev >= 1 else "diamond"
 		var gcol: Color = K.RED if sev == 2 else (TBTokens.c("warn") if sev == 1 else K.GOLD)
 		var tx: String = T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)})
@@ -363,7 +380,10 @@ static func _goals_tab(h: TBPanel.Handle, g: TBGame) -> void:
 	for id in shown:
 		var pct: float = prog[id]
 		var col: Color = TBTokens.c("pos") if pct >= 0.9 else (TBTokens.c("brass_ink") if pct >= 0.4 else K.STEEL)
-		var hb := K.hbox(6); hb.add_child(K.title(T.call("vc_" + id), 16, K.GOLD2 if pct >= 0.9 else K.TEXT)); hb.add_child(K.Leader.new()); hb.add_child(K.num("%d%%" % int(pct * 100.0), 15, col))
+		var hb := K.hbox(6)
+		var gtl := K.title(T.call("vc_" + id), 16, K.GOLD2 if pct >= 0.9 else K.TEXT)
+		gtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; gtl.custom_minimum_size.x = 40; gtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(gtl); hb.add_child(K.Leader.new()); hb.add_child(K.num("%d%%" % int(pct * 100.0), 15, col))
 		h.body.add_child(hb)
 		h.body.add_child(TBPanel.para(T.call("vc_" + id + "_d"), 13, K.DIM))
 		h.body.add_child(K.Meter.new(pct * 100.0, col))
@@ -378,7 +398,7 @@ static func _goals_tab(h: TBPanel.Handle, g: TBGame) -> void:
 		if sh >= 0.25: nearest.append([sh, i])
 	nearest.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 	if not nearest.is_empty():
-		h.body.add_child(K.section(T.call("realms_title")))
+		h.body.add_child(TBPanel.section(T.call("realms_title")))
 		for k in mini(3, nearest.size()):
 			var hb2 := K.hbox(6); hb2.add_child(K.label(T.call("realm_" + String(TBRealms.LIST[nearest[k][1]][0])), 14)); hb2.add_child(K.Leader.new()); hb2.add_child(K.num("%d%%" % int(nearest[k][0] * 100.0), 14, K.GOLD2))
 			h.body.add_child(hb2); h.body.add_child(K.Meter.new(nearest[k][0] * 100.0, K.GOLD2))
@@ -410,14 +430,16 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> TBPanel.H
 		hb.add_child(rc); lcol.add_child(hb)
 	var army := 0
 	for p in g.owned(me): army += g.army[p]
-	lcol.add_child(K.row(T.call("lands"), str(g.own_count(me))))
-	lcol.add_child(K.row(T.call("total_army"), K.fmt(army)))
-	lcol.add_child(K.row(T.call("gold"), K.fmt(g.gold[me])))
+	var figs := TBPanel.flow(6)                                      # the three figures in one row, not three ledger lines (m-10)
+	figs.add_child(K.chip("%s %d" % [T.call("lands"), g.own_count(me)], "flag", "own"))
+	figs.add_child(K.chip("%s %s" % [T.call("total_army"), K.fmt(army)], "swords", "neutral"))
+	figs.add_child(K.chip("%s %s" % [T.call("gold"), K.fmt(g.gold[me])], "coins", "neutral"))
+	lcol.add_child(figs)
 	var shared := TBNationsScreen.land_neighbours(g, me)
 	var order := shared.keys()
 	order.sort_custom(func(a: int, b: int) -> bool: return shared[a] > shared[b])
 	if not order.is_empty():
-		rcol.add_child(K.section(T.call("neighbours")))
+		rcol.add_child(TBPanel.section(T.call("neighbours")))
 		for i in mini(4, order.size()):
 			var o: int = order[i]
 			var oa := 0
@@ -425,30 +447,32 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> TBPanel.H
 			var ratio := float(oa) / maxf(1.0, army)
 			var tag: String = T.call("brief_stronger") if ratio > 1.3 else (T.call("brief_weaker") if ratio < 0.75 else T.call("brief_equal"))
 			var rowb := K.hbox(8); rowb.add_child(TBFlags.chip(g, o, 0.6)); var nl := K.label(g.dname(o), 14); nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; nl.custom_minimum_size.x = 40; rowb.add_child(nl)
-			rowb.add_child(K.chip(tag, "tri_up" if ratio > 1.3 else ("tri_down" if ratio < 0.75 else "diamond"), "neg" if ratio > 1.3 else ("pos" if ratio < 0.75 else "neutral")))
+			rowb.add_child(K.chip(tag, "warning" if ratio > 1.3 else ("check" if ratio < 0.75 else "diamond"), "neg" if ratio > 1.3 else ("pos" if ratio < 0.75 else "neutral")))      # comparison, not a delta: no up / down triangles
 			rcol.add_child(rowb)
 	var al := TBAdvisor.alerts(g, me)
 	if not al.is_empty():
-		rcol.add_child(K.section(T.call("advisor")))
+		lcol.add_child(TBPanel.section(T.call("advisor")))
 		for i in mini(2, al.size()):
-			rcol.add_child(TBPanel.para(T.call("al_" + String(al[i]["id"]), {"k": int(al[i]["k"]), "r": "%.1f" % (int(al[i]["k"]) / 10.0)}), 13, K.TEXT))
+			lcol.add_child(TBPanel.para(T.call("al_" + String(al[i]["id"]), {"k": int(al[i]["k"]), "r": "%.1f" % (int(al[i]["k"]) / 10.0)}), 13, K.TEXT))
 	var go := K.button(T.call("brief_begin"), func(): h.close(); on_done.call(), true)
 	h.actions(null, go)
 	return h
 
 # =====================================================================================================================================================
-# Tutorial: 7 short steps in a small dialog
+# Tutorial: 7 short steps in a small dialog. Skip leaves the whole first-turn intro (tutorial AND briefing) in one tap.
 # =====================================================================================================================================================
-static func tutorial(parent: Control, on_done: Callable) -> TBPanel.Handle:
+static func tutorial(parent: Control, on_done: Callable, on_skip: Callable = Callable()) -> TBPanel.Handle:
 	var step := [1]
 	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("tut_title"), "book", {"width": 460})
 	var title := K.title("", 18, K.TEXT)
 	var body := TBPanel.para("", 15)
 	var pips := K.Pips.new(1, 7); pips.custom_minimum_size = Vector2(7 * 14, 18)
 	h.body.add_child(pips); h.body.add_child(title); h.body.add_child(body)
-	var skip := K.button(T.call("tut_skip"), func(): h.close(); on_done.call())
+	var skip_cb: Callable = on_skip if on_skip.is_valid() else on_done
+	var skip := K.button(T.call("tut_skip_intro") if on_skip.is_valid() else T.call("tut_skip"), func(): h.close(); skip_cb.call())
 	var next := K.button(T.call("tut_next"), Callable(), true)
 	h.actions(skip, next)
+	h.on_dismiss = skip_cb                               # Esc / X also skip the whole intro
 	var draw := func():
 		title.text = T.call("tut_%d_t" % step[0]); body.text = T.call("tut_%d_b" % step[0])
 		pips.n = step[0]; pips.queue_redraw()
@@ -459,55 +483,92 @@ static func tutorial(parent: Control, on_done: Callable) -> TBPanel.Handle:
 	draw.call()
 	return h
 
+## the first-turn sequence of a new campaign: tutorial (first game only) then the briefing; Skip on the tutorial (or Esc) skips both
+static func first_turn(parent: Control, g: TBGame, show_tutorial: bool) -> void:
+	if show_tutorial: tutorial(parent, func(): briefing(parent, g, func(): pass), func(): pass)
+	else: briefing(parent, g, func(): pass)
+
 # =====================================================================================================================================================
-# Event / ultimatum prompt: the hero sheet. Narrative left, neutral choice cards with effect chips right (single column on portrait).
-# Unanswered: Back, Esc and backdrop are swallowed.
+# Event / ultimatum prompt: the hero sheet. Narrative left (scrolls), the choice cards right and PINNED (beneath the narrative in a single column), so
+# an answer is always on screen. "Decide later" (not for ultimatums) leaves an Event chip in the HUD ticker. Unanswered: Back, Esc and backdrop are swallowed.
 # =====================================================================================================================================================
 const CAT_GLYPH := {"military": "swords", "crisis": "warning", "domestic": "crown", "trade": "coins", "enlightenment": "book", "diplomacy": "dove", "disaster": "warning", "golden age": "trophy"}
 
-static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g: TBGame = null) -> TBPanel.Handle:
+## tertiary text button ("Decide later"): flat, underlined on hover / focus, hourglass glyph
+class LinkBtn extends Button:
+	var glyph := "hourglass"
+	func _init(t: String, cb: Callable, g: String = "hourglass") -> void:
+		text = t; glyph = g; flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+		custom_minimum_size = Vector2(0, TBKit.touch())
+		for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]: add_theme_stylebox_override(st, TBFrame.plate(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 30, 6, false, 0))
+		add_theme_stylebox_override("focus", TBFrame.focus(false, 0, 2))
+		for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]: add_theme_color_override(fc, TBTokens.c("ink_1"))
+		add_theme_font_override("font", TBKit.body_b()); add_theme_font_size_override("font_size", TBKit.fs(14))
+		alignment = HORIZONTAL_ALIGNMENT_LEFT
+		autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if cb.is_valid(): pressed.connect(cb)
+		mouse_entered.connect(queue_redraw); mouse_exited.connect(queue_redraw)
+	func _draw() -> void:
+		TBGlyph.draw(self, glyph, Vector2(14, roundf(size.y * 0.5)), 16.0, TBTokens.c("ink_1"))
+		if is_hovered() or has_focus(): draw_rect(Rect2(30, size.y - 8, size.x - 38, 1), TBTokens.c("ink_1"))
+
+static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g: TBGame = null, on_defer: Callable = Callable()) -> TBPanel.Handle:
 	var vs: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
 	var wide: bool = not TBPanel.is_portrait(vs) and vs.x >= 720.0 and K.text_scale < 1.4
-	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, "", "", {"hero": true, "wide": true, "dismissable": false})
-	var host: BoxContainer = BoxContainer.new(); host.vertical = not wide
-	host.add_theme_constant_override("separation", 24); host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.body.add_child(host)
-	var nar := K.vbox(10); nar.size_flags_horizontal = Control.SIZE_EXPAND_FILL; host.add_child(nar)
-	var cho := K.vbox(10); cho.size_flags_horizontal = Control.SIZE_EXPAND_FILL; host.add_child(cho)
+	var short: bool = vs.y < 480.0
+	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, "", "", {"hero": true, "wide": true, "dismissable": false, "split": true, "split_wide": wide})
+	var nar: VBoxContainer = h.body
+	var cho: VBoxContainer = h.pinned
+	var gpx: int = 28 if short else 32
+	var can_defer: bool = on_defer.is_valid() and not (e["kind"] == "prop" and e["id"] == "ultimatum")
+	var finish := func() -> void:
+		if can_defer:
+			var later := LinkBtn.new(T.call("decide_later"), func(): h.close(); on_defer.call())
+			later.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			K.a11y(later, T.call("decide_later"), "button", T.call("decide_later_d"))
+			cho.add_child(later)
+	# header block: glyph + kicker on one line when short
+	var head_row := K.hbox(10)
+	nar.add_child(head_row)
 	if e["kind"] == "prop":
 		var ult: bool = e["id"] == "ultimatum"
 		var from_n: int = int(e["from"])
 		var from_name: String = g.dname(from_n) if g != null else ""
-		var gl := K.glyph("swords" if ult else ("dove" if e["id"] == "peace" else "scroll"), 32, TBTokens.c("oxblood")); gl.custom_minimum_size = Vector2(40, 40); gl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		nar.add_child(gl)
-		nar.add_child(K.caps(T.call("ev_ultimatum") if ult else T.call("ev_proposal"), 12, K.GOLD))
-		var tl := K.title(T.call("prop_ult_title" if ult else "prop_title", {"a": from_name}), 24); tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var gl := K.glyph("swords" if ult else ("dove" if e["id"] == "peace" else "scroll"), gpx, TBTokens.c("oxblood")); gl.custom_minimum_size = Vector2(gpx + 8, gpx + 8); gl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		head_row.add_child(gl)
+		var kk := K.caps(T.call("ev_ultimatum") if ult else T.call("ev_proposal"), 12, K.GOLD); kk.size_flags_vertical = Control.SIZE_SHRINK_CENTER; head_row.add_child(kk)
+		var tl := K.title(T.call("prop_ult_title" if ult else "prop_title", {"a": from_name}), 22 if short else 24); tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nar.add_child(tl)
-		nar.add_child(K.ornament())
+		if not short: nar.add_child(K.ornament())
 		var place: String = TBI18n.place(g.world.name[int(e["p"])]) if ult and g != null else ""
 		var fl := TBPanel.para(T.call("prop_" + String(e["id"]), {"a": from_name, "p": place}), 15); fl.add_theme_font_override("font", K.body_i()); nar.add_child(fl)
 		if ult and g != null:
 			var mine: int = int(TBDiplo.power(g, g.human_id)); var theirs: int = int(TBDiplo.power(g, from_n))
 			var cf := TBPanel.flow(6); cf.add_child(K.chip("%s %s" % [T.call("strength_theirs"), K.fmt(theirs)], "swords", "neg" if theirs > mine else "neutral")); cf.add_child(K.chip("%s %s" % [T.call("strength_yours"), K.fmt(mine)], "shield", "neutral"))
 			nar.add_child(cf)
-		var yes := TBPanel.card("", T.call("mp_yield") if ult else T.call("mp_accept"), "", [], func(): h.close(); on_choose.call(0), "", false, true)
+		var yes_chips: Array = [[T.call("ev_yield_lost", {"p": place}), "tri_down", "neg"]] if ult and place != "" else []
+		var yes := TBPanel.card("", T.call("mp_yield") if ult else T.call("mp_accept"), "", yes_chips, func(): h.close(); on_choose.call(0), "", false, true)
 		var no_chips: Array = [[T.call("ev_defy_war", {"a": from_name}), "swords", "neg"]] if ult else []
 		var no := TBPanel.card("", T.call("mp_defy") if ult else T.call("mp_decline"), T.call("mp_defy_d") if ult else "", no_chips, func(): h.close(); on_choose.call(1), "", false, true)
 		cho.add_child(yes); cho.add_child(no)
+		finish.call()
 		return h
 	var rand: bool = e["kind"] == "rand"
 	var id: String = e["id"]
 	var title: String = T.call("ev_%s_t" % id) if rand else _loc(e.get("title", {}))
 	var flavor: String = T.call("ev_%s_f" % id) if rand else _loc(e.get("flavor", {}))
 	var cat_raw: String = String(e.get("cat", "")).to_lower()
-	var gl2 := K.glyph(CAT_GLYPH.get(cat_raw, "globe" if (not rand and e.get("world", false)) else "scroll"), 32, TBTokens.c("oxblood")); gl2.custom_minimum_size = Vector2(40, 40); gl2.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	nar.add_child(gl2)
+	var icon_id: String = String(e.get("icon", ""))
+	var gid: String = icon_id if (icon_id != "" and TBGlyph.G.has(icon_id)) else String(CAT_GLYPH.get(cat_raw, "globe" if (not rand and e.get("world", false)) else "scroll"))
+	var gl2 := K.glyph(gid, gpx, TBTokens.c("oxblood")); gl2.custom_minimum_size = Vector2(gpx + 8, gpx + 8); gl2.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	head_row.add_child(gl2)
 	var cat_key := "evcat_" + cat_raw.replace(" ", "_")
 	var kicker: String = T.call("ev_worldwide") if (not rand and e.get("world", false)) else (T.call("ev_event") if not rand else (T.call(cat_key) if TBI18n.has_key(cat_key) else String(e.get("cat", ""))))
-	if kicker != "": nar.add_child(K.caps(kicker, 12, K.GOLD))
-	var tl2 := K.title(title, 24); tl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl2.custom_minimum_size.x = 40; tl2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if kicker != "":
+		var kk2 := K.caps(kicker, 12, K.GOLD); kk2.size_flags_vertical = Control.SIZE_SHRINK_CENTER; head_row.add_child(kk2)
+	var tl2 := K.title(title, 22 if short else 24); tl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl2.custom_minimum_size.x = 40; tl2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nar.add_child(tl2)
-	nar.add_child(K.ornament())
+	if not short: nar.add_child(K.ornament())
 	var fl2 := TBPanel.para(flavor, 15); fl2.add_theme_font_override("font", K.body_i()); nar.add_child(fl2)
 	var count: int = e["count"]
 	var labels: Array = e.get("labels", [])
@@ -521,6 +582,7 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 		else: ttl = T.call("ev_ack")
 		var idx := i
 		cho.add_child(TBPanel.card("", ttl, "", chips, func(): h.close(); on_choose.call(idx), "", false, true))
+	finish.call()
 	return h
 
 # =====================================================================================================================================================
@@ -540,15 +602,16 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> TBPanel.
 	var lcol := K.vbox(10); lcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL; host.add_child(lcol)
 	var rcol := K.vbox(6); rcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL; host.add_child(rcol)
 	# stamp: the one wax object of this screen (flat plate, no ring)
-	var stamp := Control.new(); stamp.custom_minimum_size = Vector2(72, 72); stamp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var short: bool = vs.y < 480.0
+	var stamp := Control.new(); stamp.custom_minimum_size = Vector2(48, 48) if short else Vector2(72, 72); stamp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var sp := TBFrame.plate(TBTokens.c("wax"), TBTokens.c("wax_rim"), 6, 1, 0, 0, false, 2)
 	stamp.draw.connect(func():
 		stamp.draw_style_box(sp, Rect2(Vector2.ZERO, stamp.size))
-		TBGlyph.draw(stamp, "trophy" if won else "skull", (stamp.size * 0.5).round(), 36.0, TBTokens.c("on_wax")))
+		TBGlyph.draw(stamp, "trophy" if won else "skull", (stamp.size * 0.5).round(), 28.0 if short else 36.0, TBTokens.c("on_wax")))
 	lcol.add_child(stamp)
-	var head := K.title(T.call("go_won") if won else T.call("go_lost"), 34, K.GOLD2 if won else K.RED)
+	var head := K.title(T.call("go_won") if won else T.call("go_lost"), 28 if short else 34, TBTokens.c("brass_ink") if won else TBTokens.c("neg"))
 	lcol.add_child(head)
-	lcol.add_child(K.ornament())
+	if not short: lcol.add_child(K.ornament())
 	lcol.add_child(TBPanel.para(sub, 15))
 	var rows: Array = []
 	var army_of := {}
@@ -570,7 +633,7 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> TBPanel.
 	kn.add_child(K.chip("%s %d" % [T.call("go_peak"), peak], "flag", "neutral"))
 	kn.add_child(K.chip("%s %d" % [T.call("go_rank"), rank], "trophy", "own"))
 	lcol.add_child(kn)
-	rcol.add_child(K.section(T.call("go_final")))
+	rcol.add_child(TBPanel.section(T.call("go_final")))
 	var shown: Array = rows.slice(0, 5)
 	var me_in := false
 	for r in shown: if r[1] == g.human_id: me_in = true
@@ -579,7 +642,7 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> TBPanel.
 	for r in shown:
 		var rk: int = rows.find(r) + 1
 		var is_me: bool = r[1] == g.human_id
-		var row := K.hbox(10); row.custom_minimum_size = Vector2(0, 36)
+		var row := K.hbox(10); row.custom_minimum_size = Vector2(0, 30 if short else 36)
 		var rkl := K.num("%d" % rk, 15, K.GOLD2 if is_me else K.DIM); rkl.custom_minimum_size = Vector2(26, 0); row.add_child(rkl)
 		row.add_child(TBFlags.chip(g, r[1], 0.7))
 		var nm := K.label(g.dname(r[1]), 15, K.GOLD2 if is_me else K.TEXT); nm.add_theme_font_override("font", K.body_b()); nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; nm.custom_minimum_size.x = 40; row.add_child(nm)
@@ -594,7 +657,7 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> TBPanel.
 		var b := K.button(T.call("go_show_result"), func():
 			h.root.visible = true
 			if is_instance_valid(chip_back[0]): (chip_back[0] as Control).queue_free(), true)
-		b.set_anchors_preset(Control.PRESET_CENTER_TOP); b.offset_top = 10; b.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		b.set_anchors_preset(Control.PRESET_CENTER_TOP); b.offset_top = float(TBPanel.DRAWER_TOP) + 8.0; b.grow_horizontal = Control.GROW_DIRECTION_BOTH       # below the top bar (m-07)
 		parent.add_child(b); chip_back[0] = b)
 	var menu := K.button(T.call("main_menu"), func(): h.close(); on_menu.call(), true)
 	h.actions(view, menu)
