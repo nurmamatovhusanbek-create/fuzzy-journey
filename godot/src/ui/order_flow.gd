@@ -240,7 +240,7 @@ func hover(q: int) -> void:
 		if c["kind"] == "attack":
 			var pv := g.combat_preview(_me(), src, q, troops_for(src))
 			lab = "%s : %s" % [TBKit.fmt(int(pv["send"])), TBKit.fmt(int(pv["defenders"]))]
-		map.labels.set_order(src, q, c["kind"] == "attack", true, lab)
+		map.labels.set_order(src, q, c["kind"] == "attack", true, lab, true)
 	else:
 		map.labels.clear_order()
 
@@ -299,24 +299,46 @@ func _place_chip() -> void:
 	_chip.reset_size()
 	var sz := _chip.size
 	var vp := host.size
-	var kos: Array = []
+	var obstacles: Array = []                    # the interface (End Turn, dock, ribbon, card), the arrow with its label and source marker, the target itself
 	if map.keepout_fn.is_valid():
 		var o := host.get_global_rect().position
-		for r in map.keepout_fn.call(): kos.append(Rect2((r as Rect2).position - o, (r as Rect2).size).grow(4.0))
+		for r in map.keepout_fn.call(): obstacles.append(Rect2((r as Rect2).position - o, (r as Rect2).size).grow(6.0))
+	var ob: Rect2 = map.labels.order_bounds() if map.labels != null else Rect2()
+	if not ob.size.is_zero_approx(): obstacles.append(ob)
+	obstacles.append(Rect2(t - Vector2(22, 22), Vector2(44, 44)))
 	var top := 56.0
-	var cands := [Vector2(t.x + 26.0, t.y - sz.y * 0.5), Vector2(t.x - 26.0 - sz.x, t.y - sz.y * 0.5), Vector2(t.x - sz.x * 0.5, t.y - 30.0 - sz.y), Vector2(t.x - sz.x * 0.5, t.y + 30.0)]
+	var gap := 30.0
+	var cands := [Vector2(t.x + gap, t.y - sz.y * 0.5), Vector2(t.x - gap - sz.x, t.y - sz.y * 0.5), Vector2(t.x - sz.x * 0.5, t.y - gap - sz.y), Vector2(t.x - sz.x * 0.5, t.y + gap),
+		Vector2(t.x + gap, t.y - gap - sz.y), Vector2(t.x - gap - sz.x, t.y - gap - sz.y), Vector2(t.x + gap, t.y + gap), Vector2(t.x - gap - sz.x, t.y + gap)]
 	var best := Vector2.INF
+	var best_score := INF
 	for c in cands:
 		var cp: Vector2 = c
+		cp.x = clampf(cp.x, 6.0, maxf(6.0, vp.x - sz.x - 6.0)); cp.y = clampf(cp.y, top, maxf(top, vp.y - sz.y - 6.0))
 		var r := Rect2(cp, sz)
-		if r.position.x < 6.0 or r.position.y < top or r.end.x > vp.x - 6.0 or r.end.y > vp.y - 6.0: continue
-		var hit := false
-		for k in kos:
-			if (k as Rect2).intersects(r): hit = true; break
-		if not hit: best = cp; break
-	if best == Vector2.INF:
-		best = Vector2(clampf(t.x + 26.0, 6.0, maxf(6.0, vp.x - sz.x - 6.0)), clampf(t.y - sz.y * 0.5, top, maxf(top, vp.y - sz.y - 6.0)))
+		var score := 0.0
+		for k in obstacles:
+			var ov := r.intersection(k as Rect2)
+			score += ov.size.x * ov.size.y
+		score += cp.distance_to(c) * 40.0                      # moved by the clamp: it no longer sits beside the target
+		if score < best_score: best_score = score; best = cp
+		if score <= 0.0: break
 	_chip.position = best
+
+## the order as the command card shows it (read-only): the chip owns Cancel / Attack, the card only explains.
+## {mode: "idle"|"armed"|"preview", src, tgt, kind, send, moves, win, hold, lost, atk, dfn, defenders}
+func summary() -> Dictionary:
+	var out := {"mode": ["idle", "armed", "preview"][mode], "src": src, "tgt": tgt, "kind": "", "send": 0, "moves": 0, "win": false, "hold": 0, "lost": 0, "atk": 0.0, "dfn": 0.0, "defenders": 0}
+	if mode != Mode.PREVIEW or tgt < 0 or src < 0 or g == null: return out
+	var c := check(tgt)
+	out["kind"] = c["kind"]; out["send"] = troops_for(src)
+	out["moves"] = int(g.can({"cmd": "move", "from": src, "to": tgt, "troops": troops_for(src)})["moves"])
+	if c["kind"] == "attack":
+		var pv := g.combat_preview(_me(), src, tgt, troops_for(src))
+		for k in ["win", "hold", "lost", "atk", "dfn", "defenders"]: out[k] = pv[k]
+	return out
+
+func is_previewing() -> bool: return mode == Mode.PREVIEW
 
 # ---------------------------------------------------------------- the on-map preview chip (260 px paper document)
 class PreviewChip extends PanelContainer:

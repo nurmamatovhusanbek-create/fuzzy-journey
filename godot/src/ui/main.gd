@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -56,6 +56,7 @@ func _ready() -> void:
 	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
 	panel.select_requested.connect(func(q: int): _select(q))
 	tip = TBMapTip.new(); add_child(tip)
+	TBMapCursor.install(self)                       # keyboard map cursor + on-screen nav pad (accessibility)
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
@@ -167,7 +168,7 @@ func _apply_quality() -> void:
 	map.quality = q
 	map.map_theme = {"parchment": 1, "hc": 2}.get(cfg.get("theme", "standard"), 0)
 	map.render_scale = [0.6, 0.85, 1.0][q]      # fraction of logical resolution the map shader renders at
-	map._push_view()
+	map.apply_a11y(cfg)
 
 # ---------------------------------------------------------------- screens
 func _new_demo_game() -> void:
@@ -326,6 +327,8 @@ func _apply_a11y() -> void:
 	if hud != null:
 		hud.set_text_scale(K.text_scale)
 		hud.confirm_mode = _confirm_mode()
+	TBNavPad.setting = String(cfg.get("navpad", "auto"))
+	if map != null: map.apply_a11y(cfg)                     # colour-vision palette + high-contrast map
 
 func _on_setting_changed(key: String) -> void:
 	_save_cfg()
@@ -336,7 +339,7 @@ func _on_setting_changed(key: String) -> void:
 			_apply_quality(); _update_ui_scale(); map.set_mode(0 if cfg["view"] == "globe" else 1)
 		"sound": sfx.enabled = cfg.get("sound", true); _apply_a11y()
 		"vol_master", "vol_music", "vol_sfx", "vol_ui": TBAudio.apply_volumes(cfg)
-		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "tts", "confirm", "mirror", "vis_alerts":
+		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "tts", "confirm", "mirror", "vis_alerts", "navpad":
 			_apply_a11y(); _rebuild_screens()
 		"reset_access":
 			sfx.enabled = cfg.get("sound", true); _apply_a11y(); _rebuild_screens()

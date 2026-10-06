@@ -12,6 +12,7 @@ var _name: Label
 var _rel: Label
 var _army: Label
 var _note: Label
+var _lens: Label
 var _rel_glyph: Control
 var _glyph_id := ""
 var _glyph_tok := "foreign_bar"
@@ -37,6 +38,7 @@ func _init() -> void:
 	rel.add_child(_rel_glyph)
 	_rel = _lab("cream", TBKit.body()); rel.add_child(_rel)
 	_army = _lab("cream", TBKit.body()); v.add_child(_army)
+	_lens = _lab("smoke", TBKit.body()); v.add_child(_lens)
 	_note = _lab("cream", TBKit.body_b()); v.add_child(_note)
 
 func _lab(tok: String, f: Font) -> Label:
@@ -61,13 +63,15 @@ func show_for(g: TBGame, p: int, flow: TBOrderFlow) -> void:
 	_rel_glyph.visible = _glyph_id != ""
 	_rel_glyph.queue_redraw()
 	_army.text = "%s %s · %s" % [T.call("army"), TBKit.fmt(g.army[p]), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]
+	var lt: String = flow.map.lenses.describe(p) if (flow != null and flow.map != null and flow.map.lenses != null) else ""
+	_lens.visible = lt != ""; _lens.text = lt                     # the active lens value in words (colour is never the only carrier)
 	_note.visible = false
 	var pv: Dictionary = flow.hover_result(p) if flow != null else {}
 	if not pv.is_empty():
 		_note.visible = true
 		_note.text = T.call("cc_hover_win", {"k": int(pv["hold"])}) if pv["win"] else T.call("cc_hover_lose", {"a": int(pv["lost"])})
 		_note.add_theme_color_override("font_color", CC.tk("pos_bar") if pv["win"] else CC.tk("neg_bar"))
-	if not visible and TBMapView.animate:
+	if not visible and TBKit.motion_ok():
 		modulate.a = 0.0
 		create_tween().tween_property(self, "modulate:a", 1.0, 0.1)
 	visible = true
