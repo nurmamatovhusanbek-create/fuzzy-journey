@@ -18,6 +18,7 @@ run "honours" tests/honours.gd
 run "supply / attrition" tests/supply.gd
 run "doctrine" tests/doctrine.gd
 run "plaque animation state" tests/labels_anim.gd
+run "can(): read-only and in step with apply()" tests/can.gd
 run "regional unification" tests/realms.gd
 run "AI offers to humans" tests/offers.gd
 run "chronicle/advisor texts have no missing keys" tests/chron_keys.gd

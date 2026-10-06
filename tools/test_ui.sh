@@ -11,5 +11,7 @@ run() {
 }
 for sd in 1 2 3 4; do run tests/ui_monkey.gd -- 160 $sd; done
 run tests/ui_hotseat.gd
+mkdir -p /tmp/tb_cc; run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
+run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960
 [ $fail -eq 0 ] && echo "UI PASS" || echo "UI FAIL"
 exit $fail
