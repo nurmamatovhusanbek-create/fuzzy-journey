@@ -43,8 +43,8 @@ static func body() -> Font: return _font("alegreya-latin-500-normal", ["alegreya
 static func body_b() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"])
 static func body_i() -> Font: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"])
 ## engraved capitals for titles and buttons (Cinzel; Alegreya SC small capitals cover Cyrillic)
-static func display() -> Font: return _font("cinzel-latin-700-normal", ["alegreya-sc-cyrillic-700-normal"])
-static func display_hi() -> Font: return _font("cinzel-latin-900-normal", ["alegreya-sc-cyrillic-900-normal"])
+static func display() -> Font: return _font("cinzel-latin-500-normal", ["alegreya-sc-cyrillic-500-normal"])
+static func display_hi() -> Font: return _font("cinzel-latin-700-normal", ["alegreya-sc-cyrillic-700-normal"])
 static func display_lo() -> Font: return _font("cinzel-latin-500-normal", ["alegreya-sc-cyrillic-500-normal"])
 ## figures (JetBrains Mono)
 static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"])
@@ -138,7 +138,7 @@ static func button(text: String, cb: Callable = Callable(), primary: bool = fals
 		b.add_theme_stylebox_override("hover", primary_style())
 		b.add_theme_stylebox_override("pressed", primary_style(true))
 		for k in ["font_color", "font_hover_color", "font_pressed_color"]: b.add_theme_color_override(k, Color(0.98, 0.93, 0.82))
-		b.add_theme_font_override("font", display_hi())
+		b.add_theme_font_override("font", display())
 	if cb.is_valid(): b.pressed.connect(cb)
 	return b
 
@@ -158,7 +158,7 @@ static func title(text: String, size: int = 20, color: Color = GOLD2) -> Label:
 ## figure in monospaced bold
 static func num(text: String, size: int = 16, color: Color = TEXT) -> Label:
 	var l := label(text, size, color)
-	l.add_theme_font_override("font", mono_b())
+	l.add_theme_font_override("font", mono())
 	return l
 
 ## small tracked caption (labels above figures)
@@ -228,8 +228,8 @@ class Meter extends Control:
 		v = value; col = c; custom_minimum_size = Vector2(0, 7); size_flags_horizontal = Control.SIZE_EXPAND_FILL; mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
 		var y := size.y * 0.5
-		draw_rect(Rect2(0, y - 1.5, size.x, 3), Color(0.36, 0.26, 0.14, 0.18))
-		draw_rect(Rect2(0, y - 1.5, size.x * clampf(v / 100.0, 0.0, 1.0), 3), col)
+		draw_rect(Rect2(0, y - 1.0, size.x, 2), Color(0.36, 0.26, 0.14, 0.16))
+		draw_rect(Rect2(0, y - 1.0, size.x * clampf(v / 100.0, 0.0, 1.0), 2), col)
 		for t in [0.25, 0.5, 0.75]: draw_line(Vector2(size.x * t, y - 4), Vector2(size.x * t, y + 4), Color(0.36, 0.26, 0.14, 0.35), 1.0)
 
 ## caption ........ figure
@@ -315,7 +315,7 @@ class ListRow extends Button:
 		if hot: draw_rect(Rect2(0, 0, size.x, size.y - 1), Color(0.56, 0.40, 0.11, 0.16))
 		var f := TBKit.display()
 		draw_string(f, Vector2(6, size.y * 0.5 + 5), left, HORIZONTAL_ALIGNMENT_LEFT, size.x - 70, 15, Color(0.47, 0.12, 0.10) if hot else left_col)
-		var fm := TBKit.mono_b()
+		var fm := TBKit.mono()
 		var w := fm.get_string_size(right, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		draw_string(fm, Vector2(size.x - w - 8, size.y * 0.5 + 5), right, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.47, 0.12, 0.10))
 		draw_line(Vector2(0, size.y - 0.5), Vector2(size.x, size.y - 0.5), Color(0.36, 0.26, 0.14, 0.22), 1.0)

@@ -24,10 +24,10 @@ static func _make(kind: int) -> ImageTexture:
 	var grain := g.get_image(SIZE, SIZE, false, true)
 	var cd := cloud.get_data(); var gd := grain.get_data()
 	var out := PackedByteArray(); out.resize(SIZE * SIZE * 4)
-	var base := Color(1, 1, 1); var low := 0.86; var gw := 0.07; var cw := 0.14
+	var base := Color(1, 1, 1); var low := 0.88; var gw := 0.05; var cw := 0.10
 	match kind:
 		VELLUM: low = 0.80; cw = 0.2
-		WAX: low = 0.78; gw = 0.05; cw = 0.26
+		WAX: low = 0.8; gw = 0.04; cw = 0.2
 		LEATHER: low = 0.62; gw = 0.2; cw = 0.2
 	for i in SIZE * SIZE:
 		var c := float(cd[i]) / 255.0

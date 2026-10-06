@@ -52,7 +52,8 @@ func _poly(ci: RID, pts: PackedVector2Array, col: Color) -> void:
 
 func _textured(ci: RID, pts: PackedVector2Array, r: Rect2, tex_kind: int, col: Color) -> void:
 	var uvs := PackedVector2Array()
-	for p in pts: uvs.append(Vector2((p.x - r.position.x) / maxf(1.0, r.size.x), (p.y - r.position.y) / maxf(1.0, r.size.y)))
+	for p in pts: uvs.append(Vector2((p.x - r.position.x) / 256.0, (p.y - r.position.y) / 256.0))      # texel = pixel: the grain never stretches with the button
+	RenderingServer.canvas_item_set_default_texture_repeat(ci, RenderingServer.CANVAS_ITEM_TEXTURE_REPEAT_ENABLED)
 	RenderingServer.canvas_item_add_polygon(ci, pts, PackedColorArray([col]), uvs, TBPaper.texture(tex_kind).get_rid())
 
 func _line(ci: RID, pts: PackedVector2Array, col: Color, w: float, closed: bool = true) -> void:
@@ -74,22 +75,22 @@ func _draw_sheet(ci: RID, rect: Rect2) -> void:
 	if shadow > 0.0 and r.size.x > 24:
 		for k in 3:
 			var o := Vector2(2.0 + k * 1.6, 3.0 + k * 2.2)
-			_poly(ci, TBPaper.ragged(Rect2(r.position + o, r.size).grow(k * 0.8), 0.0, 400.0, 1, 2.0), Color(0.02, 0.01, 0.0, 0.2 * shadow))
+			_poly(ci, TBPaper.ragged(Rect2(r.position + o, r.size).grow(k * 0.8), 0.0, 400.0, 1, 2.0), Color(0.02, 0.01, 0.0, 0.13 * shadow))
 	var edge := TBPaper.ragged(r, 1.5, 36.0, seed_i, 2.5)
 	_textured(ci, edge, r, TBPaper.SHEET, tint)
 	# aged margins: concentric translucent strokes darken the rim
 	for k in 4:
 		var inset := Rect2(r.position + Vector2(k * 1.6, k * 1.6), r.size - Vector2(k * 3.2, k * 3.2))
-		if inset.size.x > 4 and inset.size.y > 4: _line(ci, TBPaper.ragged(inset, 0.0, 400.0, 1, 2.0), Color(0.35, 0.22, 0.08, 0.10 - k * 0.02), 2.2)
-	_line(ci, edge, Color(ink.r, ink.g, ink.b, 0.45), 1.0)
+		if inset.size.x > 4 and inset.size.y > 4: _line(ci, TBPaper.ragged(inset, 0.0, 400.0, 1, 2.0), Color(0.35, 0.22, 0.08, 0.06 - k * 0.012), 2.0)
+	_line(ci, edge, Color(ink.r, ink.g, ink.b, 0.30), 0.9)
 	if r.size.x > 90 and r.size.y > 60:
 		var rc := ink if not alert else Color(0.62, 0.14, 0.1)
 		var i1 := Rect2(r.position + Vector2(8, 8), r.size - Vector2(16, 16))
-		_line(ci, TBPaper.ragged(i1, 0.0, 400.0, 1, 0.0), Color(rc.r, rc.g, rc.b, 0.62), 1.4)
+		_line(ci, TBPaper.ragged(i1, 0.0, 400.0, 1, 0.0), Color(rc.r, rc.g, rc.b, 0.45), 1.0)
 		var i2 := Rect2(r.position + Vector2(11.5, 11.5), r.size - Vector2(23, 23))
-		_line(ci, TBPaper.ragged(i2, 0.0, 400.0, 1, 0.0), Color(rc.r, rc.g, rc.b, 0.28), 0.8)
+		_line(ci, TBPaper.ragged(i2, 0.0, 400.0, 1, 0.0), Color(rc.r, rc.g, rc.b, 0.20), 0.7)
 		# brass corner guards: small folded triangles
-		var s := 13.0
+		var s := 9.0
 		for c in 4:
 			var cx := r.position.x if c % 2 == 0 else r.end.x
 			var cy := r.position.y if c < 2 else r.end.y
@@ -97,21 +98,21 @@ func _draw_sheet(ci: RID, rect: Rect2) -> void:
 			var sy := 1.0 if c < 2 else -1.0
 			var tri := PackedVector2Array([Vector2(cx, cy), Vector2(cx + sx * s, cy), Vector2(cx, cy + sy * s)])
 			_poly(ci, tri, Color(accent.r, accent.g, accent.b, 0.95))
-			_line(ci, tri, Color(0.25, 0.17, 0.05, 0.8), 0.8)
-			_line(ci, PackedVector2Array([Vector2(cx + sx * 3.0, cy + sy * 6.5), Vector2(cx + sx * 6.5, cy + sy * 3.0)]), Color(1.0, 0.92, 0.6, 0.6), 0.8, false)
+			_line(ci, tri, Color(0.25, 0.17, 0.05, 0.55), 0.7)
+			_line(ci, PackedVector2Array([Vector2(cx + sx * 2.2, cy + sy * 4.6), Vector2(cx + sx * 4.6, cy + sy * 2.2)]), Color(1.0, 0.92, 0.6, 0.6), 0.8, false)
 
 func _draw_chit(ci: RID, rect: Rect2) -> void:
 	var r := Rect2(rect.position + Vector2(1, 1), rect.size - Vector2(2.5, 3.0))
 	if sunk: r.position += Vector2(0.0, 1.0)
 	var seed_i := int(rect.size.x) * 17 + int(rect.size.y) * 3 + seed_v
 	if shadow > 0.0 and not sunk:
-		_poly(ci, TBPaper.ragged(Rect2(r.position + Vector2(1.2, 2.0), r.size), 0.0, 400.0, 1, 1.5), Color(0.02, 0.01, 0.0, 0.26 * shadow))
-	var pts := TBPaper.ragged(r, 0.9, 30.0, seed_i, 1.8)
+		_poly(ci, TBPaper.ragged(Rect2(r.position + Vector2(1.2, 2.0), r.size), 0.0, 400.0, 1, 1.5), Color(0.02, 0.01, 0.0, 0.14 * shadow))
+	var pts := TBPaper.ragged(r, 0.5, 30.0, seed_i, 1.4)
 	var col := tint if not sunk else tint.darkened(0.12)
 	_textured(ci, pts, r, TBPaper.SHEET, col)
-	_line(ci, pts, Color((Color(0.62, 0.14, 0.1) if alert else ink).r, (Color(0.62, 0.14, 0.1) if alert else ink).g, (Color(0.62, 0.14, 0.1) if alert else ink).b, 0.75 if alert else 0.55), 1.1)
+	_line(ci, pts, Color((Color(0.62, 0.14, 0.1) if alert else ink).r, (Color(0.62, 0.14, 0.1) if alert else ink).g, (Color(0.62, 0.14, 0.1) if alert else ink).b, 0.7 if alert else 0.34), 0.8)
 	if r.size.x > 40 and r.size.y > 22:
-		_line(ci, PackedVector2Array([r.position + Vector2(3.5, r.size.y - 3.5), r.position + Vector2(r.size.x - 3.5, r.size.y - 3.5)]), Color(ink.r, ink.g, ink.b, 0.18), 0.8, false)
+		_line(ci, PackedVector2Array([r.position + Vector2(3.5, r.size.y - 3.5), r.position + Vector2(r.size.x - 3.5, r.size.y - 3.5)]), Color(ink.r, ink.g, ink.b, 0.10), 0.7, false)
 
 func _draw_wax(ci: RID, rect: Rect2) -> void:
 	var r := Rect2(rect.position + Vector2(1.5, 1.0), rect.size - Vector2(3, 4.0))
@@ -122,9 +123,9 @@ func _draw_wax(ci: RID, rect: Rect2) -> void:
 	if not sunk: _poly(ci, TBPaper.stamp(Rect2(r.position + Vector2(1.0, 2.2), r.size), rad, 0.9, seed_i), Color(0.02, 0.0, 0.0, 0.32))
 	var base := Color(0.64, 0.15, 0.12) if not sunk else Color(0.5, 0.1, 0.08)
 	_textured(ci, outer, r, TBPaper.WAX, base)
-	_line(ci, outer, Color(0.26, 0.04, 0.03, 0.9), 1.2)
+	_line(ci, outer, Color(0.26, 0.04, 0.03, 0.6), 0.9)
 	var ring := Rect2(r.position + Vector2(3.5, 3.5), r.size - Vector2(7, 7))
-	_line(ci, TBPaper.stamp(ring, rad - 2.5, 0.35, seed_i + 5), Color(0.33, 0.05, 0.04, 0.5), 1.1)
+	_line(ci, TBPaper.stamp(ring, rad - 2.5, 0.35, seed_i + 5), Color(0.33, 0.05, 0.04, 0.32), 0.9)
 	_line(ci, PackedVector2Array([r.position + Vector2(rad, 1.8), Vector2(r.end.x - rad, r.position.y + 1.8)]), Color(1.0, 0.7, 0.6, 0.30), 1.2, false)
 
 func _draw_leather(ci: RID, rect: Rect2) -> void:

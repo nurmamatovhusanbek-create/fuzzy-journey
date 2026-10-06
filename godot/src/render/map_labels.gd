@@ -110,11 +110,11 @@ func _draw_nation_names(font: Font) -> void:
 			if r.intersects(rect): clash = true
 		if clash: continue
 		placed.append(rect); shown += 1
-		var a := clampf(depth * 1.6, 0.35, 0.95)
+		var a := clampf(depth * 1.6, 0.5, 0.97)
 		for fr in _frame_rects:                      # standards sit on top of the name: soften it where they cross
 			if (fr as Rect2).intersects(rect): a *= 0.45; break
 		var mine: bool = n == g.human_id
-		draw_string_outline(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.02, 0.03, 0.07, a * 0.85))
+		draw_string_outline(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0.02, 0.03, 0.07, a * 0.8))
 		draw_string(font, pos + Vector2(-tw.x * 0.5, tw.y * 0.3), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.95, 0.8, 0.4, a) if mine else Color(0.94, 0.9, 0.82, a * 0.92))
 
 ## province names when zoomed in far enough to read them (engraved small text, no overlaps)
@@ -145,7 +145,7 @@ func _draw_province_names() -> void:
 			if r.intersects(rect): clash = true
 		if clash: continue
 		placed.append(rect); shown += 1
-		draw_string_outline(f, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0.02, 0.03, 0.07, 0.8))
+		draw_string_outline(f, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0.02, 0.03, 0.07, 0.75))
 		draw_string(f, rect.position + Vector2(2, tw.y * 0.8 + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.9, 0.86, 0.76, 0.85))
 
 ## true when r overlaps nothing placed so far (and records it)
@@ -248,7 +248,7 @@ func _screen(p: int, c0: float, s0: float, sl: float, cl: float, R: float, cx: f
 func _draw() -> void:
 	if map == null or g == null or hidden_while_dragging: return
 	var font: Font = TBKit.display()
-	var nfont: Font = TBKit.mono_b()
+	var nfont: Font = TBKit.mono()
 	_refresh_keepout()
 	if g.human_id == 0:                 # nation-pick screen: names only
 		_draw_nation_names(font)

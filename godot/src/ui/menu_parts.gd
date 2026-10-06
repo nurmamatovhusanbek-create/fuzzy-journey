@@ -71,7 +71,7 @@ class EraRow extends Button:
 		else:
 			pts.append(pts[0]); draw_polyline(pts, Color(rule.r, rule.g, rule.b, 0.95 if hot else 0.7), 1.3, true)
 		var col := ox if hot else ink
-		draw_string(K.mono_b(), Vector2(40, cy + 5), year_text, HORIZONTAL_ALIGNMENT_LEFT, 84, 13, ox if selected else rule)
+		draw_string(K.mono(), Vector2(40, cy + 5), year_text, HORIZONTAL_ALIGNMENT_LEFT, 84, 13, ox if selected else rule)
 		draw_string(K.display(), Vector2(128, cy + 5), String(get_meta("label")), HORIZONTAL_ALIGNMENT_LEFT, size.x - 132, 15, col)
 
 ## text-only menu entry: engraved capitals, flanked by diamonds when hot

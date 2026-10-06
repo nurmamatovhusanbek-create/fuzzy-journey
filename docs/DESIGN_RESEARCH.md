@@ -52,4 +52,11 @@ Tested on landscape ≥ 820 px: Settings (7 choice rows, previously a scrolling 
 Honours shows 18 of 19, and the action buttons are pinned in the footer. **Chosen: wide two-column sheets on landscape,
 single column on portrait and short phones** (fallback: the single column, unchanged). Candidate next: nations list, codex.
 
+## Q7 — Weight diet (too bold)
+Findings from screenshots: every button, title and map label used Cinzel 700, army figures were JetBrains Mono 700, chit
+borders were 1.1 px at 55 % ink with a heavy drop shadow and rough edges, sheet rules 1.4 px, brass guards 13 px, and the wax
+button's grain was stretched into streaks. Changes: display face 500 (700 only for the big title), figures regular, borders
+0.8–1.0 px at 30–45 %, shadows halved, corner guards 9 px, calmer paper grain, grain scaled in pixels so it never stretches,
+map-label outlines kept readable but lighter (3 px at 75–80 %). Fallback: the 700 weights are one-line changes in `TBKit`.
+
 (continued below as decisions are made)
