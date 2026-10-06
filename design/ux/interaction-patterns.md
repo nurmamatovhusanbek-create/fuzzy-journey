@@ -131,7 +131,7 @@ Full spec: `command-card.md` (zone D, replaces `TBProvincePanel`). Pattern-level
 | Anatomy | glyph, mono value, optional delta (+/-, ^/v), caption on hover. Top-bar groups (zone A, `hud.md` 4) separated by a 1 px gap: **Economy** (gold, net/turn, manpower), **Military** (army, wars), **Politics** (diplomatic pts, intel, infamy), **Realm** (provinces, tech). Max 9 chips visible; extras fold into a "more" chip on CP. |
 | States | normal, changed (delta flash 1.5 s), threshold (warning shape plus colour), disabled/unknown ("--"). |
 | Input | T: long-press = tooltip (what it means, what moves it, link to Codex topic). M: hover tooltip. K: focusable in ribbon order, Enter opens the owning screen (gold -> Budget). |
-| A11y | Delta carries sign and arrow, not colour alone; value is never truncated, chip wraps below at CP. |
+| A11y | Delta carries sign and arrow, not colour alone; value is never truncated, chip wraps below at P. |
 | Godot | `HFlowContainer` of `Control` subclass (existing `P.Readout`); fixed-width monospaced digits so rolling never reflows; `tooltip_text` or custom (P-07). |
 ### P-05 Alert Chip
 
@@ -235,7 +235,7 @@ Today `_on_back` frees the topmost `ColorRect` blindly: it can discard an event 
 |--------|------|
 | Use | One entity per row (nation, annal, save slot, honour). |
 | Anatomy | lead 28 (flag/glyph), text block (primary 1 line ellipsis, secondary 13 px dim 1 line), up to 2 chips, trailing mono figure, chevron if it navigates, 1 px hairline. Whole row is the target. Max one trailing action button; more actions go to the detail view. |
-| Density | CD 40 high compact, CL 52, CP 56 comfortable (see modal-system.md 5.5). Section headers sticky. Lists over 12 rows get search and sort; sort header shows a ^/v glyph. |
+| Density | D 36u, L/S 48u, P 52u (see modal-system.md 5.5). Section headers sticky. Lists over 12 rows get search and sort; sort header shows a ^/v glyph. |
 | States | idle, hover/pressed tint, selected (3 px left bar plus tint plus check), focused (ring), disabled (text stays 4.5:1, plus a reason line), current-player row (bold plus "You" chip). |
 | Input T/M/K | T: tap row; long-press = peek tooltip; no swipe actions. M: click, hover tint. K: Up/Down, Enter, Home/End, type-ahead on first letter. |
 | A11y | Narrate "Spain, 208 provinces, rank 1 of 250". Do not silently cap: the Nations list stops at 60 of 250 with no indicator (gap). |

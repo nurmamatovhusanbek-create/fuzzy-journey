@@ -112,7 +112,6 @@ Profile comes from viewport in `u`, input type and physical size, **never from l
 | **D** desktop / tablet (1280x720u) | 400-480; wide dialog 640 | **Drawer** 400 | w = clamp(90 % vw, 640, 960), h = min(88 % vh, 600) |
 
 On L and S the command card collapses to its header while a drawer is open (selection kept).
-
 ### 5.3 Presentation decision rule
 
 | Question (ask in order) | Presentation |
@@ -122,7 +121,6 @@ On L and S the command card collapses to its header while a drawer is open (sele
 | Browse, compare, configure; needs width; map not the subject (includes title and setup) | **Wide panel** / **Page** |
 
 Right-rail rule: the right rail holds **one** management drawer at a time. Province details are the command card's own Details drawer (`command-card.md`), not a right-rail occupant. Top bar A stays live above all drawers; End Turn stays visible and tappable (the drawer stops above it).
-
 ### 5.4 Width rules and two-column rules
 
 | Rule | Spec |
@@ -134,7 +132,6 @@ Right-rail rule: the right rail holds **one** management drawer at a time. Provi
 | Scrolling | one scroll per column (master-detail) or one shared scroll (two groups of equal length); never nested scrolls horizontally |
 | Collapse | below 640u: right column stacks under the left in reading order; master-detail becomes list page then detail page (push) |
 | Wide dialog (640u) | landscape only, two columns: narrative left, choices right (Events, Game over) |
-
 ### 5.5 Density rule for lists
 
 | Profile | Row height | Lines | Notes |
@@ -142,6 +139,7 @@ Right-rail rule: the right rail holds **one** management drawer at a time. Provi
 | D pointer | 36 | 1 (+1 dim) | dense by default; Settings "Density" can switch to comfortable |
 | L / S touch | 48 | 1-2 | 48u is the touch minimum |
 | P touch | 52 | 1-2 | |
+
 Rules: **one entity per row, at most two text lines, at most three chips**; trailing figure right-aligned mono; whole row is the target; one trailing action max; group by sticky section header instead of repeating a date/category per row; hairline separators only (no ornament rules, no per-row panels); more than 12 rows requires search and sort; more than 60 rows is pooled; never silently truncate (show "Showing 120 of 412, [Older]").
 
 ### 5.6 Component inventory and shared anatomy
@@ -310,6 +308,7 @@ Rule: panels never write game state; they emit commands (`on_cmd`) and the game 
 | Row primary | 24 | 36 | ellipsis; secondary line wraps to 2 |
 | Footer button | 16 | 28 | grows to 40-60 % width; max 2 lines |
 | Chip caption | 10 | 16 | wraps below value on P |
+
 RU and UZ run about 35 % longer; RU is not upper-cased (existing rule); Uzbek apostrophes (O‘zbekcha) need a font fallback test; no text in images; RTL not targeted.
 
 ## 14. Acceptance Criteria

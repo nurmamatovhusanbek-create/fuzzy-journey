@@ -9,14 +9,11 @@
 > **Accessibility Tier**: Comprehensive
 > **Template**: UX Spec
 
----
-
 ## 1. Purpose and Player Need
 
 **Need.** Get back into the campaign in one tap, or start a new one, while the first frame already says "history, cartography, a staff table at night". **Player goal**: resume or begin within 5 seconds of launch. **Game goal**: route to Continue / New / Load / Online; surface Settings and Honours without clutter.
 **Keep (the player loves it)**: the turning globe inside the graduated bezel ring, title set inside the ring. **Change**: entries become plates (affordance, guaranteed contrast), the list shrinks to 4, tools move to one row.
-**Context on arrival**: just launched or left a game; low cognitive load; returning players want speed, first-timers want one obvious step; they fear starting over by mistake.
-
+**On arrival**: low cognitive load; returning players want speed, first-timers one obvious step; fear: starting over by mistake.
 ## 3. Navigation Position
 
 ```
@@ -77,7 +74,7 @@ Tools: **Honours n/19**, **Settings**, **How to play** (Codex + tutorial replay)
 | Returning / corrupt | valid / unreadable autosave | Continue primary and focused / disabled with reason |
 | Loading | tap Continue/Load | plates disabled, busy ring on the plate, 400 ms minimum |
 | Panel open | Honours / Settings / How to play | spin stops, ring dims to 35 %, focus trapped in panel |
-| Reduced motion | setting (default follows OS) | globe and bezel static |
+| Reduced motion | setting, default follows OS | globe and bezel static |
 
 ## 7. Interaction Map
 
@@ -87,14 +84,13 @@ Tools: **Honours n/19**, **Settings**, **How to play** (Codex + tutorial replay)
 | Up / Down / Tab | move focus | 2 px focus ring; initial focus = primary plate |
 | `C` / `N` / `L` | Continue / New / Load | in tooltips |
 | Esc / Android Back | first: toast, second: quit | P-20 step 7 |
-
 ## 8. Data and Events
 
 | Data | Source | Missing |
 |------|--------|---------|
 | Autosave meta (nation, turn, year, version) | `TBSave.meta("auto")` | hide Continue |
-| Save count, honours count | `TBSave`, `TBHonours.count(cfg)` | "No saves yet", 0/19 |
-| Language, reduced motion | `cfg` | defaults |
+| Save count, honours, language, reduced motion | `TBSave`, `TBHonours.count(cfg)`, `cfg` | "No saves yet", 0/19, defaults |
+
 Events (analytics only): `menu.continue / new_game / load / multiplayer / honours / settings / lang {code}`.
 
 ## 10-12. Transitions, Accessibility, Input
@@ -114,7 +110,7 @@ Events (analytics only): `menu.continue / new_game / load / multiplayer / honour
 - [ ] At most 4 plates plus 4 tools; Hot-seat not on the title
 - [ ] First interactive frame under 1 s after splash on min-spec Android; Continue loads in under 2 s
 - [ ] Title and plates fit inside the ring at 540x960, 800x360, 1280x720, 1920x1080 px in EN/RU/UZ
-- [ ] Keyboard-only: launch, Continue, Settings, back; Back-twice-to-quit verified on Android
+- [ ] Keyboard-only launch, Continue, Settings, back works; Back-twice-to-quit verified on Android
 
 ## 15. Open Questions
 
@@ -122,4 +118,3 @@ Events (analytics only): `menu.continue / new_game / load / multiplayer / honour
 |----------|-------|------------|
 | Approve moving Hot-seat into the New Game page and dropping the title entry? | creative-director | Recommended: yes |
 | Rejected: era dial on the bezel (panels hide it; drag fights panel scroll). Revisit as a pick-screen flourish? | creative-director | Recommend no |
-| Flat dark disc under the title vs plates only: how much globe does it hide? | art-director | test both |
