@@ -80,6 +80,7 @@ var _legend: P.Legend
 var _strip: P.SeatStrip
 var map_view: TBMapView                      # the main map (the minimap shows and steers it)
 var _minimap: TBMinimap
+var _stats: P.StatsColumn
 var _catcher: Control
 var _pop: Control
 var _pop_kind: String = ""
@@ -167,6 +168,7 @@ func build() -> void:
 	_legend = P.Legend.new(); add_child(_legend)
 	_strip = P.SeatStrip.new(); _strip.visible = false; add_child(_strip)
 	_minimap = TBMinimap.new(); add_child(_minimap)
+	_stats = P.StatsColumn.new(); _stats.heading = T.call("aoc_stats"); _stats.set_a11y(T.call("aoc_stats")); _stats.pressed.connect(func(): tapped.emit(); _screen("nations")); add_child(_stats)
 	_note = P.SealNote.new(); _note.visible = false; add_child(_note)
 	_seal = P.Seal.new(); _seal.set_a11y(T.call("end_turn")); _seal.pressed.connect(_seal_pressed); add_child(_seal)
 	_wire(_seal, _tip_seal)
@@ -321,6 +323,13 @@ func layout_for(vp: Vector2) -> void:
 	# ---- minimap, bottom-left (kept only where the information bar still has its room next to it)
 	_minimap_ok = not portrait and vp.x >= P.R(300.0) + 380.0 + sw_ + 40.0
 	_minimap.size = Vector2(P.R(297.0), P.R(145.0)); _minimap.position = Vector2(0, vp.y - _minimap.size.y); _minimap.visible = _minimap_ok and not (_realm_panel != null and _realm_panel.visible)
+	# ---- stats column (right) and legend
+	var show_stats: bool = not portrait and vp.y >= 420.0 and vp.x >= 900.0
+	_stats.visible = show_stats
+	if show_stats:
+		var sw2: float = P.R(150.0)
+		_stats.size = Vector2(sw2, _stats.desired_h())
+		_stats.position = Vector2(vp.x - sw2, th + P.R(16.0))
 	# ---- legend (top right under the date plate), seat strip
 	_legend.framed = true
 	_place_legend()
@@ -368,7 +377,7 @@ func _place_legend() -> void:
 	_legend.width = 214.0 if _legend.ramp.size() > 0 else 252.0
 	_legend.custom_minimum_size = Vector2(_legend.width, _legend.height_needed())
 	_legend.size = _legend.custom_minimum_size
-	_legend.position = Vector2(_vp.x - 8.0 - _legend.size.x, ribbon_height() + 8.0)
+	_legend.position = Vector2(_vp.x - 8.0 - _legend.size.x - (P.R(150.0) if _stats != null and _stats.visible else 0.0), ribbon_height() + 8.0)
 	_legend.queue_redraw()
 
 func _place_strip() -> void:
@@ -415,6 +424,7 @@ func keepouts() -> Array:
 	if tr.size.x > 0.0: out.append(tr.grow(4.0))
 	out.append(_seal.get_global_rect().grow(10.0))
 	if _minimap != null and _minimap.visible: out.append(_minimap.get_global_rect())
+	if _stats != null and _stats.visible: out.append(_stats.get_global_rect())
 	if _note != null and _note.visible: out.append(_note.get_global_rect().grow(4.0))
 	if _legend.visible: out.append(_legend.get_global_rect().grow(4.0))
 	if _strip.visible: out.append(_strip.get_global_rect().grow(4.0))
@@ -480,6 +490,15 @@ func refresh() -> void:
 	_inf_on = g.rules >= 1 and (g.infamy[n] >= 5.0 or g.coalition[n] != 0)
 	_inf.set_num(floorf(g.infamy[n]), fmt); _inf.state = 2 if g.coalition[n] != 0 else 0
 	_nat.badge = 0
+	if _stats != null:
+		var st_sum: int = 0
+		var own_l: PackedInt32Array = g.owned(n)
+		for q in own_l: st_sum += g.stab[q]
+		var st_avg: int = int(round(float(st_sum) / maxf(1.0, float(own_l.size()))))
+		_stats.flag = _nat.flag
+		_stats.rows = [["flask", "%.1f" % g.tech_level[n], "info"], ["men", _fmt_num(float(inc.get("pop", 0)), true), "pos_bar"], ["flag", str(own_l.size()), "brass_lt"], ["scales", "%d%%" % st_avg, "cream"], ["smile", "%d%%" % int(inc.get("happyAvg", 60)), "warn_bar"]]
+		if g.rules >= 1: _stats.rows.append(["skull", str(int(g.infamy[n])), "neg_bar"])
+		_stats.size.y = _stats.desired_h(); _stats.queue_redraw()
 	_date.year = _year(g.year)
 	_date.turn_cap = T.call("aoc_turn", {"k": g.turn})
 	# alerts

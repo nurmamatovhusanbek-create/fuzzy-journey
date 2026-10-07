@@ -10,6 +10,8 @@ const D = preload("res://src/engine/data.gd")
 const NAMES := ["political", "diplomatic", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]
 const MODES := ["off", "deuter", "protan", "tritan"]
 
+## in game the political colours are a little darker (Age-of-Civilizations muted palette); the title globe keeps the lifted colours
+static var dark_land := false
 const NEUTRAL := 0x5b5142
 const DISCOVERABLE := 0x6a5d46
 
@@ -89,7 +91,7 @@ func refresh_nations() -> bool:
 	nat_rgb.resize(g.N1)
 	if cvd == "off":
 		for n in range(1, g.N1):
-			nat_rgb[n] = lerp_rgb(g.color[n], 0x000000, 0.16)
+			nat_rgb[n] = lerp_rgb(g.color[n], 0x000000, 0.16) if dark_land else lerp_rgb(g.color[n], 0xFFFFFF, 0.18)
 	else:
 		_assign_cvd()
 		for n in range(1, g.N1):

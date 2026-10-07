@@ -491,6 +491,45 @@ class Tab extends Hit:
 			draw_circle(Vector2(size.x - TBHudParts.R(10.0), TBHudParts.R(11.0)), TBHudParts.R(6.0), TBHudParts.tk("neg_bar"))
 		if has_focus(): TBHudParts.focus_ring(self, Rect2(Vector2.ZERO, size))
 
+# ---------------------------------------------------------------- stats column
+## AoC right-hand figures: "Stats" header and a few national numbers (value, icon, the nation's flag); tapping opens the nations / rankings screen
+class StatsColumn extends Hit:
+	var rows: Array = []                 # [glyph, text, colour token]
+	var flag: Texture2D
+	var heading: String = "Stats"
+	func desired_h() -> float: return TBHudParts.R(44.0) + rows.size() * TBHudParts.R(38.0)
+	func _has_point(p: Vector2) -> bool: return Rect2(Vector2.ZERO, size).has_point(p)
+	func _draw() -> void:
+		var fb: Font = TBHudParts.body_b()
+		var fz: int = TBHudParts.fr(21.0)
+		var halo: Color = TBHudParts.al(TBHudParts.tk("table"), 0.9)
+		var x: float = size.x
+		var fw: float = TBHudParts.R(26.0)
+		var fh: float = TBHudParts.R(17.0)
+		var head_w: float = TBHudParts.tw(fb, heading, fz)
+		var hy: float = TBHudParts.R(20.0)
+		if hover: draw_rect(Rect2(Vector2.ZERO, Vector2(size.x, TBHudParts.R(36.0))), TBHudParts.al(TBHudParts.tk("bar_2"), 0.5))
+		draw_string_outline(fb, Vector2(x - fw - TBHudParts.R(46.0) - head_w, TBHudParts.base(fb, fz, hy)), heading, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, 4, halo)
+		draw_string(fb, Vector2(x - fw - TBHudParts.R(46.0) - head_w, TBHudParts.base(fb, fz, hy)), heading, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, TBHudParts.tk("cream"))
+		TBGlyph.draw(self, "scales", Vector2(x - fw - TBHudParts.R(24.0), hy), TBHudParts.R(24.0), TBHudParts.tk("brass_lt"), 1.8)
+		var y: float = TBHudParts.R(44.0)
+		for r in rows:
+			var cy: float = y + TBHudParts.R(19.0)
+			var col: Color = TBHudParts.tk(String(r[2]))
+			var tx: String = String(r[1])
+			var tw_: float = TBHudParts.tw(fb, tx, fz)
+			var xr: float = x - fw - TBHudParts.R(46.0)
+			draw_string_outline(fb, Vector2(xr - tw_, TBHudParts.base(fb, fz, cy)), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, 4, halo)
+			draw_string(fb, Vector2(xr - tw_, TBHudParts.base(fb, fz, cy)), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, col)
+			draw_circle(Vector2(x - fw - TBHudParts.R(24.0), cy), TBHudParts.R(13.0), TBHudParts.al(TBHudParts.tk("table"), 0.7))
+			TBGlyph.draw(self, String(r[0]), Vector2(x - fw - TBHudParts.R(24.0), cy), TBHudParts.R(22.0), col, 1.8)
+			if flag != null:
+				var fr_ := Rect2(x - fw - TBHudParts.R(2.0), cy - fh * 0.5, fw, fh)
+				draw_texture_rect(flag, fr_, false)
+				draw_rect(fr_, TBHudParts.al(Color.BLACK, 0.7), false, 1.0)
+			y += TBHudParts.R(38.0)
+		if has_focus(): TBHudParts.focus_ring(self, Rect2(Vector2.ZERO, size))
+
 # ---------------------------------------------------------------- dock / lens / menu icon button
 ## flat icon button: 40 px visual square on a 56 px rail, label beneath, 3 px brass bar + filled icon when active
 class IconBtn extends Hit:

@@ -397,7 +397,7 @@ static func theme() -> Theme:
 		_button_set(t, cls, "paper_1", "paper_hover", "paper_2", "rule", "ink_0", 0.6, false)
 	# primary (brass) and danger (flat wax) are theme variations: K.button(..., true), K.danger(...)
 	t.set_type_variation("PrimaryButton", "Button")
-	_button_set(t, "PrimaryButton", "act", "act_hover", "act_press", "act_rim", "on_act", 0.4, false, 16.0, 2)
+	_button_set(t, "PrimaryButton", "paper_1", "paper_hover", "paper_2", "brass", "brass_lt", 0.4, false, 16.0, 1)       # AoC: no gold slab, a dark cell with a brass outline and brass text
 	t.set_type_variation("DangerButton", "Button")
 	_button_set(t, "DangerButton", "wax", "wax_hover", "wax_press", "wax_rim", "on_wax", 0.4, true)
 	t.set_type_variation("DangerGlyphButton", "Button")
