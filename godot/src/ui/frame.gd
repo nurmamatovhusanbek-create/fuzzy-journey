@@ -79,7 +79,7 @@ static func seal(is_pressed: bool = false, is_hot: bool = false, is_disabled: bo
 	if _inst.has(key): return _inst[key]
 	var f := TBFrame.new()
 	f.kind = Kind.SEAL; f.pressed = is_pressed; f.hot = is_hot; f.disabled = is_disabled; f.elevation = 2
-	f.fill = TBTokens.c("wax_press" if is_pressed else ("wax_hover" if is_hot else "wax")); f.border = TBTokens.c("wax_rim"); f.rule_col = TBTokens.c("brass")
+	f.fill = TBTokens.c("act_press" if is_pressed else ("act_hover" if is_hot else "act")); f.border = TBTokens.c("act_rim"); f.rule_col = TBTokens.c("cream")
 	_inst[key] = f
 	return f
 

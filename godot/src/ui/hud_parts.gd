@@ -53,6 +53,7 @@ static func f_nat() -> Font:
 static func chamfer(r: Rect2, cut: float) -> PackedVector2Array:
 	var x0: float = r.position.x; var y0: float = r.position.y; var x1: float = r.end.x; var y1: float = r.end.y
 	cut = clampf(cut, 0.0, maxf(0.0, minf(r.size.x, r.size.y) * 0.5 - 0.01))
+	if cut < 0.5: return PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
 	return PackedVector2Array([Vector2(x0 + cut, y0), Vector2(x1 - cut, y0), Vector2(x1, y0 + cut), Vector2(x1, y1 - cut), Vector2(x1 - cut, y1), Vector2(x0 + cut, y1), Vector2(x0, y1 - cut), Vector2(x0, y0 + cut)])
 
 ## flat plate: fill, optional 1-px border, optional bar on the left edge
@@ -548,7 +549,7 @@ class Seal extends Hit:
 		var rad: float = d * 0.5
 		var dead: bool = state == S.BUSY or state == S.WAIT or state == S.OVER
 		var oy: float = 1.0 if (down and not dead) else 0.0
-		var on: Color = TBHudParts.tk("on_wax")
+		var on: Color = TBHudParts.tk("on_act")
 		if pulse and state != S.BUSY:                       # attention pulse: a ring that grows and fades (<= 3 cycles); static ring when motion is reduced
 			if _animated() and _pulses < 3:
 				var k: float = fposmod(_t * 0.5, 1.0)

@@ -9,21 +9,21 @@ static var mode: int = Mode.NORMAL
 
 # ---- paper ground (documents) ------------------------------------------------------------------
 const NORMAL := {
-	"paper_0": Color("1B1510"), "paper_1": Color("2A2118"), "paper_2": Color("3B2E1F"), "paper_hover": Color("33281B"),
-	"ink_0": Color("F3E9D2"), "ink_1": Color("CBBFA4"), "ink_off": Color("8F8268"),
-	"oxblood": Color("EDC15F"), "brass_ink": Color("F2C552"), "rule": Color("8C7542"), "hair": Color("45391F"),
+	"paper_0": Color("121315"), "paper_1": Color("1E2023"), "paper_2": Color("2D3035"), "paper_hover": Color("26292D"),
+	"ink_0": Color("F4F5F6"), "ink_1": Color("BCC1C7"), "ink_off": Color("80868D"),
+	"oxblood": Color("FFFFFF"), "brass_ink": Color("6EC1FF"), "rule": Color("6A7078"), "hair": Color("34383D"),
 	# ---- bar ground (furniture)
-	"bar_0": Color("120D09"), "bar_1": Color("231A12"), "bar_2": Color("33261A"), "table": Color("060A14"),
-	"cream": Color("F3E9D2"), "smoke": Color("C2B79F"), "brass_lt": Color("F2C552"), "rule_dark": Color("8A7340"),
+	"bar_0": Color("0B0C0E"), "bar_1": Color("17191C"), "bar_2": Color("24272B"), "table": Color("050608"),
+	"cream": Color("FFFFFF"), "smoke": Color("B0B5BC"), "brass_lt": Color("6EC1FF"), "rule_dark": Color("7A818A"),
 	# ---- semantic, paper ground
 	"pos": Color("72D9C0"), "neg": Color("FF8A78"), "warn": Color("F2B84B"), "info": Color("7DB3E8"), "foreign": Color("A9B1BE"),
 	# ---- semantic, bar ground
 	"pos_bar": Color("72D9C0"), "neg_bar": Color("FF8A78"), "warn_bar": Color("F2B84B"), "info_bar": Color("7DB3E8"), "foreign_bar": Color("A9B1BE"),
 	# ---- actions
-	"brass": Color("D9A93C"), "brass_hover": Color("E6B94C"), "brass_press": Color("BF9230"),
-	"wax": Color("8E1E16"), "wax_hover": Color("A3281A"), "wax_press": Color("741710"), "wax_rim": Color("B24A3E"), "on_wax": Color("FBF3E0"),
+	"brass": Color("5DB2F0"), "brass_hover": Color("7BC4F7"), "brass_press": Color("4A9BD8"),
+	"wax": Color("A82A22"), "wax_hover": Color("BD3329"), "wax_press": Color("8A211B"), "wax_rim": Color("D9675C"), "on_wax": Color("FBF3E0"),
 	# ---- primary action: an ink slab with brass text (the darkest object of a container, so it is found by luminance as well as hue) and text on bright fills
-	"act": Color("D9A93C"), "act_hover": Color("E8BC4E"), "act_press": Color("CC9E34"), "act_rim": Color("F6D378"), "on_act": Color("1A130C"), "on_brass": Color("1A130C"),
+	"act": Color("5DB2F0"), "act_hover": Color("7BC4F7"), "act_press": Color("86CBF8"), "act_rim": Color("A9DAFA"), "on_act": Color("07131C"), "on_brass": Color("07131C"),
 }
 const HC := {
 	"paper_0": Color("FFF9E8"), "paper_1": Color("F5E8C8"), "paper_2": Color("E6D3A3"), "paper_hover": Color("FFF2CC"),
@@ -130,9 +130,9 @@ const PAIRS := [
 ]
 
 # ---- metrics (logical px at Standard density) ---------------------------------------------------
-const CUT := 4                  # chamfer for plates, buttons, chips
-const CUT_CHIP := 2             # chips <= 28 px high
-const CUT_PANEL := 6            # panels and sheets
+const CUT := 1                  # chamfer for plates, buttons, chips
+const CUT_CHIP := 1             # chips <= 28 px high
+const CUT_PANEL := 1            # panels and sheets
 const SP := [0, 4, 8, 12, 16, 24, 32, 48]          # spacing scale (index = step)
 const TOUCH := 48               # minimum hit area
 const POINTER_MIN := 32

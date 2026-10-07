@@ -18,6 +18,7 @@ static func tk(name: String) -> Color: return TBTokens.c(name)
 ## 8-point chamfered rectangle
 static func chamfer(r: Rect2, cut: float) -> PackedVector2Array:
 	var c := minf(cut, minf(r.size.x, r.size.y) * 0.5)
+	if c < 0.5: return PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
 	var x0 := r.position.x; var y0 := r.position.y; var x1 := r.end.x; var y1 := r.end.y
 	return PackedVector2Array([Vector2(x0 + c, y0), Vector2(x1 - c, y0), Vector2(x1, y0 + c), Vector2(x1, y1 - c), Vector2(x1 - c, y1), Vector2(x0 + c, y1), Vector2(x0, y1 - c), Vector2(x0, y0 + c)])
 
