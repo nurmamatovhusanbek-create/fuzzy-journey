@@ -14,6 +14,7 @@ var g: TBGame
 var s := -1
 var cs := {}
 var drawer_open := false
+var tag: Array = []                       # [glyph, text, token] relation tag shown under the owner's name (not for your own provinces)
 var _hit_close := Rect2()
 var _hit_owner := Rect2()
 var _hit_name := Rect2()
@@ -23,7 +24,7 @@ func _init() -> void:
 
 func setup(game: TBGame, province: int, case: Dictionary, drawer: bool) -> void:
 	g = game; s = province; cs = case; drawer_open = drawer
-	custom_minimum_size = Vector2(0, P.R(128.0))
+	custom_minimum_size = Vector2(0, P.R(140.0))
 	queue_redraw()
 
 func _gui_input(e: InputEvent) -> void:
@@ -36,8 +37,8 @@ func _gui_input(e: InputEvent) -> void:
 
 func _cell(r: Rect2, glyph: String, text: String, col: Color = Color.TRANSPARENT, gcol: Color = Color.TRANSPARENT, hot: bool = false) -> void:
 	draw_style_box(P.sbox(P.al(Color.BLACK, 0.2) if not hot else P.al(P.tk("bar_2"), 0.7), Color.TRANSPARENT, P.R(4.0), 0), r)
-	var fb: Font = P.body_b()
-	var fz: int = P.fr(20.0)
+	var fb: Font = P.body()
+	var fz: int = P.fr(19.0)
 	var gp: float = P.R(24.0)
 	var tw: float = P.tw(fb, text, fz)
 	var gx: float = r.position.x + P.R(8.0)
@@ -70,7 +71,7 @@ func _draw() -> void:
 	else:
 		draw_rect(fl, P.al(P.tk("rule"), 0.35), false, 1.0)
 	var oname: String = g.dname(o) if o != 0 else TBI18n.T.call("cc_tag_unclaimed")
-	var nfz: int = P.fr(22.0)
+	var nfz: int = P.fr(21.0)
 	var ntx: float = fl.end.x + P.R(8.0)
 	var lines: Array = [oname]
 	if P.tw(fb, oname, nfz) > lr.end.x - ntx - P.R(4.0) and oname.contains(" "):
@@ -83,14 +84,20 @@ func _draw() -> void:
 		var ln: String = lines[i]
 		var tt: String = P.fit(fb, ln, nfz, lr.end.x - ntx - P.R(4.0))
 		draw_string(fb, Vector2(ntx, y0 + lh * i + fb.get_ascent(nfz)), tt, HORIZONTAL_ALIGNMENT_LEFT, -1, nfz, P.tk("cream"))
-	# owner figures: treasury for the player, province count for everyone else
-	var fy: float = fl.end.y + P.R(18.0)
+	# owner figures: treasury for the player; the relation tag for everyone else
+	var fy: float = fl.end.y + P.R(19.0)
+	var fr_: Font = P.body()
 	if o == me and o != 0:
-		TBGlyph.draw(self, "coin", Vector2(lr.position.x + P.R(22.0), fy), P.R(24.0), P.tk("brass_lt"), 1.8)
-		draw_string(fb, Vector2(lr.position.x + P.R(42.0), P.base(fb, P.fr(22.0), fy)), TBKit.fmt(int(g.gold[o])), HORIZONTAL_ALIGNMENT_LEFT, -1, P.fr(22.0), P.tk("brass_lt"))
-	elif o != 0:
-		TBGlyph.draw(self, "flag", Vector2(lr.position.x + P.R(22.0), fy), P.R(22.0), P.tk("smoke"), 1.8)
-		draw_string(fb, Vector2(lr.position.x + P.R(42.0), P.base(fb, P.fr(22.0), fy)), str(g.owned(o).size()), HORIZONTAL_ALIGNMENT_LEFT, -1, P.fr(22.0), P.tk("cream"))
+		TBGlyph.draw_filled(self, "coin", Vector2(lr.position.x + P.R(22.0), fy), P.R(24.0), P.tk("brass_lt"), P.tk("bar_0"))
+		draw_string(fr_, Vector2(lr.position.x + P.R(42.0), P.base(fr_, P.fr(21.0), fy)), TBKit.fmt(int(g.gold[o])), HORIZONTAL_ALIGNMENT_LEFT, -1, P.fr(21.0), P.tk("brass_lt"))
+	elif tag.size() >= 3 and String(tag[1]) != "":
+		var tc: Color = P.tk(String(tag[2]))
+		var gx2: float = lr.position.x + P.R(10.0)
+		if String(tag[0]) != "":
+			TBGlyph.draw(self, String(tag[0]), Vector2(gx2 + P.R(11.0), fy), P.R(22.0), tc, 1.8)
+			gx2 += P.R(28.0)
+		var tt2: String = String(tag[1])
+		draw_string(fb, Vector2(gx2, P.base(fb, P.fr(19.0), fy)), P.fit(fb, tt2, P.fr(19.0), lr.end.x - gx2 - P.R(4.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, P.fr(19.0), tc)
 	# terrain strip with the terrain name
 	var th: float = P.R(36.0)
 	var tr := Rect2(lr.position.x + P.R(4.0), lr.end.y - th - P.R(4.0), lr.size.x - P.R(8.0), th)
@@ -116,7 +123,7 @@ func _draw() -> void:
 	_hit_name = r1
 	draw_style_box(P.sbox(P.al(P.tk("bar_2"), 0.6) if drawer_open else P.al(Color.BLACK, 0.2), Color.TRANSPARENT, P.R(4.0), 0), r1)
 	var sn: String = TBI18n.place(g.world.name[s])
-	var sfz: int = P.fr(23.0)
+	var sfz: int = P.fr(21.0)
 	var stw: float = P.tw(fb, sn, sfz)
 	var avail: float = r1.size.x - P.R(46.0)
 	var snt: String = P.fit(fb, sn, sfz, avail) if stw > avail else sn

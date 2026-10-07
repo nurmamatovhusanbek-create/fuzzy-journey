@@ -101,8 +101,6 @@ class Handle extends RefCounted:
 				if b2 != null: (b2 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL; footer.add_child(b2)
 			return
 		if secondary != null: footer.add_child(secondary)
-		var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sp.size_flags_stretch_ratio = 0.35; sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		footer.add_child(sp)
 		if primary != null:
 			primary.size_flags_horizontal = Control.SIZE_EXPAND_FILL; primary.size_flags_stretch_ratio = 1.0
 			footer.add_child(primary)
@@ -238,7 +236,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	if h.modal:
 		var bd := ColorRect.new()
 		bd.set_anchors_preset(Control.PRESET_FULL_RECT)
-		bd.color = TBTokens.c("table") if bool(opts.get("opaque", false)) else TBTokens.ca("table", TBTokens.SCRIM_ALPHA)
+		bd.color = TBTokens.c("table") if bool(opts.get("opaque", false)) else TBTokens.ca("table", 0.40)
 		bd.mouse_filter = Control.MOUSE_FILTER_STOP
 		root.add_child(bd); h.backdrop = bd
 		if bool(opts.get("backdrop_dismiss", false)):
@@ -257,7 +255,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	elif h.form == "sheet":
 		card.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 2, 0, 0, false, 1, TBFrame.TL | TBFrame.TR))
 	else:
-		card.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 2 if h.modal else 1, 0, 0))
+		card.add_theme_stylebox_override("panel", TBHudParts.sbox(TBHudParts.al(TBTokens.c("paper_0"), 0.97), TBTokens.c("rule"), 4.0, 1))
 	var outer := K.vbox(0)
 	card.add_child(outer)
 	var padded: bool = not h.hero and bool(opts.get("padded", true))
@@ -298,7 +296,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 			K.a11y(bb, T.call("back"), "button"); hb.add_child(bb); h.back_btn = bb
 		elif glyph_id != "":
 			var gl := K.glyph(glyph_id, 24, TBTokens.c("oxblood")); gl.custom_minimum_size = Vector2(28, 28); hb.add_child(gl)
-		var tl := K.title(title_text, 20 if (portrait or short) else 22)
+		var tl := K.title(title_text, 18 if (portrait or short) else 20, TBTokens.c("ink_0"))
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		tl.custom_minimum_size.x = 40; tl.tooltip_text = title_text
 		if h.form == "dialog": tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART           # a dialog title wraps (a confirm names the act), page titles ellipsize
@@ -310,11 +308,16 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 		if h.dismissable and h.form != "page" and not bool(opts.get("no_close", false)):
 			var xb := K.IconBtn.new("close", func(): pop_handle(h), 40)
 			K.a11y(xb, T.call("close"), "button"); hb.add_child(xb)
-		h.head = hm
-		outer.add_child(hm)
-		var rule := ColorRect.new(); rule.color = TBTokens.ca("brass_ink", 0.55) if not TBTokens.is_hc() else TBTokens.c("rule")
-		rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		outer.add_child(rule)
+		var strip := K.header_strip(hm, 0, 0) if h.form != "page" else null
+		if strip != null:
+			h.head = strip
+			outer.add_child(strip)
+		else:
+			h.head = hm
+			outer.add_child(hm)
+			var rule := ColorRect.new(); rule.color = TBTokens.ca("brass_ink", 0.55) if not TBTokens.is_hc() else TBTokens.c("rule")
+			rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			outer.add_child(rule)
 	# ---- tab row (filled by set_tabs)
 	var tp := PanelContainer.new()
 	tp.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_1"), Color.TRANSPARENT, 0, 0, 8, 0, false, 0))
@@ -367,9 +370,10 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	frule.custom_minimum_size = Vector2(0, 1); frule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fw.add_child(frule)
 	var fm := MarginContainer.new()
-	fm.add_theme_constant_override("margin_left", side if padded else pad); fm.add_theme_constant_override("margin_right", side if padded else pad)
-	fm.add_theme_constant_override("margin_top", 8 if not h.short else 4); fm.add_theme_constant_override("margin_bottom", 8 if not h.short else 4)
-	var foot := BoxContainer.new(); foot.add_theme_constant_override("separation", 8)
+	fm.add_theme_constant_override("margin_left", 0); fm.add_theme_constant_override("margin_right", 0)
+	fm.add_theme_constant_override("margin_top", 0); fm.add_theme_constant_override("margin_bottom", 0)
+	var foot := BoxContainer.new(); foot.add_theme_constant_override("separation", 1)
+	foot.child_entered_tree.connect(func(c: Node): if c is Button and not h.hero: K.style_footer_button(c))
 	foot.vertical = K.text_scale >= 1.4 and vp0.x < 700.0               # narrow and large text: the buttons stack instead of overflowing
 	fm.add_child(foot); fw.add_child(fm)
 	outer.add_child(fw); h.footer_wrap = fw; h.footer = foot

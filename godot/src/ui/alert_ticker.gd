@@ -130,8 +130,8 @@ class AlertRow extends P.Hit:
 		var r := Rect2(0, 0, size.x, bh)
 		var col: Color = TBAlertTicker.bar_color(entry) if not done else TBHudParts.tk("pos_bar")
 		var crit: bool = int(entry["sev"]) >= 2 and not done
-		TBHudParts.plate(self, Rect2(0, 0, size.x, size.y), TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_1"), 0.97), col if crit else Color.TRANSPARENT, 2.0, col, 4.0)
-		if crit: draw_rect(Rect2(6.0, 2.0, 1.0, bh - 4.0), col)             # the double rule of a critical chip
+		var pr := Rect2(0, 3, size.x, size.y - 6)
+		draw_style_box(TBHudParts.sbox(TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.82), col if crit else TBHudParts.al(TBHudParts.tk("rule"), 0.8), TBHudParts.R(5.0), 1), pr)
 		var cy: float = bh * 0.5
 		var x: float = 16.0
 		var cream: Color = TBHudParts.tk("cream") if not done else TBHudParts.tk("smoke")
@@ -141,7 +141,7 @@ class AlertRow extends P.Hit:
 		else:
 			TBAlertTicker.draw_shape(self, Vector2(x + 7.0, cy), entry)
 			x += 14.0 + 8.0
-			TBGlyph.draw(self, TBAlertTicker.class_glyph(String(entry["cls"])), Vector2(x + 9.0, cy), 18.0, cream, 1.6)
+			TBGlyph.draw(self, TBAlertTicker.class_glyph(String(entry["cls"])), Vector2(x + 9.0, cy), 18.0, col, 1.6)
 			x += 18.0 + 8.0
 		var f: Font = P.body_b()
 		var fsz: int = TBHudParts.fs(14.0)
@@ -165,7 +165,7 @@ class Pill extends P.Hit:
 	var count: int = 0
 	func desired_w() -> float: return ceilf(TBHudParts.tw(K.mono_b(), "+%d" % count, TBHudParts.fs(14.0)) + 12.0 + 12.0 + 12.0)
 	func _draw() -> void:
-		TBHudParts.plate(self, Rect2(Vector2.ZERO, size), TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.tk("bar_1"), TBHudParts.tk("rule_dark"), 2.0)
+		draw_style_box(TBHudParts.sbox(TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.82), TBHudParts.al(TBHudParts.tk("rule"), 0.8), TBHudParts.R(5.0), 1), Rect2(0, 3, size.x, size.y - 6))
 		var cy: float = size.y * 0.5
 		var f: Font = K.mono_b()
 		var fsz: int = TBHudParts.fs(14.0)

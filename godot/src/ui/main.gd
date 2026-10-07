@@ -183,7 +183,7 @@ const MP_ = preload("res://src/ui/menu_parts.gd")
 var _bezel: Control
 
 func show_menu() -> void:
-	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true
+	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; theme = K.theme()
 	map.set_mode(0)                                           # the title is always the globe inside its ring, whatever view the game uses
 	if TBLenses.dark_land:
 		TBLenses.dark_land = false
@@ -406,7 +406,7 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty})
 	TBLenses.dark_land = true
 	map.setup(g)
-	mode = "pick"; _spin = false; K.serif = false
+	mode = "pick"; _spin = false; K.serif = false; theme = K.theme()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	_show_pick()
@@ -449,7 +449,7 @@ func _start_game(n: int) -> void:
 		_hot_n = 0
 	else:
 		g.set_human(n); g.color[n] = 0xC63A4A
-	mode = "game"; K.serif = false; _clear_overlay(); _log_idx = g.log.size()
+	mode = "game"; K.serif = false; theme = K.theme(); _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	map.lenses.refresh_nations(); map.repaint_all()
@@ -729,7 +729,7 @@ func _autosave() -> void:
 func _load_slot(slot: String) -> void:
 	var ng := TBSave.load_game(world, slot)
 	if ng == null: return
-	g = ng; mode = "game"; K.serif = false; _spin = false; _clear_overlay(); _log_idx = g.log.size()
+	g = ng; mode = "game"; K.serif = false; theme = K.theme(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	TBLenses.dark_land = true
@@ -817,7 +817,7 @@ func _process(delta: float) -> void:
 
 # ---------------------------------------------------------------- multiplayer hooks (called by TBMpController)
 func enter_mp_game(game: TBGame, nation: int) -> void:
-	g = game; mode = "game"; K.serif = false; _spin = false; _clear_overlay(); _log_idx = g.log.size()
+	g = game; mode = "game"; K.serif = false; theme = K.theme(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	g.human_id = nation

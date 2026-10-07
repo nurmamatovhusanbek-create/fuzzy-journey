@@ -13,7 +13,7 @@ static func R(px: float) -> float: return px * u
 ## a font size for an AoC part: R units through u, never below the 12 px caption floor
 static func fr(px: float) -> int: return maxi(12, int(round(px * u)))
 ## panel opacity floor (88 - 100 %), the alpha of bar / rail / chip grounds
-static var opacity: float = 0.94
+static var opacity: float = 0.86
 static var _f_nat: Font
 
 ## a font size through the text scale; never below the 12 px caption floor (A11Y-TXT-002)
@@ -383,7 +383,9 @@ class Chip extends Hit:
 		var cy1: float = size.y * (0.37 if two else 0.5) + oy
 		var cy2: float = size.y * 0.77 + oy
 		var x: float = pad()
-		TBGlyph.draw(self, glyph, Vector2(x + ico() * 0.5, size.y * 0.5 + oy), ico() * 0.82, glyph_col if glyph_col.a > 0.0 else TBHudParts.tk("brass_lt"), 1.8)
+		var gc: Color = glyph_col if glyph_col.a > 0.0 else TBHudParts.tk("brass_lt")
+		if glyph in ["coin", "men", "dove", "arrowhead"]: TBGlyph.draw_filled(self, glyph, Vector2(x + ico() * 0.5, size.y * 0.5 + oy), ico() * 0.9, gc, TBHudParts.tk("bar_1"))
+		else: TBGlyph.draw(self, glyph, Vector2(x + ico() * 0.5, size.y * 0.5 + oy), ico() * 0.82, gc, 1.8)
 		x += ico() + TBHudParts.R(6.0)
 		var fb: Font = TBHudParts.body_b()
 		var vc: Color = val_col if val_col.a > 0.0 else TBHudParts.tk("cream")
@@ -418,7 +420,7 @@ class NationChip extends Hit:
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		var edge: Color = TBHudParts.tk("brass_lt") if (hover or has_focus()) else TBHudParts.tk("rule")
-		draw_style_box(TBHudParts.sbox(TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), edge, TBHudParts.R(5.0), 2), r)
+		draw_style_box(TBHudParts.sbox(TBHudParts.al(TBHudParts.tk("bar_0"), 0.88), edge, TBHudParts.R(5.0), 2), r)
 		var m: float = TBHudParts.R(10.0)
 		var fr_: Rect2 = Rect2(m, m, size.x - m * 2.0, size.y - m * 2.0 + (0.0 if size.y > 0 else 0.0))
 		var oy: float = 1.0 if down else 0.0

@@ -63,6 +63,7 @@ func _init() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_box = CC.plate("paper_0", "rule", TBTokens.CUT_PANEL, 1)
+	_box.fill_a = 0.8
 	add_theme_stylebox_override("panel", _box)
 	_col = VBoxContainer.new()
 	_col.add_theme_constant_override("separation", 2)
@@ -85,9 +86,9 @@ func layout_for(vp: Vector2) -> void:
 	var R := TBHudParts.R
 	var x0: float = band.x if profile != "P" else 8.0
 	var w: float = minf(R.call(620.0), maxf(240.0, band.y - x0)) if profile != "P" else vp.x - 16.0
-	var side_pad := 3.0
+	var side_pad := 1.0
 	reserve = 0.0
-	_box.content_margin_top = 3; _box.content_margin_bottom = 3
+	_box.content_margin_top = 1; _box.content_margin_bottom = 1
 	if profile == "P":
 		reserve = 12.0
 		if reserve_fn.is_valid(): reserve = float(reserve_fn.call())
@@ -235,6 +236,7 @@ func rebuild() -> void:
 	_case = cs
 	if drawer_open: _col.add_child(_build_drawer(subj, cs))
 	var bar := TBInfoBar.new()
+	bar.tag = _tag_for(cs)
 	bar.setup(g, subj, cs, drawer_open)
 	bar.closed.connect(func(): closed.emit())
 	bar.owner_pressed.connect(func(n: int): nation_requested.emit(n))
@@ -251,15 +253,22 @@ func rebuild() -> void:
 		"armed": verbs_row = _build_armed_row()
 		_: verbs_row = _build_verb_row(subj, cs, src)
 	var share_row: Control = _build_share_row(subj, cs, src)
-	_col.add_child(share_row)
-	if _share_holder != null: share_row.add_child(_share_holder)
-	if order_mode == "idle":
-		_act_node = verbs_row
-		_act_node.top_level = true
-		add_child(_act_node)
-	else:
-		_col.add_child(verbs_row)
-	if _cost_holder != null: _col.add_child(_cost_holder)
+	# AoC: the information bar is the whole card; the send share, the cost line and the action buttons float above the minimap
+	var act := VBoxContainer.new()
+	act.add_theme_constant_override("separation", int(TBHudParts.R(4.0)))
+	if share_row.get_child_count() > 0 or _share_holder != null:
+		var strip := PanelContainer.new()
+		strip.add_theme_stylebox_override("panel", TBHudParts.sbox(TBHudParts.al(TBHudParts.tk("bar_0"), 0.9), TBHudParts.tk("rule"), TBHudParts.R(5.0), 1))
+		strip.mouse_filter = Control.MOUSE_FILTER_STOP
+		strip.add_child(share_row)
+		if _share_holder != null: share_row.add_child(_share_holder)
+		act.add_child(strip)
+	if _cost_holder != null: act.add_child(_cost_holder)
+	act.add_child(verbs_row)
+	act.custom_minimum_size.x = _card_w
+	_act_node = act
+	_act_node.top_level = true
+	add_child(_act_node)
 	# keep the focused slot across rebuilds (stale state: the same verb stays focused if it is still there)
 	_focus_verb = 0
 	for i in _verbs.size():
@@ -492,8 +501,6 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 			var cn := g.can({"cmd": "colonize", "p": s})
 			if int(cn["gold"]) > 0: list.append(CC.InfoChip.new("coin", "", CC.gold(int(cn["gold"])), "neg" if cn["short"].has("gold") else ""))
 	while list.size() > 4: list.pop_back()
-	var tg := _tag_for(cs)
-	if int(cs["kind"]) != 5: row.add_child(_RelTag.new(tg[0], tg[1], tg[2]))
 	for c in list: row.add_child(c)
 	row.custom_minimum_size = Vector2(0, 28 if row.get_child_count() > 0 else 0)
 	# a narrow card drops the captions (icon + value stay; the tooltip carries the words), then the lowest-priority chips

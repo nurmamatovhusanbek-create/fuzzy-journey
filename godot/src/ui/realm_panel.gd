@@ -17,7 +17,7 @@ var _col: VBoxContainer
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	add_theme_stylebox_override("panel", P.sbox(P.al(P.tk("bar_0"), 0.95), P.tk("rule"), 0.0, 1))
+	add_theme_stylebox_override("panel", P.sbox(P.al(P.tk("bar_0"), 0.86), P.tk("rule"), 0.0, 1))
 	_sc = ScrollContainer.new(); _sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL

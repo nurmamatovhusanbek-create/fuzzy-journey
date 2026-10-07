@@ -201,7 +201,7 @@ class VerbBtn extends Button:
 	var danger := false
 	var blocked := false
 	var short_form := false                    # icon only (landscape phone strip): the label shows on focus / in the cost line
-	var aoc := false                           # Age-of-Civilizations action button: label centred, hotkey top-right, glyph bottom-right
+	var aoc := true                            # Age-of-Civilizations action button: label centred, hotkey top-right, glyph bottom-right
 	var _bn: PlateBox
 	var _bh: PlateBox
 	var _bp: PlateBox
@@ -247,9 +247,9 @@ class VerbBtn extends Button:
 		draw_style_box(P.sbox(P.al(Color.BLACK, 0.5), Color.TRANSPARENT, P.R(8.0), 0), rect.grow(1.0))
 		draw_style_box(P.sbox(fill, edge, P.R(7.0), 2), rect)
 		draw_style_box(P.sbox(Color.TRANSPARENT, P.al(edge, 0.35), P.R(4.0), 1), rect.grow(-P.R(4.0)))
-		var tc: Color = P.tk("ink_off") if blocked else (P.tk("on_wax") if danger else P.tk("cream"))
+		var tc: Color = P.tk("ink_off") if blocked else (P.tk("on_wax") if danger else P.al(P.tk("cream"), 0.92))
 		var f: Font = P.body_b()
-		var fsz: int = P.fr(21.0)
+		var fsz: int = P.fr(19.0)
 		var avail: float = size.x - P.R(14.0)
 		var lbl: String = label
 		var longest := 0.0
@@ -268,7 +268,7 @@ class VerbBtn extends Button:
 		if blocked: TBCmdCard.glyph(self, "lock", Vector2(P.R(15.0), size.y - P.R(14.0)), P.R(15.0), tc, 1.3)
 		if hot != "" and TBCmdCard.show_hotkeys:
 			var hs: int = 12
-			draw_string(f, Vector2(size.x - P.tw(f, hot, hs) - P.R(8.0), P.R(7.0) + f.get_ascent(hs)), hot, HORIZONTAL_ALIGNMENT_LEFT, -1, hs, P.tk("smoke"))
+			draw_string(P.body(), Vector2(size.x - P.tw(f, hot, hs) - P.R(8.0), P.R(7.0) + f.get_ascent(hs)), hot, HORIZONTAL_ALIGNMENT_LEFT, -1, hs, P.tk("smoke"))
 		if has_focus():
 			draw_rect(rect.grow(-1.0), P.tk("cream"), false, 2.0)
 	func _draw() -> void:

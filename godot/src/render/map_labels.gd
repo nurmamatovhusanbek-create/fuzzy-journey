@@ -169,9 +169,9 @@ func _label_fonts() -> void:
 	if _tracked != null and _tracked_for == rf: return
 	_tracked_for = rf
 	if TBKit.readable_fonts:
-		_tracked = TBKit.body_b(); _tracked_own = TBKit.body_b()
+		_tracked = TBKit.heavy(); _tracked_own = TBKit.heavy()
 	else:
-		_tracked = TBKit.tracked(TBKit.body_b(), 1); _tracked_own = TBKit.tracked(TBKit.body_b(), 1)
+		_tracked = TBKit.tracked(TBKit.heavy(), 1); _tracked_own = TBKit.tracked(TBKit.heavy(), 1)
 
 ## halo alpha chosen from the land under the label: pale land gets the full halo, dark land a lighter one (CON-006). Opaque in high contrast.
 func _halo_alpha(pos: Vector2) -> float:

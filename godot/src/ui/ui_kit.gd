@@ -221,9 +221,11 @@ static func _font(file: String, fallbacks: Array = []) -> FontFile:
 ## Alegreya: body 500, emphasis / buttons / rows 700, flavour 400 italic (Latin and Cyrillic)
 ## Typography: in game the flat Roboto sans (Age-of-Civilizations style); the title screen keeps the Alegreya / Cinzel serif look (serif = true while it is shown)
 static var serif := false
-static func body() -> Font: return _font("alegreya-latin-500-normal", ["alegreya-cyrillic-500-normal"]) if serif else _font("roboto-latin-500-normal", ["roboto-cyrillic-500-normal"])
-static func body_b() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _font("roboto-latin-700-normal", ["roboto-cyrillic-700-normal"])
+static func body() -> Font: return _font("alegreya-latin-500-normal", ["alegreya-cyrillic-500-normal"]) if serif else _font("roboto-latin-400-normal", ["roboto-cyrillic-400-normal"])
+static func body_b() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _font("roboto-latin-500-normal", ["roboto-cyrillic-500-normal"])
 static func body_i() -> Font: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"]) if serif else _font("roboto-latin-400-normal", ["roboto-cyrillic-400-normal"])
+## Roboto 700: map nation names and marker numbers (the one heavy face)
+static func heavy() -> Font: return _font("roboto-latin-700-normal", ["roboto-cyrillic-700-normal"])
 ## Cinzel 700 for titles on the title screen (Alegreya SC covers Cyrillic); the flat sans in game
 static func display() -> Font:
 	if readable_fonts or not serif: return body_b()
@@ -1255,6 +1257,39 @@ static func _focus_first(back: Control) -> void:
 	if pick == null and not list.is_empty(): pick = list[0]
 	if pick != null: pick.grab_focus()
 
+
+## AoC dialog footer button: a flat square cell filling its half of the footer (primary in brass text, danger in wax)
+static func style_footer_button(b: Button) -> void:
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size.y = maxf(b.custom_minimum_size.y, 44.0)
+	var pr: bool = b.theme_type_variation == "PrimaryButton"
+	var dg: bool = b.theme_type_variation == "DangerButton" or b.theme_type_variation == "DangerGlyphButton"
+	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var bs := StyleBoxFlat.new()
+		bs.set_corner_radius_all(0)
+		bs.bg_color = TBTokens.c("paper_1")
+		if st == "hover": bs.bg_color = TBTokens.c("paper_hover")
+		elif st == "pressed" or st == "hover_pressed": bs.bg_color = TBTokens.c("paper_2")
+		if dg and st != "disabled": bs.bg_color = TBTokens.c("wax")
+		if st == "focus":
+			bs.bg_color = Color.TRANSPARENT; bs.set_border_width_all(2 if TBFrame.kbd_nav else 0); bs.border_color = TBTokens.c("cream")
+		bs.content_margin_left = 12; bs.content_margin_right = 12; bs.content_margin_top = 10; bs.content_margin_bottom = 10
+		b.add_theme_stylebox_override(st, bs)
+	var fc: Color = TBTokens.c("on_wax") if dg else (TBTokens.c("brass_lt") if pr else TBTokens.c("ink_0"))
+	for cn in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]: b.add_theme_color_override(cn, fc)
+	b.add_theme_color_override("font_disabled_color", TBTokens.c("ink_off"))
+
+## the dialog header strip (AoC): a darker bar with a rule under it, carrying `content`
+static func header_strip(content: Control, left: int = 14, right: int = 6) -> PanelContainer:
+	var strip := PanelContainer.new()
+	var ssb := StyleBoxFlat.new()
+	ssb.bg_color = TBTokens.ca("bar_2", 0.95); ssb.border_color = TBTokens.c("rule"); ssb.border_width_bottom = 1
+	ssb.set_corner_radius_all(0)
+	ssb.content_margin_left = left; ssb.content_margin_right = right; ssb.content_margin_top = 4; ssb.content_margin_bottom = 4
+	strip.add_theme_stylebox_override("panel", ssb)
+	strip.add_child(content)
+	return strip
+
 ## centred modal card over the scrim; returns [backdrop, body_vbox, footer_hbox].
 ## Landscape: card up to 920 wide. Portrait: full-width bottom sheet <= 92 %. Header bar = title (Cinzel 700 22 oxblood) + close (48 hit).
 ## `hero` = the one hero sheet (ceremony only) with its single ornament rule. Enter 180 ms, no scale (respects reduce motion).
@@ -1283,31 +1318,68 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 		card.custom_minimum_size = Vector2(mini(mini(width, TBTokens.MODAL_W_MAX), int(vp.x) - 32), 0)
 		holder.add_child(card)
 	back.add_child(holder)
-	if hero: card.add_theme_stylebox_override("panel", TBFrame.hero(pad + 4, pad))
-	else: card.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 2, pad, pad, false, 1, (TBFrame.TL | TBFrame.TR) if portrait else TBFrame.ALL))
 	var outer := vbox(12)
-	card.add_child(outer)
-	var head: HBoxContainer = null
-	if title_text != "":
-		head = hbox(12)
-		if glyph_id != "": head.add_child(glyph_label_big(glyph_id))
-		var t := title(title_text, 20 if portrait else 22)
-		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL; t.size_flags_vertical = Control.SIZE_SHRINK_CENTER; t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		head.add_child(t)
-		var close_cb := func(): if is_instance_valid(back): back.queue_free()
-		head.add_child(IconBtn.new("close", close_cb, 40))
-		outer.add_child(head)
-		if hero: outer.add_child(ornament())
+	var head: Control = null
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	outer.add_child(scroll)
 	var footer := hbox(8)          # pinned below the scrolling body: primary right, secondary left (callers add)
-	outer.add_child(footer)
 	var v := vbox(8)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(v)
+	if hero:
+		card.add_theme_stylebox_override("panel", TBFrame.hero(pad + 4, pad))
+		card.add_child(outer)
+		if title_text != "":
+			var hh := hbox(12)
+			if glyph_id != "": hh.add_child(glyph_label_big(glyph_id))
+			var t := title(title_text, 20 if portrait else 22)
+			t.size_flags_horizontal = Control.SIZE_EXPAND_FILL; t.size_flags_vertical = Control.SIZE_SHRINK_CENTER; t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			hh.add_child(t)
+			hh.add_child(IconBtn.new("close", func(): if is_instance_valid(back): back.queue_free(), 40))
+			outer.add_child(hh); head = hh
+			outer.add_child(ornament())
+		outer.add_child(scroll)
+		outer.add_child(footer)
+	else:
+		# AoC dialog: a thin bordered panel, a header strip (icon, title, small close), the body, and a footer of flat split buttons
+		var P := TBHudParts
+		back.color = TBTokens.ca("table", 0.38)
+		card.add_theme_stylebox_override("panel", P.sbox(P.al(TBTokens.c("paper_0"), 0.97), TBTokens.c("rule"), 4.0, 1))
+		outer.add_theme_constant_override("separation", 0)
+		card.add_child(outer)
+		var strip := PanelContainer.new()
+		var ssb := StyleBoxFlat.new()
+		ssb.bg_color = TBTokens.ca("bar_2", 0.95); ssb.border_color = TBTokens.c("rule"); ssb.border_width_bottom = 1
+		ssb.set_corner_radius_all(0); ssb.corner_radius_top_left = 4; ssb.corner_radius_top_right = 4
+		ssb.content_margin_left = 14; ssb.content_margin_right = 6; ssb.content_margin_top = 6; ssb.content_margin_bottom = 6
+		strip.add_theme_stylebox_override("panel", ssb)
+		var hh2 := hbox(10)
+		if glyph_id != "": hh2.add_child(glyph_label_big(glyph_id))
+		var t2 := title(title_text, 19 if portrait else 20)
+		t2.size_flags_horizontal = Control.SIZE_EXPAND_FILL; t2.size_flags_vertical = Control.SIZE_SHRINK_CENTER; t2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hh2.add_child(t2)
+		if title_text != "": hh2.add_child(IconBtn.new("close", func(): if is_instance_valid(back): back.queue_free(), 36))
+		strip.add_child(hh2)
+		if title_text != "":
+			outer.add_child(strip); head = strip
+		var body_m := MarginContainer.new()
+		body_m.add_theme_constant_override("margin_left", pad); body_m.add_theme_constant_override("margin_right", pad)
+		body_m.add_theme_constant_override("margin_top", pad - 4); body_m.add_theme_constant_override("margin_bottom", int(pad * 0.5))
+		body_m.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		body_m.add_child(scroll)
+		outer.add_child(body_m)
+		var fsb := StyleBoxFlat.new()
+		fsb.bg_color = TBTokens.ca("rule", 0.5)
+		fsb.set_corner_radius_all(0); fsb.corner_radius_bottom_left = 4; fsb.corner_radius_bottom_right = 4
+		fsb.border_color = TBTokens.c("rule"); fsb.border_width_top = 1
+		fsb.content_margin_left = 0; fsb.content_margin_right = 0; fsb.content_margin_top = 1; fsb.content_margin_bottom = 0
+		var fpc := PanelContainer.new(); fpc.add_theme_stylebox_override("panel", fsb)
+		footer.add_theme_constant_override("separation", 1)
+		footer.child_entered_tree.connect(func(c: Node): if c is Button: style_footer_button(c))
+		fpc.add_child(footer)
+		outer.add_child(fpc)
 	var opener := parent.get_viewport().gui_get_focus_owner()
 	parent.add_child(back)
 	var guard := ModalGuard.new(); guard.back = back; guard.dismissable = title_text != ""
@@ -1327,7 +1399,7 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 		var vh: float = back.get_viewport_rect().size.y
 		var mh: float = vh * 0.92 if back.get_viewport_rect().size.y > back.get_viewport_rect().size.x else vh - 96.0
 		var head_h: float = head.get_combined_minimum_size().y + 12.0 if head != null else 0.0
-		var cap: float = mh - 2.0 * pad - head_h - footer.get_combined_minimum_size().y - 24.0
+		var cap: float = mh - 2.0 * pad - head_h - footer.get_combined_minimum_size().y - 30.0
 		scroll.custom_minimum_size.y = minf(v.get_combined_minimum_size().y + 4.0, cap)
 	v.minimum_size_changed.connect(fit)
 	footer.minimum_size_changed.connect(fit)
