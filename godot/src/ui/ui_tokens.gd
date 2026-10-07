@@ -130,9 +130,9 @@ const PAIRS := [
 ]
 
 # ---- metrics (logical px at Standard density) ---------------------------------------------------
-const CUT := 4                  # chamfer for plates, buttons, chips
-const CUT_CHIP := 2             # chips <= 28 px high
-const CUT_PANEL := 6            # panels and sheets
+const CUT := 1                  # chamfer for plates, buttons, chips
+const CUT_CHIP := 1             # chips <= 28 px high
+const CUT_PANEL := 2            # panels and sheets
 const SP := [0, 4, 8, 12, 16, 24, 32, 48]          # spacing scale (index = step)
 const TOUCH := 48               # minimum hit area
 const POINTER_MIN := 32

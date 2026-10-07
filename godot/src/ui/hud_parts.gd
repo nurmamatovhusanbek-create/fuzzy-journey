@@ -494,7 +494,7 @@ class Surface extends Control:
 				draw_rect(r, fill)
 				draw_rect(Rect2(0, 0, size.x, 1.0), TBHudParts.tk("rule_dark"))
 			_:
-				TBHudParts.plate(self, r, fill, TBHudParts.tk("rule_dark"), 4.0)
+				TBHudParts.plate(self, r, fill, TBHudParts.tk("rule_dark"), 0.0)
 
 # ---------------------------------------------------------------- End Turn seal
 ## the one wax object (art bible 7.5): an 80 px circle (72 compact / portrait) drawn by TBFrame.seal (wax grain + one brass ring), the
