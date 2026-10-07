@@ -56,6 +56,8 @@ var _hotkeys := {}
 var _handle: Control
 var _drag_y := 0.0
 var _name_label: Label
+var _px0 := 0.0
+var _act_node: Control                    # the idle verb row: AoC action buttons floating above the minimap (top level)
 
 func _init() -> void:
 	visible = false
@@ -79,16 +81,16 @@ func layout_for(vp: Vector2) -> void:
 	# the band the card may use: right of the rail, left of the End Turn seal and its chip with a 16 u gap (never over End Turn)
 	var band := Vector2(8.0, vp.x - 8.0)
 	if band_fn.is_valid(): band = band_fn.call()
-	var w := 480.0
-	var side_pad := 10.0
-	match profile:
-		"D":
-			w = minf(480.0, band.y - band.x); _box.content_margin_top = 6; _box.content_margin_bottom = 6; reserve = 12.0
-		"L":
-			w = minf(560.0, band.y - band.x); _box.content_margin_top = 4; _box.content_margin_bottom = 4; side_pad = 8.0; reserve = 8.0
-		"P":
-			w = vp.x - 16.0; _box.content_margin_top = 4; _box.content_margin_bottom = 4; reserve = 104.0
-			if reserve_fn.is_valid(): reserve = float(reserve_fn.call())
+	# AoC layout: the minimap owns the bottom-left corner, the information bar sits right of it, the Next Turn plate bottom-right
+	var R := TBHudParts.R
+	var x0: float = band.x if profile != "P" else 8.0
+	var w: float = minf(R.call(620.0), maxf(240.0, band.y - x0)) if profile != "P" else vp.x - 16.0
+	var side_pad := 3.0
+	reserve = 0.0
+	_box.content_margin_top = 3; _box.content_margin_bottom = 3
+	if profile == "P":
+		reserve = 12.0
+		if reserve_fn.is_valid(): reserve = float(reserve_fn.call())
 	var pw := _card_w
 	_card_w = w
 	_box.content_margin_left = side_pad; _box.content_margin_right = side_pad
@@ -96,10 +98,8 @@ func layout_for(vp: Vector2) -> void:
 	set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	grow_vertical = Control.GROW_DIRECTION_BEGIN
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
-	# centred on the screen when it fits the band, else pushed to the band edge that keeps it clear of the seal / rail
-	var left: float = vp.x * 0.5 - w * 0.5
-	if profile == "P": left = 8.0
-	else: left = minf(8.0 if profile == "D" else band.x, maxf(8.0, band.y - w))          # AoC layout: the province card sits at the bottom-left, the Next Turn button at the bottom-right
+	var left: float = x0
+	_px0 = x0
 	offset_left = left - vp.x * 0.5; offset_right = left + w - vp.x * 0.5
 	_refit()
 	if prev != profile and visible: rebuild()
@@ -110,6 +110,14 @@ func _refit() -> void:
 	var h := get_combined_minimum_size().y
 	offset_bottom = -reserve + _rise
 	offset_top = offset_bottom - h
+	if _act_node != null and is_instance_valid(_act_node):
+		var ah: float = _act_node.get_combined_minimum_size().y
+		var top_y: float = _vp.y + offset_top
+		if profile == "P": _act_node.position = Vector2(8.0, top_y - ah - 4.0)
+		else:
+			var ax: float = _px0 - TBHudParts.R(295.0) if _px0 <= TBHudParts.R(301.0) else _px0
+			_act_node.position = Vector2(ax, minf(_vp.y - TBHudParts.R(145.0), top_y) - ah - TBHudParts.R(5.0))
+		_act_node.size = _act_node.get_combined_minimum_size()
 
 ## the radius of space the card must keep clear of the selected province (the map pans if it would cover it)
 func card_rect() -> Rect2: return get_global_rect()
@@ -210,6 +218,9 @@ func _classify(s: int) -> Dictionary:
 func _clear_col() -> void:
 	for c in _col.get_children():
 		_col.remove_child(c); c.queue_free()
+	if _act_node != null and is_instance_valid(_act_node):
+		remove_child(_act_node); _act_node.queue_free()
+	_act_node = null
 	_verbs.clear(); _hotkeys.clear(); _cost = null; _share = null; _count = null; _handle = null
 
 func rebuild() -> void:
@@ -222,19 +233,16 @@ func rebuild() -> void:
 	var subj := _subject()
 	var cs := _classify(subj)
 	_case = cs
-	if profile == "P": _col.add_child(_build_handle())
 	if drawer_open: _col.add_child(_build_drawer(subj, cs))
-	var head := _build_header(subj, cs)
+	var bar := TBInfoBar.new()
+	bar.setup(g, subj, cs, drawer_open)
+	bar.closed.connect(func(): closed.emit())
+	bar.owner_pressed.connect(func(n: int): nation_requested.emit(n))
+	bar.details_pressed.connect(func(): set_drawer(not drawer_open))
+	_col.add_child(bar)
+	_head2 = null; _name_label = null
 	var chips := _build_chips(subj, cs)
-	if profile == "L" and _head2 == null:                 # landscape strip: header and chips share one row (lowest-priority chips drop when it is full)
-		head.add_child(chips)
-		_col.add_child(head)
-		head.resized.connect(_fit_header_chips.bind(head, chips))
-		_fit_header_chips.call_deferred(head, chips)
-	else:
-		_col.add_child(head)
-		if _head2 != null: _col.add_child(_head2)
-		_col.add_child(chips)
+	if chips.get_child_count() > 0: _col.add_child(chips)
 	var order_mode := _order_mode()
 	var src := _source_for(cs) if order_mode != "war" else -1
 	var verbs_row: Control
@@ -243,19 +251,15 @@ func rebuild() -> void:
 		"armed": verbs_row = _build_armed_row()
 		_: verbs_row = _build_verb_row(subj, cs, src)
 	var share_row: Control = _build_share_row(subj, cs, src)
-	if profile == "L" and _card_w >= 480.0 and CC.text_scale < 1.3:
-		# strip: [share][verbs] on one row, the cost line below
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 6)
-		if _share_holder != null: row.add_child(_share_holder)
-		verbs_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(verbs_row)
-		_col.add_child(row)
-		_col.add_child(_cost_holder)
+	_col.add_child(share_row)
+	if _share_holder != null: share_row.add_child(_share_holder)
+	if order_mode == "idle":
+		_act_node = verbs_row
+		_act_node.top_level = true
+		add_child(_act_node)
 	else:
-		_col.add_child(share_row)
-		if _share_holder != null and profile == "L": share_row.add_child(_share_holder)
 		_col.add_child(verbs_row)
-		if _cost_holder != null: _col.add_child(_cost_holder)
+	if _cost_holder != null: _col.add_child(_cost_holder)
 	# keep the focused slot across rebuilds (stale state: the same verb stays focused if it is still there)
 	_focus_verb = 0
 	for i in _verbs.size():
@@ -456,7 +460,6 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 	var terr: String = T.call("t_" + D.TERRAIN_ID[g.terrain[s]])
 	match int(cs["kind"]):
 		1, 2:
-			list.append(CC.InfoChip.new("men", T.call("army"), TBKit.fmt(g.army[s]), "", "%s: %d" % [T.call("army"), g.army[s]]))
 			if g.rules >= 1 and g.gen[s] != 0:
 				list.append(CC.InfoChip.new("",  "", "%s %s" % ["★".repeat(mini(5, TBGenerals.skill(g, s))), TBGenerals.display_name(g, s)], "", "%s: %s" % [T.call("general"), TBGenerals.display_name(g, s)]))
 			var outside: bool = g.owner[s] != me
@@ -466,15 +469,7 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 				list.append(CC.InfoChip.new("supply", T.call("cc_supply") if attr == 0 else T.call("attrition"), "%d" % g.supply_limit(s) if attr == 0 else "−%d" % attr, "neg" if attr > 0 else "", T.call("supply_hint")))
 			if g.occupier[s] != 0 and g.occupier[s] != me:
 				list.append(CC.InfoChip.new("warning", "", T.call("occupied_by", {"nation": g.dname(g.occupier[s])}), "neg"))
-			if g.stab[s] < 30:
-				list.append(CC.InfoChip.new("revolt", T.call("stability"), "%d" % g.stab[s], "neg", T.call("cc_unrest_tip")))
-			if g.b_building[s] != 0 and g.owner[s] == me:
-				list.append(CC.InfoChip.new("shield", "", "%s · %d" % [T.call("b_" + D.BUILDINGS[g.b_building[s] - 1]["id"]), g.b_turns[s]], "", T.call("cc_building_tip")))
-			elif int(cs["kind"]) == 2 and g.building[s] != 0 and g.owner[s] == me:
-				list.insert(1, CC.InfoChip.new("shield", "", "%s %d" % [T.call("b_" + D.BUILDINGS[g.building[s] - 1]["id"]), g.b_level[s]]))
 		3:
-			list.append(CC.InfoChip.new("men", T.call("army"), TBKit.fmt(g.army[s])))
-			list.append(CC.InfoChip.new("pin", "", terr))
 			var o: int = cs["o"]
 			if g.rules >= 1:
 				var ratio := TBDiplo.ult_ratio(g, me, o)
@@ -485,8 +480,6 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 				var ex: int = int(g.nap_expiry.get(mini(me, o) * g.N1 + maxi(me, o), 0)) - g.turn
 				if ex > 0: list.append(CC.InfoChip.new("hourglass", "", T.call("cc_pact_left", {"n": ex}), "", T.call("cc_pact_left", {"n": ex})))
 		4:
-			list.append(CC.InfoChip.new("shield", T.call("cc_defenders"), TBKit.fmt(g.army[s])))
-			list.append(CC.InfoChip.new("pin", "", terr))
 			var src := _source_for(cs)
 			if src >= 0: list.append(CC.InfoChip.new("men", "", T.call("cc_from", {"p": TBI18n.place(g.world.name[src]), "n": TBKit.fmt(g.army[src])}), "", T.call("cc_from_tip")))
 			var en: int = cs["enemy"]
@@ -494,13 +487,15 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 			if cs["retake"] and g.occupier[s] != 0:
 				list.insert(0, CC.InfoChip.new("warning", "", T.call("occupied_by", {"nation": g.dname(g.occupier[s])}), "neg"))
 		5:
-			list.append(CC.InfoChip.new("pin", "", terr))
 			var reach := _reach(s)
 			list.append(CC.InfoChip.new("arrowhead", "", T.call(reach), "" if reach == "cc_reach_adj" or reach == "cc_reach_port" else "warn"))
 			var cn := g.can({"cmd": "colonize", "p": s})
 			if int(cn["gold"]) > 0: list.append(CC.InfoChip.new("coin", "", CC.gold(int(cn["gold"])), "neg" if cn["short"].has("gold") else ""))
 	while list.size() > 4: list.pop_back()
+	var tg := _tag_for(cs)
+	if int(cs["kind"]) != 5: row.add_child(_RelTag.new(tg[0], tg[1], tg[2]))
 	for c in list: row.add_child(c)
+	row.custom_minimum_size = Vector2(0, 28 if row.get_child_count() > 0 else 0)
 	# a narrow card drops the captions (icon + value stay; the tooltip carries the words), then the lowest-priority chips
 	if profile != "L": row.resized.connect(func(): _fit_chip_row(row, row.size.x))
 	return row
@@ -508,7 +503,9 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 ## chips of a row fit `avail`: captions off when too wide, then hide trailing (lowest-priority) chips; the first two always stay
 func _fit_chip_row(row: HBoxContainer, avail: float) -> void:
 	if avail <= 0.0: return
-	var kids := row.get_children()
+	var kids: Array = []
+	for c0 in row.get_children():
+		if c0 is CC.InfoChip: kids.append(c0)
 	for c in kids: (c as CC.InfoChip).visible = true
 	var need := 0.0
 	for c in kids:
@@ -517,7 +514,7 @@ func _fit_chip_row(row: HBoxContainer, avail: float) -> void:
 	var compact := need > avail + 0.5 or profile == "L"
 	for c in kids: (c as CC.InfoChip).set_compact(compact)
 	var i := kids.size() - 1
-	while i >= 2 and _row_need(kids) > avail + 0.5:
+	while i >= 1 and _row_need(kids) > avail - 90.0:
 		(kids[i] as Control).visible = false; i -= 1
 
 func _row_need(kids: Array) -> float:
@@ -778,8 +775,8 @@ func _build_verb_row(s: int, cs: Dictionary, src: int) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	var specs := _verb_specs(s, cs, src)
-	var h := int(CC.touch())
-	if profile == "P": h = maxi(56, h)
+	var h := int(maxf(TBHudParts.R(68.0), 44.0))
+	row.add_theme_constant_override("separation", int(TBHudParts.R(5.0)))
 	row.custom_minimum_size = Vector2(0, h)
 	_verbs.clear(); _hotkeys.clear()
 	for i in specs.size():
@@ -787,9 +784,9 @@ func _build_verb_row(s: int, cs: Dictionary, src: int) -> HBoxContainer:
 		if bool(v.get("gap", false)):
 			var gp := Control.new(); gp.custom_minimum_size = Vector2(12, 0); gp.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(gp)
 		var b := CC.VerbBtn.new().setup(v["id"], v["glyph"], v["label"], v["hot"], bool(v["primary"]), bool(v["danger"]))
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size = Vector2(CC.touch() if profile == "L" else (64.0 if profile == "P" else 76.0), h)
-		b.short_form = profile == "L"
+		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		b.custom_minimum_size = Vector2(maxf(TBHudParts.R(92.0), 56.0), h)
+		b.aoc = true
 		b.set_blocked(not bool(v["can"]["ok"]))
 		var tip: String = "%s. %s" % [v["label"], _plain(v["parts"])] if v["why"] == "" else "%s. %s: %s" % [v["label"], T.call("cc_unavailable"), v["why"]]
 		b.tooltip_text = tip

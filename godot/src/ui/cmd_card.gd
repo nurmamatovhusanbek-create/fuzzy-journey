@@ -201,6 +201,7 @@ class VerbBtn extends Button:
 	var danger := false
 	var blocked := false
 	var short_form := false                    # icon only (landscape phone strip): the label shows on focus / in the cost line
+	var aoc := false                           # Age-of-Civilizations action button: label centred, hotkey top-right, glyph bottom-right
 	var _bn: PlateBox
 	var _bh: PlateBox
 	var _bp: PlateBox
@@ -233,7 +234,47 @@ class VerbBtn extends Button:
 		if blocked: return TBCmdCard.tk("ink_off")
 		if danger: return TBCmdCard.tk("on_wax")
 		return TBCmdCard.tk("ink_0")
+	func _draw_aoc() -> void:
+		var P := TBHudParts
+		var rect := Rect2(Vector2.ZERO, size)
+		var shift := Vector2(0, 1) if (button_pressed and not blocked) else Vector2.ZERO
+		var fill: Color = P.al(P.tk("bar_0"), 0.94)
+		var edge: Color = P.tk("rule")
+		if primary: edge = P.tk("brass_lt")
+		if danger: edge = P.tk("wax_rim"); fill = P.al(P.tk("wax"), 0.9)
+		if is_hovered() and not blocked: fill = fill.lerp(P.tk("bar_2"), 0.7); edge = P.tk("brass_lt")
+		if button_pressed and not blocked: fill = fill.lerp(Color.BLACK, 0.25)
+		draw_style_box(P.sbox(P.al(Color.BLACK, 0.5), Color.TRANSPARENT, P.R(8.0), 0), rect.grow(1.0))
+		draw_style_box(P.sbox(fill, edge, P.R(7.0), 2), rect)
+		draw_style_box(P.sbox(Color.TRANSPARENT, P.al(edge, 0.35), P.R(4.0), 1), rect.grow(-P.R(4.0)))
+		var tc: Color = P.tk("ink_off") if blocked else (P.tk("on_wax") if danger else P.tk("cream"))
+		var f: Font = P.body_b()
+		var fsz: int = P.fr(21.0)
+		var avail: float = size.x - P.R(14.0)
+		var lbl: String = label
+		var longest := 0.0
+		for wd in lbl.split(" "): longest = maxf(longest, f.get_string_size(wd, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x)
+		while longest > avail and fsz > 12:
+			fsz -= 1
+			longest = 0.0
+			for wd2 in lbl.split(" "): longest = maxf(longest, f.get_string_size(wd2, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x)
+		var th: float = f.get_multiline_string_size(lbl, HORIZONTAL_ALIGNMENT_CENTER, avail, fsz, 2, TextServer.BREAK_WORD_BOUND).y
+		if th > f.get_height(fsz) * 1.5 and fsz > 12:                  # two lines: one size down so they stay inside the plate
+			fsz = maxi(12, fsz - 2)
+			th = f.get_multiline_string_size(lbl, HORIZONTAL_ALIGNMENT_CENTER, avail, fsz, 2, TextServer.BREAK_WORD_BOUND).y
+		var y0: float = size.y * 0.56 - th * 0.5 + f.get_ascent(fsz) + shift.y
+		f.draw_multiline_string(get_canvas_item(), Vector2((size.x - avail) * 0.5, y0), lbl, HORIZONTAL_ALIGNMENT_CENTER, avail, fsz, 2, tc, TextServer.BREAK_WORD_BOUND)
+		if glyph != "": TBCmdCard.glyph(self, glyph, Vector2(size.x - P.R(17.0), size.y - P.R(15.0)) + shift, P.R(20.0), P.al(tc, 0.75), 1.6)
+		if blocked: TBCmdCard.glyph(self, "lock", Vector2(P.R(15.0), size.y - P.R(14.0)), P.R(15.0), tc, 1.3)
+		if hot != "" and TBCmdCard.show_hotkeys:
+			var hs: int = 12
+			draw_string(f, Vector2(size.x - P.tw(f, hot, hs) - P.R(8.0), P.R(7.0) + f.get_ascent(hs)), hot, HORIZONTAL_ALIGNMENT_LEFT, -1, hs, P.tk("smoke"))
+		if has_focus():
+			draw_rect(rect.grow(-1.0), P.tk("cream"), false, 2.0)
 	func _draw() -> void:
+		if aoc:
+			_draw_aoc()
+			return
 		var rect := Rect2(Vector2.ZERO, size)
 		var sf := short_form and size.x < 84.0                  # icon only just while the button is narrow; wide strips show the verb
 		var box := _bn

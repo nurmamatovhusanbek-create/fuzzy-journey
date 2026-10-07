@@ -41,7 +41,7 @@ func _ready() -> void:
 	map.province_peeked.connect(_on_peek)
 	map.performance_low.connect(_on_perf_low)
 	sfx = TBAudio.new(); add_child(sfx); sfx.enabled = cfg.get("sound", true)
-	hud = TBHud.new(); add_child(hud); hud.visible = false
+	hud = TBHud.new(); hud.map_view = map; add_child(hud); hud.visible = false
 	panel = TBProvincePanel.new(); add_child(panel)
 	map.keepout_fn = func() -> Array:
 		var r: Array = hud.keepouts()
