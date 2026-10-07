@@ -517,12 +517,16 @@ class Seal extends Hit:
 	func _ready() -> void: set_process(false)
 	## AoC-style rectangular Next Turn button: height 56 (48 compact), width 176 (150 compact); a chevron cell on the right
 	func diameter() -> float: return 48.0 if compact else 56.0
-	func width_px() -> float: return 150.0 if compact else 176.0
+	func width_px() -> float: return 168.0 if compact else 188.0
 	func cell_w() -> float: return diameter()
 	func text_w() -> float: return width_px() - cell_w() - 16.0
 	func caption_text() -> String: return caption if TBI18n.lang == "ru" else caption.to_upper()
 	func _animated() -> bool: return not TBHudParts.reduced_motion()
-	func _fc() -> int: return TBHudParts.fs(14.0)
+	func _fc() -> int:
+		var t: String = caption_text()
+		var big: int = TBHudParts.fs(14.0)
+		if TBHudParts.tw(TBHudParts.body_b(), t, big) <= text_w(): return big
+		return maxi(12, TBHudParts.fs(12.0))        # a long caption drops one size before it moves to the note chip
 	func _fsub() -> int: return TBHudParts.fs(12.0)
 	## the caption fits the button on one line at the current text scale
 	func fits_inside(text: String) -> bool:
