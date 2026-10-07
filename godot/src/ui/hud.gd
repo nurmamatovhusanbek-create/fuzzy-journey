@@ -1050,7 +1050,7 @@ func _sync_seal() -> void:
 		_seal.caption = T.call("end_turn"); _seal.sub = lead.trim_suffix(" · ")          # the moves figure lives in the top bar; the seal stays quiet
 	_seal.set_a11y("%s. %s" % [_seal.caption, _seal.sub])
 	_seal.caption_inside = _seal.fits_inside(_seal.caption)
-	_seal.sub_inside = _seal.caption_inside and _seal.sub_fits(_seal.sub)
+	_seal.sub_inside = _seal.caption_inside and _seal._one_line() and _seal.sub_fits(_seal.sub)
 	_seal.queue_redraw()
 	_place_note()
 	# hot-seat strip

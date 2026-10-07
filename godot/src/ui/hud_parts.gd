@@ -531,7 +531,16 @@ class Seal extends Hit:
 	## the caption fits the button on one line at the current text scale
 	func fits_inside(text: String) -> bool:
 		var t: String = text if TBI18n.lang == "ru" else text.to_upper()
-		return TBHudParts.tw(TBHudParts.body_b(), t, _fc()) <= text_w()
+		if TBHudParts.tw(TBHudParts.body_b(), t, _fc()) <= text_w(): return true
+		return _wraps(t)
+	## two lines at the small size, every word whole
+	func _wraps(t: String) -> bool:
+		var f: Font = TBHudParts.body_b()
+		var fsz: int = maxi(12, TBHudParts.fs(12.0))
+		for wd in t.split(" "):
+			if TBHudParts.tw(f, wd, fsz) > text_w(): return false
+		return f.get_multiline_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, text_w(), fsz, -1, TextServer.BREAK_WORD_BOUND).y <= f.get_height(fsz) * 2.0 + 1.0
+	func _one_line() -> bool: return TBHudParts.tw(TBHudParts.body_b(), caption_text(), _fc()) <= text_w()
 	func sub_fits(text: String) -> bool:
 		return text == "" or TBHudParts.tw(TBHudParts.body(), text, _fsub()) <= text_w()
 	func _sync() -> void:
@@ -583,6 +592,12 @@ class Seal extends Hit:
 		var tw_: float = r.size.x - cw - 14.0
 		var show_sub: bool = sub_inside and sub != "" and state != S.OVER
 		var cap: String = caption_text() if caption_inside else ""
+		if cap != "" and not _one_line(): show_sub = false
+		if cap != "" and not _one_line():            # wrapped caption: two lines at the small size, no sub-line
+			var fw: int = maxi(12, TBHudParts.fs(12.0))
+			var mh: float = fb.get_multiline_string_size(cap, HORIZONTAL_ALIGNMENT_LEFT, tw_, fw, -1, TextServer.BREAK_WORD_BOUND).y
+			draw_multiline_string(fb, Vector2(tx, (r.size.y - mh) * 0.5 + oy + fb.get_ascent(fw)), cap, HORIZONTAL_ALIGNMENT_LEFT, tw_, fw, -1, on, TextServer.BREAK_WORD_BOUND)
+			cap = ""
 		if cap != "":
 			var f2: Font = TBHudParts.body()
 			var hh: float = fb.get_height(fsz) + ((f2.get_height(_fsub()) + 1.0) if show_sub else 0.0)
