@@ -43,6 +43,7 @@ var _peeked := false
 var last_pick_touch := DisplayServer.is_touchscreen_available()
 var quality := 2
 var map_theme := 0               # 0 standard, 1 parchment
+var _outline_owner := -1        # nation whose border is outlined (the selected province's owner)
 var _hi_owner := -1              # nation highlighted on the pick screen (others dim)
 var render_scale := 1.0        # SubViewport resolution relative to the control's logical size
 var _vp: SubViewport
@@ -229,6 +230,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("strong", 1 if (TBTokens.is_hc() or TBLenses.cvd != "off") else 0)
 	_mat.set_shader_parameter("px_scale", render_scale)
 	_mat.set_shader_parameter("hi_owner", _hi_owner)
+	_mat.set_shader_parameter("outline_owner", _outline_owner)
 	_select_ids_texture()
 	if labels != null:
 		labels.max_labels = [30, 70, 110][quality]
@@ -468,6 +470,11 @@ func apply_a11y(cfg: Dictionary) -> void:
 func highlight_nation(n: int) -> void:
 	if n == _hi_owner: return
 	_hi_owner = n; _push_view()
+
+## outline one nation's border in brass (the selected province's owner) without dimming the rest; -1 clears it
+func outline_nation(n: int) -> void:
+	if n == _outline_owner: return
+	_outline_owner = n; _push_view()
 
 func clear_highlight() -> void:
 	highlight_nation(-1)

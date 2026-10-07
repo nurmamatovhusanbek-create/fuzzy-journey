@@ -594,8 +594,8 @@ var _star_poly := PackedVector2Array()
 var _star_line := PackedVector2Array()
 ## army badge size (px, before the marker scale): a flat rectangle, wider for bigger numbers; the near tier is a little larger
 func _badge_w(f: Font, n: int, near: bool) -> float:
-	return maxf(30.0 if near else 26.0, f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13.0 if near else 12.0)).x + 10.0)
-func _badge_h(near: bool) -> float: return 20.0 if near else 17.0
+	return _badge_h(near) * 1.3 + 3.0 + 4.0 + f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13.0 if near else 12.0)).x + 6.0
+func _badge_h(near: bool) -> float: return 22.0 if near else 19.0
 
 func _ensure_star() -> void:
 	if not _star_poly.is_empty(): return
@@ -645,7 +645,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 		_draw_dot(pos, al, own, war, hot, nat)
 		_floater(p, pos, st, o, me, nfont)
 		return
-	# AoC-style army badge: a flat rectangle in the nation colour with the strength inside; affiliation by outline (own brass, war red, ally blue)
+	# AoC-style army marker: a dark rounded pill with the nation's flag and the strength; own gold, war red, ally blue, others cream
 	var txt := TBKit.fmt(int(round(st["shown"])))
 	var near: bool = ztier == 2
 	var fsz: int = TBKit.fs(13.0 if near else 12.0)
@@ -654,19 +654,25 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var bh: float = _badge_h(near)
 	draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(sc, sc))
 	var r := Rect2(-bw * 0.5, -bh * 0.5, bw, bh)
-	if hot: draw_rect(r.grow(3.0), _a(tk("table"), 0.4 * al))
-	draw_rect(r.grow(2.0 if (own or war or ally or hot) else 1.0), _a(tk("table"), al))
-	if own: draw_rect(r.grow(1.0), _a(tk("brass_lt"), al))
-	elif war: draw_rect(r.grow(1.0), _a(tk("neg_bar"), al))
-	elif ally: draw_rect(r.grow(1.0), _a(tk("info_bar"), al))
-	if hot: draw_rect(r.grow(3.0), _a(tk("cream"), al), false, 1.5)
-	draw_rect(r, _a(nat, al))
-	draw_rect(Rect2(r.position, Vector2(r.size.x, 3.0)), _a(Color.WHITE, 0.16 * al))        # top highlight
-	var lum := nat.r * 0.299 + nat.g * 0.587 + nat.b * 0.114
-	var tcol: Color = tk("table") if lum > 0.55 else tk("cream")
+	var edge := Color.TRANSPARENT
+	if own: edge = _a(tk("brass_lt"), 0.9 * al)
+	elif war: edge = _a(tk("neg_bar"), 0.95 * al)
+	elif ally: edge = _a(tk("info_bar"), 0.95 * al)
+	if hot: edge = _a(tk("cream"), al)
+	if hot: draw_style_box(TBHudParts.sbox(_a(tk("table"), 0.35 * al), Color.TRANSPARENT, 7.0, 0), r.grow(3.0))
+	draw_style_box(TBHudParts.sbox(_a(tk("table"), 0.86 * al), edge, 5.0, 1 if edge.a > 0.0 else 0), r)
+	var fl_w := bh * 1.3
+	var fl := Rect2(r.position + Vector2(3.0, 3.0), Vector2(fl_w, bh - 6.0))
+	if o != 0:
+		draw_texture_rect(TBFlags.texture(g.nat_code[o], g.color[o]), fl, false, _a(Color.WHITE, al))
+		draw_rect(fl, _a(tk("table"), 0.7 * al), false, 1.0)
+	var tcol: Color = tk("cream")
+	if own: tcol = tk("brass_lt")
+	elif war: tcol = tk("neg_bar")
+	elif ally: tcol = tk("info_bar")
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var base := pos + Vector2(0, lift)
-	draw_string(nfont, base + Vector2(-tw * 0.5 * sc, (bh * 0.5 - 4.5) * sc), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(tcol, al))
+	draw_string(nfont, base + Vector2((fl.end.x + 4.0) * sc, (bh * 0.5 - 4.5) * sc), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(tcol, al))
 	if not near:
 		_pip(base + Vector2((bw * 0.5 + 1.0) * sc, -bh * 0.5 * sc), war, ally, al, 0.8)
 		_floater(p, pos, st, o, me, nfont)

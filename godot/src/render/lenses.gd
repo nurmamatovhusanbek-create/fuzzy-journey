@@ -89,7 +89,7 @@ func refresh_nations() -> bool:
 	nat_rgb.resize(g.N1)
 	if cvd == "off":
 		for n in range(1, g.N1):
-			nat_rgb[n] = lerp_rgb(g.color[n], 0xFFFFFF, 0.18)
+			nat_rgb[n] = lerp_rgb(g.color[n], 0x000000, 0.16)
 	else:
 		_assign_cvd()
 		for n in range(1, g.N1):

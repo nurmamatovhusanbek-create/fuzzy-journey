@@ -23,6 +23,7 @@ uniform int theme = 0;           // 0 standard, 1 parchment
 uniform int hc = 0;              // 1 = high-contrast map: 2x borders, lifted land, black sea, no rim light
 uniform int strong = 0;          // 1 = colour-vision / high-contrast: relation patterns at full strength
 uniform float px_scale = 1.0;    // render resolution / logical resolution (patterns and strokes are in logical px)
+uniform int outline_owner = -1;   // nation whose outer border is outlined in brass (the selected province's owner), others untouched
 uniform int hi_owner = -1;       // nation lit on the pick screen (others dim), -1 none
 uniform int quality = 2;         // 0 low (no province borders), 1 medium, 2 high
 uniform float dim_others = 0.0;   // 1 while orders are armed: land that is not a target (or the selection) recedes
@@ -250,7 +251,8 @@ void fragment() {
 			if (hc == 1) col = vec3(0.0, 0.015, 0.04);
 			// faint graticule every 15 degrees
 			float gl = min(abs(fract(lat_d / 15.0 + 0.5) - 0.5) * 15.0, abs(fract(lon_d / 15.0 + 0.5) - 0.5) * 15.0 * cos(lat));
-			col += vec3(0.05, 0.09, 0.16) * (1.0 - smoothstep(0.0, tpp * 0.18 + 0.01, gl)) * 0.6 * (hc == 1 ? 0.0 : 1.0);
+			if (mode == 1) col = theme == 1 ? col : vec3(0.055, 0.12, 0.24);        // flat map: one flat sea, no graticule (it smears into bands towards the poles)
+			else col += vec3(0.05, 0.09, 0.16) * (1.0 - smoothstep(0.0, tpp * 0.18 + 0.01, gl)) * 0.6 * (hc == 1 ? 0.0 : 1.0);
 		} else {
 			col = texelFetch(pal, ivec2(id, 0), 0).rgb;
 			if (hc == 1) col = 0.35 + 0.65 * col;               // land never darker than 3:1 against the black sea
@@ -321,7 +323,7 @@ void fragment() {
 				int nown = owner_of(nid);
 				if (nown != own) {
 					e_nat = min(e_nat, d);
-					if (hi_owner >= 0 && (own == hi_owner || nown == hi_owner)) e_hi = min(e_hi, d);
+					if ((hi_owner >= 0 && (own == hi_owner || nown == hi_owner)) || (outline_owner >= 0 && (own == outline_owner || nown == outline_owner))) e_hi = min(e_hi, d);
 					float nfl = flags_of(nid);
 					if ((fl >= 2.0 && fl < 3.0 && nfl == 1.0) || (nfl >= 2.0 && nfl < 3.0 && fl == 1.0)) e_war = min(e_war, d);
 				} else {
@@ -340,7 +342,7 @@ void fragment() {
 				int nown = owner_of(nid);
 				if (nown != own) {
 					e_nat = min(e_nat, d);
-					if (hi_owner >= 0 && (own == hi_owner || nown == hi_owner)) e_hi = min(e_hi, d);
+					if ((hi_owner >= 0 && (own == hi_owner || nown == hi_owner)) || (outline_owner >= 0 && (own == outline_owner || nown == outline_owner))) e_hi = min(e_hi, d);
 					float nfl = flags_of(nid);
 					if ((fl >= 2.0 && fl < 3.0 && nfl == 1.0) || (nfl >= 2.0 && nfl < 3.0 && fl == 1.0)) e_war = min(e_war, d);
 				} else if (quality > 0) {
@@ -354,7 +356,7 @@ void fragment() {
 		col = mix(col, nat_line, clamp(1.4 - e_nat + 0.5, 0.0, 1.0) * (hc == 1 ? 1.0 : 0.9));
 		col = mix(col, vec3(0.03, 0.07, 0.13) * (hc == 1 ? 0.0 : 1.0), clamp(1.1 - e_coast + 0.5, 0.0, 1.0) * 0.85);
 		col = mix(col, vec3(0.93, 0.25, 0.20), clamp(1.8 - e_war + 0.5, 0.0, 1.0));
-		col = mix(col, vec3(0.95, 0.77, 0.32), clamp(1.5 - e_hi + 0.5, 0.0, 1.0));            // pick screen: the chosen nation's outline in brass
+		col = mix(col, vec3(0.95, 0.77, 0.32), clamp(2.3 - e_hi + 0.5, 0.0, 1.0) * (hi_owner >= 0 ? 1.0 : 0.9));            // pick screen: the chosen nation's outline in brass
 		col = mix(col, vec3(0.95, 0.77, 0.32), clamp(1.5 - e_tgt + 0.5, 0.0, 1.0));           // brass outline round valid targets
 		// ---- hover (2 px brass, inside the province) and selection (3 px cream inside + 1 px ink outside; 3 + 2 px in high contrast): static, no glow
 		if (quality >= 1 && hover_id > 0 && hover_id != sel_id && hover_t > 0.01) {
