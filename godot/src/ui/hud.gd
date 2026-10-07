@@ -260,8 +260,8 @@ func layout_for(vp: Vector2) -> void:
 	_ticker.position = Vector2(tx, bh + (8.0 if _prof == Prof.DESKTOP else 6.0))
 	_ticker._layout()
 	# ---- End Turn seal: a circle at the bottom-right corner (in portrait it sits in the bottom bar's right end), the summary chip above it
-	_seal.size = Vector2(sd, sd)
-	_seal.position = Vector2(vp.x - m - sd, vp.y - (4.0 if portrait else m) - sd)
+	_seal.size = Vector2(_seal.width_px(), sd)
+	_seal.position = Vector2(vp.x - m - _seal.width_px(), vp.y - (4.0 if portrait else m) - sd)
 	# ---- legend (desktop only; the other profiles show it inside the lens popover)
 	_legend.framed = true
 	_place_legend()
@@ -1050,6 +1050,7 @@ func _sync_seal() -> void:
 		_seal.caption = T.call("end_turn"); _seal.sub = lead.trim_suffix(" · ")          # the moves figure lives in the top bar; the seal stays quiet
 	_seal.set_a11y("%s. %s" % [_seal.caption, _seal.sub])
 	_seal.caption_inside = _seal.fits_inside(_seal.caption)
+	_seal.sub_inside = _seal.caption_inside and _seal.sub_fits(_seal.sub)
 	_seal.queue_redraw()
 	_place_note()
 	# hot-seat strip
@@ -1069,7 +1070,7 @@ func _place_note() -> void:
 	var old: Rect2 = end_turn_rect()
 	_note.head = "" if _seal.caption_inside else _seal.caption
 	if _seal.state == P.Seal.S.OVER: _note.head = _seal.caption
-	_note.body = _seal.sub
+	_note.body = "" if _seal.sub_inside else _seal.sub
 	_note.visible = not _note.is_empty()
 	if _note.visible:
 		var sz: Vector2 = _note.measure(minf(240.0, _vp.x * 0.62))

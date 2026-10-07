@@ -505,36 +505,41 @@ class Seal extends Hit:
 	var state: int = S.IDLE
 	var caption: String = ""
 	var sub: String = ""
-	var caption_inside: bool = true         # false: the caption is too long for the disc and is shown by the SealNote chip
+	var caption_inside: bool = true         # false: the caption is too long for the button and is shown by the SealNote chip
+	var sub_inside: bool = true
 	var attention: int = 0                  # unresolved crisis alerts: diamond count badge
-	var pulse: bool = false                 # attention pulse until the first press (static ring with reduced motion)
+	var pulse: bool = false                 # attention pulse until the first press (static outline with reduced motion)
 	var hint_left: float = 0.0              # 0..1 remaining of the 3 s confirm window
 	var compact: bool = false
 	var _t: float = 0.0
 	var _pulses: int = 0
 	var _lastk: float = 0.0
 	func _ready() -> void: set_process(false)
-	func diameter() -> float: return 72.0 if compact else 80.0
+	## AoC-style rectangular Next Turn button: height 56 (48 compact), width 176 (150 compact); a chevron cell on the right
+	func diameter() -> float: return 48.0 if compact else 56.0
+	func width_px() -> float: return 150.0 if compact else 176.0
+	func cell_w() -> float: return diameter()
+	func text_w() -> float: return width_px() - cell_w() - 16.0
 	func caption_text() -> String: return caption if TBI18n.lang == "ru" else caption.to_upper()
 	func _animated() -> bool: return not TBHudParts.reduced_motion()
-	## the caption fits inside the disc in at most two lines at the current text scale
+	func _fc() -> int: return TBHudParts.fs(14.0)
+	func _fsub() -> int: return TBHudParts.fs(12.0)
+	## the caption fits the button on one line at the current text scale
 	func fits_inside(text: String) -> bool:
-		var f: Font = TBHudParts.body_b()
-		var fsz: int = TBHudParts.fs(12.0)
-		var avail: float = diameter() * 0.74
 		var t: String = text if TBI18n.lang == "ru" else text.to_upper()
-		for wd in t.split(" "):
-			if TBHudParts.tw(f, wd, fsz) > avail: return false
-		var h: float = f.get_multiline_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, -1, TextServer.BREAK_WORD_BOUND).y
-		return h <= f.get_height(fsz) * 2.0 + 1.0
+		return TBHudParts.tw(TBHudParts.body_b(), t, _fc()) <= text_w()
+	func sub_fits(text: String) -> bool:
+		return text == "" or TBHudParts.tw(TBHudParts.body(), text, _fsub()) <= text_w()
 	func _sync() -> void:
 		set_process(_animated() and (state == S.BUSY or state == S.HINT or (pulse and _pulses < 3)))
 		queue_redraw()
 	func set_state(s: int) -> void: state = s; _sync()
 	func set_pulse(p: bool) -> void: pulse = p; _pulses = 0; _sync()
 	func _has_point(p: Vector2) -> bool:
-		var r: float = maxf(diameter() * 0.5 + 3.0, TBHudParts.touch() * 0.5)
-		return (p - size * 0.5).length() <= r
+		var r := Rect2(Vector2.ZERO, size).grow(3.0)
+		var t: float = TBHudParts.touch()
+		if r.size.y < t: r = r.grow_individual(0, (t - r.size.y) * 0.5, 0, (t - r.size.y) * 0.5)
+		return r.has_point(p)
 	func _process(d: float) -> void:
 		_t += d
 		var k: float = fposmod(_t * 0.5, 1.0)
@@ -544,53 +549,66 @@ class Seal extends Hit:
 		queue_redraw()
 		if state != S.BUSY and state != S.HINT and (not pulse or _pulses >= 3): set_process(false)
 	func _draw() -> void:
-		var d: float = minf(size.x, size.y)
-		var c := Vector2(size.x * 0.5, size.y * 0.5)
-		var rad: float = d * 0.5
+		var r := Rect2(Vector2.ZERO, size)
 		var dead: bool = state == S.BUSY or state == S.WAIT or state == S.OVER
 		var oy: float = 1.0 if (down and not dead) else 0.0
 		var on: Color = TBHudParts.tk("on_wax")
-		if pulse and state != S.BUSY:                       # attention pulse: a ring that grows and fades (<= 3 cycles); static ring when motion is reduced
+		if pulse and state != S.BUSY:
 			if _animated() and _pulses < 3:
 				var k: float = fposmod(_t * 0.5, 1.0)
-				draw_arc(c, rad + 3.0 + k * 7.0, 0.0, TAU, 40, TBHudParts.al(TBHudParts.tk("brass_lt"), 0.55 * (1.0 - k)), 2.0, true)
+				draw_rect(r.grow(2.0 + k * 7.0), TBHudParts.al(TBHudParts.tk("brass_lt"), 0.55 * (1.0 - k)), false, 2.0)
 			else:
-				draw_arc(c, rad + 4.0, 0.0, TAU, 40, TBHudParts.al(TBHudParts.tk("brass_lt"), 0.7), 2.0, true)
-		draw_style_box(TBFrame.seal(down and not dead, hover and not dead, state == S.OVER), Rect2(Vector2.ZERO, Vector2(d, d)))
-		if state == S.OVER: on = TBHudParts.al(on, 0.6)
-		# chevrons glyph, with the caption under it when it fits the disc: the group is centred in the disc
-		var inside: bool = caption_inside and caption != "" and state != S.OVER
-		var gs: float = rad * (0.34 if inside else 0.5)
-		var f: Font = TBHudParts.body_b()
-		var fsz: int = TBHudParts.fs(12.0)
-		var avail: float = d * 0.74
-		var th: float = f.get_multiline_string_size(caption_text(), HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, 2, TextServer.BREAK_WORD_BOUND).y if inside else 0.0
-		var top: float = c.y + oy - ((gs + 3.0 + th) * 0.5 if inside else gs * 0.5)
-		TBHudParts.chev(self, Vector2(c.x - gs * 0.28, top + gs * 0.5), gs, on, 2.4)
-		TBHudParts.chev(self, Vector2(c.x + gs * 0.28, top + gs * 0.5), gs, on, 2.4)
-		if inside:
-			draw_multiline_string(f, Vector2(c.x - avail * 0.5, top + gs + 3.0 + f.get_ascent(fsz)), caption_text(), HORIZONTAL_ALIGNMENT_CENTER, avail, fsz, 2, on, TextServer.BREAK_WORD_BOUND)
-		# busy: a sweeping arc on the ring (a static arc, with the text, when motion is reduced); hint: the confirm window running down
-		var ar: float = rad - 7.0
+				draw_rect(r.grow(3.0), TBHudParts.al(TBHudParts.tk("brass_lt"), 0.7), false, 2.0)
+		var fill: Color = TBHudParts.tk("wax_press" if (down and not dead) else ("wax_hover" if (hover and not dead) else "wax"))
+		if state == S.OVER: fill = TBHudParts.al(fill, 0.4); on = TBHudParts.al(on, 0.6)
+		draw_rect(r, fill)
+		draw_rect(r, TBHudParts.tk("wax_rim"), false, 1.0)
+		# chevron cell on the right: a slightly darker square with the double chevron, like AoC's Next-turn arrow
+		var cw: float = cell_w()
+		var cell := Rect2(r.end.x - cw, r.position.y, cw, r.size.y)
+		draw_rect(cell, TBHudParts.al(Color.BLACK, 0.22))
+		draw_line(cell.position, Vector2(cell.position.x, cell.end.y), TBHudParts.al(TBHudParts.tk("wax_rim"), 0.8), 1.0)
+		var cc: Vector2 = cell.get_center() + Vector2(0, oy)
+		var gs: float = minf(cw, r.size.y) * 0.42
+		TBHudParts.chev(self, Vector2(cc.x - gs * 0.28, cc.y), gs, on, 2.2)
+		TBHudParts.chev(self, Vector2(cc.x + gs * 0.28, cc.y), gs, on, 2.2)
+		# caption (+ sub line) on the left
+		var fb: Font = TBHudParts.body_b()
+		var fsz: int = _fc()
+		var tx: float = 10.0
+		var tw_: float = r.size.x - cw - 14.0
+		var show_sub: bool = sub_inside and sub != "" and state != S.OVER
+		var cap: String = caption_text() if caption_inside else ""
+		if cap != "":
+			var f2: Font = TBHudParts.body()
+			var hh: float = fb.get_height(fsz) + ((f2.get_height(_fsub()) + 1.0) if show_sub else 0.0)
+			var y0: float = (r.size.y - hh) * 0.5 + oy
+			draw_string(fb, Vector2(tx, y0 + fb.get_ascent(fsz)), cap, HORIZONTAL_ALIGNMENT_LEFT, tw_, fsz, on)
+			if show_sub:
+				draw_string(f2, Vector2(tx, y0 + fb.get_height(fsz) + 1.0 + f2.get_ascent(_fsub())), sub, HORIZONTAL_ALIGNMENT_LEFT, tw_, _fsub(), TBHudParts.al(on, 0.85))
+		# busy: a bar sweeps along the bottom edge (a static bar when motion is reduced); hint: the confirm window runs down
+		var by: float = r.end.y - 4.0
 		if state == S.BUSY or state == S.WAIT:
 			if _animated() and state == S.BUSY:
-				var a0: float = _t * TAU / 1.1
-				draw_arc(c, ar, a0, a0 + deg_to_rad(110.0), 20, on, 3.0, true)
+				var w: float = r.size.x * 0.3
+				var x: float = fposmod(_t * 0.9, 1.0) * (r.size.x + w) - w
+				var x0: float = maxf(0.0, x); var x1: float = minf(r.size.x, x + w)
+				if x1 > x0: draw_rect(Rect2(x0, by, x1 - x0, 3.0), on)
 			else:
-				draw_arc(c, ar, -PI * 0.5, PI, 28, on, 3.0, true)
+				draw_rect(Rect2(0, by, r.size.x * 0.5, 3.0), on)
 		elif state == S.HINT:
 			var left: float = hint_left if _animated() else 1.0
-			draw_arc(c, ar, -PI * 0.5, -PI * 0.5 + TAU * left, 36, TBHudParts.tk("brass_lt"), 3.0, true)
+			draw_rect(Rect2(0, by, r.size.x * left, 3.0), TBHudParts.tk("brass_lt"))
 		if attention > 0 and state == S.IDLE:
-			var dc := Vector2(c.x + rad * 0.72, c.y - rad * 0.72)
+			var dc := Vector2(r.position.x + 2.0, r.position.y + 2.0)
 			TBHudParts.diamond(self, dc, 26.0, TBHudParts.tk("brass_lt"))
-			var fb: Font = K.mono_b()
+			var fm: Font = K.mono_b()
 			var s: String = str(mini(attention, 9))
 			var bs: int = TBHudParts.fs(12.0)
-			draw_string(fb, Vector2(dc.x - TBHudParts.tw(fb, s, bs) * 0.5, TBHudParts.base(fb, bs, dc.y)), s, HORIZONTAL_ALIGNMENT_LEFT, -1, bs, TBHudParts.tk("bar_0"))
+			draw_string(fm, Vector2(dc.x - TBHudParts.tw(fm, s, bs) * 0.5, TBHudParts.base(fm, bs, dc.y)), s, HORIZONTAL_ALIGNMENT_LEFT, -1, bs, TBHudParts.tk("bar_0"))
 		if has_focus():
-			draw_arc(c, rad + 4.5, 0.0, TAU, 48, TBHudParts.tk("bar_0"), 1.0, true)
-			draw_arc(c, rad + 3.0, 0.0, TAU, 48, TBHudParts.tk("cream"), 2.0, true)
+			draw_rect(r.grow(4.0), TBHudParts.tk("bar_0"), false, 1.0)
+			draw_rect(r.grow(2.5), TBHudParts.tk("cream"), false, 2.0)
 
 ## the label chip that belongs to the seal: the moves / turn / pending summary (and the caption when it does not fit the disc).
 ## It never truncates: it wraps. Sits above the seal, right-aligned.

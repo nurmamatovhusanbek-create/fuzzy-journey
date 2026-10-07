@@ -646,55 +646,50 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var sc := (0.6 + 0.4 * (1.0 - pow(1.0 - ease_in, 3.0))) * mk()                       # out-cubic appear, no overshoot
 	sc *= 1.0 + 0.26 * float(st["pop"]) * float(st["pop"])
 	var nat := _nat_col(o)
-	var ink := tk("ink_0"); var paper := tk("paper_0")
+	var ink := tk("ink_0")
 	var lift := -4.0 if (hot and ztier == 2) else 0.0
 	if ztier == 0:
 		_draw_dot(pos, al, own, war, hot, nat)
 		_floater(p, pos, st, o, me, nfont)
 		return
-	if ztier == 1:
-		var k := 1.5 if army < 100 else 1.7                                              # big enough to carry its number (12 px Mono)
-		var s2 := sc * k
-		draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(s2, s2))
-		draw_colored_polygon(_penn_poly, _a(paper, al))
-		draw_rect(Rect2(-10, -7, 20, 4), _a(nat, al))
-		_outline(_penn_line, null, own, war, ally, hot, al, s2, 1.0)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		_pip(pos + Vector2(10.0 * s2, -8.0 * s2), war, ally, al, 0.8)
-		var t1 := TBKit.fmt(int(round(st["shown"])))
-		var f1: int = TBKit.fs(12.0)
-		var tw1 := nfont.get_string_size(t1, HORIZONTAL_ALIGNMENT_LEFT, -1, f1).x
-		draw_string(nfont, pos + Vector2(-tw1 * 0.5, 4.0 * s2 + 1.0), t1, HORIZONTAL_ALIGNMENT_LEFT, -1, f1, _a(ink, al))
+	# AoC-style army badge: a flat rectangle in the nation colour with the strength inside; affiliation by outline (own brass, war red, ally blue)
+	var txt := TBKit.fmt(int(round(st["shown"])))
+	var near: bool = ztier == 2
+	var fsz: int = TBKit.fs(13.0 if near else 12.0)
+	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	var bw := maxf(30.0 if near else 26.0, tw + 10.0)
+	var bh: float = 20.0 if near else 17.0
+	draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(sc, sc))
+	var r := Rect2(-bw * 0.5, -bh * 0.5, bw, bh)
+	if hot: draw_rect(r.grow(3.0), _a(tk("table"), 0.4 * al))
+	draw_rect(r.grow(2.0 if (own or war or ally or hot) else 1.0), _a(tk("table"), al))
+	if own: draw_rect(r.grow(1.0), _a(tk("brass_lt"), al))
+	elif war: draw_rect(r.grow(1.0), _a(tk("neg_bar"), al))
+	elif ally: draw_rect(r.grow(1.0), _a(tk("info_bar"), al))
+	if hot: draw_rect(r.grow(3.0), _a(tk("cream"), al), false, 1.5)
+	draw_rect(r, _a(nat, al))
+	draw_rect(Rect2(r.position, Vector2(r.size.x, 3.0)), _a(Color.WHITE, 0.16 * al))        # top highlight
+	var lum := nat.r * 0.299 + nat.g * 0.587 + nat.b * 0.114
+	var tcol: Color = tk("table") if lum > 0.55 else tk("cream")
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var base := pos + Vector2(0, lift)
+	draw_string(nfont, base + Vector2(-tw * 0.5 * sc, (bh * 0.5 - 4.5) * sc), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(tcol, al))
+	if not near:
+		_pip(base + Vector2((bw * 0.5 + 1.0) * sc, -bh * 0.5 * sc), war, ally, al, 0.8)
 		_floater(p, pos, st, o, me, nfont)
 		return
-	# ---- near: the gonfalon
-	var txt := TBKit.fmt(int(round(st["shown"])))
-	var w := _gon_w(nfont, maxi(army, int(st["shown"])))
-	var d := _gon(w)
-	if hot:
-		draw_set_transform(pos + Vector2(0, 3.0 + lift), 0.0, Vector2(sc, sc))
-		draw_colored_polygon(d["poly"], _a(tk("table"), 0.4 * al))                           # the one hard shadow (elevation 1)
-	draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(sc, sc))
-	var h := w * 0.5
-	draw_rect(Rect2(-h - 2.0, -15.0, w + 4.0, 4.0), _a(ink, al))                             # crossbar
-	draw_colored_polygon(d["poly"], _a(paper, al))                                           # laid-paper body
-	draw_rect(Rect2(-h, -11.0, w, 6.0), _a(nat, al))                                         # nation band
-	_outline(d["line"], d, own, war, ally, hot, al, sc, 1.0)
-	var fnt: Font = nfont
-	var tw := fnt.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	draw_string(fnt, Vector2(-tw * 0.5, 6.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, _a(ink, al))
-	st["tx"] = pos.x + (h + 1.0) * sc; st["ty"] = pos.y + (-9.0 + lift) * sc                 # where the "+n" tab goes (drawn after all markers)
-	if g.gen[p] != 0:                                                                        # general: 1-5 brass stars above the crossbar
+	st["tx"] = pos.x + (bw * 0.5 + 3.0) * sc; st["ty"] = pos.y + (-bh * 0.5 + lift) * sc
+	if g.gen[p] != 0:                                                                        # general: 1-5 brass stars above the badge
 		_ensure_star()
 		var n := mini(5, TBGenerals.skill(g, p))
 		for i in n:
 			var sx := (i - (n - 1) * 0.5) * 9.0
-			draw_set_transform(pos + Vector2(sx * sc, (-21.0 + lift) * sc), 0.0, Vector2(sc, sc))
+			draw_set_transform(pos + Vector2(sx * sc, (-bh * 0.5 - 8.0 + lift) * sc), 0.0, Vector2(sc, sc))
 			draw_colored_polygon(_star_poly, _a(tk("brass_lt"), al))
 			draw_polyline(_star_line, _a(ink, al), 1.0, true)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	_pip(pos + Vector2((h + 1.0) * sc, (-13.0 + lift) * sc), war, ally, al, 1.0)
-	if g.capital[p] != 0: _capital_mark(pos + Vector2((-h - 7.0) * sc, (-12.0 + lift) * sc), al, own)
+	_pip(base + Vector2((bw * 0.5 + 1.0) * sc, -bh * 0.5 * sc), war, ally, al, 1.0)
+	if g.capital[p] != 0: _capital_mark(base + Vector2((-bw * 0.5 - 8.0) * sc, -bh * 0.5 * sc), al, own)
 	_floater(p, pos, st, o, me, nfont)
 
 ## "+n" tab: stacked armies collapse into one gonfalon (12 px Mono 700, drawn above every marker)
