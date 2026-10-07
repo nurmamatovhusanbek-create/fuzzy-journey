@@ -218,16 +218,20 @@ static func _font(file: String, fallbacks: Array = []) -> FontFile:
 	_fonts[file] = f
 	return f
 
-## Roboto (Age-of-Civilizations style flat sans): body 500, emphasis / buttons 700, figures 500 / 700 (Latin and Cyrillic)
-static func body() -> Font: return _font("roboto-latin-500-normal", ["roboto-cyrillic-500-normal"])
-static func body_b() -> Font: return _font("roboto-latin-700-normal", ["roboto-cyrillic-700-normal"])
-static func body_i() -> Font: return _font("roboto-latin-400-normal", ["roboto-cyrillic-400-normal"])
-static func display() -> Font: return body_b()
+## Alegreya: body 500, emphasis / buttons / rows 700, flavour 400 italic (Latin and Cyrillic)
+static func body() -> Font: return _font("alegreya-latin-500-normal", ["alegreya-cyrillic-500-normal"])
+static func body_b() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"])
+static func body_i() -> Font: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"])
+## Cinzel 700 for titles (Alegreya SC covers Cyrillic); Cinzel 500 is retired, so all three names resolve to the same face
+static func display() -> Font:
+	if readable_fonts: return body_b()
+	return _font("cinzel-latin-700-normal", ["alegreya-sc-cyrillic-700-normal"])
 static func display_hi() -> Font: return display()
 static func display_lo() -> Font: return display()
-static func wordmark() -> Font: return body_b()
-static func mono() -> Font: return _font("roboto-latin-500-normal", ["roboto-cyrillic-500-normal"])
-static func mono_b() -> Font: return _font("roboto-latin-700-normal", ["roboto-cyrillic-700-normal"])
+static func wordmark() -> Font: return _font("cinzel-latin-900-normal", ["alegreya-sc-cyrillic-900-normal"])
+## JetBrains Mono: figures 700, deltas 400
+static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"])
+static func mono_b() -> Font: return _font("jetbrains-mono-latin-700-normal", ["jetbrains-mono-cyrillic-700-normal"])
 ## letter-spaced face, created once per (font, spacing)
 static func tracked(base: Font, spacing: float) -> Font:
 	var key := "%d:%d" % [base.get_instance_id(), int(spacing)]

@@ -250,8 +250,7 @@ void fragment() {
 			if (hc == 1) col = vec3(0.0, 0.015, 0.04);
 			// faint graticule every 15 degrees
 			float gl = min(abs(fract(lat_d / 15.0 + 0.5) - 0.5) * 15.0, abs(fract(lon_d / 15.0 + 0.5) - 0.5) * 15.0 * cos(lat));
-			if (mode == 1) col = theme == 1 ? col : vec3(0.055, 0.12, 0.24);        // flat map: one flat sea, no graticule (it smears into bands towards the poles)
-			else col += vec3(0.05, 0.09, 0.16) * (1.0 - smoothstep(0.0, tpp * 0.18 + 0.01, gl)) * 0.6 * (hc == 1 ? 0.0 : 1.0);
+			col += vec3(0.05, 0.09, 0.16) * (1.0 - smoothstep(0.0, tpp * 0.18 + 0.01, gl)) * 0.6 * (hc == 1 ? 0.0 : 1.0);
 		} else {
 			col = texelFetch(pal, ivec2(id, 0), 0).rgb;
 			if (hc == 1) col = 0.35 + 0.65 * col;               // land never darker than 3:1 against the black sea

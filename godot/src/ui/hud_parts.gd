@@ -549,7 +549,7 @@ class Seal extends Hit:
 		var rad: float = d * 0.5
 		var dead: bool = state == S.BUSY or state == S.WAIT or state == S.OVER
 		var oy: float = 1.0 if (down and not dead) else 0.0
-		var on: Color = TBHudParts.tk("on_act")
+		var on: Color = TBHudParts.tk("on_wax")
 		if pulse and state != S.BUSY:                       # attention pulse: a ring that grows and fades (<= 3 cycles); static ring when motion is reduced
 			if _animated() and _pulses < 3:
 				var k: float = fposmod(_t * 0.5, 1.0)

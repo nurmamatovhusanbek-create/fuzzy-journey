@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto"}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -195,22 +195,11 @@ func show_menu() -> void:
 		if short: r_max = maxf(r_max, 120.0)
 		map.zoom = clampf(r_max / base, 0.55, 1.0); map._push_view()
 	hud.visible = false; panel.visible = false; _clear_overlay(); map.labels.visible = false
-	var flat_title: bool = map.mode != 0
-	var strip_w: float = clampf(vs.x * 0.34, 300.0, 440.0)
-	_bezel = null
-	if flat_title:                                           # flat map: an AoC-style dark strip on the left carries the menu, the map stays visible beside it
-		map.zoom = maxf(1.0, vs.y / (vs.x * 0.5)); map._push_view()                # the flat map fills the window height
-		var strip := ColorRect.new(); strip.color = TBTokens.ca("bar_0", 0.86); strip.set_anchors_preset(Control.PRESET_LEFT_WIDE); strip.offset_right = strip_w
-		strip.mouse_filter = Control.MOUSE_FILTER_STOP; _overlay.add_child(strip)
-		var edge := ColorRect.new(); edge.color = TBTokens.ca("rule_dark", 0.6); edge.set_anchors_preset(Control.PRESET_LEFT_WIDE); edge.offset_left = strip_w; edge.offset_right = strip_w + 1.0
-		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE; _overlay.add_child(edge)
-	else:
-		var bez := MP_.Bezel.new(); bez.map = map; _overlay.add_child(bez); _bezel = bez
+	var bez := MP_.Bezel.new(); bez.map = map; _overlay.add_child(bez); _bezel = bez
 	# layout: [ scrolling centre column (wordmark + text rows) ] over [ tools row ]; the column scrolls instead of covering anything
 	var frame := VBoxContainer.new(); frame.set_anchors_preset(Control.PRESET_FULL_RECT); frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.add_theme_constant_override("separation", 0)
 	frame.offset_left = 12; frame.offset_right = -12; frame.offset_top = 6; frame.offset_bottom = -6
-	if flat_title: frame.offset_right = strip_w - vs.x - 0.0
 	_overlay.add_child(frame)
 	var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.follow_focus = true; sc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -225,7 +214,7 @@ func show_menu() -> void:
 	var wm: String = T.call("title")
 	var wm_max: int = 30 if short else (54 if not portrait else 40)
 	var wm_font: Font = K.tracked(K.wordmark(), 2 if (portrait or short) else 4)
-	var wm_avail: float = (strip_w - 48.0) if flat_title else minf(vs.x - 32.0, maxf(220.0, map.radius_px() * 1.56))      # the wordmark stays inside the ring's chord
+	var wm_avail: float = minf(vs.x - 32.0, maxf(220.0, map.radius_px() * 1.56))      # the wordmark stays inside the ring's chord
 	var wm_size: int = wm_max
 	while wm_size > 14 and wm_font.get_string_size(wm, HORIZONTAL_ALIGNMENT_LEFT, -1, K.fs(wm_size)).x > wm_avail: wm_size -= 1        # fits at every text size
 	var t := K.label(wm, wm_size, TBTokens.c("brass_lt"))
