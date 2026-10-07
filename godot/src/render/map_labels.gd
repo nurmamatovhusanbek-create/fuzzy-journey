@@ -220,7 +220,7 @@ func _draw_nation_names() -> void:
 		if shown >= 70: break
 		var core: Vector3 = _core_v[n]
 		if core == Vector3.ZERO: continue
-		var fs := int(clampf(8.0 + sqrt(float(cnt[n])) * 1.4 * minf(map.zoom, 2.2), 12.0, 28.0) * tsc)
+		var fs := int(clampf(8.0 + sqrt(float(cnt[n])) * 0.9 * minf(map.zoom, 2.2), 12.0, 20.0) * tsc)
 		fs = clampi(maxi(fs, TBKit.min_font()), TBKit.min_font(), 44)
 		var mine: bool = n == g.human_id
 		var font: Font = _tracked_own if mine else _tracked
@@ -486,7 +486,7 @@ func _draw() -> void:
 				0: want = o == me or war or p == sel
 				1: want = o == me or war or rel == 3 or p == sel or p == hov
 				_: want = true
-		var ring := cap and (o == me or ztier >= 1 or p == sel)
+		var ring := cap and (o == me or ztier >= 2 or p == sel)
 		if not want and not ring: continue
 		var pr := _screen(p, c0, s0, sl, cl, R, cx, cy)
 		var limb := 1.0

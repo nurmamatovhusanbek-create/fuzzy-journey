@@ -101,7 +101,7 @@ func _should_show() -> bool:
 	match setting:
 		"on": return true
 		"off": return false
-	return DisplayServer.is_touchscreen_available() or TBKit.text_scale >= 1.5 or TBKit.touch_large
+	return TBKit.text_scale >= 1.5 or TBKit.touch_large         # off by default: pinch / wheel / drag already move the map
 
 func _process(delta: float) -> void:
 	_t -= delta

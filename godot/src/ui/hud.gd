@@ -186,7 +186,7 @@ func _bar_h() -> float:
 func _row_pitch() -> float:
 	return maxf(P.touch(), P.fs(12.0) + 10.0 + _sq())
 func _sq() -> float: return 40.0 if _prof == Prof.DESKTOP else 36.0
-func _show_labels() -> bool: return true
+func _show_labels() -> bool: return TBKit.large_targets or TBKit.text_scale >= 1.5          # icon-only dock unless the player asked for bigger UI
 
 ## the layout profile for a logical viewport (design/ux/hud.md 3.1)
 static func profile_for(vp: Vector2) -> int:
@@ -221,7 +221,7 @@ func layout_for(vp: Vector2) -> void:
 	var pitch: float = _row_pitch()
 	var rail_w: float = 0.0
 	for b in _dock + [_dock_more]:
-		(b as P.IconBtn).sq = sq; (b as P.IconBtn).icon_px = 24.0 if _prof == Prof.DESKTOP else 22.0; (b as P.IconBtn).edge = 0; (b as P.IconBtn).show_label = true
+		(b as P.IconBtn).sq = sq; (b as P.IconBtn).icon_px = 24.0 if _prof == Prof.DESKTOP else 22.0; (b as P.IconBtn).edge = 0; (b as P.IconBtn).show_label = _show_labels()
 		rail_w = maxf(rail_w, P.tw(P.body_b(), (b as P.IconBtn).label, P.fs(12.0)) + 14.0)
 	rail_w = clampf(maxf(rail_w, 56.0 if _prof != Prof.DESKTOP else 64.0), 56.0, 96.0)
 	_rail.visible = _rail_mode
@@ -1047,7 +1047,7 @@ func _sync_seal() -> void:
 		_seal.sub = _round_text() + " · " + lead + _moves_text()
 	else:
 		_seal.set_state(S.IDLE)
-		_seal.caption = T.call("end_turn"); _seal.sub = lead + _moves_text()
+		_seal.caption = T.call("end_turn"); _seal.sub = lead.trim_suffix(" · ")          # the moves figure lives in the top bar; the seal stays quiet
 	_seal.set_a11y("%s. %s" % [_seal.caption, _seal.sub])
 	_seal.caption_inside = _seal.fits_inside(_seal.caption)
 	_seal.queue_redraw()
