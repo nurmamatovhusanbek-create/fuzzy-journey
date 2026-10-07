@@ -183,7 +183,7 @@ const MP_ = preload("res://src/ui/menu_parts.gd")
 var _bezel: Control
 
 func show_menu() -> void:
-	mode = "menu"; _spin = true; _pick_flow = null
+	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true
 	var vs: Vector2 = size if size.x > 2.0 else get_viewport_rect().size
 	var portrait := vs.y > vs.x
 	var short: bool = vs.y < 480.0 and not portrait
@@ -401,7 +401,7 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty})
 	map.setup(g)
-	mode = "pick"; _spin = false
+	mode = "pick"; _spin = false; K.serif = false
 	_show_pick()
 
 var _pick_flow: TBPickFlow
@@ -442,7 +442,7 @@ func _start_game(n: int) -> void:
 		_hot_n = 0
 	else:
 		g.set_human(n); g.color[n] = 0xC63A4A
-	mode = "game"; _clear_overlay(); _log_idx = g.log.size()
+	mode = "game"; K.serif = false; _clear_overlay(); _log_idx = g.log.size()
 	map.lenses.refresh_nations(); map.repaint_all()
 	var cap := g.capital_of[n]
 	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2 if map.mode == 0 else maxf(map.zoom, 3.0))
@@ -719,7 +719,7 @@ func _autosave() -> void:
 func _load_slot(slot: String) -> void:
 	var ng := TBSave.load_game(world, slot)
 	if ng == null: return
-	g = ng; mode = "game"; _spin = false; _clear_overlay(); _log_idx = g.log.size()
+	g = ng; mode = "game"; K.serif = false; _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	map.setup(g); map.repaint_all()
 	hud.seat_tag = ""
 	hud.g = g; hud.visible = true; hud.build(); hud.refresh()
@@ -804,7 +804,7 @@ func _process(delta: float) -> void:
 
 # ---------------------------------------------------------------- multiplayer hooks (called by TBMpController)
 func enter_mp_game(game: TBGame, nation: int) -> void:
-	g = game; mode = "game"; _spin = false; _clear_overlay(); _log_idx = g.log.size()
+	g = game; mode = "game"; K.serif = false; _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	g.human_id = nation
 	map.setup(g); map.repaint_all()
 	var cap := g.capital_of[nation]
