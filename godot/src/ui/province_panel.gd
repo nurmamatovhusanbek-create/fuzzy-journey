@@ -99,7 +99,7 @@ func layout_for(vp: Vector2) -> void:
 	# centred on the screen when it fits the band, else pushed to the band edge that keeps it clear of the seal / rail
 	var left: float = vp.x * 0.5 - w * 0.5
 	if profile == "P": left = 8.0
-	else: left = 8.0 if profile == "D" else band.x          # AoC layout: the province card sits at the bottom-left, the Next Turn button at the bottom-right
+	else: left = minf(8.0 if profile == "D" else band.x, maxf(8.0, band.y - w))          # AoC layout: the province card sits at the bottom-left, the Next Turn button at the bottom-right
 	offset_left = left - vp.x * 0.5; offset_right = left + w - vp.x * 0.5
 	_refit()
 	if prev != profile and visible: rebuild()

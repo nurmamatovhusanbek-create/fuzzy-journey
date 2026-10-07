@@ -511,14 +511,15 @@ class Seal extends Hit:
 	var pulse: bool = false                 # attention pulse until the first press (static outline with reduced motion)
 	var hint_left: float = 0.0              # 0..1 remaining of the 3 s confirm window
 	var compact: bool = false
+	var narrow: bool = false                # portrait: shares the bottom bar with the five screen buttons
 	var _t: float = 0.0
 	var _pulses: int = 0
 	var _lastk: float = 0.0
 	func _ready() -> void: set_process(false)
 	## AoC-style rectangular Next Turn button: height 56 (48 compact), width 176 (150 compact); a chevron cell on the right
 	func diameter() -> float: return 48.0 if compact else 56.0
-	func width_px() -> float: return 168.0 if compact else 188.0
-	func cell_w() -> float: return diameter()
+	func width_px() -> float: return 144.0 if narrow else (168.0 if compact else 188.0)
+	func cell_w() -> float: return 42.0 if narrow else diameter()
 	func text_w() -> float: return width_px() - cell_w() - 16.0
 	func caption_text() -> String: return caption if TBI18n.lang == "ru" else caption.to_upper()
 	func _animated() -> bool: return not TBHudParts.reduced_motion()
@@ -590,10 +591,10 @@ class Seal extends Hit:
 		var fsz: int = _fc()
 		var tx: float = 10.0
 		var tw_: float = r.size.x - cw - 14.0
-		var show_sub: bool = sub_inside and sub != "" and state != S.OVER
+		var show_sub: bool = sub_inside and sub != "" and state != S.OVER and _one_line()
 		var cap: String = caption_text() if caption_inside else ""
-		if cap != "" and not _one_line(): show_sub = false
-		if cap != "" and not _one_line():            # wrapped caption: two lines at the small size, no sub-line
+		var one_line: bool = _one_line()
+		if cap != "" and not one_line:            # wrapped caption: two lines at the small size, no sub-line
 			var fw: int = maxi(12, TBHudParts.fs(12.0))
 			var mh: float = fb.get_multiline_string_size(cap, HORIZONTAL_ALIGNMENT_LEFT, tw_, fw, -1, TextServer.BREAK_WORD_BOUND).y
 			draw_multiline_string(fb, Vector2(tx, (r.size.y - mh) * 0.5 + oy + fb.get_ascent(fw)), cap, HORIZONTAL_ALIGNMENT_LEFT, tw_, fw, -1, on, TextServer.BREAK_WORD_BOUND)
@@ -619,7 +620,7 @@ class Seal extends Hit:
 			var left: float = hint_left if _animated() else 1.0
 			draw_rect(Rect2(0, by, r.size.x * left, 3.0), TBHudParts.tk("brass_lt"))
 		if attention > 0 and state == S.IDLE:
-			var dc := Vector2(r.position.x + 2.0, r.position.y + 2.0)
+			var dc := Vector2(r.position.x, r.position.y)
 			TBHudParts.diamond(self, dc, 26.0, TBHudParts.tk("brass_lt"))
 			var fm: Font = K.mono_b()
 			var s: String = str(mini(attention, 9))

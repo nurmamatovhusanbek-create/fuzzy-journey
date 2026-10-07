@@ -231,6 +231,7 @@ func layout_for(vp: Vector2) -> void:
 	var all: Array = _dock + [_dock_more]
 	var bottom_h: float = 56.0
 	_seal.compact = _prof == Prof.SHORT or portrait
+	_seal.narrow = portrait
 	var sd: float = _seal.diameter()
 	if _rail_mode:
 		_rail.position = Vector2(m, rail_top); _rail.size = Vector2(rail_w, pitch * 5.0 + 8.0)
@@ -240,7 +241,7 @@ func layout_for(vp: Vector2) -> void:
 	elif portrait:
 		var by: float = vp.y - bottom_h
 		_bottom.position = Vector2(0, by); _bottom.size = Vector2(vp.x, bottom_h)
-		var cell: float = clampf(floorf((vp.x - m - 4.0 - sd - 8.0) / 5.0), 48.0, 64.0)
+		var cell: float = clampf(floorf((vp.x - m - 4.0 - _seal.width_px() - 8.0) / 5.0), 38.0, 64.0)
 		var labels_fit: bool = P.fs(12.0) + 36.0 + 3.0 <= bottom_h - 4.0        # labels on the bottom bar only when every one fits its cell
 		for b4 in all: labels_fit = labels_fit and P.tw(P.body_b(), (b4 as P.IconBtn).label, P.fs(12.0)) <= cell - 2.0
 		for i in all.size():

@@ -165,7 +165,7 @@ func _project_v(u: Vector3, c0: float, s0: float, sl: float, cl: float, R: float
 	return Vector3(cx + R * x, cy - R * y, z)
 
 func _label_fonts() -> void:
-	var rf := 1 if TBKit.readable_fonts else 0
+	var rf := (1 if TBKit.readable_fonts else 0) + (2 if TBKit.serif else 0)
 	if _tracked != null and _tracked_for == rf: return
 	_tracked_for = rf
 	if TBKit.readable_fonts:
@@ -180,6 +180,13 @@ func _halo_alpha(pos: Vector2) -> float:
 	if p < 0 or map.lenses == null: return 0.9
 	var l := TBLenses.lum(map.lenses.color(p))
 	return lerpf(0.78, 1.0, smoothstep(0.08, 0.4, l))
+
+const GENERIC_FIRST := ["Kingdom", "Republic", "Empire", "United", "Grand", "Holy", "Duchy", "Sultanate", "Emirate", "Khanate", "Principality", "Confederation"]
+const NAME_PREFIXES := ["Kingdom of the ", "Kingdom of ", "Republic of the ", "Republic of ", "Empire of ", "Grand Duchy of ", "Duchy of ", "Sultanate of ", "Emirate of ", "Principality of ", "Confederation of "]
+func _core_name(txt: String) -> String:
+	for pre in NAME_PREFIXES:
+		if txt.begins_with(pre) and txt.length() > pre.length() + 2: return txt.substr(pre.length())
+	return txt
 
 func _two_lines(txt: String) -> PackedStringArray:
 	var out := PackedStringArray()
@@ -229,7 +236,9 @@ func _draw_nation_names() -> void:
 		var variants: Array = [[txt]]
 		var two := _two_lines(txt)
 		if not two.is_empty(): variants.append([two[0], two[1]])
-		if txt.contains(" "): variants.append([txt.split(" ")[0]])
+		var core_name := _core_name(txt)
+		if core_name != txt: variants.append([core_name])                      # "Kingdom of the Two Sicilies" -> "Two Sicilies"
+		if txt.contains(" ") and not GENERIC_FIRST.has(txt.split(" ")[0]): variants.append([txt.split(" ")[0]])
 		var rel := -1 if mine else g.get_rel(g.human_id, n)
 		var placed_ok := false
 		var ext := _ax_ext[n]
@@ -426,19 +435,18 @@ func _ext_tier(zt: int, army: int, d: Vector2, hot: bool = false) -> float:
 	var m := mk()
 	if hot: return _ext_tier(zt, army, d) + 5.0 * m
 	if zt == 0: return 9.0 * m
-	if zt == 1: return (absf(d.x) * 17.0 + absf(d.y) * 14.0) * m
-	var hw := _gon_w(TBKit.mono_b(), maxi(army, 1)) * 0.5 + 5.0
-	return (absf(d.x) * hw + absf(d.y) * 21.0 + maxf(0.0, d.x) * 26.0) * m          # + room for a "+n" tab on the right
+	var near := zt >= 2
+	var hw := _badge_w(TBKit.body_b(), maxi(army, 1), near) * 0.5 + 3.0
+	var hh := _badge_h(near) * 0.5 + 3.0
+	return (absf(d.x) * hw + absf(d.y) * hh + (maxf(0.0, d.x) * 26.0 if near else 0.0)) * m          # near: + room for a "+n" tab on the right
 
 ## claim rectangle of a marker at pos for the tier: covers everything it draws (outline, pip, tab room), so no two markers overlap
 func _marker_rect(pos: Vector2, ztier: int, army: int, gen: bool, gw: float) -> Rect2:
 	var m := mk()
 	match ztier:
 		0: return Rect2(pos.x - 8.0 * m, pos.y - 8.0 * m, 16.0 * m, 16.0 * m)
-		1:
-			var k := 1.5 if army < 100 else 1.7
-			return Rect2(pos.x - (10.0 * k + 4.0) * m, pos.y - 14.0 * k * m, (26.0 * k + 7.0) * m, (21.0 * k + 3.0) * m)
-	return Rect2(pos.x - (gw * 0.5 + 5.0) * m, pos.y - (29.0 if gen else 20.0) * m, (gw + 10.0) * m, (47.0 if gen else 40.0) * m)
+		1: return Rect2(pos.x - (gw * 0.5 + 4.0) * m, pos.y - (_badge_h(false) * 0.5 + 4.0) * m, (gw + 8.0) * m, (_badge_h(false) + 8.0) * m)
+	return Rect2(pos.x - (gw * 0.5 + 4.0) * m, pos.y - ((_badge_h(true) * 0.5 + 16.0) if gen else (_badge_h(true) * 0.5 + 5.0)) * m, (gw + 8.0) * m, ((_badge_h(true) + 21.0) if gen else (_badge_h(true) + 10.0)) * m)
 
 func _draw() -> void:
 	if map == null or g == null or hidden_while_dragging: return
@@ -527,7 +535,7 @@ func _draw() -> void:
 		var a: int = v[5]
 		if a <= 0: continue
 		var st := _state(p)
-		var gw := _gon_w(nfont, maxi(a, int(st["shown"])))
+		var gw := _badge_w(nfont, maxi(a, int(st["shown"])), ztier >= 2)
 		var prect := _marker_rect(pos, ztier, a, g.gen[p] != 0, gw)
 		if _blocked(prect): continue
 		if not _claim(grid, prect):
@@ -582,27 +590,12 @@ func _blocked(r: Rect2) -> bool:
 	return false
 
 # ---------------------------------------------------------------- cached marker shapes
-var _gon_cache := {}           # body width -> {poly, line, grown}
 var _star_poly := PackedVector2Array()
 var _star_line := PackedVector2Array()
-var _penn_poly := PackedVector2Array([Vector2(-10, -7), Vector2(10, -7), Vector2(10, 7), Vector2(0, 3), Vector2(-10, 7)])
-var _penn_line := PackedVector2Array([Vector2(-10, -7), Vector2(10, -7), Vector2(10, 7), Vector2(0, 3), Vector2(-10, 7), Vector2(-10, -7)])
-
-func _gon_w(f: Font, n: int) -> float:
-	return maxf(32.0, f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 10.0)
-
-func _gon(w: float) -> Dictionary:
-	var k := int(w)
-	if _gon_cache.has(k): return _gon_cache[k]
-	var h := w * 0.5
-	var poly := PackedVector2Array([Vector2(-h, -11), Vector2(h, -11), Vector2(h, 15), Vector2(0, 9), Vector2(-h, 15)])
-	var line := poly.duplicate(); line.append(poly[0])
-	var hg := h + 3.0
-	var grown := PackedVector2Array([Vector2(-hg, -14), Vector2(hg, -14), Vector2(hg, 18), Vector2(0, 11.0), Vector2(-hg, 18), Vector2(-hg, -14)])
-	var ring := PackedVector2Array([Vector2(-h - 3, -14), Vector2(h + 3, -14), Vector2(h + 3, 18), Vector2(0, 12), Vector2(-h - 3, 18), Vector2(-h - 3, -14)])
-	var d := {"poly": poly, "line": line, "grown": grown, "ring": ring}
-	_gon_cache[k] = d
-	return d
+## army badge size (px, before the marker scale): a flat rectangle, wider for bigger numbers; the near tier is a little larger
+func _badge_w(f: Font, n: int, near: bool) -> float:
+	return maxf(30.0 if near else 26.0, f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13.0 if near else 12.0)).x + 10.0)
+func _badge_h(near: bool) -> float: return 20.0 if near else 17.0
 
 func _ensure_star() -> void:
 	if not _star_poly.is_empty(): return
@@ -657,8 +650,8 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var near: bool = ztier == 2
 	var fsz: int = TBKit.fs(13.0 if near else 12.0)
 	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-	var bw := maxf(30.0 if near else 26.0, tw + 10.0)
-	var bh: float = 20.0 if near else 17.0
+	var bw := _badge_w(nfont, int(round(st["shown"])), near)
+	var bh: float = _badge_h(near)
 	draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(sc, sc))
 	var r := Rect2(-bw * 0.5, -bh * 0.5, bw, bh)
 	if hot: draw_rect(r.grow(3.0), _a(tk("table"), 0.4 * al))
