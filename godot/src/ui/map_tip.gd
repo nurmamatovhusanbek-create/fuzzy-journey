@@ -69,8 +69,8 @@ func show_for(g: TBGame, p: int, flow: TBOrderFlow) -> void:
 	var pv: Dictionary = flow.hover_result(p) if flow != null else {}
 	if not pv.is_empty():
 		_note.visible = true
-		_note.text = T.call("cc_hover_win", {"k": int(pv["hold"])}) if pv["win"] else T.call("cc_hover_lose", {"a": int(pv["lost"])})
-		_note.add_theme_color_override("font_color", CC.tk("pos_bar") if pv["win"] else CC.tk("neg_bar"))
+		_note.text = T.call("cc_hover_win", {"k": int(pv.get("hold", 0))}) if pv.get("win", false) else T.call("cc_hover_lose", {"a": int(pv.get("lost", 0))})
+		_note.add_theme_color_override("font_color", CC.tk("pos_bar") if pv.get("win", false) else CC.tk("neg_bar"))
 	if not visible and TBKit.motion_ok():
 		modulate.a = 0.0
 		create_tween().tween_property(self, "modulate:a", 1.0, 0.1)

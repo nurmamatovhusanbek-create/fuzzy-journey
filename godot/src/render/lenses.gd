@@ -11,7 +11,7 @@ const NAMES := ["political", "diplomatic", "economic", "military", "wars", "stab
 const MODES := ["off", "deuter", "protan", "tritan"]
 
 const NEUTRAL := 0x5b5142
-const DISCOVERABLE := 0x2f2a24
+const DISCOVERABLE := 0x6a5d46
 
 # ---- standard palettes (historical look) ------------------------------------------------------------------------------------------
 const REGIME_STD := [0x7a6a4a, 0x8a6d3b, 0xc79a3a, 0x4a86c4, 0x9c3f5a, 0x3fb56b, 0xc0463a, 0x5a5f6b, 0xb5803a, 0x3aa9b8, 0x888888]

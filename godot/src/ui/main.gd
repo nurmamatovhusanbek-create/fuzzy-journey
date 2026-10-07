@@ -214,7 +214,7 @@ func show_menu() -> void:
 	var wm: String = T.call("title")
 	var wm_max: int = 30 if short else (54 if not portrait else 40)
 	var wm_font: Font = K.tracked(K.wordmark(), 2 if (portrait or short) else 4)
-	var wm_avail: float = vs.x - 32.0 if portrait else minf(vs.x - 32.0, 420.0 if short else 560.0)
+	var wm_avail: float = minf(vs.x - 32.0, maxf(220.0, map.radius_px() * 1.56))      # the wordmark stays inside the ring's chord
 	var wm_size: int = wm_max
 	while wm_size > 14 and wm_font.get_string_size(wm, HORIZONTAL_ALIGNMENT_LEFT, -1, K.fs(wm_size)).x > wm_avail: wm_size -= 1        # fits at every text size
 	var t := K.label(wm, wm_size, TBTokens.c("brass_lt"))

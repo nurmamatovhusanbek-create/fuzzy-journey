@@ -15,24 +15,30 @@ class Bezel extends Control:
 		return minf(size.x, size.y) * 0.44 * (map.zoom if map != null else 1.0)
 	func _draw() -> void:
 		if map == null: return
-		var c := size * 0.5
-		var R := ring_radius()
+		var c := map.global_position - global_position + map.size * 0.5      # the globe's own centre, whatever the overlay insets are
+		var R := map.radius_px()
 		var spin := -map.lon0
 		var a: float = dim
-		draw_circle(c, R * 1.0, TBTokens.ca("table", 0.55 * a))          # dimmed disc: the turning globe stays visible, text carries its own outline
-		draw_arc(c, R * 1.06, 0, TAU, 96, TBTokens.ca("brass_lt", 0.6 * a), 1.0, true)
-		draw_arc(c, R * 1.075, 0, TAU, 96, TBTokens.ca("brass_lt", 0.25 * a), 1.0, true)
-		for i in 120:
-			var ang := i * TAU / 120.0 + spin
+		var ink := TBTokens.c("table")
+		# a clean black annulus swallows the shader's blue limb glow; the brass instrument ring sits exactly concentric with the globe
+		draw_arc(c, R * 1.026, 0.0, TAU, 180, TBTokens.with_a(ink, 0.97 * a), R * 0.056, true)      # the annulus between globe limb and ring
+		draw_circle(c, R * 1.0, TBTokens.with_a(ink, 0.50 * a))                 # dims the globe under the text; the continents stay visible
+		var gold := TBTokens.c("brass_lt")
+		draw_arc(c, R * 1.052, 0.0, TAU, 180, TBTokens.with_a(gold, 0.95 * a), 1.5, true)
+		draw_arc(c, R * 1.092, 0.0, TAU, 180, TBTokens.with_a(gold, 0.40 * a), 1.0, true)
+		for i in 72:                                                           # one tick every 5 degrees, a long one every 30
+			var ang := i * TAU / 72.0 + spin
 			var d := Vector2(cos(ang), sin(ang))
-			var big := i % 10 == 0
-			var mid := i % 5 == 0
-			draw_line(c + d * R * 1.06, c + d * R * (1.103 if big else (1.088 if mid else 1.075)), TBTokens.ca("brass_lt", (0.85 if big else 0.5) * a), 1.0, true)
-		for q in 4:                                                          # four fixed lubber marks (N/E/S/W)
+			var long := i % 6 == 0
+			var r0 := R * 1.052
+			var r1 := R * (1.092 if long else 1.072)
+			draw_line(c + d * r0, c + d * r1, TBTokens.with_a(gold, (0.9 if long else 0.55) * a), 2.0 if long else 1.0, true)
+		for q in 4:                                                            # fixed N / E / S / W lubber marks, so the turning ring reads as an instrument
 			var ang2 := q * PI * 0.5 - PI * 0.5
 			var d2 := Vector2(cos(ang2), sin(ang2))
-			var p := c + d2 * R * 1.06
-			draw_colored_polygon(PackedVector2Array([p, p + d2.rotated(0.09) * R * 0.045, p + d2.rotated(-0.09) * R * 0.045]), TBTokens.ca("brass_lt", 0.95 * a))
+			var p := c + d2 * R * 1.095
+			var t := d2.orthogonal()
+			draw_colored_polygon(PackedVector2Array([p, p + d2 * R * 0.03 + t * R * 0.014, p + d2 * R * 0.03 - t * R * 0.014]), TBTokens.with_a(gold, a))
 
 ## light text with a dark outline so it reads on any part of the globe
 static func glow_text(ci: Control, f: Font, pos: Vector2, t: String, w: float, fsz: int, col: Color) -> void:

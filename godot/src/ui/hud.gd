@@ -1156,8 +1156,8 @@ func show_preview(info: Dictionary, place: String, on_ok: Callable, on_cancel: C
 		bar.draw_string(fm, Vector2(w - 6.0 - P.tw(fm, def_n, 13), P.base(fm, 13, 10.0)), def_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, P.tk("paper_0")))
 	v.add_child(bar)
 	var res: String
-	if win: res = T.call("pv_win", {"k": int(info["hold"]), "l": int(info["lost"])})
-	else: res = T.call("pv_lose", {"a": int(info["lost"]), "d": int(info["enemy_lost"])})
+	if win: res = T.call("pv_win", {"k": int(info.get("hold", 0)), "l": int(info.get("lost", 0))})
+	else: res = T.call("pv_lose", {"a": int(info.get("lost", 0)), "d": int(info["enemy_lost"])})
 	var rrow := HBoxContainer.new(); rrow.add_theme_constant_override("separation", 6); v.add_child(rrow)
 	var mk := Control.new(); mk.custom_minimum_size = Vector2(16, 18); mk.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; mk.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mk.draw.connect(func(): P.tri(mk, Vector2(8, 10), 12.0, P.tk("pos") if win else P.tk("neg"), win))

@@ -436,7 +436,7 @@ func _marker_rect(pos: Vector2, ztier: int, army: int, gen: bool, gw: float) -> 
 	match ztier:
 		0: return Rect2(pos.x - 8.0 * m, pos.y - 8.0 * m, 16.0 * m, 16.0 * m)
 		1:
-			var k := 1.0 if army < 20 else (1.2 if army < 100 else 1.4)
+			var k := 1.5 if army < 100 else 1.7
 			return Rect2(pos.x - (10.0 * k + 4.0) * m, pos.y - 14.0 * k * m, (26.0 * k + 7.0) * m, (21.0 * k + 3.0) * m)
 	return Rect2(pos.x - (gw * 0.5 + 5.0) * m, pos.y - (29.0 if gen else 20.0) * m, (gw + 10.0) * m, (47.0 if gen else 40.0) * m)
 
@@ -484,7 +484,7 @@ func _draw() -> void:
 		if a > 0:
 			match ztier:
 				0: want = o == me or war or p == sel
-				1: want = o == me or war or rel == 3 or p == sel or p == hov or a >= 20
+				1: want = o == me or war or rel == 3 or p == sel or p == hov
 				_: want = true
 		var ring := cap and (o == me or ztier >= 1 or p == sel)
 		if not want and not ring: continue
@@ -611,7 +611,7 @@ func _ensure_star() -> void:
 
 ## capital: a 10 px ring with a filled 6 px square (a star always means "general")
 func _capital_mark(pos: Vector2, al: float, mine: bool) -> void:
-	var casing := _a(tk("ink_0"), 0.9 * al)
+	var casing := _a(tk("table"), 0.9 * al)
 	var c := _a(tk("brass_lt") if mine else tk("cream"), al)
 	draw_circle(pos, 7.0, casing)
 	draw_arc(pos, 5.0, 0.0, TAU, 20, c, 1.5, true)
@@ -621,7 +621,7 @@ func _capital_mark(pos: Vector2, al: float, mine: bool) -> void:
 func _draw_dot(pos: Vector2, al: float, own: bool, war: bool, hot: bool, nat: Color) -> void:
 	var m := mk()
 	var r := 4.0 * m
-	var ink := tk("ink_0")
+	var ink := tk("table")
 	if hot: draw_circle(pos, r + 5.0, _a(ink, al)); draw_circle(pos, r + 4.0, _a(tk("cream"), al)); draw_circle(pos, r + 1.0, _a(ink, al))
 	if own:
 		draw_circle(pos, r + 3.0, _a(ink, al)); draw_circle(pos, r + 2.0, _a(tk("brass_lt"), al))
@@ -653,7 +653,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 		_floater(p, pos, st, o, me, nfont)
 		return
 	if ztier == 1:
-		var k := 1.0 if army < 20 else (1.2 if army < 100 else 1.4)
+		var k := 1.5 if army < 100 else 1.7                                              # big enough to carry its number (12 px Mono)
 		var s2 := sc * k
 		draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(s2, s2))
 		draw_colored_polygon(_penn_poly, _a(paper, al))
@@ -661,6 +661,10 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 		_outline(_penn_line, null, own, war, ally, hot, al, s2, 1.0)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		_pip(pos + Vector2(10.0 * s2, -8.0 * s2), war, ally, al, 0.8)
+		var t1 := TBKit.fmt(int(round(st["shown"])))
+		var f1: int = TBKit.fs(12.0)
+		var tw1 := nfont.get_string_size(t1, HORIZONTAL_ALIGNMENT_LEFT, -1, f1).x
+		draw_string(nfont, pos + Vector2(-tw1 * 0.5, 4.0 * s2 + 1.0), t1, HORIZONTAL_ALIGNMENT_LEFT, -1, f1, _a(ink, al))
 		_floater(p, pos, st, o, me, nfont)
 		return
 	# ---- near: the gonfalon
@@ -702,24 +706,24 @@ func _draw_tab(st: Dictionary, al: float) -> void:
 	var eh := float(fs) + 4.0
 	var r := Rect2(float(st["tx"]), float(st["ty"]), ew, eh)
 	draw_rect(r.grow(1.0), _a(tk("cream"), al))
-	draw_rect(r, _a(tk("ink_0"), al))
+	draw_rect(r, _a(tk("table"), al))
 	draw_string(f, r.position + Vector2(4.0, f.get_ascent(fs) + 2.0), et, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _a(tk("cream"), al))
 
 ## affiliation outline in the CURRENT transform. own: 2 px brass + 1 px ink outer; ally: double 1 px info line; war: 2 px neg + ink outer; foreign: 1 px ink
 func _outline(line: PackedVector2Array, d: Variant, own: bool, war: bool, ally: bool, hot: bool, al: float, sc: float, wmul: float) -> void:
 	var u := 1.0 / maxf(0.5, sc)
 	if own or war:
-		draw_polyline(line, _a(tk("ink_0"), al), 4.0 * u, true)
+		draw_polyline(line, _a(tk("table"), al), 4.0 * u, true)
 		draw_polyline(line, _a(tk("brass_lt") if own else tk("neg_bar"), al), 2.0 * u, true)
 	elif ally:
 		draw_polyline(line, _a(tk("info_bar"), al), 1.0 * u, true)
 		if d != null: draw_polyline((d as Dictionary)["grown"], _a(tk("info_bar"), al), 1.0 * u, true)
 		else: draw_polyline(line, _a(tk("info_bar"), al), 3.0 * u, true)
 	else:
-		draw_polyline(line, _a(tk("ink_0"), al), 1.0 * u, true)
+		draw_polyline(line, _a(tk("table"), al), 1.0 * u, true)
 	if hot:
 		var ring: PackedVector2Array = (d as Dictionary)["ring"] if d != null else line
-		draw_polyline(ring, _a(tk("ink_0"), al), 5.0 * u, true)
+		draw_polyline(ring, _a(tk("table"), al), 5.0 * u, true)
 		draw_polyline(ring, _a(tk("cream"), al), 3.0 * u, true)
 
 ## 6 px affiliation pip at a corner: crossed swords for war, linked rings for allies
@@ -869,7 +873,7 @@ func _draw_order() -> void:
 		if bad2 < bad1: r = r2
 		draw_rect(r.grow(2.0), _a(tk("table"), 0.85))
 		draw_rect(r, tk("paper_0"))
-		draw_string(f, r.position + Vector2(5.0, f.get_ascent(fs) + 3.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tk("ink_0"))
+		draw_string(f, r.position + Vector2(5.0, f.get_ascent(fs) + 3.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tk("table"))
 		_order_box = _order_box.merge(r.grow(6.0))
 
 ## arrow body = _cut[0..k) (casing 2 px each side under a 4 px core), then the head at tip pointing along dir

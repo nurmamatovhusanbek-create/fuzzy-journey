@@ -335,7 +335,7 @@ func summary() -> Dictionary:
 	out["moves"] = int(g.can({"cmd": "move", "from": src, "to": tgt, "troops": troops_for(src)})["moves"])
 	if c["kind"] == "attack":
 		var pv := g.combat_preview(_me(), src, tgt, troops_for(src))
-		for k in ["win", "hold", "lost", "atk", "dfn", "defenders"]: out[k] = pv[k]
+		for k in ["win", "hold", "lost", "atk", "dfn", "defenders"]: out[k] = pv.get(k, out[k])
 	return out
 
 func is_previewing() -> bool: return mode == Mode.PREVIEW
@@ -416,7 +416,7 @@ class PreviewChip extends PanelContainer:
 			_bar.a = float(info["atk"]); _bar.d = float(info["dfn"])
 			_bar.na = TBKit.fmt(int(info["send"])); _bar.nd = TBKit.fmt(int(info["defenders"]))
 			_bar.queue_redraw()
-			_out.text = TBI18n.T("cc_victory", {"k": int(info["hold"]), "l": int(info["lost"])}) if _win else TBI18n.T("cc_defeat", {"a": int(info["lost"])})
+			_out.text = TBI18n.T("cc_victory", {"k": int(info.get("hold", 0)), "l": int(info.get("lost", 0))}) if _win else TBI18n.T("cc_defeat", {"a": int(info["lost"])})
 			_out.add_theme_color_override("font_color", TBCmdCard.tk("pos") if _win else TBCmdCard.tk("neg"))
 			_ok.glyph = "swords"; _ok.danger = true; _ok._make_boxes()
 			_ok.label = "%s · %s" % [TBI18n.T("pv_attack"), TBCmdCard.unit(moves, "u_move")]

@@ -9,21 +9,21 @@ static var mode: int = Mode.NORMAL
 
 # ---- paper ground (documents) ------------------------------------------------------------------
 const NORMAL := {
-	"paper_0": Color("EFE3C6"), "paper_1": Color("E2D2AC"), "paper_2": Color("D3C095"), "paper_hover": Color("EADFBE"),
-	"ink_0": Color("231A11"), "ink_1": Color("54442F"), "ink_off": Color("7C6C4F"),
-	"oxblood": Color("7A1D17"), "brass_ink": Color("735010"), "rule": Color("7F6A46"), "hair": Color("B9A57C"),
+	"paper_0": Color("1B1510"), "paper_1": Color("2A2118"), "paper_2": Color("3B2E1F"), "paper_hover": Color("33281B"),
+	"ink_0": Color("F3E9D2"), "ink_1": Color("CBBFA4"), "ink_off": Color("8F8268"),
+	"oxblood": Color("EDC15F"), "brass_ink": Color("F2C552"), "rule": Color("8C7542"), "hair": Color("45391F"),
 	# ---- bar ground (furniture)
 	"bar_0": Color("120D09"), "bar_1": Color("231A12"), "bar_2": Color("33261A"), "table": Color("060A14"),
 	"cream": Color("F3E9D2"), "smoke": Color("C2B79F"), "brass_lt": Color("F2C552"), "rule_dark": Color("8A7340"),
 	# ---- semantic, paper ground
-	"pos": Color("0C6254"), "neg": Color("9A2417"), "warn": Color("7F4C00"), "info": Color("245785"), "foreign": Color("4F5662"),
+	"pos": Color("72D9C0"), "neg": Color("FF8A78"), "warn": Color("F2B84B"), "info": Color("7DB3E8"), "foreign": Color("A9B1BE"),
 	# ---- semantic, bar ground
 	"pos_bar": Color("72D9C0"), "neg_bar": Color("FF8A78"), "warn_bar": Color("F2B84B"), "info_bar": Color("7DB3E8"), "foreign_bar": Color("A9B1BE"),
 	# ---- actions
 	"brass": Color("D9A93C"), "brass_hover": Color("E6B94C"), "brass_press": Color("BF9230"),
-	"wax": Color("8E1E16"), "wax_hover": Color("A3281A"), "wax_press": Color("741710"), "wax_rim": Color("5B120D"), "on_wax": Color("FBF3E0"),
+	"wax": Color("8E1E16"), "wax_hover": Color("A3281A"), "wax_press": Color("741710"), "wax_rim": Color("B24A3E"), "on_wax": Color("FBF3E0"),
 	# ---- primary action: an ink slab with brass text (the darkest object of a container, so it is found by luminance as well as hue) and text on bright fills
-	"act": Color("231A11"), "act_hover": Color("54442F"), "act_press": Color("0E0904"), "act_rim": Color("D9A93C"), "on_act": Color("F2C552"), "on_brass": Color("231A11"),
+	"act": Color("D9A93C"), "act_hover": Color("E8BC4E"), "act_press": Color("CC9E34"), "act_rim": Color("F6D378"), "on_act": Color("1A130C"), "on_brass": Color("1A130C"),
 }
 const HC := {
 	"paper_0": Color("FFF9E8"), "paper_1": Color("F5E8C8"), "paper_2": Color("E6D3A3"), "paper_hover": Color("FFF2CC"),

@@ -314,12 +314,12 @@ class ShareSeg extends Control:
 			var on: bool = absf(FRACS[i] - current) < 0.001
 			var r := Rect2(i * w, 0, w, size.y)
 			if on:
-				draw_colored_polygon(TBCmdCard.chamfer(r.grow(-1.0), 3.0 if (i == 0 or i == 3) else 0.0), TBCmdCard.tk("ink_0"))
+				draw_colored_polygon(TBCmdCard.chamfer(r.grow(-1.0), 3.0 if (i == 0 or i == 3) else 0.0), TBCmdCard.tk("act"))
 			elif i > 0:
 				draw_line(Vector2(r.position.x + 0.5, 6.0), Vector2(r.position.x + 0.5, size.y - 6.0), TBCmdCard.tk("hair"), 1.0)
 			var t := "%d" % int(FRACS[i] * 100.0) + ("%" if i == 3 else "")
 			var tw := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13)).x
-			var c := TBCmdCard.tk("cream") if on else (TBCmdCard.tk("ink_off") if off[i] else TBCmdCard.tk("ink_0"))
+			var c := TBCmdCard.tk("on_act") if on else (TBCmdCard.tk("ink_off") if off[i] else TBCmdCard.tk("ink_0"))
 			draw_string(f, Vector2(r.position.x + (w - tw) * 0.5, size.y * 0.5 + 5.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13), c)
 		if has_focus():
 			draw_rect(Rect2(Vector2.ZERO, size).grow(-1.0), TBCmdCard.tk("ink_0"), false, 2.0)
