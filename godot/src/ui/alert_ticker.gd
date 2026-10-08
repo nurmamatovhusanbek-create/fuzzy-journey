@@ -34,7 +34,7 @@ var _entries: Array = []
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-func row_h() -> float: return maxf(P.touch(), P.fs(14.0) + 18.0)
+func row_h() -> float: return maxf(minf(P.touch(), P.R(44.0) + 6.0), P.fs(14.0) + 16.0)
 
 # ---------------------------------------------------------------- look of an entry
 static func bar_color(e: Dictionary) -> Color:
@@ -80,7 +80,7 @@ class AlertRow extends P.Hit:
 	var _w: float = 0.0
 	func line_h() -> float: return TBHudParts.body_b().get_height(TBHudParts.fs(14.0))
 	func base_h() -> float:
-		var one: float = maxf(TBHudParts.touch(), TBHudParts.fs(14.0) + 18.0)
+		var one: float = maxf(minf(TBHudParts.touch(), TBHudParts.R(44.0) + 6.0), TBHudParts.fs(14.0) + 16.0)
 		return one if lines <= 1 else maxf(one, lines * line_h() + 16.0)
 	func text_x() -> float: return 16.0 + 14.0 + 8.0 + 18.0 + 8.0
 	func text_right() -> float: return 10.0 + (24.0 if dismissible and not drawer and not done else 0.0)
