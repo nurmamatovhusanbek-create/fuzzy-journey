@@ -231,12 +231,22 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("px_scale", render_scale)
 	_mat.set_shader_parameter("hi_owner", _hi_owner)
 	_mat.set_shader_parameter("outline_owner", _outline_owner)
+	_mat.set_shader_parameter("atlas", 1 if atlas_look() else 0)
+	_mat.set_shader_parameter("signal_owner", g.human_id if (g != null and atlas_look()) else -1)
+	_mat.set_shader_parameter("signal_col", Vector3(TBTokens.accent.r, TBTokens.accent.g, TBTokens.accent.b))
+	_mat.set_shader_parameter("marching", 1 if TBKit.motion_ok() else 0)
 	_select_ids_texture()
 	if labels != null:
 		labels.max_labels = [30, 70, 110][quality]
 		labels.hidden_while_dragging = quality == 0 and _pressed and _drag_moved >= 6.0
 		labels.queue_redraw()
 	view_changed.emit()
+
+## the Atlas Ledger map look (in game, standard theme, not high contrast)
+func atlas_look() -> bool:
+	return TBLenses.dark_land and map_theme == 0 and not TBTokens.is_hc()
+
+var _anim_t := 0.0
 
 func set_mode(m: int) -> void:
 	mode = m
@@ -322,6 +332,10 @@ func _process(delta: float) -> void:
 	if absf(_hover_t + _hover_prev_t + _sel_t - was) > 0.0001: busy = true
 	if busy:
 		_push_view()
+	elif motion and selected >= 0 and atlas_look() and quality >= 1:
+		_anim_t = fmod(_anim_t + delta, 1.2)                    # marching dashes of the selection: shader time only, no label work
+		_mat.set_shader_parameter("anim_t", _anim_t)
+		_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func drag_by(d: Vector2) -> void:
 	if mode == 0:

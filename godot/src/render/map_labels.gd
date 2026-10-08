@@ -240,10 +240,10 @@ func _draw_nation_names() -> void:
 		if core_name != txt: variants.append([core_name])                      # "Kingdom of the Two Sicilies" -> "Two Sicilies"
 		if txt.contains(" ") and not GENERIC_FIRST.has(txt.split(" ")[0]): variants.append([txt.split(" ")[0]])
 		var rel := -1 if mine else g.get_rel(g.human_id, n)
-		var soft: bool = map.lenses.mode == "political" and not hc and not TBKit.readable_fonts and TBLenses.cvd == "off" and map.map_theme == 0
-		var soft_col: Color = _nat_col(n).darkened(0.72)
-		soft_col.a = 0.9
-		var soft_halo: Color = _nat_col(n).lightened(0.35); soft_halo.a = 0.55
+		var atlas: bool = map.atlas_look() and not TBKit.readable_fonts
+		if atlas:                                                           # Atlas: Barlow Condensed 600, uppercase, +.08em, paper-100 at 85 % over a 3 px ink-900 halo
+			font = TBKit.tracked(TBKit.map_font(), maxi(1, roundi(fs * 0.08)))
+			for vi in variants.size(): variants[vi] = (variants[vi] as Array).map(func(t: String) -> String: return t.to_upper())
 		var placed_ok := false
 		var ext := _ax_ext[n]
 		var perp := core.cross(_ax_dir[n]).normalized() if _ax_dir[n] != Vector3.ZERO else Vector3.ZERO
@@ -280,9 +280,9 @@ func _draw_nation_names() -> void:
 					var ln: String = lines[li]
 					var lw := font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 					var bp := Vector2(tx + (w - lw) * 0.5, rect.position.y + 3.0 + lh * li + font.get_ascent(fs))
-					if soft:                                   # AoC: the name is a darker shade of the nation's own colour, no outline
-						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, soft_halo)
-						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, soft_col)
+					if atlas:
+						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(TBTokens.INK_900, 0.9))
+						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(TBTokens.PAPER_100, 0.85))
 					else:
 						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(halo, ha))
 						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
@@ -602,8 +602,12 @@ var _star_poly := PackedVector2Array()
 var _star_line := PackedVector2Array()
 ## army badge size (px, before the marker scale): a flat rectangle, wider for bigger numbers; the near tier is a little larger
 func _badge_w(f: Font, n: int, near: bool, flag := true) -> float:
+	if map != null and map.atlas_look():                                # Atlas token: 6 px owner stripe, 16 px flag, number 14/600
+		return 6.0 + 6.0 + (22.0 if flag else 0.0) + 6.0 + f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(14.0 if near else 13.0)).x + 10.0
 	return (_badge_h(near) * 1.3 + 3.0 + 4.0 if flag else 8.0) + f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13.0 if near else 12.0)).x + 6.0
-func _badge_h(near: bool) -> float: return 22.0 if near else 19.0
+func _badge_h(near: bool) -> float:
+	if map != null and map.atlas_look(): return 28.0 if near else 24.0
+	return 22.0 if near else 19.0
 
 func _ensure_star() -> void:
 	if not _star_poly.is_empty(): return
@@ -646,6 +650,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var ease_in: float = float(st["a"])
 	var sc := (0.6 + 0.4 * (1.0 - pow(1.0 - ease_in, 3.0))) * mk()                       # out-cubic appear, no overshoot
 	sc *= 1.0 + 0.26 * float(st["pop"]) * float(st["pop"])
+	if hot and map.atlas_look(): sc *= 1.08
 	var nat := _nat_col(o)
 	var ink := tk("ink_0")
 	var lift := -4.0 if (hot and ztier == 2) else 0.0
@@ -656,10 +661,14 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	# AoC-style army marker: a dark rounded pill with the nation's flag and the strength; own gold, war red, ally blue, others cream
 	var txt := TBKit.fmt(int(round(st["shown"])))
 	var near: bool = ztier == 2
-	var fsz: int = TBKit.fs(13.0 if near else 12.0)
+	var atlas := map.atlas_look()
+	var fsz: int = TBKit.fs((14.0 if near else 13.0) if atlas else (13.0 if near else 12.0))
 	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var bw := _badge_w(nfont, int(round(st["shown"])), near, o != 0)
 	var bh: float = _badge_h(near)
+	if atlas:
+		_draw_token(p, pos + Vector2(0, lift), st, al, nfont, o, own, war, ally, hot, txt, fsz, bw, bh, sc, near)
+		return
 	draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(sc, sc))
 	var r := Rect2(-bw * 0.5, -bh * 0.5, bw, bh)
 	var edge := Color.TRANSPARENT
@@ -699,6 +708,49 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	if g.capital[p] != 0: _capital_mark(base + Vector2((-bw * 0.5 - 8.0) * sc, -bh * 0.5 * sc), al, own)
 	_floater(p, pos, st, o, me, nfont)
 
+## Atlas map token: ink-800 pill, 6 px stripe in the owner's colour on the left, 16 px flag, number 14/600; ring = own accent / hostile bad / allied info
+func _draw_token(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, o: int, own: bool, war: bool, ally: bool, hot: bool, txt: String, fsz: int, bw: float, bh: float, sc: float, near: bool) -> void:
+	var ring := TBTokens.INK_500
+	if own: ring = TBTokens.accent
+	elif war: ring = TBTokens.BAD
+	elif ally: ring = TBTokens.INFO
+	if hot: ring = TBTokens.PAPER_100
+	var r := Rect2(pos + Vector2(-bw * 0.5, -bh * 0.5) * sc, Vector2(bw, bh) * sc)
+	if hot: draw_style_box(TBHudParts.sbox(_a(TBTokens.INK_900, 0.4 * al), Color.TRANSPARENT, bh * 0.5 * sc + 3.0, 0), r.grow(3.0))
+	draw_style_box(TBHudParts.sbox(_a(TBTokens.INK_800, 0.97 * al), _a(ring, al), bh * 0.5 * sc, 2 if (own or war or ally or hot) else 1), r)
+	if o != 0:                                                       # stripe: the circular segment of the left cap, 6 px wide
+		var rad := bh * 0.5 * sc
+		var sw := 6.0 * sc
+		var cth := acos(clampf((sw - rad) / rad, -1.0, 1.0))
+		var poly := PackedVector2Array()
+		var steps := 10
+		for i in steps + 1:
+			var th := cth + (TAU - 2.0 * cth) * float(i) / steps
+			poly.append(Vector2(r.position.x + rad + rad * cos(th), r.position.y + rad + rad * sin(th)))
+		draw_colored_polygon(poly, _a(_nat_col(o), al))
+	var fx := r.position.x + (6.0 + 6.0) * sc
+	if o != 0:
+		var fl := Rect2(fx, pos.y - 8.0 * sc, 22.0 * sc, 16.0 * sc)
+		draw_texture_rect(TBFlags.texture(g.nat_code[o], g.color[o]), fl, false, _a(Color.WHITE, al))
+		draw_rect(fl, _a(TBTokens.INK_900, 0.6 * al), false, 1.0)
+		fx = fl.end.x + 6.0 * sc
+	else:
+		fx = r.position.x + 12.0 * sc
+	var asc := nfont.get_ascent(fsz); var hgt := nfont.get_height(fsz)
+	draw_string(nfont, Vector2(fx, pos.y + (asc - hgt * 0.5) * 1.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(TBTokens.PAPER_100, al))
+	st["tx"] = r.end.x - 4.0; st["ty"] = r.position.y - 10.0
+	if near and g.gen[p] != 0:                                       # general: 1-5 stars above the pill
+		_ensure_star()
+		var n := mini(5, TBGenerals.skill(g, p))
+		for i in n:
+			var sx := (i - (n - 1) * 0.5) * 9.0
+			draw_set_transform(Vector2(pos.x + sx * sc, r.position.y - 7.0), 0.0, Vector2(sc, sc))
+			draw_colored_polygon(_star_poly, _a(TBTokens.WARN, al))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if near and g.capital[p] != 0: _capital_mark(Vector2(r.position.x - 8.0 * sc, r.position.y + 2.0), al, own)
+	_pip(Vector2(r.end.x + 1.0, r.position.y), war, ally, al, 1.0 if near else 0.8)
+	_floater(p, pos, st, o, 0 if g == null else g.human_id, nfont)
+
 ## "+n" tab: stacked armies collapse into one gonfalon (12 px Mono 700, drawn above every marker)
 func _draw_tab(st: Dictionary, al: float) -> void:
 	var et := "+%d" % int(st["extra"])
@@ -707,6 +759,10 @@ func _draw_tab(st: Dictionary, al: float) -> void:
 	var ew := f.get_string_size(et, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 8.0
 	var eh := float(fs) + 4.0
 	var r := Rect2(float(st["tx"]), float(st["ty"]), ew, eh)
+	if map.atlas_look():                                              # count badge: round-cornered ink-700 chip with a hairline
+		draw_style_box(TBHudParts.sbox(_a(TBTokens.INK_700, al), _a(TBTokens.INK_500, al), eh * 0.5, 1), r)
+		draw_string(f, r.position + Vector2(4.0, f.get_ascent(fs) + 2.0), et, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _a(TBTokens.PAPER_100, al))
+		return
 	draw_rect(r.grow(1.0), _a(tk("cream"), al))
 	draw_rect(r, _a(tk("table"), al))
 	draw_string(f, r.position + Vector2(4.0, f.get_ascent(fs) + 2.0), et, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _a(tk("cream"), al))

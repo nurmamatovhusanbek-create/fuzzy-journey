@@ -13,6 +13,7 @@ const MODES := ["off", "deuter", "protan", "tritan"]
 ## in game the political colours are a little darker (Age-of-Civilizations muted palette); the title globe keeps the lifted colours
 static var dark_land := false
 const NEUTRAL := 0x5b5142
+static func neutral() -> int: return 0x48505a if dark_land else NEUTRAL
 const DISCOVERABLE := 0x6a5d46
 
 # ---- standard palettes (historical look) ------------------------------------------------------------------------------------------
@@ -92,6 +93,7 @@ func refresh_nations() -> bool:
 	if cvd == "off":
 		for n in range(1, g.N1):
 			nat_rgb[n] = lerp_rgb(g.color[n], 0x000000, 0.16) if dark_land else lerp_rgb(g.color[n], 0xFFFFFF, 0.18)
+		if dark_land: _atlas_nations()
 	else:
 		_assign_cvd()
 		for n in range(1, g.N1):
@@ -99,6 +101,94 @@ func refresh_nations() -> bool:
 			nat_rgb[n] = OWN_CVD if i == -2 else (int(_pal_cols[i]) if i >= 0 else lerp_rgb(g.color[n], 0xFFFFFF, 0.18))
 	nat_rgb[g.rebel] = 0x777777
 	return before != nat_rgb
+
+
+# ---------------------------------------------------------------- Atlas land colours (OKLCH, chroma 0.06-0.12, lightness 0.42-0.62, neighbours dE >= 12)
+const ATLAS_DE := 12.0
+
+static func to_oklab(rgb: int) -> Vector3:
+	var r := _lin(((rgb >> 16) & 255) / 255.0); var gg := _lin(((rgb >> 8) & 255) / 255.0); var b := _lin((rgb & 255) / 255.0)
+	var l := pow(0.4122214708 * r + 0.5363325363 * gg + 0.0514459929 * b, 1.0 / 3.0)
+	var m := pow(0.2119034982 * r + 0.6806995451 * gg + 0.1073969566 * b, 1.0 / 3.0)
+	var s := pow(0.0883024619 * r + 0.2817188376 * gg + 0.6299787005 * b, 1.0 / 3.0)
+	return Vector3(0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s)
+
+## oklab -> rgb int; null-safe gamut check through `ok` (false when a channel left [0,1] before clamping)
+static func from_oklab(c: Vector3) -> Dictionary:
+	var l := c.x + 0.3963377774 * c.y + 0.2158037573 * c.z
+	var m := c.x - 0.1055613458 * c.y - 0.0638541728 * c.z
+	var s := c.x - 0.0894841775 * c.y - 1.2914855480 * c.z
+	l = l * l * l; m = m * m * m; s = s * s * s
+	var lin := [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]
+	var ok := true
+	var out := 0
+	for i in 3:
+		var v: float = lin[i]
+		if v < -0.0005 or v > 1.0005: ok = false
+		v = clampf(v, 0.0, 1.0)
+		var e: float = 12.92 * v if v <= 0.0031308 else 1.055 * pow(v, 1.0 / 2.4) - 0.055
+		out = (out << 8) | int(clampf(e, 0.0, 1.0) * 255.0 + 0.5)
+	return {"rgb": out, "ok": ok}
+
+static func oklch_rgb(L: float, C: float, h: float) -> int:
+	var c := C
+	for i in 12:
+		var r := from_oklab(Vector3(L, c * cos(h), c * sin(h)))
+		if r["ok"]: return r["rgb"]
+		c *= 0.9
+	return from_oklab(Vector3(L, c * cos(h), c * sin(h)))["rgb"]
+
+static func de_ok(a: int, b: int) -> float:
+	return (to_oklab(a) - to_oklab(b)).length() * 100.0
+
+func _atlas_nations() -> void:
+	var n1 := g.N1
+	var adj: Array = []
+	adj.resize(n1)
+	var cnt := PackedInt32Array(); cnt.resize(n1)
+	for p in g.P:
+		var o := g.owner[p]
+		if o == 0: continue
+		cnt[o] += 1
+		for e in range(g.nb_off[p], g.nb_off[p + 1]):
+			var oq: int = g.owner[g.nb[e]]
+			if oq == 0 or oq == o: continue
+			if adj[o] == null: adj[o] = {}
+			if adj[oq] == null: adj[oq] = {}
+			adj[o][oq] = true; adj[oq][o] = true
+	var order: Array = []
+	var base := {}
+	for n in range(1, n1):
+		var lab := to_oklab(g.color[n])
+		var C := clampf(Vector2(lab.y, lab.z).length(), 0.06, 0.12)
+		var h := atan2(lab.z, lab.y)
+		var L := clampf(lab.x, 0.42, 0.62)
+		base[n] = Vector3(L, C, h)
+		nat_rgb[n] = oklch_rgb(L, C, h)
+		if cnt[n] > 0 and n != g.rebel: order.append(n)
+	order.sort_custom(func(a: int, b: int) -> bool:
+		if a == g.human_id: return true
+		if b == g.human_id: return false
+		var da: int = (adj[a] as Dictionary).size() if adj[a] != null else 0
+		var db: int = (adj[b] as Dictionary).size() if adj[b] != null else 0
+		return cnt[a] > cnt[b] if da == db else da > db)
+	var fixed := {}
+	for n in order:
+		var nbrs: Dictionary = adj[n] if adj[n] != null else {}
+		var b: Vector3 = base[n]
+		var best := nat_rgb[n]; var best_d := -1.0
+		for step in 24:                                              # hue rotation in 15 degree steps: 0, +15, -15, +30, ...
+			var k := (step + 1) / 2 * (1 if step % 2 == 1 else -1)
+			if step == 0: k = 0
+			var c := oklch_rgb(b.x, b.y, b.z + deg_to_rad(15.0 * k))
+			var md := 1000.0
+			for q in nbrs:
+				if fixed.has(q): md = minf(md, de_ok(c, nat_rgb[q]))
+			if md >= ATLAS_DE: best = c; best_d = md; break
+			if md > best_d: best_d = md; best = c
+			if n == g.human_id: break
+		nat_rgb[n] = best
+		fixed[n] = true
 
 func cvd_active() -> bool: return cvd != "off"
 
@@ -241,23 +331,23 @@ func color(p: int) -> int:
 	if g.discoverable[p] != 0 and o == 0: return DISCOVERABLE
 	var me := g.human_id
 	match mode:
-		"political": return nat_rgb[o] if o != 0 else NEUTRAL
+		"political": return nat_rgb[o] if o != 0 else neutral()
 		"diplomatic":
-			if o == 0: return NEUTRAL
+			if o == 0: return neutral()
 			if o == me: return SELF_COL
 			return REL_COL.get(g.get_rel(me, o), 0x8a93a3)
 		"economic":
-			return ramp(ECON_RAMP, sqrt((g.pop[p] / 80.0 + g.dev[p] * 2.0 + g.econ[p]) / max_econ)) if o != 0 else NEUTRAL
-		"military": return ramp(ARMY_RAMP, sqrt(g.army[p] / max_army)) if o != 0 else NEUTRAL
+			return ramp(ECON_RAMP, sqrt((g.pop[p] / 80.0 + g.dev[p] * 2.0 + g.econ[p]) / max_econ)) if o != 0 else neutral()
+		"military": return ramp(ARMY_RAMP, sqrt(g.army[p] / max_army)) if o != 0 else neutral()
 		"wars":
-			if o == 0: return NEUTRAL
+			if o == 0: return neutral()
 			return war_col[o] if war_col[o] != 0 else lerp_rgb(nat_rgb[o], 0x000000, 0.35)
-		"stability": return ramp(STAB_RAMP, g.stab[p] / 100.0) if o != 0 else NEUTRAL
-		"population": return ramp(POP_RAMP, sqrt(g.pop[p] / max_pop)) if o != 0 else NEUTRAL
-		"buildings": return BUILD_COL[g.building[p]] if g.building[p] != 0 else NEUTRAL
-		"governments": return REGIME_COL[g.regime[o]] if o != 0 else NEUTRAL
+		"stability": return ramp(STAB_RAMP, g.stab[p] / 100.0) if o != 0 else neutral()
+		"population": return ramp(POP_RAMP, sqrt(g.pop[p] / max_pop)) if o != 0 else neutral()
+		"buildings": return BUILD_COL[g.building[p]] if g.building[p] != 0 else neutral()
+		"governments": return REGIME_COL[g.regime[o]] if o != 0 else neutral()
 		"terrain": return TERRAIN_COL[g.terrain[p]]
-	return NEUTRAL
+	return neutral()
 
 func _war_groups() -> void:
 	var N1 := g.N1
