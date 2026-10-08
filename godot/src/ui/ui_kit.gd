@@ -1273,7 +1273,7 @@ static func style_footer_button(b: Button) -> void:
 		if dg and st != "disabled": bs.bg_color = TBTokens.c("wax")
 		if st == "focus":
 			bs.bg_color = Color.TRANSPARENT; bs.set_border_width_all(2 if TBFrame.kbd_nav else 0); bs.border_color = TBTokens.c("cream")
-		bs.content_margin_left = 12; bs.content_margin_right = 12; bs.content_margin_top = 10; bs.content_margin_bottom = 10
+		bs.content_margin_left = 44 if b.theme_type_variation == "DangerGlyphButton" else 12; bs.content_margin_right = 12; bs.content_margin_top = 10; bs.content_margin_bottom = 10
 		b.add_theme_stylebox_override(st, bs)
 	var fc: Color = TBTokens.c("on_wax") if dg else (TBTokens.c("brass_lt") if pr else TBTokens.c("ink_0"))
 	for cn in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]: b.add_theme_color_override(cn, fc)
@@ -1283,7 +1283,7 @@ static func style_footer_button(b: Button) -> void:
 static func header_strip(content: Control, left: int = 14, right: int = 6) -> PanelContainer:
 	var strip := PanelContainer.new()
 	var ssb := StyleBoxFlat.new()
-	ssb.bg_color = TBTokens.ca("bar_2", 0.95); ssb.border_color = TBTokens.c("rule"); ssb.border_width_bottom = 1
+	ssb.bg_color = TBTokens.ca("bar_2", 0.95); ssb.border_color = TBTokens.ca("brass", 0.7); ssb.border_width_bottom = 2
 	ssb.set_corner_radius_all(0)
 	ssb.content_margin_left = left; ssb.content_margin_right = right; ssb.content_margin_top = 4; ssb.content_margin_bottom = 4
 	strip.add_theme_stylebox_override("panel", ssb)

@@ -236,7 +236,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	if h.modal:
 		var bd := ColorRect.new()
 		bd.set_anchors_preset(Control.PRESET_FULL_RECT)
-		bd.color = TBTokens.c("table") if bool(opts.get("opaque", false)) else TBTokens.ca("table", 0.40)
+		bd.color = TBTokens.c("table") if bool(opts.get("opaque", false)) else TBTokens.ca("table", 0.40 if h.form != "dialog" else 0.22)
 		bd.mouse_filter = Control.MOUSE_FILTER_STOP
 		root.add_child(bd); h.backdrop = bd
 		if bool(opts.get("backdrop_dismiss", false)):
@@ -305,8 +305,9 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 		hb.add_child(tl); h.title_label = tl
 		var chips := K.hbox(6); chips.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(chips); h.chip_slot = chips
 		var acts := K.hbox(4); hb.add_child(acts); h.action_slot = acts
+		if h.form == "dialog" and not h.hero: tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if h.dismissable and h.form != "page" and not bool(opts.get("no_close", false)):
-			var xb := K.IconBtn.new("close", func(): pop_handle(h), 40)
+			var xb := K.IconBtn.new("close", func(): pop_handle(h), 40 if h.form != "dialog" else 28)
 			K.a11y(xb, T.call("close"), "button"); hb.add_child(xb)
 		var strip := K.header_strip(hm, 0, 0) if h.form != "page" else null
 		if strip != null:
@@ -459,7 +460,9 @@ static func _fit_dialog(h: Handle) -> void:
 	var vs := _vs(h)
 	var portrait := is_portrait(vs)
 	var w: float
+	var aoc_side: bool = not portrait and not h.hero and not h.wide and vs.x >= 900.0 and vs.y >= 520.0       # AoC: dialogs hang under the top bar, right of centre
 	if h.wide and not portrait and vs.x >= 720.0: w = minf(vs.x - 32.0, 700.0)
+	elif aoc_side: w = clampf(TBHudParts.R(620.0), 420.0, vs.x * 0.42)
 	else: w = minf(vs.x - 32.0, 460.0 if portrait else 440.0)
 	var c := h.card
 	c.custom_minimum_size = Vector2(w, 0)
@@ -486,6 +489,9 @@ static func _fit_dialog(h: Handle) -> void:
 	c.size = Vector2(w, 0)
 	c.reset_size()
 	c.position = ((vs - c.size) * 0.5).floor()
+	if aoc_side:
+		var top_y: float = maxf(TBHudParts.R(112.0), 64.0)
+		c.position = Vector2(vs.x - c.size.x - maxf(TBHudParts.R(150.0), 24.0), minf(top_y, maxf(8.0, vs.y - c.size.y - 8.0))).floor()
 
 static func _snap(h: Handle, to: float) -> void:
 	if not h.is_open(): return
