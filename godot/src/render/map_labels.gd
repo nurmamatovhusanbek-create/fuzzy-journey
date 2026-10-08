@@ -240,6 +240,10 @@ func _draw_nation_names() -> void:
 		if core_name != txt: variants.append([core_name])                      # "Kingdom of the Two Sicilies" -> "Two Sicilies"
 		if txt.contains(" ") and not GENERIC_FIRST.has(txt.split(" ")[0]): variants.append([txt.split(" ")[0]])
 		var rel := -1 if mine else g.get_rel(g.human_id, n)
+		var soft: bool = map.lenses.mode == "political" and not hc and not TBKit.readable_fonts and TBLenses.cvd == "off" and map.map_theme == 0
+		var soft_col: Color = _nat_col(n).darkened(0.72)
+		soft_col.a = 0.9
+		var soft_halo: Color = _nat_col(n).lightened(0.35); soft_halo.a = 0.55
 		var placed_ok := false
 		var ext := _ax_ext[n]
 		var perp := core.cross(_ax_dir[n]).normalized() if _ax_dir[n] != Vector3.ZERO else Vector3.ZERO
@@ -276,8 +280,12 @@ func _draw_nation_names() -> void:
 					var ln: String = lines[li]
 					var lw := font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 					var bp := Vector2(tx + (w - lw) * 0.5, rect.position.y + 3.0 + lh * li + font.get_ascent(fs))
-					draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(halo, ha))
-					draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
+					if soft:                                   # AoC: the name is a darker shade of the nation's own colour, no outline
+						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, soft_halo)
+						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, soft_col)
+					else:
+						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(halo, ha))
+						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
 				if gw > 0.0: _rel_glyph(Vector2(rect.position.x + 3.0 + float(fs) * 0.5, rect.get_center().y), rel, mine, fs, ha)
 				break
 

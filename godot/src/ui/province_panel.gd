@@ -790,7 +790,8 @@ func _build_verb_row(s: int, cs: Dictionary, src: int) -> HBoxContainer:
 		var v: Dictionary = specs[i]
 		if bool(v.get("gap", false)):
 			var gp := Control.new(); gp.custom_minimum_size = Vector2(12, 0); gp.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(gp)
-		var b := CC.VerbBtn.new().setup(v["id"], v["glyph"], v["label"], v["hot"], bool(v["primary"]), bool(v["danger"]))
+		var b := CC.VerbBtn.new().setup(v["id"], v["glyph"], T.call("aoc_move") if v["id"] == "move" else v["label"], v["hot"], bool(v["primary"]), bool(v["danger"]))
+		b.sub_gold = int(v["can"].get("gold", 0)); b.sub_moves = int(v["can"].get("moves", 0)); b.sub_dp = int(v["can"].get("dp", 0))
 		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		b.custom_minimum_size = Vector2(maxf(TBHudParts.R(92.0), 56.0), h)
 		b.aoc = true

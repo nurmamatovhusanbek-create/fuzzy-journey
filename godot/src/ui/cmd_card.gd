@@ -201,6 +201,9 @@ class VerbBtn extends Button:
 	var danger := false
 	var blocked := false
 	var short_form := false                    # icon only (landscape phone strip): the label shows on focus / in the cost line
+	var sub_gold := 0
+	var sub_moves := 0
+	var sub_dp := 0
 	var aoc := true                            # Age-of-Civilizations action button: label centred, hotkey top-right, glyph bottom-right
 	var _bn: PlateBox
 	var _bh: PlateBox
@@ -265,6 +268,23 @@ class VerbBtn extends Button:
 		var y0: float = size.y * 0.56 - th * 0.5 + f.get_ascent(fsz) + shift.y
 		f.draw_multiline_string(get_canvas_item(), Vector2((size.x - avail) * 0.5, y0), lbl, HORIZONTAL_ALIGNMENT_CENTER, avail, fsz, 2, tc, TextServer.BREAK_WORD_BOUND)
 		if glyph != "": TBCmdCard.glyph(self, glyph, Vector2(size.x - P.R(17.0), size.y - P.R(15.0)) + shift, P.R(20.0), P.al(tc, 0.75), 1.6)
+		var sub: String = ""
+		if sub_gold > 0: sub = TBKit.fmt(sub_gold)
+		elif sub_dp > 0: sub = "%d" % sub_dp
+		elif sub_moves > 0: sub = "%d" % sub_moves
+		if sub != "" and not blocked:
+			var sz: int = P.fr(15.0)
+			var sc2: Color = P.tk("brass_lt") if sub_gold > 0 else P.tk("smoke")
+			draw_string(P.body(), Vector2(P.R(11.0), size.y - P.R(9.0)) + shift, sub, HORIZONTAL_ALIGNMENT_LEFT, size.x * 0.55, sz, sc2)
+		# corner ornaments: short brass ticks on the four outer corners (AoC's gilded frame)
+		var oc: Color = P.al(P.tk("brass_lt"), 0.0 if blocked else 0.6)
+		var cl: float = P.R(7.0)
+		for cx in [0.0, size.x]:
+			for cy2 in [0.0, size.y]:
+				var dx: float = cl if cx == 0.0 else -cl
+				var dy: float = cl if cy2 == 0.0 else -cl
+				draw_line(Vector2(cx, cy2), Vector2(cx + dx, cy2), oc, 1.5)
+				draw_line(Vector2(cx, cy2), Vector2(cx, cy2 + dy), oc, 1.5)
 		if blocked: TBCmdCard.glyph(self, "lock", Vector2(P.R(15.0), size.y - P.R(14.0)), P.R(15.0), tc, 1.3)
 		if hot != "" and TBCmdCard.show_hotkeys:
 			var hs: int = 12
