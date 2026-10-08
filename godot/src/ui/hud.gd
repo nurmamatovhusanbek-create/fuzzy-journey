@@ -38,7 +38,7 @@ const SCREENS := [
 	["nations", "globe", "dk_nations", "F1"], ["budget", "coins", "dk_budget", "F2"], ["decisions", "scales", "dk_decisions", "F3"], ["advisor", "lamp", "dk_advisor", "F4"],
 	["chronicle", "book", "dk_chronicle", "F5"], ["goals", "trophy", "dk_goals", "F6"], ["save", "save", "dk_save", ""], ["settings", "gear", "dk_settings", ""],
 ]
-const PRIMARY := 4
+const PRIMARY := 6
 const LENS_PINNED := ["political", "diplomatic", "military", "terrain"]
 
 var g: TBGame
@@ -51,36 +51,33 @@ var tts_mode: String = "off"                 # off | critical | all: announce ne
 
 var _prof: int = Prof.DESKTOP
 var _vp: Vector2 = Vector2(1280, 720)
-var _bar: P.Surface
-var _rail: P.Surface
-var _bottom: P.Surface
-var _nat: P.NationChip
+var _rail: P.Surface                          # the 64 px rail card (landscape)
+var _bottom: P.Surface                        # the phone tab bar
+var _nat: P.NationChip                        # crest
 var _date: P.DateText
-var _date_bar: P.Surface                      # the slanted date plate (top right)
-var _tab_dip: P.Tab                           # Diplomacy tab (opens the nations screen)
-var _tab_maps: P.Tab                          # Map Modes tab (opens the lens list)
-var _annals_btn: P.IconBtn                    # left slot of the date plate: the Annals
 var _chips: Dictionary = {}
 var _suffix: Dictionary = {}
 var _war: P.Chip
 var _inf: P.Chip
-var _lens_btns: Array = []
-var _menu_btn: P.IconBtn
-var _dots_btn: P.IconBtn
-var _dock: Array = []
+var _more_chip: P.Chip                        # phone: "+N" for the resource chips that did not fit
+var _menu_btn: P.IconBtn                      # gear: the menu list (save, options, the rest of the screens)
+var _dock: Array = []                         # rail items (landscape) / tab bar items (phone)
 var _dock_more: P.IconBtn
-var _ticker: TBAlertTicker
-var _seal: P.Seal
-var _note: P.SealNote                         # the End Turn summary chip above the seal
-var _rows: int = 1                            # top bar rows (2 when the chips no longer fit one row)
-var _rail_mode: bool = false                  # the screens rail is shown (else the menu button / bottom bar)
-var _rail_w: float = 0.0
-var _comp: Dictionary = {}
+var _mode: P.ModeSwitch                       # map lens segmented control next to the minimap
+var _mm_btn: P.IconBtn                        # 700-1099 px: the minimap sits behind this button
+var _mm_open: bool = false
+var _ticker: TBAlertTicker                    # toasts
+var _seal: P.Seal                             # the primary turn button
+var _note: P.SealNote                         # the turn button's summary pill
 var _legend: P.Legend
 var _strip: P.SeatStrip
 var map_view: TBMapView                      # the main map (the minimap shows and steers it)
 var _minimap: TBMinimap
-var _stats: P.StatsColumn
+var _rail_n: int = 6                          # rail items shown (the rest sit behind More)
+var _minimap_ok: bool = false
+var _insp: Rect2 = Rect2()                    # where the inspector (province card) goes, hud coordinates
+var _drawer: Rect2 = Rect2()                  # where drawers open (right of the rail)
+var _strip_rows_h: float = 72.0
 var _catcher: Control
 var _pop: Control
 var _pop_kind: String = ""
@@ -99,7 +96,6 @@ var _entries: Array = []
 var _announced: Dictionary = {}
 var _rep: Array = []
 var _rep_gen: int = 0
-var _stage: int = 0
 
 func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -110,46 +106,28 @@ func _init() -> void:
 func build() -> void:
 	P.sync_settings(); TBCmdCard.text_scale = P.text_scale
 	for c in get_children(): c.queue_free()
-	_chips.clear(); _suffix.clear(); _lens_btns.clear(); _dock.clear()
+	_chips.clear(); _suffix.clear(); _dock.clear()
 	_pop = null; _catcher = null; _tip = null; _preview = null; _active = ""
-	_bar = P.Surface.new(); _bar.kind = "bar"; add_child(_bar)
 	_nat = P.NationChip.new(); _nat.set_a11y(T.call("tk_realm")); _wire(_nat, _tip_nation); _nat.pressed.connect(_open_realm); add_child(_nat)
 	_date = P.DateText.new(); add_child(_date)
-	for spec in [["gold", "coin", "gold"], ["mp", "arrowhead", "mp"], ["man", "men", "manpower"], ["dp", "dove", "dp"]]:
+	for spec in [["gold", "coin", "gold"], ["man", "men", "manpower"], ["mp", "arrowhead", "mp"], ["dp", "dove", "dp"]]:
 		var c := P.Chip.new(); c.glyph = spec[1]; c.set_a11y(T.call(spec[2]))
-		if spec[0] == "gold": c.val_col = P.tk("brass_lt")
-		if spec[0] == "mp": c.glyph_col = P.tk("info"); c.val_col = P.tk("info")
+		if spec[0] == "gold": c.glyph_col = P.tk("warn_bar")
+		if spec[0] == "mp": c.glyph_col = P.tk("info_bar")
+		if spec[0] == "man": c.glyph_col = P.tk("pos_bar")
 		if spec[0] == "dp": c.glyph_col = P.tk("cream")
-		if spec[0] == "man": c.glyph_col = P.tk("smoke")
 		var key: String = spec[0]
 		_wire(c, _tip_chip.bind(key)); c.pressed.connect(_pin_chip.bind(key))
 		add_child(c); _chips[key] = c
 	_war = P.Chip.new(); _war.glyph = "swords"; _war.set_a11y(T.call("hud_wars")); _wire(_war, _tip_chip.bind("wars")); _war.pressed.connect(func(): tapped.emit(); wars_pressed.emit()); add_child(_war)
 	_inf = P.Chip.new(); _inf.glyph = "skull"; _inf.set_a11y(T.call("infamy")); _wire(_inf, _tip_chip.bind("infamy")); _inf.pressed.connect(_pin_chip.bind("infamy")); add_child(_inf)
-	for lens in LENS_PINNED:
-		var b := P.IconBtn.new(); b.glyph = P.lens_glyph(lens); b.sq = 40.0; b.icon_px = 20.0; b.show_label = false; b.edge = 1
-		b.set_a11y(T.call("lens_" + lens))
-		b.pressed.connect(func(): tapped.emit(); _pick_lens(lens))
-		_wire(b, _tip_lens.bind(lens))
-		b.set_meta("lens", lens)
-		add_child(b); _lens_btns.append(b)
-	var more_l := P.IconBtn.new(); more_l.glyph = "dots"; more_l.sq = 40.0; more_l.icon_px = 20.0; more_l.show_label = false; more_l.edge = 1
-	more_l.set_a11y(T.call("tk_more_lenses")); more_l.pressed.connect(func(): tapped.emit(); _open_lens_pop(more_l)); _wire(more_l, _tip_text.bind(T.call("tk_more_lenses"), "L"))
-	more_l.set_meta("lens", "")
-	add_child(more_l); _lens_btns.append(more_l)
-	_tab_dip = P.Tab.new(); _tab_dip.label = T.call("aoc_diplomacy"); _tab_dip.set_a11y(T.call("aoc_diplomacy")); _tab_dip.pressed.connect(func(): tapped.emit(); _screen("nations")); _wire(_tab_dip, _tip_text.bind(T.call("dk_nations"), "F1")); add_child(_tab_dip)
-	_tab_maps = P.Tab.new(); _tab_maps.label = T.call("aoc_map_modes"); _tab_maps.set_a11y(T.call("tk_lens")); _tab_maps.pressed.connect(func(): tapped.emit(); _open_lens_pop(_tab_maps)); _wire(_tab_maps, _tip_text.bind(T.call("tk_lens"), "L")); add_child(_tab_maps)
-	_date_bar = P.Surface.new(); _date_bar.kind = "date"; add_child(_date_bar); move_child(_date_bar, 1)
-	_annals_btn = P.IconBtn.new(); _annals_btn.glyph = "book"; _annals_btn.show_label = false; _annals_btn.set_a11y(T.call("dk_chronicle")); _annals_btn.pressed.connect(func(): tapped.emit(); _screen("chronicle")); _wire(_annals_btn, _tip_text.bind(T.call("dk_chronicle"), "F5")); add_child(_annals_btn)
-	_menu_btn = P.IconBtn.new(); _menu_btn.glyph = "menu"; _menu_btn.sq = 40.0; _menu_btn.icon_px = 20.0; _menu_btn.show_label = false; _menu_btn.edge = 1
-	_menu_btn.set_a11y(T.call("tk_menu")); _menu_btn.pressed.connect(func(): tapped.emit(); _open_menu(_menu_btn, false)); add_child(_menu_btn)
-	_dots_btn = P.IconBtn.new(); _dots_btn.glyph = "dots"; _dots_btn.sq = 40.0; _dots_btn.icon_px = 22.0; _dots_btn.show_label = false; _dots_btn.edge = 1
-	_dots_btn.set_a11y(T.call("tk_realm")); _dots_btn.pressed.connect(func(): tapped.emit(); _open_realm()); add_child(_dots_btn)
-	# ---- rail (landscape) / bottom bar (portrait)
-	_rail = P.Surface.new(); _rail.kind = "rail"; add_child(_rail)
+	_more_chip = P.Chip.new(); _more_chip.glyph = "dots"; _more_chip.set_a11y(T.call("tk_more")); _more_chip.pressed.connect(_open_more_chips); add_child(_more_chip)
+	_menu_btn = P.IconBtn.new(); _menu_btn.glyph = "menu"; _menu_btn.show_label = false; _menu_btn.framed = true; _menu_btn.icon_px = 20.0
+	_menu_btn.set_a11y(T.call("tk_menu")); _menu_btn.pressed.connect(func(): tapped.emit(); _open_menu(_menu_btn, false)); _wire(_menu_btn, _tip_text.bind(T.call("tk_menu"), "")); add_child(_menu_btn)
+	# ---- rail (landscape) / tab bar (phone)
+	_rail = P.Surface.new(); _rail.kind = "card"; add_child(_rail)
 	_bottom = P.Surface.new(); _bottom.kind = "bottom"; add_child(_bottom)
-	for i in SCREENS.size():
-		if i >= PRIMARY: break
+	for i in PRIMARY:
 		var sc: Array = SCREENS[i]
 		var b2 := P.IconBtn.new(); b2.glyph = sc[1]; b2.label = T.call(sc[2]); b2.set_a11y(T.call(sc[2]))
 		b2.set_meta("screen", sc[0])
@@ -159,7 +137,17 @@ func build() -> void:
 		add_child(b2); _dock.append(b2)
 	_dock_more = P.IconBtn.new(); _dock_more.glyph = "dots"; _dock_more.label = T.call("tk_more"); _dock_more.set_a11y(T.call("tk_more"))
 	_dock_more.pressed.connect(func(): tapped.emit(); _open_menu(_dock_more, true)); add_child(_dock_more)
-	# ---- ticker, legend, hot-seat strip, End Turn plate
+	# ---- map mode switch + minimap
+	_mode = P.ModeSwitch.new(); _mode.set_a11y(T.call("tk_lens"))
+	_mode.picked.connect(func(id: String): tapped.emit(); if id == "": _open_lens_pop(_mode) else: _pick_lens(id))
+	_mode.items = []
+	for l in LENS_PINNED: _mode.items.append([l, T.call("lens_" + l)])
+	_mode.items.append(["", "…"])
+	add_child(_mode)
+	_mm_btn = P.IconBtn.new(); _mm_btn.glyph = "globe"; _mm_btn.show_label = false; _mm_btn.framed = true; _mm_btn.icon_px = 20.0
+	_mm_btn.set_a11y(T.call("tk_minimap")); _mm_btn.pressed.connect(func(): _mm_open = not _mm_open; layout_for(_vp)); add_child(_mm_btn)
+	_minimap = TBMinimap.new(); add_child(_minimap)
+	# ---- toasts, legend, hot-seat strip, turn button
 	_ticker = TBAlertTicker.new()
 	_ticker.activated.connect(_on_alert); _ticker.answered.connect(func(uid: int, c: int): tapped.emit(); offer_answered.emit(uid, c))
 	_ticker.overflow_pressed.connect(_open_drawer); _ticker.report_pressed.connect(func(): tapped.emit(); chronicle_pressed.emit())
@@ -167,8 +155,6 @@ func build() -> void:
 	add_child(_ticker)
 	_legend = P.Legend.new(); add_child(_legend)
 	_strip = P.SeatStrip.new(); _strip.visible = false; add_child(_strip)
-	_minimap = TBMinimap.new(); add_child(_minimap)
-	_stats = P.StatsColumn.new(); _stats.heading = T.call("aoc_stats"); _stats.set_a11y(T.call("aoc_stats")); _stats.pressed.connect(func(): tapped.emit(); _screen("nations")); add_child(_stats)
 	_note = P.SealNote.new(); _note.visible = false; add_child(_note)
 	_seal = P.Seal.new(); _seal.set_a11y(T.call("end_turn")); _seal.pressed.connect(_seal_pressed); add_child(_seal)
 	_wire(_seal, _tip_seal)
@@ -179,7 +165,7 @@ func build() -> void:
 func set_text_scale(f: float) -> void:
 	P.text_scale = clampf(f, 1.0, 2.0)
 	TBCmdCard.text_scale = P.text_scale
-	if g != null and _bar != null:
+	if g != null and _rail != null:
 		build(); refresh()
 
 ## wire a control's tooltip (hover 350 ms / long-press 450 ms): fn -> [title, body]
@@ -188,149 +174,166 @@ func _wire(h: P.Hit, fn: Callable) -> void:
 	h.tip_off.connect(_tip_hide)
 
 # ================================================================== layout
-func _chip_h() -> float:
-	var base: float = [32.0, 28.0, 26.0, 32.0][_prof]
-	return maxf(base, P.fs(14.0 if (_prof == Prof.PHONE_L or _prof == Prof.SHORT) else 16.0) + 10.0)
-
-## top bar height: one row, or two rows (row 1 identity + controls, row 2 the resource chips) when the chips no longer fit one row
-func _bar_h() -> float:
-	var base: float = [40.0, 36.0, 32.0, 40.0][_prof]
-	var one: float = maxf(base, _chip_h() + (6.0 if _prof == Prof.SHORT else 8.0))
-	return one if _rows == 1 else _chip_h() * 2.0 + 14.0
-
-func _row_pitch() -> float:
-	return maxf(P.touch(), P.fs(12.0) + 10.0 + _sq())
-func _sq() -> float: return 40.0 if _prof == Prof.DESKTOP else 36.0
-func _show_labels() -> bool: return TBKit.large_targets or TBKit.text_scale >= 1.5          # icon-only dock unless the player asked for bigger UI
-
-## the layout profile for a logical viewport (design/ux/hud.md 3.1)
+## the layout profile for a logical viewport: phone = portrait or narrower than 700 px
 static func profile_for(vp: Vector2) -> int:
-	if vp.y > vp.x: return Prof.PORTRAIT
+	if vp.y > vp.x or vp.x < 700.0: return Prof.PORTRAIT
 	if vp.y < 380.0: return Prof.SHORT
 	if vp.y < 560.0: return Prof.PHONE_L
 	return Prof.DESKTOP
 
-## the screens rail fits below the bar (it turns into the single menu button at large text sizes, hud.md 10.2)
-func _rail_fits(bh: float) -> bool:
-	if _prof != Prof.DESKTOP and _prof != Prof.PHONE_L: return false
-	return bh + (8.0 if _prof == Prof.DESKTOP else 6.0) + _row_pitch() * 5.0 + 8.0 <= _vp.y - 8.0
+func _chip_h() -> float: return maxf(32.0, P.fs(14.0) + 14.0)
 
-## Age-of-Civilizations layout. Everything is designed in 1080p pixels ("R" units) and scaled by u (window height, text scale included):
-## flag block top-left, a slanted stat strip (gold / moves / army / diplomacy) with the Diplomacy and Map Modes tabs, the date plate top-right,
-## the End Turn plate bottom-right. The rail / bottom dock of the old HUD no longer exist (their screens live in the realm panel).
+## Atlas Ledger HUD (guide 5 and 7): 16 px safe inset, 12 px gaps. Crest + resource chips + date pill + gear along the top; a 64 px rail on the left;
+## minimap + mode switch bottom-left; toasts top-right; inspector right; the 72 px turn button bottom-right. Phones: tab bar, bottom sheets.
 func layout_for(vp: Vector2) -> void:
-	if _bar == null: return
+	if _rail == null: return
 	P.sync_settings(); TBCmdCard.text_scale = P.text_scale
 	var old: int = _prof
 	_vp = vp
 	_prof = profile_for(vp)
 	_tip_hide(); _close_pop()
-	P.u = clampf(minf(vp.y / 1080.0, vp.x / 1500.0), 0.6, 1.5) * P.text_scale
-	var u: float = P.u
-	var m: float = P.R(8.0)
-	var portrait: bool = _prof == Prof.PORTRAIT
-	_rail_mode = false; _rail_w = 0.0
-	_rail.visible = false; _bottom.visible = false
-	for b in _dock + [_dock_more, _dots_btn]: (b as Control).visible = false
-	for b in _lens_btns: (b as Control).visible = false
-	# ---- flag block
-	var fw: float = P.R(148.0)
-	var th: float = P.R(55.0)
-	# ---- date plate (right): annals | date | menu. Narrow windows drop the annals button and shrink the flag block
-	var bs: float = th - P.R(8.0)
-	var dw: float = P.R(285.0) if _vp.x > 900.0 else P.R(235.0)
-	var wide_date: bool = true
-	var min_date: float = _date.desired_w() + bs + P.R(30.0)
-	var gold_w: float = (_chips["gold"] as P.Chip).desired_w()
-	if vp.x - dw - fw - gold_w - P.R(20.0) < 0.0:
-		wide_date = false
-		dw = maxf(min_date, P.R(130.0))
-	if vp.x - dw - fw - gold_w - P.R(20.0) < 0.0: fw = P.R(100.0)
-	_nat.position = Vector2.ZERO; _nat.size = Vector2(fw, P.R(100.0) * (fw / P.R(148.0))); _nat.visible = true
-	_date_bar.position = Vector2(vp.x - dw, 0); _date_bar.size = Vector2(dw, th); _date_bar.visible = true
-	var sl: float = P.R(18.0)
-	_annals_btn.sq = bs; _annals_btn.icon_px = P.R(26.0); _annals_btn.show_label = false; _annals_btn.edge = 0
-	_annals_btn.position = Vector2(vp.x - dw + sl + P.R(2.0), P.R(4.0)); _annals_btn.size = Vector2(bs, bs); _annals_btn.visible = wide_date
-	_menu_btn.sq = bs; _menu_btn.icon_px = P.R(26.0); _menu_btn.show_label = false; _menu_btn.edge = 0
-	_menu_btn.position = Vector2(vp.x - bs - P.R(6.0), P.R(4.0)); _menu_btn.size = Vector2(bs, bs); _menu_btn.visible = true
-	_date.compact = _prof != Prof.DESKTOP
-	var dx0: float = _annals_btn.position.x + bs if wide_date else vp.x - dw + sl
-	_date.position = Vector2(dx0, 0); _date.size = Vector2(_menu_btn.position.x - dx0, th); _date.visible = true
-	# ---- strip: cells by priority, then tabs; a cell that does not fit drops (dove, army, moves) and a second row takes the tabs on narrow windows
-	var x0: float = fw - P.R(2.0)
-	var avail: float = vp.x - dw - P.R(10.0) - x0
-	var keys: Array = ["gold", "mp", "man", "dp"]
+	P.u = P.text_scale
+	var m: float = 16.0
+	var gap: float = 12.0
+	var phone: bool = _prof == Prof.PORTRAIT
+	var ch: float = _chip_h()
+	var wide: bool = vp.x >= 1440.0
+	var full: bool = vp.x >= 1100.0
+	var safe_b: float = 0.0
+	# ---- top row
+	var crest_h: float = 48.0 if not phone else 44.0
+	_nat.compact = phone
+	_nat.subtitle = "" if phone else _nat.subtitle
+	var crest_w: float = _nat.desired_w() if not phone else 10.0 + 40.0 + 14.0
+	if phone: _nat.show_name = false
+	_nat.position = Vector2(m, m); _nat.size = Vector2(crest_w, crest_h); _nat.visible = true
+	var gear: float = ch
+	_menu_btn.position = Vector2(vp.x - m - gear, m + (crest_h - gear) * 0.5); _menu_btn.size = Vector2(gear, gear); _menu_btn.visible = true
+	_menu_btn.sq = gear
+	var date_w: float = _date.desired_w()
+	var show_date: bool = not phone
+	_date.compact = phone; _date.visible = show_date
+	_date.position = Vector2(_menu_btn.position.x - 8.0 - date_w, m + (crest_h - ch) * 0.5); _date.size = Vector2(date_w, ch)
+	var x0: float = m + crest_w + gap
+	var x1: float = (_date.position.x - gap) if show_date else (_menu_btn.position.x - gap)
+	var keys: Array = ["gold", "man", "mp", "dp"]
 	if g == null or g.rules < 1: keys.erase("dp")
-	var tabs_w: float = _tab_dip.desired_w() + _tab_maps.desired_w()
-	var cell_gap: float = P.R(12.0)
-	var cells_w: float = 0.0
-	for k in keys: cells_w += (_chips[k] as P.Chip).desired_w() + cell_gap
-	var two_rows: bool = false
-	var shown: Array = keys.duplicate()
-	while shown.size() > 1 and P.R(12.0) + _sum_w(shown, cell_gap) + tabs_w + sl > avail:
-		if portrait or avail < P.R(560.0):                          # tabs wrap to their own strip under the first
-			two_rows = true
-			if P.R(12.0) + _sum_w(shown, cell_gap) + sl <= avail: break
-		shown.pop_back()
-	var strip_end: float = x0 + P.R(12.0) + _sum_w(shown, cell_gap) + (0.0 if two_rows else tabs_w) + sl
-	_bar.position = Vector2(x0, 0); _bar.size = Vector2(strip_end - x0, th); _bar.visible = true
-	var cx: float = x0 + P.R(10.0)
-	for k in _chips.keys(): (_chips[k] as Control).visible = false
+	var extra: Array = []
+	if _wars > 0: extra.append("war")
+	if _inf_on: extra.append("inf")
+	var order: Array = keys + extra
+	var stage: int = 0                                                      # 0 full, 1 no sparkline, 2 secondary deltas to tooltips, 3 chips drop to "+N"
+	if not full: stage = 2
+	var shown: Array = order.duplicate()
+	var gap_c: float = 8.0
+	var more_needed: bool = false
+	for _it in 12:
+		_apply_chip_stage(stage)
+		var tot: float = 0.0
+		for k in shown: tot += _chip_for(k).desired_w() + gap_c
+		tot -= gap_c
+		if tot <= x1 - x0 or (stage >= 3 and shown.size() <= 1): break
+		if stage < 2: stage += 1
+		else:
+			stage = 3
+			shown.pop_back(); more_needed = true
+	_apply_chip_stage(stage)
+	for k in ["gold", "man", "mp", "dp"]: (_chips[k] as Control).visible = false
+	_war.visible = false; _inf.visible = false
+	var cx: float = x0
+	var cy: float = m + (crest_h - ch) * 0.5
 	for k in shown:
-		var c: P.Chip = _chips[k]
-		c.compact = false; c.tight = false; c.delta_on = true
-		c.position = Vector2(cx, P.R(4.0)); c.size = Vector2(c.desired_w(), th - P.R(8.0)); c.visible = true
-		cx += c.size.x + cell_gap
-	if not two_rows:
-		cx += P.R(6.0)
-		_tab_dip.position = Vector2(cx, 0); _tab_dip.size = Vector2(_tab_dip.desired_w(), th); cx += _tab_dip.size.x
-		_tab_maps.position = Vector2(cx, 0); _tab_maps.size = Vector2(_tab_maps.desired_w(), th)
+		var c: P.Chip = _chip_for(k)
+		c.position = Vector2(cx, cy); c.size = Vector2(c.desired_w(), ch); c.visible = true
+		cx += c.size.x + gap_c
+	var dropped: Array = []
+	for k in order:
+		if not shown.has(k): dropped.append(k)
+	_more_chip.visible = not dropped.is_empty()
+	if _more_chip.visible:
+		_more_chip.set_num(float(dropped.size()), func(v: float) -> String: return "+%d" % int(v))
+		_more_chip.position = Vector2(cx, cy); _more_chip.size = Vector2(_more_chip.desired_w(), ch)
+	# ---- rail / tab bar
+	var rail_top: float = m + crest_h + gap
+	var mm_h: float = 120.0
+	var show_mm: bool = false
+	if not phone and vp.y >= 520.0:
+		show_mm = full or _mm_open
+	_minimap_ok = show_mm
+	var bottom_row_y: float = vp.y - m - 32.0                                # mode switch row
+	var mm_top: float = vp.y - m - mm_h
+	var lower_limit: float = (mm_top - gap) if show_mm else (vp.y - m)
+	if not phone and not show_mm: lower_limit = vp.y - m - (44.0 if (vp.y >= 520.0) else 0.0)
+	_rail.visible = not phone; _bottom.visible = phone
+	var all: Array = _dock + [_dock_more]
+	for b in all: (b as Control).visible = false
+	var rail_x: float = m
+	var rail_w: float = 64.0
+	var item_h: float = 56.0 if vp.y >= 560.0 else 44.0
+	if not phone:
+		var avail: float = lower_limit - rail_top - 8.0
+		var fit: int = clampi(int(floor(avail / item_h)), 3, PRIMARY + 1)
+		_rail_n = fit if fit < PRIMARY + 1 else PRIMARY
+		var overflow: bool = _rail_n < PRIMARY
+		var count: int = _rail_n + (1 if overflow else 0)
+		if overflow: _rail_n = fit - 1
+		count = _rail_n + (1 if overflow else 0)
+		_rail.position = Vector2(rail_x, rail_top); _rail.size = Vector2(rail_w, count * item_h + 8.0)
+		for i in count:
+			var b3: P.IconBtn = _dock[i] if i < _rail_n else _dock_more
+			b3.visible = true; b3.edge = 0; b3.icon_px = 24.0; b3.show_label = item_h >= 56.0
+			b3.position = Vector2(rail_x + 4.0, rail_top + 4.0 + i * item_h); b3.size = Vector2(rail_w - 8.0, item_h)
 	else:
-		var x1: float = x0 + P.R(10.0)
-		_tab_dip.position = Vector2(x1, th + 2.0); _tab_dip.size = Vector2(_tab_dip.desired_w(), P.R(40.0)); x1 += _tab_dip.size.x
-		_tab_maps.position = Vector2(x1, th + 2.0); _tab_maps.size = Vector2(_tab_maps.desired_w(), P.R(40.0))
-	_tab_dip.visible = true; _tab_maps.visible = true
-	_rows = 2 if two_rows else 1
-	_strip_rows_h = th + (P.R(42.0) if two_rows else 0.0)
-	# ---- status boxes (wars / infamy) under the strip
-	var sy: float = _strip_rows_h + P.R(7.0)
-	var sx: float = x0 + P.R(2.0)
-	for c2 in [_war, _inf]:
-		var ch: P.Chip = c2
-		var on: bool = (ch == _war and _wars > 0) or (ch == _inf and _inf_on)
-		ch.visible = on
-		if not on: continue
-		ch.delta_on = false; ch.compact = false
-		ch.position = Vector2(sx, sy); ch.size = Vector2(ch.desired_w(), P.R(40.0))
-		sx += ch.size.x + P.R(6.0)
-	_place_realm()
-	# ---- ticker (alerts) under the flag block / realm panel
-	var tx: float = m
-	var ty: float = maxf(P.R(100.0), sy + P.R(44.0)) + P.R(6.0)
-	if _realm_panel != null and _realm_panel.visible: tx = _realm_panel.position.x + _realm_panel.size.x + m
-	_ticker.max_rows = 4 if _prof == Prof.DESKTOP else 1
-	_ticker.inline_pill = _prof != Prof.DESKTOP
-	_ticker.row_w = clampf(vp.x - tx - m, 150.0, 300.0) if portrait else (280.0 if _prof == Prof.DESKTOP else 240.0)
-	_ticker.position = Vector2(tx, ty)
-	_ticker._layout()
-	# ---- Next Turn plate, bottom-right
-	_seal.compact = _prof == Prof.SHORT or portrait
-	_seal.narrow = false
+		var bh: float = 56.0
+		_bottom.position = Vector2(0, vp.y - bh); _bottom.size = Vector2(vp.x, bh)
+		safe_b = bh
+		var cell: float = vp.x / 5.0
+		for i in 4:
+			var b4: P.IconBtn = _dock[i]
+			b4.visible = true; b4.edge = 2; b4.icon_px = 22.0; b4.show_label = true
+			b4.position = Vector2(i * cell, vp.y - bh); b4.size = Vector2(cell, bh)
+		_dock_more.visible = true; _dock_more.edge = 2; _dock_more.icon_px = 22.0; _dock_more.show_label = true
+		_dock_more.position = Vector2(4.0 * cell, vp.y - bh); _dock_more.size = Vector2(cell, bh)
+	# ---- turn button (bottom-right; phones: above the tab bar)
+	_seal.compact = _prof == Prof.SHORT; _seal.narrow = phone
 	var sw_: float = _seal.width_px()
-	var sh_: float = _seal.diameter()
+	var sh_: float = _seal.height_px()
 	_seal.size = Vector2(sw_, sh_)
-	_seal.position = Vector2(vp.x - m - sw_, vp.y - m - sh_)
-	# ---- minimap, bottom-left (kept only where the information bar still has its room next to it)
-	_minimap_ok = not portrait and vp.x >= P.R(300.0) + 380.0 + sw_ + 40.0
-	_minimap.size = Vector2(P.R(297.0), P.R(145.0)); _minimap.position = Vector2(0, vp.y - _minimap.size.y); _minimap.visible = _minimap_ok and not (_realm_panel != null and _realm_panel.visible) and not (_foreign_panel != null and _foreign_panel.visible)
-	# ---- stats column (right) and legend
-	var show_stats: bool = not portrait and vp.y >= 420.0 and vp.x >= 900.0
-	_stats.visible = show_stats
-	if show_stats:
-		var sw2: float = P.R(150.0)
-		_stats.size = Vector2(sw2, _stats.desired_h())
-		_stats.position = Vector2(vp.x - sw2, th + P.R(16.0))
-	# ---- legend (top right under the date plate), seat strip
+	_seal.position = Vector2(vp.x - m - sw_, vp.y - (m if not phone else safe_b + 12.0) - sh_)
+	# ---- minimap + mode switch (bottom-left)
+	_minimap.size = Vector2(200.0, mm_h)
+	_minimap.position = Vector2(m, mm_top)
+	_minimap.visible = show_mm
+	var mode_ok: bool = not phone and vp.y >= 520.0
+	_mode.visible = mode_ok
+	if mode_ok:
+		_mode.size = Vector2(_mode.desired_w(), 32.0)
+		_mode.position = Vector2(m + (212.0 if show_mm else 0.0), bottom_row_y)
+		_mm_btn.visible = not full
+		_mm_btn.size = Vector2(32.0, 32.0)
+		_mm_btn.position = Vector2(m + (212.0 if show_mm else 0.0) + _mode.size.x + 8.0, bottom_row_y)
+		_mm_btn.active = _mm_open
+	else:
+		_mm_btn.visible = false
+	# ---- toasts (top-right under the HUD); phones: full width under the top row
+	var tw_: float = 320.0
+	_ticker.max_rows = 3 if not phone else 1
+	_ticker.inline_pill = phone
+	_ticker.row_w = tw_ if not phone else vp.x - 2.0 * m
+	_ticker.position = Vector2(vp.x - m - tw_, rail_top) if not phone else Vector2(m, rail_top)
+	_ticker._layout()
+	# ---- inspector + drawer areas
+	var tk_bottom: float = rail_top
+	var tr: Rect2 = _ticker.occupied_rect()
+	if tr.size.x > 0.0 and not phone: tk_bottom = maxf(tk_bottom, tr.end.y - global_position.y + gap)
+	var iw: float = (360.0 if wide else 320.0) * (1.0 + (P.text_scale - 1.0) * 0.7)
+	iw = minf(iw, vp.x * 0.62)
+	var ibottom: float = _seal.position.y - 16.0
+	_insp = Rect2(vp.x - m - iw, tk_bottom, iw, maxf(130.0, ibottom - tk_bottom))
+	var dx: float = (rail_x + rail_w + gap) if not phone else m
+	var dw: float = 380.0 if wide else 340.0
+	_drawer = Rect2(dx, rail_top, dw, maxf(200.0, lower_limit - rail_top))
+	# ---- legend (above the minimap / mode switch), seat strip
 	_legend.framed = true
 	_place_legend()
 	_place_strip()
@@ -340,48 +343,64 @@ func layout_for(vp: Vector2) -> void:
 	_sync_seal()
 	layout_changed.emit()
 
-var _strip_rows_h: float = 40.0
-var _minimap_ok: bool = true
-var _realm_panel: Control                    # TBRealmPanel (left)
-var _foreign_panel: Control                  # TBRealmPanel of the selected province's owner (left, replaces the realm panel while a foreign province is selected)
-var _foreign_rows: Array = []
-signal foreign_action(row: Dictionary)
+func _chip_for(k: String) -> P.Chip:
+	if k == "war": return _war
+	if k == "inf": return _inf
+	return _chips[k]
 
-func _sum_w(keys: Array, gap: float) -> float:
-	var w: float = 0.0
-	for k in keys: w += (_chips[k] as P.Chip).desired_w() + gap
-	return w
+## resource chip detail by stage: 0 deltas + treasury line, 1 no line, 2 gold keeps its delta only, 3 icons and values only
+func _apply_chip_stage(stage: int) -> void:
+	for k in ["gold", "man", "mp", "dp"]:
+		var c: P.Chip = _chips[k]
+		c.delta_on = stage < 2 or k == "gold"
+		c.tight = stage >= 3
+		if stage >= 1: c.spark = []
+	if stage == 0 and g != null and _vp.x >= 1100.0: _refresh_spark()
+	for k2 in [_war, _inf]: (k2 as P.Chip).delta_on = false; (k2 as P.Chip).tight = true
 
-## rectangle (hud coordinates) the End Turn seal and its summary chip occupy: the command card keeps clear of it
+func _refresh_spark() -> void:
+	var gc: P.Chip = _chips["gold"]
+	gc.spark = []
+	var ser: Array = TBStats.series(g, g.human_id, "g")
+	for e in ser.slice(maxi(0, ser.size() - 14)): gc.spark.append(float(e[1]))
+	if gc.spark.size() >= 2: gc.spark.append(float(g.gold[g.human_id]))
+	else: gc.spark = []
+
+## rectangle (hud coordinates) the turn button and its note occupy
 func end_turn_rect() -> Rect2:
 	if _seal == null: return Rect2()
 	var r := Rect2(_seal.position, _seal.size)
 	if _note != null and _note.visible: r = r.merge(Rect2(_note.position, _note.size))
 	return r
 
-## horizontal band (x0, x1; hud coordinates) the command card may use: right of the minimap, left of the End Turn plate
-func card_band() -> Vector2:
-	var x0: float = P.R(300.0) if (_prof != Prof.PORTRAIT and _minimap_ok) else P.R(8.0)
-	for pn in [_realm_panel, _foreign_panel]:
-		if pn != null and pn.visible and _prof != Prof.PORTRAIT: x0 = pn.position.x + pn.size.x + P.R(3.0)
-	var x1: float = _vp.x - P.R(8.0)
-	if _prof != Prof.PORTRAIT: x1 = end_turn_rect().position.x - maxf(17.0, P.R(10.0))
-	return Vector2(x0, maxf(x0 + 200.0, x1))
+## horizontal band the inspector may use (kept for the province panel)
+func card_band() -> Vector2: return Vector2(_insp.position.x, _insp.end.x)
 
-## space the portrait sheet keeps free at the bottom (the Next Turn plate and its summary chip)
+## where the inspector (province card) sits: right of the map, below the toasts, above the turn button (hud coordinates)
+func inspector_rect() -> Rect2: return _insp
+## where drawers open: right of the rail, above the minimap
+func drawer_rect() -> Rect2: return _drawer
+## phones show the inspector as a bottom sheet; true there
+func sheet_mode() -> bool: return _prof == Prof.PORTRAIT
+## mid-width landscape (700-1099 px): drawer and inspector are mutually exclusive
+func exclusive_panels() -> bool: return _vp.x < 1100.0
+func foreign_enabled() -> bool: return false
+
+## space the phone sheet keeps free at the bottom (tab bar + turn button + its label)
 func bottom_reserve() -> float:
 	if _prof != Prof.PORTRAIT: return 12.0
-	return maxf(0.0, _vp.y - end_turn_rect().position.y) + 18.0
+	return maxf(_bottom.size.y, _vp.y - end_turn_rect().position.y) + 16.0
 
 func _place_legend() -> void:
 	if _legend == null: return
-	var show: bool = _prof == Prof.DESKTOP and _legend.has_key()
+	var show: bool = _prof == Prof.DESKTOP and _legend.has_key() and not _vp.x < 700.0
 	_legend.visible = show
 	if not show: return
-	_legend.width = 214.0 if _legend.ramp.size() > 0 else 252.0
+	_legend.width = 200.0
 	_legend.custom_minimum_size = Vector2(_legend.width, _legend.height_needed())
 	_legend.size = _legend.custom_minimum_size
-	_legend.position = Vector2(_vp.x - 8.0 - _legend.size.x - (P.R(150.0) if _stats != null and _stats.visible else 0.0), ribbon_height() + 8.0)
+	var base_y: float = (_minimap.position.y if _minimap.visible else (_mode.position.y if _mode.visible else _vp.y - 16.0)) - 12.0
+	_legend.position = Vector2(16.0, base_y - _legend.size.y)
 	_legend.queue_redraw()
 
 func _place_strip() -> void:
@@ -391,54 +410,50 @@ func _place_strip() -> void:
 	if not _strip.visible: return
 	var w: float = _strip.desired_w()
 	_strip.size = Vector2(w, 24.0)
-	_strip.position = Vector2((_vp.x - w) * 0.5, ribbon_height() + 6.0)
+	_strip.position = Vector2(roundf((_vp.x - w) * 0.5), 16.0 + 48.0 + 8.0)
 	_strip.queue_redraw()
 
-## the strip plan is fixed by layout_for(); a refresh only re-flows (a chip width can change with its number)
+## the layout depends on chip widths: a refresh that changes them re-flows
 func _layout_bar() -> void:
 	if _nat == null: return
 	if _bar_sig() != _last_sig:
 		layout_for(_vp)
 		return
 	_apply_dates()
-	for c4 in [_nat, _date, _war, _inf, _tab_maps, _tab_dip]: (c4 as Control).queue_redraw()
+	for c4 in [_nat, _date, _war, _inf]: (c4 as Control).queue_redraw()
 	_sync_seal()
 
 var _last_sig: String = ""
-## signature of everything the strip layout depends on (chip widths, which status boxes show)
 func _bar_sig() -> String:
 	var parts: PackedStringArray = PackedStringArray()
-	for k in ["gold", "mp", "man", "dp"]: parts.append(str((_chips[k] as P.Chip).desired_w()))
-	parts.append(str(_wars > 0)); parts.append(str(_inf_on))
-	parts.append(str(snappedf(P.u, 0.001)))
-	var sg: String = ",".join(parts)
-	return sg
+	for k in ["gold", "man", "mp", "dp"]: parts.append(str((_chips[k] as P.Chip).desired_w()))
+	parts.append(str(_wars > 0)); parts.append(str(_inf_on)); parts.append(_nat.nation); parts.append(_nat.subtitle); parts.append(_date.year + _date.turn_cap)
+	parts.append(str(P.text_scale))
+	return ",".join(parts)
 
 ## hud rectangles (global) the map labels must keep clear of
 func keepouts() -> Array:
 	var out: Array = []
-	if not visible or _bar == null: return out
+	if not visible or _rail == null: return out
 	out.append(_nat.get_global_rect())
-	out.append(_bar.get_global_rect())
-	out.append(_date_bar.get_global_rect())
-	if _rows == 2: out.append(Rect2(_tab_dip.get_global_rect().position, Vector2(_tab_dip.size.x + _tab_maps.size.x, _tab_dip.size.y)))
-	for c in [_war, _inf]:
-		if (c as Control).visible: out.append((c as Control).get_global_rect().grow(4.0))
+	for k in ["gold", "man", "mp", "dp"]:
+		if (_chips[k] as Control).visible: out.append((_chips[k] as Control).get_global_rect())
+	for c in [_war, _inf, _more_chip, _date, _menu_btn]:
+		if (c as Control).visible: out.append((c as Control).get_global_rect())
+	if _rail.visible: out.append(_rail.get_global_rect().grow(4.0))
+	if _bottom.visible: out.append(_bottom.get_global_rect())
 	var tr: Rect2 = _ticker.occupied_rect()
 	if tr.size.x > 0.0: out.append(tr.grow(4.0))
-	out.append(_seal.get_global_rect().grow(10.0))
-	if _minimap != null and _minimap.visible: out.append(_minimap.get_global_rect())
-	if _stats != null and _stats.visible: out.append(_stats.get_global_rect())
+	out.append(_seal.get_global_rect().grow(6.0))
 	if _note != null and _note.visible: out.append(_note.get_global_rect().grow(4.0))
+	if _minimap.visible: out.append(_minimap.get_global_rect().grow(4.0))
+	if _mode.visible: out.append(_mode.get_global_rect().grow(4.0))
 	if _legend.visible: out.append(_legend.get_global_rect().grow(4.0))
 	if _strip.visible: out.append(_strip.get_global_rect().grow(4.0))
-	if _realm_panel != null and _realm_panel.visible: out.append(_realm_panel.get_global_rect().grow(4.0))
-	if _foreign_panel != null and _foreign_panel.visible: out.append(_foreign_panel.get_global_rect().grow(4.0))
 	return out
 
-## vertical space the top strip occupies
-func ribbon_height() -> float:
-	return _strip_rows_h if _bar != null else 40.0
+## vertical space the top row occupies
+func ribbon_height() -> float: return 16.0 + 48.0
 
 # ================================================================== refresh
 static func _year(y: int) -> String:
@@ -477,11 +492,7 @@ func refresh() -> void:
 	var net: int = bd["net"]
 	var gc: P.Chip = _chips["gold"]
 	gc.set_num(g.gold[n], fmt); gc.has_delta = true; gc.delta = net; gc.delta_on = true
-	gc.spark = []
-	if _vp.x >= 1100.0:
-		var ser: Array = TBStats.series(g, n, "g")
-		for e in ser.slice(maxi(0, ser.size() - 14)): gc.spark.append(float(e[1]))
-		if gc.spark.size() >= 2: gc.spark.append(float(g.gold[n]))
+	if _vp.x >= 1100.0: _refresh_spark()
 	gc.state = 2 if (g.gold[n] <= 0.0 and net < 0) else (1 if (net < 0 and g.gold[n] < -net * 5.0) else 0)
 	var mc: P.Chip = _chips["man"]
 	mc.set_num(g.manpower[n], fmt); mc.has_delta = true; mc.delta = int(bd["man_gain"]); mc.state = 1 if bd["man_full"] else 0
@@ -500,15 +511,8 @@ func refresh() -> void:
 	_inf_on = g.rules >= 1 and (g.infamy[n] >= 5.0 or g.coalition[n] != 0)
 	_inf.set_num(floorf(g.infamy[n]), fmt); _inf.state = 2 if g.coalition[n] != 0 else 0
 	_nat.badge = 0
-	if _stats != null:
-		var st_sum: int = 0
-		var own_l: PackedInt32Array = g.owned(n)
-		for q in own_l: st_sum += g.stab[q]
-		var st_avg: int = int(round(float(st_sum) / maxf(1.0, float(own_l.size()))))
-		_stats.flag = _nat.flag
-		_stats.rows = [["flask", "%.1f" % g.tech_level[n], "info"], ["men", _fmt_num(float(inc.get("pop", 0)), true), "pos_bar"], ["flag", str(own_l.size()), "brass_lt"], ["scales", "%d%%" % st_avg, "cream"], ["smile", "%d%%" % int(inc.get("happyAvg", 60)), "warn_bar"]]
-		if g.rules >= 1: _stats.rows.append(["skull", str(int(g.infamy[n])), "neg_bar"])
-		_stats.size.y = _stats.desired_h(); _stats.queue_redraw()
+	_nat.subtitle = (T.call(TBRulers.title_key(g, n)) + " " + TBRulers.display_name(g, n)) if (g.rules >= 1 and g.r_name[n] != "") else T.call("era_name_%d" % g.era[n])
+	_seal.turn_no = g.turn
 	_date.year = _year(g.year)
 	_date.turn_cap = T.call("aoc_turn", {"k": g.turn})
 	# alerts
@@ -527,7 +531,6 @@ func refresh() -> void:
 			_minimap.setup(g, map_view)
 			if not map_view.view_changed.is_connected(_minimap.queue_redraw): map_view.view_changed.connect(_minimap.queue_redraw)
 		_minimap.refresh()
-	if _realm_panel != null and _realm_panel.visible: (_realm_panel as TBRealmPanel).rebuild()
 	_layout_bar()
 	_place_strip()
 	_place_legend()
@@ -695,7 +698,7 @@ func _place_near(c: Control, anchor: Control) -> void:
 	var pos := Vector2(ar.position.x, ar.end.y + 6.0)
 	if pos.y + sz.y > size.y - 4.0 or ar.position.y > size.y * 0.55: pos.y = ar.position.y - sz.y - 6.0
 	if ar.position.x > size.x * 0.6 and ar.size.y > 60.0: pos = Vector2(ar.position.x - sz.x - 6.0, ar.position.y)
-	if _rail != null and _rail.visible and anchor.get_parent() == self and ar.position.x < _rail.size.x + 16.0 and ar.position.y > _bar_h():
+	if _rail != null and _rail.visible and anchor.get_parent() == self and ar.position.x < _rail.size.x + 16.0 and ar.position.y > ribbon_height():
 		pos = Vector2(ar.end.x + 6.0, ar.position.y)
 	pos.x = clampf(pos.x, 4.0, maxf(4.0, size.x - sz.x - 4.0))
 	pos.y = clampf(pos.y, 4.0, maxf(4.0, size.y - sz.y - 4.0))
@@ -837,17 +840,9 @@ func set_lens_legend(lens: String) -> void:
 	_layout_bar()
 
 func _lens_changed() -> void:
-	for b in _lens_btns:
-		var ib: P.IconBtn = b
-		var l: String = String(ib.get_meta("lens", ""))
-		if l == "":                                       # the "more" button lights up when the active lens is not pinned
-			ib.active = not LENS_PINNED.has(_lens)
-			ib.glyph = P.lens_glyph(_lens) if ib.active else "dots"
-		else:
-			ib.active = l == _lens
-		ib.queue_redraw()
-	if _tab_maps != null:
-		_tab_maps.glyph = "" if _lens == "political" else P.lens_glyph(_lens); _tab_maps.active = _lens != "political"; _tab_maps.queue_redraw()
+	if _mode != null:
+		_mode.current = _lens if LENS_PINNED.has(_lens) else ""
+		_mode.queue_redraw()
 
 ## "L" / chip: 4 pinned lenses, the rest behind "More", the legend of the active lens underneath
 func _open_lens_pop(anchor: Control) -> void:
@@ -898,70 +893,31 @@ func _open_menu(anchor: Control, only_more: bool) -> void:
 		v.add_child(lr)
 	_open_pop("menu", pc, anchor)
 
-# ================================================================== realm sheet
+# ================================================================== crest / nation
+## the crest opens the player's nation card
 func _open_realm() -> void:
 	if g == null: return
 	tapped.emit()
-	if _realm_panel != null and _realm_panel.visible:
-		close_realm(); return
-	if _foreign_panel != null and _foreign_panel.visible: _foreign_panel.visible = false
-	if _realm_panel == null:
-		_realm_panel = TBRealmPanel.new()
-		_realm_panel.action.connect(_realm_action)
-		_realm_panel.nation_pressed.connect(func(o: int): nation_pressed.emit(o))
-		add_child(_realm_panel)
-	(_realm_panel as TBRealmPanel).g = g
-	(_realm_panel as TBRealmPanel).rebuild()
-	_realm_panel.visible = true
-	layout_for(_vp)
+	nation_pressed.emit(g.human_id)
 
-## close the realm panel; true when it was open (the back stack uses this)
-## the left panel carries foreign-nation actions (desktop and wide landscape layouts only)
-func foreign_enabled() -> bool: return _prof != Prof.PORTRAIT and _vp.y >= 560.0
+## kept API: nothing to close any more (the realm panel is gone)
+func close_realm() -> bool: return false
+func show_foreign(_o: int, _rows: Array) -> void: pass
 
-func show_foreign(o: int, rows: Array) -> void:
+## the "+N" chip: every resource figure that did not fit the bar, as one popover
+func _open_more_chips() -> void:
 	if g == null: return
-	if o <= 0:
-		if _foreign_panel != null and _foreign_panel.visible:
-			_foreign_panel.visible = false
-			layout_for(_vp)
-		return
-	if _prof == Prof.PORTRAIT or _vp.y < 560.0: return              # small screens keep the card's own Diplomacy button
-	if _realm_panel != null and _realm_panel.visible: _realm_panel.visible = false
-	if _foreign_panel == null:
-		_foreign_panel = TBRealmPanel.new()
-		_foreign_panel.action.connect(func(id: String):
-			if id == "nation": tapped.emit(); nation_pressed.emit((_foreign_panel as TBRealmPanel).nation); return
-			for r in _foreign_rows:
-				if String(r["id"]) == id: foreign_action.emit(r); return)
-		_foreign_panel.nation_pressed.connect(func(n: int): nation_pressed.emit(n))
-		add_child(_foreign_panel)
-	_foreign_rows = rows
-	var fp := _foreign_panel as TBRealmPanel
-	fp.g = g; fp.nation = o; fp.actions = rows
-	fp.rebuild()
-	_foreign_panel.visible = true
-	layout_for(_vp)
-
-## close the realm panel; true when it was open (the back stack uses this)
-func close_realm() -> bool:
-	if _realm_panel == null or not _realm_panel.visible: return false
-	_realm_panel.visible = false
-	layout_for(_vp)
-	return true
-
-func _realm_action(id: String) -> void:
-	if id == "nation":
-		tapped.emit(); nation_pressed.emit(g.human_id); return
-	close_realm()
-	_screen(id)
-
-func _place_realm() -> void:
-	var top: float = P.R(100.0)
-	for pn in [_realm_panel, _foreign_panel]:
-		if pn == null: continue
-		pn.position = Vector2(0, top)
-		pn.size = Vector2(minf(P.R(345.0), _vp.x * 0.62), maxf(120.0, _vp.y - top - (P.R(145.0) if pn == _foreign_panel and false else 0.0)))
+	tapped.emit()
+	var lines: PackedStringArray = PackedStringArray()
+	for k in ["gold", "man", "mp", "dp"]:
+		if (_chips[k] as Control).visible or (k == "dp" and g.rules < 1): continue
+		var pair: Array = _chip_text(k)
+		lines.append("%s: %s" % [String(pair[0]), String(pair[1]).split("\n")[0]])
+	if _war.visible == false and _wars > 0: lines.append(_chip_text("wars")[0] + ": %d" % _wars)
+	if _inf.visible == false and _inf_on: lines.append(_chip_text("infamy")[0] + ": %d" % int(g.infamy[g.human_id]))
+	var box: PanelContainer = P.tip_box(T.call("tk_more"), "\n".join(lines))
+	box.mouse_filter = Control.MOUSE_FILTER_STOP
+	_open_pop("chip", box, _more_chip)
 
 ## "Round 4 · P1/2": the hot-seat round and this seat (realm sheet, End Turn summary)
 func _round_text() -> String:
@@ -1057,7 +1013,7 @@ func _next_seat() -> int:
 func _sync_seal() -> void:
 	if _seal == null or g == null: return
 	var S = P.Seal.S
-	var date_hidden: bool = _prof == Prof.PORTRAIT or _stage >= 6
+	var date_hidden: bool = _prof == Prof.PORTRAIT
 	var lead: String = (T.call("tk_turn_short", {"k": g.turn}) + " · ") if date_hidden else ""
 	if g.over:
 		_seal.set_state(S.OVER); _seal.caption = T.call("tk_game_over"); _seal.sub = ""
@@ -1156,7 +1112,7 @@ func _unhandled_key_input(e: InputEvent) -> void:
 				if i < TBLenses.NAMES.size(): _pick_lens(TBLenses.NAMES[i]); handled = true
 			elif not (k.ctrl_pressed or k.alt_pressed or k.meta_pressed):
 				match k.keycode:
-					KEY_L: _open_lens_pop(_tab_maps); handled = true
+					KEY_L: _open_lens_pop(_mode if _mode.visible else _nat); handled = true
 					KEY_A: cycle_alert(-1 if k.shift_pressed else 1); handled = true
 					KEY_N: _screen("nations"); handled = true
 					KEY_B: _screen("budget"); handled = true
@@ -1210,7 +1166,7 @@ func show_preview(info: Dictionary, place: String, on_ok: Callable, on_cancel: C
 	add_child(_preview)
 	var sz: Vector2 = _preview.get_combined_minimum_size()
 	_preview.size = sz
-	_preview.position = Vector2(clampf((_vp.x - sz.x) * 0.5, 8.0, _vp.x - sz.x - 8.0), clampf(_vp.y * 0.3, _bar_h() + 40.0, _vp.y - sz.y - 120.0))
+	_preview.position = Vector2(clampf((_vp.x - sz.x) * 0.5, 8.0, _vp.x - sz.x - 8.0), clampf(_vp.y * 0.3, ribbon_height() + 40.0, _vp.y - sz.y - 120.0))
 
 # ================================================================== small classes
 ## flat row button: glyph, label, hotkey hint, optional count badge; active = brass bar + tick

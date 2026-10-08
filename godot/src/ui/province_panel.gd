@@ -59,6 +59,11 @@ var _hotkeys := {}
 var _handle: Control
 var _drag_y := 0.0
 var _name_label: Label
+var insp_fn: Callable                     # () -> Rect2 : where the inspector sits (hud.inspector_rect)
+var sheet_fn: Callable                    # () -> bool : phones show a bottom sheet (hud.sheet_mode)
+var _scroll: ScrollContainer
+var _body: VBoxContainer
+var _footer_box: VBoxContainer
 var _px0 := 0.0
 var _act_node: Control                    # the idle verb row: AoC action buttons floating above the minimap (top level)
 
@@ -66,8 +71,7 @@ func _init() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_box = CC.plate("paper_0", "rule", TBTokens.CUT_PANEL, 1)
-	_box.fill_a = 0.8
-	add_theme_stylebox_override("panel", _box)
+	add_theme_stylebox_override("panel", TBHudParts.card_box(16.0, 0.98))
 	_col = VBoxContainer.new()
 	_col.add_theme_constant_override("separation", 2)
 	add_child(_col)
@@ -80,48 +84,37 @@ func layout_for(vp: Vector2) -> void:
 	_vp = vp
 	CC.sync_settings()
 	var prev := profile
-	profile = "P" if vp.y > vp.x else ("L" if vp.y <= 480.0 else "D")
+	var sheet: bool = (bool(sheet_fn.call()) if sheet_fn.is_valid() else vp.y > vp.x)
+	profile = "P" if sheet else "D"
 	CC.show_hotkeys = profile != "P" and not (OS.get_name() in ["Android", "iOS"])
-	# the band the card may use: right of the rail, left of the End Turn seal and its chip with a 16 u gap (never over End Turn)
-	var band := Vector2(8.0, vp.x - 8.0)
-	if band_fn.is_valid(): band = band_fn.call()
-	# AoC layout: the minimap owns the bottom-left corner, the information bar sits right of it, the Next Turn plate bottom-right
-	var R := TBHudParts.R
-	var x0: float = band.x if profile != "P" else 8.0
-	var w: float = minf(R.call(620.0), maxf(240.0, band.y - x0)) if profile != "P" else vp.x - 16.0
-	var side_pad := 1.0
-	reserve = 0.0
-	_box.content_margin_top = 1; _box.content_margin_bottom = 1
-	if profile == "P":
-		reserve = 12.0
-		if reserve_fn.is_valid(): reserve = float(reserve_fn.call())
+	reserve = 12.0
+	if profile == "P" and reserve_fn.is_valid(): reserve = float(reserve_fn.call())
 	var pw := _card_w
-	_card_w = w
-	_box.content_margin_left = side_pad; _box.content_margin_right = side_pad
-	_box.force_rebuild()
-	set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	grow_vertical = Control.GROW_DIRECTION_BEGIN
-	grow_horizontal = Control.GROW_DIRECTION_BOTH
-	var left: float = x0
-	_px0 = x0
-	offset_left = left - vp.x * 0.5; offset_right = left + w - vp.x * 0.5
+	_card_w = _rect().size.x if profile != "P" else vp.x - 16.0
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	grow_vertical = Control.GROW_DIRECTION_END
 	_refit()
 	if prev != profile and visible: rebuild()
-	elif visible and profile == "L" and (pw >= 480.0) != (w >= 480.0) and false: rebuild()
 
-## the card is bottom-anchored and grows upward: its top edge follows its content height (a container resize would grow it downward)
+## the inspector rectangle (hud coordinates): right edge, below the toasts, above the turn button
+func _rect() -> Rect2:
+	if insp_fn.is_valid(): return insp_fn.call()
+	return Rect2(vp_x() - 376.0, 76.0, 360.0, _vp.y - 200.0)
+func vp_x() -> float: return _vp.x
+
+## content height capped to the free space; the body scrolls, header and footer stay
 func _refit() -> void:
-	var h := get_combined_minimum_size().y
-	offset_bottom = -reserve + _rise
-	offset_top = offset_bottom - h
-	if _act_node != null and is_instance_valid(_act_node):
-		var ah: float = _act_node.get_combined_minimum_size().y
-		var top_y: float = _vp.y + offset_top
-		if profile == "P": _act_node.position = Vector2(8.0, top_y - ah - 4.0)
-		else:
-			var ax: float = _px0 - TBHudParts.R(295.0) if _px0 <= TBHudParts.R(301.0) else _px0
-			_act_node.position = Vector2(ax, minf(_vp.y - TBHudParts.R(145.0), top_y) - ah)
-		_act_node.size = _act_node.get_combined_minimum_size()
+	if _scroll == null: return
+	var rc := _rect()
+	var chrome: float = 52.0 + (_footer_box.get_combined_minimum_size().y if _footer_box != null else 0.0)
+	var cap: float = (rc.size.y if profile != "P" else _vp.y * 0.62 - reserve)
+	var body_min: float = _body.get_combined_minimum_size().y
+	_scroll.custom_minimum_size = Vector2(0, clampf(body_min, 0.0, maxf(0.0, cap - chrome - 6.0)))
+	var h: float = minf(get_combined_minimum_size().y, rc.size.y if profile != "P" else 99999.0)
+	if profile == "P":
+		position = Vector2(8.0, _vp.y - reserve - h + _rise); size = Vector2(_vp.x - 16.0, h)
+	else:
+		position = Vector2(rc.position.x, rc.position.y + _rise); size = Vector2(rc.size.x, h)
 
 ## the radius of space the card must keep clear of the selected province (the map pans if it would cover it)
 func card_rect() -> Rect2: return get_global_rect()
@@ -239,55 +232,106 @@ func rebuild() -> void:
 	var subj := _subject()
 	var cs := _classify(subj)
 	_case = cs
-	if drawer_open: _col.add_child(_build_drawer(subj, cs))
-	var bar := TBInfoBar.new()
-	bar.tag = _tag_for(cs)
-	bar.setup(g, subj, cs, drawer_open)
-	bar.closed.connect(func(): closed.emit())
-	bar.owner_pressed.connect(func(n: int): nation_requested.emit(n))
-	bar.details_pressed.connect(func(): set_drawer(not drawer_open))
-	_col.add_child(bar)
-	_head2 = null; _name_label = null
+	# ---- header: owner flag, province name, "owner · relation"
+	var hdr := TBInspector.Header.new()
+	var o: int = int(cs["o"])
+	hdr.tex = TBFlags.texture(g.nat_code[o], g.color[o]) if o != 0 else null
+	hdr.title = TBI18n.place(g.world.name[subj])
+	var tg := _tag_for(cs)
+	var oname: String = g.dname(o) if o != 0 else T.call("cc_tag_unclaimed")
+	hdr.subtitle = oname if int(cs["kind"]) == 5 else ("%s · %s" % [oname, String(tg[1])])
+	hdr.sub_col = {"neg": "neg_bar", "info": "info_bar", "brass_ink": "brass_lt", "ink_1": "smoke", "foreign": "smoke"}.get(String(tg[2]), "smoke")
+	hdr.linkable = o != 0 and o != int(cs["me"])
+	hdr.closed.connect(func(): closed.emit())
+	hdr.owner_pressed.connect(func(): nation_requested.emit(o))
+	_col.add_child(hdr)
+	# ---- body (scrolls)
+	_scroll = ScrollContainer.new(); _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; _scroll.follow_focus = true
+	var bm := MarginContainer.new()
+	for sd in ["left", "right"]: bm.add_theme_constant_override("margin_" + sd, 16)
+	bm.add_theme_constant_override("margin_top", 12); bm.add_theme_constant_override("margin_bottom", 8)
+	bm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body = VBoxContainer.new(); _body.add_theme_constant_override("separation", 12); _body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bm.add_child(_body); _scroll.add_child(bm)
+	_col.add_child(_scroll)
+	_body.add_child(_build_stats(subj, cs))
 	var chips := _build_chips(subj, cs)
-	if chips.get_child_count() > 0: _col.add_child(chips)
+	if chips.get_child_count() > 0: _body.add_child(chips)
 	var order_mode := _order_mode()
 	var src := _source_for(cs) if order_mode != "war" else -1
-	var verbs_row: Control
-	match order_mode:
-		"preview", "war": verbs_row = _build_order_row(cs, src, order_mode)
-		"armed": verbs_row = _build_armed_row()
-		_: verbs_row = _build_verb_row(subj, cs, src)
 	var share_row: Control = _build_share_row(subj, cs, src)
-	# AoC: the information bar is the whole card; the send share, the cost line and the action buttons float above the minimap
-	var act := VBoxContainer.new()
-	act.add_theme_constant_override("separation", int(TBHudParts.R(4.0)))
-	if share_row.get_child_count() > 0 or _share_holder != null:
-		var strip := PanelContainer.new()
-		strip.add_theme_stylebox_override("panel", TBHudParts.sbox(TBHudParts.al(TBHudParts.tk("bar_0"), 0.9), TBHudParts.tk("rule"), TBHudParts.R(5.0), 1))
-		strip.mouse_filter = Control.MOUSE_FILTER_STOP
-		strip.add_child(share_row)
-		if _share_holder != null: share_row.add_child(_share_holder)
-		act.add_child(strip)
-	if _cost_holder != null: act.add_child(_cost_holder)
-	act.add_child(verbs_row)
-	act.custom_minimum_size.x = _card_w
-	var drop_act: bool = order_mode == "idle" and int(cs["kind"]) == 3 and foreign_panel_fn.is_valid() and bool(foreign_panel_fn.call())
-	if drop_act:
-		act.queue_free(); _verbs.clear(); _hotkeys.clear(); _cost = null; _share = null; _count = null; _share_holder = null; _cost_holder = null
-	else:
-		_act_node = act
-		_act_node.top_level = true
-		add_child(_act_node)
-	# keep the focused slot across rebuilds (stale state: the same verb stays focused if it is still there)
+	if share_row.get_child_count() > 0: _body.add_child(share_row)
+	var footer_ctl: Control = null
+	match order_mode:
+		"preview", "war":
+			footer_ctl = _build_order_row(cs, src, order_mode)
+		"armed":
+			footer_ctl = _build_armed_row()
+		_:
+			var vr := _build_verb_rows(subj, cs, src)
+			if vr["rows"].get_child_count() > 0: _body.add_child(vr["rows"])
+			footer_ctl = vr["primary"]
+	if _cost != null: _body.add_child(_cost)
+	var det := _details_row()
+	_body.add_child(det)
+	if drawer_open: _body.add_child(_build_drawer(subj, cs))
+	# ---- footer: the one primary (or Cancel / Confirm)
+	_footer_box = VBoxContainer.new()
+	if footer_ctl != null:
+		var fm := MarginContainer.new()
+		for sd2 in ["left", "right"]: fm.add_theme_constant_override("margin_" + sd2, 16)
+		fm.add_theme_constant_override("margin_top", 10); fm.add_theme_constant_override("margin_bottom", 12)
+		fm.add_child(footer_ctl)
+		var rule := ColorRect.new(); rule.color = TBTokens.c("rule"); rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_footer_box.add_child(rule); _footer_box.add_child(fm)
+	_col.add_child(_footer_box)
+	_body.minimum_size_changed.connect(_refit)
+	_footer_box.minimum_size_changed.connect(_refit)
+	# keep the focused slot across rebuilds
 	_focus_verb = 0
 	for i in _verbs.size():
 		if _verbs[i]["id"] == prev_id: _focus_verb = i
 	_update_cost_line()
 	_busy = false
-	_emit_foreign(subj, cs)
 	_process(0.0)
-	if _name_label != null: _name_label.queue_redraw()
 	_refit.call_deferred()
+
+## "Details" list row: opens the full ledger under the actions
+func _details_row() -> Control:
+	var r := TBInspector.Row.new().setup("details", "tri_down" if drawer_open else "tri_up", T.call("cc_details"), "I", false, false)
+	r.pressed.connect(func(): set_drawer(not drawer_open))
+	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return r
+
+## the 2-column stat grid of the selected province
+func _build_stats(s: int, cs: Dictionary) -> Control:
+	var gr := TBInspector.Grid.new()
+	var armyc := TBKit.fmt(g.army[s])
+	var stab: int = g.stab[s]
+	var scol: Color = TBTokens.c("neg_bar") if stab < 30 else (TBTokens.c("warn_bar") if stab < 50 else TBTokens.c("pos_bar"))
+	var hap: int = g.happy[s]
+	var hcol: Color = TBTokens.c("neg_bar") if hap < 30 else (TBTokens.c("warn_bar") if hap < 50 else TBTokens.c("pos_bar"))
+	var cells: Array = [
+		{"label": T.call("army"), "value": armyc, "tip": "%s: %d" % [T.call("army"), g.army[s]]},
+		{"label": T.call("ins_defense"), "value": str(g.defense[s]), "tip": T.call("ins_defense")},
+		{"label": T.call("pop"), "value": TBKit.fmt(g.pop[s]), "tip": "%s: %d" % [T.call("pop"), g.pop[s]]},
+		{"label": T.call("dev"), "value": str(g.dev[s]), "tip": T.call("dev")},
+		{"label": T.call("stability"), "value": "%d%%" % stab, "col": scol, "bar": stab / 100.0, "tip": T.call("stability")},
+		{"label": T.call("happiness"), "value": "%d%%" % hap, "col": hcol, "bar": hap / 100.0, "tip": T.call("happiness")},
+		{"label": T.call("econ"), "value": str(g.econ[s]), "tip": T.call("econ")},
+		{"label": T.call("terrain"), "value": T.call("t_" + D.TERRAIN_ID[g.terrain[s]]), "tip": T.call("terrain")},
+	]
+	var bname: String = T.call("ins_none")
+	if g.b_building[s] != 0: bname = "%s · %d" % [T.call("b_" + D.BUILDINGS[g.b_building[s] - 1]["id"]), g.b_turns[s]]
+	elif g.building[s] != 0: bname = "%s %d" % [T.call("b_" + D.BUILDINGS[g.building[s] - 1]["id"]), g.b_level[s]]
+	cells.append({"label": T.call("building"), "value": bname, "span": 2 if g.rules < 1 else 1, "tip": T.call("building")})
+	if g.rules >= 1:
+		cells.append({"label": T.call("supply"), "value": str(g.supply_limit(s)), "tip": T.call("supply_hint")})
+	gr.cells = cells
+	gr.custom_minimum_size = Vector2(0, 40)
+	gr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return gr
 
 const FOREIGN_GLYPH := {"nap": "link", "ally": "link", "trade": "coins", "marry": "crown", "breakPact": "close"}
 func _emit_foreign(subj: int, cs: Dictionary) -> void:
@@ -617,21 +661,18 @@ var _share_holder: Control
 var _cost_holder: Control
 
 func _build_share_row(s: int, cs: Dictionary, src: int) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	var tall := 36 if profile == "D" else int(CC.touch())
-	row.custom_minimum_size = Vector2(0, tall)
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 10); row.add_theme_constant_override("v_separation", 6)
 	_share_holder = null; _cost_holder = null
 	_cost = CC.CostLine.new()
-	_cost.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_cost.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_count = null; _share = null
 	if src >= 0:
-		var cap := CC.label(T.call("send_share"), 12, "ink_1", TBKit.body_b())
+		var cap := CC.label(T.call("send_share"), 12, "ink_off", TBKit.body_b())
 		cap.text = cap.text.to_upper() if TBI18n.lang != "ru" else cap.text
 		cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_share = CC.ShareSeg.new()
-		_share.cell_h = tall
-		_share.cell_w = 40.0 if profile == "D" else maxf(48.0, CC.touch())      # touch cells are >= 48 wide and high
+		_share.cell_h = 34; _share.cell_w = 40.0
 		_share.set_current(send_frac)
 		var army := g.army[src] - 1
 		for i in 4:                                    # duplicate presets of a small army are disabled
@@ -644,22 +685,12 @@ func _build_share_row(s: int, cs: Dictionary, src: int) -> Control:
 			_refresh_count())
 		_count = CC.label("", 14, "ink_0", TBKit.mono_b())
 		_count.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		if profile != "L":
-			row.add_child(cap)
-		var holder := HBoxContainer.new(); holder.add_theme_constant_override("separation", 6)
-		holder.add_child(_share)
-		if profile != "L": row.add_child(holder); row.add_child(_count)
-		else: holder.add_child(_count); _share_holder = holder
+		row.add_child(cap); row.add_child(_share); row.add_child(_count)
 		_refresh_count()
-	elif int(cs["kind"]) == 2 or (int(cs["kind"]) == 1):
+	elif int(cs["kind"]) == 2:
 		var hint := CC.label(T.call("cc_raise_hint"), 13, "ink_1")
-		hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		if int(cs["kind"]) == 2 and profile != "L": row.add_child(hint)
-	if profile == "D":
-		row.add_child(_cost)
-	else:                                              # touch layouts: the cost line gets its own full-width row and wraps
-		_cost_holder = _cost
-		_cost.size_flags_vertical = Control.SIZE_FILL
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(hint)
 	return row
 
 func _refresh_count() -> void:
@@ -742,33 +773,14 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				if not bi["items"].is_empty(): parts.append({"t": " · " + T.call("cc_from_gold", {"n": int(bi["min_gold"])}), "short": false})
 				out.append(_mk("build", "hammer", "build", bcan, parts, false, false, {"items": bi["items"]}))
 		3:
-			var o: int = cs["o"]
-			var rel: int = cs["rel"]
-			var dl := _diplo_items(o)
-			var any_ok := false
-			var first_bad: Dictionary = {}
-			for it in dl:
-				if it["can"]["ok"]: any_ok = true
-				elif first_bad.is_empty(): first_bad = it["can"]
-			var dcan: Dictionary = {"ok": true, "reason": "", "gold": 0, "moves": 0, "men": 0, "dp": 0, "short": {}}
-			if not any_ok and not dl.is_empty(): dcan = first_bad
-			if not dl.is_empty():
-				var pp: Array = [{"t": T.call("cc_diplomacy"), "short": false}]
-				var mn := 99
-				for it in dl: if it["can"]["dp"] > 0: mn = mini(mn, int(it["can"]["dp"]))
-				if mn < 99: pp.append({"t": " · " + T.call("cc_from_dp", {"n": mn}), "short": false})
-				out.append(_mk("diplo", "scroll", "cc_diplomacy", dcan, pp, true, false, {"items": dl}))
-			if g.rules >= 1 and rel == D.REL_PEACE:
-				var uc := g.can({"cmd": "ultimatum", "t": o, "p": s})
-				if not (uc["reason"] in ["vassal", "target", "capital"]):
-					var ratio := TBDiplo.ult_ratio(g, me, o)
-					out.append(_mk("ult", "scales", "ultimatum", uc, _cost_parts(T.call("ultimatum"), uc) + [{"t": " · " + T.call("cc_ratio_of", {"r": "%.1f" % ratio, "n": "%.1f" % TBDiplo.ULT_RATIO}), "short": false}]))
-			if rel == D.REL_PEACE or (g.overlord[o] == 0 and g.overlord[me] != o and rel != D.REL_NAP and rel != D.REL_ALLY and rel != D.REL_MARRIAGE):
-				var wc := g.can({"cmd": "declareWar", "t": o})
-				if wc["reason"] != "vassal":
-					var wp := _cost_parts(T.call("declare_war"), wc)
-					if float(wc["infamy"]) > 0.0: wp.append({"t": " · " + T.call("cc_infamy", {"n": int(wc["infamy"])}), "short": false})
-					out.append(_mk("war", "swords", "cc_war", wc, wp, false, true, {"gap": true}))
+			var o3: int = cs["o"]
+			for fr in foreign_actions(o3, s):
+				var fcn := {"ok": bool(fr["ok"]), "reason": "", "gold": 0, "moves": 0, "men": 0, "dp": int(fr["dp"]) if String(fr["dp"]) != "" else 0, "short": {}}
+				var fparts: Array = [{"t": String(fr["label"]), "short": false}]
+				if int(fcn["dp"]) > 0: fparts.append({"t": " · %d %s" % [int(fcn["dp"]), T.call("u_dp")], "short": false})
+				var fv := _mk("f_" + String(fr["id"]), String(fr["glyph"]), "", fcn, fparts, false, bool(fr.get("danger", false)))
+				fv["label"] = String(fr["label"]); fv["why"] = String(fr["why"]); fv["foreign_row"] = fr; fv["hot"] = ""
+				out.append(fv)
 		4:
 			var en: int = cs["enemy"]
 			var ac: Dictionary
@@ -835,24 +847,22 @@ func _diplo_items(o: int) -> Array:
 		out.append({"label": T.call("break_pact"), "can": g.can({"cmd": "breakPact", "t": o}), "cmd": {"cmd": "breakPact", "t": o}, "danger": true})
 	return out
 
-func _build_verb_row(s: int, cs: Dictionary, src: int) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 4)
+func _build_verb_rows(s: int, cs: Dictionary, src: int) -> Dictionary:
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 2)
+	var primary_btn: Control = null
 	var specs := _verb_specs(s, cs, src)
-	var h := int(maxf(TBHudParts.R(68.0), 44.0))
-	row.add_theme_constant_override("separation", int(TBHudParts.R(5.0)))
-	row.custom_minimum_size = Vector2(0, h)
 	_verbs.clear(); _hotkeys.clear()
+	var first_primary := true
 	for i in specs.size():
 		var v: Dictionary = specs[i]
-		if bool(v.get("gap", false)):
-			var gp := Control.new(); gp.custom_minimum_size = Vector2(12, 0); gp.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(gp)
-		var b := CC.VerbBtn.new().setup(v["id"], v["glyph"], T.call("aoc_move") if v["id"] == "move" else v["label"], v["hot"], bool(v["primary"]), bool(v["danger"]))
-		b.sub_gold = int(v["can"].get("gold", 0)); b.sub_moves = int(v["can"].get("moves", 0)); b.sub_dp = int(v["can"].get("dp", 0))
-		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		b.custom_minimum_size = Vector2(maxf(TBHudParts.R(92.0), 56.0), h)
-		b.aoc = true
+		var is_primary: bool = bool(v["primary"]) and first_primary and int(cs["kind"]) != 3
+		if is_primary: first_primary = false
+		var b := TBInspector.Row.new().setup(v["id"], v["glyph"], v["label"], v["hot"], is_primary, bool(v["danger"]))
+		b.filled = is_primary
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.set_blocked(not bool(v["can"]["ok"]))
+		b.sub_text = String(v["why"]) if v["why"] != "" else _sub_text(v)
 		var tip: String = "%s. %s" % [v["label"], _plain(v["parts"])] if v["why"] == "" else "%s. %s: %s" % [v["label"], T.call("cc_unavailable"), v["why"]]
 		b.tooltip_text = tip
 		var idx := _verbs.size()
@@ -860,13 +870,21 @@ func _build_verb_row(s: int, cs: Dictionary, src: int) -> HBoxContainer:
 		b.mouse_entered.connect(func(): _set_focus_verb(idx))
 		b.focus_entered.connect(func(): _set_focus_verb(idx))
 		b.mouse_exited.connect(func(): _set_focus_verb(0))
-		row.add_child(b)
+		if is_primary: primary_btn = b
+		else: rows.add_child(b)
 		v["btn"] = b
 		_verbs.append(v)
 		var key: int = -1
 		for kc in HOT_KEY: if HOT_KEY[kc] == v["id"] or (v["id"] == "attack" and HOT_KEY[kc] == "move"): key = kc
 		if key >= 0: _hotkeys[key] = idx
-	return row
+	return {"rows": rows, "primary": primary_btn}
+
+## the row subtitle: the cost parts after the verb's own name ("1 move · 20 gold")
+func _sub_text(v: Dictionary) -> String:
+	var parts: Array = v["parts"]
+	var out := ""
+	for i in range(1, parts.size()): out += String(parts[i]["t"])
+	return out.trim_prefix(" · ").strip_edges()
 
 func _plain(parts: Array) -> String:
 	var s := ""
@@ -904,11 +922,17 @@ func _update_cost_line() -> void:
 	else: _cost.set_parts(v["parts"])
 
 # ---------------------------------------------------------------- order rows (replace the verb row)
+## a filled footer button (Cancel / Confirm / the primary)
+func _frow(id: String, glyph_id: String, label_text: String, hotkey: String, primary: bool, danger: bool) -> TBInspector.Row:
+	var r := TBInspector.Row.new().setup(id, glyph_id, label_text, hotkey, primary, danger)
+	r.filled = true
+	return r
+
 func _build_armed_row() -> HBoxContainer:
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8)
 	row.custom_minimum_size = Vector2(0, CC.touch())
-	var cb := CC.VerbBtn.new().setup("cancel", "close", T.call("pv_cancel"), "Esc", false, false)
-	cb.custom_minimum_size = Vector2(104, CC.touch()); cb.pressed.connect(func(): if flow != null: flow.disarm())
+	var cb := _frow("cancel", "close", T.call("pv_cancel"), "Esc", false, false)
+	cb.custom_minimum_size = Vector2(110, 44); cb.pressed.connect(func(): if flow != null: flow.disarm())
 	row.add_child(cb)
 	var hint := CC.label(T.call("cc_pick_target_kb"), 13, "ink_1")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -929,14 +953,14 @@ func _build_order_row(cs: Dictionary, src: int, mode: String) -> HBoxContainer:
 		row.add_child(hint)
 		_verbs.clear()
 		return row
-	var cancel := CC.VerbBtn.new().setup("cancel", "close", T.call("pv_cancel"), "Esc", false, false)
-	cancel.custom_minimum_size = Vector2(104, CC.touch())
+	var cancel := _frow("cancel", "close", T.call("pv_cancel"), "Esc", false, false)
+	cancel.custom_minimum_size = Vector2(110, 44)
 	var ok: CC.VerbBtn
 	if mode == "war" and _brk_target >= 0:
 		cancel.pressed.connect(func(): _brk_target = -1; rebuild())
 		var bt := _brk_target
 		var bcn := g.can({"cmd": "breakPact", "t": bt})
-		ok = CC.VerbBtn.new().setup("brk_ok", "swords", T.call("break_pact"), "", false, true)
+		ok = _frow("brk_ok", "swords", T.call("break_pact"), "", false, true)
 		ok.set_blocked(not bcn["ok"])
 		ok.pressed.connect(func():
 			if not bcn["ok"]: reject_can(bcn); return
@@ -945,7 +969,7 @@ func _build_order_row(cs: Dictionary, src: int, mode: String) -> HBoxContainer:
 	elif mode == "war":
 		cancel.pressed.connect(func(): _war_target = -1; rebuild())
 		var cn := g.can({"cmd": "declareWar", "t": _war_target})
-		ok = CC.VerbBtn.new().setup("war_ok", "swords", "%s · %d %s" % [T.call("cc_war"), int(cn["dp"]), T.call("u_dp")], "", false, true)
+		ok = _frow("war_ok", "swords", "%s · %d %s" % [T.call("cc_war"), int(cn["dp"]), T.call("u_dp")], "", false, true)
 		ok.set_blocked(not cn["ok"])
 		ok.pressed.connect(func():
 			var t := _war_target
@@ -963,11 +987,11 @@ func _build_order_row(cs: Dictionary, src: int, mode: String) -> HBoxContainer:
 			lost = int(pv["lost"])
 		label = "%s · %s" % [T.call("cc_attack") if attack else T.call("move"), CC.unit(int(cn2["moves"]), "u_move")]
 		if attack and lost > 0: label += " · −%s" % CC.unit(lost, "u_man")
-		ok = CC.VerbBtn.new().setup("confirm", "swords" if attack else "arrowhead", label, "↵", not attack, attack)
+		ok = _frow("confirm", "swords" if attack else "arrowhead", label, "↵", not attack, attack)
 		ok.set_blocked(not cn2["ok"])
 		ok.pressed.connect(func(): if cn2["ok"]: flow.confirm() else: reject_can(cn2))
 	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ok.custom_minimum_size = Vector2(120, CC.touch())
+	ok.custom_minimum_size = Vector2(120, 44)
 	row.add_child(cancel); row.add_child(ok)
 	_verbs.clear()
 	_verbs.append({"id": "confirm", "btn": ok, "can": {"ok": true}, "parts": [], "why": ""})
@@ -985,6 +1009,7 @@ func _press(i: int) -> void:
 	var cn: Dictionary = v["can"]
 	if not cn["ok"]: flash(String(v["why"])); return
 	var s := _subject()
+	if v.has("foreign_row"): run_foreign(v["foreign_row"]); return
 	match String(v["id"]):
 		"move": move_requested.emit(s)
 		"attack": if flow != null: flow.preview_to(s, _source_for(_case))

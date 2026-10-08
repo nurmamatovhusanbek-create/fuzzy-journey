@@ -349,7 +349,7 @@ class ShareSeg extends Control:
 		focus_mode = Control.FOCUS_ALL
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		_box = TBCmdCard.plate("paper_1", "rule", TBTokens.CUT)
-	func _cw() -> float: return maxf(cell_w, TBKit.mono_b().get_string_size("100%", HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13)).x + 14.0)
+	func _cw() -> float: return maxf(cell_w, TBKit.mono_b().get_string_size("100%", HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13)).x + 8.0)
 	func _get_minimum_size() -> Vector2: return Vector2(_cw() * 4.0, cell_h)
 	## the hit area is at least 48 high even where the cells are 36 (desktop pointer cards)
 	func _has_point(p: Vector2) -> bool:
@@ -369,22 +369,20 @@ class ShareSeg extends Control:
 		while i > 0 and off[i]: i -= 1               # a disabled duplicate resolves to the preset below it
 		current = FRACS[i]; chosen.emit(current); queue_redraw()
 	func _draw() -> void:
-		_box.draw(get_canvas_item(), Rect2(Vector2.ZERO, size))
-		var w := size.x / 4.0
-		var f: Font = TBKit.mono_b()
+		var P := TBHudParts
+		draw_style_box(P.sbox(P.tk("bar_1"), P.tk("rule"), 10.0, 1), Rect2(Vector2.ZERO, size))
+		var w := (size.x - 6.0) / 4.0
+		var f: Font = TBKit.body_m()
 		for i in 4:
 			var on: bool = absf(FRACS[i] - current) < 0.001
-			var r := Rect2(i * w, 0, w, size.y)
-			if on:
-				draw_colored_polygon(TBCmdCard.chamfer(r.grow(-1.0), 3.0 if (i == 0 or i == 3) else 0.0), TBCmdCard.tk("act"))
-			elif i > 0:
-				draw_line(Vector2(r.position.x + 0.5, 6.0), Vector2(r.position.x + 0.5, size.y - 6.0), TBCmdCard.tk("hair"), 1.0)
+			var r := Rect2(3.0 + i * w, 3.0, w, size.y - 6.0)
+			if on: draw_style_box(P.sbox(P.sel_fill(), Color.TRANSPARENT, 7.0, 0), r)
 			var t := "%d" % int(FRACS[i] * 100.0) + ("%" if i == 3 else "")
 			var tw := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13)).x
-			var c := TBCmdCard.tk("on_act") if on else (TBCmdCard.tk("ink_off") if off[i] else TBCmdCard.tk("ink_0"))
-			draw_string(f, Vector2(r.position.x + (w - tw) * 0.5, size.y * 0.5 + 5.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13), c)
+			var c := TBCmdCard.tk("ink_0") if on else (TBCmdCard.tk("ink_off") if off[i] else TBCmdCard.tk("ink_1"))
+			draw_string(f, Vector2(r.position.x + (r.size.x - tw) * 0.5, P.base(f, TBCmdCard.fs(13), r.get_center().y)), t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13), c)
 		if has_focus():
-			draw_rect(Rect2(Vector2.ZERO, size).grow(-1.0), TBCmdCard.tk("ink_0"), false, 2.0)
+			P.focus_ring(self, Rect2(Vector2.ZERO, size))
 
 # ---------------------------------------------------------------- cost line (wraps to as many lines as it needs; the shortfall part is underlined as well as red)
 class CostLine extends Control:

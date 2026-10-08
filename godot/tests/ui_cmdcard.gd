@@ -88,7 +88,7 @@ func _init() -> void:
 	_check(main.panel._verbs[0]["id"] == "recruit", "case 2 primary verb is Recruit")
 	main._select(peace_p)
 	await _shot("3_foreign_peace")
-	_check(main.panel._verbs[0]["id"] == "diplo", "case 3 first verb is Diplomacy")
+	_check(String(main.panel._verbs[0]["id"]).begins_with("f_") and main.panel._verbs.any(func(v): return v["id"] == "f_war"), "case 3 lists the nation actions (pact ... declare war) as rows")
 	g.dp[me] = 8
 	g.set_rel(me, eo, 1)
 	main._select(enemy_p)

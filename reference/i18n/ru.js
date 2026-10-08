@@ -427,6 +427,8 @@ export default {
   aoc_diplomacy: 'Дипломатия', aoc_map_modes: 'Режимы карты', aoc_stats: 'Статистика', aoc_decisions: 'Решения', aoc_provinces: 'Провинции', aoc_turn: 'Ход: {k}', aoc_next_turn: 'Следующий ход',
   aoc_move: 'Ход',
   aoc_actions: 'Действия',
+  tk_minimap: 'Миникарта',
+  ins_defense: 'Оборона', ins_none: 'Нет', ins_nation_card: 'Карточка нации',
   ev_worldwide: 'Мировое событие', ev_event: 'Событие', ev_ack: 'Принять', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Обильный урожай', ev_bountiful_harvest_f: 'Поля ломятся от зерна, а амбары полны как никогда.',
   ev_bountiful_harvest_c0: 'Раздать излишки', ev_bountiful_harvest_d0: '+40 золота, +25 людей, +8 к стабильности в столице',

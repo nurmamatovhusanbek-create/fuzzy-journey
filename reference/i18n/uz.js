@@ -1012,6 +1012,8 @@ export default {
   aoc_diplomacy: "Diplomatiya", aoc_map_modes: "Xarita rejimlari", aoc_stats: "Statistika", aoc_decisions: "Qarorlar", aoc_provinces: "Viloyatlar", aoc_turn: "Navbat: {k}", aoc_next_turn: "Keyingi navbat",
   aoc_move: "Yurish",
   aoc_actions: "Harakatlar",
+  tk_minimap: "Mini xarita",
+  ins_defense: "Mudofaa", ins_none: "Yo'q", ins_nation_card: "Davlat kartasi",
   ev_worldwide: "Butun dunyo voqeasi",
   ev_event: "Voqea",
   ev_ack: "Tushunarli",
