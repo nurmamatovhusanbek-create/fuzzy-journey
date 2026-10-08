@@ -483,7 +483,7 @@ func _draw() -> void:
 			var req := _ext_tier(ztier, g.army[of], dn, of == sel) + (_ext_tier(ztier, g.army[ot], -dn) if g.army[ot] > 0 else 5.0) + SHAFT_MIN + head + 4.0
 			if dl < req:
 				var need := req - dl
-				if bool(_order.get("hover", false)): _push_p = ot; _push_v = dn * minf(need, 90.0)
+				if bool(_order.get("hover", false)): _push_p = ot; _push_v = dn * minf(need, 150.0)
 				else:
 					var share := minf(need * 0.5, 70.0)
 					_push_p = ot; _push_v = dn * share; _push_sp = of; _push_sv = -dn * share
