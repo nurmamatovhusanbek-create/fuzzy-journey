@@ -54,6 +54,7 @@ class Head extends Control:
 class Facts extends Control:
 	var g: TBGame
 	var n := 0
+	var pop := 0
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
 		draw_style_box(P.sbox(P.al(Color.BLACK, 0.2), P.al(P.tk("rule"), 0.4), P.R(3.0), 1), Rect2(P.R(6.0), 0, size.x - P.R(12.0), size.y))
@@ -65,8 +66,7 @@ class Facts extends Control:
 		rows.append([TBI18n.T.call("govt"), TBI18n.T.call("g_" + D.REGIME_ID[g.regime[n]])])
 		if g.rules >= 1 and g.r_name[n] != "":
 			rows.append([TBI18n.T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)])
-		var inc: Dictionary = g.income(n)
-		rows.append([TBI18n.T.call("pop"), TBKit.fmt(int(inc.get("pop", 0)))])
+		rows.append([TBI18n.T.call("pop"), TBKit.fmt(pop)])
 		var y: float = P.R(10.0)
 		var lh: float = P.R(30.0)
 		for r in rows:
@@ -158,7 +158,7 @@ func rebuild() -> void:
 	var head := Head.new(); head.g = g; head.n = n; head.custom_minimum_size = Vector2(0, P.R(98.0))
 	head.pressed_nation.connect(func(): action.emit("nation"))
 	_col.add_child(head)
-	var facts := Facts.new(); facts.g = g; facts.n = n
+	var facts := Facts.new(); facts.g = g; facts.n = n; facts.pop = int(g.income(n).get("pop", 0))
 	_col.add_child(facts); facts.queue_redraw()
 	_sect(TBI18n.T.call("aoc_diplomacy"))
 	var allies: Array = []; var wars: Array = []; var pacts: Array = []; var vassals: Array = []

@@ -601,8 +601,8 @@ func _blocked(r: Rect2) -> bool:
 var _star_poly := PackedVector2Array()
 var _star_line := PackedVector2Array()
 ## army badge size (px, before the marker scale): a flat rectangle, wider for bigger numbers; the near tier is a little larger
-func _badge_w(f: Font, n: int, near: bool) -> float:
-	return _badge_h(near) * 1.3 + 3.0 + 4.0 + f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13.0 if near else 12.0)).x + 6.0
+func _badge_w(f: Font, n: int, near: bool, flag := true) -> float:
+	return (_badge_h(near) * 1.3 + 3.0 + 4.0 if flag else 8.0) + f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13.0 if near else 12.0)).x + 6.0
 func _badge_h(near: bool) -> float: return 22.0 if near else 19.0
 
 func _ensure_star() -> void:
@@ -658,7 +658,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var near: bool = ztier == 2
 	var fsz: int = TBKit.fs(13.0 if near else 12.0)
 	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-	var bw := _badge_w(nfont, int(round(st["shown"])), near)
+	var bw := _badge_w(nfont, int(round(st["shown"])), near, o != 0)
 	var bh: float = _badge_h(near)
 	draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(sc, sc))
 	var r := Rect2(-bw * 0.5, -bh * 0.5, bw, bh)
@@ -680,7 +680,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	elif ally: tcol = tk("info_bar")
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var base := pos + Vector2(0, lift)
-	draw_string(nfont, base + Vector2((fl.end.x + 4.0) * sc, (bh * 0.5 - 4.5) * sc), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(tcol, al))
+	draw_string(nfont, base + Vector2(((fl.end.x + 4.0) if o != 0 else (-bw * 0.5 + 5.0)) * sc, (bh * 0.5 - 4.5) * sc), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(tcol, al))
 	if not near:
 		_pip(base + Vector2((bw * 0.5 + 1.0) * sc, -bh * 0.5 * sc), war, ally, al, 0.8)
 		_floater(p, pos, st, o, me, nfont)

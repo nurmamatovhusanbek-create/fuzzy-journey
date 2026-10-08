@@ -184,6 +184,7 @@ var _bezel: Control
 
 func show_menu() -> void:
 	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; theme = K.theme()
+	map.outline_nation(-1)
 	map.set_mode(0)                                           # the title is always the globe inside its ring, whatever view the game uses
 	if TBLenses.dark_land:
 		TBLenses.dark_land = false
@@ -506,7 +507,7 @@ func _place_tip() -> void:
 func _select(p: int) -> void:
 	selected = p
 	map.select(p)
-	map.outline_nation(g.owner[p] if (p >= 0 and g != null and g.human_id != 0) else -1)       # AoC: the owner's border lights up in brass
+	map.outline_nation(g.owner[p] if (p >= 0 and g != null and g.human_id != 0 and g.owner[p] != 0) else -1)       # AoC: the owner's border lights up in brass
 	flow.g = g
 	flow.on_select(p)
 	panel.show_province(g, p) if p >= 0 else panel.show_province(g, -1)

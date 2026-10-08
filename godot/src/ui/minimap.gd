@@ -45,16 +45,23 @@ func refresh() -> void:
 func _recolor() -> void:
 	if g == null or map == null or map.lenses == null: return
 	if _w == 0: _build()
-	var cache: Dictionary = {}
+	var cols := PackedColorArray(); cols.resize(g.P)
+	for q in g.P:
+		var rgb: int = map.lenses.color(q)
+		cols[q] = Color.hex((rgb << 8) | 0xff)
+	var sea: Color = TBTokens.c("table")
+	var buf := PackedByteArray(); buf.resize(_src.size() * 4)
+	var sea8 := [int(sea.r8), int(sea.g8), int(sea.b8)]
 	for i in _src.size():
 		var p: int = _src[i]
-		var c: Color = TBTokens.c("table")
+		var o: int = i * 4
 		if p >= 0:
-			if not cache.has(p):
-				var rgb: int = map.lenses.color(p)
-				cache[p] = Color.hex((rgb << 8) | 0xff)
-			c = cache[p]
-		_img.set_pixel(i % _w, i / _w, c)
+			var c: Color = cols[p]
+			buf[o] = c.r8; buf[o + 1] = c.g8; buf[o + 2] = c.b8
+		else:
+			buf[o] = sea8[0]; buf[o + 1] = sea8[1]; buf[o + 2] = sea8[2]
+		buf[o + 3] = 255
+	_img.set_data(_w, _h, false, Image.FORMAT_RGBA8, buf)
 	_tex.update(_img)
 	_dirty = false
 
@@ -92,6 +99,7 @@ func _draw() -> void:
 
 func _fly(pos: Vector2) -> void:
 	if map == null: return
+	pos = Vector2(clampf(pos.x, 0.0, size.x), clampf(pos.y, 0.0, size.y))
 	var lon: float = (pos.x / maxf(1.0, size.x) - 0.5) * 360.0
 	var lat: float = (0.5 - pos.y / maxf(1.0, size.y)) * 180.0
 	looked.emit(lon, lat)

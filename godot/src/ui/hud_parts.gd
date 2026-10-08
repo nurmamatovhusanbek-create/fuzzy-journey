@@ -311,8 +311,10 @@ class Hit extends Control:
 static var _sb: Dictionary = {}
 ## cached StyleBoxFlat: fill, 1-px edge, corner radius
 static func sbox(fill: Color, edge: Color, radius: float, bw: int = 1) -> StyleBoxFlat:
+	fill.a = snappedf(fill.a, 0.05); edge.a = snappedf(edge.a, 0.05)               # fading callers do not mint a new box every frame
 	var key := "%s%s%d%d%d" % [fill.to_html(true), edge.to_html(true), int(radius), bw, TBTokens.mode]
 	if _sb.has(key): return _sb[key]
+	if _sb.size() > 400: _sb.clear()
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill; sb.border_color = edge
 	sb.set_border_width_all(bw if edge.a > 0.0 else 0)
