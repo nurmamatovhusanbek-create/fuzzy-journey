@@ -78,7 +78,9 @@ func _view_rect() -> Rect2:
 func _draw() -> void:
 	if g == null: return
 	if _dirty or _w == 0: _recolor()
+	draw_rect(Rect2(Vector2.ZERO, size), TBTokens.ca("bar_0", 0.92))
 	draw_texture_rect(_tex, Rect2(Vector2.ZERO, size), false)
+	draw_rect(Rect2(Vector2.ZERO, size), TBTokens.c("rule"), false, 2.0)
 	var vr: Rect2 = _view_rect()
 	var col: Color = TBTokens.c("cream")
 	# the view rectangle wraps around the date line

@@ -117,7 +117,7 @@ func _refit() -> void:
 		if profile == "P": _act_node.position = Vector2(8.0, top_y - ah - 4.0)
 		else:
 			var ax: float = _px0 - TBHudParts.R(295.0) if _px0 <= TBHudParts.R(301.0) else _px0
-			_act_node.position = Vector2(ax, minf(_vp.y - TBHudParts.R(145.0), top_y) - ah - TBHudParts.R(5.0))
+			_act_node.position = Vector2(ax, minf(_vp.y - TBHudParts.R(145.0), top_y) - ah)
 		_act_node.size = _act_node.get_combined_minimum_size()
 
 ## the radius of space the card must keep clear of the selected province (the map pans if it would cover it)
