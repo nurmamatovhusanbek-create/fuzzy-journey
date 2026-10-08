@@ -45,7 +45,7 @@ func setup(game: TBGame, map_view: TBMapView, hot_count: int, picked: PackedInt3
 	add_child(_list_btn)
 	# slip
 	_slip = PanelContainer.new(); _slip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_slip.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT, 1, 14, 8))
+	_slip.add_theme_stylebox_override("panel", _aoc_box(14, 8))
 	var sv := K.vbox(4); sv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_slip.add_child(sv)
 	_slip_label = K.title("", 17); _slip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; _slip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; _slip_label.custom_minimum_size.x = 120
@@ -55,7 +55,7 @@ func setup(game: TBGame, map_view: TBMapView, hot_count: int, picked: PackedInt3
 	add_child(_slip)
 	# rail
 	_rail = PanelContainer.new()
-	_rail.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 2, 12, 10))
+	_rail.add_theme_stylebox_override("panel", _aoc_box(10, 8))
 	var rv := K.vbox(8); _rail.add_child(rv)
 	_tier_seg = TBPanel.seg([["powers", T.call("tier_powers")], ["regional", T.call("tier_regional")], ["minor", T.call("tier_minor")]], tier, func(id: String): tier = id; _fill_rail())
 	rv.add_child(_tier_seg)
@@ -66,7 +66,7 @@ func setup(game: TBGame, map_view: TBMapView, hot_count: int, picked: PackedInt3
 	add_child(_rail)
 	# card (non-modal)
 	_card = PanelContainer.new()
-	_card.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 2, 16, 12))
+	_card.add_theme_stylebox_override("panel", _aoc_box(14, 10))
 	var cov := K.vbox(8); _card.add_child(cov)
 	_card_sc = ScrollContainer.new(); _card_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _card_sc.follow_focus = true; _card_sc.scroll_deadzone = 12
 	_card_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL; _card_sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -85,6 +85,13 @@ func setup(game: TBGame, map_view: TBMapView, hot_count: int, picked: PackedInt3
 	return self
 
 func hot_seat() -> bool: return hot_n > 1
+
+## AoC panel: dark translucent body, thin rule, 4 px corners
+static func _aoc_box(px: int, py: int) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = TBTokens.ca("paper_0", 0.93); sb.border_color = TBTokens.c("rule"); sb.set_border_width_all(1); sb.set_corner_radius_all(4)
+	sb.content_margin_left = px; sb.content_margin_right = px; sb.content_margin_top = py; sb.content_margin_bottom = py
+	return sb
 
 func refresh_hint() -> void:
 	var t: String = _hint_override
