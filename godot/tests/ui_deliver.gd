@@ -27,7 +27,7 @@ func _init() -> void:
 	main._update_ui_scale()
 	for i in 6: await process_frame
 	var cp: int = g.capital_of[fr]
-	main.map.fly_to(main.world.lon[cp], main.world.lat[cp], 1.5 if w >= 700 else 2.2)
+	main.map.fly_to(main.world.lon[cp], main.world.lat[cp], maxf(1.5, (float(h) / PI) / (float(w) / TAU)))
 	await _shot("1_map")
 	main._select(cp)
 	await _shot("2_inspector")

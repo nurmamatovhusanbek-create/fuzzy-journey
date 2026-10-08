@@ -457,8 +457,8 @@ class NationChip extends Hit:
 		var fn: int = TBHudParts.fs(16.0)
 		var has_sub: bool = subtitle != ""
 		var ny: float = size.y * (0.38 if has_sub else 0.5) + oy
-		x += TBHudParts.txt(self, fb, Vector2(x, TBHudParts.base(fb, fn, ny)), nation, fn, TBHudParts.tk("cream"))
-		if has_sub:
+		if show_name: x += TBHudParts.txt(self, fb, Vector2(x, TBHudParts.base(fb, fn, ny)), nation, fn, TBHudParts.tk("cream"))
+		if has_sub and show_name:
 			var f2: Font = K.body()
 			TBHudParts.txt(self, f2, Vector2(fr_.end.x + 10.0, TBHudParts.base(f2, TBHudParts.fs(12.0), size.y * 0.7 + oy)), subtitle, TBHudParts.fs(12.0), TBHudParts.tk("smoke"))
 		if seat >= 0:

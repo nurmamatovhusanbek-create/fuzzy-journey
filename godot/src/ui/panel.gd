@@ -97,7 +97,7 @@ class Handle extends RefCounted:
 			if primary != null: action_slot.add_child(primary)
 			return
 		for b in [secondary, primary]:                   # long labels wrap instead of widening the card (narrow screens, text size 150 / 200 %)
-			if (narrow or K.text_scale >= 1.4) and b is Button and (b as Button).autowrap_mode == TextServer.AUTOWRAP_OFF: (b as Button).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; (b as Button).clip_text = false
+			if K.text_scale >= 1.4 and b is Button and (b as Button).autowrap_mode == TextServer.AUTOWRAP_OFF: (b as Button).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; (b as Button).clip_text = false
 		if footer.vertical:                               # narrow + large text: stacked, the primary first (top)
 			for b2 in [primary, secondary]:
 				if b2 != null: (b2 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL; footer.add_child(b2)
@@ -107,6 +107,10 @@ class Handle extends RefCounted:
 		footer.add_child(sp)
 		if primary != null:
 			primary.size_flags_horizontal = Control.SIZE_EXPAND_FILL; primary.size_flags_stretch_ratio = 1.0
+			if primary is Button and not (primary as Button).text.is_empty():          # never narrower than its own label (+ glyph / padding)
+				var pb := primary as Button
+				var tw: float = pb.get_theme_font("font").get_string_size(pb.text, HORIZONTAL_ALIGNMENT_LEFT, -1, pb.get_theme_font_size("font_size")).x
+				pb.custom_minimum_size.x = maxf(pb.custom_minimum_size.x, ceilf(tw) + 64.0)
 			footer.add_child(primary)
 	func relayout() -> void: TBPanel._layout(self)
 

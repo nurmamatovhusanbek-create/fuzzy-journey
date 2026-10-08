@@ -205,7 +205,7 @@ func layout_for(vp: Vector2) -> void:
 	_nat.compact = phone
 	_nat.subtitle = "" if phone else _nat.subtitle
 	var crest_w: float = _nat.desired_w() if not phone else 10.0 + 40.0 + 14.0
-	if phone: _nat.show_name = false
+	_nat.show_name = not phone
 	_nat.position = Vector2(m, m); _nat.size = Vector2(crest_w, crest_h); _nat.visible = true
 	var gear: float = ch
 	_menu_btn.position = Vector2(vp.x - m - gear, m + (crest_h - gear) * 0.5); _menu_btn.size = Vector2(gear, gear); _menu_btn.visible = true
