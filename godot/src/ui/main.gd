@@ -185,12 +185,12 @@ var _bezel: Control
 
 ## everything the game interface needs before it is shown: sans fonts, the Atlas Ledger palette with the player's accent, darker land colours
 func _enter_game_visuals() -> void:
-	K.serif = false; TBTokens.legacy = false; TBLenses.dark_land = true
+	K.serif = false; TBTokens.legacy = false; TBFrame.rounded = true; TBLenses.dark_land = true
 	if g != null and g.human_id > 0: TBTokens.set_accent(g.color[g.human_id])
 	theme = K.theme()
 
 func show_menu() -> void:
-	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; TBTokens.legacy = true; theme = K.theme()
+	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; TBTokens.legacy = true; TBFrame.rounded = false; theme = K.theme()
 	map.outline_nation(-1)
 	map.set_mode(0)                                           # the title is always the globe inside its ring, whatever view the game uses
 	if TBLenses.dark_land:

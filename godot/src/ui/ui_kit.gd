@@ -384,14 +384,14 @@ static func _pl(fill_tok: String, border_tok: String, cut_px: int = 4, elev: int
 
 static func _button_set(t: Theme, cls: String, fill: String, hover: String, press: String, border: String, text_tok: String, dis_alpha: float, ring_on_bar: bool, left_pad: float = 16.0, border_px: int = 1) -> void:
 	var bw: int = border_px
-	t.set_stylebox("normal", cls, _pl(fill, border, 4, 0, left_pad, 10, false, 1.0, TBFrame.ALL, bw))
-	t.set_stylebox("hover", cls, _pl(hover, border, 4, 0, left_pad, 10, false, 1.0, TBFrame.ALL, bw))
-	t.set_stylebox("pressed", cls, _pl(press, border, 4, 0, left_pad, 10, true, 1.0, TBFrame.ALL, bw))
-	t.set_stylebox("hover_pressed", cls, _pl(press, border, 4, 0, left_pad, 10, true, 1.0, TBFrame.ALL, bw))
+	t.set_stylebox("normal", cls, _pl(fill, border, 4, 0, left_pad, 8, false, 1.0, TBFrame.ALL, bw))
+	t.set_stylebox("hover", cls, _pl(hover, border, 4, 0, left_pad, 8, false, 1.0, TBFrame.ALL, bw))
+	t.set_stylebox("pressed", cls, _pl(press, border, 4, 0, left_pad, 8, true, 1.0, TBFrame.ALL, bw))
+	t.set_stylebox("hover_pressed", cls, _pl(press, border, 4, 0, left_pad, 8, true, 1.0, TBFrame.ALL, bw))
 	if fill == "act":          # a disabled primary drops to the locked secondary look (the dark slab must never look available)
-		t.set_stylebox("disabled", cls, _pl("paper_1", "ink_off", 4, 0, left_pad, 10, false, 1.0))
+		t.set_stylebox("disabled", cls, _pl("paper_1", "ink_off", 4, 0, left_pad, 8, false, 1.0))
 	else:
-		t.set_stylebox("disabled", cls, _pl(fill, "ink_off" if fill.begins_with("paper") else border, 4, 0, left_pad, 10, false, dis_alpha, TBFrame.ALL, bw))
+		t.set_stylebox("disabled", cls, _pl(fill, "ink_off" if fill.begins_with("paper") else border, 4, 0, left_pad, 8, false, dis_alpha, TBFrame.ALL, bw))
 	t.set_stylebox("focus", cls, TBFrame.focus(ring_on_bar, 4, 0, "on_act", "act_rim") if fill == "act" else TBFrame.focus(ring_on_bar, 4, 0))
 	t.set_color("font_color", cls, TBTokens.c(text_tok)); t.set_color("font_hover_color", cls, TBTokens.c(text_tok))
 	t.set_color("font_pressed_color", cls, TBTokens.c(text_tok)); t.set_color("font_focus_color", cls, TBTokens.c(text_tok))
@@ -406,16 +406,22 @@ static func theme() -> Theme:
 	t.default_font = body()
 	t.default_font_size = fs(15)
 	t.set_color("font_color", "Label", TEXT)
+	# native tooltips (guide 6.9): ink-700, hairline, radius 10, 13 px
+	var tsb := StyleBoxFlat.new()
+	tsb.bg_color = TBTokens.c("bar_1"); tsb.border_color = TBTokens.c("rule"); tsb.set_border_width_all(1); tsb.set_corner_radius_all(10)
+	tsb.content_margin_left = 12; tsb.content_margin_right = 12; tsb.content_margin_top = 8; tsb.content_margin_bottom = 8
+	t.set_stylebox("panel", "TooltipPanel", tsb)
+	t.set_font_size("font_size", "TooltipLabel", 13); t.set_color("font_color", "TooltipLabel", TBTokens.c("ink_0"))
 	# secondary button: the default for everything that is not the one primary of its container
 	for cls in ["Button", "OptionButton", "MenuButton"]:
-		_button_set(t, cls, "paper_1", "paper_hover", "paper_2", "rule", "ink_0", 0.6, false)
+		_button_set(t, cls, "paper_1", "paper_hover", "paper_2", "paper_1", "ink_0", 0.6, false)
 	# primary (brass) and danger (flat wax) are theme variations: K.button(..., true), K.danger(...)
 	t.set_type_variation("PrimaryButton", "Button")
-	_button_set(t, "PrimaryButton", "paper_1", "paper_hover", "paper_2", "brass", "brass_lt", 0.4, false, 16.0, 1)       # AoC: no gold slab, a dark cell with a brass outline and brass text
+	_button_set(t, "PrimaryButton", "act", "act_hover", "act_press", "act", "on_act", 0.4, false, 16.0, 1)       # Atlas: signal fill, ink text
 	t.set_type_variation("DangerButton", "Button")
-	_button_set(t, "DangerButton", "wax", "wax_hover", "wax_press", "wax_rim", "on_wax", 0.4, true)
+	_button_set(t, "DangerButton", "wax", "wax_hover", "wax_press", "wax", "on_wax", 0.4, true)
 	t.set_type_variation("DangerGlyphButton", "Button")
-	_button_set(t, "DangerGlyphButton", "wax", "wax_hover", "wax_press", "wax_rim", "on_wax", 0.4, true, 44.0)
+	_button_set(t, "DangerGlyphButton", "wax", "wax_hover", "wax_press", "wax", "on_wax", 0.4, true, 44.0)
 	# check box / switch: a square box with a tick, never colour alone
 	for cls in ["CheckBox", "CheckButton"]:
 		for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]: t.set_stylebox(st, cls, _empty)
@@ -1327,7 +1333,7 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 	else:
 		holder = CenterContainer.new(); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		holder.set_anchors_preset(Control.PRESET_FULL_RECT)
-		card.custom_minimum_size = Vector2(mini(mini(width, TBTokens.MODAL_W_MAX), int(vp.x) - 32), 0)
+		card.custom_minimum_size = Vector2(mini(mini(420 if width <= 520 else width, TBTokens.MODAL_W_MAX), int(vp.x) - 32), 0)
 		holder.add_child(card)
 	back.add_child(holder)
 	var outer := vbox(12)
@@ -1355,41 +1361,35 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 		outer.add_child(scroll)
 		outer.add_child(footer)
 	else:
-		# AoC dialog: a thin bordered panel, a header strip (icon, title, small close), the body, and a footer of flat split buttons
-		var P := TBHudParts
-		back.color = TBTokens.ca("table", 0.38)
-		card.add_theme_stylebox_override("panel", P.sbox(P.al(TBTokens.c("paper_0"), 0.97), TBTokens.c("rule"), 4.0, 1))
+		# Atlas dialog (guide 6.10): card (ink-800, hairline, radius 16), 52 px header (icon + 20/600 title + close), scrolling body, footer: secondary left, primary right
+		back.color = TBTokens.ca("table", 0.55)
+		card.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 2, 0, 0, false, 1, (TBFrame.TL | TBFrame.TR) if portrait else TBFrame.ALL))
 		outer.add_theme_constant_override("separation", 0)
 		card.add_child(outer)
-		var strip := PanelContainer.new()
-		var ssb := StyleBoxFlat.new()
-		ssb.bg_color = TBTokens.ca("bar_2", 0.95); ssb.border_color = TBTokens.c("rule"); ssb.border_width_bottom = 1
-		ssb.set_corner_radius_all(0); ssb.corner_radius_top_left = 4; ssb.corner_radius_top_right = 4
-		ssb.content_margin_left = 14; ssb.content_margin_right = 6; ssb.content_margin_top = 6; ssb.content_margin_bottom = 6
-		strip.add_theme_stylebox_override("panel", ssb)
 		var hh2 := hbox(10)
+		hh2.custom_minimum_size = Vector2(0, 52)
 		if glyph_id != "": hh2.add_child(glyph_label_big(glyph_id))
-		var t2 := title(title_text, 19 if portrait else 20)
+		var t2 := title(title_text, 20, TBTokens.c("ink_0"))
 		t2.size_flags_horizontal = Control.SIZE_EXPAND_FILL; t2.size_flags_vertical = Control.SIZE_SHRINK_CENTER; t2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		hh2.add_child(t2)
 		if title_text != "": hh2.add_child(IconBtn.new("close", func(): if is_instance_valid(back): back.queue_free(), 36))
-		strip.add_child(hh2)
+		var hm2 := MarginContainer.new()
+		hm2.add_theme_constant_override("margin_left", 16); hm2.add_theme_constant_override("margin_right", 10)
+		hm2.add_child(hh2)
 		if title_text != "":
-			outer.add_child(strip); head = strip
+			outer.add_child(hm2); head = hm2
+			var hr := ColorRect.new(); hr.color = TBTokens.c("rule"); hr.custom_minimum_size = Vector2(0, 1); hr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			outer.add_child(hr)
 		var body_m := MarginContainer.new()
 		body_m.add_theme_constant_override("margin_left", pad); body_m.add_theme_constant_override("margin_right", pad)
-		body_m.add_theme_constant_override("margin_top", pad - 4); body_m.add_theme_constant_override("margin_bottom", int(pad * 0.5))
+		body_m.add_theme_constant_override("margin_top", 16); body_m.add_theme_constant_override("margin_bottom", 8)
 		body_m.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		body_m.add_child(scroll)
 		outer.add_child(body_m)
-		var fsb := StyleBoxFlat.new()
-		fsb.bg_color = TBTokens.ca("rule", 0.5)
-		fsb.set_corner_radius_all(0); fsb.corner_radius_bottom_left = 4; fsb.corner_radius_bottom_right = 4
-		fsb.border_color = TBTokens.c("rule"); fsb.border_width_top = 1
-		fsb.content_margin_left = 0; fsb.content_margin_right = 0; fsb.content_margin_top = 1; fsb.content_margin_bottom = 0
-		var fpc := PanelContainer.new(); fpc.add_theme_stylebox_override("panel", fsb)
-		footer.add_theme_constant_override("separation", 1)
-		footer.child_entered_tree.connect(func(c: Node): if c is Button: style_footer_button(c))
+		var fpc := MarginContainer.new()
+		fpc.add_theme_constant_override("margin_left", pad); fpc.add_theme_constant_override("margin_right", pad)
+		fpc.add_theme_constant_override("margin_top", 8); fpc.add_theme_constant_override("margin_bottom", 16)
+		footer.add_theme_constant_override("separation", 8)
 		fpc.add_child(footer)
 		outer.add_child(fpc)
 	var opener := parent.get_viewport().gui_get_focus_owner()

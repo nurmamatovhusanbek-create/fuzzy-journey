@@ -237,21 +237,25 @@ static func btn(text: String, kind: String, cb: Callable, dark: bool = true, px:
 	return b
 
 ## dark tooltip / pinned popover content: title (brass) over body lines (cream), max 280 wide
-static func tip_box(title: String, body: String, max_w: float = 280.0) -> PanelContainer:
+static func tip_box(title: String, body: String, max_w: float = 320.0) -> PanelContainer:
 	var pc := PanelContainer.new()
 	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pc.add_theme_stylebox_override("panel", bar_box(12, 8, 4, false))
-	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 2); v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = tk("bar_1"); sb.border_color = tk("rule"); sb.set_border_width_all(1); sb.set_corner_radius_all(10)
+	sb.shadow_color = al(Color.BLACK, 0.55); sb.shadow_size = 14; sb.shadow_offset = Vector2(0, 8)
+	sb.content_margin_left = 12; sb.content_margin_right = 12; sb.content_margin_top = 10; sb.content_margin_bottom = 10
+	pc.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4); v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pc.add_child(v)
 	if title != "":
 		var t := Label.new(); t.text = title; t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		t.add_theme_font_override("font", TBHudParts.body_b()); t.add_theme_font_size_override("font_size", fs(14)); t.add_theme_color_override("font_color", tk("brass_lt"))
+		t.add_theme_font_override("font", TBHudParts.body_b()); t.add_theme_font_size_override("font_size", fs(13)); t.add_theme_color_override("font_color", tk("cream"))
 		v.add_child(t)
 	if body != "":
 		var b := Label.new(); b.text = body; b.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_theme_font_override("font", TBHudParts.body()); b.add_theme_font_size_override("font_size", fs(14)); b.add_theme_color_override("font_color", tk("cream"))
+		b.add_theme_font_override("font", TBHudParts.body()); b.add_theme_font_size_override("font_size", fs(13)); b.add_theme_color_override("font_color", tk("smoke"))
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(minf(max_w, 250.0), 0)
+		b.custom_minimum_size = Vector2(minf(max_w, 280.0), 0)
 		v.add_child(b)
 	return pc
 

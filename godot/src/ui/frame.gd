@@ -147,7 +147,28 @@ static func _pc(col: Color) -> PackedColorArray:
 	return a
 
 ## chamfered rectangle outline inset by d px from a w x h box whose own chamfer is c px on the corners in `mask`
+## Atlas Ledger: rounded corners instead of chamfers. cut 0 square; cut 2 (panels) radius 16; any other cut radius 10 (buttons, chips, cards).
+static var rounded := true
+static func _rad(c: float) -> float:
+	if c <= 0.0: return 0.0
+	return 16.0 if int(c) == 2 else 10.0
+
 static func chamfer(w: float, h: float, c: float, mask: int, d: float = 0.0, ox: float = 0.0, oy: float = 0.0) -> PackedVector2Array:
+	if rounded and c > 0.0:
+		var r: float = clampf(_rad(c) - d, 0.5, maxf(0.5, minf(w, h) * 0.5 - d))
+		var x0r := d + ox; var y0r := d + oy; var x1r := w - d + ox; var y1r := h - d + oy
+		var q := PackedVector2Array()
+		var corners_def := [[TL, x0r, y0r, PI, 1.0, 1.0], [TR, x1r, y0r, PI * 1.5, -1.0, 1.0], [BR, x1r, y1r, 0.0, -1.0, -1.0], [BL, x0r, y1r, PI * 0.5, 1.0, -1.0]]
+		for cd in corners_def:
+			var cx: float = cd[1] + cd[4] * r
+			var cy: float = cd[2] + cd[5] * r
+			if mask & int(cd[0]):
+				for i in 7:
+					var a: float = float(cd[3]) + i * (PI * 0.5) / 6.0
+					q.append(Vector2(cx + cos(a) * r, cy + sin(a) * r))
+			else:
+				q.append(Vector2(cd[1], cd[2]))
+		return q
 	var k := maxf(c - _DIAG * d, 0.0)
 	var x0 := d + ox; var y0 := d + oy; var x1 := w - d + ox; var y1 := h - d + oy
 	var p := PackedVector2Array()
@@ -197,7 +218,7 @@ func _draw_plate(ci: RID, w: int, h: int) -> void:
 	var hc := TBTokens.is_hc()
 	var bw: int = border_w if (border_w == 0 or not hc) else maxi(border_w, 2)
 	var el: int = 0 if (hc or shift > 0) else elevation
-	var key := Vector4i(w, h, cut + corners * 64, bw + el * 8)
+	var key := Vector4i(w, h, cut + corners * 64 + (4096 if rounded else 0), bw + el * 8)
 	var g: Variant = _geo_get(key)
 	if g == null:
 		var half := bw * 0.5
