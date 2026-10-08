@@ -477,6 +477,11 @@ func refresh() -> void:
 	var net: int = bd["net"]
 	var gc: P.Chip = _chips["gold"]
 	gc.set_num(g.gold[n], fmt); gc.has_delta = true; gc.delta = net; gc.delta_on = true
+	gc.spark = []
+	if _vp.x >= 1100.0:
+		var ser: Array = TBStats.series(g, n, "g")
+		for e in ser.slice(maxi(0, ser.size() - 14)): gc.spark.append(float(e[1]))
+		if gc.spark.size() >= 2: gc.spark.append(float(g.gold[n]))
 	gc.state = 2 if (g.gold[n] <= 0.0 and net < 0) else (1 if (net < 0 and g.gold[n] < -net * 5.0) else 0)
 	var mc: P.Chip = _chips["man"]
 	mc.set_num(g.manpower[n], fmt); mc.has_delta = true; mc.delta = int(bd["man_gain"]); mc.state = 1 if bd["man_full"] else 0

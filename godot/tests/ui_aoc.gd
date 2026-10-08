@@ -11,6 +11,12 @@ func _init() -> void:
 	main._start_game(fr)
 	main.g.pending.clear(); main._clear_overlay(); main._select(-1)
 	for i in 20: await process_frame
+	for k in 8:
+		main.g.turn = 2 + k * 2
+		main.g.gold[fr] = 100.0 + 40.0 * sin(k * 0.9) + k * 15.0
+		TBStats.record(main.g)
+	main.g.turn = 1
+	main.hud.refresh()
 	main._select(main.g.capital_of[fr])
 	for i in 20: await process_frame
 	root.get_viewport().get_texture().get_image().save_png("%s/aoc_sel.png" % a[0])

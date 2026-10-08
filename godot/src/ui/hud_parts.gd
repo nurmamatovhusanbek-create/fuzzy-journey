@@ -339,6 +339,7 @@ class Chip extends Hit:
 	var tight: bool = false
 	var glyph_col: Color = Color.TRANSPARENT     # override of the icon colour
 	var val_col: Color = Color.TRANSPARENT       # override of the value colour (gold is yellow)
+	var spark: Array = []                        # treasury history (floats, oldest first): drawn as a small line graph at the right of the cell
 	var _shown: float = NAN
 	var _target: float = 0.0
 	var _fmt: Callable = Callable()
@@ -357,6 +358,7 @@ class Chip extends Hit:
 		var w: float = pad() + ico() + TBHudParts.R(6.0) + wv + pad()
 		if has_sub(): w = maxf(w, pad() + ico() + TBHudParts.R(6.0) + TBHudParts.tw(TBHudParts.body(), dtext(), fd()) + TBHudParts.R(14.0) + pad())
 		if state >= 1: w += TBHudParts.R(6.0) + TBHudParts.R(12.0) * state
+		if spark.size() >= 3: w += TBHudParts.R(96.0)
 		return ceilf(w)
 	func set_num(v: float, fmt: Callable) -> void:
 		_fmt = fmt; final_text = fmt.call(v)
@@ -401,6 +403,15 @@ class Chip extends Hit:
 			if sub_text == "":
 				col = TBHudParts.tk("pos_bar") if (delta > 0 and glyph == "coin") else (TBHudParts.tk("neg_bar") if delta < 0 else TBHudParts.al(TBHudParts.tk("smoke"), 0.85))
 			TBHudParts.txt(self, TBHudParts.body(), Vector2(x, TBHudParts.base(TBHudParts.body(), fd(), cy2)), dtext(), fd(), col)
+		if spark.size() >= 3:                       # treasury line graph (AoC): thin white line, zero baseline dotted
+			var sr := Rect2(size.x - TBHudParts.R(92.0) - pad() * 0.5, size.y * 0.16, TBHudParts.R(92.0), size.y * 0.68)
+			var lo: float = minf(0.0, float(spark.min())); var hi: float = maxf(float(spark.max()), lo + 1.0)
+			var pts := PackedVector2Array()
+			for i in spark.size():
+				pts.append(Vector2(sr.position.x + sr.size.x * i / float(spark.size() - 1), sr.end.y - sr.size.y * (float(spark[i]) - lo) / (hi - lo)))
+			var zy: float = sr.end.y - sr.size.y * (0.0 - lo) / (hi - lo)
+			draw_line(Vector2(sr.position.x, zy), Vector2(sr.end.x, zy), TBHudParts.al(TBHudParts.tk("smoke"), 0.35), 1.0)
+			draw_polyline(pts, TBHudParts.al(TBHudParts.tk("cream"), 0.85), 1.3, true)
 		if state >= 1:
 			var wx: float = size.x - pad() - TBHudParts.R(12.0) * state
 			for i in state:
