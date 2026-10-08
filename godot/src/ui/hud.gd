@@ -118,7 +118,7 @@ func build() -> void:
 	for spec in [["gold", "coin", "gold"], ["mp", "arrowhead", "mp"], ["man", "men", "manpower"], ["dp", "dove", "dp"]]:
 		var c := P.Chip.new(); c.glyph = spec[1]; c.set_a11y(T.call(spec[2]))
 		if spec[0] == "gold": c.val_col = P.tk("brass_lt")
-		if spec[0] == "mp": c.glyph_col = P.tk("info")
+		if spec[0] == "mp": c.glyph_col = P.tk("info"); c.val_col = P.tk("info")
 		if spec[0] == "dp": c.glyph_col = P.tk("cream")
 		if spec[0] == "man": c.glyph_col = P.tk("smoke")
 		var key: String = spec[0]
@@ -262,7 +262,7 @@ func layout_for(vp: Vector2) -> void:
 	var keys: Array = ["gold", "mp", "man", "dp"]
 	if g == null or g.rules < 1: keys.erase("dp")
 	var tabs_w: float = _tab_dip.desired_w() + _tab_maps.desired_w()
-	var cell_gap: float = P.R(6.0)
+	var cell_gap: float = P.R(12.0)
 	var cells_w: float = 0.0
 	for k in keys: cells_w += (_chips[k] as P.Chip).desired_w() + cell_gap
 	var two_rows: bool = false

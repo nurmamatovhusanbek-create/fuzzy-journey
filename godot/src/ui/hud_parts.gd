@@ -341,10 +341,10 @@ class Chip extends Hit:
 	var _target: float = 0.0
 	var _fmt: Callable = Callable()
 	func _ready() -> void: set_process(false)
-	func fv() -> int: return TBHudParts.fr(20.0)
-	func fd() -> int: return TBHudParts.fr(16.0)
-	func ico() -> float: return TBHudParts.R(30.0)
-	func pad() -> float: return TBHudParts.R(9.0)
+	func fv() -> int: return TBHudParts.fr(21.0)
+	func fd() -> int: return TBHudParts.fr(17.0)
+	func ico() -> float: return TBHudParts.R(36.0)
+	func pad() -> float: return TBHudParts.R(10.0)
 	func dtext() -> String:
 		if sub_text != "": return sub_text
 		return ("+%s" % K.fmt(float(delta))) if delta >= 0 else ("−%s" % K.fmt(float(-delta)))
@@ -397,7 +397,7 @@ class Chip extends Hit:
 		if two:
 			var col: Color = TBHudParts.tk("smoke")
 			if sub_text == "":
-				col = TBHudParts.tk("pos_bar") if delta > 0 else (TBHudParts.tk("neg_bar") if delta < 0 else TBHudParts.tk("smoke"))
+				col = TBHudParts.tk("pos_bar") if (delta > 0 and glyph == "coin") else (TBHudParts.tk("neg_bar") if delta < 0 else TBHudParts.al(TBHudParts.tk("smoke"), 0.85))
 			TBHudParts.txt(self, TBHudParts.body(), Vector2(x, TBHudParts.base(TBHudParts.body(), fd(), cy2)), dtext(), fd(), col)
 		if state >= 1:
 			var wx: float = size.x - pad() - TBHudParts.R(12.0) * state
@@ -475,7 +475,7 @@ class Tab extends Hit:
 	var badge: int = 0
 	func slant() -> float: return TBHudParts.R(14.0)
 	func desired_w() -> float:
-		return ceilf(TBHudParts.R(30.0) + slant() + TBHudParts.tw(TBHudParts.body_b(), label, TBHudParts.fr(20.0)) + (TBHudParts.R(24.0) if glyph != "" else 0.0))
+		return ceilf(TBHudParts.R(32.0) + slant() + TBHudParts.tw(TBHudParts.body_b(), label, TBHudParts.fr(20.0)) + (TBHudParts.R(24.0) if glyph != "" else 0.0))
 	func _draw() -> void:
 		var sl: float = slant()
 		var poly := PackedVector2Array([Vector2(sl, 0), Vector2(size.x, 0), Vector2(size.x - sl * 0.0, size.y), Vector2(0, size.y)])
