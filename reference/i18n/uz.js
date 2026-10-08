@@ -1013,6 +1013,7 @@ export default {
   aoc_move: "Yurish",
   aoc_actions: "Harakatlar",
   tk_minimap: "Mini xarita",
+  hold_confirm: "Tasdiqlash uchun bosib turing", press_again: "Tasdiqlash uchun yana bosing",
   ins_defense: "Mudofaa", ins_none: "Yo'q", ins_nation_card: "Davlat kartasi",
   ev_worldwide: "Butun dunyo voqeasi",
   ev_event: "Voqea",

@@ -428,6 +428,7 @@ export default {
   aoc_move: 'Move',
   aoc_actions: 'Actions',
   tk_minimap: 'Minimap',
+  hold_confirm: 'Hold to confirm', press_again: 'Press again to confirm',
   ins_defense: 'Defence', ins_none: 'None', ins_nation_card: 'Nation card',
   ev_worldwide: 'Worldwide event', ev_event: 'Event', ev_ack: 'Acknowledge', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Bountiful Harvest', ev_bountiful_harvest_f: 'Fields overflow with grain and the granaries are fuller than in living memory.',

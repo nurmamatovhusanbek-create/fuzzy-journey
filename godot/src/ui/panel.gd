@@ -15,6 +15,8 @@ const DRAWER_TOP := 56            ## drawer top = bottom edge of the top bar (HU
 const DRAWER_BOTTOM := 108        ## drawer ends above End Turn (80 seal + 16 margin + 12 gap)
 const SHEET_BOTTOM := 88          ## portrait sheet rises above the dock rail and End Turn
 const DRAWER_W := 400
+static var drawer_opened_fn: Callable           ## called when a side drawer opens (the HUD hides the inspector when the two cannot share the width)
+static var drawer_rect_fn: Callable             ## () -> Rect2 : the HUD's drawer slot (right of the rail), null rect = use the legacy right-hand slot
 const SNAP_LOW := 0.56
 const SNAP_HIGH := 0.92
 
@@ -110,6 +112,13 @@ class Handle extends RefCounted:
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 ## size profile of the viewport (logical px): P portrait, S short landscape, L landscape phone, D desktop / tablet
+## close every open side drawer under `parent` (dialogs stay)
+static func close_drawers(parent: Node) -> void:
+	for ch in parent.get_children():
+		if ch.has_meta("tb_handle") and not ch.is_queued_for_deletion():
+			var oh: Handle = ch.get_meta("tb_handle")
+			if oh.kind == Kind.DRAWER: oh.close()
+
 static func profile(vs: Vector2) -> String:
 	if vs.y > vs.x: return "P"
 	if vs.y <= 400.0: return "S"
@@ -229,6 +238,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 			if ch.has_meta("tb_handle") and not ch.is_queued_for_deletion():
 				var oh: Handle = ch.get_meta("tb_handle")
 				if oh.kind != Kind.DIALOG: oh.close()
+	if h.form == "drawer" and drawer_opened_fn.is_valid(): drawer_opened_fn.call()
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_STOP if h.modal else Control.MOUSE_FILTER_IGNORE
@@ -427,6 +437,11 @@ static func _layout(h: Handle) -> void:
 		"page":
 			c.position = Vector2.ZERO; c.size = vs; c.custom_minimum_size = vs
 		"drawer":
+			if drawer_rect_fn.is_valid() and prof != "P":
+				var dr: Rect2 = drawer_rect_fn.call()
+				if dr.size.x > 100.0:
+					c.position = dr.position; c.size = dr.size; c.custom_minimum_size = dr.size
+					return
 			var w2: float = {"D": 400.0, "L": 340.0, "S": 320.0}.get(prof, 400.0)
 			var top_y := float(DRAWER_TOP); var bot := float(DRAWER_BOTTOM)
 			var hh2: float = maxf(vs.y - top_y - bot, 220.0)
@@ -599,7 +614,14 @@ static func confirm(parent: Control, title_text: String, text: String, confirm_l
 	h.body.add_child(para(text, 15))
 	if extra != null: h.body.add_child(extra)
 	var cancel := K.button(cancel_label if cancel_label != "" else T.call("cancel"), func(): h.close())
-	var yes: Button = K.danger(confirm_label, func(): h.close(); on_yes.call(), "warning") if danger else K.button(confirm_label, func(): h.close(); on_yes.call(), true)
+	var yes: Button
+	if danger:                                                   # destructive: hold 600 ms (or Enter twice)
+		var db := K.danger(confirm_label, Callable(), "warning") as K.DangerBtn
+		db.make_hold()
+		db.confirmed.connect(func(): h.close(); on_yes.call())
+		yes = db
+	else:
+		yes = K.button(confirm_label, func(): h.close(); on_yes.call(), true)
 	h.actions(cancel, yes)
 	h.focus_target = cancel
 	if wants_focus(): cancel.grab_focus.call_deferred()

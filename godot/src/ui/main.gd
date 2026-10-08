@@ -54,7 +54,9 @@ func _ready() -> void:
 	panel.busy_fn = func() -> bool: return _busy
 	panel.blocked_fn = func() -> bool: return mode != "game" or _overlay.get_child_count() > 0
 	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
-	panel.insp_fn = hud.inspector_rect; panel.sheet_fn = hud.sheet_mode
+	panel.insp_fn = hud.inspector_rect; panel.sheet_fn = hud.sheet_mode; TBPanel.drawer_rect_fn = hud.drawer_rect
+	TBPanel.drawer_opened_fn = func() -> void:
+		if hud.exclusive_panels() and panel != null: panel.show_province(g, -1)
 	panel.select_requested.connect(func(q: int): _select(q))
 	tip = TBMapTip.new(); add_child(tip)
 	TBMapCursor.install(self)                       # keyboard map cursor + on-screen nav pad (accessibility)
@@ -517,6 +519,7 @@ func _select(p: int) -> void:
 	map.outline_nation(g.owner[p] if (p >= 0 and g != null and g.human_id != 0 and g.owner[p] != 0) else -1)       # AoC: the owner's border lights up in brass
 	flow.g = g
 	flow.on_select(p)
+	if p >= 0 and hud.exclusive_panels() and not hud.sheet_mode(): TBPanel.close_drawers(_overlay)       # 700-1099 px: the drawer and the inspector never share the width
 	panel.show_province(g, p) if p >= 0 else panel.show_province(g, -1)
 
 ## the Move verb / M: arm the selected army (own armies become targets too)

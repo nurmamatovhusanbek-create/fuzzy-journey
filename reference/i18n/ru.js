@@ -428,6 +428,7 @@ export default {
   aoc_move: 'Ход',
   aoc_actions: 'Действия',
   tk_minimap: 'Миникарта',
+  hold_confirm: 'Удерживайте для подтверждения', press_again: 'Нажмите ещё раз для подтверждения',
   ins_defense: 'Оборона', ins_none: 'Нет', ins_nation_card: 'Карточка нации',
   ev_worldwide: 'Мировое событие', ev_event: 'Событие', ev_ack: 'Принять', ev_log: '{a}: {title}',
   ev_bountiful_harvest_t: 'Обильный урожай', ev_bountiful_harvest_f: 'Поля ломятся от зерна, а амбары полны как никогда.',

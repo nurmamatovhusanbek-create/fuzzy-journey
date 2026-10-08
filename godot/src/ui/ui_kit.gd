@@ -496,10 +496,51 @@ static func button(text: String, cb: Callable = Callable(), primary: bool = fals
 
 ## flat wax button for irreversible verbs (declare war, attack, break pact); a left glyph is drawn when given
 class DangerBtn extends Button:
+	signal confirmed
+	const HOLD_T := 0.6
 	var glyph := ""
+	var hold_confirm := false         ## destructive confirm: hold 600 ms, or press Enter twice
+	var _hold := 0.0
+	var _holding := false
+	var _armed := false
+	var _text0 := ""
 	func _init(g: String) -> void:
 		glyph = g
+	## turns the button into a hold-to-confirm control; `confirmed` fires instead of `pressed`
+	func make_hold() -> void:
+		hold_confirm = true; _text0 = text
+		tooltip_text = TBI18n.T("hold_confirm")
+		set_process(false)
+	func _gui_input(e: InputEvent) -> void:
+		if not hold_confirm or disabled: return
+		if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+			accept_event()
+			if e.pressed: _holding = true; _hold = 0.0; set_process(true)
+			else:
+				if _holding and _hold < HOLD_T: _flash_hint()
+				_holding = false; _hold = 0.0; queue_redraw()
+		elif e is InputEventScreenTouch:
+			accept_event()
+		elif e.is_action_pressed("ui_accept") and not e.is_echo():
+			accept_event()
+			if _armed: _armed = false; text = _text0; confirmed.emit()
+			else:
+				_armed = true; text = TBI18n.T("press_again")
+				get_tree().create_timer(3.0).timeout.connect(func():
+					if is_instance_valid(self) and _armed: _armed = false; text = _text0)
+	func _flash_hint() -> void:
+		text = TBI18n.T("hold_confirm")
+		get_tree().create_timer(1.4).timeout.connect(func(): if is_instance_valid(self) and not _armed: text = _text0)
+	func _process(delta: float) -> void:
+		if not _holding: set_process(false); return
+		_hold += delta
+		queue_redraw()
+		if _hold >= HOLD_T:
+			_holding = false; _hold = 0.0; set_process(false); queue_redraw(); confirmed.emit()
 	func _draw() -> void:
+		if hold_confirm and _hold > 0.0:
+			var w: float = size.x * clampf(_hold / HOLD_T, 0.0, 1.0)
+			draw_rect(Rect2(0, size.y - 4.0, w, 4.0), Color(1, 1, 1, 0.85))
 		if glyph == "": return
 		var col := get_theme_color("font_disabled_color" if disabled else "font_color")
 		var dy: float = 1.0 if get_draw_mode() == BaseButton.DRAW_PRESSED else 0.0
