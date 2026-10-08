@@ -12,6 +12,8 @@ signal closed
 signal nation_requested(n: int)
 signal share_changed(frac: float)
 signal select_requested(p: int)
+## the selected province belongs to another nation: its Actions list for the left panel (o = -1 when none)
+signal foreign_changed(o: int, rows: Array)
 
 const CC = preload("res://src/ui/cmd_card.gd")
 const D = preload("res://src/engine/data.gd")
@@ -32,6 +34,7 @@ var drawer_open := false
 var reserve := 12.0                       # px kept free below the card (dock / seal in portrait)
 var band_fn: Callable                     # () -> Vector2 : the horizontal band (x0, x1) free of the rail and the End Turn seal (hud.card_band)
 var reserve_fn: Callable                  # () -> float : px kept free below the sheet in portrait (hud.bottom_reserve)
+var foreign_panel_fn: Callable            # () -> bool : the HUD shows foreign-nation actions in its left panel (then the card drops its diplomacy verbs)
 var confirm_fn: Callable                  # () -> String : "smart" | "always" | "never" (hud.confirm_mode) for declare war / break pact
 
 var _col: VBoxContainer
@@ -130,7 +133,9 @@ func show_province(game: TBGame, province: int) -> void:
 	p = province
 	if p < 0:
 		_close_popover(); _war_target = -1; _brk_target = -1; _atk_src = -1
-		visible = false; return
+		visible = false
+		foreign_changed.emit(-1, [])
+		return
 	if changed: _war_target = -1; _brk_target = -1; _atk_src = -1; _close_popover()
 	var was := visible
 	visible = true
@@ -266,18 +271,70 @@ func rebuild() -> void:
 	if _cost_holder != null: act.add_child(_cost_holder)
 	act.add_child(verbs_row)
 	act.custom_minimum_size.x = _card_w
-	_act_node = act
-	_act_node.top_level = true
-	add_child(_act_node)
+	var drop_act: bool = order_mode == "idle" and int(cs["kind"]) == 3 and foreign_panel_fn.is_valid() and bool(foreign_panel_fn.call())
+	if drop_act:
+		act.queue_free(); _verbs.clear(); _hotkeys.clear(); _cost = null; _share = null; _count = null; _share_holder = null; _cost_holder = null
+	else:
+		_act_node = act
+		_act_node.top_level = true
+		add_child(_act_node)
 	# keep the focused slot across rebuilds (stale state: the same verb stays focused if it is still there)
 	_focus_verb = 0
 	for i in _verbs.size():
 		if _verbs[i]["id"] == prev_id: _focus_verb = i
 	_update_cost_line()
 	_busy = false
+	_emit_foreign(subj, cs)
 	_process(0.0)
 	if _name_label != null: _name_label.queue_redraw()
 	_refit.call_deferred()
+
+const FOREIGN_GLYPH := {"nap": "link", "ally": "link", "trade": "coins", "marry": "crown", "breakPact": "close"}
+func _emit_foreign(subj: int, cs: Dictionary) -> void:
+	var o: int = int(cs["o"])
+	if int(cs["kind"]) in [3, 4] and o != 0 and o != int(cs["me"]):
+		foreign_changed.emit(o, foreign_actions(o, subj))
+	else:
+		foreign_changed.emit(-1, [])
+
+func foreign_actions(o: int, s: int) -> Array:
+	var rows: Array = []
+	var me := g.human_id
+	var rel := g.get_rel(me, o)
+	if rel != D.REL_WAR:
+		for it in _diplo_items(o):
+			var cn: Dictionary = it["can"]
+			var cmd: Dictionary = it["cmd"]
+			rows.append({"id": "cmd:" + String(cmd["cmd"]), "glyph": FOREIGN_GLYPH.get(String(cmd["cmd"]), "scroll"), "label": it["label"], "dp": ("%d" % int(cn["dp"])) if int(cn["dp"]) > 0 else "", "ok": cn["ok"], "why": reason_text(cn) if not cn["ok"] else "", "danger": bool(it.get("danger", false)), "cmd": cmd})
+	if g.rules >= 1 and rel == D.REL_PEACE:
+		var uc := g.can({"cmd": "ultimatum", "t": o, "p": s})
+		if not (uc["reason"] in ["vassal", "target", "capital"]):
+			rows.append({"id": "ult", "glyph": "scales", "label": T.call("ultimatum"), "dp": ("%d" % int(uc["dp"])) if int(uc["dp"]) > 0 else "", "ok": uc["ok"], "why": reason_text(uc) if not uc["ok"] else "", "danger": false, "cmd": {"cmd": "ultimatum", "t": o, "p": s}})
+	if rel == D.REL_PEACE or (g.overlord[o] == 0 and g.overlord[me] != o and rel != D.REL_NAP and rel != D.REL_ALLY and rel != D.REL_MARRIAGE and rel != D.REL_WAR):
+		var wc := g.can({"cmd": "declareWar", "t": o})
+		if wc["reason"] != "vassal":
+			rows.append({"id": "war", "glyph": "swords", "label": T.call("declare_war"), "dp": ("%d" % int(wc["dp"])) if int(wc["dp"]) > 0 else "", "ok": wc["ok"], "why": reason_text(wc) if not wc["ok"] else "", "danger": true, "cmd": {"cmd": "declareWar", "t": o}})
+	if rel == D.REL_WAR:
+		var en := o
+		var pc := g.can({"cmd": "peace", "t": en, "kind": "white"})
+		rows.append({"id": "peace", "glyph": "dove", "label": T.call("cc_peace"), "dp": "", "ok": pc["ok"], "why": reason_text(pc) if not pc["ok"] else "", "danger": false, "cmd": {"cmd": "peace", "t": en, "kind": "white"}})
+		var tc := g.can({"cmd": "peace", "t": en, "kind": "cede"})
+		if g.rules >= 1: rows.append({"id": "terms", "glyph": "scales", "label": T.call("cc_terms"), "dp": "", "ok": tc["ok"], "why": reason_text(tc) if not tc["ok"] else "", "danger": false, "cmd": {"cmd": "peace", "t": en, "kind": "cede"}})
+	return rows
+
+## run an action chosen in the left panel
+func run_foreign(row: Dictionary) -> void:
+	if _busy: flash(T.call("cc_resolving")); return
+	if not bool(row["ok"]): flash(String(row["why"])); return
+	var cmd: Dictionary = row["cmd"]
+	match String(row["id"]):
+		"war":
+			if _confirm_mode() == "never": command.emit(cmd)
+			else: _war_target = int(cmd["t"]); rebuild()
+		"cmd:breakPact":
+			if _confirm_mode() == "never": command.emit(cmd)
+			else: _brk_target = int(cmd["t"]); rebuild()
+		_: command.emit(cmd)
 
 func _order_mode() -> String:
 	if _war_target >= 0 or _brk_target >= 0: return "war"

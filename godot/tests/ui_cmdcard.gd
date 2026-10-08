@@ -78,6 +78,7 @@ func _init() -> void:
 	main._select(own_army)
 	await _shot("1_own_army")
 	_check(main.panel.visible, "card visible for own army")
+	main.panel.foreign_panel_fn = Callable()                 # the card keeps its diplomacy verbs when the left panel is off
 	_check(main.panel._verbs.size() >= 3 and main.panel._verbs[0]["id"] == "move", "case 1 first verb is Move")
 	main.panel.set_drawer(true)
 	await _shot("1b_drawer")

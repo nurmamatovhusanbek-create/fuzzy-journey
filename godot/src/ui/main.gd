@@ -54,6 +54,9 @@ func _ready() -> void:
 	panel.busy_fn = func() -> bool: return _busy
 	panel.blocked_fn = func() -> bool: return mode != "game" or _overlay.get_child_count() > 0
 	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
+	panel.foreign_changed.connect(func(o: int, rows: Array): hud.show_foreign(o, rows))
+	panel.foreign_panel_fn = hud.foreign_enabled
+	hud.foreign_action.connect(func(r: Dictionary): panel.run_foreign(r))
 	panel.select_requested.connect(func(q: int): _select(q))
 	tip = TBMapTip.new(); add_child(tip)
 	TBMapCursor.install(self)                       # keyboard map cursor + on-screen nav pad (accessibility)

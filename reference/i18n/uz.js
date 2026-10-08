@@ -1011,6 +1011,7 @@ export default {
   pv_confirm_hint: "Enter — tasdiqlash · Esc — bekor qilish",
   aoc_diplomacy: "Diplomatiya", aoc_map_modes: "Xarita rejimlari", aoc_stats: "Statistika", aoc_decisions: "Qarorlar", aoc_provinces: "Viloyatlar", aoc_turn: "Navbat: {k}", aoc_next_turn: "Keyingi navbat",
   aoc_move: "Yurish",
+  aoc_actions: "Harakatlar",
   ev_worldwide: "Butun dunyo voqeasi",
   ev_event: "Voqea",
   ev_ack: "Tushunarli",

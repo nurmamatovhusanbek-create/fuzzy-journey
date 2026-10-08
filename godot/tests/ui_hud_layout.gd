@@ -14,6 +14,7 @@ func _shot(out: String, tag: String) -> void:
 func _walk(n: Node, acc: Array) -> void:
 	for c in n.get_children():
 		if c is Control and (c as Control).is_visible_in_tree(): acc.append(c)
+		if c is ScrollContainer: continue                       # scrolled content is clipped by design
 		_walk(c, acc)
 
 func _init() -> void:

@@ -12,6 +12,8 @@ const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 
 var g: TBGame
+var nation := 0                    # 0 = the player's realm; else a foreign nation shown with its Actions list
+var actions: Array = []            # foreign mode: [{id, glyph, label, dp, ok, why, danger}]
 var _sc: ScrollContainer
 var _col: VBoxContainer
 
@@ -127,17 +129,18 @@ class Row extends P.Hit:
 	var vcol := Color.TRANSPARENT
 	var badge := 0
 	var gcol := Color.TRANSPARENT
+	var blocked := false
 	func _get_minimum_size() -> Vector2: return Vector2(0, P.R(47.0))
 	func _has_point(p: Vector2) -> bool: return Rect2(Vector2.ZERO, size).has_point(p)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		if hover or down: draw_rect(r, P.al(P.tk("bar_2"), 0.85))
+		if (hover or down) and not blocked: draw_rect(r, P.al(P.tk("bar_2"), 0.85))
 		draw_rect(Rect2(0, size.y - 1, size.x, 1), P.al(P.tk("rule"), 0.25))
 		var cy: float = size.y * 0.5 + (1.0 if down else 0.0)
-		TBGlyph.draw(self, glyph, Vector2(P.R(32.0), cy), P.R(28.0), gcol if gcol.a > 0.0 else P.tk("brass_lt"), 1.8)
+		TBGlyph.draw(self, glyph, Vector2(P.R(32.0), cy), P.R(28.0), P.al(gcol if gcol.a > 0.0 else P.tk("brass_lt"), 0.4 if blocked else 1.0), 1.8)
 		var fb: Font = P.body_b(); var z: int = P.fr(20.0)
 		var rw: float = P.tw(fb, value, z) + P.R(14.0) if value != "" else 0.0
-		draw_string(fb, Vector2(P.R(62.0), P.base(fb, z, cy)), P.fit(fb, label, z, size.x - P.R(70.0) - rw - (P.R(30.0) if badge > 0 else 0.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, z, P.tk("cream"))
+		draw_string(fb, Vector2(P.R(62.0), P.base(fb, z, cy)), P.fit(fb, label, z, size.x - P.R(70.0) - rw - (P.R(30.0) if badge > 0 else 0.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, z, P.tk("ink_off") if blocked else (P.tk("neg_bar") if gcol == P.tk("neg_bar") else P.tk("cream")))
 		var x: float = size.x - P.R(14.0)
 		if badge > 0:
 			var bc := Vector2(x - P.R(10.0), cy)
@@ -154,7 +157,8 @@ class Row extends P.Hit:
 func rebuild() -> void:
 	if g == null: return
 	for c in _col.get_children(): _col.remove_child(c); c.queue_free()
-	var n: int = g.human_id
+	var n: int = nation if nation > 0 else g.human_id
+	var foreign: bool = nation > 0 and nation != g.human_id
 	var head := Head.new(); head.g = g; head.n = n; head.custom_minimum_size = Vector2(0, P.R(98.0))
 	head.pressed_nation.connect(func(): action.emit("nation"))
 	_col.add_child(head)
@@ -173,6 +177,15 @@ func rebuild() -> void:
 	_flags("swords", P.tk("neg_bar"), wars)
 	_flags("dove", P.tk("cream"), pacts)
 	if not vassals.is_empty(): _flags("crown", P.tk("brass_lt"), vassals)
+	if foreign:
+		_sect(TBI18n.T.call("aoc_actions"))
+		for a in actions:
+			var r := _row(String(a["id"]), String(a["glyph"]), String(a["label"]), String(a.get("dp", "")), P.tk("cream"))
+			r.blocked = not bool(a["ok"])
+			if bool(a.get("danger", false)): r.gcol = P.tk("neg_bar")
+			if r.blocked: r.tooltip_text = String(a.get("why", ""))
+		_row("nation", "globe", TBI18n.T.call("tk_nation_sheet"), "")
+		return
 	_sect(TBI18n.T.call("aoc_decisions"))
 	var inc: Dictionary = g.income(n)
 	var bd: Dictionary = TBAdvisor.breakdown(g, n, inc)
@@ -203,6 +216,6 @@ func _flags(glyph: String, col: Color, list: Array) -> void:
 
 func _row(id: String, glyph: String, label: String, value: String, vcol: Color = Color.TRANSPARENT) -> Row:
 	var r := Row.new(); r.glyph = glyph; r.label = label; r.value = value; r.vcol = vcol; r.set_a11y(label)
-	r.pressed.connect(func(): action.emit(id))
+	r.pressed.connect(func(): if not r.blocked: action.emit(id))
 	_col.add_child(r)
 	return r

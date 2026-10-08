@@ -322,7 +322,7 @@ func layout_for(vp: Vector2) -> void:
 	_seal.position = Vector2(vp.x - m - sw_, vp.y - m - sh_)
 	# ---- minimap, bottom-left (kept only where the information bar still has its room next to it)
 	_minimap_ok = not portrait and vp.x >= P.R(300.0) + 380.0 + sw_ + 40.0
-	_minimap.size = Vector2(P.R(297.0), P.R(145.0)); _minimap.position = Vector2(0, vp.y - _minimap.size.y); _minimap.visible = _minimap_ok and not (_realm_panel != null and _realm_panel.visible)
+	_minimap.size = Vector2(P.R(297.0), P.R(145.0)); _minimap.position = Vector2(0, vp.y - _minimap.size.y); _minimap.visible = _minimap_ok and not (_realm_panel != null and _realm_panel.visible) and not (_foreign_panel != null and _foreign_panel.visible)
 	# ---- stats column (right) and legend
 	var show_stats: bool = not portrait and vp.y >= 420.0 and vp.x >= 900.0
 	_stats.visible = show_stats
@@ -343,6 +343,9 @@ func layout_for(vp: Vector2) -> void:
 var _strip_rows_h: float = 40.0
 var _minimap_ok: bool = true
 var _realm_panel: Control                    # TBRealmPanel (left)
+var _foreign_panel: Control                  # TBRealmPanel of the selected province's owner (left, replaces the realm panel while a foreign province is selected)
+var _foreign_rows: Array = []
+signal foreign_action(row: Dictionary)
 
 func _sum_w(keys: Array, gap: float) -> float:
 	var w: float = 0.0
@@ -359,7 +362,8 @@ func end_turn_rect() -> Rect2:
 ## horizontal band (x0, x1; hud coordinates) the command card may use: right of the minimap, left of the End Turn plate
 func card_band() -> Vector2:
 	var x0: float = P.R(300.0) if (_prof != Prof.PORTRAIT and _minimap_ok) else P.R(8.0)
-	if _realm_panel != null and _realm_panel.visible and _prof != Prof.PORTRAIT: x0 = _realm_panel.position.x + _realm_panel.size.x + P.R(3.0)
+	for pn in [_realm_panel, _foreign_panel]:
+		if pn != null and pn.visible and _prof != Prof.PORTRAIT: x0 = pn.position.x + pn.size.x + P.R(3.0)
 	var x1: float = _vp.x - P.R(8.0)
 	if _prof != Prof.PORTRAIT: x1 = end_turn_rect().position.x - maxf(17.0, P.R(10.0))
 	return Vector2(x0, maxf(x0 + 200.0, x1))
@@ -429,6 +433,7 @@ func keepouts() -> Array:
 	if _legend.visible: out.append(_legend.get_global_rect().grow(4.0))
 	if _strip.visible: out.append(_strip.get_global_rect().grow(4.0))
 	if _realm_panel != null and _realm_panel.visible: out.append(_realm_panel.get_global_rect().grow(4.0))
+	if _foreign_panel != null and _foreign_panel.visible: out.append(_foreign_panel.get_global_rect().grow(4.0))
 	return out
 
 ## vertical space the top strip occupies
@@ -894,6 +899,7 @@ func _open_realm() -> void:
 	tapped.emit()
 	if _realm_panel != null and _realm_panel.visible:
 		close_realm(); return
+	if _foreign_panel != null and _foreign_panel.visible: _foreign_panel.visible = false
 	if _realm_panel == null:
 		_realm_panel = TBRealmPanel.new()
 		_realm_panel.action.connect(_realm_action)
@@ -902,6 +908,34 @@ func _open_realm() -> void:
 	(_realm_panel as TBRealmPanel).g = g
 	(_realm_panel as TBRealmPanel).rebuild()
 	_realm_panel.visible = true
+	layout_for(_vp)
+
+## close the realm panel; true when it was open (the back stack uses this)
+## the left panel carries foreign-nation actions (desktop and wide landscape layouts only)
+func foreign_enabled() -> bool: return _prof != Prof.PORTRAIT and _vp.y >= 560.0
+
+func show_foreign(o: int, rows: Array) -> void:
+	if g == null: return
+	if o <= 0:
+		if _foreign_panel != null and _foreign_panel.visible:
+			_foreign_panel.visible = false
+			layout_for(_vp)
+		return
+	if _prof == Prof.PORTRAIT or _vp.y < 560.0: return              # small screens keep the card's own Diplomacy button
+	if _realm_panel != null and _realm_panel.visible: _realm_panel.visible = false
+	if _foreign_panel == null:
+		_foreign_panel = TBRealmPanel.new()
+		_foreign_panel.action.connect(func(id: String):
+			if id == "nation": tapped.emit(); nation_pressed.emit((_foreign_panel as TBRealmPanel).nation); return
+			for r in _foreign_rows:
+				if String(r["id"]) == id: foreign_action.emit(r); return)
+		_foreign_panel.nation_pressed.connect(func(n: int): nation_pressed.emit(n))
+		add_child(_foreign_panel)
+	_foreign_rows = rows
+	var fp := _foreign_panel as TBRealmPanel
+	fp.g = g; fp.nation = o; fp.actions = rows
+	fp.rebuild()
+	_foreign_panel.visible = true
 	layout_for(_vp)
 
 ## close the realm panel; true when it was open (the back stack uses this)
@@ -918,10 +952,11 @@ func _realm_action(id: String) -> void:
 	_screen(id)
 
 func _place_realm() -> void:
-	if _realm_panel == null: return
 	var top: float = P.R(100.0)
-	_realm_panel.position = Vector2(0, top)
-	_realm_panel.size = Vector2(minf(P.R(345.0), _vp.x * 0.62), maxf(120.0, _vp.y - top))
+	for pn in [_realm_panel, _foreign_panel]:
+		if pn == null: continue
+		pn.position = Vector2(0, top)
+		pn.size = Vector2(minf(P.R(345.0), _vp.x * 0.62), maxf(120.0, _vp.y - top - (P.R(145.0) if pn == _foreign_panel and false else 0.0)))
 
 ## "Round 4 · P1/2": the hot-seat round and this seat (realm sheet, End Turn summary)
 func _round_text() -> String:
