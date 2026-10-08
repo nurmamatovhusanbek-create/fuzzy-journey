@@ -219,14 +219,26 @@ static func _font(file: String, fallbacks: Array = []) -> FontFile:
 	return f
 
 ## Alegreya: body 500, emphasis / buttons / rows 700, flavour 400 italic (Latin and Cyrillic)
-## Typography: in game the flat Roboto sans (Age-of-Civilizations style); the title screen keeps the Alegreya / Cinzel serif look (serif = true while it is shown)
+## Typography. Atlas Ledger: Inter (400 body, 500 buttons, 600 titles and figures) with tabular numbers; Barlow Condensed 600 for map labels.
+## The title screen keeps the Alegreya / Cinzel serif look (serif = true while it is shown).
 static var serif := false
-static func body() -> Font: return _font("alegreya-latin-500-normal", ["alegreya-cyrillic-500-normal"]) if serif else _font("roboto-latin-400-normal", ["roboto-cyrillic-400-normal"])
-static func body_b() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _font("roboto-latin-500-normal", ["roboto-cyrillic-500-normal"])
-static func body_i() -> Font: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"]) if serif else _font("roboto-latin-400-normal", ["roboto-cyrillic-400-normal"])
-## Roboto 700: map nation names and marker numbers (the one heavy face)
-static func heavy() -> Font: return _font("roboto-latin-700-normal", ["roboto-cyrillic-700-normal"])
-## Cinzel 700 for titles on the title screen (Alegreya SC covers Cyrillic); the flat sans in game
+static func _inter(w: int) -> Font:
+	return _font("inter-latin-%d-normal" % w, ["inter-cyrillic-%d-normal" % w])
+static func body() -> Font: return _font("alegreya-latin-500-normal", ["alegreya-cyrillic-500-normal"]) if serif else _inter(400)
+static func body_b() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _inter(600)
+static func body_m() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _inter(500)
+static func body_i() -> Font: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"]) if serif else _inter(400)
+## Inter 600 is the heavy face for titles and figures; Barlow Condensed 600 for the map (Cyrillic falls back to Inter)
+static func heavy() -> Font: return _inter(600)
+static func map_font() -> Font: return _font("barlow-condensed-latin-600-normal", ["inter-cyrillic-600-normal", "inter-latin-600-normal"])
+## tabular figures: a variation of the font with the `tnum` feature on (columns of numbers align)
+static var _tab := {}
+static func tabular(base: Font) -> Font:
+	var k := base.get_instance_id()
+	if _tab.has(k): return _tab[k]
+	var v := FontVariation.new(); v.base_font = base; v.opentype_features = {"tnum": 1}
+	_tab[k] = v
+	return v
 static func display() -> Font:
 	if readable_fonts or not serif: return body_b()
 	return _font("cinzel-latin-700-normal", ["alegreya-sc-cyrillic-700-normal"])
@@ -234,8 +246,8 @@ static func display_hi() -> Font: return display()
 static func display_lo() -> Font: return display()
 static func wordmark() -> Font: return _font("cinzel-latin-900-normal", ["alegreya-sc-cyrillic-900-normal"])
 ## JetBrains Mono: figures 700, deltas 400
-static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"]) if serif else body()
-static func mono_b() -> Font: return _font("jetbrains-mono-latin-700-normal", ["jetbrains-mono-cyrillic-700-normal"]) if serif else body_b()
+static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"]) if serif else tabular(body())
+static func mono_b() -> Font: return _font("jetbrains-mono-latin-700-normal", ["jetbrains-mono-cyrillic-700-normal"]) if serif else tabular(body_b())
 ## letter-spaced face, created once per (font, spacing)
 static func tracked(base: Font, spacing: float) -> Font:
 	var key := "%d:%d" % [base.get_instance_id(), int(spacing)]
@@ -1058,7 +1070,7 @@ static func alert_strip(text: String, kind: String = "info") -> Control:
 # ---- command card, chip, glyph label -------------------------------------------------------------------------------------------------------------------
 static var _card_styles := {}
 static func card_style(state: String, recommended: bool, armed: bool) -> TBFrame:
-	var key := "%s%d%d%d" % [state, int(recommended), int(armed), TBTokens.mode]
+	var key := "%s%d%d%d" % [state, int(recommended), int(armed), TBTokens.sig()]
 	if _card_styles.has(key): return _card_styles[key]
 	var fill := "paper_1"
 	match state:

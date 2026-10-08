@@ -185,8 +185,14 @@ func _clear_overlay() -> void:
 const MP_ = preload("res://src/ui/menu_parts.gd")
 var _bezel: Control
 
+## everything the game interface needs before it is shown: sans fonts, the Atlas Ledger palette with the player's accent, darker land colours
+func _enter_game_visuals() -> void:
+	K.serif = false; TBTokens.legacy = false; TBLenses.dark_land = true
+	if g != null and g.human_id > 0: TBTokens.set_accent(g.color[g.human_id])
+	theme = K.theme()
+
 func show_menu() -> void:
-	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; theme = K.theme()
+	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; TBTokens.legacy = true; theme = K.theme()
 	map.outline_nation(-1)
 	map.set_mode(0)                                           # the title is always the globe inside its ring, whatever view the game uses
 	if TBLenses.dark_land:
@@ -410,7 +416,7 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty})
 	TBLenses.dark_land = true
 	map.setup(g)
-	mode = "pick"; _spin = false; K.serif = false; theme = K.theme()
+	mode = "pick"; _spin = false; _enter_game_visuals()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	_show_pick()
@@ -453,7 +459,7 @@ func _start_game(n: int) -> void:
 		_hot_n = 0
 	else:
 		g.set_human(n); g.color[n] = 0xC63A4A
-	mode = "game"; K.serif = false; theme = K.theme(); _clear_overlay(); _log_idx = g.log.size()
+	mode = "game"; _enter_game_visuals(); _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	map.lenses.refresh_nations(); map.repaint_all()
@@ -733,7 +739,7 @@ func _autosave() -> void:
 func _load_slot(slot: String) -> void:
 	var ng := TBSave.load_game(world, slot)
 	if ng == null: return
-	g = ng; mode = "game"; K.serif = false; theme = K.theme(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
+	g = ng; mode = "game"; _enter_game_visuals(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	TBLenses.dark_land = true
@@ -821,7 +827,7 @@ func _process(delta: float) -> void:
 
 # ---------------------------------------------------------------- multiplayer hooks (called by TBMpController)
 func enter_mp_game(game: TBGame, nation: int) -> void:
-	g = game; mode = "game"; K.serif = false; theme = K.theme(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
+	g = game; mode = "game"; _enter_game_visuals(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	g.human_id = nation

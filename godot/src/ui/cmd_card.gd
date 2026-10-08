@@ -113,7 +113,7 @@ class PlateBox extends StyleBox:
 		fill = f; border = b; cut = c; elev = e
 
 	func _rebuild(r: Rect2) -> void:
-		_size = r.size; _mode = TBTokens.mode
+		_size = r.size; _mode = TBTokens.sig()
 		var rr := Rect2(r.position + Vector2(0.5, 0.5), r.size - Vector2(1, 1 + (3 if elev > 0 else 0)))
 		_poly = TBCmdCard.chamfer(rr, cut)
 		_line = _poly.duplicate(); _line.append(_poly[0])
@@ -132,7 +132,7 @@ class PlateBox extends StyleBox:
 			_out = o.duplicate(); _out.append(o[0])
 
 	func _draw(ci: RID, rect: Rect2) -> void:
-		if rect.size != _size or TBTokens.mode != _mode: _rebuild(rect)
+		if rect.size != _size or TBTokens.sig() != _mode: _rebuild(rect)
 		if elev > 0: RenderingServer.canvas_item_add_polygon(ci, _shadow, _c_shadow)
 		RenderingServer.canvas_item_add_polygon(ci, _poly, _c_fill)
 		if border != "": RenderingServer.canvas_item_add_polyline(ci, _line, PackedColorArray([_col_border]), 1.0, false)

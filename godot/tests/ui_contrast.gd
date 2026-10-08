@@ -19,10 +19,10 @@ func _init() -> void:
 			print("%s  %-6s %-12s on %-12s %6.2f >= %.1f   %s" % ["PASS" if ok else "FAIL", ["NORMAL", "HC", "HCDARK"][variant], fg, bg, ratio, minimum, role])
 	# every token must exist in both dictionaries (HC may not silently miss a key)
 	for v in [1, 2]:
-		for k in TBTokens.NORMAL:
+		for k in TBTokens.atlas():
 			if not TBTokens.dict(v).has(k): print("FAIL  %s dictionary lacks token %s" % [["", "HC", "HC_DARK"][v], k]); fails += 1
 		for k in TBTokens.dict(v):
-			if not TBTokens.NORMAL.has(k): print("FAIL  NORMAL dictionary lacks token ", k); fails += 1
+			if not TBTokens.atlas().has(k): print("FAIL  NORMAL dictionary lacks token ", k); fails += 1
 	# greyscale hierarchy (art review A-1): the primary slab must differ from the secondary control by luminance, not hue alone
 	for v in 3:
 		var dd: Dictionary = TBTokens.dict(v)
@@ -33,7 +33,7 @@ func _init() -> void:
 	# the pair table itself must only name real tokens
 	for it in TBTokens.PAIRS:
 		for i in 2:
-			if not TBTokens.NORMAL.has(it[i]): print("FAIL  unknown token in PAIRS: ", it[i]); fails += 1
+			if not TBTokens.atlas().has(it[i]): print("FAIL  unknown token in PAIRS: ", it[i]); fails += 1
 	print("%d pairs checked, %d failures" % [checked, fails])
 	print("UI CONTRAST PASS" if fails == 0 else "UI CONTRAST FAIL")
 	quit(0 if fails == 0 else 1)

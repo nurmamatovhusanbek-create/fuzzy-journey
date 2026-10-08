@@ -21,9 +21,9 @@ const _DIAG := 0.5857864             # 2 - sqrt(2): a 45 degree chamfer offset i
 const _CACHE_MAX := 600
 
 ## legacy colour names that older call sites still read (TBFrame.PAPER ...)
-static var PAPER: Color = TBTokens.NORMAL["paper_0"]
-static var INK: Color = TBTokens.NORMAL["ink_0"]
-static var BRASS: Color = TBTokens.NORMAL["brass"]
+static var PAPER: Color = TBTokens.INK_800
+static var INK: Color = TBTokens.PAPER_100
+static var BRASS: Color = TBTokens.accent
 
 ## true once the player navigates by keyboard / pad, false again on a mouse or touch press (a focus ring is drawn only while true)
 static var kbd_nav := false
@@ -75,7 +75,7 @@ static func bar(pad_x: float = 12.0, pad_y: float = 6.0, alpha: float = 0.94, ru
 
 ## End Turn wax disc. Cached per state: do not mutate the returned style.
 static func seal(is_pressed: bool = false, is_hot: bool = false, is_disabled: bool = false) -> TBFrame:
-	var key := "seal%d%d%d%d" % [int(is_pressed), int(is_hot), int(is_disabled), TBTokens.mode]
+	var key := "seal%d%d%d%d" % [int(is_pressed), int(is_hot), int(is_disabled), TBTokens.sig()]
 	if _inst.has(key): return _inst[key]
 	var f := TBFrame.new()
 	f.kind = Kind.SEAL; f.pressed = is_pressed; f.hot = is_hot; f.disabled = is_disabled; f.elevation = 2
@@ -86,7 +86,7 @@ static func seal(is_pressed: bool = false, is_hot: bool = false, is_disabled: bo
 ## focus ring style, cached per variant: do not mutate
 ## ring_tok / line_tok name tokens for a ring that must sit on a special fill (the primary slab); empty = the ink-on-paper or cream-on-bar default
 static func focus(bar_ground: bool = false, cut_px: int = 4, inset_px: int = 0, ring_tok: String = "", line_tok: String = "") -> TBFrame:
-	var key := "focus%d%d%d%d%s%s" % [int(bar_ground), cut_px, inset_px, TBTokens.mode, ring_tok, line_tok]
+	var key := "focus%d%d%d%d%s%s" % [int(bar_ground), cut_px, inset_px, TBTokens.sig(), ring_tok, line_tok]
 	if _inst.has(key): return _inst[key]
 	var f := TBFrame.new()
 	f.kind = Kind.FOCUS; f.on_bar = bar_ground; f.cut = cut_px; f.inset = inset_px; f.ring_tok = ring_tok; f.line_tok = line_tok

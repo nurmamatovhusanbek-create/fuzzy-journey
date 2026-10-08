@@ -45,8 +45,8 @@ static func _fonts() -> void:
 	var k: int = 1 if K.serif else 0
 	if _f_for == k and _f_body != null: return
 	_f_for = k
-	var v := FontVariation.new(); v.base_font = K.body(); v.spacing_space = 2 if K.serif else 0; _f_body = v
-	var vb := FontVariation.new(); vb.base_font = K.body_b(); vb.spacing_space = 2 if K.serif else 0; _f_body_b = vb
+	var v := FontVariation.new(); v.base_font = K.body(); v.spacing_space = 2 if K.serif else 0; v.opentype_features = {"tnum": 1}; _f_body = v
+	var vb := FontVariation.new(); vb.base_font = K.body_b(); vb.spacing_space = 2 if K.serif else 0; vb.opentype_features = {"tnum": 1}; _f_body_b = vb
 static func body() -> Font:
 	_fonts()
 	return _f_body
@@ -312,7 +312,7 @@ static var _sb: Dictionary = {}
 ## cached StyleBoxFlat: fill, 1-px edge, corner radius
 static func sbox(fill: Color, edge: Color, radius: float, bw: int = 1) -> StyleBoxFlat:
 	fill.a = snappedf(fill.a, 0.05); edge.a = snappedf(edge.a, 0.05)               # fading callers do not mint a new box every frame
-	var key := "%s%s%d%d%d" % [fill.to_html(true), edge.to_html(true), int(radius), bw, TBTokens.mode]
+	var key := "%s%s%d%d%d" % [fill.to_html(true), edge.to_html(true), int(radius), bw, TBTokens.sig()]
 	if _sb.has(key): return _sb[key]
 	if _sb.size() > 400: _sb.clear()
 	var sb := StyleBoxFlat.new()

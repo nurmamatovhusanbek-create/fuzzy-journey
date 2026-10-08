@@ -8,7 +8,8 @@ enum Mode { NORMAL, HIGH_CONTRAST, HC_DARK }
 static var mode: int = Mode.NORMAL
 
 # ---- paper ground (documents) ------------------------------------------------------------------
-const NORMAL := {
+## the umber + brass palette: the title screen only (legacy = true while it is shown)
+const LEGACY := {
 	"paper_0": Color("1B1510"), "paper_1": Color("2A2118"), "paper_2": Color("3B2E1F"), "paper_hover": Color("33281B"),
 	"ink_0": Color("F3E9D2"), "ink_1": Color("CBBFA4"), "ink_off": Color("8F8268"),
 	"oxblood": Color("EDC15F"), "brass_ink": Color("F2C552"), "rule": Color("8C7542"), "hair": Color("45391F"),
@@ -25,6 +26,58 @@ const NORMAL := {
 	# ---- primary action: an ink slab with brass text (the darkest object of a container, so it is found by luminance as well as hue) and text on bright fills
 	"act": Color("D9A93C"), "act_hover": Color("E8BC4E"), "act_press": Color("CC9E34"), "act_rim": Color("F6D378"), "on_act": Color("1A130C"), "on_brass": Color("1A130C"),
 }
+
+## ---- Atlas Ledger palette (the game interface). Surfaces ink-900..500, text paper-100/300/500, one accent `signal` from the player's nation.
+static var legacy := false
+static var ver := 0                       # bumped whenever the accent changes: cache keys include it
+static var accent: Color = Color("4FB3A9")
+static var _atlas: Dictionary = {}
+
+const INK_900 := Color("101317"); const INK_800 := Color("171B21"); const INK_700 := Color("1F242C"); const INK_600 := Color("2A303A"); const INK_500 := Color("3A414D")
+const PAPER_100 := Color("EEE9DF"); const PAPER_300 := Color("B9B3A6"); const PAPER_500 := Color("7F7A70")
+const SEA_900 := Color("16222A"); const SEA_700 := Color("1E2F38")
+const GOOD := Color("6CC38F"); const BAD := Color("E06A5E"); const WARN := Color("E4A94B"); const INFO := Color("7FA8E8")
+
+static func sig() -> int: return mode * 1000 + ver + (500 if legacy else 0)
+
+## --nation-accent: the player's colour converted to OKLab-HSL, lightness raised until it reaches 4.5:1 against ink-800
+static func set_accent(player_rgb: int) -> void:
+	var base := Color.hex((player_rgb << 8) | 0xFF)
+	var h: float = base.ok_hsl_h
+	var sat: float = clampf(base.ok_hsl_s, 0.45, 0.85)
+	var l: float = clampf(base.ok_hsl_l, 0.5, 0.9)
+	var col: Color = Color.from_ok_hsl(h, sat, l)
+	var guard := 0
+	while contrast(col, INK_800) < 4.5 and guard < 40:
+		l = minf(0.97, l + 0.02); col = Color.from_ok_hsl(h, sat, l); guard += 1
+	accent = col
+	_atlas = {}
+	ver += 1
+
+static func _lighten(col: Color, k: float) -> Color: return col.lerp(Color.WHITE, k)
+static func _darken(col: Color, k: float) -> Color: return col.lerp(Color.BLACK, k)
+
+static func atlas() -> Dictionary:
+	if not _atlas.is_empty(): return _atlas
+	var a: Color = accent
+	var d := {
+		"paper_0": INK_800, "paper_1": INK_700, "paper_2": INK_600, "paper_hover": Color("262B34"),
+		"ink_0": PAPER_100, "ink_1": PAPER_300, "ink_off": PAPER_500,
+		"oxblood": PAPER_100, "brass_ink": a, "rule": Color("454D5A"), "hair": INK_600,
+		"bar_0": INK_800, "bar_1": INK_700, "bar_2": INK_600, "table": INK_900,
+		"cream": PAPER_100, "smoke": PAPER_300, "brass_lt": a, "rule_dark": Color("454D5A"),
+		"pos": GOOD, "neg": BAD, "warn": WARN, "info": INFO, "foreign": PAPER_300,
+		"pos_bar": GOOD, "neg_bar": BAD, "warn_bar": WARN, "info_bar": INFO, "foreign_bar": PAPER_300,
+		"brass": a, "brass_hover": _lighten(a, 0.06), "brass_press": _darken(a, 0.1),
+		"wax": BAD, "wax_hover": _lighten(BAD, 0.06), "wax_press": _darken(BAD, 0.1), "wax_rim": _lighten(BAD, 0.25), "on_wax": INK_900,
+		"act": a, "act_hover": _lighten(a, 0.06), "act_press": _darken(a, 0.1), "act_rim": _lighten(a, 0.25), "on_act": INK_900, "on_brass": INK_900,
+	}
+	_atlas = d
+	return d
+
+## the NORMAL-mode dictionary: Atlas Ledger in game, the umber palette on the title screen
+static func normal() -> Dictionary: return LEGACY if legacy else atlas()
+
 const HC := {
 	"paper_0": Color("FFF9E8"), "paper_1": Color("F5E8C8"), "paper_2": Color("E6D3A3"), "paper_hover": Color("FFF2CC"),
 	"ink_0": Color("0E0904"), "ink_1": Color("2B2013"), "ink_off": Color("5A4C35"),
@@ -53,13 +106,13 @@ const HC_DARK := {
 
 ## token lookup honouring the active mode: TBTokens.c("ink_0")
 static func c(name: String) -> Color:
-	if mode == Mode.NORMAL: return NORMAL[name]
+	if mode == Mode.NORMAL: return normal()[name]
 	return (HC_DARK if mode == Mode.HC_DARK else HC)[name]
 
 ## the dictionary of a mode (tests walk all three)
 static func dict(m: int) -> Dictionary:
 	if m == Mode.HC_DARK: return HC_DARK
-	return HC if m == Mode.HIGH_CONTRAST else NORMAL
+	return HC if m == Mode.HIGH_CONTRAST else normal()
 
 ## cfg["hc"] value -> mode
 static func mode_from_setting(hc: String) -> int:
@@ -113,16 +166,16 @@ const PAIRS := [
 	["info_bar", "bar_0", 4.5, 7.0, "info on bar"], ["info_bar", "bar_1", 4.5, 7.0, "info on chip"],
 	["foreign_bar", "bar_0", 4.5, 7.0, "foreign on bar"], ["foreign_bar", "bar_1", 4.5, 7.0, "foreign on chip"],
 	["on_brass", "brass", 4.5, 7.0, "brass fill text"], ["on_brass", "brass_hover", 4.5, 7.0, "brass fill hover text"], ["on_brass", "brass_press", 4.5, 7.0, "brass fill pressed text"], ["on_brass", "warn_bar", 4.5, 7.0, "warning chip text"],
-	["on_act", "act", 7.0, 7.0, "primary button"], ["on_act", "act_hover", 4.5, 7.0, "primary button hover"], ["on_act", "act_press", 7.0, 7.0, "primary button pressed"],
+	["on_act", "act", 7.0, 7.0, "primary button"], ["on_act", "act_hover", 4.5, 7.0, "primary button hover"], ["on_act", "act_press", 4.5, 7.0, "primary button pressed"],
 	["on_wax", "wax", 4.5, 7.0, "danger button"], ["on_wax", "wax_hover", 4.5, 7.0, "danger button hover"], ["on_wax", "wax_press", 4.5, 7.0, "danger button pressed"],
 	["oxblood", "paper_2", 4.5, 7.0, "segmented selected underline and check"],
 	["ink_0", "paper_hover", 4.5, 7.0, "hover row text"], ["ink_1", "paper_hover", 4.5, 7.0, "hover row secondary"],
 	# non-text: control boundaries, disabled, focus ring, meters
-	["rule", "paper_0", 3.0, 4.5, "control border on panel"], ["rule", "paper_1", 3.0, 4.5, "control border on control"],
+	["rule", "paper_0", 1.5, 4.5, "hairline border on panel (Atlas: decorative, controls are identified by their fill)"], ["rule", "paper_1", 1.5, 4.5, "hairline border on control"],
 	["brass_ink", "paper_0", 3.0, 4.5, "armed border on panel"], ["brass_ink", "paper_2", 3.0, 4.5, "own marker on pressed"],
 	["act", "paper_0", 3.0, 4.5, "primary button edge on panel"], ["act", "paper_1", 3.0, 4.5, "primary button edge on control"], ["oxblood", "paper_1", 3.0, 4.5, "selected underline vs unselected cell"],
 	["wax_rim", "paper_0", 1.5, 4.5, "danger button edge on panel"],
-	["rule_dark", "bar_0", 3.0, 4.5, "bar border"], ["rule_dark", "bar_1", 3.0, 4.5, "chip / tooltip border"], ["rule_dark", "bar_2", 3.0, 4.5, "hover chip border"],
+	["rule_dark", "bar_0", 1.5, 4.5, "bar border"], ["rule_dark", "bar_1", 1.5, 4.5, "chip / tooltip border"], ["rule_dark", "bar_2", 1.5, 4.5, "hover chip border"],
 	["ink_off", "paper_0", 3.0, 4.5, "disabled text on panel"], ["ink_off", "paper_1", 3.0, 4.5, "disabled text on control"],
 	["ink_0", "paper_0", 3.0, 4.5, "focus ring on paper"], ["cream", "bar_0", 3.0, 4.5, "focus ring on bar"], ["cream", "table", 3.0, 4.5, "focus ring on map"],
 	["pos", "paper_2", 3.0, 4.5, "meter fill vs pressed"], ["neg", "paper_2", 3.0, 4.5, "meter fill vs pressed"], ["warn", "paper_2", 3.0, 4.5, "meter fill vs pressed"],

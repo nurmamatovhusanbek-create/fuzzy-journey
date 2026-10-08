@@ -52,9 +52,9 @@ func _line(c: Vector2, r: float, pts: Array, col: Color, w: float, closed: bool 
 func _draw() -> void:
 	var s: float = minf(size.x, size.y)
 	if s < 8.0: return
-	if _plate == null or _plate_mode != TBTokens.mode:
+	if _plate == null or _plate_mode != TBTokens.sig():
 		_plate = TBFrame.plate(TBTokens.c("paper_1"), TBTokens.c("rule"), 2, 0, 0, 0)
-		_plate_mode = TBTokens.mode
+		_plate_mode = TBTokens.sig()
 	draw_style_box(_plate, Rect2(Vector2.ZERO, size))
 	var ink: Color = TBTokens.c("ink_0")
 	var ink2: Color = TBTokens.c("ink_1")
