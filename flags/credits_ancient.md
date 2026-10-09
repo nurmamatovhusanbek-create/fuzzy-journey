@@ -16,7 +16,7 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/ancien
 | bell_shaped_burials_culture | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | brushed_pottery_culture | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | caribbean_hunter_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| carthage | Flag of Carthage.svg | ? | [Wikimedia Commons]() |  |
+| carthage | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of Carthage.svg | Flag of Carthage.svg | Flag of Ancient Carthage.svg | Flag of Ancient Carthage.svg |
 | celts | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | chavin | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | chorrera | (authored) | CC0 | this repo | no flag in this era: generated emblem |
@@ -27,18 +27,18 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/ancien
 | eastern_north_amercian_hunter_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | finno_ugric_taiga_hunter_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | hadramaut | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| han_empire | Flag of the Han dynasty.svg | ? | [Wikimedia Commons]() |  |
+| han_empire | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of the Han dynasty.svg | Flag of the Han dynasty.svg |
 | iron_age_chieftainships | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | khoiasan | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | kingdom_of_gala | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | kingdom_of_syphax | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | maan | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| macedon_and_hellenic_league | Flag of Macedonia (ancient).svg | ? | [Wikimedia Commons]() |  |
+| macedon_and_hellenic_league | Vergina Sun.svg | ? | [Wikimedia Commons]() |  |
 | maize_farmers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | malays | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | manioc_farmers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | mauretania | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| mauryan_empire | Flag of the Maurya Empire.svg | ? | [Wikimedia Commons]() |  |
+| mauryan_empire | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of the Maurya Empire.svg | Flag of the Maurya Empire.svg | Flag of the Mauryan Empire.svg | Flag of the Mauryan Empire.svg |
 | maya_chiefdoms_and_states | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | meroe | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | milograd_culture | (authored) | CC0 | this repo | no flag in this era: generated emblem |
@@ -53,23 +53,23 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/ancien
 | pampas_cultures | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | papuan | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | paracas | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| parthia | Flag of the Parthian Empire.svg | ? | [Wikimedia Commons]() |  |
+| parthia | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of the Parthian Empire.svg | Flag of the Parthian Empire.svg | Flag of Parthia.svg | Flag of Parthia.svg |
 | patagonian_shellfish_and_marine_mammal_hunters | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| pergamon | Flag of Pergamon.svg | ? | [Wikimedia Commons]() |  |
+| pergamon | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of Pergamon.svg | Flag of Pergamon.svg | Flag of the Attalid dynasty.svg | Flag of the Attalid dynasty.svg |
 | plain_bison_hunters | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | plain_pottery_culture | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | plateau_fichers_and_hunter_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | pomeranian_culture | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| ptolemaic_kingdom | Flag of the Ptolemaic Kingdom.svg | ? | [Wikimedia Commons]() |  |
+| ptolemaic_kingdom | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of the Ptolemaic Kingdom.svg | Flag of the Ptolemaic Kingdom.svg | Flag of Ptolemaic Egypt.svg | Flag of Ptolemaic Egypt.svg |
 | qataban | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| rome | Vexillum of the Roman Republic.svg | ? | [Wikimedia Commons]() |  |
+| rome | (authored) | CC0 | this repo | NOT FOUND on Commons: Vexillum of the Roman Republic.svg | Vexillum of the Roman Republic.svg | Vexillum of the Roman Empire.svg | Vexillum of the Roman Empire.svg | Roman vexillum.svg | Roman vexillum.svg | Vexillum with SPQR.svg | Vexillum with SPQR.svg | Flag of the Roman Republic.svg | Flag of the Roman Republic.svg |
 | saami | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | saba | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | saharan_pastoral_nomads | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | sambian_nothangian_culture | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | savanna_hunter_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | scythians | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| seleucid_kingdom | Flag of the Seleucid Empire.svg | ? | [Wikimedia Commons]() |  |
+| seleucid_kingdom | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of the Seleucid Empire.svg | Flag of the Seleucid Empire.svg | Flag of the Seleucid Empire (anchor).svg | Flag of the Seleucid Empire (anchor).svg |
 | shellfish_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | simhala | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | subarctic_forest_hunter_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |

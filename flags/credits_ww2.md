@@ -26,7 +26,7 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/ww2/<n
 | colombia | Flag of Colombia.svg | Public domain | flag-icons (MIT) |  |
 | costa_rica | Flag of Costa Rica.svg | Public domain | flag-icons (MIT) |  |
 | cuba | Flag of Cuba.svg | Public domain | flag-icons (MIT) |  |
-| czechoslovakia | Flag of Czechoslovakia.svg | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_Czechoslovakia.svg) |  |
+| czechoslovakia | Flag of the Czech Republic.svg | ? | [Wikimedia Commons]() |  |
 | denmark | Flag of Denmark.svg | Public domain | flag-icons (MIT) |  |
 | dominica | Flag of Dominica (1875–1955).svg | CC BY-SA 4.0 | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_Dominica_(1875–1955).svg) |  |
 | dominican_republic | Flag of Dominican Republic.svg | ? | flag-icons (MIT) |  |
@@ -49,7 +49,7 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/ww2/<n
 | haiti | Flag of Haiti (1820–1849, 1859–1964).svg | ? | [Wikimedia Commons]() |  |
 | honduras | Flag of Honduras.svg | Public domain | flag-icons (MIT) |  |
 | hungary | (authored) | CC0 | this repo | Red-white-green, the Hungarian civil flag |
-| iran | Flag of Iran (1933–1964).svg | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_Iran_(1933–1964).svg) |  |
+| iran | Civil flag of Iran (1933–1964).svg | ? | [Wikimedia Commons]() |  |
 | ireland | Flag of Ireland.svg | Public domain | flag-icons (MIT) |  |
 | israel | Flag of Israel.svg | Public domain | flag-icons (MIT) | The Zionist flag, in use since 1891 (Mandatory Palestine had no state flag) |
 | italy | Flag of Italy (1861–1946).svg | ? | [Wikimedia Commons]() |  |
@@ -81,7 +81,7 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/ww2/<n
 | saudi_arabia | Flag of Saudi Arabia (1938–1973).svg | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_Saudi_Arabia_(1938–1973).svg) |  |
 | siam | Flag of Thailand.svg | Public domain | flag-icons (MIT) | Siam became Thailand in 1939; the tricolour has flown since 1917 |
 | spain | Flag of Spain (1938–1945).svg | ? | [Wikimedia Commons]() |  |
-| sudan | Flag of Sudan (1899–1956).svg | ? | [Wikimedia Commons]() | Anglo-Egyptian Sudan |
+| sudan | Flag of Anglo-Egyptian Sudan.svg | ? | [Wikimedia Commons]() | Anglo-Egyptian Sudan |
 | suriname | Flag of Netherlands.svg | ? | flag-icons (MIT) | shows the flag of netherlands |
 | sweden | Flag of Sweden.svg | Public domain | flag-icons (MIT) |  |
 | switzerland | Flag of Switzerland.svg | Public domain | flag-icons (MIT) |  |
@@ -91,7 +91,7 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/ww2/<n
 | trucial_oman | Flag of the Trucial States.svg | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_the_Trucial_States.svg) |  |
 | tunisia | Flag of Tunisia.svg | ? | flag-icons (MIT) | The Beylik flag, the design the republic kept |
 | turkey | Flag of Republic of Türkiye.svg | ? | flag-icons (MIT) |  |
-| union_of_south_africa | Flag of South Africa (1928–1994).svg | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_South_Africa_(1928–1994).svg) |  |
+| union_of_south_africa | Flag of South Africa (1928–1994, dark colors).svg | ? | [Wikimedia Commons]() |  |
 | united_states | Flag of the United States (1912-1959).svg | ? | [Wikimedia Commons]() |  |
 | uruguay | Flag of Uruguay.svg | Public domain | flag-icons (MIT) |  |
 | ussr | Flag of the Soviet Union (1936–1955).svg | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_the_Soviet_Union_(1936–1955).svg) |  |

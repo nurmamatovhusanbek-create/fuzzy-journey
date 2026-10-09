@@ -28,7 +28,7 @@ S={
 'portuguese_guinea':A('portugal'),'equatorial_guinea':A('spain','Spanish Guinea'),'spanish_morocco':A('spain'),'rio_de_oro':A('spain'),
 'greece':I('gr'),'guatemala':I('gt'),'guyana':D("Flag of British Guiana (1875–1919).svg"),'honduras':I('hn'),'haiti':D("Flag of Haiti (1859–1964).svg"),
 'netherlands_indies':A('netherlands'),'netherlands':I('nl'),'suriname':A('netherlands'),
-'persia':D("Flag of Persia (1907–1925).svg","Flag of Iran (1907–1925).svg","Flag of Iran (1907-1925).svg"),
+'persia':D("Flag of Persia (1907–1933).svg","Flag of Persia (1907–1925).svg","Flag of Iran (1907–1925).svg","Flag of Iran (1907-1925).svg"),
 'iceland':A('denmark','Under Denmark until 1918 (the blue-white-red flag was only adopted in 1915 for local use)'),
 'arabia_nejd':D("Flag of Nejd and Hasa (1913–1921).svg","Flag of the Emirate of Nejd.svg","Flag of Najd.svg","Flag of Nejd (1902–1921).svg"),
 'empire_of_japan':I('jp'),

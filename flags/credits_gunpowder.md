@@ -103,7 +103,7 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/gunpow
 | teton | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | tibet | Flag of Tibet.svg | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flag_of_Tibet.svg) |  |
 | tokugawa_shogunate | Flag of the Tokugawa Shogunate.svg | ? | [Wikimedia Commons]() |  |
-| tsardom_of_muscovy | Flag of the Grand Duchy of Moscow.svg | ? | [Wikimedia Commons]() |  |
+| tsardom_of_muscovy | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of the Grand Duchy of Moscow.svg | Flag of the Grand Duchy of Moscow.svg | Flag of the Tsardom of Russia.svg | Flag of the Tsardom of Russia.svg | Flag of the Tsardom of Muscovy.svg | Flag of the Tsardom of Muscovy.svg | Flag of the Grand Principality of Moscow.svg | Flag of the Grand Principality of Moscow.svg |
 | ute | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | venice | Flag of the Republic of Venice.svg | ? | [Wikimedia Commons]() |  |
 | wadai | (authored) | CC0 | this repo | no flag in this era: generated emblem |

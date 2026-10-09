@@ -21,7 +21,7 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/roman/
 | goodall_focus | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | hadramaut | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | hainan | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| han | Flag of the Han dynasty.svg | ? | [Wikimedia Commons]() |  |
+| han | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of the Han dynasty.svg | Flag of the Han dynasty.svg | Flag of the Han Dynasty.svg | Flag of the Han Dynasty.svg |
 | heruli | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | himyarite_kingdom | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | hopewell_culture | (authored) | CC0 | this repo | no flag in this era: generated emblem |
@@ -40,11 +40,11 @@ Each flag is the one flown in that era, rasterised to `godot/assets/flags/roman/
 | paleo_inuit | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | paleo_siberian_hunter_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | pampas_cultures | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| parthian_empire | Flag of the Parthian Empire.svg | ? | [Wikimedia Commons]() |  |
+| parthian_empire | (authored) | CC0 | this repo | NOT FOUND on Commons: Flag of the Parthian Empire.svg | Flag of the Parthian Empire.svg | Flag of Parthia.svg | Flag of Parthia.svg |
 | patagonian_shellfish_and_marine_mammal_hunters | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | plain_bison_hunters | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | plateau_fichers_and_hunter_gatherers | (authored) | CC0 | this repo | no flag in this era: generated emblem |
-| roman_empire | Vexillum of the Roman Empire.svg | ? | [Wikimedia Commons]() |  |
+| roman_empire | Flag of the Roman Empire.svg | ? | [Wikimedia Commons]() |  |
 | sa_mi | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | saka_kingdom | (authored) | CC0 | this repo | no flag in this era: generated emblem |
 | satavahanihara | (authored) | CC0 | this repo | no flag in this era: generated emblem |
