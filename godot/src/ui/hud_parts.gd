@@ -472,7 +472,7 @@ class Chip extends Hit:
 		elif state == 1: edge = TBHudParts.tk("warn_bar")
 		var face: Color = TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.tk("bar_0")
 		var fr: float = BZ.ring(self, c, R, 30 if R >= 20.0 else 24, face)
-		if frac >= 0.0: BZ.gauge(self, c, fr - 5.5, frac, edge, 2.0)          # light arc, colour kept
+		if frac >= 0.0: BZ.gauge(self, c, fr - 2.6, frac, edge, 2.0)          # light arc, colour kept
 		if state >= 1:
 			var pulse: float = 0.5 + 0.5 * sin(_t * 3.14) if not TBHudParts.reduced_motion() else 1.0
 			draw_arc(c, R + 3.0, 0.0, TAU, 40, TBHudParts.al(edge, 0.35 + 0.4 * pulse), 1.6, true)
@@ -533,13 +533,18 @@ class NationChip extends Hit:
 		var R: float = medal() * 0.5
 		var c := Vector2(2.0 + R, size.y * 0.5 + oy)
 		var fr: float = BZ.ring(self, c, R, 40, TBHudParts.tk("bar_0"))
-		if flag != null:                                                    # the whole flag, sized to sit inside the ring (a circular crop would cut off cantons and emblems)
+		if flag != null:                                                    # the flag fills the circle (an era flag is pre-cropped on its main element: tools/flags/focus.json)
+			var pr: float = R - 1.6
+			var pts := PackedVector2Array(); var uvs := PackedVector2Array()
 			var fs_: Vector2 = flag.get_size()
-			var fw: float = 2.0 * (fr - 2.0) * 0.82
-			var fh: float = fw * fs_.y / maxf(1.0, fs_.x)
-			var fl := Rect2(c - Vector2(fw, fh) * 0.5, Vector2(fw, fh))
-			draw_texture_rect(flag, fl, false)
-			draw_rect(fl, Color(BZ.BRASS_LO, 0.9), false, 1.0)
+			var side: float = minf(fs_.x, fs_.y)
+			var uo := Vector2((fs_.x - side) * 0.5, (fs_.y - side) * 0.5)
+			for i in 48:
+				var a: float = TAU * i / 48.0
+				var d := Vector2(cos(a), sin(a))
+				pts.append(c + d * pr)
+				uvs.append((uo + Vector2(side, side) * 0.5 + d * side * 0.5) / fs_)
+			draw_colored_polygon(pts, Color.WHITE, uvs, flag)
 		if hover or has_focus(): draw_arc(c, R + 2.5, 0.0, TAU, 40, TBHudParts.tk("brass_lt"), 1.5, true)
 		if show_name:
 			var x: float = c.x + R + 10.0

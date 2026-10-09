@@ -19,6 +19,17 @@ static func historical(code: String, era: String) -> Texture2D:
 	_cache[key] = t
 	return t
 
+## the square, circle-ready crop of an era flag (focused on its main element), or null when the era has no art for the nation
+static func medal(code: String, era: String = "") -> Texture2D:
+	var e: String = era if era != "" else cur_era
+	if e == "": return null
+	var key := "m:%s:%s" % [e, code]
+	if _cache.has(key): return _cache[key]
+	var path := "%s%s/%s_c.png" % [DIR, e, code]
+	var t: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	_cache[key] = t
+	return t
+
 static func texture(code: String, base_rgb: int, era: String = "") -> Texture2D:
 	var hist: Texture2D = historical(code, era if era != "" else cur_era)
 	if hist != null: return hist

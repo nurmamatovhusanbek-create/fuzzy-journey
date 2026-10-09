@@ -40,7 +40,7 @@ static func ring(ci: CanvasItem, c: Vector2, r: float, nt: int = 36, face: Color
 		ci.draw_arc(c, r - 0.7, 0.0, TAU, 56, Color(BRASS, 0.85), 1.3, true)
 		var fl: float = r - 1.4
 		if nt > 0 and r >= 14.0: ticks(ci, c, fl - 1.2, nt, clampf(r * 0.05, 1.2, 2.4), 6, Color(BRASS, 0.55), 1.0)
-		return fl
+		return r - clampf(r * 0.12, 2.5, 6.0)          # content (glyphs, numbers, flags) is sized from the old band-width face, so a lighter ring does not make everything inside it bigger
 	var band: float = clampf(r * 0.12, 2.5, 6.0)
 	_brass_arc(ci, c, r - band * 0.5, band)
 	var fr: float = r - band
