@@ -251,6 +251,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	root.mouse_filter = Control.MOUSE_FILTER_STOP if h.modal else Control.MOUSE_FILTER_IGNORE
 	root.set_meta("tb_handle", h)
 	root.set_meta("tb_modal", true)
+	root.z_index = TBTokens.Z_MODAL                  # above every HUD tooltip / popover (they sit at 60-70)
 	h.root = root
 	if h.modal:
 		var bd := ColorRect.new()

@@ -207,6 +207,7 @@ const TOUCH_LARGE := 56         # "Large targets" setting
 const ICON_VISUAL := 40         # visual square of an icon button (hit area stays 48)
 const THUMB := 24               # slider thumb diameter
 const SCRIM_ALPHA := 0.72       # modal scrim = `table` at 72 %
+const Z_MODAL := 80             # draw layer of every modal: above the HUD tooltip (70) and popover (65), the map tip (50) and the inspector (60), below the negotiation dial (90)
 const SHADOW_DY := [0, 3, 6]    # hard shadow offset per elevation (art bible 3.3)
 const SHADOW_A := [0.0, 0.26, 0.32]
 const FOCUS_RING := 2           # focus ring: 2 px ring + 2 px gap + 1 px contrast line

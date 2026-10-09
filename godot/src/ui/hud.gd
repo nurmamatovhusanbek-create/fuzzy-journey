@@ -705,6 +705,10 @@ func report_flush(battles: int = 0) -> void:
 func reduce_motion_now() -> bool: return P.reduced_motion()
 
 # ================================================================== tooltips and popovers
+## close the tooltip and the open popover (a modal is taking over the screen)
+func dismiss_floating() -> void:
+	_tip_hide(); _close_pop()
+
 func _tip_hide() -> void:
 	if _tip != null and is_instance_valid(_tip): _tip.queue_free()
 	_tip = null

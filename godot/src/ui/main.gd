@@ -71,6 +71,7 @@ func _ready() -> void:
 	TBMapCursor.install(self)                       # keyboard map cursor + on-screen nav pad (accessibility)
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
+	_overlay.child_entered_tree.connect(func(_c: Node): if hud != null: hud.dismiss_floating())      # a screen or dialog opens: the HUD tooltip / popover goes
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
 	hud.end_turn_pressed.connect(func():
 		sfx.play("turn"); end_turn()

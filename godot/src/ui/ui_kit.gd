@@ -1487,6 +1487,7 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 	back.set_anchors_preset(Control.PRESET_FULL_RECT)
 	back.mouse_filter = Control.MOUSE_FILTER_STOP
 	back.set_meta("tb_modal", true)
+	back.z_index = TBTokens.Z_MODAL
 	var card := PanelContainer.new()
 	var holder: Control
 	if portrait:
