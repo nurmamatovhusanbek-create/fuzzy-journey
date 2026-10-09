@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — effect text variations</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto}
+main{max-width:1240px;margin:0 auto;padding:28px 20px 80px}
+h1{font:700 22px Cinzel;letter-spacing:.2em;text-transform:uppercase}
+.lead{font:italic 17px/1.4 Alegreya;color:var(--dim);margin:6px 0 24px;max-width:860px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(560px,1fr));gap:26px}
+.card{position:relative}
+.badge{position:absolute;left:14px;top:-12px;z-index:2;font:700 12px Cinzel;letter-spacing:.2em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:4px 12px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.ch{display:flex;justify-content:space-between;padding:16px 20px 4px}.ch .nm{font:700 13px Cinzel;letter-spacing:.2em;text-transform:uppercase}
+.note{font:italic 14.5px/1.35 Alegreya;color:var(--dim);padding:2px 20px 12px}
+.ctx{padding:10px 20px 12px;border-top:1px solid #2b2216}
+.ctx .cap{margin-bottom:8px}
+.dec{display:flex;gap:12px;align-items:flex-start}
+.dec .ring{width:38px;height:38px;flex:none}
+.dec .bd{flex:1}
+.dec .tt{font:700 13px Cinzel;letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px}
+.ev{background:#100d0a;box-shadow:inset 0 0 0 1px #3a2f1d;padding:10px 12px}.ev+.ev{margin-top:6px}
+.ev .tt{font:700 13px Cinzel;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+/* atoms */
+.good{--c:#69B3A2}.bad{--c:#e0795a}.zero{--c:#7d735c}
+/* 1 engraved mark */
+.g1{display:flex;flex-wrap:wrap;gap:6px 18px}
+.x1{position:relative;display:inline-flex;align-items:baseline;gap:7px;padding-left:15px}
+.x1 i{position:absolute;left:0;top:50%;width:7px;height:7px;margin-top:-1px;transform:translateY(-50%) rotate(45deg);background:var(--c)}
+.x1.zero i{background:none;box-shadow:inset 0 0 0 1.5px var(--c)}
+.x1 b{font:700 19px/1 Alegreya;color:var(--ivory)}.x1 em{font:italic 400 15.5px Alegreya;color:var(--dim)}
+.x1.zero b{color:var(--dim)}
+/* 2 leader list */
+.g2{display:block}
+.x2{display:flex;align-items:baseline;padding:3px 0}
+.x2 em{font:italic 400 16px Alegreya;color:var(--dim);font-style:normal}
+.x2 s{flex:1;border-bottom:2px dotted #4a3d22;margin:0 8px;transform:translateY(-4px);text-decoration:none}
+.x2 b{font:700 18px Alegreya;color:var(--c)}
+/* 3 corner brackets */
+.g3{display:flex;flex-wrap:wrap;gap:8px 12px}
+.x3{position:relative;display:inline-flex;align-items:baseline;gap:8px;padding:5px 11px}
+.x3::before,.x3::after{content:'';position:absolute;width:7px;height:7px;border:0 solid #8a6c2a}
+.x3::before{left:0;top:0;border-width:1px 0 0 1px}.x3::after{right:0;bottom:0;border-width:0 1px 1px 0}
+.x3 b{font:700 18px/1 Alegreya;color:var(--c)}.x3 em{font:600 10.5px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-style:normal}
+/* 4 ticket stub */
+.g4{display:flex;flex-wrap:wrap;gap:8px}
+.x4{display:inline-flex;align-items:center;gap:10px;padding:5px 16px;background:#0f0c09;box-shadow:inset 0 0 0 1px #3d3220;
+ -webkit-mask:radial-gradient(circle 5px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 5px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat;mask:radial-gradient(circle 5px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 5px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat}
+.x4 b{font:700 18px/1 Alegreya;color:var(--c)}.x4 em{font:600 10px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-style:normal;border-left:1px dashed #4a3d22;padding-left:10px}
+/* 5 bezel sign */
+.g5{display:flex;flex-wrap:wrap;gap:8px 18px}
+.x5{display:inline-flex;align-items:center;gap:8px}
+.x5 u{width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 36% 30%,#2a2218,#0f0c09 72%);box-shadow:0 0 0 1.5px var(--c),0 0 0 2.5px #0b0907;font:700 14px/1 Alegreya;color:var(--c);text-decoration:none}
+.x5 b{font:700 18px/1 Alegreya;color:var(--ivory)}.x5 em{font:italic 400 15.5px Alegreya;color:var(--dim)}
+.x5.zero b{color:var(--dim)}
+/* 6 prose */
+.g6{font:400 17.5px/1.5 Alegreya;color:var(--ivory)}.g6 b{font-weight:700;color:var(--c);padding:0 1px}.g6 .z{color:var(--dim)}
+.g6::first-letter{text-transform:uppercase}
+.grid{align-items:start}
+</style></head><body><main>
+<h1>Effect text — six treatments</h1>
+<p class="lead">Those rounded coloured capsules are a web-app habit. Here the same facts (the budget sources, a decree's effects, an event choice, why a nation feels the way it does) are typeset in six ways that belong to the instrument world. Each card shows all four places they appear. A zero is neutral in every one.</p>
+<div class="grid" id="g"></div>
+</main>
+<script>
+/*MAPDATA*/
+/*KIT*/
+document.body.insertAdjacentHTML('afterbegin',DEFS);
+const cls=s=>s>0?'good':s<0?'bad':'zero';
+const I=(n,t,s,p)=>({n,t,s,p});
+const BUD=[I('+640','taxes',1,'Taxes bring {n}'),I('+180','trade',1,'trade adds {n}'),I('0','provinces',0,'conquests add {n}'),I('−62','upkeep',-1,'upkeep costs {n}'),I('−27','spending',-1,'spending costs {n}')];
+const DEC=[I('+8','army / turn',1,'Raises {n} army a turn'),I('−3','happiness',-1,'lowers happiness by {n}')];
+const EV1=[I('−10','Austria relations',-1,'Austria’s regard falls by {n}'),I('+5','prestige',1,'prestige rises by {n}')];
+const EV2=[I('−15','stability',-1,'costs {n} stability'),I('','war averted',1,'war is averted')];
+const WHY=[I('−12','border garrison',-1,'your border garrison costs {n}'),I('−20','past war',-1,'the last war costs {n}'),I('+15','shared enemy',1,'a shared enemy gives {n}')];
+const V={
+ 1:{nm:'Engraved mark',note:'No container at all. A small diamond carries the sign (hollow when zero); the number is bold ivory, the noun is dim italics. Colour appears only in the mark.',
+  g:a=>`<div class="g1">${a.map(i=>`<span class="x1 ${cls(i.s)}"><i></i>${i.n?`<b>${i.n}</b>`:''}<em>${i.t}</em></span>`).join('')}</div>`},
+ 2:{nm:'Leader list',note:'Each effect is a ledger line: noun, dotted leader, figure. The figure takes the sign colour. Reads as an almanac table and never wraps awkwardly.',
+  g:a=>`<div class="g2">${a.map(i=>`<div class="x2 ${cls(i.s)}"><em>${i.t.charAt(0).toUpperCase()+i.t.slice(1)}</em><s></s><b>${i.n||'✓'}</b></div>`).join('')}</div>`},
+ 3:{nm:'Corner brackets',note:'Two brass corner ticks, like a chart label or a sextant frame; no fill, no outline. Figure in sign colour, noun in small caps.',
+  g:a=>`<div class="g3">${a.map(i=>`<span class="x3 ${cls(i.s)}">${i.n?`<b>${i.n}</b>`:''}<em>${i.t}</em></span>`).join('')}</div>`},
+ 4:{nm:'Ticket stub',note:'A punched archive tag: square body, half-round notches at both ends, a dashed tear line before the noun. Cut shapes, never rounded rectangles.',
+  g:a=>`<div class="g4">${a.map(i=>`<span class="x4 ${cls(i.s)}">${i.n?`<b>${i.n}</b>`:'<b>✓</b>'}<em>${i.t}</em></span>`).join('')}</div>`},
+ 5:{nm:'Bezel sign',note:'A tiny bezel seal holds a + or − (a ring for zero); the text beside it is plain ivory. Same ring language as the dials, so it feels like part of the instruments.',
+  g:a=>`<div class="g5">${a.map(i=>`<span class="x5 ${cls(i.s)}"><u>${i.s>0?'+':i.s<0?'−':'·'}</u>${i.n?`<b>${i.n.replace(/^[+−]/,'')}</b>`:''}<em>${i.t}</em></span>`).join('')}</div>`},
+ 6:{nm:'Prose',note:'No widgets: the effects become one italic sentence with the figures set in bold sign colour. It scales to any length and any language, and costs nothing to draw.',
+  g:a=>{const parts=a.map(i=>i.p.replace('{n}',`<b class="${cls(i.s)}">${i.n}</b>`));let t=parts[0];const rest=parts.slice(1);t=t.charAt(0)===' '?t:t;return `<div class="g6">${t}${rest.length?(rest.length>1?', '+rest.slice(0,-1).join(', ')+' and '+rest.slice(-1):'; '+rest[0]):''}.</div>`}}
+};
+function card(k){const v=V[k];const ctx=(h,html)=>`<div class="ctx"><div class="cap">${h}</div>${html}</div>`;
+ return `<div class="card"><span class="badge">${String.fromCharCode(64+k)}</span>${plate(`<div class="ch"><div class="nm">${v.nm}</div></div><div class="note">${v.note}</div>
+ ${ctx('Budget · net income',v.g(BUD))}
+ ${ctx('Decree',`<div class="dec"><div class="ring">${ico('army',19)}</div><div class="bd"><div class="tt">Conscription Law</div>${v.g(DEC)}</div><button class="bt pri" style="height:32px;padding:0 14px;font-size:11px">Enact</button></div>`)}
+ ${ctx('Event choices',`<div class="ev"><div class="tt">Stand firm</div>${v.g(EV1)}</div><div class="ev"><div class="tt">Withdraw garrisons</div>${v.g(EV2)}</div>`)}
+ ${ctx('Diplomacy · why they feel this way',v.g(WHY))}`,'','',12)}</div>`}
+document.getElementById('g').innerHTML=[1,2,3,4,5,6].map(card).join('');
+</script></body></html>
