@@ -49,6 +49,7 @@ var render_scale := 1.0        # SubViewport resolution relative to the control'
 var _vp: SubViewport
 var _view_tex: TextureRect
 var labels: TBMapLabels
+var routes: TBMapRoutes
 ## global rectangles the interface covers (dock, seal, ribbon, panel): labels keep out of them
 var keepout_fn: Callable
 var _mat: ShaderMaterial
@@ -104,9 +105,11 @@ func setup(game: TBGame) -> void:
 		_pal_tex = ImageTexture.create_from_image(_pal_img)
 		_mat.set_shader_parameter("pal", _pal_tex)
 		resized.connect(_push_view)
+		routes = TBMapRoutes.new(); add_child(routes); routes.attach(self)
 		labels = TBMapLabels.new(); add_child(labels); labels.attach(self)
 	lenses = TBLenses.new(g)
 	labels.set_game(g)
+	routes.set_game(g)
 	repaint_all()
 	_push_view()
 
