@@ -424,6 +424,7 @@ func _open_era_picker() -> void:
 func _begin_pick(era_id: String, difficulty: String) -> void:
 	cfg["difficulty"] = difficulty; _save_cfg()
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
+	TBFlags.cur_era = String(era.get("id", ""))
 	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty})
 	TBLenses.dark_land = true
 	map.setup(g)
@@ -459,6 +460,8 @@ func _pick_nation_from_list(n: int) -> void:
 	if _pick_flow != null and is_instance_valid(_pick_flow): _pick_flow.select_nation(n, true)
 
 const HOT_COLORS := [0xC63A4A, 0x3A7AC6, 0x3AA66A, 0xC6A23A]
+
+static func g_era(game: TBGame) -> String: return game.era_id if game != null and game.era_id != "modern" else ""
 
 func _start_game(n: int) -> void:
 	hud.seat_tag = ""
@@ -751,6 +754,7 @@ func _autosave() -> void:
 func _load_slot(slot: String) -> void:
 	var ng := TBSave.load_game(world, slot)
 	if ng == null: return
+	TBFlags.cur_era = g_era(ng)
 	g = ng; mode = "game"; _enter_game_visuals(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
@@ -839,6 +843,7 @@ func _process(delta: float) -> void:
 
 # ---------------------------------------------------------------- multiplayer hooks (called by TBMpController)
 func enter_mp_game(game: TBGame, nation: int) -> void:
+	TBFlags.cur_era = g_era(game)
 	g = game; mode = "game"; _enter_game_visuals(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)

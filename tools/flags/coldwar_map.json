@@ -1,0 +1,532 @@
+{
+ "afghanistan": {
+  "title": "Flag of Afghanistan (1931–1973).svg",
+  "note": ""
+ },
+ "portugal": {
+  "title": "Flag of Portugal.svg",
+  "note": "",
+  "iso": "pt",
+  "source": "flag-icons"
+ },
+ "albania": {
+  "title": "Flag of Albania (1946–1992).svg",
+  "note": ""
+ },
+ "spain": {
+  "title": "Flag of Spain (1945–1977).svg",
+  "note": ""
+ },
+ "argentina": {
+  "title": "Flag of Argentina.svg",
+  "note": "",
+  "iso": "ar",
+  "source": "flag-icons"
+ },
+ "ussr": {
+  "title": "Flag of the Soviet Union (1936–1955).svg",
+  "note": ""
+ },
+ "australia": {
+  "title": "Flag of Australia (converted).svg",
+  "note": "",
+  "iso": "au",
+  "source": "flag-icons"
+ },
+ "austria": {
+  "title": "Flag of Austria.svg",
+  "note": "",
+  "iso": "at",
+  "source": "flag-icons"
+ },
+ "belgium": {
+  "title": "Flag of Belgium.svg",
+  "note": "",
+  "iso": "be",
+  "source": "flag-icons"
+ },
+ "bulgaria": {
+  "title": "Flag of Bulgaria (1946–1948).svg",
+  "note": ""
+ },
+ "yugoslavia": {
+  "title": "Flag of Yugoslavia (1946–1992).svg",
+  "note": ""
+ },
+ "bolivia": {
+  "title": "Flag of Bolivia.svg",
+  "note": "",
+  "iso": "bo",
+  "source": "flag-icons"
+ },
+ "brazil": {
+  "title": "Flag of Brazil (1889–1960).svg",
+  "note": ""
+ },
+ "bhutan": {
+  "title": "Flag of Bhutan.svg",
+  "note": "",
+  "iso": "bt",
+  "source": "flag-icons"
+ },
+ "british_empire": {
+  "title": "Flag of the United Kingdom (3-2).svg",
+  "note": "",
+  "iso": "gb",
+  "source": "flag-icons"
+ },
+ "canada": {
+  "title": "Canadian Red Ensign (1921–1957).svg",
+  "note": "Canadian Red Ensign"
+ },
+ "switzerland": {
+  "title": "Flag of Switzerland.svg",
+  "note": "",
+  "iso": "ch",
+  "source": "flag-icons"
+ },
+ "chile": {
+  "title": "Flag of Chile.svg",
+  "note": "",
+  "iso": "cl",
+  "source": "flag-icons"
+ },
+ "china": {
+  "title": "Flag of the Republic of China.svg",
+  "note": ""
+ },
+ "tibet": {
+  "title": "Flag of Tibet.svg",
+  "note": ""
+ },
+ "france": {
+  "title": "Flag of France.svg",
+  "note": "",
+  "iso": "fr",
+  "source": "flag-icons"
+ },
+ "liberia": {
+  "title": "Flag of Liberia.svg",
+  "note": "",
+  "iso": "lr",
+  "source": "flag-icons"
+ },
+ "colombia": {
+  "title": "Flag of Colombia.svg",
+  "note": "",
+  "iso": "co",
+  "source": "flag-icons"
+ },
+ "costa_rica": {
+  "title": "Flag of Costa Rica.svg",
+  "note": "",
+  "iso": "cr",
+  "source": "flag-icons"
+ },
+ "cuba": {
+  "title": "Flag of Cuba.svg",
+  "note": "",
+  "iso": "cu",
+  "source": "flag-icons"
+ },
+ "czechoslovakia": {
+  "title": "Flag of Czechoslovakia.svg",
+  "note": ""
+ },
+ "usa": {
+  "title": "Flag of the United States (1912–1959).svg",
+  "note": ""
+ },
+ "denmark": {
+  "title": "Flag of Denmark.svg",
+  "note": "",
+  "iso": "dk",
+  "source": "flag-icons"
+ },
+ "dominican_republic": {
+  "title": "Flag of the Dominican Republic.svg",
+  "note": "",
+  "iso": "do",
+  "source": "flag-icons"
+ },
+ "ecuador": {
+  "title": "Flag of Ecuador.svg",
+  "note": "",
+  "iso": "ec",
+  "source": "flag-icons"
+ },
+ "ethiopia": {
+  "title": "Flag of Ethiopia (1941–1974).svg",
+  "note": ""
+ },
+ "finland": {
+  "title": "Flag of Finland.svg",
+  "note": "",
+  "iso": "fi",
+  "source": "flag-icons"
+ },
+ "israel": {
+  "title": "Flag of Israel.svg",
+  "note": "",
+  "iso": "il",
+  "source": "flag-icons"
+ },
+ "greece": {
+  "title": "Flag of Greece.svg",
+  "note": "",
+  "iso": "gr",
+  "source": "flag-icons"
+ },
+ "guatemala": {
+  "title": "Flag of Guatemala.svg",
+  "note": "",
+  "iso": "gt",
+  "source": "flag-icons"
+ },
+ "netherlands": {
+  "title": "Flag of the Netherlands.svg",
+  "note": "",
+  "iso": "nl",
+  "source": "flag-icons"
+ },
+ "honduras": {
+  "title": "Flag of Honduras.svg",
+  "note": "",
+  "iso": "hn",
+  "source": "flag-icons"
+ },
+ "hungary": {
+  "title": "Flag of Hungary (1946-1949, 1956-1957).svg",
+  "note": ""
+ },
+ "indonesia": {
+  "title": "Flag of Indonesia.svg",
+  "note": "",
+  "iso": "id",
+  "source": "flag-icons"
+ },
+ "india": {
+  "title": "Flag of India.svg",
+  "note": "",
+  "iso": "in",
+  "source": "flag-icons"
+ },
+ "ireland": {
+  "title": "Flag of Ireland.svg",
+  "note": "",
+  "iso": "ie",
+  "source": "flag-icons"
+ },
+ "iran": {
+  "title": "Flag of Iran (1933–1964).svg",
+  "note": ""
+ },
+ "iceland": {
+  "title": "Flag of Iceland.svg",
+  "note": "",
+  "iso": "is",
+  "source": "flag-icons"
+ },
+ "italy": {
+  "title": "Flag of Italy.svg",
+  "note": "",
+  "iso": "it",
+  "source": "flag-icons"
+ },
+ "lebanon": {
+  "title": "Flag of Lebanon.svg",
+  "note": "",
+  "iso": "lb",
+  "source": "flag-icons"
+ },
+ "luxembourg": {
+  "title": "Flag of Luxembourg.svg",
+  "note": "",
+  "iso": "lu",
+  "source": "flag-icons"
+ },
+ "mexico": {
+  "title": "Flag of Mexico.svg",
+  "note": "",
+  "iso": "mx",
+  "source": "flag-icons"
+ },
+ "mongolia": {
+  "title": "Flag of Mongolia (1940–1945).svg",
+  "note": ""
+ },
+ "nicaragua": {
+  "title": "Flag of Nicaragua.svg",
+  "note": "",
+  "iso": "ni",
+  "source": "flag-icons"
+ },
+ "norway": {
+  "title": "Flag of Norway.svg",
+  "note": "",
+  "iso": "no",
+  "source": "flag-icons"
+ },
+ "new_zealand": {
+  "title": "Flag of New Zealand.svg",
+  "note": "",
+  "iso": "nz",
+  "source": "flag-icons"
+ },
+ "pakistan": {
+  "title": "Flag of Pakistan.svg",
+  "note": "",
+  "iso": "pk",
+  "source": "flag-icons"
+ },
+ "panama": {
+  "title": "Flag of Panama.svg",
+  "note": "",
+  "iso": "pa",
+  "source": "flag-icons"
+ },
+ "peru": {
+  "title": "Flag of Peru.svg",
+  "note": "",
+  "iso": "pe",
+  "source": "flag-icons"
+ },
+ "poland": {
+  "title": "Flag of Poland.svg",
+  "note": "",
+  "iso": "pl",
+  "source": "flag-icons"
+ },
+ "paraguay": {
+  "title": "Flag of Paraguay.svg",
+  "note": "",
+  "iso": "py",
+  "source": "flag-icons"
+ },
+ "saudi_arabia": {
+  "title": "Flag of Saudi Arabia (1938–1973).svg",
+  "note": ""
+ },
+ "el_salvador": {
+  "title": "Flag of El Salvador.svg",
+  "note": "",
+  "iso": "sv",
+  "source": "flag-icons"
+ },
+ "sweden": {
+  "title": "Flag of Sweden.svg",
+  "note": "",
+  "iso": "se",
+  "source": "flag-icons"
+ },
+ "syria": {
+  "title": "Flag of Syria (1932–1958, 1961–1963).svg",
+  "note": ""
+ },
+ "thailand": {
+  "title": "Flag of Thailand.svg",
+  "note": "",
+  "iso": "th",
+  "source": "flag-icons"
+ },
+ "turkey": {
+  "title": "Flag of Turkey.svg",
+  "note": "",
+  "iso": "tr",
+  "source": "flag-icons"
+ },
+ "uruguay": {
+  "title": "Flag of Uruguay.svg",
+  "note": "",
+  "iso": "uy",
+  "source": "flag-icons"
+ },
+ "venezuela": {
+  "title": "Flag of Venezuela (1930–1954).svg",
+  "note": ""
+ },
+ "south_africa": {
+  "title": "Flag of South Africa (1928–1994).svg",
+  "note": ""
+ },
+ "haiti": {
+  "title": "Flag of Haiti (1859–1964).svg",
+  "note": ""
+ },
+ "benin": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "burkina_faso": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "cameroon": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "central_african_republic": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "congo": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "djibouti": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "french_guiana": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "gabon": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "togo": {
+  "title": "Flag of France.svg",
+  "note": "French overseas territory in 1947: the French flag"
+ },
+ "western_sahara": {
+  "title": "Flag of Spain (1945–1977).svg",
+  "note": "Spanish colony in 1947: the Francoist flag"
+ },
+ "equatorial_guinea": {
+  "title": "Flag of Spain (1945–1977).svg",
+  "note": "Spanish colony in 1947: the Francoist flag"
+ },
+ "burundi": {
+  "title": "Flag of Belgium.svg",
+  "note": "Belgian territory in 1947: the Belgian flag"
+ },
+ "rwanda": {
+  "title": "Flag of Belgium.svg",
+  "note": "Belgian territory in 1947: the Belgian flag"
+ },
+ "zaire": {
+  "title": "Flag of Belgium.svg",
+  "note": "Belgian territory in 1947: the Belgian flag"
+ },
+ "suriname": {
+  "title": "Flag of the Netherlands.svg",
+  "note": "Dutch colony in 1947"
+ },
+ "namibia": {
+  "title": "Flag of South Africa (1928–1994).svg",
+  "note": "South African mandate (South West Africa) in 1947"
+ },
+ "papua_new_guinea": {
+  "title": "Flag of Australia (converted).svg",
+  "note": "Australian territory in 1947"
+ },
+ "samoa": {
+  "title": "Flag of New Zealand.svg",
+  "note": "New Zealand trust territory in 1947"
+ },
+ "puerto_rico": {
+  "title": "Flag of the United States (1912–1959).svg",
+  "note": "US territory in 1947 (the Puerto Rican flag was banned until 1952)"
+ },
+ "bangladesh": {
+  "title": "Flag of Pakistan.svg",
+  "note": "East Bengal, part of Pakistan from 14 Aug 1947"
+ },
+ "taiwan": {
+  "title": "Flag of the Republic of China.svg",
+  "note": "Administered by the Republic of China from 1945"
+ },
+ "xinjiang": {
+  "title": "Flag of the Republic of China.svg",
+  "note": "Province of the Republic of China in 1947"
+ },
+ "manchuria": {
+  "title": "Flag of the Republic of China.svg",
+  "note": "Under the Republic of China in 1947"
+ },
+ "united_arab_emirates": {
+  "title": "Flag of the Trucial States.svg",
+  "note": "Trucial States, British protection"
+ },
+ "iraq": {
+  "title": "Flag of Iraq (1924–1959).svg",
+  "note": "Kingdom of Iraq"
+ },
+ "bahamas": {
+  "title": "Flag of the Bahamas (1923–1953).svg",
+  "note": "British colony"
+ },
+ "belize": {
+  "title": "Flag of British Honduras (1919–1981).svg",
+  "note": "British Honduras"
+ },
+ "barbados": {
+  "title": "Flag of Barbados (1870–1966).svg",
+  "note": "British colony"
+ },
+ "brunei": {
+  "title": "Flag of Brunei 1906-1959.svg",
+  "note": "British protectorate"
+ },
+ "dominica": {
+  "title": "Flag of Dominica (1875–1955).svg",
+  "note": "British colony"
+ },
+ "jordan": {
+  "title": "Flag of Jordan.svg",
+  "note": "Transjordan; the flag has been the same since 1928",
+  "iso": "jo",
+  "source": "flag-icons"
+ },
+ "saint_lucia": {
+  "title": "Flag of Saint Lucia (1939–1967).svg",
+  "note": "British colony"
+ },
+ "sri_lanka": {
+  "title": "Flag of Ceylon (1875–1948).svg",
+  "note": "British Ceylon"
+ },
+ "burma": {
+  "title": "Flag of Burma (1939–1941, 1945–1948).svg",
+  "note": "British Burma"
+ },
+ "malaysia": {
+  "title": "Flag of Malaya (1896–1950).svg",
+  "note": "British Malaya"
+ },
+ "nepal": {
+  "title": "Flag of Nepal (1743–1962).svg",
+  "note": ""
+ },
+ "philippines": {
+  "title": "Flag of the Philippines.svg",
+  "note": "Independent from 4 July 1946; 1947 blue was a darker shade",
+  "iso": "ph",
+  "source": "flag-icons"
+ },
+ "qatar": {
+  "title": "Flag of Qatar (1936–1949).svg",
+  "note": "British protection"
+ },
+ "romania": {
+  "title": "Flag of Romania (1867–1947).svg",
+  "note": "Kingdom of Romania (abolished Dec 1947)"
+ },
+ "trinidad": {
+  "title": "Flag of Trinidad and Tobago (1889–1958).svg",
+  "note": "British colony"
+ },
+ "yemen": {
+  "title": "Flag of the Mutawakkilite Kingdom of Yemen.svg",
+  "note": ""
+ },
+ "oman": {
+  "title": null,
+  "note": "Sultanate of Muscat and Oman: plain red, authored (no Commons file)"
+ },
+ "antarctica": {
+  "title": null,
+  "note": "No state or flag in 1947: neutral emblem"
+ }
+}

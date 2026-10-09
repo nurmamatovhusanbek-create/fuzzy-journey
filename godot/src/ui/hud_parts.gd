@@ -533,17 +533,13 @@ class NationChip extends Hit:
 		var R: float = medal() * 0.5
 		var c := Vector2(2.0 + R, size.y * 0.5 + oy)
 		var fr: float = BZ.ring(self, c, R, 40, TBHudParts.tk("bar_0"))
-		if flag != null:
-			var pts := PackedVector2Array(); var uvs := PackedVector2Array()
+		if flag != null:                                                    # the whole flag, sized to sit inside the ring (a circular crop would cut off cantons and emblems)
 			var fs_: Vector2 = flag.get_size()
-			var side: float = minf(fs_.x, fs_.y)
-			var uo := Vector2((fs_.x - side) * 0.5, (fs_.y - side) * 0.5)
-			for i in 40:
-				var a: float = TAU * i / 40.0
-				var d := Vector2(cos(a), sin(a)) * (fr - 1.0)
-				pts.append(c + d)
-				uvs.append((uo + Vector2(side, side) * 0.5 + d / (fr - 1.0) * side * 0.5) / fs_)
-			draw_colored_polygon(pts, Color.WHITE, uvs, flag)
+			var fw: float = 2.0 * (fr - 2.0) * 0.82
+			var fh: float = fw * fs_.y / maxf(1.0, fs_.x)
+			var fl := Rect2(c - Vector2(fw, fh) * 0.5, Vector2(fw, fh))
+			draw_texture_rect(flag, fl, false)
+			draw_rect(fl, Color(BZ.BRASS_LO, 0.9), false, 1.0)
 		if hover or has_focus(): draw_arc(c, R + 2.5, 0.0, TAU, 40, TBHudParts.tk("brass_lt"), 1.5, true)
 		if show_name:
 			var x: float = c.x + R + 10.0

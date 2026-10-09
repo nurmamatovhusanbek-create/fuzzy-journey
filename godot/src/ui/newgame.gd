@@ -104,7 +104,7 @@ static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 		var fw := TBPanel.flow(6); det.add_child(fw)
 		for p in f["powers"]:
 			var code: String = p["code"]
-			fw.add_child(TBPanel.flag_tag(TBFlags.texture(code, TBGame.gen_wash(int(p["n"]))), TBI18n.nation(String(p["name"])), str(int(p["prov"]))))
+			fw.add_child(TBPanel.flag_tag(TBFlags.texture(code, TBGame.gen_wash(int(p["n"])), id), TBI18n.nation(String(p["name"])), str(int(p["prov"]))))
 		fw.add_child(K.chip(T.call("n_nations", {"n": f["count"] if int(f["count"]) > 0 else 250}), "globe", "neutral"))
 		det.add_child(K.hair())
 		det.add_child(TBPanel.section(T.call("difficulty")))

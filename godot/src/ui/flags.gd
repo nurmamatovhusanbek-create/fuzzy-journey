@@ -5,8 +5,23 @@ extends RefCounted
 const W := 48
 const H := 32
 static var _cache := {}
+## the era whose flags are shown (set when a game starts or loads); an era with no art for a nation falls back to the procedural flag
+static var cur_era := ""
+const DIR := "res://assets/flags/"
 
-static func texture(code: String, base_rgb: int) -> ImageTexture:
+## the historical flag of `code` in `era` (res://assets/flags/<era>/<code>.png, rasterised from Wikimedia Commons: see flags/ATTRIBUTION.md), or null
+static func historical(code: String, era: String) -> Texture2D:
+	if era == "": return null
+	var key := "h:%s:%s" % [era, code]
+	if _cache.has(key): return _cache[key]
+	var path := "%s%s/%s.png" % [DIR, era, code]
+	var t: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	_cache[key] = t
+	return t
+
+static func texture(code: String, base_rgb: int, era: String = "") -> Texture2D:
+	var hist: Texture2D = historical(code, era if era != "" else cur_era)
+	if hist != null: return hist
 	var key := "%s:%d" % [code, base_rgb]
 	if _cache.has(key): return _cache[key]
 	var h := TBRng.hash_str(code)
@@ -41,7 +56,7 @@ static func texture(code: String, base_rgb: int) -> ImageTexture:
 
 static func chip(g: TBGame, n: int, scale: float = 0.6) -> TextureRect:
 	var t := TextureRect.new()
-	t.texture = texture(g.nat_code[n], g.color[n])
+	t.texture = texture(g.nat_code[n], g.color[n], g.era_id)
 	t.custom_minimum_size = Vector2(W * scale, H * scale)
 	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	t.stretch_mode = TextureRect.STRETCH_SCALE
