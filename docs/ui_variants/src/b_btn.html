@@ -1,0 +1,119 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — button variations</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto}
+main{max-width:1260px;margin:0 auto;padding:28px 20px 90px}
+h1{font:700 22px Cinzel;letter-spacing:.2em;text-transform:uppercase}
+.lead{font:italic 17px/1.4 Alegreya;color:var(--dim);margin:6px 0 26px;max-width:860px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(580px,1fr));gap:28px;align-items:start}
+.card{position:relative}
+.badge{position:absolute;left:14px;top:-12px;z-index:2;font:700 12px Cinzel;letter-spacing:.2em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:4px 12px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.ch{padding:16px 20px 2px;font:700 13px Cinzel;letter-spacing:.2em;text-transform:uppercase}
+.note{font:italic 14.5px/1.35 Alegreya;color:var(--dim);padding:2px 20px 10px}
+.sec2{padding:10px 20px 12px;border-top:1px solid #2b2216}
+.sec2 .cap{margin-bottom:9px}
+.row{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:center;cursor:default;padding:0;border-radius:0}
+.row:hover{background:none}
+.lab{font:500 11px 'JetBrains Mono';color:#7d735c;margin-top:5px;text-align:center}
+.cell{display:flex;flex-direction:column;align-items:center}
+.dec{display:flex;gap:12px;align-items:flex-start;background:#100d0a;box-shadow:inset 0 0 0 1px #3a2f1d;padding:12px}
+.dec .tt{font:700 13px Cinzel;letter-spacing:.1em;text-transform:uppercase;margin:4px 0 6px}
+.fxl .x2{display:flex;align-items:baseline;padding:2px 0}.x2 em{font:italic 16px Alegreya;color:var(--dim);font-style:normal}
+.x2 s{flex:1;border-bottom:2px dotted #4a3d22;margin:0 8px;transform:translateY(-4px);text-decoration:none;min-width:12px}.x2 b{font:700 18px Alegreya;color:var(--c)}
+.good{--c:#69B3A2}.bad{--c:#e0795a}
+.mk{position:relative;display:inline-flex;gap:6px;padding-left:15px;font:italic 15.5px Alegreya;color:var(--ivory)}.mk i{position:absolute;left:0;top:50%;width:7px;height:7px;transform:translateY(-50%) rotate(45deg);background:#7FA8E8}
+.ft{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+/* ---------- common ---------- */
+.bx{font:700 12px/1 Cinzel;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:9px;position:relative;white-space:nowrap;user-select:none;border:0;outline:none;color:var(--tx)}
+.bx kbd{font:400 10px 'JetBrains Mono';letter-spacing:0;opacity:.75;border:1px solid currentColor;padding:1px 4px}
+.bx .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,255,255,.3);pointer-events:none}
+.bx.sm{font-size:10.5px;letter-spacing:.16em}
+.bx.dis{opacity:.4;filter:saturate(.4);pointer-events:none}
+.bx:focus-visible,.bx.is-focus{outline:2px solid #F1DB9C;outline-offset:3px}
+.bx.hold .lbl2{position:relative;z-index:1}
+/* palette per role */
+.pri{--top:#EBCF85;--bot:#B38F3E;--edge:#5a4416;--tx:#1b1408;--ac:#C9A24B;--lamp:#E5C77A;--bg:#E5C77A;--lo:#B38F3E}
+.sec{--top:#2e261b;--bot:#1c1711;--edge:#0a0806;--tx:#E5C77A;--ac:#C9A24B;--lamp:#E5C77A;--bg:#1a150f;--lo:#7F6A33}
+.dng{--top:#e0724a;--bot:#a8442b;--edge:#54200f;--tx:#fff0e4;--ac:#e0795a;--lamp:#ff7a55;--bg:#c8573a;--lo:#a8442b}
+/* ---------- 1 brass key ---------- */
+.b1{height:38px;padding:0 20px;border-bottom:3px solid var(--edge);clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% 100%,0 100%,0 5px);background:linear-gradient(180deg,var(--top),var(--bot));transition:transform .06s,filter .12s}
+.b1.sec{box-shadow:inset 0 0 0 1px #4a3d22}
+.b1:hover,.b1.is-hover{filter:brightness(1.12)}
+.b1:active,.b1.is-press{transform:translateY(2px);border-bottom-width:1px;filter:brightness(.95)}
+/* ---------- 2 notched plate ---------- */
+.b2{height:38px;padding:0;background:var(--lo);clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)}
+.b2>span{display:flex;align-items:center;gap:9px;margin:1px;height:36px;padding:0 20px;background:var(--bg);color:var(--tx);clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);transition:background .15s,color .15s;position:relative;overflow:hidden}
+.b2.pri>span{background:linear-gradient(180deg,#EBCF85,#B38F3E)}
+.b2.dng>span{background:linear-gradient(180deg,#e0724a,#a8442b)}
+.b2:hover>span,.b2.is-hover>span{background:#2e2519;color:#fff}.b2.pri:hover>span,.b2.pri.is-hover>span{background:linear-gradient(180deg,#F5DC96,#C49A44);color:#1b1408}.b2.dng:hover>span,.b2.dng.is-hover>span{background:linear-gradient(180deg,#ec8058,#b44f33);color:#fff}
+.b2:active>span,.b2.is-press>span{transform:translateY(1px);filter:brightness(.88)}
+.b2.sec:hover,.b2.sec.is-hover{--lo:#C9A24B}
+/* ---------- 3 switch lamp ---------- */
+.b3{height:38px;padding:0 18px 0 14px;background:linear-gradient(180deg,#241d14,#16120d);box-shadow:inset 0 0 0 1px #4a3d22,0 2px 0 #0a0806;border-radius:2px;color:#EFE6CF;transition:box-shadow .15s}
+.b3 .lp{width:10px;height:10px;border-radius:50%;background:#2a2318;box-shadow:inset 0 0 0 1.5px #5a4a26;flex:none;transition:.15s}
+.b3:hover,.b3.is-hover{box-shadow:inset 0 0 0 1px var(--ac),0 2px 0 #0a0806}
+.b3:hover .lp,.b3.is-hover .lp{background:var(--lamp);box-shadow:inset 0 0 0 1.5px #1b1408,0 0 8px var(--lamp)}
+.b3.pri,.b3.dng{box-shadow:inset 0 0 0 1px var(--ac),0 2px 0 #0a0806;color:#fff}
+.b3.pri .lp,.b3.dng .lp{background:var(--lamp);box-shadow:inset 0 0 0 1.5px #1b1408,0 0 8px var(--lamp)}
+.b3:active,.b3.is-press{transform:translateY(1px);box-shadow:inset 0 0 0 1px var(--ac)}
+.b3:active .lp,.b3.is-press .lp{background:#fff;box-shadow:0 0 12px var(--lamp)}
+.b3.pri{color:var(--ac)}.b3.dng{color:#ff9a78}
+/* ---------- 4 tick rule (typographic) ---------- */
+.b4{background:none;padding:8px 6px 15px;color:#EFE6CF}
+.b4::after{content:'';position:absolute;left:0;right:0;bottom:3px;height:6px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 6px) 0 0/100% 4px no-repeat,repeating-linear-gradient(90deg,var(--ac) 0 1px,transparent 1px 30px) 0 0/100% 6px no-repeat}
+.b4::before{content:'';position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--ac);transition:width .28s}
+.b4:hover::before,.b4.is-hover::before,.b4.pri::before,.b4.dng::before{width:100%}
+.b4.pri{color:var(--ac)}.b4.dng{color:#ff9a78}
+.b4.pri::before,.b4.dng::before{height:3px}
+.b4:hover,.b4.is-hover{color:#fff}
+.b4:active,.b4.is-press{transform:translateY(1px)}.b4:active::before,.b4.is-press::before{height:4px}
+/* ---------- 5 stamp ---------- */
+.b5{height:38px;padding:0 22px;background:transparent;box-shadow:inset 0 0 0 1.5px var(--ac);color:var(--ac);border-radius:1px;transition:background .15s,color .15s}
+.b5::after{content:'';position:absolute;inset:3px;box-shadow:inset 0 0 0 1px var(--ac);opacity:.5;pointer-events:none}
+.b5.sec{color:#E5C77A}
+.b5.pri{background:var(--ac);color:#1b1408}.b5.pri::after{box-shadow:inset 0 0 0 1px #1b1408;opacity:.45}
+.b5.dng{color:#ff9a78}.b5.dng.fill-d{background:var(--ac);color:#fff}
+.b5:hover,.b5.is-hover{background:var(--ac);color:#1b1408}.b5.dng:hover,.b5.dng.is-hover{color:#fff}
+.b5:hover::after,.b5.is-hover::after{box-shadow:inset 0 0 0 1px #1b1408;opacity:.45}
+.b5.pri:hover,.b5.pri.is-hover{background:#F1DB9C}
+.b5:active,.b5.is-press{box-shadow:inset 0 0 0 1.5px var(--ac),inset 0 0 0 6px rgba(0,0,0,.28);transform:scale(.985)}
+/* ---------- 6 ticket ---------- */
+.b6{height:38px;padding:0 20px 0 22px;background:linear-gradient(180deg,var(--top),var(--bot));-webkit-mask:radial-gradient(circle 5px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 5px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat;mask:radial-gradient(circle 5px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 5px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat;transition:filter .12s,transform .06s}
+.b6.sec{box-shadow:inset 0 0 0 1px #4a3d22}
+.b6 .tear{align-self:stretch;border-left:1px dashed currentColor;opacity:.4;margin:7px 0}
+.b6:hover,.b6.is-hover{filter:brightness(1.14)}
+.b6:active,.b6.is-press{transform:translateY(1px);filter:brightness(.9)}
+</style></head><body><main>
+<h1>Buttons — six treatments</h1>
+<p class="lead">The brass gradient rectangle is a web-button with a gold coat. Each of these builds the button from the same parts as the dials and plates: a key you press down, a notched plate, a panel switch with a lamp, a ruled text link, a rubber stamp, and a punched ticket. Every card shows the three roles (primary, secondary, danger), disabled, forced hover / pressed / focus states, sizes, icon + keycap, hold-to-confirm, and the button in your Decree card. The first row is live: hover and press it.</p>
+<div class="grid" id="g"></div>
+</main>
+<script>
+/*MAPDATA*/
+/*KIT*/
+document.body.insertAdjacentHTML('afterbegin',DEFS);
+const K={1:'Brass key',2:'Notched plate',3:'Panel switch',4:'Tick rule',5:'Stamp',6:'Ticket'};
+const NOTE={1:'A physical key: chamfered top corners, a visible lower edge that squashes when pressed. Primary is brass, secondary is a dark key with a brass legend, danger is a rust key. Reads as an instrument control and costs two gradients.',
+ 2:'The same notched plate as the panels, scaled down. Secondary is a hairline plate that fills on hover; primary and danger are filled. It matches headers, tags and tooltips exactly.',
+ 3:'A panel switch with a lamp. The lamp is off by default, lights on hover, stays lit on primary (brass) and danger (rust), and flares white when pressed. The label stays quiet.',
+ 4:'No box at all: a caps label over a graduated tick rule, the same rule as every header. A bar sweeps across on hover; primary and danger keep the bar lit. The most typographic option; best for secondary actions and dense lists.',
+ 5:'A rubber stamp: a double-ruled frame. Outline by default, fills on hover as if inked, presses in with an inset shadow. Good for the decisive actions (Enact, Attack, End turn).',
+ 6:'A punched ticket: half-round notches at both ends and an optional dashed tear line before the keycap. Same shape as the effect tags in the older sheet, so the two can share a vocabulary.'};
+function btn(v,role,label,o={}){const {icon,key,sm,dis,cls='',hold}=o;const inner=`${icon?ico(icon,sm?14:16):''}<span class="lbl2">${label}</span>${key?(v===6?'<i class="tear"></i>':'')+`<kbd>${key}</kbd>`:''}`;
+ const lamp=v===3?'<i class="lp"></i>':'';
+ const attrs=`class="bx b${v} ${role} ${sm?'sm':''} ${dis?'dis':''} ${hold?'hold':''} ${cls}"`;
+ if(v===2)return `<button ${attrs}><span>${hold?'<span class="fill"></span>':''}${inner}</span></button>`;
+ return `<button ${attrs}>${hold?'<span class="fill"></span>':''}${lamp}${inner}</button>`}
+const cell=(h,l)=>`<div class="cell">${h}<div class="lab">${l}</div></div>`;
+function card(v){const B=(r,l,o)=>btn(v,r,l,o);
+ return `<div class="card"><span class="badge">${String.fromCharCode(64+v)}</span>${plate(`<div class="ch">${K[v]}</div><div class="note">${NOTE[v]}</div>
+ <div class="sec2"><div class="cap">Roles · live</div><div class="row">${cell(B('pri','Enact'),'primary')}${cell(B('sec','Cancel'),'secondary')}${cell(B('dng','Declare war'),'danger')}${cell(B('pri','Disabled',{dis:1}),'disabled')}</div></div>
+ <div class="sec2"><div class="cap">States · primary</div><div class="row">${cell(B('pri','Enact'),'rest')}${cell(B('pri','Enact',{cls:'is-hover'}),'hover')}${cell(B('pri','Enact',{cls:'is-press'}),'pressed')}${cell(B('pri','Enact',{cls:'is-focus'}),'focus')}${cell(B('sec','Cancel',{cls:'is-hover'}),'sec · hover')}${cell(B('dng','War',{cls:'is-press'}),'danger · pressed')}</div></div>
+ <div class="sec2"><div class="cap">Sizes and content</div><div class="row">${cell(B('pri','Enact',{sm:1}),'small')}${cell(B('pri','Move army',{icon:'move',key:'M'}),'icon + key')}${cell(B('sec','Recruit',{icon:'recruit',key:'R'}),'secondary')}${cell(B('pri','Propose a defensive pact',{icon:'pact'}),'long label')}${cell(B('dng','Hold to declare war',{icon:'war',hold:1}),'hold 600 ms')}</div></div>
+ <div class="sec2"><div class="cap">In context · decree</div><div class="dec"><div class="ring" style="width:38px;height:38px;flex:none">${ico('army',19)}</div><div style="flex:1"><div class="tt">Conscription Law</div><div class="fxl"><div class="x2 good"><em>Army / turn</em><s></s><b>+8</b></div><div class="x2 bad"><em>Happiness</em><s></s><b>−3</b></div></div><div class="ft"><span class="mk"><i></i>${ico('envoys',13)} 2</span>${B('pri','Enact')}</div></div></div></div>`,'','',12)}</div>`}
+document.getElementById('g').innerHTML=[1,2,3,4,5,6].map(card).join('');
+// live hold-to-confirm
+document.querySelectorAll('.bx.hold').forEach(b=>{let t0=0,raf=0;const f=b.querySelector('.fill');const lbl=b.querySelector('.lbl2');const txt=lbl.textContent;const step=()=>{const k=Math.min(1,(performance.now()-t0)/600);f.style.width=k*100+'%';if(k>=1){lbl.textContent='Declared';setTimeout(()=>{lbl.textContent=txt;f.style.width='0'},900);return}raf=requestAnimationFrame(step)};b.addEventListener('pointerdown',()=>{t0=performance.now();raf=requestAnimationFrame(step)});['pointerup','pointerleave'].forEach(e=>b.addEventListener(e,()=>{cancelAnimationFrame(raf);if(lbl.textContent===txt)f.style.width='0'}))});
+</script></body></html>
