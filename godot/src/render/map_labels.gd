@@ -165,11 +165,13 @@ func _project_v(u: Vector3, c0: float, s0: float, sl: float, cl: float, R: float
 	return Vector3(cx + R * x, cy - R * y, z)
 
 func _label_fonts() -> void:
-	var rf := (1 if TBKit.readable_fonts else 0) + (2 if TBKit.serif else 0)
+	var rf := (1 if TBKit.readable_fonts else 0) + (2 if TBKit.serif else 0) + (4 if TBFrame.bezel else 0)
 	if _tracked != null and _tracked_for == rf: return
 	_tracked_for = rf
 	if TBKit.readable_fonts:
 		_tracked = TBKit.heavy(); _tracked_own = TBKit.heavy()
+	elif TBFrame.bezel:
+		_tracked = TBKit.tracked(TBKit.display(), 2); _tracked_own = TBKit.tracked(TBKit.display(), 2)
 	else:
 		_tracked = TBKit.tracked(TBKit.heavy(), 1); _tracked_own = TBKit.tracked(TBKit.heavy(), 1)
 

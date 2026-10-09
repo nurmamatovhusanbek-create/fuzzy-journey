@@ -230,7 +230,9 @@ static func body_m() -> Font: return _font("alegreya-latin-700-normal", ["alegre
 static func body_i() -> Font: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"]) if serif else _inter(400)
 ## Inter 600 is the heavy face for titles and figures; Barlow Condensed 600 for the map (Cyrillic falls back to Inter)
 static func heavy() -> Font: return _inter(600)
-static func map_font() -> Font: return _font("barlow-condensed-latin-600-normal", ["inter-cyrillic-600-normal", "inter-latin-600-normal"])
+static func map_font() -> Font:
+	if TBFrame.bezel and not readable_fonts: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"])
+	return _font("barlow-condensed-latin-600-normal", ["inter-cyrillic-600-normal", "inter-latin-600-normal"])
 ## tabular figures: a variation of the font with the `tnum` feature on (columns of numbers align)
 static var _tab := {}
 static func tabular(base: Font) -> Font:
@@ -1279,6 +1281,35 @@ static func choice_card(title_text: String, detail: String, cb: Callable, primar
 
 ## status chip, cut 2, 28 high. tone: neutral | pos | neg | warn | info | own. Glyph backs every hue (default per tone).
 ## On paper by default; on_bar = dark furniture. Warning is an amber FILL with ink text (never amber text).
+## Bezel status mark: no capsule. An engraved diamond in the tone colour, an optional small glyph, then the text in italic
+class Mark extends HBoxContainer:
+	var tone_col := Color.WHITE
+	func _init(txt: String, glyph_id: String, col: Color, ink: Color, height: int) -> void:
+		add_theme_constant_override("separation", 5); alignment = BoxContainer.ALIGNMENT_BEGIN; mouse_filter = Control.MOUSE_FILTER_IGNORE
+		custom_minimum_size = Vector2(0, mini(height, 24)); tone_col = col
+		var dm := Control.new(); dm.custom_minimum_size = Vector2(12, 12); dm.size_flags_vertical = Control.SIZE_SHRINK_CENTER; dm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dm.draw.connect(func():
+			var c := (dm.size * 0.5).round()
+			dm.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -4.5), c + Vector2(4.5, 0), c + Vector2(0, 4.5), c + Vector2(-4.5, 0)]), col))
+		add_child(dm)
+		if glyph_id != "" and not (glyph_id in ["tri_up", "tri_down", "info", "check", "close", "warning"]): add_child(TBKit.glyph(glyph_id, 15, col))
+		var l := TBKit.label(txt, 14, ink); l.add_theme_font_override("font", TBKit.body_i() if TBFrame.bezel else TBKit.body_b())
+		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER; l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(l)
+
+static func _mark(txt: String, glyph_id: String, tone: String, on_bar: bool, height: int) -> Control:
+	var suffix := "_bar" if on_bar else ""
+	var col: Color = TBTokens.c("brass_lt")
+	var ink: Color = TBTokens.c("ink_0") if not on_bar else TBTokens.c("cream")
+	match tone:
+		"pos": col = TBTokens.c("pos" + suffix); ink = col
+		"neg": col = TBTokens.c("neg" + suffix); ink = col
+		"warn": col = TBTokens.c("warn" + suffix); ink = col
+		"info": col = TBTokens.c("info" + suffix); ink = col
+		"own": col = TBTokens.c("brass_lt")
+		_: col = TBTokens.c("rule") if tone == "neutral" and false else TBTokens.c("brass_lt")
+	return Mark.new(txt, glyph_id, col, ink, height)
+
 static func chip(text: String, glyph_id: String = "", tone: String = "neutral", on_bar: bool = false, height: int = 28) -> Control:
 	var suffix := "_bar" if on_bar else ""
 	var tone_tok := {"pos": "pos", "neg": "neg", "warn": "warn", "info": "info", "own": "brass_lt" if on_bar else "brass_ink"}
@@ -1295,6 +1326,7 @@ static func chip(text: String, glyph_id: String = "", tone: String = "neutral", 
 		else:
 			border_tok = colour; text_tok = colour
 			if gl == "": gl = {"pos": "tri_up", "neg": "tri_down", "info": "info", "own": ""}[tone]
+	if TBFrame.bezel: return _mark(text, gl, tone, on_bar, height)
 	var pc := PanelContainer.new()
 	pc.add_theme_stylebox_override("panel", _pl(fill_tok, border_tok, TBTokens.CUT_CHIP, 0, 8, 2))
 	pc.custom_minimum_size = Vector2(0, height); pc.mouse_filter = Control.MOUSE_FILTER_IGNORE

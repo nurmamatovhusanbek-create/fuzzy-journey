@@ -58,6 +58,15 @@ func _ready() -> void:
 	TBPanel.drawer_opened_fn = func() -> void:
 		if hud.exclusive_panels() and panel != null: panel.show_province(g, -1)
 	panel.select_requested.connect(func(q: int): _select(q))
+	ring = TBMapRing.new(); ring.map = map; add_child(ring)
+	ring.avoid_fn = func() -> Array:
+		var r: Array = hud.keepouts()
+		if panel.visible: r.append(panel.get_global_rect())
+		return r
+	panel.verbs_ready.connect(func(sp: int, vs: Array): ring.g = g; ring.show_verbs(sp, vs))
+	panel.visibility_changed.connect(func(): if not panel.visible: ring.clear())
+	ring.pressed.connect(func(i: int): panel._press(i))
+	ring.hovered.connect(func(i: int): panel._set_focus_verb(i))
 	tip = TBMapTip.new(); add_child(tip)
 	TBMapCursor.install(self)                       # keyboard map cursor + on-screen nav pad (accessibility)
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -184,6 +193,7 @@ func _clear_overlay() -> void:
 
 const MP_ = preload("res://src/ui/menu_parts.gd")
 var _bezel: Control
+var ring: TBMapRing
 
 ## everything the game interface needs before it is shown: sans fonts, the Atlas Ledger palette with the player's accent, darker land colours
 func _enter_game_visuals() -> void:

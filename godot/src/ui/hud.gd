@@ -211,7 +211,7 @@ func layout_for(vp: Vector2) -> void:
 	var date_w: float = _date.desired_w()
 	var show_date: bool = not phone
 	_date.visible = show_date
-	var yc: float = m + 30.0                                                 # the medallion centre line of the top row
+	var yc: float = m + (34.0 if _prof == Prof.DESKTOP or _prof == Prof.PORTRAIT else 28.0)                                                 # the medallion centre line of the top row
 	_nat.size = Vector2(crest_w, _nat.medal() + 4.0); _nat.position = Vector2(m, yc - _nat.size.y * 0.5); _nat.visible = true
 	_menu_btn.position = Vector2(vp.x - m - gear, yc - gear * 0.5); _menu_btn.size = Vector2(gear, gear); _menu_btn.visible = true
 	_menu_btn.sq = gear
@@ -357,11 +357,11 @@ func _apply_chip_stage(stage: int) -> void:
 	for k in ["gold", "man", "mp", "dp"]:
 		var c: P.Chip = _chips[k]
 		c.delta_on = stage < 2 or k == "gold"
-		c.tight = stage >= 3
+		c.tight = stage >= 3 or _prof == Prof.SHORT or _prof == Prof.PHONE_L          # landscape phones are short: ring only, no caption or delta under it
 		c.compact = _prof != Prof.DESKTOP
 		if stage >= 1: c.spark = []
 	if stage == 0 and g != null and _vp.x >= 1100.0: _refresh_spark()
-	for k2 in [_war, _inf]: (k2 as P.Chip).delta_on = false; (k2 as P.Chip).tight = stage >= 3; (k2 as P.Chip).compact = _prof != Prof.DESKTOP
+	for k2 in [_war, _inf]: (k2 as P.Chip).delta_on = false; (k2 as P.Chip).tight = stage >= 3 or _prof == Prof.SHORT or _prof == Prof.PHONE_L; (k2 as P.Chip).compact = _prof != Prof.DESKTOP
 
 func _refresh_spark() -> void:
 	var gc: P.Chip = _chips["gold"]

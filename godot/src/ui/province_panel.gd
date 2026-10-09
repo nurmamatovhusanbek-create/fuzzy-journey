@@ -6,6 +6,8 @@
 class_name TBProvincePanel
 extends PanelContainer
 
+## the idle verbs of the selected province (empty while an order is previewed): the command ring on the map mirrors them
+signal verbs_ready(subject: int, verbs: Array)
 signal command(cmd: Dictionary)
 signal move_requested(p: int)
 signal closed
@@ -296,6 +298,7 @@ func rebuild() -> void:
 	_busy = false
 	_process(0.0)
 	_refit.call_deferred()
+	verbs_ready.emit(subj, _verbs.duplicate() if (order_mode == "idle" and profile != "P") else [])
 
 ## "Details" list row: opens the full ledger under the actions
 func _details_row() -> Control:

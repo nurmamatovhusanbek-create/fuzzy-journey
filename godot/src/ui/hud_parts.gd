@@ -569,7 +569,7 @@ class DateText extends Control:
 	var turn_cap: String = ""
 	var compact: bool = false
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
-	func medal() -> float: return 56.0 if compact else 66.0
+	func medal() -> float: return 60.0 if compact else 72.0
 	func desired_w() -> float: return medal() + 4.0
 	func _draw() -> void:
 		var R: float = medal() * 0.5
