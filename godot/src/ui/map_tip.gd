@@ -31,7 +31,7 @@ func _init() -> void:
 	_flag = TextureRect.new(); _flag.custom_minimum_size = Vector2(24, 16); _flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; _flag.stretch_mode = TextureRect.STRETCH_SCALE
 	_flag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top.add_child(_flag)
-	_name = _lab("brass_lt", TBKit.body_b()); top.add_child(_name)
+	_name = _lab("brass_lt", TBKit.tracked(TBKit.display(), 1) if TBFrame.bezel else TBKit.body_b()); top.add_child(_name)
 	var rel := HBoxContainer.new(); rel.add_theme_constant_override("separation", 4); v.add_child(rel)
 	_rel_glyph = Control.new(); _rel_glyph.custom_minimum_size = Vector2(14, 16); _rel_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rel_glyph.draw.connect(func(): if _glyph_id != "": CC.glyph(_rel_glyph, _glyph_id, _rel_glyph.size * 0.5, 13.0, CC.tk(_glyph_tok), 1.4))
@@ -48,7 +48,7 @@ func _lab(tok: String, f: Font) -> Label:
 func show_for(g: TBGame, p: int, flow: TBOrderFlow) -> void:
 	var o := g.owner[p]
 	var me := g.human_id
-	_name.text = TBI18n.place(g.world.name[p])
+	_name.text = TBKit._cap(TBI18n.place(g.world.name[p]))
 	_flag.visible = o != 0
 	if o != 0: _flag.texture = TBFlags.texture(g.nat_code[o], g.color[o])
 	_glyph_id = ""; _glyph_tok = "foreign_bar"

@@ -22,7 +22,7 @@ func set_game(game: TBGame) -> void:
 	g = game; _seen.clear(); queue_redraw()
 
 func _process(d: float) -> void:
-	if g == null or not is_visible_in_tree(): return
+	if g == null or not is_visible_in_tree() or g.human_id <= 0: return
 	_t += d
 	for k in _seen.keys(): _seen[k] = float(_seen[k]) + d
 	queue_redraw()

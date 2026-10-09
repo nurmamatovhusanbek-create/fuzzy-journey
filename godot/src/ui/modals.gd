@@ -428,7 +428,7 @@ static func _goals_tab(h: TBPanel.Handle, g: TBGame) -> void:
 		var col: Color = TBTokens.c("pos") if pct >= 0.9 else (TBTokens.c("brass_ink") if pct >= 0.4 else K.STEEL)
 		var hb := K.hbox(6)
 		var gtl := K.title(T.call("vc_" + id), 16, K.GOLD2 if pct >= 0.9 else K.TEXT)
-		gtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; gtl.custom_minimum_size.x = 40; gtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		gtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; gtl.custom_minimum_size.x = 40; gtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; gtl.size_flags_stretch_ratio = 4.0
 		hb.add_child(gtl); hb.add_child(K.Leader.new()); hb.add_child(K.num("%d%%" % int(pct * 100.0), 15, col))
 		h.body.add_child(hb)
 		h.body.add_child(TBPanel.para(T.call("vc_" + id + "_d"), 13, K.DIM))

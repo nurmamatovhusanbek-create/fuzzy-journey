@@ -29,6 +29,9 @@ func _init() -> void:
 			"council": main._open_council()
 			"annals": main._open_annals()
 			"menu": main._open_menu_hub("")
+			"settings": main._open_menu_hub("settings")
+			"goals": main._open_council("goals")
+			"annals_mine": main._open_annals()
 			"dialog":
 				TBPanel.confirm(main._overlay, "Declare war on Austria?", "Casus belli: border dispute. It costs 3 diplomacy points and cannot be undone.", "Declare war", func(): pass, true, "swords")
 		await _shot(w)

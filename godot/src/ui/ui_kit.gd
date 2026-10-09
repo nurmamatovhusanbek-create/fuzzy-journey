@@ -843,7 +843,7 @@ class Segmented extends Container:
 			var id: String = items[i][0]
 			var b := Button.new(); b.text = items[i][1]; b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			b.add_theme_font_size_override("font_size", TBKit.fs(13 if compact else 15))
+			b.add_theme_font_size_override("font_size", TBKit.fs((12 if compact else 13) if TBFrame.bezel else (13 if compact else 15)))
 			b.pressed.connect(func(): select(id, true))
 			b.draw.connect(func(): _draw_cell(id, b))
 			add_child(b); _btns[id] = b; _order.append(id)

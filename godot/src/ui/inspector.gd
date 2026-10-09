@@ -154,13 +154,16 @@ class Row extends TBCmdCard.VerbBtn:
 			elif is_hovered(): fill = fill.lerp(Color.WHITE, 0.06)
 			if button_pressed and not blocked: fill = fill.lerp(Color.BLACK, 0.12)
 			draw_style_box(P.sbox(fill, edge, 10.0, 1 if edge.a > 0.0 else 0), r)
-			var lw: float = P.tw(f, label, z)
+			var ff: Font = TBKit.tracked(TBKit.display(), 1) if TBFrame.bezel else f
+			var zz: int = P.fs(13.0) if TBFrame.bezel else z
+			var lt: String = TBKit._cap(label)
+			var lw: float = P.tw(ff, lt, zz)
 			var cx: float = size.x * 0.5
 			var gw: float = 0.0
 			if glyph != "": gw = 22.0
 			var left: float = cx - (lw + gw) * 0.5
 			if glyph != "": TBGlyph.draw(self, glyph, Vector2(left + 8.0, size.y * 0.5) + shift, 16.0, ink, 1.5); left += gw
-			draw_string(f, Vector2(left, P.base(f, z, size.y * 0.5)) + shift, P.fit(f, label, z, size.x - 24.0 - gw - (34.0 if hot != "" else 0.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, z, ink)
+			draw_string(ff, Vector2(left, P.base(ff, zz, size.y * 0.5)) + shift, P.fit(ff, lt, zz, size.x - 24.0 - gw - (34.0 if hot != "" else 0.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, zz, ink)
 			_draw_keycap(size.x - 12.0, size.y * 0.5, ink)
 			if has_focus(): P.focus_ring(self, r)
 			return
