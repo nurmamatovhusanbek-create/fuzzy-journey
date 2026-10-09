@@ -87,6 +87,22 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .chipsq{border:1px solid #4a3f28;background:#100d0a}
 .dis{opacity:.4;filter:saturate(.3)}
 
+.srow{padding:2px 0}
+.stp{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;background:#0f0c09;box-shadow:0 0 0 1.5px var(--lo);color:var(--hi);font:700 19px/1 Alegreya;cursor:pointer}
+.stp:hover{box-shadow:0 0 0 1.5px var(--hi);color:#fff}.stp:active{transform:scale(.94)}
+.slr{position:relative;flex:1;height:44px;cursor:pointer;touch-action:none;outline:none}
+.slr .trk{position:absolute;left:0;right:0;top:12px;height:10px;background:#0c0a07;box-shadow:inset 0 0 0 1px #4a3f28;border-radius:5px;overflow:hidden}
+.slr .trk .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(180deg,#E5C77A,#A8842f);border-radius:5px 0 0 5px}
+.slr .trk .zone{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(210,96,63,.45) 0 3px,transparent 3px 6px)}
+.slr .tks{position:absolute;left:0;right:0;top:25px;height:8px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 5%) ,repeating-linear-gradient(90deg,#C9A24B 0 1px,transparent 1px 25%);background-size:100% 4px,100% 8px;background-repeat:no-repeat}
+.slr .tks::after{content:'';position:absolute;right:0;top:0;width:1px;height:8px;background:#C9A24B}
+.slr .thumb{position:absolute;top:5px;width:24px;height:24px;margin-left:-12px;border-radius:50%;background:radial-gradient(circle at 36% 30%,#2a2218,#0f0c09 70%);box-shadow:0 0 0 3px #C9A24B,0 0 0 4px #0b0907,0 3px 6px rgba(0,0,0,.6);transition:box-shadow .12s}
+.slr .thumb::after{content:'';position:absolute;left:50%;top:3px;width:2px;height:8px;margin-left:-1px;background:#EFE6CF;border-radius:1px}
+.slr:hover .thumb,.slr.drag .thumb,.slr:focus-visible .thumb{box-shadow:0 0 0 3px #F1DB9C,0 0 0 4px #0b0907,0 0 10px rgba(229,199,122,.55),0 3px 6px rgba(0,0,0,.6)}
+.slr .nums{position:absolute;left:0;right:0;top:32px;display:flex;justify-content:space-between;font:500 9.5px Cinzel;letter-spacing:.1em;color:var(--dim2)}
+.srow .val{transition:color .15s}
+.phone .slr{height:40px}.phone .stp{width:32px;height:32px}
+
 </style></head><body><div id="stage">
 <svg id="map"></svg><div class="vig"></div>
 <svg id="ov" class="abs" style="inset:0;width:1920px;height:1080px;pointer-events:none" viewBox="0 0 1920 1080"></svg>
