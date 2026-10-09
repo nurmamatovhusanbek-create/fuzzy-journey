@@ -460,7 +460,7 @@ static func theme() -> Theme:
 	# slider: 4 px track, 24 px vector thumb (the thumb is a self-drawing texture, no Image)
 	var rail := StyleBoxFlat.new(); rail.bg_color = TBTokens.c("paper_1"); rail.border_color = TBTokens.c("rule"); rail.set_border_width_all(1)
 	rail.content_margin_top = 2; rail.content_margin_bottom = 2
-	var fillbox := StyleBoxFlat.new(); fillbox.bg_color = TBTokens.c("ink_0"); fillbox.content_margin_top = 2; fillbox.content_margin_bottom = 2
+	var fillbox := StyleBoxFlat.new(); fillbox.bg_color = TBTokens.c("brass_lt" if TBFrame.bezel else "ink_0"); fillbox.content_margin_top = 2; fillbox.content_margin_bottom = 2
 	t.set_stylebox("slider", "HSlider", rail); t.set_stylebox("grabber_area", "HSlider", fillbox); t.set_stylebox("grabber_area_highlight", "HSlider", fillbox)
 	t.set_stylebox("focus", "HSlider", TBFrame.focus(false, 4, 0))
 	t.set_icon("grabber", "HSlider", VecTex.new("thumb", TBTokens.THUMB, TBTokens.c("brass"), TBTokens.c("ink_0")))
@@ -609,6 +609,14 @@ class IconBtn extends Button:
 		elif preview_state == "pressed": mode = BaseButton.DRAW_PRESSED
 		var vis := float(mini(int(minf(size.x, size.y)), TBTokens.ICON_VISUAL))
 		var r := Rect2(roundf((size.x - vis) * 0.5), roundf((size.y - vis) * 0.5), vis, vis)
+		if TBFrame.bezel and (glyph == "close" or glyph == "back") and not TBTokens.is_hc():
+			var rv: float = minf(vis, 36.0)
+			var rc: Vector2 = r.get_center().round() + Vector2(0, 1.0 if mode == BaseButton.DRAW_PRESSED else 0.0)
+			var hot: bool = mode == BaseButton.DRAW_HOVER or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED
+			var fr: float = TBBezel.ring(self, rc, rv * 0.5, 0, TBTokens.c("bar_2" if hot else "bar_0"))
+			TBGlyph.draw(self, glyph, rc, fr * 1.0, TBTokens.c("cream" if hot else "ink_1"), 1.8)
+			if has_focus() or preview_state == "focus": draw_style_box(TBFrame.focus(on_bar, 4, 0), r)
+			return
 		var fill := Color.TRANSPARENT
 		if mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED: fill = TBTokens.c("bar_2" if on_bar else "paper_2")
 		elif mode == BaseButton.DRAW_HOVER: fill = TBTokens.c("bar_2" if on_bar else "paper_hover")
@@ -622,6 +630,37 @@ class IconBtn extends Button:
 		if has_focus() or preview_state == "focus": draw_style_box(TBFrame.focus(on_bar, 4, 0), r)
 
 static func icon_button(g: String, cb: Callable, px: int = 40) -> Button: return IconBtn.new(g, cb, px)
+
+# ---- Bezel instruments for headers -------------------------------------------------------------------------------------------------------------
+## a brass instrument ring with a glyph in its face: the icon of a window header (round = instrument)
+class RingIcon extends Control:
+	var glyph := ""
+	var muted := false
+	func _init(g: String, px: int = 38) -> void:
+		glyph = g; custom_minimum_size = Vector2(px, px); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	func _draw() -> void:
+		var c := size * 0.5
+		var fr: float = TBBezel.ring(self, c, minf(size.x, size.y) * 0.5 - 1.5, 0, TBTokens.c("bar_0"))
+		TBGlyph.draw(self, glyph, c.round(), fr * 1.2, TBTokens.c("ink_off" if muted else "brass_lt"), 1.6)
+
+static func ring_icon(g: String, px: int = 38, muted: bool = false) -> Control:
+	var r := RingIcon.new(g, px); r.muted = muted
+	return r
+
+## the rule under a window header: a brass hairline with graduated marks beneath it
+class TickRule extends Control:
+	func _init() -> void:
+		custom_minimum_size = Vector2(0, 7); mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func _draw() -> void:
+		draw_rect(Rect2(0, 0, size.x, 1), TBTokens.c("rule"))
+		if TBTokens.is_hc(): return
+		TBBezel.ruler_h(self, 6.0, size.x - 6.0, 1.0, 6.0, 5, TBTokens.ca("rule", 0.85), 3.0)
+
+## header rule: the graduated brass rule in the Bezel look, a hairline otherwise
+static func header_rule() -> Control:
+	if TBFrame.bezel: return TickRule.new()
+	var r := ColorRect.new(); r.color = TBTokens.c("rule"); r.custom_minimum_size = Vector2(0, 1); r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r
 
 # ---- ornament, ledger rows, pips, meters ---------------------------------------------------------------------------------------------------
 ## a thin ornamental rule: --- + --- . Hero sheets and the title screen only (D3): never on panels or plain modals.
@@ -954,6 +993,12 @@ class TabBtn extends Button:
 		add_theme_stylebox_override("focus", TBFrame.focus(false, 0, 2))
 		TBKit.a11y(self, txt, "tab")
 	func _draw() -> void:
+		if TBFrame.bezel and not TBTokens.is_hc():                       # graduated rule under the tab, a rust marker under the active one
+			TBBezel.ruler_h(self, size.x * 0.08, size.x * 0.92, size.y - 7.0, 6.0, 5, TBTokens.ca("rule", 0.9), 3.0, true)
+			if active:
+				var mx: float = size.x * 0.5
+				draw_colored_polygon(PackedVector2Array([Vector2(mx - 5.0, size.y - 7.0), Vector2(mx + 5.0, size.y - 7.0), Vector2(mx, size.y - 1.0)]), TBTokens.c("neg"))
+			return
 		if active: draw_rect(Rect2(0, size.y - 3, size.x, 3), TBTokens.c("oxblood"))
 
 class Tabs extends HBoxContainer:
@@ -979,7 +1024,13 @@ class Tabs extends HBoxContainer:
 			b.active = k == current
 			for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 				b.add_theme_color_override(fc, TBTokens.c("ink_0") if b.active or fc != "font_color" else TBTokens.c("ink_1"))
-			b.add_theme_font_override("font", TBKit.body_b())
+			if TBFrame.bezel:
+				b.add_theme_font_override("font", TBKit.tracked(TBKit.display(), 1)); b.add_theme_font_size_override("font_size", TBKit.fs(12))
+				if b.get_meta("raw", "") == "": b.set_meta("raw", b.text)
+				b.text = TBKit._cap(String(b.get_meta("raw")))
+				for fc2 in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+					b.add_theme_color_override(fc2, TBTokens.c("ink_0") if b.active or fc2 != "font_color" else TBTokens.c("ink_off"))
+			else: b.add_theme_font_override("font", TBKit.body_b())
 			b.queue_redraw()
 
 static func tabs(items: Array, current: String, cb: Callable) -> Control:
@@ -995,6 +1046,9 @@ class KSlider extends HSlider:
 		size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		add_theme_stylebox_override("focus", TBKit._empty)
 	func _draw() -> void:
+		if TBFrame.bezel and not TBTokens.is_hc():                       # the graduated scale under the track
+			var half: float = TBTokens.THUMB * 0.5
+			TBBezel.ruler_h(self, half, size.x - half, size.y * 0.5 + 10.0, (size.x - TBTokens.THUMB) / 20.0, 5, TBTokens.ca("rule", 0.9), 3.0)
 		if not (has_focus() and TBFrame.kbd_nav): return
 		var span := size.x - TBTokens.THUMB
 		var ratio := 0.0 if max_value <= min_value else (value - min_value) / (max_value - min_value)
@@ -1264,6 +1318,7 @@ static func glyph_label(g: String, text: String, col: Color = Color.TRANSPARENT,
 static func ornament() -> Control: return OrnamentRule.new()
 
 static func glyph_label_big(g: String) -> Control:
+	if TBFrame.bezel: return ring_icon(g, 38)
 	var ic := glyph(g, 24, GOLD2)
 	ic.custom_minimum_size = Vector2(30, 30)
 	return ic
@@ -1433,8 +1488,7 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 		hm2.add_child(hh2)
 		if title_text != "":
 			outer.add_child(hm2); head = hm2
-			var hr := ColorRect.new(); hr.color = TBTokens.c("rule"); hr.custom_minimum_size = Vector2(0, 1); hr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			outer.add_child(hr)
+			outer.add_child(header_rule())
 		var body_m := MarginContainer.new()
 		body_m.add_theme_constant_override("margin_left", pad); body_m.add_theme_constant_override("margin_right", pad)
 		body_m.add_theme_constant_override("margin_top", 16); body_m.add_theme_constant_override("margin_bottom", 8)

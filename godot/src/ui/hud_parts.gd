@@ -51,6 +51,7 @@ static func _fonts() -> void:
 static func body() -> Font:
 	_fonts()
 	return _f_body
+static func body_i() -> Font: return K.body_i()
 static func body_b() -> Font:
 	_fonts()
 	return _f_body_b
@@ -245,27 +246,61 @@ static func btn(text: String, kind: String, cb: Callable, dark: bool = true, px:
 	if cb.is_valid(): b.pressed.connect(cb)
 	return b
 
-## dark tooltip / pinned popover content: title (brass) over body lines (cream), max 280 wide
-static func tip_box(title: String, body: String, max_w: float = 320.0) -> PanelContainer:
+## dark tooltip / pinned popover content: title (Cinzel, brass), a headline, optional figure rows (label ..... value) and a hint line. rows: [[label, value, tone]]
+## tone: "" | "pos" | "neg" | "sum" (a total: bold with a rule above)
+static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Array = [], hint: String = "") -> PanelContainer:
 	var pc := PanelContainer.new()
 	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = tk("bar_1"); sb.border_color = tk("rule"); sb.set_border_width_all(1); sb.set_corner_radius_all(10)
-	sb.shadow_color = al(Color.BLACK, 0.55); sb.shadow_size = 14; sb.shadow_offset = Vector2(0, 8)
-	sb.content_margin_left = 12; sb.content_margin_right = 12; sb.content_margin_top = 10; sb.content_margin_bottom = 10
-	pc.add_theme_stylebox_override("panel", sb)
+	if TBFrame.bezel:
+		var pb: PlateBox = PlateBox.new().setup(al(tk("bar_0"), 0.97), tk("rule"), 6.0, 14, 11)
+		pb.elevation = 1
+		pc.add_theme_stylebox_override("panel", pb)
+	else:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = tk("bar_1"); sb.border_color = tk("rule"); sb.set_border_width_all(1); sb.set_corner_radius_all(10)
+		sb.shadow_color = al(Color.BLACK, 0.55); sb.shadow_size = 14; sb.shadow_offset = Vector2(0, 8)
+		sb.content_margin_left = 12; sb.content_margin_right = 12; sb.content_margin_top = 10; sb.content_margin_bottom = 10
+		pc.add_theme_stylebox_override("panel", sb)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4); v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pc.add_child(v)
+	var width: float = minf(max_w, 300.0 if TBFrame.bezel else 280.0)
 	if title != "":
-		var t := Label.new(); t.text = title; t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		t.add_theme_font_override("font", TBHudParts.body_b()); t.add_theme_font_size_override("font_size", fs(13)); t.add_theme_color_override("font_color", tk("cream"))
+		var t := Label.new(); t.text = (title.to_upper() if TBFrame.bezel and TBI18n.lang != "ru" else title); t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if TBFrame.bezel:
+			t.add_theme_font_override("font", K.tracked(K.display(), 1)); t.add_theme_font_size_override("font_size", fs(13)); t.add_theme_color_override("font_color", tk("brass_lt"))
+		else:
+			t.add_theme_font_override("font", TBHudParts.body_b()); t.add_theme_font_size_override("font_size", fs(13)); t.add_theme_color_override("font_color", tk("cream"))
 		v.add_child(t)
 	if body != "":
 		var b := Label.new(); b.text = body; b.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_theme_font_override("font", TBHudParts.body()); b.add_theme_font_size_override("font_size", fs(13)); b.add_theme_color_override("font_color", tk("smoke"))
+		b.add_theme_font_override("font", TBHudParts.body_b() if (TBFrame.bezel and not rows.is_empty()) else TBHudParts.body())
+		b.add_theme_font_size_override("font_size", fs(15 if (TBFrame.bezel and not rows.is_empty()) else 13))
+		b.add_theme_color_override("font_color", tk("cream") if (TBFrame.bezel and not rows.is_empty()) else tk("smoke"))
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(minf(max_w, 280.0), 0)
+		b.custom_minimum_size = Vector2(width, 0)
 		v.add_child(b)
+	if not rows.is_empty():
+		var g := VBoxContainer.new(); g.add_theme_constant_override("separation", 1); g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		g.custom_minimum_size = Vector2(width, 0)
+		for r in rows:
+			var tone: String = String(r[2]) if r.size() > 2 else ""
+			var line := HBoxContainer.new(); line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var l := Label.new(); l.text = String(r[0]); l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			l.add_theme_font_override("font", TBHudParts.body()); l.add_theme_font_size_override("font_size", fs(13)); l.add_theme_color_override("font_color", tk("smoke"))
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var vl := Label.new(); vl.text = String(r[1]); vl.mouse_filter = Control.MOUSE_FILTER_IGNORE; vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			vl.add_theme_font_override("font", TBHudParts.body_b()); vl.add_theme_font_size_override("font_size", fs(14 if tone == "sum" else 13))
+			vl.add_theme_color_override("font_color", tk("pos_bar") if tone == "pos" else (tk("neg_bar") if tone == "neg" else tk("cream")))
+			if tone == "sum":
+				var rule := ColorRect.new(); rule.color = al(tk("rule"), 0.8); rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				g.add_child(rule)
+			line.add_child(l); line.add_child(vl); g.add_child(line)
+		v.add_child(g)
+	if hint != "":
+		var h := Label.new(); h.text = hint; h.mouse_filter = Control.MOUSE_FILTER_IGNORE; h.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		h.add_theme_font_override("font", TBHudParts.body_i() if TBFrame.bezel else TBHudParts.body()); h.add_theme_font_size_override("font_size", fs(13)); h.add_theme_color_override("font_color", tk("ink_1"))
+		h.custom_minimum_size = Vector2(width, 0)
+		v.add_child(h)
 	return pc
 
 # ---------------------------------------------------------------- interactive base
@@ -379,6 +414,7 @@ class Chip extends Hit:
 	var _target: float = 0.0
 	var _fmt: Callable = Callable()
 	var _t: float = 0.0
+	var _floats: Array = []              # [{t, txt, pos}]: the change that just happened, rising beside the ring
 	func _ready() -> void: set_process(false)
 	func fv() -> int: return TBHudParts.fs(15.0)
 	func fd() -> int: return TBHudParts.fs(13.0)
@@ -401,6 +437,10 @@ class Chip extends Hit:
 		return ceilf(h)
 	func set_num(v: float, fmt: Callable) -> void:
 		_fmt = fmt; final_text = fmt.call(v)
+		if not is_nan(_shown) and not TBHudParts.reduced_motion() and absf(v - _target) >= 1.0 and tight == false and v != _target:
+			_floats.append({"t": 0.0, "txt": ("+" if v > _target else "−") + K.fmt(absf(v - _target)), "pos": v > _target})
+			if _floats.size() > 3: _floats.pop_front()
+			set_process(true)
 		if is_nan(_shown) or TBHudParts.reduced_motion():
 			_shown = v; _target = v; value = final_text; set_process(state >= 1 and not TBHudParts.reduced_motion()); queue_redraw(); return
 		if v != _target:
@@ -410,12 +450,14 @@ class Chip extends Hit:
 		queue_redraw()
 	func _process(d: float) -> void:
 		_t += d
+		for fl in _floats: fl["t"] = float(fl["t"]) + d
+		_floats = _floats.filter(func(e): return float(e["t"]) < 1.3)
 		if not is_nan(_shown) and _shown != _target:
 			_shown += (_target - _shown) * (1.0 - exp(-9.0 * d))
 			if absf(_target - _shown) < 0.5: _shown = _target
 			value = _fmt.call(_shown)
 		queue_redraw()
-		if _shown == _target and state < 1: set_process(false)
+		if _shown == _target and state < 1 and _floats.is_empty(): set_process(false)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		var oy: float = 1.0 if down else 0.0
@@ -450,6 +492,14 @@ class Chip extends Hit:
 			if sub_text == "": col = TBHudParts.tk("pos_bar") if delta > 0 else (TBHudParts.tk("neg_bar") if delta < 0 else TBHudParts.tk("smoke"))
 			var dt: String = dtext()
 			TBHudParts.txt_o(self, fm, Vector2((size.x - TBHudParts.tw(fm, dt, fd())) * 0.5, y + fm.get_ascent(fd()) - 1.0), dt, fd(), col)
+		for fl in _floats:
+			var k: float = float(fl["t"]) / 1.3
+			var fa: float = clampf((1.0 - k) * 2.0, 0.0, 1.0)
+			var fb2: Font = K.body_b()
+			var fz: int = TBHudParts.fs(17.0)
+			var fp := Vector2(c.x + R + 4.0, c.y + 5.0 - k * 22.0)
+			draw_string_outline(fb2, fp, String(fl["txt"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, 4, TBTokens.with_a(TBTokens.HALO, fa))
+			draw_string(fb2, fp, String(fl["txt"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, TBTokens.with_a(TBHudParts.tk("pos_bar") if bool(fl["pos"]) else TBHudParts.tk("neg_bar"), fa))
 		if has_focus(): TBHudParts.focus_ring(self, r)
 
 # ---------------------------------------------------------------- crest

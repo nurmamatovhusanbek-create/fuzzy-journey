@@ -311,7 +311,9 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 			var bb := K.IconBtn.new("back", func(): pop_handle(h), 40)
 			K.a11y(bb, T.call("back"), "button"); hb.add_child(bb); h.back_btn = bb
 		elif glyph_id != "":
-			var gl := K.glyph(glyph_id, 24, TBTokens.c("oxblood")); gl.custom_minimum_size = Vector2(28, 28); hb.add_child(gl)
+			var gl: Control = K.ring_icon(glyph_id, 40 if not h.short else 34) if TBFrame.bezel else K.glyph(glyph_id, 24, TBTokens.c("oxblood"))
+			if not TBFrame.bezel: gl.custom_minimum_size = Vector2(28, 28)
+			hb.add_child(gl)
 		var tl := K.title(title_text, 20, TBTokens.c("ink_0"))
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		tl.custom_minimum_size.x = 40; tl.tooltip_text = title_text
@@ -326,9 +328,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 			K.a11y(xb, T.call("close"), "button"); hb.add_child(xb)
 		h.head = hm
 		outer.add_child(hm)
-		var rule := ColorRect.new(); rule.color = TBTokens.c("rule")
-		rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		outer.add_child(rule)
+		outer.add_child(K.header_rule())
 	# ---- tab row (filled by set_tabs)
 	var tp := PanelContainer.new()
 	tp.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_1"), Color.TRANSPARENT, 0, 0, 8, 0, false, 0))
@@ -647,7 +647,9 @@ class Card extends PanelContainer:
 		custom_minimum_size = Vector2(0, 56)
 		var row := TBKit.hbox(12); add_child(row)
 		var ink: Color = TBTokens.c("ink_off") if disabled else TBTokens.c("ink_0")
-		if glyph_id != "":
+		if glyph_id != "" and TBFrame.bezel:
+			row.add_child(TBKit.ring_icon(glyph_id, 36, disabled))
+		elif glyph_id != "":
 			var tile := Control.new(); tile.custom_minimum_size = Vector2(32, 32); tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER; tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var ts := TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("hair"), 2, 0, 0, 0)
 			tile.draw.connect(func():
@@ -655,7 +657,7 @@ class Card extends PanelContainer:
 				TBGlyph.draw(tile, glyph_id, (tile.size * 0.5).round(), 20.0, ink))
 			row.add_child(tile)
 		var col := TBKit.vbox(3); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; col.size_flags_vertical = Control.SIZE_SHRINK_CENTER; col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var t := TBKit.label(title_text, 15, ink); t.add_theme_font_override("font", TBKit.body_b())
+		var t := TBKit.label(TBKit._cap(title_text), 13 if TBFrame.bezel else 15, ink); t.add_theme_font_override("font", TBKit.tracked(TBKit.display(), 1) if TBFrame.bezel else TBKit.body_b())
 		t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; t.mouse_filter = Control.MOUSE_FILTER_IGNORE; t.size_flags_horizontal = Control.SIZE_EXPAND_FILL; t.custom_minimum_size.x = 40
 		col.add_child(t)
 		if detail != "":
@@ -668,7 +670,7 @@ class Card extends PanelContainer:
 			var cc: Control = TBKit.chip(String(c[0]), String(c[1]) if c.size() > 1 else "", String(c[2]) if c.size() > 2 else "neutral")
 			cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			cf.add_child(cc)
-		if below and not chips.is_empty(): col.add_child(cf)
+		if (below or TBFrame.bezel) and not chips.is_empty(): col.add_child(cf)
 		if reason != "":
 			var rr := TBKit.hbox(4); rr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			rr.add_child(TBKit.glyph("lock", 14, TBTokens.c("neg")))
@@ -677,7 +679,7 @@ class Card extends PanelContainer:
 			rr.add_child(rl); col.add_child(rr)
 			tooltip_text = reason
 		row.add_child(col)
-		if not below and not chips.is_empty():
+		if not below and not TBFrame.bezel and not chips.is_empty():
 			cf.size_flags_horizontal = Control.SIZE_SHRINK_END; cf.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			row.add_child(cf)
 		mouse_entered.connect(func(): _hover = true; _apply())

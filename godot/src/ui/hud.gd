@@ -696,7 +696,7 @@ func _tip_hide() -> void:
 func _tip_show(anchor: Control, pair: Array) -> void:
 	_tip_hide()
 	if _pop != null or pair.size() < 2 or not is_instance_valid(anchor): return
-	_tip = P.tip_box(String(pair[0]), String(pair[1]))
+	_tip = P.tip_box(String(pair[0]), String(pair[1]), 320.0, pair[2] if pair.size() > 2 else [], String(pair[3]) if pair.size() > 3 else "")
 	_tip.z_index = 70
 	add_child(_tip)
 	_place_near(_tip, anchor)
@@ -753,35 +753,30 @@ func _chip_text(key: String) -> Array:
 	var n: int = g.human_id
 	var bd: Dictionary = TBAdvisor.breakdown(g, n)
 	var fmt := func(v: float) -> String: return _fmt_num(v, false)
+	var sg := func(v: float) -> String: return ("+" if v >= 0.0 else "−") + fmt.call(absf(v))
 	match key:
 		"gold":
-			var lines: PackedStringArray = PackedStringArray()
-			lines.append(T.call("tk_gold_1", {"v": fmt.call(float(bd["gold"]))}))
-			lines.append(T.call("tk_gold_2", {"g": fmt.call(float(bd["gross"])), "u": fmt.call(float(bd["upkeep"])), "a": fmt.call(float(bd["admin"]))}))
-			lines.append(T.call("tk_gold_3", {"n": ("+" if int(bd["net"]) >= 0 else "−") + fmt.call(absf(float(bd["net"])))}))
 			var ro: int = int(bd["runs_out"])
-			lines.append(T.call("tk_gold_safe") if ro < 0 else (T.call("tk_gold_empty") if ro == 0 else T.call("tk_gold_out", {"k": ro})))
-			return [T.call("gold"), "\n".join(lines)]
+			var rows: Array = [[T.call("tkr_income"), sg.call(float(bd["gross"])), "pos"], [T.call("tkr_upkeep"), sg.call(-float(bd["upkeep"])), "neg"], [T.call("tkr_admin"), sg.call(-float(bd["admin"])), "neg"], [T.call("tkr_net"), sg.call(float(bd["net"])), "sum"]]
+			return [T.call("gold"), T.call("tk_gold_1", {"v": fmt.call(float(bd["gold"]))}), rows, T.call("tk_gold_safe") if ro < 0 else (T.call("tk_gold_empty") if ro == 0 else T.call("tk_gold_out", {"k": ro}))]
 		"man":
-			var l2: PackedStringArray = PackedStringArray()
-			l2.append(T.call("tk_man_1", {"v": fmt.call(float(bd["man"])), "c": fmt.call(float(bd["man_cap"]))}))
-			l2.append(T.call("tk_man_2", {"g": int(bd["man_gain"])}))
-			l2.append(T.call("tk_man_3", {"g": TBData.COST_RECRUIT_GOLD, "m": TBData.COST_RECRUIT_MAN}))
-			if bool(bd["man_full"]): l2.append(T.call("tk_man_full"))
-			return [T.call("manpower"), "\n".join(l2)]
+			var rows2: Array = [[T.call("tkr_men"), "%s / %s" % [fmt.call(float(bd["man"])), fmt.call(float(bd["man_cap"]))], ""], [T.call("tkr_growth"), "+%d" % int(bd["man_gain"]), "pos"], [T.call("tkr_recruit"), "%d g · %d" % [TBData.COST_RECRUIT_GOLD, TBData.COST_RECRUIT_MAN], ""]]
+			return [T.call("manpower"), T.call("tk_man_1", {"v": fmt.call(float(bd["man"])), "c": fmt.call(float(bd["man_cap"]))}), rows2, T.call("tk_man_full") if bool(bd["man_full"]) else ""]
 		"mp":
-			return [T.call("mp"), "\n".join(PackedStringArray([T.call("tk_mp_1", {"v": int(floorf(float(bd["mp"]))), "c": int(bd["mp_cap"])}), T.call("tk_mp_2", {"g": "%.1f" % float(bd["mp_gain"]), "c": int(bd["mp_cap"])}), T.call("tk_mp_3", {"m": TBData.MP_MOVE, "a": TBData.MP_ATTACK, "r": TBData.MP_RECRUIT})]))]
+			var rows3: Array = [[T.call("tkr_moves"), "%d / %d" % [int(floorf(float(bd["mp"]))), int(bd["mp_cap"])], ""], [T.call("tkr_refill"), "+%.1f" % float(bd["mp_gain"]), "pos"], [T.call("tkr_move"), str(TBData.MP_MOVE), ""], [T.call("tkr_attack"), str(TBData.MP_ATTACK), ""], [T.call("tkr_recr"), str(TBData.MP_RECRUIT), ""]]
+			return [T.call("mp"), T.call("tk_mp_1", {"v": int(floorf(float(bd["mp"]))), "c": int(bd["mp_cap"])}), rows3, ""]
 		"dp":
-			return [T.call("dp"), "\n".join(PackedStringArray([T.call("tk_dp_1", {"v": int(floorf(float(bd["dp"]))), "c": int(bd["dp_cap"])}), T.call("tk_dp_2", {"g": "%.1f" % float(bd["dp_gain"])}), T.call("tk_dp_3", {"u": TBDiplo.DP_ULT, "n": TBData.DP_NAP, "a": TBData.DP_ALLY, "m": TBDiplo.DP_MARRY})]))]
+			var rows4: Array = [[T.call("tkr_points"), "%d / %d" % [int(floorf(float(bd["dp"]))), int(bd["dp_cap"])], ""], [T.call("tkr_growth"), "+%.1f" % float(bd["dp_gain"]), "pos"], [T.call("tkr_pact"), str(TBData.DP_NAP), ""], [T.call("tkr_ally"), str(TBData.DP_ALLY), ""], [T.call("tkr_ult"), str(TBDiplo.DP_ULT), ""], [T.call("tkr_marry"), str(TBDiplo.DP_MARRY), ""]]
+			return [T.call("dp"), T.call("tk_dp_1", {"v": int(floorf(float(bd["dp"]))), "c": int(bd["dp_cap"])}), rows4, ""]
 		"wars":
 			var names: PackedStringArray = PackedStringArray()
 			for o in range(1, g.N1):
 				if g.alive[o] != 0 and g.get_rel(n, o) == 1: names.append(g.dname(o))
-			return [T.call("hud_wars"), T.call("tk_wars_with", {"l": ", ".join(names)})]
+			return [T.call("hud_wars"), T.call("tk_wars_with", {"l": ", ".join(names)}), [], ""]
 		"infamy":
-			var inf_s: String = T.call("tk_inf_1", {"v": int(g.infamy[n])})
-			if g.coalition[n] != 0: inf_s += "\n" + T.call("tk_inf_coal")
-			return [T.call("infamy"), inf_s]
+			var rows5: Array = [[T.call("tkr_infamy"), str(int(g.infamy[n])), "neg" if g.infamy[n] >= 12.0 else ""]]
+			if g.coalition[n] != 0: rows5.append([T.call("tkr_coal"), T.call("tkr_yes"), "neg"])
+			return [T.call("infamy"), T.call("tk_inf_1", {"v": int(g.infamy[n])}), rows5, ""]
 	return ["", ""]
 
 func _tip_chip(key: String) -> Array:
@@ -792,7 +787,7 @@ func _pin_chip(key: String) -> void:
 	if g == null: return
 	tapped.emit()
 	var pair: Array = _chip_text(key)
-	var box: PanelContainer = P.tip_box(String(pair[0]), String(pair[1]))
+	var box: PanelContainer = P.tip_box(String(pair[0]), String(pair[1]), 320.0, pair[2] if pair.size() > 2 else [], String(pair[3]) if pair.size() > 3 else "")
 	box.mouse_filter = Control.MOUSE_FILTER_STOP
 	var link: String = ""
 	var act: Callable = Callable()

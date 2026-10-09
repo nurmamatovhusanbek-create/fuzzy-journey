@@ -436,27 +436,45 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 	var dp: float = g.dp[me]
 	var dpw := func(cost: int) -> String: return "" if dp >= float(cost) else T.call("err_dp")
 	var cost_chip := func(cost: int, unit: String) -> Array: return [["%d %s" % [cost, unit], "scales" if unit == T.call("hud_dp") else "eye", "neg" if (unit == T.call("hud_dp") and dp < float(cost)) else "neutral"]]
+	var done := func(cmd: Dictionary) -> void:
+		on_cmd.call(cmd); refresh.call()
+	var dpu: String = T.call("hud_dp")
+	# what the court makes of the request (the engine's own sums): one verdict chip per request, a disposition meter, the terms
+	var ai: bool = g.human[n] == 0
+	var vw := {}
+	if ai:
+		vw = {"nap": TBDipView.pact(g, n, me, D.REL_NAP), "ally": TBDipView.pact(g, n, me, D.REL_ALLY), "trade": TBDipView.trade(g, n, me),
+			"white": TBDipView.peace(g, n, me, "white"), "cede": TBDipView.peace(g, n, me, "cede"), "vassal": TBDipView.peace(g, n, me, "vassal")}
+	var verdict := func(k: String) -> Array:
+		if not ai or not vw.has(k): return []
+		return [[T.call("dv_will") if bool(vw[k]["ok"]) else T.call("dv_wont"), "check" if bool(vw[k]["ok"]) else "close", "pos" if bool(vw[k]["ok"]) else "neg"]]
+	var ask := func(k: String, what_key: String, cmd: Dictionary) -> void:
+		if not ai or not vw.has(k): done.call(cmd); return
+		TBNegotiate.run(parent, what_key, g.dname(n), vw[k], func(): done.call(cmd))
+	if ai and rel in [0, 1, 2]:
+		var lead: String = "white" if rel == 1 else ("nap" if rel == 0 else "ally")
+		v.add_child(TBPanel.section("%s  ·  %s" % [T.call("dv_title"), T.call("dv_for", {"w": T.call({"white": "dv_peace_white", "nap": "dv_pact_nap", "ally": "dv_pact_ally"}[lead])})]))
+		v.add_child(TBNegotiate.meter(vw[lead], n))
+		v.add_child(TBPanel.section(T.call("dv_why")))
+		v.add_child(TBNegotiate.why_list(vw[lead]))
 	v.add_child(TBPanel.section(T.call("diplomacy")))
 	var acts := GridContainer.new(); acts.columns = 2 if wide else 1
 	acts.add_theme_constant_override("h_separation", 10); acts.add_theme_constant_override("v_separation", 8); acts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(acts)
-	var done := func(cmd: Dictionary) -> void:
-		on_cmd.call(cmd); refresh.call()
-	var dpu: String = T.call("hud_dp")
 	if rel == 1:
 		var ws: int = g.war_score[me * g.N1 + n]
-		acts.add_child(TBPanel.card("dove", T.call("white_peace"), "", cost_chip.call(D.DP_PEACE, dpu), func(): done.call({"cmd": "peace", "t": n, "kind": "white"}), dpw.call(D.DP_PEACE), false, false))
-		acts.add_child(TBPanel.card("flag", T.call("demand_land"), "", [], func(): done.call({"cmd": "peace", "t": n, "kind": "cede"}), "" if ws >= 25 else T.call("err_warscore") + " (25%)", false, false))
-		if g.rules >= 1: acts.add_child(TBPanel.card("crown", T.call("demand_vassal"), "", [], func(): done.call({"cmd": "peace", "t": n, "kind": "vassal"}), "" if ws >= 50 else T.call("err_warscore") + " (50%)", false, false))
+		acts.add_child(TBPanel.card("dove", T.call("white_peace"), "", cost_chip.call(D.DP_PEACE, dpu) + verdict.call("white"), func(): ask.call("white", "dv_peace_white", {"cmd": "peace", "t": n, "kind": "white"}), dpw.call(D.DP_PEACE), false, false))
+		acts.add_child(TBPanel.card("flag", T.call("demand_land"), "", verdict.call("cede") if ws >= 25 else [], func(): ask.call("cede", "dv_peace_cede", {"cmd": "peace", "t": n, "kind": "cede"}), "" if ws >= 25 else T.call("err_warscore") + " (25%)", false, false))
+		if g.rules >= 1: acts.add_child(TBPanel.card("crown", T.call("demand_vassal"), "", verdict.call("vassal") if ws >= 50 else [], func(): ask.call("vassal", "dv_peace_vassal", {"cmd": "peace", "t": n, "kind": "vassal"}), "" if ws >= 50 else T.call("err_warscore") + " (50%)", false, false))
 	else:
 		if rel == 0:
-			acts.add_child(TBPanel.card("shield", T.call("propose_nap"), "", cost_chip.call(D.DP_NAP, dpu), func(): done.call({"cmd": "nap", "t": n}), dpw.call(D.DP_NAP), false, false))
-			acts.add_child(TBPanel.card("link", T.call("propose_ally"), "", cost_chip.call(D.DP_ALLY, dpu), func(): done.call({"cmd": "ally", "t": n}), dpw.call(D.DP_ALLY), false, false))
+			acts.add_child(TBPanel.card("shield", T.call("propose_nap"), "", cost_chip.call(D.DP_NAP, dpu) + verdict.call("nap"), func(): ask.call("nap", "dv_pact_nap", {"cmd": "nap", "t": n}), dpw.call(D.DP_NAP), false, false))
+			acts.add_child(TBPanel.card("link", T.call("propose_ally"), "", cost_chip.call(D.DP_ALLY, dpu) + verdict.call("ally"), func(): ask.call("ally", "dv_pact_ally", {"cmd": "ally", "t": n}), dpw.call(D.DP_ALLY), false, false))
 		if TBDiplo.can_marry(g, me, n):
-			acts.add_child(TBPanel.card("crown", T.call("marry_propose"), "", cost_chip.call(TBDiplo.DP_MARRY, dpu), func(): done.call({"cmd": "marry", "t": n}), dpw.call(TBDiplo.DP_MARRY), false, false))
+			acts.add_child(TBPanel.card("crown", T.call("marry_propose"), "", cost_chip.call(TBDiplo.DP_MARRY, dpu) + verdict.call("ally"), func(): ask.call("ally", "dv_marry", {"cmd": "marry", "t": n}), dpw.call(TBDiplo.DP_MARRY), false, false))
 		if g.rules >= 1:
 			if TBTrade.has(g, me, n): acts.add_child(TBPanel.card("coins", T.call("trade_cancel"), "", [], func(): done.call({"cmd": "cancelTrade", "t": n}), "", false, false))
-			else: acts.add_child(TBPanel.card("coins", T.call("trade_propose"), "", cost_chip.call(TBTrade.DP_COST, dpu), func(): done.call({"cmd": "trade", "t": n}), dpw.call(TBTrade.DP_COST), false, false))
+			else: acts.add_child(TBPanel.card("coins", T.call("trade_propose"), "", cost_chip.call(TBTrade.DP_COST, dpu) + verdict.call("trade"), func(): ask.call("trade", "dv_trade", {"cmd": "trade", "t": n}), dpw.call(TBTrade.DP_COST), false, false))
 		if rel == 2 or rel == 3:
 			acts.add_child(TBPanel.card("close", T.call("break_pact"), "", [], func():
 				TBPanel.confirm(parent, T.call("confirm_break_t", {"a": g.dname(n)}), T.call("confirm_break_b"), T.call("break_pact"), func(): done.call({"cmd": "breakPact", "t": n})), "", false, false))
