@@ -1315,9 +1315,10 @@ static func fx_row(txt: String, tone: String) -> Control:
 		fig = m.get_string().strip_edges(); lab = (txt.substr(0, m.get_start()) + txt.substr(m.get_end())).strip_edges()
 		lab = lab.trim_prefix("·").trim_prefix(":").strip_edges()
 	var col: Color = TBTokens.c("pos") if tone == "pos" else (TBTokens.c("neg") if tone == "neg" else (TBTokens.c("warn") if tone == "warn" else TBTokens.c("ink_0")))
-	var r := row(lab if lab != "" else txt, fig, col)
-	if fig == "": return r
-	return r
+	if fig == "":                            # no figure to lead to: a plain line, not a leader that ends in nothing
+		var pl := label(txt, 13, col); pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; pl.custom_minimum_size.x = 40
+		return pl
+	return row(lab if lab != "" else txt, fig, col)
 
 static func _mark(txt: String, glyph_id: String, tone: String, on_bar: bool, height: int) -> Control:
 	var suffix := "_bar" if on_bar else ""

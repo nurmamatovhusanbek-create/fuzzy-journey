@@ -38,11 +38,17 @@ func _cap(n: int) -> Array:
 func _arc(a: Array, b: Array, bend: float) -> Array:
 	var u := _unit(a); var v := _unit(b)
 	var ang: float = acos(clampf(u.dot(v), -1.0, 1.0))
+	var via := Vector3.ZERO                  # exactly opposite capitals have no single great circle: go by way of a point a quarter turn off
+	if ang > PI - 0.01:
+		via = u.cross(Vector3.UP)
+		if via.length() < 0.01: via = u.cross(Vector3.RIGHT)
+		via = via.normalized()
 	var pts: Array = []
 	for i in SEG + 1:
 		var f: float = float(i) / SEG
 		var w: Vector3
-		if ang < 0.001: w = u.lerp(v, f)
+		if via != Vector3.ZERO: w = _slerp(u, via, f * 2.0) if f < 0.5 else _slerp(via, v, f * 2.0 - 1.0)
+		elif ang < 0.001: w = u.lerp(v, f)
 		else: w = (u * sin((1.0 - f) * ang) + v * sin(f * ang)) / sin(ang)
 		var lat: float = rad_to_deg(asin(clampf(w.y, -1.0, 1.0)))
 		var lon: float = rad_to_deg(atan2(w.x, w.z))
@@ -55,6 +61,12 @@ func _arc(a: Array, b: Array, bend: float) -> Array:
 		for i in pts.size():
 			pts[i][0] = Vector2(pts[i][0]) + nrm * sin(PI * float(i) / SEG) * bend * minf(span, 600.0) * 0.12
 	return pts
+
+## slerp between two unit vectors a quarter turn apart (never degenerate)
+static func _slerp(a: Vector3, b: Vector3, f: float) -> Vector3:
+	var ang: float = acos(clampf(a.dot(b), -1.0, 1.0))
+	if ang < 0.001: return a
+	return (a * sin((1.0 - f) * ang) + b * sin(f * ang)) / sin(ang)
 
 static func _unit(ll: Array) -> Vector3:
 	var lon: float = deg_to_rad(float(ll[0])); var lat: float = deg_to_rad(float(ll[1]))
