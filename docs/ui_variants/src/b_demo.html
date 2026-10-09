@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Terra Bellum — Bezel demo (build 9)</title>
+<title>Terra Bellum — Bezel demo (build 10)</title>
 <style>
 /*FONTS*/
 /*BEZELCSS*/
@@ -30,6 +30,7 @@
 .tz .x{color:var(--dim2);display:grid;place-items:center;width:18px;height:18px;flex:none}.tz:hover .x{color:#fff}
 .tz .med{position:absolute;left:-22px;top:50%;margin-top:-23px;width:46px;height:46px;z-index:2}
 .tz .mi{position:absolute;left:-22px;top:50%;margin-top:-23px;width:46px;height:46px;display:grid;place-items:center;color:var(--k);z-index:3}
+#toasts,#alerts{gap:14px}.phone #toasts,.phone #alerts{gap:10px!important}
 .phone .tz{margin-left:18px}.phone .tz .in{height:32px;padding-left:28px;font-size:13px}
 .phone .tz .med,.phone .tz .mi{left:-18px;width:38px;height:38px;margin-top:-19px}
 #stage{touch-action:none}
@@ -72,8 +73,8 @@ table.tbl{border-collapse:collapse;width:100%;margin-top:6px}table.tbl td{paddin
 </style></head><body><div id="stage">
 <svg id="map"></svg><div class="vig"></div>
 <div id="top"></div><div id="rail"></div><div id="tuner"></div><div id="mm"></div><div id="zoom"></div><div id="chrono"></div>
-<div id="alerts" class="abs" style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"></div>
-<div id="toasts" class="abs" style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"></div>
+<div id="alerts" class="abs" style="display:flex;flex-direction:column;gap:14px;align-items:flex-end"></div>
+<div id="toasts" class="abs" style="display:flex;flex-direction:column;gap:14px;align-items:flex-end"></div>
 <div id="tagbox"></div><div id="preview" class="abs"></div>
 <div id="scrim"></div><div id="screens"></div><div id="menu" class="abs"></div>
 <div id="banner"><div id="bnt"></div></div><div id="tip"></div>
@@ -181,7 +182,7 @@ function renderTop(){const P_=L.phone,n=net(),M=L.m;
  <button class="abs" id="gear" data-tip="menu" style="right:${M+(L.phone?54:100)}px;top:${M+L.med-(L.phone?20:27)}px;width:${L.phone?40:54}px;height:${L.phone?40:54}px"><svg width="100%" height="100%" viewBox="0 0 54 54">${bezelSvg(27,27,25,24)}</svg><span class="ctr" style="color:var(--hi)">${ico('settings',L.phone?18:22)}</span></button>`;
  $('#gear').onclick=toggleMenu;
  const al=$('#alerts');al.style.right=L.m+'px';al.style.width=L.alertW+'px';al.style.top=(L.phone?L.m:L.m+L.med*2+22)+'px';if(L.phone){al.style.right='auto';al.style.left=(L.axis+L.med+14+L.gsz*4+30)+'px';al.style.width='330px';al.style.alignItems='stretch'}
- const tb=$('#toasts');tb.style.right=L.m+'px';tb.style.width=L.alertW+'px';tb.style.top=(L.phone?L.m+50:L.m+L.med*2+22+86)+'px';if(L.phone){tb.style.top=(L.m+46)+'px';tb.style.right=(L.m)+'px';tb.style.width='300px'}}
+ const tb=$('#toasts');tb.style.right=L.m+'px';tb.style.width=L.alertW+'px';tb.style.top=(L.phone?L.m+50:L.m+L.med*2+22+114)+'px';if(L.phone){tb.style.top=(L.m+46)+'px';tb.style.right=(L.m)+'px';tb.style.width='300px'}}
 const TIPDEF={menu:['Menu','Save, load, settings.','Esc']};const _tipHTML=tipHTML;tipHTML=function(k){return TIPDEF[k]||_tipHTML(k)};
 const RAIL=[['nations','Nations','N'],['treasury','Budget','B'],['decrees','Decrees','D'],['council','Council','C'],['annals','Annals','A'],['goals','Goals','G']];
 function renderRail(){const D=L.railD,bx=L.axis-D/2,st=L.railStep,n=RAIL.length;const topB=L.m+L.med*2+(L.phone?8:78),botB=L.H-L.m-(L.phone?10:(L.mmR*2+66));const tot=(n-1)*st+D;const y0=Math.max(topB,Math.round((topB+botB-tot)/2));
@@ -306,7 +307,7 @@ const BODY={nations:nationBody,annals:annalsBody,decrees:decreesBody,council:cou
 function refresh(k,a){const b=$('#b_'+k);if(b){const st=b.scrollTop;b.innerHTML=BODY[k](a);b.scrollTop=st}if(k==='budget')wireKnobs()}
 function openScreen(k,a){closeScreen(true);if(k==='dossier'){$('#s_dossier .t').textContent=S.sel.id}S.screen=k;if(k==='battle'){$('#s_battle .t').textContent='Battle report'}refresh(k,a);$('#s_'+k).classList.add('on');$('#scrim').classList.toggle('on',['event','war','battle'].includes(k));renderRail();hidePreview();S.moving=false;$('#tagbox').innerHTML='';renderDyn();applyCam()}
 function closeScreen(keep){$$('.scr.on').forEach(s=>s.classList.remove('on'));$('#scrim').classList.remove('on');S.screen=null;if(!keep){renderRail();renderDyn();applyCam()}}
-function toggleMenu(){const m=$('#menu');if(m.innerHTML){m.innerHTML='';return}m.style.cssText=`right:${L.m+(L.phone?52:100)}px;top:${L.m+(L.phone?46:80)}px;width:${L.phone?220:260}px`;m.innerHTML=plate(`<div style="padding:6px">${[['check','Resume','Esc'],['save','Save game','S'],['load','Load game','L'],['settings','Settings',''],['flag','Main menu','']].map(([i,l,k])=>`<div class="row" style="padding:${L.phone?8:10}px 12px" data-act="menu-${l}"><span style="color:var(--hi)">${ico(i,18)}</span><span class="cz" style="font:600 12.5px Cinzel;letter-spacing:.14em;flex:1">${l}</span><span style="font:400 10.5px 'JetBrains Mono';color:var(--dim2)">${k}</span></div>`).join('')}<div style="padding:8px 12px 6px;border-top:1px solid #33291a;margin-top:4px"><div class="cap" style="margin-bottom:6px">INTERFACE SIZE</div><div style="display:flex;gap:6px">${['S','M','L'].map(k=>`<button class="bt sm ${UK()===k?'pri':''}" style="flex:1;padding:0" onclick="setUIS('${k}')">${k}</button>`).join('')}</div></div></div><div style="font:400 10px 'JetBrains Mono';color:var(--dim2);text-align:right;padding:2px 12px 4px">build 9 · ${L.phone?'phone':'desktop'} ${L.W}×${L.H}</div></div>`,'','',8)}
+function toggleMenu(){const m=$('#menu');if(m.innerHTML){m.innerHTML='';return}m.style.cssText=`right:${L.m+(L.phone?52:100)}px;top:${L.m+(L.phone?46:80)}px;width:${L.phone?220:260}px`;m.innerHTML=plate(`<div style="padding:6px">${[['check','Resume','Esc'],['save','Save game','S'],['load','Load game','L'],['settings','Settings',''],['flag','Main menu','']].map(([i,l,k])=>`<div class="row" style="padding:${L.phone?8:10}px 12px" data-act="menu-${l}"><span style="color:var(--hi)">${ico(i,18)}</span><span class="cz" style="font:600 12.5px Cinzel;letter-spacing:.14em;flex:1">${l}</span><span style="font:400 10.5px 'JetBrains Mono';color:var(--dim2)">${k}</span></div>`).join('')}<div style="padding:8px 12px 6px;border-top:1px solid #33291a;margin-top:4px"><div class="cap" style="margin-bottom:6px">INTERFACE SIZE</div><div style="display:flex;gap:6px">${['S','M','L'].map(k=>`<button class="bt sm ${UK()===k?'pri':''}" style="flex:1;padding:0" onclick="setUIS('${k}')">${k}</button>`).join('')}</div></div></div><div style="font:400 10px 'JetBrains Mono';color:var(--dim2);text-align:right;padding:2px 12px 4px">build 10 · ${L.phone?'phone':'desktop'} ${L.W}×${L.H}</div></div>`,'','',8)}
 // ===================================================================== turn
 const NEWS=[['info','Spanish envoys arrive in Paris.'],['warn','Austrian cavalry seen near Strasbourg.'],['good','The Civil Code reduces unrest.'],['info','Britain seizes French shipping.']];
 function endTurn(){rot+=360;const h=$('#hand');if(h)h.style.transform=`rotate(${rot}deg)`;const n=net();S.turn++;S.gold+=n;S.hist.push(S.gold);S.hist.shift();S.people+=3;S.log.unshift(['info','Turn '+(S.turn-1)+' ended','Income +'+n+' gold. '+NEWS[S.turn%NEWS.length][1],MONTHS[(S.turn-2)%12]+' 1804',0]);
