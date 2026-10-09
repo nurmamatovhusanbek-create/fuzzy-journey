@@ -246,8 +246,8 @@ static func display_hi() -> Font: return display()
 static func display_lo() -> Font: return display()
 static func wordmark() -> Font: return _font("cinzel-latin-900-normal", ["alegreya-sc-cyrillic-900-normal"])
 ## JetBrains Mono: figures 700, deltas 400
-static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"]) if serif else tabular(body())
-static func mono_b() -> Font: return _font("jetbrains-mono-latin-700-normal", ["jetbrains-mono-cyrillic-700-normal"]) if serif else tabular(body_b())
+static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"]) if (serif and not TBFrame.bezel) else tabular(body())
+static func mono_b() -> Font: return _font("jetbrains-mono-latin-700-normal", ["jetbrains-mono-cyrillic-700-normal"]) if (serif and not TBFrame.bezel) else tabular(body_b())
 ## letter-spaced face, created once per (font, spacing)
 static func tracked(base: Font, spacing: float) -> Font:
 	var key := "%d:%d" % [base.get_instance_id(), int(spacing)]
@@ -382,12 +382,21 @@ static func _pl(fill_tok: String, border_tok: String, cut_px: int = 4, elev: int
 	var f := TBFrame.plate(TBTokens.ca(fill_tok, alpha) if fill_tok != "" else Color.TRANSPARENT, TBTokens.ca(border_tok, alpha) if border_tok != "" else Color.TRANSPARENT, cut_px, elev, px, py, pressed, border_px, mask)
 	return f
 
+## Bezel buttons are notched plates 38 px tall inside the 48 px hit area (A11Y-TCH-001 keeps the target, the plate stays tight)
+static func _bpl(fill_tok: String, border_tok: String, px: float, pressed: bool, bw: int) -> TBFrame:
+	var f: TBFrame = _pl(fill_tok, border_tok, 4, 0, px, 8, pressed, 1.0, TBFrame.ALL, bw)
+	if TBFrame.bezel: f.vis_h = 38
+	return f
+
 static func _button_set(t: Theme, cls: String, fill: String, hover: String, press: String, border: String, text_tok: String, dis_alpha: float, ring_on_bar: bool, left_pad: float = 16.0, border_px: int = 1) -> void:
 	var bw: int = border_px
-	t.set_stylebox("normal", cls, _pl(fill, border, 4, 0, left_pad, 8, false, 1.0, TBFrame.ALL, bw))
-	t.set_stylebox("hover", cls, _pl(hover, border, 4, 0, left_pad, 8, false, 1.0, TBFrame.ALL, bw))
-	t.set_stylebox("pressed", cls, _pl(press, border, 4, 0, left_pad, 8, true, 1.0, TBFrame.ALL, bw))
-	t.set_stylebox("hover_pressed", cls, _pl(press, border, 4, 0, left_pad, 8, true, 1.0, TBFrame.ALL, bw))
+	var hb: String = border
+	if TBFrame.bezel and fill.begins_with("paper"): border = "rule"; hb = "brass_lt"
+	elif TBFrame.bezel and fill == "act": hb = "act_rim"
+	t.set_stylebox("normal", cls, _bpl(fill, border, left_pad, false, bw))
+	t.set_stylebox("hover", cls, _bpl(hover, hb, left_pad, false, bw))
+	t.set_stylebox("pressed", cls, _bpl(press, hb, left_pad, true, bw))
+	t.set_stylebox("hover_pressed", cls, _bpl(press, hb, left_pad, true, bw))
 	if fill == "act":          # a disabled primary drops to the locked secondary look (the dark slab must never look available)
 		t.set_stylebox("disabled", cls, _pl("paper_1", "ink_off", 4, 0, left_pad, 8, false, 1.0))
 	else:
@@ -397,7 +406,8 @@ static func _button_set(t: Theme, cls: String, fill: String, hover: String, pres
 	t.set_color("font_pressed_color", cls, TBTokens.c(text_tok)); t.set_color("font_focus_color", cls, TBTokens.c(text_tok))
 	t.set_color("font_hover_pressed_color", cls, TBTokens.c(text_tok))
 	t.set_color("font_disabled_color", cls, TBTokens.c("ink_off") if (fill.begins_with("paper") or fill == "act") else TBTokens.ca(text_tok, 0.7))
-	t.set_font("font", cls, body_b()); t.set_font_size("font_size", cls, fs(15))
+	if TBFrame.bezel: t.set_font("font", cls, tracked(display(), 1)); t.set_font_size("font_size", cls, fs(13))
+	else: t.set_font("font", cls, body_b()); t.set_font_size("font_size", cls, fs(15))
 
 static func theme() -> Theme:
 	sync_palette()
@@ -483,9 +493,13 @@ static func _hline() -> StyleBoxLine:
 
 # ---- buttons -----------------------------------------------------------------------------------------------------------------------
 ## secondary by default, `primary` = the ink slab with brass text (one per container). Focusable, >= 48 high, activates on release.
+## Bezel buttons read in capitals (Cyrillic and Readable fonts keep sentence case)
+static func _cap(text: String) -> String:
+	return text.to_upper() if (TBFrame.bezel and TBI18n.lang != "ru" and not readable_fonts) else text
+
 static func button(text: String, cb: Callable = Callable(), primary: bool = false) -> Button:
 	var b := Button.new()
-	b.text = text
+	b.text = _cap(text)
 	b.custom_minimum_size = Vector2(96, touch())
 	b.focus_mode = Control.FOCUS_ALL
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
@@ -540,7 +554,7 @@ class DangerBtn extends Button:
 	func _draw() -> void:
 		if hold_confirm and _hold > 0.0:
 			var w: float = size.x * clampf(_hold / HOLD_T, 0.0, 1.0)
-			draw_rect(Rect2(0, size.y - 4.0, w, 4.0), Color(1, 1, 1, 0.85))
+			draw_rect(Rect2(0, size.y - 4.0, w, 4.0), TBTokens.HOLD_BAR)
 		if glyph == "": return
 		var col := get_theme_color("font_disabled_color" if disabled else "font_color")
 		var dy: float = 1.0 if get_draw_mode() == BaseButton.DRAW_PRESSED else 0.0
@@ -548,7 +562,7 @@ class DangerBtn extends Button:
 
 static func danger(text: String, cb: Callable = Callable(), glyph: String = "swords") -> Button:
 	var b := DangerBtn.new(glyph)
-	b.text = text
+	b.text = _cap(text)
 	b.custom_minimum_size = Vector2(96, touch())
 	b.focus_mode = Control.FOCUS_ALL
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE

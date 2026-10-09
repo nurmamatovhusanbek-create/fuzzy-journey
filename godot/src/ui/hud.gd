@@ -112,15 +112,16 @@ func build() -> void:
 	_date = P.DateText.new(); add_child(_date)
 	for spec in [["gold", "coin", "gold"], ["man", "men", "manpower"], ["mp", "arrowhead", "mp"], ["dp", "dove", "dp"]]:
 		var c := P.Chip.new(); c.glyph = spec[1]; c.set_a11y(T.call(spec[2]))
-		if spec[0] == "gold": c.glyph_col = P.tk("warn_bar")
-		if spec[0] == "mp": c.glyph_col = P.tk("info_bar")
+		c.caption = T.call(spec[2])
+		if spec[0] == "gold": c.glyph_col = P.tk("brass_lt")
+		if spec[0] == "mp": c.glyph_col = P.tk("neg_bar")
 		if spec[0] == "man": c.glyph_col = P.tk("pos_bar")
-		if spec[0] == "dp": c.glyph_col = P.tk("cream")
+		if spec[0] == "dp": c.glyph_col = P.tk("info_bar")
 		var key: String = spec[0]
 		_wire(c, _tip_chip.bind(key)); c.pressed.connect(_pin_chip.bind(key))
 		add_child(c); _chips[key] = c
-	_war = P.Chip.new(); _war.glyph = "swords"; _war.set_a11y(T.call("hud_wars")); _wire(_war, _tip_chip.bind("wars")); _war.pressed.connect(func(): tapped.emit(); wars_pressed.emit()); add_child(_war)
-	_inf = P.Chip.new(); _inf.glyph = "skull"; _inf.set_a11y(T.call("infamy")); _wire(_inf, _tip_chip.bind("infamy")); _inf.pressed.connect(_pin_chip.bind("infamy")); add_child(_inf)
+	_war = P.Chip.new(); _war.glyph = "swords"; _war.caption = T.call("hud_wars"); _war.set_a11y(T.call("hud_wars")); _wire(_war, _tip_chip.bind("wars")); _war.pressed.connect(func(): tapped.emit(); wars_pressed.emit()); add_child(_war)
+	_inf = P.Chip.new(); _inf.glyph = "skull"; _inf.caption = T.call("infamy"); _inf.set_a11y(T.call("infamy")); _wire(_inf, _tip_chip.bind("infamy")); _inf.pressed.connect(_pin_chip.bind("infamy")); add_child(_inf)
 	_more_chip = P.Chip.new(); _more_chip.glyph = "dots"; _more_chip.set_a11y(T.call("tk_more")); _more_chip.pressed.connect(_open_more_chips); add_child(_more_chip)
 	_menu_btn = P.IconBtn.new(); _menu_btn.glyph = "menu"; _menu_btn.show_label = false; _menu_btn.framed = true; _menu_btn.icon_px = 20.0
 	_menu_btn.set_a11y(T.call("tk_menu")); _menu_btn.pressed.connect(func(): tapped.emit(); _open_menu(_menu_btn, false)); _wire(_menu_btn, _tip_text.bind(T.call("tk_menu"), "")); add_child(_menu_btn)
@@ -181,7 +182,7 @@ static func profile_for(vp: Vector2) -> int:
 	if vp.y < 560.0: return Prof.PHONE_L
 	return Prof.DESKTOP
 
-func _chip_h() -> float: return maxf(32.0, P.fs(14.0) + 14.0)
+func _chip_h() -> float: return 60.0
 
 ## Atlas Ledger HUD (guide 5 and 7): 16 px safe inset, 12 px gaps. Crest + resource chips + date pill + gear along the top; a 64 px rail on the left;
 ## minimap + mode switch bottom-left; toasts top-right; inspector right; the 72 px turn button bottom-right. Phones: tab bar, bottom sheets.
@@ -196,24 +197,25 @@ func layout_for(vp: Vector2) -> void:
 	var m: float = 16.0
 	var gap: float = 12.0
 	var phone: bool = _prof == Prof.PORTRAIT
-	var ch: float = _chip_h()
 	var wide: bool = vp.x >= 1440.0
 	var full: bool = vp.x >= 1100.0
 	var safe_b: float = 0.0
 	# ---- top row
-	var crest_h: float = 48.0 if not phone else 44.0
-	_nat.compact = phone
+	var compact_ui: bool = _prof != Prof.DESKTOP
+	_nat.compact = compact_ui
 	_nat.subtitle = "" if phone else _nat.subtitle
-	var crest_w: float = _nat.desired_w() if not phone else 10.0 + 40.0 + 14.0
 	_nat.show_name = not phone
-	_nat.position = Vector2(m, m); _nat.size = Vector2(crest_w, crest_h); _nat.visible = true
-	var gear: float = ch
-	_menu_btn.position = Vector2(vp.x - m - gear, m + (crest_h - gear) * 0.5); _menu_btn.size = Vector2(gear, gear); _menu_btn.visible = true
-	_menu_btn.sq = gear
+	var crest_w: float = _nat.desired_w()
+	var gear: float = 40.0 if compact_ui else 44.0
+	_date.compact = compact_ui
 	var date_w: float = _date.desired_w()
 	var show_date: bool = not phone
-	_date.compact = phone; _date.visible = show_date
-	_date.position = Vector2(_menu_btn.position.x - 8.0 - date_w, m + (crest_h - ch) * 0.5); _date.size = Vector2(date_w, ch)
+	_date.visible = show_date
+	var yc: float = m + 30.0                                                 # the medallion centre line of the top row
+	_nat.size = Vector2(crest_w, _nat.medal() + 4.0); _nat.position = Vector2(m, yc - _nat.size.y * 0.5); _nat.visible = true
+	_menu_btn.position = Vector2(vp.x - m - gear, yc - gear * 0.5); _menu_btn.size = Vector2(gear, gear); _menu_btn.visible = true
+	_menu_btn.sq = gear
+	_date.position = Vector2(_menu_btn.position.x - 8.0 - date_w, yc - _date.medal() * 0.5); _date.size = Vector2(date_w, _date.medal())
 	var x0: float = m + crest_w + gap
 	var x1: float = (_date.position.x - gap) if show_date else (_menu_btn.position.x - gap)
 	var keys: Array = ["gold", "man", "mp", "dp"]
@@ -222,10 +224,10 @@ func layout_for(vp: Vector2) -> void:
 	if _wars > 0: extra.append("war")
 	if _inf_on: extra.append("inf")
 	var order: Array = keys + extra
-	var stage: int = 0                                                      # 0 full, 1 no sparkline, 2 secondary deltas to tooltips, 3 chips drop to "+N"
+	var stage: int = 0                                                      # 0 full, 1 same, 2 secondary deltas dropped, 3 captions drop, then "+N"
 	if not full: stage = 2
 	var shown: Array = order.duplicate()
-	var gap_c: float = 8.0
+	var gap_c: float = 10.0
 	var more_needed: bool = false
 	for _it in 12:
 		_apply_chip_stage(stage)
@@ -241,10 +243,11 @@ func layout_for(vp: Vector2) -> void:
 	for k in ["gold", "man", "mp", "dp"]: (_chips[k] as Control).visible = false
 	_war.visible = false; _inf.visible = false
 	var cx: float = x0
-	var cy: float = m + (crest_h - ch) * 0.5
+	var crest_h: float = 60.0
 	for k in shown:
 		var c: P.Chip = _chip_for(k)
-		c.position = Vector2(cx, cy); c.size = Vector2(c.desired_w(), ch); c.visible = true
+		c.position = Vector2(cx, yc - (c.medal() * 0.5 + 1.0)); c.size = Vector2(c.desired_w(), c.desired_h()); c.visible = true
+		crest_h = maxf(crest_h, c.position.y + c.size.y - m)
 		cx += c.size.x + gap_c
 	var dropped: Array = []
 	for k in order:
@@ -252,7 +255,8 @@ func layout_for(vp: Vector2) -> void:
 	_more_chip.visible = not dropped.is_empty()
 	if _more_chip.visible:
 		_more_chip.set_num(float(dropped.size()), func(v: float) -> String: return "+%d" % int(v))
-		_more_chip.position = Vector2(cx, cy); _more_chip.size = Vector2(_more_chip.desired_w(), ch)
+		_more_chip.tight = true; _more_chip.compact = compact_ui; _more_chip.caption = ""
+		_more_chip.position = Vector2(cx, yc - (_more_chip.medal() * 0.5 + 1.0)); _more_chip.size = Vector2(_more_chip.desired_w(), _more_chip.desired_h())
 	# ---- rail / tab bar
 	var rail_top: float = m + crest_h + gap
 	var mm_h: float = 120.0
@@ -268,8 +272,8 @@ func layout_for(vp: Vector2) -> void:
 	var all: Array = _dock + [_dock_more]
 	for b in all: (b as Control).visible = false
 	var rail_x: float = m
-	var rail_w: float = 64.0
-	var item_h: float = 56.0 if vp.y >= 560.0 else 44.0
+	var rail_w: float = 172.0 if (full and not phone) else 72.0
+	var item_h: float = 54.0 if vp.y >= 560.0 else 46.0
 	if not phone:
 		var avail: float = lower_limit - rail_top - 8.0
 		var fit: int = clampi(int(floor(avail / item_h)), 3, PRIMARY + 1)
@@ -281,8 +285,8 @@ func layout_for(vp: Vector2) -> void:
 		_rail.position = Vector2(rail_x, rail_top); _rail.size = Vector2(rail_w, count * item_h + 8.0)
 		for i in count:
 			var b3: P.IconBtn = _dock[i] if i < _rail_n else _dock_more
-			b3.visible = true; b3.edge = 0; b3.icon_px = 24.0; b3.show_label = item_h >= 56.0
-			b3.position = Vector2(rail_x + 4.0, rail_top + 4.0 + i * item_h); b3.size = Vector2(rail_w - 8.0, item_h)
+			b3.visible = true; b3.edge = 0; b3.icon_px = 22.0; b3.show_label = rail_w >= 110.0
+			b3.position = Vector2(rail_x + 12.0, rail_top + 4.0 + i * item_h); b3.size = Vector2(rail_w - 12.0, item_h)
 	else:
 		var bh: float = 56.0
 		_bottom.position = Vector2(0, vp.y - bh); _bottom.size = Vector2(vp.x, bh)
@@ -354,9 +358,10 @@ func _apply_chip_stage(stage: int) -> void:
 		var c: P.Chip = _chips[k]
 		c.delta_on = stage < 2 or k == "gold"
 		c.tight = stage >= 3
+		c.compact = _prof != Prof.DESKTOP
 		if stage >= 1: c.spark = []
 	if stage == 0 and g != null and _vp.x >= 1100.0: _refresh_spark()
-	for k2 in [_war, _inf]: (k2 as P.Chip).delta_on = false; (k2 as P.Chip).tight = true
+	for k2 in [_war, _inf]: (k2 as P.Chip).delta_on = false; (k2 as P.Chip).tight = stage >= 3; (k2 as P.Chip).compact = _prof != Prof.DESKTOP
 
 func _refresh_spark() -> void:
 	var gc: P.Chip = _chips["gold"]
@@ -492,29 +497,34 @@ func refresh() -> void:
 	var net: int = bd["net"]
 	var gc: P.Chip = _chips["gold"]
 	gc.set_num(g.gold[n], fmt); gc.has_delta = true; gc.delta = net; gc.delta_on = true
+	gc.frac = g.gold[n] / (g.gold[n] + 8.0 * maxf(1.0, absf(float(net))) + 100.0) if g.gold[n] > 0.0 else 0.0
 	if _vp.x >= 1100.0: _refresh_spark()
 	gc.state = 2 if (g.gold[n] <= 0.0 and net < 0) else (1 if (net < 0 and g.gold[n] < -net * 5.0) else 0)
 	var mc: P.Chip = _chips["man"]
 	mc.set_num(g.manpower[n], fmt); mc.has_delta = true; mc.delta = int(bd["man_gain"]); mc.state = 1 if bd["man_full"] else 0
 	mc.sub_text = "%d%%" % int(round(100.0 * g.manpower[n] / maxf(1.0, float(bd["man_cap"]))))
+	mc.frac = g.manpower[n] / maxf(1.0, float(bd["man_cap"]))
 	_suffix["man"] = ""
 	var pc: P.Chip = _chips["mp"]
 	pc.set_num(floorf(g.mp[n]), fmt); pc.has_delta = true; pc.delta_on = true
 	pc.suffix = "/%d" % int(bd["mp_cap"])
 	pc.sub_text = "+%.1f" % float(bd["mp_gain"])
+	pc.frac = g.mp[n] / maxf(1.0, float(bd["mp_cap"]))
 	var dc: P.Chip = _chips["dp"]
 	dc.set_num(floorf(g.dp[n]), fmt); dc.has_delta = true; dc.delta = int(round(float(bd["dp_gain"])))
+	dc.frac = g.dp[n] / maxf(1.0, float(bd["dp_cap"]))
 	_wars = 0
 	for o in range(1, g.N1):
 		if g.alive[o] != 0 and g.get_rel(n, o) == 1: _wars += 1
 	_war.set_num(float(_wars), fmt); _war.glyph_col = P.tk("neg_bar"); _inf.glyph_col = P.tk("neg_bar")
 	_inf_on = g.rules >= 1 and (g.infamy[n] >= 5.0 or g.coalition[n] != 0)
 	_inf.set_num(floorf(g.infamy[n]), fmt); _inf.state = 2 if g.coalition[n] != 0 else 0
+	_war.frac = clampf(float(_wars) / 4.0, 0.0, 1.0); _inf.frac = clampf(g.infamy[n] / 100.0, 0.0, 1.0)
 	_nat.badge = 0
 	_nat.subtitle = (T.call(TBRulers.title_key(g, n)) + " " + TBRulers.display_name(g, n)) if (g.rules >= 1 and g.r_name[n] != "") else T.call("era_name_%d" % g.era[n])
 	_seal.turn_no = g.turn
 	_date.year = _year(g.year)
-	_date.turn_cap = T.call("aoc_turn", {"k": g.turn})
+	_date.turn_cap = T.call("aoc_turn", {"k": g.turn}).replace(":", "")
 	# alerts
 	_entries = TBAdvisor.ticker(g, n)
 	for e in _entries: _describe(e)

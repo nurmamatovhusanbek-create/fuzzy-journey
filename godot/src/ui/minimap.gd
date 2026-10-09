@@ -85,17 +85,29 @@ func _view_rect() -> Rect2:
 func _draw() -> void:
 	if g == null: return
 	if _dirty or _w == 0: _recolor()
-	draw_rect(Rect2(Vector2.ZERO, size), TBTokens.ca("bar_0", 0.92))
-	draw_texture_rect(_tex, Rect2(Vector2.ZERO, size), false)
-	draw_rect(Rect2(Vector2.ZERO, size), TBTokens.c("rule"), false, 2.0)
+	var poly: PackedVector2Array = TBHudParts.chamfer(Rect2(Vector2.ZERO, size), 9.0)
+	var uvs := PackedVector2Array()
+	for q in poly: uvs.append(Vector2(q.x / maxf(1.0, size.x), q.y / maxf(1.0, size.y)))
+	draw_colored_polygon(poly, TBTokens.c("bar_0"))
+	draw_colored_polygon(poly, Color.WHITE, uvs, _tex)
+	var edge: PackedVector2Array = TBHudParts.chamfer(Rect2(Vector2.ZERO, size).grow(-1.0), 9.0)
+	edge.append(edge[0])
+	draw_polyline(edge, TBTokens.c("rule"), 2.0, true)
+	var tk_c: Color = TBTokens.ca("brass_lt", 0.55)
+	TBBezel.ruler_h(self, 14.0, size.x - 14.0, 2.0, 8.0, 5, tk_c, 3.0)
+	TBBezel.ruler_h(self, 14.0, size.x - 14.0, size.y - 2.0, 8.0, 5, tk_c, 3.0, true)
+	TBBezel.ruler_v(self, 14.0, size.y - 14.0, 2.0, 8.0, 5, tk_c, 3.0)
+	TBBezel.ruler_v(self, 14.0, size.y - 14.0, size.x - 2.0, 8.0, 5, tk_c, 3.0, true)
 	var vr: Rect2 = _view_rect()
-	var col: Color = TBTokens.c("cream")
+	var col: Color = TBTokens.c("brass_lt")
 	# the view rectangle wraps around the date line
 	for off in [-size.x, 0.0, size.x]:
 		var r: Rect2 = Rect2(vr.position + Vector2(off, 0), vr.size)
 		if r.end.x < 0.0 or r.position.x > size.x: continue
 		draw_rect(r, TBTokens.ca("bar_0", 0.6), false, 3.0)
 		draw_rect(r, col, false, 1.5)
+		var mc: Vector2 = r.get_center()
+		draw_line(mc + Vector2(-5, 0), mc + Vector2(5, 0), col, 1.0); draw_line(mc + Vector2(0, -5), mc + Vector2(0, 5), col, 1.0)
 
 func _fly(pos: Vector2) -> void:
 	if map == null: return

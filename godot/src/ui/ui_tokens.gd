@@ -38,6 +38,10 @@ const PAPER_100 := Color("EEE9DF"); const PAPER_300 := Color("B9B3A6"); const PA
 const SEA_900 := Color("16222A"); const SEA_700 := Color("1E2F38")
 const GOOD := Color("6CC38F"); const BAD := Color("E06A5E"); const WARN := Color("E4A94B"); const INFO := Color("7FA8E8")
 
+## Bezel brass ramp (instrument rings), the gauge track, the map-text halo, hard shadow and the hold-to-confirm bar
+const BZ_HI := Color("F1DB9C"); const BZ_BRASS := Color("C9A24B"); const BZ_LO := Color("7F6A33"); const BZ_TRACK := Color("2A2318")
+const HALO := Color(0.02, 0.03, 0.05, 0.85); const DROP := Color(0.0, 0.0, 0.0, 0.45); const HOLD_BAR := Color(1.0, 1.0, 1.0, 0.85)
+
 static func sig() -> int: return mode * 1000 + ver + (500 if legacy else 0)
 
 ## --nation-accent: the player's colour converted to OKLab-HSL, lightness raised until it reaches 4.5:1 against ink-800
@@ -59,18 +63,19 @@ static func _darken(col: Color, k: float) -> Color: return col.lerp(Color.BLACK,
 
 static func atlas() -> Dictionary:
 	if not _atlas.is_empty(): return _atlas
-	var a: Color = accent
+	## Bezel palette (docs/ui_variants/src/bezel.css): umber panels, brass bezels, ivory ink. The nation colour lives in flags only.
+	var br := Color("C9A24B"); var hi := Color("E5C77A"); var lo := Color("B38F3E")
 	var d := {
-		"paper_0": INK_800, "paper_1": INK_700, "paper_2": INK_600, "paper_hover": Color("262B34"),
-		"ink_0": PAPER_100, "ink_1": PAPER_300, "ink_off": PAPER_500,
-		"oxblood": PAPER_100, "brass_ink": a, "rule": Color("454D5A"), "hair": INK_600,
-		"bar_0": INK_800, "bar_1": INK_700, "bar_2": INK_600, "table": INK_900,
-		"cream": PAPER_100, "smoke": PAPER_300, "brass_lt": a, "rule_dark": Color("454D5A"),
-		"pos": GOOD, "neg": BAD, "warn": WARN, "info": INFO, "foreign": PAPER_300,
-		"pos_bar": GOOD, "neg_bar": BAD, "warn_bar": WARN, "info_bar": INFO, "foreign_bar": PAPER_300,
-		"brass": a, "brass_hover": _lighten(a, 0.06), "brass_press": _darken(a, 0.1),
-		"wax": BAD, "wax_hover": _lighten(BAD, 0.06), "wax_press": _darken(BAD, 0.1), "wax_rim": _lighten(BAD, 0.25), "on_wax": INK_900,
-		"act": a, "act_hover": _lighten(a, 0.06), "act_press": _darken(a, 0.1), "act_rim": _lighten(a, 0.25), "on_act": INK_900, "on_brass": INK_900,
+		"paper_0": Color("17130F"), "paper_1": Color("1E1812"), "paper_2": Color("2A2216"), "paper_hover": Color("2B2318"),
+		"ink_0": Color("EFE6CF"), "ink_1": Color("A89C80"), "ink_off": Color("7D735C"),
+		"oxblood": Color("EFE6CF"), "brass_ink": hi, "rule": Color("7F6A33"), "hair": Color("3A2F1D"),
+		"bar_0": Color("0F0C09"), "bar_1": Color("17130F"), "bar_2": Color("211B14"), "table": Color("0A0D12"),
+		"cream": Color("EFE6CF"), "smoke": Color("A89C80"), "brass_lt": hi, "rule_dark": Color("7F6A33"),
+		"pos": Color("69B3A2"), "neg": Color("E0795A"), "warn": Color("E4A94B"), "info": Color("7FA8E8"), "foreign": Color("A89C80"),
+		"pos_bar": Color("69B3A2"), "neg_bar": Color("E0795A"), "warn_bar": Color("E4A94B"), "info_bar": Color("7FA8E8"), "foreign_bar": Color("A89C80"),
+		"brass": br, "brass_hover": hi, "brass_press": lo,
+		"wax": Color("A8442B"), "wax_hover": Color("B44F33"), "wax_press": Color("8E3822"), "wax_rim": Color("E0795A"), "on_wax": Color("FFF0E4"),
+		"act": br, "act_hover": hi, "act_press": lo, "act_rim": Color("F1DB9C"), "on_act": Color("1B1408"), "on_brass": Color("1B1408"),
 	}
 	_atlas = d
 	return d

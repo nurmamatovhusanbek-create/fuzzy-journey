@@ -42,6 +42,7 @@ var border_w: int = 1
 var accent: Color = Color.TRANSPARENT      # PLATE: a bar along the left edge (selected row, armed / recommended card, toast meaning)
 var accent_w: int = 0
 var shift: int = 0                         # pressed: content moves 1 px down
+var vis_h: int = 0                         # PLATE: draw only this many px of height, centred in the rect (the rest is hit area)
 var on_bar := false                        # FOCUS: cream ring on dark furniture / map instead of ink on paper
 var inset: int = 0                         # FOCUS: draw the ring this many px inside the rect
 var ring_tok := ""                         # FOCUS: token of the ring (default ink_0 / cream)
@@ -149,12 +150,20 @@ static func _pc(col: Color) -> PackedColorArray:
 ## chamfered rectangle outline inset by d px from a w x h box whose own chamfer is c px on the corners in `mask`
 ## Atlas Ledger: rounded corners instead of chamfers. cut 0 square; cut 2 (panels) radius 16; any other cut radius 10 (buttons, chips, cards).
 static var rounded := true
+## Bezel look: square plates with 45-degree notches (7 / 12 / 6 px), a brass hairline and no rounding
+static var bezel := false
+static func _notch(c: float) -> float:
+	if c <= 0.0: return 0.0
+	if int(c) == 2: return 12.0
+	if int(c) == 1: return 5.0
+	return 6.0
 static func _rad(c: float) -> float:
 	if c <= 0.0: return 0.0
 	return 16.0 if int(c) == 2 else 10.0
 
 static func chamfer(w: float, h: float, c: float, mask: int, d: float = 0.0, ox: float = 0.0, oy: float = 0.0) -> PackedVector2Array:
-	if rounded and c > 0.0:
+	if bezel: c = _notch(c)
+	if rounded and not bezel and c > 0.0:
 		var r: float = clampf(_rad(c) - d, 0.5, maxf(0.5, minf(w, h) * 0.5 - d))
 		var x0r := d + ox; var y0r := d + oy; var x1r := w - d + ox; var y1r := h - d + oy
 		var q := PackedVector2Array()
@@ -204,6 +213,8 @@ func _draw(ci: RID, rect: Rect2) -> void:
 	var w: int = roundi(rect.size.x); var h: int = roundi(rect.size.y)
 	if w < 3 or h < 3: return
 	var off := rect.position.round()
+	if kind == Kind.PLATE and vis_h > 0 and h > vis_h:
+		off.y += float((h - vis_h) / 2); h = vis_h
 	var moved: bool = off != Vector2.ZERO
 	if moved: RenderingServer.canvas_item_add_set_transform(ci, Transform2D(0.0, off))
 	match kind:
@@ -218,7 +229,7 @@ func _draw_plate(ci: RID, w: int, h: int) -> void:
 	var hc := TBTokens.is_hc()
 	var bw: int = border_w if (border_w == 0 or not hc) else maxi(border_w, 2)
 	var el: int = 0 if (hc or shift > 0) else elevation
-	var key := Vector4i(w, h, cut + corners * 64 + (4096 if rounded else 0), bw + el * 8)
+	var key := Vector4i(w, h, cut + corners * 64 + (4096 if rounded else 0) + (8192 if bezel else 0), bw + el * 8)
 	var g: Variant = _geo_get(key)
 	if g == null:
 		var half := bw * 0.5
@@ -241,6 +252,17 @@ func _draw_bar(ci: RID, w: int, h: int) -> void:
 		SIDE_RIGHT: RenderingServer.canvas_item_add_rect(ci, Rect2(w - rw, 0, rw, h), rule_col)
 
 func _draw_sheet(ci: RID, w: int, h: int) -> void:
+	if bezel and not TBTokens.is_hc():
+		var bk := Vector4i(w, h, cut + 16384, 3)
+		var bg: Variant = _geo_get(bk)
+		if bg == null:
+			bg = [chamfer(w, h, cut, ALL, 0.5), _closed(chamfer(w, h, cut, ALL, 0.5)), _closed(chamfer(w, h, cut, ALL, 4.5)), chamfer(w, h, cut, ALL, 0.0, 0.0, TBTokens.SHADOW_DY[2])]
+			_geo_put(bk, bg)
+		RenderingServer.canvas_item_add_polygon(ci, bg[3], _pc(TBTokens.ca("table", TBTokens.SHADOW_A[2])))
+		RenderingServer.canvas_item_add_polygon(ci, bg[0], _pc(fill))
+		RenderingServer.canvas_item_add_polyline(ci, bg[1], _pc(TBTokens.c("rule")), 1.0, false)
+		RenderingServer.canvas_item_add_polyline(ci, bg[2], _pc(TBTokens.with_a(TBTokens.c("rule"), 0.35)), 1.0, false)
+		return
 	if TBTokens.is_hc():                        # high contrast: flat, no grain, no ragged edge, no guards, 2 px border
 		var key := Vector4i(w, h, cut + ALL * 64, 2)
 		var g: Variant = _geo_get(key)

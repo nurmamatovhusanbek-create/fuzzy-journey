@@ -7,6 +7,11 @@ extends Control
 
 const K = preload("res://src/ui/ui_kit.gd")
 const P = preload("res://src/ui/hud_parts.gd")
+const BZ = preload("res://src/ui/bezel.gd")
+
+## the instrument medallion that sits on the left edge of every notice: a brass ring with the kind's mark in its face
+static func medallion(ci: CanvasItem, c: Vector2, R: float, hot: bool) -> float:
+	return BZ.ring(ci, c, R, 0, P.tk("bar_2") if hot else P.tk("bar_0"))
 
 signal activated(entry: Dictionary)         ## chip tapped: entry.cls / .p / .n / .uid say where to look
 signal answered(uid: int, choice: int)      ## inline Accept (0) / Decline (1) on an offer chip
@@ -16,7 +21,7 @@ signal layout_changed                       ## stack height changed (keep-outs)
 signal tip_requested(anchor: Control, pair: Array)
 signal tip_hidden
 
-const GAP := 4.0
+const GAP := 6.0
 
 var max_rows: int = 4
 var row_w: float = 280.0
@@ -82,7 +87,7 @@ class AlertRow extends P.Hit:
 	func base_h() -> float:
 		var one: float = maxf(minf(TBHudParts.touch(), TBHudParts.R(44.0) + 6.0), TBHudParts.fs(14.0) + 16.0)
 		return one if lines <= 1 else maxf(one, lines * line_h() + 16.0)
-	func text_x() -> float: return 16.0 + 14.0 + 8.0 + 18.0 + 8.0
+	func text_x() -> float: return 2.0 * 21.0 + 8.0
 	func text_right() -> float: return 10.0 + (24.0 if dismissible and not drawer and not done else 0.0)
 	## decide one or two lines for a row width
 	func set_width(w: float) -> void:
@@ -130,19 +135,17 @@ class AlertRow extends P.Hit:
 		var r := Rect2(0, 0, size.x, bh)
 		var col: Color = TBAlertTicker.bar_color(entry) if not done else TBHudParts.tk("pos_bar")
 		var crit: bool = int(entry["sev"]) >= 2 and not done
-		var pr := Rect2(0, 3, size.x, size.y - 6)
-		draw_style_box(TBHudParts.sbox(TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.82), col if crit else TBHudParts.al(TBHudParts.tk("rule"), 0.8), TBHudParts.R(5.0), 1), pr)
+		var R: float = minf(21.0, bh * 0.5)
+		var c := Vector2(R, bh * 0.5)
+		var pr := Rect2(c.x, 3.0, size.x - c.x, bh - 6.0)
+		var edge: Color = col if crit else (TBHudParts.tk("brass_lt") if (hover or down) else TBHudParts.tk("rule"))
+		TBHudParts.plate(self, pr, TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), edge, 6.0)
+		TBAlertTicker.medallion(self, c, R, hover or down)
 		var cy: float = bh * 0.5
-		var x: float = 16.0
+		var x: float = text_x()
 		var cream: Color = TBHudParts.tk("cream") if not done else TBHudParts.tk("smoke")
-		if done:
-			TBHudParts.tick(self, Vector2(x + 7.0, cy), 14.0, TBHudParts.tk("pos_bar"), 2.0)
-			x += 14.0 + 8.0
-		else:
-			TBAlertTicker.draw_shape(self, Vector2(x + 7.0, cy), entry)
-			x += 14.0 + 8.0
-			TBGlyph.draw(self, TBAlertTicker.class_glyph(String(entry["cls"])), Vector2(x + 9.0, cy), 18.0, col, 1.6)
-			x += 18.0 + 8.0
+		if done: TBHudParts.tick(self, c, 14.0, TBHudParts.tk("pos_bar"), 2.0)
+		else: TBAlertTicker.draw_shape(self, c, entry, 14.0)
 		var f: Font = P.body_b()
 		var fsz: int = TBHudParts.fs(14.0)
 		var right: float = text_right()
@@ -153,9 +156,9 @@ class AlertRow extends P.Hit:
 			var y0: float = (bh - 2.0 * line_h()) * 0.5 + f.get_ascent(fsz)
 			draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, size.x - x - right, fsz, 2, cream, TextServer.BREAK_WORD_BOUND)
 		if dismissible and not drawer and not done:
-			TBGlyph.draw(self, "close", Vector2(size.x - 18.0, cy), 12.0, TBHudParts.tk("smoke"), 1.5)
+			TBGlyph.draw(self, "close", Vector2(size.x - 16.0, cy), 11.0, TBHudParts.tk("ink_off"), 1.5)
 		if flash > 0.0:
-			var line: PackedVector2Array = TBHudParts.chamfer(Rect2(0, 0, size.x, bh).grow(-1.0), 2.0)
+			var line: PackedVector2Array = TBHudParts.chamfer(pr.grow(-1.0), 6.0)
 			line.append(line[0])
 			draw_polyline(line, TBHudParts.al(TBHudParts.tk("brass_lt"), flash), 2.0, true)
 		if has_focus(): TBHudParts.focus_ring(self, r)
@@ -165,7 +168,7 @@ class Pill extends P.Hit:
 	var count: int = 0
 	func desired_w() -> float: return ceilf(TBHudParts.tw(K.mono_b(), "+%d" % count, TBHudParts.fs(14.0)) + 12.0 + 12.0 + 12.0)
 	func _draw() -> void:
-		draw_style_box(TBHudParts.sbox(TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.82), TBHudParts.al(TBHudParts.tk("rule"), 0.8), TBHudParts.R(5.0), 1), Rect2(0, 3, size.x, size.y - 6))
+		TBHudParts.plate(self, Rect2(0, 3, size.x, size.y - 6), TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), TBHudParts.tk("brass_lt") if (hover or down) else TBHudParts.tk("rule"), 6.0)
 		var cy: float = size.y * 0.5
 		var f: Font = K.mono_b()
 		var fsz: int = TBHudParts.fs(14.0)
@@ -185,15 +188,17 @@ class InfoRow extends P.Hit:
 	func measure(w: float) -> float:
 		var f: Font = P.body()
 		var fsz: int = TBHudParts.fs(14.0)
-		var sz: Vector2 = f.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w - 16.0 - 24.0 - 8.0 - 10.0, fsz, 2)
+		var sz: Vector2 = f.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w - 2.0 * 21.0 - 8.0 - 10.0, fsz, 2)
 		lines = clampi(int(round(sz.y / maxf(1.0, f.get_height(fsz)))), 1, 2)
 		return maxf(40.0, lines * f.get_height(fsz) + 18.0)
 	func _draw() -> void:
 		var bar: Color = TBHudParts.tk("info_bar")
-		if kind == "warn": bar = TBHudParts.tk("warn_bar")
-		elif kind == "report": bar = TBHudParts.tk("brass_lt")
-		TBHudParts.plate(self, Rect2(Vector2.ZERO, size), TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), TBHudParts.tk("rule_dark"), 2.0, bar, 4.0)
-		var c := Vector2(16.0 + 8.0, size.y * 0.5)
+		if kind == "warn": bar = TBHudParts.tk("neg_bar")
+		elif kind == "report": bar = TBHudParts.tk("pos_bar")
+		var R: float = minf(21.0, size.y * 0.5)
+		var c := Vector2(R, size.y * 0.5)
+		TBHudParts.plate(self, Rect2(c.x, 3.0, size.x - c.x, size.y - 6.0), TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), TBHudParts.tk("brass_lt") if (hover or down) else TBHudParts.tk("rule"), 6.0)
+		TBAlertTicker.medallion(self, c, R, hover or down)
 		match kind:
 			"warn": TBHudParts.warn_mark(self, c, 16.0, bar, false)
 			"report": TBGlyph.draw(self, "scroll", c, 18.0, bar, 1.6)
@@ -203,7 +208,7 @@ class InfoRow extends P.Hit:
 				draw_string(fi, Vector2(c.x - TBHudParts.tw(fi, "i", 13) * 0.5, TBHudParts.base(fi, 13, c.y)), "i", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TBHudParts.tk("bar_0"))
 		var f: Font = P.body()
 		var fsz: int = TBHudParts.fs(14.0)
-		var x: float = 16.0 + 24.0 + 8.0
+		var x: float = 2.0 * R + 8.0
 		var w: float = size.x - x - 10.0
 		var y0: float = (size.y - lines * f.get_height(fsz)) * 0.5 + f.get_ascent(fsz)
 		draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, 2, TBHudParts.tk("cream"))

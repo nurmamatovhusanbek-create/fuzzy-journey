@@ -4,6 +4,7 @@ class_name TBHudParts
 extends RefCounted
 
 const K = preload("res://src/ui/ui_kit.gd")
+const BZ = preload("res://src/ui/bezel.gd")
 
 ## player text scale (100 / 125 / 150 / 175 %): every HUD font size goes through fs()
 static var text_scale: float = 1.0
@@ -61,6 +62,7 @@ static func f_nat() -> Font:
 # ---------------------------------------------------------------- drawing helpers
 ## rectangle with every corner cut by `cut` px (the interface's one shape)
 static func chamfer(r: Rect2, cut: float) -> PackedVector2Array:
+	if TBFrame.bezel and cut > 0.0: cut = 5.0 if cut <= 3.0 else (6.0 if cut <= 6.0 else cut)
 	var x0: float = r.position.x; var y0: float = r.position.y; var x1: float = r.end.x; var y1: float = r.end.y
 	cut = clampf(cut, 0.0, maxf(0.0, minf(r.size.x, r.size.y) * 0.5 - 0.01))
 	if cut < 0.5: return PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
@@ -85,6 +87,12 @@ static func tw(font: Font, s: String, size: int) -> float:
 
 ## draw text at a baseline position, return its width
 static func txt(ci: CanvasItem, font: Font, pos: Vector2, s: String, size: int, col: Color, max_w: float = -1.0) -> float:
+	ci.draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, col)
+	return tw(font, s, size) if max_w < 0.0 else minf(tw(font, s, size), max_w)
+
+## text with a dark halo so it reads on the map
+static func txt_o(ci: CanvasItem, font: Font, pos: Vector2, s: String, size: int, col: Color, max_w: float = -1.0) -> float:
+	ci.draw_string_outline(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, 4, TBTokens.HALO)
 	ci.draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, col)
 	return tw(font, s, size) if max_w < 0.0 else minf(tw(font, s, size), max_w)
 
@@ -181,6 +189,7 @@ class PlateBox extends StyleBox:
 	var bar: Color = Color.TRANSPARENT
 	var bar_w: float = 0.0
 	var elevation: int = 0               # 0 none, 1 one hard shadow 3 px down
+	var border_w: float = 1.0
 	func setup(f: Color, b: Color, c: float, pad_x: float, pad_y: float) -> PlateBox:
 		fill = f; border = b; cut = c
 		set_content_margin(SIDE_LEFT, pad_x); set_content_margin(SIDE_RIGHT, pad_x)
@@ -195,7 +204,7 @@ class PlateBox extends StyleBox:
 		if border.a > 0.0:
 			var line: PackedVector2Array = TBHudParts.chamfer(body.grow(-0.5), maxf(0.0, cut - 0.3))
 			line.append(line[0])
-			RenderingServer.canvas_item_add_polyline(ci, line, PackedColorArray([border]), 1.0, true)
+			RenderingServer.canvas_item_add_polyline(ci, line, PackedColorArray([border]), border_w, true)
 		if bar_w > 0.0 and bar.a > 0.0:
 			RenderingServer.canvas_item_add_rect(ci, Rect2(body.position.x, body.position.y + cut, bar_w, body.size.y - cut * 2.0), bar)
 
@@ -313,8 +322,21 @@ class Hit extends Control:
 
 # ---------------------------------------------------------------- AoC drawing helpers
 static var _sb: Dictionary = {}
+static var _nb: Dictionary = {}
+## Bezel mode: every rounded box becomes a notched plate (radius -> notch size)
+static func _nbox(fill: Color, edge: Color, radius: float, bw: int) -> PlateBox:
+	fill.a = snappedf(fill.a, 0.05); edge.a = snappedf(edge.a, 0.05)
+	var key := "%s%s%d%d%d" % [fill.to_html(true), edge.to_html(true), int(radius), bw, TBTokens.sig()]
+	if _nb.has(key): return _nb[key]
+	if _nb.size() > 400: _nb.clear()
+	var cut: float = 0.0 if radius <= 4.0 else (3.0 if radius <= 7.0 else (6.0 if radius <= 12.0 else (9.0 if radius < 16.0 else 12.0)))
+	var b: PlateBox = PlateBox.new().setup(fill, edge, cut, 0, 0)
+	b.border_w = float(maxi(bw, 1))
+	_nb[key] = b
+	return b
 ## cached StyleBoxFlat: fill, 1-px edge, corner radius
-static func sbox(fill: Color, edge: Color, radius: float, bw: int = 1) -> StyleBoxFlat:
+static func sbox(fill: Color, edge: Color, radius: float, bw: int = 1) -> StyleBox:
+	if TBFrame.bezel: return _nbox(fill, edge, radius, bw)
 	fill.a = snappedf(fill.a, 0.05); edge.a = snappedf(edge.a, 0.05)               # fading callers do not mint a new box every frame
 	var key := "%s%s%d%d%d" % [fill.to_html(true), edge.to_html(true), int(radius), bw, TBTokens.sig()]
 	if _sb.has(key): return _sb[key]
@@ -331,11 +353,11 @@ static func sbox(fill: Color, edge: Color, radius: float, bw: int = 1) -> StyleB
 static func sel_fill() -> Color: return TBTokens.INK_500 if not TBTokens.is_hc() else tk("bar_2")
 static func accent_soft() -> Color: return al(tk("brass_lt"), 0.18)
 ## a thin card: ink-800, hairline, radius 16 (panels) / 10 (small cards) / pill
-static func card_box(radius: float = 16.0, fill_a: float = 0.97) -> StyleBoxFlat:
+static func card_box(radius: float = 16.0, fill_a: float = 0.97) -> StyleBox:
 	return sbox(al(tk("bar_0"), fill_a), tk("rule"), radius, 1)
 
-# ---------------------------------------------------------------- resource chip
-## Atlas chip: 32 px pill, [icon 16] value (14/600) suffix delta (12, signed, coloured). Warning state: warn border + a pulsing dot.
+# ---------------------------------------------------------------- resource gauge
+## Bezel gauge: a brass instrument ring with the value in its face and a 270 degree arc, caption (Cinzel) and signed delta beneath.
 class Chip extends Hit:
 	var glyph: String = "coin"
 	var value: String = ""
@@ -350,28 +372,33 @@ class Chip extends Hit:
 	var tight: bool = false
 	var glyph_col: Color = Color.TRANSPARENT
 	var val_col: Color = Color.TRANSPARENT
-	var spark: Array = []               # treasury history (floats): a 48 x 16 line next to the value
+	var spark: Array = []               # kept for the tooltip; the ring shows `frac`
+	var caption: String = ""
+	var frac: float = -1.0              # 0..1 arc fill, < 0 no arc
 	var _shown: float = NAN
 	var _target: float = 0.0
 	var _fmt: Callable = Callable()
 	var _t: float = 0.0
 	func _ready() -> void: set_process(false)
-	func fv() -> int: return TBHudParts.fs(14.0)
-	func fd() -> int: return TBHudParts.fs(12.0)
-	func ico() -> float: return 16.0
-	func pad() -> float: return 12.0
+	func fv() -> int: return TBHudParts.fs(15.0)
+	func fd() -> int: return TBHudParts.fs(13.0)
+	func fcap() -> int: return TBHudParts.fs(12.0)
+	func medal() -> float: return 40.0 if (compact or tight) else 46.0
+	func has_sub() -> bool: return (sub_text != "" or (delta_on and has_delta)) and not tight
 	func dtext() -> String:
 		if sub_text != "": return sub_text
 		return ("+%s" % K.fmt(float(delta))) if delta >= 0 else ("−%s" % K.fmt(float(-delta)))
-	func has_sub() -> bool: return (sub_text != "" or (delta_on and has_delta)) and not tight
+	func cap_font() -> Font: return K.tracked(K.display(), 1)
+	func cap_text() -> String: return caption.to_upper() if TBI18n.lang != "ru" else caption
 	func desired_w() -> float:
-		var shown: String = final_text if final_text != "" else value
-		var w: float = pad() + ico() + 6.0 + TBHudParts.tw(K.mono_b(), shown, fv()) + pad()
-		if suffix != "": w += TBHudParts.tw(K.mono(), suffix, fd())
-		if has_sub(): w += 8.0 + TBHudParts.tw(K.mono(), dtext(), fd())
-		if spark.size() >= 3: w += 8.0 + 48.0
-		if state >= 1: w += 14.0
+		var w: float = medal() + 8.0
+		if caption != "" and not tight: w = maxf(w, TBHudParts.tw(cap_font(), cap_text(), fcap()) + 6.0)
 		return ceilf(w)
+	func desired_h() -> float:
+		var h: float = medal() + 3.0
+		if caption != "" and not tight: h += fcap() + 4.0
+		if has_sub(): h += fd() + 3.0
+		return ceilf(h)
 	func set_num(v: float, fmt: Callable) -> void:
 		_fmt = fmt; final_text = fmt.call(v)
 		if is_nan(_shown) or TBHudParts.reduced_motion():
@@ -391,42 +418,42 @@ class Chip extends Hit:
 		if _shown == _target and state < 1: set_process(false)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		var edge: Color = TBHudParts.tk("rule")
+		var oy: float = 1.0 if down else 0.0
+		var R: float = medal() * 0.5
+		var c := Vector2(size.x * 0.5, R + 1.0 + oy)
+		var tone: Color = glyph_col if glyph_col.a > 0.0 else TBHudParts.tk("brass_lt")
+		var edge: Color = tone
 		if state == 2: edge = TBHudParts.tk("neg_bar")
 		elif state == 1: edge = TBHudParts.tk("warn_bar")
-		var bg: Color = TBHudParts.tk("bar_1") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96)
-		draw_style_box(TBHudParts.sbox(bg, edge, size.y * 0.5, 1), r)
-		var oy: float = 1.0 if down else 0.0
-		var cy: float = size.y * 0.5 + oy
-		var x: float = pad()
-		var gc: Color = glyph_col if glyph_col.a > 0.0 else TBHudParts.tk("brass_lt")
-		TBGlyph.draw(self, glyph, Vector2(x + ico() * 0.5, cy), ico(), gc, 1.5)
-		x += ico() + 6.0
-		var fb: Font = K.mono_b()
+		var face: Color = TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.tk("bar_0")
+		var fr: float = BZ.ring(self, c, R, 30 if R >= 20.0 else 24, face)
+		if frac >= 0.0: BZ.gauge(self, c, fr - 3.5, frac, edge, 2.6)
+		if state >= 1:
+			var pulse: float = 0.5 + 0.5 * sin(_t * 3.14) if not TBHudParts.reduced_motion() else 1.0
+			draw_arc(c, R + 3.0, 0.0, TAU, 40, TBHudParts.al(edge, 0.35 + 0.4 * pulse), 1.6, true)
+		var fb: Font = K.body_b()
+		var z: int = fv()
 		var vc: Color = val_col if val_col.a > 0.0 else TBHudParts.tk("cream")
-		x += TBHudParts.txt(self, fb, Vector2(x, TBHudParts.base(fb, fv(), cy)), value, fv(), vc)
-		var fm: Font = K.mono()
-		if suffix != "": x += TBHudParts.txt(self, fm, Vector2(x, TBHudParts.base(fm, fd(), cy)), suffix, fd(), TBHudParts.tk("smoke"))
+		var maxw: float = fr * 1.55
+		while z > 12 and TBHudParts.tw(fb, value, z) > maxw: z -= 1
+		draw_string(fb, Vector2(c.x - TBHudParts.tw(fb, value, z) * 0.5, TBHudParts.base(fb, z, c.y)), value, HORIZONTAL_ALIGNMENT_LEFT, -1, z, vc)
+		var y: float = medal() + 3.0 + oy
+		if caption != "" and not tight:
+			var cf: Font = cap_font()
+			var ct: String = cap_text()
+			var cc: Color = edge if state >= 1 else TBHudParts.tk("smoke")
+			TBHudParts.txt_o(self, cf, Vector2((size.x - TBHudParts.tw(cf, ct, fcap())) * 0.5, y + cf.get_ascent(fcap()) - 1.0), ct, fcap(), cc)
+			y += fcap() + 4.0
 		if has_sub():
-			x += 8.0
+			var fm: Font = K.body_b()
 			var col: Color = TBHudParts.tk("smoke")
 			if sub_text == "": col = TBHudParts.tk("pos_bar") if delta > 0 else (TBHudParts.tk("neg_bar") if delta < 0 else TBHudParts.tk("smoke"))
-			x += TBHudParts.txt(self, fm, Vector2(x, TBHudParts.base(fm, fd(), cy)), dtext(), fd(), col)
-		if spark.size() >= 3:
-			x += 8.0
-			var sr := Rect2(x, cy - 8.0, 48.0, 16.0)
-			var lo: float = minf(0.0, float(spark.min())); var hi: float = maxf(float(spark.max()), lo + 1.0)
-			var pts := PackedVector2Array()
-			for i in spark.size():
-				pts.append(Vector2(sr.position.x + sr.size.x * i / float(spark.size() - 1), sr.end.y - sr.size.y * (float(spark[i]) - lo) / (hi - lo)))
-			draw_polyline(pts, TBHudParts.al(TBHudParts.tk("smoke"), 0.9), 1.3, true)
-		if state >= 1:
-			var pulse: float = 0.65 + 0.35 * sin(_t * 3.14) if not TBHudParts.reduced_motion() else 1.0
-			draw_circle(Vector2(size.x - pad() + 2.0, cy), 3.0, TBHudParts.al(edge, pulse))
+			var dt: String = dtext()
+			TBHudParts.txt_o(self, fm, Vector2((size.x - TBHudParts.tw(fm, dt, fd())) * 0.5, y + fm.get_ascent(fd()) - 1.0), dt, fd(), col)
 		if has_focus(): TBHudParts.focus_ring(self, r)
 
 # ---------------------------------------------------------------- crest
-## 40 x 28 flag, nation name 16/600 and a 12 px subtitle (ruler); the whole block opens the nation card
+## the nation medallion: the flag inside a brass instrument ring, name in Cinzel and the ruler in italic beside it
 class NationChip extends Hit:
 	var flag: Texture2D
 	var nation: String = ""
@@ -437,68 +464,93 @@ class NationChip extends Hit:
 	var badge: int = 0
 	var rank_text: String = ""
 	var compact: bool = false
+	func medal() -> float: return 48.0 if compact else 56.0
+	func name_font() -> Font: return K.tracked(K.display(), 1)
 	func desired_w() -> float:
-		var w: float = 10.0 + 40.0 + 10.0
-		var tn: float = TBHudParts.tw(K.body_b(), nation, TBHudParts.fs(16.0))
-		var ts: float = TBHudParts.tw(K.body(), subtitle, TBHudParts.fs(12.0)) if subtitle != "" else 0.0
-		w += maxf(tn, ts) + 12.0
+		var w: float = medal() + 4.0
+		if not show_name: return ceilf(w + 4.0)
+		var tn: float = TBHudParts.tw(name_font(), nation.to_upper(), TBHudParts.fs(17.0))
+		var ts: float = TBHudParts.tw(K.body_i(), subtitle, TBHudParts.fs(14.0)) if subtitle != "" else 0.0
+		w += 10.0 + maxf(tn, ts)
 		if seat >= 0: w += 34.0
 		return ceilf(w)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		var edge: Color = TBHudParts.tk("brass_lt") if (hover or has_focus()) else TBHudParts.tk("rule")
-		draw_style_box(TBHudParts.sbox(TBHudParts.tk("bar_1") if down else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), edge, 10.0, 1), r)
 		var oy: float = 1.0 if down else 0.0
-		var fr_ := Rect2(10.0, (size.y - 28.0) * 0.5 + oy, 40.0, 28.0)
-		if flag != null: draw_texture_rect(flag, fr_, false)
-		draw_rect(fr_, TBHudParts.al(Color.WHITE, 0.14), false, 1.0)
-		var x: float = fr_.end.x + 10.0
-		var fb: Font = K.body_b()
-		var fn: int = TBHudParts.fs(16.0)
-		var has_sub: bool = subtitle != ""
-		var ny: float = size.y * (0.38 if has_sub else 0.5) + oy
-		if show_name: x += TBHudParts.txt(self, fb, Vector2(x, TBHudParts.base(fb, fn, ny)), nation, fn, TBHudParts.tk("cream"))
-		if has_sub and show_name:
-			var f2: Font = K.body()
-			TBHudParts.txt(self, f2, Vector2(fr_.end.x + 10.0, TBHudParts.base(f2, TBHudParts.fs(12.0), size.y * 0.7 + oy)), subtitle, TBHudParts.fs(12.0), TBHudParts.tk("smoke"))
+		var R: float = medal() * 0.5
+		var c := Vector2(2.0 + R, size.y * 0.5 + oy)
+		var fr: float = BZ.ring(self, c, R, 40, TBHudParts.tk("bar_0"))
+		if flag != null:
+			var pts := PackedVector2Array(); var uvs := PackedVector2Array()
+			var fs_: Vector2 = flag.get_size()
+			var side: float = minf(fs_.x, fs_.y)
+			var uo := Vector2((fs_.x - side) * 0.5, (fs_.y - side) * 0.5)
+			for i in 40:
+				var a: float = TAU * i / 40.0
+				var d := Vector2(cos(a), sin(a)) * (fr - 1.0)
+				pts.append(c + d)
+				uvs.append((uo + Vector2(side, side) * 0.5 + d / (fr - 1.0) * side * 0.5) / fs_)
+			draw_colored_polygon(pts, Color.WHITE, uvs, flag)
+		if hover or has_focus(): draw_arc(c, R + 2.5, 0.0, TAU, 40, TBHudParts.tk("brass_lt"), 1.5, true)
+		if show_name:
+			var x: float = c.x + R + 10.0
+			var fb: Font = name_font()
+			var fn: int = TBHudParts.fs(17.0)
+			var has_sub: bool = subtitle != ""
+			var ny: float = size.y * (0.4 if has_sub else 0.5) + oy
+			TBHudParts.txt_o(self, fb, Vector2(x, TBHudParts.base(fb, fn, ny)), nation.to_upper(), fn, TBHudParts.tk("cream"))
+			if has_sub:
+				var f2: Font = K.body_i()
+				var z2: int = TBHudParts.fs(14.0)
+				TBHudParts.txt_o(self, f2, Vector2(x, TBHudParts.base(f2, z2, size.y * 0.72 + oy)), subtitle, z2, TBHudParts.tk("smoke"))
 		if seat >= 0:
 			var sx: float = size.x - 22.0
 			TBHudParts.seat_shape(self, Vector2(sx, size.y * 0.5 - 6.0), 10.0, seat, TBHudParts.tk("brass_lt"))
-			var fs_: Font = K.body_b()
+			var fs2: Font = K.body_b()
 			var zs: int = TBHudParts.fs(12.0)
-			draw_string(fs_, Vector2(sx - TBHudParts.tw(fs_, seat_text, zs) * 0.5, size.y * 0.5 + 14.0), seat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, zs, TBHudParts.tk("brass_lt"))
-		if badge > 0: draw_circle(Vector2(size.x - 8.0, 8.0), 4.0, TBHudParts.tk("warn_bar"))
+			draw_string(fs2, Vector2(sx - TBHudParts.tw(fs2, seat_text, zs) * 0.5, size.y * 0.5 + 14.0), seat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, zs, TBHudParts.tk("brass_lt"))
+		if badge > 0: draw_circle(Vector2(c.x + R * 0.7, c.y - R * 0.7), 4.0, TBHudParts.tk("warn_bar"))
 		if has_focus(): TBHudParts.focus_ring(self, r)
 
-# ---------------------------------------------------------------- date pill
-## "1804 AD · Turn 7": a chip, tabular figures
+# ---------------------------------------------------------------- date medallion
+## the calendar: year over turn number, in a graduated brass ring (round = an instrument)
 class DateText extends Control:
 	var year: String = ""
 	var turn_cap: String = ""
 	var compact: bool = false
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
-	func fv() -> int: return TBHudParts.fs(14.0)
-	func _txt() -> String: return "%s · %s" % [year, turn_cap]
-	func desired_w() -> float: return ceilf(TBHudParts.tw(K.mono_b(), _txt(), fv()) + 28.0)
+	func medal() -> float: return 56.0 if compact else 66.0
+	func desired_w() -> float: return medal() + 4.0
 	func _draw() -> void:
-		draw_style_box(TBHudParts.sbox(TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), TBHudParts.tk("rule"), size.y * 0.5, 1), Rect2(Vector2.ZERO, size))
-		var fb: Font = K.mono_b()
-		var t: String = _txt()
-		draw_string(fb, Vector2((size.x - TBHudParts.tw(fb, t, fv())) * 0.5, TBHudParts.base(fb, fv(), size.y * 0.5)), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fv(), TBHudParts.tk("cream"))
+		var R: float = medal() * 0.5
+		var c := Vector2(size.x * 0.5, size.y * 0.5)
+		var fr: float = BZ.ring(self, c, R, 48, TBHudParts.tk("bar_0"))
+		var fb: Font = K.body_b()
+		var yz: int = TBHudParts.fs(16.0)
+		var ys: String = year.replace(" AD", "")
+		while yz > 12 and TBHudParts.tw(fb, ys, yz) > fr * 1.6: yz -= 1
+		draw_string(fb, Vector2(c.x - TBHudParts.tw(fb, ys, yz) * 0.5, TBHudParts.base(fb, yz, c.y - 3.0)), ys, HORIZONTAL_ALIGNMENT_LEFT, -1, yz, TBHudParts.tk("cream"))
+		var cf: Font = K.tracked(K.display(), 1)
+		var tz: int = TBHudParts.fs(12.0)
+		var ts: String = turn_cap.to_upper()
+		while tz > 12 and TBHudParts.tw(cf, ts, tz) > fr * 1.7: tz -= 1
+		draw_string(cf, Vector2(c.x - TBHudParts.tw(cf, ts, tz) * 0.5, TBHudParts.base(cf, tz, c.y + fr * 0.46)), ts, HORIZONTAL_ALIGNMENT_LEFT, -1, tz, TBHudParts.tk("brass_lt"))
 
-# ---------------------------------------------------------------- segmented mode switch
-## 32 px segmented control (ink-700 track, selected segment ink-500): the map lenses next to the minimap
+# ---------------------------------------------------------------- lens tabs
+## the map lenses: Cinzel tabs over a graduated rule, a marker under the active one (docs/ui_variants .tabs)
 class ModeSwitch extends Hit:
 	signal picked(id: String)
 	var items: Array = []               # [[id, label]]
 	var current: String = ""
 	var _rects: Array = []
-	func fz() -> int: return TBHudParts.fs(13.0)
-	func _seg_w(i: int) -> float: return ceilf(TBHudParts.tw(K.body_m(), String(items[i][1]), fz()) + 24.0)
+	func fz() -> int: return TBHudParts.fs(12.0)
+	func _font() -> Font: return K.tracked(K.display(), 1)
+	func _lab(i: int) -> String: return String(items[i][1]).to_upper() if TBI18n.lang != "ru" else String(items[i][1])
+	func _seg_w(i: int) -> float: return ceilf(TBHudParts.tw(_font(), _lab(i), fz()) + 26.0)
 	func desired_w() -> float:
-		var w: float = 4.0
+		var w: float = 6.0
 		for i in items.size(): w += _seg_w(i)
-		return w + 4.0
+		return w + 6.0
 	func _has_point(p: Vector2) -> bool: return Rect2(Vector2.ZERO, size).grow(2.0).has_point(p)
 	func _gui_input(e: InputEvent) -> void:
 		if e is InputEventMouseButton and (e as InputEventMouseButton).pressed and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
@@ -506,69 +558,79 @@ class ModeSwitch extends Hit:
 				if (_rects[i] as Rect2).has_point((e as InputEventMouseButton).position):
 					picked.emit(String(items[i][0])); accept_event(); return
 	func _draw() -> void:
-		draw_style_box(TBHudParts.sbox(TBHudParts.tk("bar_1"), TBHudParts.tk("rule"), 10.0, 1), Rect2(Vector2.ZERO, size))
+		var r := Rect2(Vector2.ZERO, size)
+		TBHudParts.plate(self, r, TBHudParts.al(TBHudParts.tk("bar_0"), 0.92), TBHudParts.tk("rule"), 6.0)
+		BZ.ruler_h(self, 12.0, size.x - 12.0, size.y - 8.0, 6.0, 5, TBHudParts.al(TBHudParts.tk("rule"), 0.9), 3.0, true)
 		_rects.clear()
-		var x: float = 4.0
+		var x: float = 6.0
 		for i in items.size():
 			var w: float = _seg_w(i)
-			var rc := Rect2(x, 3.0, w, size.y - 6.0)
+			var rc := Rect2(x, 2.0, w, size.y - 4.0)
 			_rects.append(rc)
 			var on: bool = String(items[i][0]) == current
-			if on: draw_style_box(TBHudParts.sbox(TBHudParts.sel_fill(), Color.TRANSPARENT, 7.0, 0), rc)
-			var f: Font = K.body_m()
-			var t: String = String(items[i][1])
-			draw_string(f, Vector2(rc.position.x + (rc.size.x - TBHudParts.tw(f, t, fz())) * 0.5, TBHudParts.base(f, fz(), rc.get_center().y)), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fz(), TBHudParts.tk("cream") if on else TBHudParts.tk("smoke"))
+			var f: Font = _font()
+			var t: String = _lab(i)
+			var ty: float = TBHudParts.base(f, fz(), size.y * 0.42)
+			draw_string(f, Vector2(rc.position.x + (rc.size.x - TBHudParts.tw(f, t, fz())) * 0.5, ty), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fz(), TBHudParts.tk("cream") if on else TBHudParts.tk("ink_off"))
+			if on:
+				var mx: float = rc.get_center().x
+				draw_colored_polygon(PackedVector2Array([Vector2(mx - 4.5, size.y - 7.0), Vector2(mx + 4.5, size.y - 7.0), Vector2(mx, size.y - 1.0)]), TBHudParts.tk("neg_bar"))
 			x += w
 		if has_focus(): TBHudParts.focus_ring(self, Rect2(Vector2.ZERO, size))
 
 # ---------------------------------------------------------------- dock / lens / menu icon button
-## flat icon button: 40 px visual square on a 56 px rail, label beneath, 3 px brass bar + filled icon when active
+## round brass medallion with the icon inside. In a wide slot the label (Cinzel caps) sits to its right (the rail); in a narrow one beneath.
 class IconBtn extends Hit:
 	var glyph: String = "gear"
 	var label: String = ""
 	var active: bool = false
 	var badge: int = 0
 	var badge_crit: bool = false
-	var edge: int = 0                   # active bar edge: 0 left, 1 bottom, 2 top
+	var edge: int = 0                   # 0 rail (vertical list), 1 / 2 tab bar
 	var sq: float = 40.0
 	var icon_px: float = 24.0
 	var show_label: bool = true
 	var hint: String = ""               # hotkey text (menus)
-	var framed: bool = false            # stands alone on the map: a bordered card
+	var framed: bool = false            # stands alone on the map: a bare medallion
+	func _lab() -> String: return label.to_upper() if TBI18n.lang != "ru" else label
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		var oy: float = 1.0 if down else 0.0
-		if framed: draw_style_box(TBHudParts.sbox(TBHudParts.tk("bar_1") if (hover or down or active) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), TBHudParts.tk("brass_lt") if active else TBHudParts.tk("rule"), 10.0, 1), r)
-		var inner := Rect2(r.position + Vector2(3.0, 2.0), r.size - Vector2(6.0, 4.0))
-		if framed: pass
-		elif active: draw_style_box(TBHudParts.sbox(TBHudParts.accent_soft(), Color.TRANSPARENT, 10.0, 0), inner)
-		elif hover or down: draw_style_box(TBHudParts.sbox(TBHudParts.tk("bar_1"), Color.TRANSPARENT, 10.0, 0), inner)
-		if active and not framed:
-			match edge:
-				0: draw_rect(Rect2(0, 10.0, 3.0, size.y - 20.0), TBHudParts.tk("brass_lt"))
-				1: draw_rect(Rect2(10.0, size.y - 3.0, size.x - 20.0, 3.0), TBHudParts.tk("brass_lt"))
-				_: draw_rect(Rect2(10.0, 0, size.x - 20.0, 3.0), TBHudParts.tk("brass_lt"))
 		var col: Color = TBHudParts.tk("brass_lt") if active else TBHudParts.tk("cream")
-		var labelled: bool = show_label and label != ""
-		var c: Vector2 = Vector2(size.x * 0.5, (size.y * 0.38) if labelled else size.y * 0.5) + Vector2(0, oy)
-		TBHudParts.icon(self, glyph, c, icon_px, col, 1.5)
-		if labelled:
-			var f: Font = K.body_m()
+		var row: bool = (not framed) and show_label and label != "" and size.x >= 110.0
+		var labelled: bool = show_label and label != "" and not framed and not row
+		var d: float = minf(size.y - 4.0, 44.0) if row else (minf(size.x, size.y) - 2.0 if (framed or not labelled) else minf(size.x - 6.0, size.y * 0.62))
+		d = maxf(d, 24.0)
+		var R: float = d * 0.5
+		var c: Vector2
+		if row: c = Vector2(R + 2.0, size.y * 0.5 + oy)
+		elif labelled: c = Vector2(size.x * 0.5, R + 2.0 + oy)
+		else: c = Vector2(size.x * 0.5, size.y * 0.5 + oy)
+		var face: Color = TBHudParts.tk("bar_2") if (hover or down or active) else TBHudParts.tk("bar_0")
+		var fr: float = BZ.ring(self, c, R, 0 if R < 17.0 else 30, face)
+		if active: draw_arc(c, R + 2.5, 0.0, TAU, 40, TBHudParts.tk("brass_lt"), 1.6, true)
+		TBHudParts.icon(self, glyph, c, minf(icon_px, fr * 1.15), col, 1.6)
+		if row:
+			var f: Font = K.tracked(K.display(), 1)
 			var z: int = TBHudParts.fs(12.0)
-			var s: String = TBHudParts.fit(f, label, z, size.x - 4.0)
-			var w: float = TBHudParts.tw(f, s, z)
-			draw_string(f, Vector2((size.x - w) * 0.5, size.y - 8.0 + oy), s, HORIZONTAL_ALIGNMENT_LEFT, -1, z, TBHudParts.tk("cream") if active else TBHudParts.tk("smoke"))
+			var s2: String = TBHudParts.fit(f, _lab(), z, size.x - (c.x + R + 12.0) - 2.0)
+			TBHudParts.txt_o(self, f, Vector2(c.x + R + 10.0, TBHudParts.base(f, z, c.y)), s2, z, TBHudParts.tk("cream") if (active or hover) else TBHudParts.tk("smoke"))
+		elif labelled:
+			var f2: Font = K.tracked(K.display(), 0)
+			var z2: int = TBHudParts.fs(12.0)
+			var s3: String = TBHudParts.fit(f2, _lab(), z2, size.x - 2.0)
+			draw_string(f2, Vector2((size.x - TBHudParts.tw(f2, s3, z2)) * 0.5, size.y - 4.0 + oy), s3, HORIZONTAL_ALIGNMENT_LEFT, -1, z2, TBHudParts.tk("cream") if active else TBHudParts.tk("smoke"))
 		if badge > 0:
-			var bc: Vector2 = Vector2(size.x * 0.5 + icon_px * 0.55, size.y * 0.38 - icon_px * 0.45) if labelled else Vector2(size.x - 8.0, 8.0)
+			var bc: Vector2 = c + Vector2(R * 0.78, -R * 0.78)
 			draw_circle(bc, 8.0, TBHudParts.tk("neg_bar") if badge_crit else TBHudParts.tk("brass_lt"))
 			var fb: Font = K.mono_b()
-			var s2: String = str(mini(badge, 99))
-			var sw: float = TBHudParts.tw(fb, s2, 12)
-			draw_string(fb, Vector2(bc.x - sw * 0.5, TBHudParts.base(fb, 12, bc.y)), s2, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TBHudParts.tk("table"))
+			var s4: String = str(mini(badge, 99))
+			var sw: float = TBHudParts.tw(fb, s4, 12)
+			draw_string(fb, Vector2(bc.x - sw * 0.5, TBHudParts.base(fb, 12, bc.y)), s4, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TBHudParts.tk("table"))
 		if has_focus(): TBHudParts.focus_ring(self, r)
 
 # ---------------------------------------------------------------- surfaces
-## the ground behind the top bar / rail / bottom bar
+## the ground behind the rail / phone tab bar. The rail is open ground with a graduated ruler beside the medallions (no card).
 class Surface extends Control:
 	var kind: String = "card"           # card (rail, drawers) | bottom (phone tab bar)
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_STOP
@@ -578,8 +640,10 @@ class Surface extends Control:
 			"bottom":
 				draw_rect(r, TBHudParts.al(TBHudParts.tk("bar_0"), 0.98))
 				draw_rect(Rect2(0, 0, size.x, 1.0), TBHudParts.tk("rule"))
+				BZ.ruler_h(self, 8.0, size.x - 8.0, 1.0, 8.0, 5, TBHudParts.al(TBHudParts.tk("rule"), 0.8), 3.0)
 			_:
-				draw_style_box(TBHudParts.card_box(16.0), r)
+				draw_line(Vector2(3.5, 4.0), Vector2(3.5, size.y - 4.0), TBHudParts.al(TBHudParts.tk("rule"), 0.9), 1.0)
+				BZ.ruler_v(self, 4.0, size.y - 4.0, 3.5, 8.0, 5, TBHudParts.al(TBHudParts.tk("rule"), 0.9), 3.0, true)
 
 # ---------------------------------------------------------------- End Turn seal
 ## the one wax object (art bible 7.5): an 80 px circle (72 compact / portrait) drawn by TBFrame.seal (wax grain + one brass ring), the
@@ -631,42 +695,57 @@ class Seal extends Hit:
 		var rad: float = diameter() * 0.5
 		var dead: bool = state == S.BUSY or state == S.WAIT or state == S.OVER
 		var oy: float = 1.0 if (down and not dead) else 0.0
-		var acc: Color = TBHudParts.tk("act")
-		var fill: Color = TBHudParts.tk("act_press") if (down and not dead) else (TBHudParts.tk("act_hover") if (hover and not dead) else acc)
-		var on: Color = TBHudParts.tk("on_act")
-		if state == S.OVER: fill = TBHudParts.al(TBHudParts.tk("bar_2"), 1.0); on = TBHudParts.tk("ink_off")
-		if state == S.BUSY or state == S.WAIT: fill = TBHudParts.al(acc, 0.35)
+		var brass: Color = TBHudParts.tk("brass_lt")
+		var rust: Color = TBHudParts.tk("neg_bar")
+		var on: Color = TBHudParts.tk("cream")
+		var face: Color = TBHudParts.tk("bar_2") if (hover and not dead) else TBHudParts.tk("bar_0")
+		if state == S.OVER: on = TBHudParts.tk("ink_off")
 		# attention: a slow 2 s glow ring
 		if attention > 0 and state == S.IDLE:
 			var k: float = 0.5 + 0.5 * sin(_t * TAU / 2.0) if _animated() else 0.6
-			draw_arc(c, rad + 4.0 + 4.0 * k, 0.0, TAU, 48, TBHudParts.al(acc, 0.25 + 0.25 * k), 3.0, true)
-		draw_circle(c + Vector2(0, 2.0), rad, TBHudParts.al(Color.BLACK, 0.35))                 # shadow-2
-		draw_circle(c + Vector2(0, oy), rad, fill)
-		# content: the turn number (20/600), chevrons while seats pass, a spinner while it resolves
-		var fb: Font = K.mono_b()
-		var z: int = TBHudParts.fs(20.0)
-		if state == S.BUSY or state == S.WAIT:
-			var a0: float = _t * TAU / 1.1 if _animated() else 0.0
-			draw_arc(c, rad - 7.0, 0.0, TAU, 40, TBHudParts.al(on, 0.0), 3.0, true)
-			draw_arc(c, rad - 7.0, a0, a0 + deg_to_rad(250.0 if not _animated() else 110.0), 28, acc, 3.0, true)
-		elif state == S.HINT:
+			draw_arc(c, rad + 4.0 + 4.0 * k, 0.0, TAU, 48, TBHudParts.al(brass, 0.25 + 0.25 * k), 3.0, true)
+		var cc: Vector2 = c + Vector2(0, oy)
+		var fr: float = BZ.ring(self, cc, rad, 60, face)
+		var arc_r: float = fr - 5.0
+		var phase: float = clampf(float(turn_no % 12) / 12.0, 0.0, 1.0)
+		draw_arc(cc, arc_r, 0.0, TAU, 48, TBHudParts.al(BZ.TRACK, 0.9), 2.6, true)
+		if state == S.HINT:
 			var left: float = hint_left if _animated() else 1.0
-			draw_arc(c, rad - 6.0, -PI * 0.5, -PI * 0.5 + TAU * left, 40, on, 3.0, true)
-			TBHudParts.chev(self, Vector2(c.x - 3.0, c.y), 18.0, on, 2.2); TBHudParts.chev(self, Vector2(c.x + 6.0, c.y), 18.0, on, 2.2)
+			draw_arc(cc, arc_r, -PI * 0.5, -PI * 0.5 + TAU * left, 40, brass, 3.0, true)
+		elif state == S.BUSY or state == S.WAIT:
+			var a0: float = _t * TAU / 1.1 if _animated() else 0.0
+			draw_arc(cc, arc_r, a0, a0 + deg_to_rad(250.0 if not _animated() else 110.0), 28, brass, 3.0, true)
+		elif state != S.OVER:
+			draw_arc(cc, arc_r, -PI * 0.5, -PI * 0.5 + TAU * maxf(phase, 0.04), 40, rust, 2.8, true)
+		# the hand: the calendar position, or a full turn while the turn resolves
+		var ha: float = (_t * TAU / 1.6 if (state == S.BUSY and _animated()) else TAU * phase) - PI * 0.5
+		var hd := Vector2(cos(ha), sin(ha))
+		draw_line(cc + hd * (fr * 0.52), cc + hd * (fr - 3.0), rust, 2.0, true)
+		draw_colored_polygon(PackedVector2Array([cc + Vector2(-4.5, -rad + 3.0), cc + Vector2(4.5, -rad + 3.0), cc + Vector2(0, -rad + 10.0)]), rust)
+		# content: the turn number, chevrons while seats pass
+		var fb: Font = K.body_b()
+		var z: int = TBHudParts.fs(24.0 if not (compact or narrow) else 20.0)
+		if state == S.HINT:
+			TBHudParts.chev(self, Vector2(cc.x - 3.0, cc.y), 16.0, on, 2.2); TBHudParts.chev(self, Vector2(cc.x + 6.0, cc.y), 16.0, on, 2.2)
 		elif state == S.SEAT:
 			var tt: String = seat_text if seat_text != "" else "›"
-			draw_string(fb, Vector2(c.x - TBHudParts.tw(fb, tt, z) * 0.5, TBHudParts.base(fb, z, c.y + oy)), tt, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
+			draw_string(fb, Vector2(cc.x - TBHudParts.tw(fb, tt, z) * 0.5, TBHudParts.base(fb, z, cc.y)), tt, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
 		else:
 			var tt2: String = str(turn_no) if turn_no > 0 else ""
-			if tt2 != "": draw_string(fb, Vector2(c.x - TBHudParts.tw(fb, tt2, z) * 0.5, TBHudParts.base(fb, z, c.y + oy)), tt2, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
+			if tt2 != "":
+				var cf: Font = K.tracked(K.display(), 1)
+				var tz: int = TBHudParts.fs(12.0)
+				if not (compact or narrow):
+					draw_string(cf, Vector2(cc.x - TBHudParts.tw(cf, "TURN", tz) * 0.5, TBHudParts.base(cf, tz, cc.y - fr * 0.42)), "TURN", HORIZONTAL_ALIGNMENT_LEFT, -1, tz, TBHudParts.tk("smoke"))
+				draw_string(fb, Vector2(cc.x - TBHudParts.tw(fb, tt2, z) * 0.5, TBHudParts.base(fb, z, cc.y + (fr * 0.12 if not (compact or narrow) else 0.0))), tt2, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
 			else:
-				TBHudParts.chev(self, Vector2(c.x - 3.0, c.y + oy), 20.0, on, 2.4); TBHudParts.chev(self, Vector2(c.x + 7.0, c.y + oy), 20.0, on, 2.4)
+				TBHudParts.chev(self, Vector2(cc.x - 3.0, cc.y), 18.0, on, 2.4); TBHudParts.chev(self, Vector2(cc.x + 7.0, cc.y), 18.0, on, 2.4)
 		# label under the circle
-		var f: Font = K.body_b()
+		var f: Font = K.tracked(K.display(), 1)
 		var fz: int = TBHudParts.fs(12.0)
-		var cap: String = caption if caption_inside else ""
+		var cap: String = (caption.to_upper() if TBI18n.lang != "ru" else caption) if caption_inside else ""
 		if cap != "":
-			draw_string(f, Vector2((size.x - TBHudParts.tw(f, cap, fz)) * 0.5, diameter() + 16.0), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, TBHudParts.tk("cream") if state != S.OVER else TBHudParts.tk("ink_off"))
+			TBHudParts.txt_o(self, f, Vector2((size.x - TBHudParts.tw(f, cap, fz)) * 0.5, diameter() + 16.0), cap, fz, TBHudParts.tk("cream") if state != S.OVER else TBHudParts.tk("ink_off"))
 		if attention > 0 and state == S.IDLE:
 			var bc := Vector2(c.x + rad * 0.72, c.y - rad * 0.72)
 			draw_circle(bc, 10.0, TBHudParts.tk("neg_bar"))
