@@ -30,11 +30,18 @@ static func ticks(ci: CanvasItem, c: Vector2, r: float, n: int, len_px: float, m
 		pts.append(c + d * r); pts.append(c + d * (r - l))
 	if pts.size() >= 2: ci.draw_multiline(pts, col, w)
 
-## the instrument ring: soft shadow, brass gradient band, dark face, hairline and graduated ticks. Returns the face radius.
-static func ring(ci: CanvasItem, c: Vector2, r: float, nt: int = 36, face: Color = Color.TRANSPARENT, shadow: bool = true) -> float:
-	var band: float = clampf(r * 0.12, 2.5, 6.0)
+## the instrument ring: a light brass hairline round a dark face with graduated ticks just inside it. Returns the face radius.
+## `bold` is the heavy gradient band, kept only for the End Turn dial.
+static func ring(ci: CanvasItem, c: Vector2, r: float, nt: int = 36, face: Color = Color.TRANSPARENT, shadow: bool = true, bold: bool = false) -> float:
 	if face.a <= 0.0: face = TBTokens.c("bar_0")
 	if shadow: ci.draw_circle(c + Vector2(0, 1.5), r + 1.5, TBTokens.DROP)
+	if not bold:
+		ci.draw_circle(c, r, face)
+		ci.draw_arc(c, r - 0.7, 0.0, TAU, 56, Color(BRASS, 0.85), 1.3, true)
+		var fl: float = r - 1.4
+		if nt > 0 and r >= 14.0: ticks(ci, c, fl - 1.2, nt, clampf(r * 0.05, 1.2, 2.4), 6, Color(BRASS, 0.55), 1.0)
+		return fl
+	var band: float = clampf(r * 0.12, 2.5, 6.0)
 	_brass_arc(ci, c, r - band * 0.5, band)
 	var fr: float = r - band
 	ci.draw_circle(c, fr, face)

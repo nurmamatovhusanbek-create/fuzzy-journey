@@ -472,7 +472,7 @@ class Chip extends Hit:
 		elif state == 1: edge = TBHudParts.tk("warn_bar")
 		var face: Color = TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.tk("bar_0")
 		var fr: float = BZ.ring(self, c, R, 30 if R >= 20.0 else 24, face)
-		if frac >= 0.0: BZ.gauge(self, c, fr - 3.5, frac, edge, 2.6)
+		if frac >= 0.0: BZ.gauge(self, c, fr - 5.5, frac, edge, 2.0)          # light arc, colour kept
 		if state >= 1:
 			var pulse: float = 0.5 + 0.5 * sin(_t * 3.14) if not TBHudParts.reduced_motion() else 1.0
 			draw_arc(c, R + 3.0, 0.0, TAU, 40, TBHudParts.al(edge, 0.35 + 0.4 * pulse), 1.6, true)
@@ -759,7 +759,7 @@ class Seal extends Hit:
 			var k: float = 0.5 + 0.5 * sin(_t * TAU / 2.0) if _animated() else 0.6
 			draw_arc(c, rad + 4.0 + 4.0 * k, 0.0, TAU, 48, TBHudParts.al(brass, 0.25 + 0.25 * k), 3.0, true)
 		var cc: Vector2 = c + Vector2(0, oy)
-		var fr: float = BZ.ring(self, cc, rad, 60, face)
+		var fr: float = BZ.ring(self, cc, rad, 60, face, true, true)          # the End Turn dial keeps the heavy band
 		var arc_r: float = fr - 5.0
 		var phase: float = clampf(year_phase, 0.0, 1.0)
 		draw_arc(cc, arc_r, 0.0, TAU, 48, TBHudParts.al(BZ.TRACK, 0.9), 2.6, true)
