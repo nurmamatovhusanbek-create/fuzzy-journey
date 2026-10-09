@@ -12,9 +12,11 @@ const FONTS = [
 ].join('\n');
 const data = fs.readFileSync(path.join(here, 'src/map_data.js'), 'utf8');
 const common = fs.readFileSync(path.join(here, 'src/common.js'), 'utf8');
-for (const f of fs.readdirSync(path.join(here, 'src')).filter(f => /^v\d.*\.html$/.test(f))) {
+const icons = fs.existsSync(path.join(here, 'src/bezel_kit.js')) ? fs.readFileSync(path.join(here, 'src/bezel_kit.js'), 'utf8') : '';
+const css = fs.existsSync(path.join(here, 'src/bezel.css')) ? fs.readFileSync(path.join(here, 'src/bezel.css'), 'utf8') : '';
+for (const f of fs.readdirSync(path.join(here, 'src')).filter(f => /^(v\d|b_).*\.html$/.test(f))) {
   let h = fs.readFileSync(path.join(here, 'src', f), 'utf8');
-  h = h.replace('/*FONTS*/', () => FONTS).replace('/*MAPDATA*/', () => data + common);
-  fs.writeFileSync(path.join(here, f.replace(/^v/, 'v')), h);
+  h = h.replace('/*FONTS*/', () => FONTS).replace('/*MAPDATA*/', () => data + common).replace('/*KIT*/', () => icons).replace('/*BEZELCSS*/', () => css);
+  fs.writeFileSync(path.join(here, f.replace(/^b_/, 'bezel_')), h);
   console.log(f, (h.length / 1024).toFixed(0) + 'KB');
 }

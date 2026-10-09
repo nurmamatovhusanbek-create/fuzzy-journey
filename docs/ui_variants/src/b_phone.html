@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Terra Bellum — Bezel, phone</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+#stage{width:390px;height:844px}
+svg#map{width:390px;height:844px}
+.bt{height:46px;font-size:12.5px;letter-spacing:.14em;padding:0 16px}
+.hd{padding:14px 16px 10px}.hd .t{font-size:19px}.body{padding:12px 16px 16px}
+.sheet{position:absolute;left:0;right:0;bottom:0;transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.sheet.on{transform:none}
+.sheet .plate{--c:12px}
+.grab{width:44px;height:4px;border-radius:2px;background:var(--lo);margin:8px auto 0}
+.vbtn{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;cursor:pointer}
+.vbtn .cap{font-size:10px;letter-spacing:.16em;color:var(--ivory)}
+.dock{position:absolute;left:0;right:0;bottom:0;height:92px}
+.dbtn{position:absolute;bottom:14px;width:58px;text-align:center}.dbtn span.cap{display:block;font-size:9px;letter-spacing:.14em;margin-top:2px;color:var(--dim)}
+</style></head><body><div id="stage">
+<svg id="map"></svg><div class="vig"></div>
+<svg id="ov" class="abs" style="inset:0;width:390px;height:844px;pointer-events:none"></svg>
+<div id="ringsvg"></div>
+<div id="top"></div><div id="alerts" class="abs" style="left:12px;right:12px;top:96px"></div><div id="toasts" class="abs" style="left:12px;right:12px;top:140px;display:flex;flex-direction:column;gap:6px"></div>
+<div id="scrim" style="background:rgba(3,5,8,.55)"></div>
+<div id="sheetP" class="sheet" style="bottom:126px"></div>
+<div id="sheetS" class="sheet" style="top:70px;bottom:0"></div>
+<div class="dock" id="dock"></div>
+<div id="tip"></div>
+</div>
+<script>
+/*MAPDATA*/
+/*KIT*/
+document.body.insertAdjacentHTML('afterbegin',DEFS);
+function fit(){const s=Math.min(innerWidth/390,innerHeight/844);const st=$('#stage');st.style.transform=`scale(${s})`;st.style.left=(innerWidth-390*s)/2+'px';st.style.top=(innerHeight-844*s)/2+'px'}
+addEventListener('resize',fit);
+const PAL=['#33473F','#4A4034','#34455A','#4D3A3A','#40375A','#4A4B33','#2F5550'];
+const S={sheet:null,sel:'Bas-Rhin',moving:false,target:null,turn:1,nation:null,bud:{tax:50,goods:20,research:15,invest:15}};
+const svg=$('#map');
+const paths=drawMap(svg,{sea:'#090C11',graticule:{step:5,color:'#C9A24B',w:.5},coast:[[10,.06,'#6e8fa3'],[4,.09,'#8fb0c2']],fill:c=>c.id==='france'?'#2D4C78':PAL[c.c],stroke:()=>'#0A0D12',strokeW:1.6,frDepts:{stroke:'rgba(0,0,0,.55)',w:.8}});
+svg.setAttribute('viewBox','452 150 440 952');svg.setAttribute('preserveAspectRatio','xMidYMid slice');
+const fr=$('path[data-id=france]',svg);fr.setAttribute('stroke','#C9A24B');fr.setAttribute('stroke-width',2.6);
+const dp=paths.dept;const selFill=()=>{for(const k in dp){const on=k===S.sel;dp[k].setAttribute('stroke',on?'#EFE6CF':'rgba(0,0,0,.55)');dp[k].setAttribute('stroke-width',on?3:.8);dp[k].setAttribute('fill',on?'rgba(201,162,75,.4)':'transparent')}};selFill();
+const lab=el('g',{'font-family':'Cinzel','text-anchor':'middle','paint-order':'stroke',stroke:'#06080c','stroke-width':5,fill:'#CFC4A6','letter-spacing':'3','font-weight':500,opacity:.9},svg);
+['france','spain','prussia','austrian_empire','swabia','kingdom_of_sardinia','helvetic_republic','bavaria','venetia','united_kingdom'].forEach(id=>{const c=MAP.countries.find(x=>x.id===id);if(!c)return;el('text',{x:c.cx,y:c.cy+(id==='france'?60:0),'font-size':id==='france'?19:13},lab,nm(c).toUpperCase().replace('AUSTRIAN EMPIRE','AUSTRIA'))});
+// ---- top row
+function renderTop(){const g=(k,v,d,f,col,l)=>`<div style="text-align:center">${gaugeSvg({r:22,v,d:'',f,col})}<div class="cap" style="font-size:8.5px;margin-top:-5px;letter-spacing:.14em">${l}</div></div>`;
+ $('#top').innerHTML=`<div class="abs" style="left:10px;top:8px" data-act="nations"><svg width="62" height="62" viewBox="0 0 62 62">${bezelSvg(31,31,29,36)}<defs><clipPath id="fm"><circle cx="31" cy="31" r="22"/></clipPath></defs><g clip-path="url(#fm)"><rect x="9" width="15" height="62" fill="#2F4E9E"/><rect x="24" width="15" height="62" fill="#F3EEE3"/><rect x="39" width="15" height="62" fill="#C8372D"/></g></svg></div>
+ <div class="abs" style="left:92px;top:4px;display:flex;gap:6px">${g('g','100','',.42,'#C9A24B','TREASURY')}${g('p','90','',.6,'#69B3A2','PEOPLE')}${g('a','10/12','',.83,'#D2603F','HOST')}</div>
+ <button class="abs" style="right:12px;top:10px;width:46px;height:46px" data-act="menu"><svg width="46" height="46" viewBox="0 0 46 46">${bezelSvg(23,23,21,24)}</svg><span style="position:absolute;inset:0;display:grid;place-items:center;color:var(--hi)">${ico('settings',20)}</span></button>
+ <div class="abs cap" style="left:8px;top:74px;width:70px;text-align:center;font-size:10px;color:var(--ivory);letter-spacing:.18em">FRANCE</div><div class="abs cap" style="right:6px;top:62px;width:58px;text-align:center;font-size:9px;color:var(--dim);letter-spacing:.12em">1804 · T${S.turn}</div>`}
+// ---- dock
+function renderDock(){const items=[['nations','Nations',14],['treasury','Budget',80],['decrees','Decrees',252],['more','More',318]];const cx=195,cy=44,r=44;
+ $('#dock').innerHTML=`<svg class="abs" style="left:0;top:0;width:390px;height:92px;overflow:visible"><path d="M0 22H122q8 0 14 6q22 -34 59 -34t59 34q6 -6 14 -6H390V92H0z" fill="#14100c" stroke="#7F6A33"/><path d="M0 22H122q8 0 14 6" stroke="#C9A24B" stroke-width=".5" fill="none" opacity=".6"/></svg>`+items.map(([k,l,x])=>`<button class="dbtn" style="left:${x-4}px" data-act="${k==='treasury'?'budget':k}"><svg width="48" height="48" viewBox="0 0 48 48" style="display:block;margin:0 auto">${bezelSvg(24,24,22,24)}</svg><span style="position:absolute;left:0;right:0;top:0;height:48px;display:grid;place-items:center;color:var(--hi)">${ico(k==='more'?'menu':k,22)}</span><span class="cap">${l}</span></button>`).join('')+
+ `<div id="chg" class="abs" style="left:${cx-46}px;top:-30px;width:92px;height:92px" data-act="end"><svg width="92" height="92" viewBox="0 0 92 92" style="overflow:visible">${bezelSvg(46,46,44,48)}<circle cx="46" cy="46" r="32" fill="url(#gFace)"/><path d="${arcD(46,46,28,0,230)}" stroke="#D2603F" stroke-width="3" fill="none" stroke-linecap="round"/><text id="tn" x="46" y="58" text-anchor="middle" font-family="Cinzel" font-weight="700" font-size="34" fill="#EFE6CF">${S.turn}</text><text x="46" y="30" text-anchor="middle" font-family="Cinzel" font-size="7.5" letter-spacing="2.5" fill="#C9A24B">TURN</text><g id="hand" style="transform-origin:46px 46px;transition:transform 1s"><path d="M46 8l-5 -10h10z" fill="#D2603F"/></g></svg></div><div class="cap abs" style="left:${cx-46}px;width:92px;text-align:center;top:68px;font-size:9px;color:var(--ivory);letter-spacing:.2em">END TURN</div>`}
+// ---- hub on map
+function renderHub(){const d=MAP.france.find(x=>x.name===S.sel);const sx=(d.cx-452)*390/440,sy=(d.cy-150)*390/440;const cx=d.cx,cy=d.cy;
+ $('#ringsvg').innerHTML='';$('#ov').innerHTML='';const hub=`<g transform="translate(${cx} ${cy})"><circle r="30" fill="rgba(6,8,12,.45)"/>${bezelSvg(0,0,24,36)}<text y="7" text-anchor="middle" font-family="Alegreya" font-weight="700" font-size="20" fill="#EFE6CF">35</text></g>`;
+ svg.querySelector('#hubg')?.remove();const g=el('g',{id:'hubg'},svg);g.innerHTML=hub;
+ svg.querySelectorAll('.tkn').forEach(x=>x.remove());[[1.2,46.2,39,'me'],[5.4,43.5,22,'me'],[13.8,45.6,41,'foe']].forEach(([lo,la,n,k])=>{const t=el('g',{class:'tkn',transform:`translate(${MAP.x(lo)} ${MAP.y(la)})`},svg);t.innerHTML=`<rect x="-26" y="-13" width="52" height="26" rx="13" fill="#14110d" stroke="${k==='me'?'#C9A24B':'#D2603F'}" stroke-width="1.6"/><circle cx="-12" cy="0" r="8" fill="${k==='me'?'#2F4E9E':'#ddd'}"/><text x="4" y="5" font-family="Alegreya" font-weight="700" font-size="14" fill="#EFE6CF">${n}</text>`})}
+// ---- sheets
+function sheetHTML(inner){return `<div class="pw">${`<div class="plate" style="--c:14px"><div class="pin">${inner}</div></div>`}</div>`}
+function provSheet(){const p=GAME.prov;p.name=S.sel;return sheetHTML(`<div class="grab"></div><div style="padding:10px 16px 14px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="cap" style="color:var(--brass)">PROVINCE</div><div class="cz" style="font:700 22px/1.05 Cinzel;letter-spacing:.05em;margin-top:3px">${S.sel}</div><div style="font:italic 15px Alegreya;color:var(--dim);margin-top:2px"><span style="color:#D2A05A">France</span> · your province</div></div><button class="xbtn" data-act="closeP">${ico('close',16)}</button></div>
+ <div style="display:flex;gap:6px;margin:12px 0">${[['35','ARMY'],['87%','STABLE'],['57%','HAPPY'],['172','POP']].map(([v,l])=>`<div style="flex:1;border:1px solid #4a3f28;background:#100d0a;padding:6px 2px;text-align:center"><b style="display:block;font:700 18px/1 Alegreya">${v}</b><small class="cap" style="font-size:8.5px;letter-spacing:.12em">${l}</small></div>`).join('')}</div>
+ <div style="display:flex;gap:6px;align-items:flex-end">${[['move','Move',1],['recruit','Recruit'],['build','Build'],['fortify','Fortify']].map(([k,l,pri])=>`<div class="vbtn" data-verb="${k}"><svg width="${pri?64:52}" height="${pri?64:52}" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="${pri?'#C9A24B':'#1d1812'}" stroke="${pri?'#F1DB9C':'#B38F3E'}" stroke-width="2.5"/><circle cx="32" cy="32" r="25" fill="none" stroke="${pri?'#8a6c26':'#3a2f1d'}"/><g transform="translate(18 18) scale(1.17)" style="color:${pri?'#14100b':'#E5C77A'}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</g></svg><span class="cap">${l}</span></div>`).join('')}</div></div>`)}
+function previewSheet(){return sheetHTML(`<div class="grab"></div><div style="padding:8px 16px 16px"><div style="display:flex;gap:14px;align-items:center"><div style="width:96px;height:96px;margin:-6px -6px -6px -6px">${gaugeSvg({r:38,v:'84%',d:'WIN',f:.84,col:'#69B3A2'})}</div><div><div class="cap" style="color:var(--bad)">ATTACK</div><div class="cz" style="font:700 20px/1.1 Cinzel;letter-spacing:.06em">Sardinia</div><div style="font:italic 15px Alegreya;color:var(--dim)">Hills · +3 provinces claim</div></div></div><div style="display:flex;gap:6px;margin:10px 0 12px">${[['35','YOU'],['14','THEM'],['−7','LOSS']].map(([v,l])=>`<div style="flex:1;border:1px solid #4a3f28;background:#100d0a;padding:6px 2px;text-align:center"><b style="display:block;font:700 19px/1 Alegreya">${v}</b><small class="cap" style="font-size:8.5px">${l}</small></div>`).join('')}</div><div style="display:flex;gap:10px"><button class="bt dng" style="flex:1" data-act="go">${ico('attack',18)}Attack</button><button class="bt" data-act="cancel">Cancel</button></div></div>`)}
+function bodyScreen(title,icon,sub,body,foot){return sheetHTML(`<div style="display:flex;flex-direction:column;height:calc(100vh*0 + 774px)"><div class="grab"></div><div class="hd"><div class="ring" style="width:40px;height:40px">${ico(icon,20)}</div><div class="grow"><div class="t">${title}</div><div class="s">${sub||''}</div></div><button class="xbtn" data-act="closeS">${ico('close',16)}</button></div><div class="rule" style="margin:0 16px"><i></i></div><div class="body scroll" style="flex:1;min-height:0">${body}</div>${foot?`<div class="foot" style="padding:12px 16px 18px">${foot}</div>`:''}</div>`)}
+const net=()=>Math.round(S.bud.tax*13.1+143-S.bud.goods*2-S.bud.research*1.3-S.bud.invest*.5);
+function knob(k,l,ic,v){const f=v/100;return `<div class="kn" data-k="${k}" style="text-align:center;cursor:ns-resize;flex:1"><svg width="100" height="100" viewBox="0 0 132 132">${bezelSvg(66,66,60,0)}<path d="${arcD(66,66,46,-135,135)}" stroke="#2a2318" stroke-width="6" fill="none"/><path d="${arcD(66,66,46,-135,-135+270*Math.max(.003,f))}" stroke="#C9A24B" stroke-width="6" fill="none" stroke-linecap="round"/>${tickMarks(66,66,53,20,4,5,'#7F6A33',.8,-135,270)}<g transform="rotate(${-135+270*f} 66 66)"><path d="M66 24L71 70H61Z" fill="#EFE6CF"/></g><circle cx="66" cy="66" r="18" fill="url(#gBrass)"/><text x="66" y="72" text-anchor="middle" font-family="Alegreya" font-weight="700" font-size="17" fill="#1b1408">${v}%</text></svg><div class="cap" style="font-size:9.5px;margin-top:-2px;color:var(--ivory)">${l}</div><div style="display:flex;gap:6px;justify-content:center;margin-top:6px"><button class="xbtn" style="width:34px;height:34px" data-bud="${k}:-5">−</button><button class="xbtn" style="width:34px;height:34px" data-bud="${k}:5">+</button></div></div>`}
+const budgetBody=()=>{const n=net();return `<div style="display:flex;align-items:center;gap:14px"><div style="width:96px">${gaugeSvg({r:36,v:(n>=0?'+':'')+n,d:'',f:Math.max(.02,Math.min(1,n/1200)),col:'#69B3A2'})}</div><div><div class="cap">NET INCOME / TURN</div><div style="font:italic 15px/1.3 Alegreya;color:var(--dim);margin-top:4px">Above 50% tax the people grow restless.</div></div></div><div style="display:flex;gap:8px;margin-top:12px">${knob('tax','TAX','tax',S.bud.tax)}${knob('goods','GOODS','happy',S.bud.goods)}</div><div style="display:flex;gap:8px;margin-top:14px">${knob('research','RESEARCH','research',S.bud.research)}${knob('invest','INVEST','invest',S.bud.invest)}</div>`};
+const NAT=[['Austrian Empire','AT',-42,'Hostile',112],['Prussia','PR',8,'Neutral',84],['United Kingdom','UK',-70,'War',64],['Spain','ES',46,'Friendly',58],['Russian Empire','RU',-12,'Neutral',140],['Ottoman Empire','OT',20,'Neutral',96]];
+const relCol=r=>r<=-60?'#D2603F':r<-20?'#d98a4a':r<20?'#A89C80':r<60?'#69B3A2':'#7FA8E8';
+const natBody=()=>NAT.map((n,i)=>`<div class="row" data-nat="${i}"><div style="position:relative;width:52px;height:52px"><svg width="52" height="52" viewBox="0 0 52 52" style="position:absolute"><path d="${arcD(26,26,24.5,-135,135)}" stroke="#2a2318" stroke-width="3" fill="none"/><path d="${arcD(26,26,24.5,-135,-135+270*((n[2]+100)/200))}" stroke="${relCol(n[2])}" stroke-width="3" fill="none" stroke-linecap="round"/></svg><div style="position:absolute;left:7px;top:7px">${flagMedal(n[1],38)}</div></div><div style="flex:1"><div class="cz" style="font:700 13.5px Cinzel;letter-spacing:.09em">${n[0]}</div><div style="font:italic 15px Alegreya;color:${relCol(n[2])}">${n[3]}</div></div><div style="text-align:right"><b style="font:700 18px Alegreya">${n[4]}</b><div class="cap" style="font-size:8.5px">ARMY</div></div><span style="color:var(--dim2)">${ico('move',16)}</span></div>`).join('');
+function natDetail(i){const n=NAT[i];return `<div style="display:flex;gap:14px;align-items:center">${flagMedal(n[1],72)}<div><div class="cz" style="font:700 19px/1.1 Cinzel;letter-spacing:.06em">${n[0]}</div><div style="margin-top:6px"><span class="chip ${n[2]>20?'g':n[2]<-20?'b':'n'}">${n[3]}</span></div></div></div><div class="cap" style="margin:16px 0 4px">RELATIONS</div><svg width="100%" height="50" viewBox="0 0 340 50"><path d="M10 22H330" stroke="#33291a" stroke-width="9" stroke-linecap="round"/><path d="M170 22H${170+n[2]*1.6}" stroke="${relCol(n[2])}" stroke-width="9"/>${Array.from({length:33},(_,k)=>`<path d="M${10+k*10} 34v${k%8===0?9:4}" stroke="#7F6A33"/>`).join('')}<path d="M${170+n[2]*1.6} 10l7 -10h-14z" fill="#EFE6CF" transform="translate(0 4)"/></svg><div style="font:italic 16px/1.35 Alegreya;color:var(--dim);margin:10px 0 14px">Mobilising on your eastern border.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="bt">${ico('pact',18)}Pact</button><button class="bt">${ico('trade',18)}Trade</button><button class="bt">${ico('envoys',18)}Envoy</button><button class="bt dng">${ico('war',18)}War</button></div>`}
+function toast(k,t){const d=document.createElement('div');d.className='pill slide-in';d.innerHTML=`<span style="color:${k==='bad'?'var(--bad)':'var(--good)'}">${ico(k==='bad'?'warn':'check',16)}</span>${t}`;$('#toasts').prepend(d);setTimeout(()=>d.remove(),3500)}
+function show(id,html,on=true){const e=$(id);e.innerHTML=html;e.classList.toggle('on',on)}
+function setSheet(k){S.sheet=k;$('#scrim').classList.toggle('on',['budget','nations','natd','menu'].includes(k));
+ if(k==='prov'){show('#sheetP',provSheet());$('#sheetS').classList.remove('on')}else if(k==='preview'){show('#sheetP',previewSheet())}else{$('#sheetP').classList.remove('on')}
+ if(k==='budget'){show('#sheetS',bodyScreen('Budget','treasury','Net '+(net()>=0?'+':'')+net()+' per turn',budgetBody(),'<button class="bt" data-act="revert">Revert</button><button class="bt pri" data-act="closeS">Done</button>'))}
+ else if(k==='nations'){show('#sheetS',bodyScreen('Nations','nations','Courts of Europe',natBody()))}
+ else if(k==='natd'){show('#sheetS',bodyScreen('Austrian Empire','nations','Emperor Francis II',natDetail(0),''))}
+ else if(k==='menu'){show('#sheetS',bodyScreen('Menu','settings','',`${[['check','Resume'],['save','Save game'],['load','Load game'],['settings','Settings'],['flag','Main menu']].map(([i,l])=>`<div class="row" style="height:56px"><span style="color:var(--hi)">${ico(i,22)}</span><span class="cz" style="font:600 14px Cinzel;letter-spacing:.14em">${l}</span></div>`).join('')}`,''))}
+ else if(k!=='prov'&&k!=='preview'){$('#sheetS').classList.remove('on')}
+ if(['budget','nations','natd','menu'].includes(k)===false){$('#sheetS').classList.remove('on')}}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act],[data-nat],[data-bud],[data-verb]');if(!t)return;
+ if(t.dataset.bud){const [k,d]=t.dataset.bud.split(':');S.bud[k]=Math.max(0,Math.min(100,S.bud[k]+ +d));setSheet('budget');return}
+ if(t.dataset.nat!==undefined){setSheet('natd');return}
+ if(t.dataset.verb==='move'){setSheet('preview');return}
+ const a=t.dataset.act;if(a==='nations')setSheet('nations');if(a==='budget')setSheet('budget');if(a==='menu'||a==='more')setSheet('menu');
+ if(a==='closeS'||a==='closeP'){setSheet('prov')}if(a==='cancel'){setSheet('prov')}if(a==='go'){setSheet('prov');toast('good','Army marches on Sardinia. Expected loss −7.')}
+ if(a==='end'){$('#hand').style.transform='rotate(360deg)';S.turn++;setTimeout(()=>{renderTop();renderDock();toast('good','Turn ended: +731 gold')},1000)}
+ if(a==='revert'){S.bud={tax:50,goods:20,research:15,invest:15};setSheet('budget')}});
+$('#scrim').onclick=()=>setSheet('prov');
+$('#alerts').innerHTML=`<div class="pill" style="font-size:14.5px;height:34px;width:100%;justify-content:flex-start"><span style="color:var(--bad)">${ico('warn',17)}</span>Austria masses troops on your border<span style="margin-left:auto;color:var(--dim);font:600 12px Cinzel">+1</span></div>`;
+renderTop();renderDock();renderHub();fit();setSheet('prov');
+window.demo={go(s){$('#toasts').innerHTML='';setSheet(s==='map'?'prov':s)}};
+const q=new URLSearchParams(location.search).get('s');if(q)setTimeout(()=>demo.go(q),200);
+</script></body></html>
