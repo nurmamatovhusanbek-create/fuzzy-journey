@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — notice variations</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto}
+main{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+h1{font:700 22px Cinzel;letter-spacing:.2em;text-transform:uppercase}
+.lead{font:italic 17px/1.4 Alegreya;color:var(--dim);margin:6px 0 26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(500px,1fr));gap:30px 26px}
+.card{position:relative;padding:26px 24px 22px;background:linear-gradient(135deg,#2c3a2c,#1f2a22 60%,#17201a);box-shadow:inset 0 0 0 1px #3a2f1d}
+.badge{position:absolute;left:14px;top:-12px;font:700 12px Cinzel;letter-spacing:.2em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:4px 12px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.nt{font:italic 14.5px/1.35 Alegreya;color:var(--dim);margin-bottom:14px;min-height:40px}
+.stack{display:flex;flex-direction:column;gap:7px;align-items:flex-end}
+.k-bad{--k:#E0795A}.k-info{--k:#7FA8E8}.k-dip{--k:#E5C77A}.k-good{--k:#69B3A2}
+.tz{position:relative;cursor:pointer;color:var(--ivory);filter:drop-shadow(0 5px 7px rgba(0,0,0,.55));animation:si .3s both}
+.tz .x{color:var(--dim2);display:grid;place-items:center;width:18px;height:18px;flex:none}.tz:hover .x{color:#fff}
+.tz .tm{position:absolute;left:0;right:0;bottom:0;height:3px;transform-origin:left;animation:dr 5s linear infinite}
+@keyframes dr{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.tz .kc{font:700 10px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--k)}
+.tz .bd{font:500 15.5px/1.15 Alegreya;white-space:nowrap}
+/* shared notch plate */
+.pl{clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);background:#7F6A33;padding:1px}
+.pl>.in{clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);background:#15110d;position:relative;display:flex;align-items:center}
+.tz:hover .pl{background:#C9A24B}
+/* A  medallion + plate */
+.A .in{height:38px;padding:0 10px 0 34px;gap:10px}
+.A{margin-left:22px}.A .med{position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:46px;height:46px;z-index:2}
+/* B  dispatch (title + line) */
+.B .in{padding:7px 12px 9px 18px;gap:12px}
+.B .bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:repeating-linear-gradient(180deg,var(--k) 0 1px,transparent 1px 5px);opacity:.9}
+.B .bar::after{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--k)}
+.B .tx{display:flex;flex-direction:column;gap:3px}
+/* C  pennant ribbon */
+.C .pn{clip-path:polygon(0 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,0 100%,10px 50%);background:#7F6A33;padding:1px 0}
+.C .pn>.in{clip-path:polygon(0 0,calc(100% - 13px) 0,calc(100% - 1px) 50%,calc(100% - 13px) 100%,0 100%,10px 50%);background:#15110d;position:relative;display:flex;align-items:center;height:36px;padding:0 26px 0 24px;gap:9px}
+.C .dm{width:8px;height:8px;background:var(--k);transform:rotate(45deg);flex:none}
+/* D  seal tab */
+.D .in{height:40px;padding:0 12px 0 26px;gap:11px}
+.D .seal{position:absolute;left:-13px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--k),#0000 140%),#1a140d;box-shadow:0 0 0 2px #C9A24B,0 0 0 3px #050403;display:grid;place-items:center;color:#14100a;z-index:2}
+.D{margin-left:14px}
+/* E  ledger strip */
+.E .in{height:34px;padding:0 6px 0 0;gap:0}
+.E .cd{align-self:stretch;display:flex;align-items:center;gap:7px;padding:0 12px 0 11px;background:linear-gradient(90deg,#241d13,#1a150f);border-right:1px solid #4a3d22;min-width:104px}
+.E .bd{padding:0 10px 0 12px}
+.E .tm{background:repeating-linear-gradient(90deg,var(--k) 0 1px,transparent 1px 5px);height:4px}
+/* F  card with corner ticks */
+.F .in{padding:9px 12px 12px 14px;gap:12px;align-items:flex-start}
+.F .tx{display:flex;flex-direction:column;gap:3px}
+.F .ti{font:700 12.5px Cinzel;letter-spacing:.12em;text-transform:uppercase;color:var(--ivory)}
+.F .bd{font:italic 15px/1.2 Alegreya;color:var(--dim);white-space:normal;max-width:250px}
+.F .rg{width:30px;height:30px;flex:none;margin-top:1px}
+.F .scale{position:absolute;left:14px;right:14px;bottom:3px;height:5px;background:repeating-linear-gradient(90deg,#4a3d22 0 1px,transparent 1px 6px)}
+.F .scale i{position:absolute;left:0;top:0;bottom:0;right:0;background:repeating-linear-gradient(90deg,var(--k) 0 1px,transparent 1px 6px);transform-origin:left;animation:dr 5s linear infinite}
+</style></head><body><main>
+<h1>Notices — variations</h1>
+<div class="lead">Same four notices in every treatment: alert · diplomacy · intelligence · turn report. Each drains its own timer. Click one to dismiss.</div>
+<div class="grid" id="g"></div>
+</main>
+<script>/*KIT*/</script>
+<script>
+document.body.insertAdjacentHTML('afterbegin',DEFS);
+const N=[['bad','warn','Alert','Austria masses troops on your border'],['dip','envoys','Envoy','Spain proposes a pact'],['info','info','Intelligence','Austrian cavalry seen near Strasbourg.'],['good','check','Turn report','Turn 12 ended: +731 gold']];
+const X=ico('close',10);
+const med=(k,i)=>`<svg class="med" viewBox="0 0 46 46"><g>${bezelSvg(23,23,21,36,'#0f0c09')}</g></svg><span style="position:absolute;left:-10px;top:50%;margin-top:-12px;z-index:3;color:var(--k);width:24px;height:24px;display:grid;place-items:center">${ico(i,14)}</span>`;
+const V={
+A:(k,i,c,t)=>`<div class="tz A k-${k}">${med(k,i)}<div class="pl"><div class="in"><span class="bd">${t}</span><span class="x">${X}</span></div></div></div>`,
+B:(k,i,c,t)=>`<div class="tz B k-${k}"><div class="pl"><div class="in"><span class="bar"></span><span style="color:var(--k)">${ico(i,18)}</span><span class="tx"><span class="kc">${c}</span><span class="bd">${t}</span></span><span class="x">${X}</span></div></div></div>`,
+C:(k,i,c,t)=>`<div class="tz C k-${k}"><div class="pn"><div class="in"><span class="dm"></span><span style="color:var(--k)">${ico(i,15)}</span><span class="bd">${t}</span><span class="x">${X}</span></div></div></div>`,
+D:(k,i,c,t)=>`<div class="tz D k-${k}"><span class="seal">${ico(i,15)}</span><div class="pl"><div class="in"><span class="bd">${t}</span><span class="x">${X}</span></div></div></div>`,
+E:(k,i,c,t)=>`<div class="tz E k-${k}"><div class="pl"><div class="in"><span class="cd"><span style="color:var(--k)">${ico(i,14)}</span><span class="kc">${c}</span></span><span class="bd">${t}</span><span class="x">${X}</span><span class="tm"></span></div></div></div>`,
+F:(k,i,c,t)=>`<div class="tz F k-${k}"><div class="pl"><div class="in"><svg class="rg" viewBox="0 0 30 30">${bezelSvg(15,15,14,24,'#0f0c09')}</svg><span style="position:absolute;left:14px;top:9px;width:30px;height:30px;display:grid;place-items:center;color:var(--k)">${ico(i,15)}</span><span class="tx"><span class="ti">${c}</span><span class="bd">${t}</span></span><span class="x" style="margin-left:auto">${X}</span><span class="scale"><i></i></span></div></div></div>`};
+const T={A:['A · Instrument medallion','Round brass bezel (the “instrument”) sits on a notched plate (the “document”).'],B:['B · Dispatch','Graduated colour strip, small-caps heading, one line of text.'],C:['C · Pennant','Flag-shaped ribbon, engraved diamond; the lightest of the set.'],D:['D · Wax seal','Round seal overlapping the plate’s edge.'],E:['E · Ledger strip','Dense one-liner: category column, text, a graduated timer rule.'],F:['F · Report card','Heading + italic body, bezel medallion, timer drains as a graduated scale.']};
+for(const k in V){const c=document.createElement('div');c.className='card';c.innerHTML=`<span class="badge">${T[k][0]}</span><div class="nt">${T[k][1]}</div><div class="stack">${N.map((n,i)=>V[k](...n).replace('class="tz','style="animation-delay:'+i*.08+'s" class="tz')).join('')}</div>`;document.getElementById('g').appendChild(c)}
+document.addEventListener('click',e=>{const t=e.target.closest('.tz');if(t)t.style.visibility='hidden'});
+</script></body></html>
