@@ -1,0 +1,1193 @@
+era,year,nation_id,name,modern_iso_exact_match
+ancient,-218,scythians,Scythians,
+ancient,-218,khoiasan,Khoiasan,
+ancient,-218,rome,Rome,
+ancient,-218,arabs,Arabs,
+ancient,-218,pampas_cultures,Pampas cultures,
+ancient,-218,patagonian_shellfish_and_marine_mammal_hunters,Patagonian shellfish and marine mammal hunters,
+ancient,-218,andean_hunter_gatherers,Andean hunter-gatherers,
+ancient,-218,savanna_hunter_gatherers,Savanna hunter-gatherers,
+ancient,-218,minor_states,minor states,
+ancient,-218,tasmanian_hunter_gatherers,Tasmanian hunter-gatherers,
+ancient,-218,australian_aboriginal_hunter_gatherers,Australian aboriginal hunter-gatherers,
+ancient,-218,west_african_cereal_farmers,West African cereal farmers,
+ancient,-218,saharan_pastoral_nomads,Saharan Pastoral Nomads,
+ancient,-218,mauryan_empire,Mauryan Empire,
+ancient,-218,arakan,Arakan,
+ancient,-218,,?,
+ancient,-218,brushed_pottery_culture,Brushed Pottery culture,
+ancient,-218,milograd_culture,Milograd culture,
+ancient,-218,plain_pottery_culture,Plain-Pottery culture,
+ancient,-218,maya_chiefdoms_and_states,Maya chiefdoms and states,
+ancient,-218,manioc_farmers,Manioc farmers,
+ancient,-218,amazon_hunter_gatherers,Amazon hunter-gatherers,
+ancient,-218,shellfish_gatherers,Shellfish gatherers,
+ancient,-218,malays,Malays,
+ancient,-218,thai,Thai,
+ancient,-218,subarctic_forest_hunter_gatherers,Subarctic forest hunter-gatherers,
+ancient,-218,plateau_fichers_and_hunter_gatherers,Plateau fichers and hunter gatherers,
+ancient,-218,arctic_marine_mammal_hunters,Arctic marine mammal hunters,
+ancient,-218,eastern_north_amercian_hunter_gatherers,Eastern North Amercian hunter-gatherers,
+ancient,-218,yuezhi,Yuezhi,
+ancient,-218,han_empire,Han Empire,
+ancient,-218,min_yue,Min-Yue,
+ancient,-218,nan_yue,Nan-Yue,
+ancient,-218,xiongnu,Xiongnu,
+ancient,-218,caribbean_hunter_gatherers,Caribbean hunter-gatherers,
+ancient,-218,ptolemaic_kingdom,Ptolemaic Kingdom,
+ancient,-218,kingdom_of_syphax,Kingdom of Syphax,
+ancient,-218,kingdom_of_gala,Kingdom of Gala,
+ancient,-218,chorrera,Chorrera,
+ancient,-218,meroe,Meroe,
+ancient,-218,nabatean_kingdom,Nabatean Kingdom,
+ancient,-218,celts,Celts,
+ancient,-218,saami,Saami,
+ancient,-218,finno_ugric_taiga_hunter_gatherers,Finno-Ugric taiga hunter-gatherers,
+ancient,-218,macedon_and_hellenic_league,Macedon and Hellenic League,
+ancient,-218,papuan,Papuan,
+ancient,-218,zhangzhung_kingdom,Zhangzhung Kingdom,
+ancient,-218,iron_age_chieftainships,Iron Age chieftainships,
+ancient,-218,seleucid_kingdom,Seleucid Kingdom,
+ancient,-218,parthia,Parthia,
+ancient,-218,ainu,Ainu,
+ancient,-218,turcik_tribes,Turcik tribes,
+ancient,-218,mon_khmer,Mon-Khmer,
+ancient,-218,tungus,Tungus,
+ancient,-218,simhala,Simhala,
+ancient,-218,curonians,Curonians,
+ancient,-218,mauretania,Mauretania,
+ancient,-218,desert_hunter_gatherers,Desert hunter-gatherers,
+ancient,-218,maize_farmers,Maize farmers,
+ancient,-218,monte_alba_n,Monte Albán,
+ancient,-218,teotihuaca_n,Teotihuacán,
+ancient,-218,dardania,Dardania,
+ancient,-218,norsemen,Norsemen,
+ancient,-218,chavin,Chavin,
+ancient,-218,paracas,Paracas,
+ancient,-218,western_masurian_culture,Western Masurian culture,
+ancient,-218,pomeranian_culture,Pomeranian culture ,
+ancient,-218,bell_shaped_burials_culture,Bell-shaped burials culture,
+ancient,-218,eastern_masurian_culture,Eastern Masurian culture,
+ancient,-218,paleo_siberian_hunter_gatherers,Paleo-Siberian hunter-gatherers,
+ancient,-218,sambian_nothangian_culture,Sambian-Nothangian culture,
+ancient,-218,maan,Maan,
+ancient,-218,saba,Saba,
+ancient,-218,carthage,Carthage,
+ancient,-218,pergamon,Pergamon,
+ancient,-218,plain_bison_hunters,Plain bison hunters,
+ancient,-218,adena_culture,Adena Culture,
+ancient,-218,qataban,Qataban,
+ancient,-218,hadramaut,Hadramaut,
+coldwar,1947,afghanistan,Afghanistan,af
+coldwar,1947,portugal,Portugal,pt
+coldwar,1947,albania,Albania,al
+coldwar,1947,spain,Spain,es
+coldwar,1947,united_arab_emirates,United Arab Emirates,ae
+coldwar,1947,argentina,Argentina,ar
+coldwar,1947,ussr,USSR,
+coldwar,1947,antarctica,Antarctica,aq
+coldwar,1947,australia,Australia,au
+coldwar,1947,austria,Austria,at
+coldwar,1947,burundi,Burundi,bi
+coldwar,1947,belgium,Belgium,be
+coldwar,1947,benin,Benin,bj
+coldwar,1947,burkina_faso,Burkina Faso,bf
+coldwar,1947,bangladesh,Bangladesh,bd
+coldwar,1947,bulgaria,Bulgaria,bg
+coldwar,1947,bahamas,Bahamas,bs
+coldwar,1947,yugoslavia,Yugoslavia,
+coldwar,1947,belize,Belize,bz
+coldwar,1947,bolivia,Bolivia,bo
+coldwar,1947,brazil,Brazil,br
+coldwar,1947,barbados,Barbados,bb
+coldwar,1947,brunei,Brunei,
+coldwar,1947,bhutan,Bhutan,bt
+coldwar,1947,british_empire,British Empire,
+coldwar,1947,central_african_republic,Central African Republic,cf
+coldwar,1947,canada,Canada,ca
+coldwar,1947,switzerland,Switzerland,ch
+coldwar,1947,chile,Chile,cl
+coldwar,1947,china,China,
+coldwar,1947,tibet,Tibet,
+coldwar,1947,xinjiang,Xinjiang,
+coldwar,1947,manchuria,Manchuria,
+coldwar,1947,france,France,fr
+coldwar,1947,liberia,Liberia,lr
+coldwar,1947,cameroon,Cameroon,cm
+coldwar,1947,zaire,Zaire,
+coldwar,1947,congo,Congo,
+coldwar,1947,colombia,Colombia,co
+coldwar,1947,costa_rica,Costa Rica,cr
+coldwar,1947,cuba,Cuba,cu
+coldwar,1947,czechoslovakia,Czechoslovakia,
+coldwar,1947,usa,USA,
+coldwar,1947,djibouti,Djibouti,dj
+coldwar,1947,dominica,Dominica,dm
+coldwar,1947,denmark,Denmark,dk
+coldwar,1947,dominican_republic,Dominican Republic,do
+coldwar,1947,ecuador,Ecuador,ec
+coldwar,1947,ethiopia,Ethiopia,et
+coldwar,1947,finland,Finland,fi
+coldwar,1947,french_guiana,French Guiana,gf
+coldwar,1947,gabon,Gabon,ga
+coldwar,1947,israel,Israel,il
+coldwar,1947,equatorial_guinea,Equatorial Guinea,gq
+coldwar,1947,greece,Greece,gr
+coldwar,1947,guatemala,Guatemala,gt
+coldwar,1947,netherlands,Netherlands,nl
+coldwar,1947,honduras,Honduras,hn
+coldwar,1947,haiti,Haiti,ht
+coldwar,1947,hungary,Hungary,hu
+coldwar,1947,indonesia,Indonesia,id
+coldwar,1947,india,India,in
+coldwar,1947,ireland,Ireland,ie
+coldwar,1947,iran,Iran,ir
+coldwar,1947,iraq,Iraq,iq
+coldwar,1947,iceland,Iceland,is
+coldwar,1947,italy,Italy,it
+coldwar,1947,jordan,Jordan,jo
+coldwar,1947,lebanon,Lebanon,lb
+coldwar,1947,saint_lucia,Saint Lucia,lc
+coldwar,1947,sri_lanka,Sri Lanka,lk
+coldwar,1947,luxembourg,Luxembourg,lu
+coldwar,1947,western_sahara,Western Sahara,eh
+coldwar,1947,mexico,Mexico,mx
+coldwar,1947,burma,Burma,
+coldwar,1947,mongolia,Mongolia,mn
+coldwar,1947,malaysia,Malaysia,my
+coldwar,1947,namibia,Namibia,na
+coldwar,1947,nicaragua,Nicaragua,ni
+coldwar,1947,norway,Norway,no
+coldwar,1947,nepal,Nepal,np
+coldwar,1947,new_zealand,New Zealand,nz
+coldwar,1947,oman,Oman,om
+coldwar,1947,pakistan,Pakistan,pk
+coldwar,1947,panama,Panama,pa
+coldwar,1947,peru,Peru,pe
+coldwar,1947,philippines,Philippines,ph
+coldwar,1947,papua_new_guinea,Papua New Guinea,pg
+coldwar,1947,poland,Poland,pl
+coldwar,1947,puerto_rico,Puerto Rico,pr
+coldwar,1947,paraguay,Paraguay,py
+coldwar,1947,qatar,Qatar,qa
+coldwar,1947,romania,Romania,ro
+coldwar,1947,rwanda,Rwanda,rw
+coldwar,1947,saudi_arabia,Saudi Arabia,sa
+coldwar,1947,el_salvador,El Salvador,sv
+coldwar,1947,suriname,Suriname,sr
+coldwar,1947,sweden,Sweden,se
+coldwar,1947,syria,Syria,sy
+coldwar,1947,togo,Togo,tg
+coldwar,1947,thailand,Thailand,th
+coldwar,1947,trinidad,Trinidad,
+coldwar,1947,turkey,Turkey,
+coldwar,1947,taiwan,Taiwan,
+coldwar,1947,uruguay,Uruguay,uy
+coldwar,1947,venezuela,Venezuela,ve
+coldwar,1947,samoa,Samoa,ws
+coldwar,1947,yemen,Yemen,ye
+coldwar,1947,south_africa,South Africa,za
+discovery,1492,timurid_emirates,Timurid Emirates,
+discovery,1492,chagatai_khanate,Chagatai Khanate,
+discovery,1492,bantou,Bantou,
+discovery,1492,congo,Congo,
+discovery,1492,ottoman_empire,Ottoman Empire,
+discovery,1492,arago_n,Aragón,
+discovery,1492,muscat,Muscat,
+discovery,1492,pampas_cultures,Pampas cultures,
+discovery,1492,patagonian_shellfish_and_marine_mammal_hunters,Patagonian shellfish and marine mammal hunters,
+discovery,1492,inca_empire,Inca Empire,
+discovery,1492,andean_hunter_gatherers,Andean hunter-gatherers,
+discovery,1492,savanna_hunter_gatherers,Savanna hunter-gatherers,
+discovery,1492,emirate_of_the_white_sheep_turks,Emirate of the White Sheep Turks,
+discovery,1492,tasmanian_hunter_gatherers,Tasmanian hunter-gatherers,
+discovery,1492,australian_aboriginal_hunter_gatherers,Australian aboriginal hunter-gatherers,
+discovery,1492,holy_roman_empire,Holy Roman Empire,
+discovery,1492,west_african_cereal_farmers,West African cereal farmers,
+discovery,1492,mossi_states,Mossi States,
+discovery,1492,bengal,Bengal,
+discovery,1492,arakan,Arakan,
+discovery,1492,imperial_hungary,Imperial Hungary,
+discovery,1492,poland_lithuania,Poland-Lithuania,
+discovery,1492,maya_city_states,Maya city-states,
+discovery,1492,amazon_hunter_gatherers,Amazon hunter-gatherers,
+discovery,1492,malaysian_islamic_states,Malaysian Islamic states,
+discovery,1492,tibet,Tibet,
+discovery,1492,khoiasan,Khoiasan,
+discovery,1492,subarctic_forest_hunter_gatherers,Subarctic forest hunter-gatherers,
+discovery,1492,athabaskan,Athabaskan,
+discovery,1492,mi_kma_ki,Mi'kma'ki,
+discovery,1492,beothuk,Beothuk,
+discovery,1492,swiss_confederation,Swiss Confederation,
+discovery,1492,ming_chinese_empire,Ming Chinese Empire,
+discovery,1492,akan,Akan,
+discovery,1492,cyprus,Cyprus,cy
+discovery,1492,adal,Adal,
+discovery,1492,kalmar_union,Kalmar Union,
+discovery,1492,zayyanid_caliphate,Zayyanid Caliphate,
+discovery,1492,hafsid_caliphate,Hafsid Caliphate,
+discovery,1492,shuar,Shuar,
+discovery,1492,mamluke_sultanate,Mamluke Sultanate,
+discovery,1492,ethiopia,Ethiopia,et
+discovery,1492,castille,Castille,
+discovery,1492,teutonic_knights,Teutonic Knights,
+discovery,1492,sa_mi,Sámi,
+discovery,1492,france,France,fr
+discovery,1492,britany,Britany,
+discovery,1492,scottland,Scottland,
+discovery,1492,england,England,gb-eng
+discovery,1492,georgia,Georgia,ge
+discovery,1492,mali,Mali,ml
+discovery,1492,venice,Venice,
+discovery,1492,malacca,Malacca,
+discovery,1492,sultanate_of_delhi,Sultanate of Delhi,
+discovery,1492,golkonda,Golkonda,
+discovery,1492,vijayanagara,Vijayanagara,
+discovery,1492,ahmadnagar,Ahmadnagar,
+discovery,1492,burmese_kingdoms,Burmese kingdoms,
+discovery,1492,rajastan,Rajastan,
+discovery,1492,islamic_states,Islamic states,
+discovery,1492,papal_states,Papal States,
+discovery,1492,arabs,Arabs,
+discovery,1492,japan,Japan,jp
+discovery,1492,white_horde,White Horde,
+discovery,1492,golden_horde,Golden Horde,
+discovery,1492,khanate_of_sibir,Khanate of Sibir,
+discovery,1492,islamic_city_states,Islamic city-states,
+discovery,1492,ayutthaya,Ayutthaya,
+discovery,1492,cambodia,Cambodia,kh
+discovery,1492,korea,Korea,
+discovery,1492,laos,Laos,la
+discovery,1492,sinhalese_kingdoms,Sinhalese kingdoms,
+discovery,1492,wattasid_caliphate,Wattasid Caliphate,
+discovery,1492,madagascar,Madagascar,mg
+discovery,1492,expansionist_kingdom_of_merina,Expansionist Kingdom of Merina,
+discovery,1492,pomo,Pomo,
+discovery,1492,apache,Apache,
+discovery,1492,aztec_empire,Aztec Empire,
+discovery,1492,mixtec_empire,Mixtec Empire,
+discovery,1492,songhai,Songhai,
+discovery,1492,pegu,Pegu,
+discovery,1492,mwenemutapa,Mwenemutapa,
+discovery,1492,bornu_kanem,Bornu-Kanem,
+discovery,1492,hausa_states,Hausa States,
+discovery,1492,benin,Benin,bj
+discovery,1492,oyo,Oyo,
+discovery,1492,denmark_norway,Denmark-Norway,
+discovery,1492,maori,Maori,
+discovery,1492,hadramaut,Hadramaut,
+discovery,1492,philippines,Philippines,ph
+discovery,1492,papua_new_guinea,Papua New Guinea,pg
+discovery,1492,portugal,Portugal,pt
+discovery,1492,grand_duchy_of_moscow,Grand Duchy of Moscow,
+discovery,1492,oirat_confederation,Oirat Confederation,
+discovery,1492,siberians,Siberians,
+discovery,1492,pskov,Pskov,
+discovery,1492,ryazan,Ryazan,
+discovery,1492,funj,Funj,
+discovery,1492,alwa,Alwa,
+discovery,1492,taiwan,Taiwan,
+discovery,1492,iroquois,Iroquois,
+discovery,1492,plain_bison_hunters,Plain bison hunters,
+discovery,1492,plateau_fichers_and_hunter_gatherers,Plateau fichers and hunter gatherers,
+discovery,1492,hopi,Hopi,
+discovery,1492,desert_hunter_gatherers,Desert hunter-gatherers,
+discovery,1492,navajo,Navajo,
+discovery,1492,natchez,Natchez,
+discovery,1492,comanche,Comanche,
+discovery,1492,calusa,Calusa,
+discovery,1492,cherookee,Cherookee,
+discovery,1492,delaware,Delaware,
+discovery,1492,caribbean_hunter_gatherers,Caribbean hunter-gatherers,
+discovery,1492,a_i_vie_t,Đại Việt,
+discovery,1492,champa,Champa,
+discovery,1492,tu_i_tonga_empire,Tuʻi Tonga Empire,
+discovery,1492,yemen,Yemen,ye
+gunpowder,1700,safavid_empire,Safavid Empire,
+gunpowder,1700,khiva_khanate,Khiva Khanate,
+gunpowder,1700,mughal_empire,Mughal Empire,
+gunpowder,1700,central_asian_khanates,Central Asian khanates,
+gunpowder,1700,lunda,Lunda,
+gunpowder,1700,congo,Congo,
+gunpowder,1700,ottoman_empire,Ottoman Empire,
+gunpowder,1700,france,France,fr
+gunpowder,1700,pampas_cultures,Pampas cultures,
+gunpowder,1700,patagonian_shellfish_and_marine_mammal_hunters,Patagonian shellfish and marine mammal hunters,
+gunpowder,1700,spanish_habsburg,Spanish Habsburg,
+gunpowder,1700,andean_hunter_gatherers,Andean hunter-gatherers,
+gunpowder,1700,savanna_hunter_gatherers,Savanna hunter-gatherers,
+gunpowder,1700,tasmanian_hunter_gatherers,Tasmanian hunter-gatherers,
+gunpowder,1700,wiradjuri,Wiradjuri,
+gunpowder,1700,warumungu,Warumungu,
+gunpowder,1700,wawula,Wawula,
+gunpowder,1700,kokatha,Kokatha,
+gunpowder,1700,iningai,Iningai,
+gunpowder,1700,holy_roman_empire,Holy Roman Empire,
+gunpowder,1700,luxembourg,Luxembourg,lu
+gunpowder,1700,oyo,Oyo,
+gunpowder,1700,mossi_states,Mossi States,
+gunpowder,1700,shan_states,Shan states,
+gunpowder,1700,austrian_empire,Austrian Empire,
+gunpowder,1700,polish_lithuanian_commonwealth,Polish–Lithuanian Commonwealth,
+gunpowder,1700,amazon_hunter_gatherers,Amazon hunter-gatherers,
+gunpowder,1700,portugal,Portugal,pt
+gunpowder,1700,bhutan,Bhutan,bt
+gunpowder,1700,rozwi,Rozwi,
+gunpowder,1700,cree,Cree,
+gunpowder,1700,subarctic_forest_hunter_gatherers,Subarctic forest hunter-gatherers,
+gunpowder,1700,athabascan,Athabascan,
+gunpowder,1700,t_atsaot_ine,T'atsaot'ine,
+gunpowder,1700,mi_kma_ki,Mi'kma'ki,
+gunpowder,1700,swiss_confederation,Swiss Confederation,
+gunpowder,1700,manchu_empire,Manchu Empire,
+gunpowder,1700,tibet,Tibet,
+gunpowder,1700,post_ming_warlords,Post-Ming Warlords,
+gunpowder,1700,mali,Mali,ml
+gunpowder,1700,bornu_kanem,Bornu-Kanem,
+gunpowder,1700,luba,Luba,
+gunpowder,1700,sweden,Sweden,se
+gunpowder,1700,denmark_norway,Denmark-Norway,
+gunpowder,1700,morocco,Morocco,ma
+gunpowder,1700,ethiopia,Ethiopia,et
+gunpowder,1700,awsa,Awsa,
+gunpowder,1700,oromo,Oromo,
+gunpowder,1700,sardinia_piedmont,Sardinia-Piedmont,
+gunpowder,1700,scottalnd,Scottalnd,
+gunpowder,1700,england_and_ireland,England and Ireland,
+gunpowder,1700,akan,Akan,
+gunpowder,1700,essequibo,Essequibo,
+gunpowder,1700,netherlands,Netherlands,nl
+gunpowder,1700,hindu_kingdoms,Hindu Kingdoms,
+gunpowder,1700,ava,Ava,
+gunpowder,1700,papal_states,Papal States,
+gunpowder,1700,venice,Venice,
+gunpowder,1700,tokugawa_shogunate,Tokugawa Shogunate,
+gunpowder,1700,quazaq_khanate,Quazaq Khanate,
+gunpowder,1700,nogai_horde,Nogai Horde,
+gunpowder,1700,tsardom_of_muscovy,Tsardom of Muscovy,
+gunpowder,1700,ayutthaya,Ayutthaya,
+gunpowder,1700,cambodia,Cambodia,kh
+gunpowder,1700,korea,Korea,
+gunpowder,1700,laotian_states,Laotian states,
+gunpowder,1700,madagascar,Madagascar,mg
+gunpowder,1700,expansionist_kingdom_of_merina,Expansionist Kingdom of Merina,
+gunpowder,1700,arakan_indian_princely_state,Arakan (Indian princely state),
+gunpowder,1700,malaya,Malaya,
+gunpowder,1700,songhai,Songhai,
+gunpowder,1700,hausa_states,Hausa States,
+gunpowder,1700,benin,Benin,bj
+gunpowder,1700,dutch_republic,Dutch Republic,
+gunpowder,1700,maori,Maori,
+gunpowder,1700,gharra,Gharra,
+gunpowder,1700,oman,Oman,om
+gunpowder,1700,mahra,Mahra,
+gunpowder,1700,philippines,Philippines,ph
+gunpowder,1700,papous,Papous,
+gunpowder,1700,prussia,Prussia,
+gunpowder,1700,chukchi,Chukchi,
+gunpowder,1700,koryaks,Koryaks,
+gunpowder,1700,darfur,Darfur,
+gunpowder,1700,wadai,Wadai,
+gunpowder,1700,lan_na,Lan Na,
+gunpowder,1700,england,England,gb-eng
+gunpowder,1700,obiwa,Obiwa,
+gunpowder,1700,gros_ventre,Gros Ventre,
+gunpowder,1700,yankontai,Yankontai,
+gunpowder,1700,shoshoni,Shoshoni,
+gunpowder,1700,yavapai,Yavapai,
+gunpowder,1700,yokuts,Yokuts,
+gunpowder,1700,ute,Ute,
+gunpowder,1700,mescalero,Mescalero,
+gunpowder,1700,northern_paiute,Northern Paiute,
+gunpowder,1700,quapaw,Quapaw,
+gunpowder,1700,iowa,Iowa,
+gunpowder,1700,kiowa,Kiowa,
+gunpowder,1700,osage,Osage,
+gunpowder,1700,pawnee,Pawnee,
+gunpowder,1700,teton,Teton,
+gunpowder,1700,comanche,Comanche,
+gunpowder,1700,illinnois,Illinnois,
+gunpowder,1700,shawnee,Shawnee,
+gunpowder,1700,iroquois,Iroquois,
+gunpowder,1700,potawatomi,Potawatomi,
+gunpowder,1700,a_i_vie_t,Đại Việt,
+gunpowder,1700,hadramaut,Hadramaut,
+medieval,1096,ghaznavid_emirate,Ghaznavid Emirate,
+medieval,1096,karkhanids,Karkhanids,
+medieval,1096,bantou,Bantou,
+medieval,1096,bulgar_khanate,Bulgar Khanate,
+medieval,1096,france,France,fr
+medieval,1096,muscat,Muscat,
+medieval,1096,pampas_cultures,Pampas cultures,
+medieval,1096,patagonian_shellfish_and_marine_mammal_hunters,Patagonian shellfish and marine mammal hunters,
+medieval,1096,andean_hunter_gatherers,Andean hunter-gatherers,
+medieval,1096,savanna_hunter_gatherers,Savanna hunter-gatherers,
+medieval,1096,byzantine_empire,Byzantine Empire,
+medieval,1096,syunik,Syunik,
+medieval,1096,tasmanian_hunter_gatherers,Tasmanian hunter-gatherers,
+medieval,1096,australian_aboriginal_hunter_gatherers,Australian aboriginal hunter-gatherers,
+medieval,1096,holy_roman_empire,Holy Roman Empire,
+medieval,1096,tashir,Tashir,
+medieval,1096,arran,Arran,
+medieval,1096,shirvan,Shirvan,
+medieval,1096,artsakh,Artsakh,
+medieval,1096,maskat,Maskat,
+medieval,1096,kakheti_hereti,Kakheti-Hereti,
+medieval,1096,west_african_cereal_farmers,West African cereal farmers,
+medieval,1096,palas,Palas,
+medieval,1096,senas,Senas,
+medieval,1096,serbia,Serbia,rs
+medieval,1096,kievan_rus,Kievan Rus,
+medieval,1096,principality_of_polotsk,Principality of Polotsk,
+medieval,1096,maya_city_states,Maya city-states,
+medieval,1096,amazon_hunter_gatherers,Amazon hunter-gatherers,
+medieval,1096,tiahuanaco_empire,Tiahuanaco Empire,
+medieval,1096,minor_hindu_and_buddhist_states,minor Hindu and Buddhist states,
+medieval,1096,tibet,Tibet,
+medieval,1096,khoiasan,Khoiasan,
+medieval,1096,subarctic_forest_hunter_gatherers,Subarctic forest hunter-gatherers,
+medieval,1096,athabaskan,Athabaskan,
+medieval,1096,arctic_marine_mammal_hunters,Arctic marine mammal hunters,
+medieval,1096,eastern_north_amercian_hunter_gatherers,Eastern North Amercian hunter-gatherers,
+medieval,1096,boethuk,Boethuk,
+medieval,1096,burgandy,Burgandy,
+medieval,1096,xixia,Xixia,
+medieval,1096,song_empire,Song Empire,
+medieval,1096,liao,Liao,
+medieval,1096,cuman_kipchak_confederation,Cuman-Kipchak confederation,
+medieval,1096,hainan,Hainan,
+medieval,1096,nan_chao,Nan Chao,
+medieval,1096,mongols,Mongols,
+medieval,1096,taino,Taino,
+medieval,1096,guanahatabeyes,Guanahatabeyes,
+medieval,1096,cyprus,Cyprus,cy
+medieval,1096,poland,Poland,pl
+medieval,1096,prussians,Prussians,
+medieval,1096,arawaks,Arawaks,
+medieval,1096,denmark,Denmark,dk
+medieval,1096,almoravid_dynasty,Almoravid dynasty,
+medieval,1096,fatimid_caliphate,Fatimid Caliphate,
+medieval,1096,makkura,Makkura,
+medieval,1096,navarre,Navarre,
+medieval,1096,leo_n,León,
+medieval,1096,castilla,Castilla,
+medieval,1096,arago_n,Aragón,
+medieval,1096,sa_mi,Sámi,
+medieval,1096,corsica,Corsica,
+medieval,1096,britany,Britany,
+medieval,1096,scotland,Scotland,gb-sct
+medieval,1096,england,England,gb-eng
+medieval,1096,celtic_kingdoms,Celtic kingdoms,
+medieval,1096,kingdom_of_georgia,Kingdom of Georgia,
+medieval,1096,croatia,Croatia,hr
+medieval,1096,hungary,Hungary,hu
+medieval,1096,srivijaya_empire,Srivijaya Empire,
+medieval,1096,east_java,East Java,
+medieval,1096,hindu_kingdoms,Hindu Kingdoms,
+medieval,1096,chauhans,Chauhans,
+medieval,1096,western_chalukyas,Western Chalukyas,
+medieval,1096,cholas,Cholas,
+medieval,1096,chandellas,Chandellas,
+medieval,1096,pratiharas,Pratiharas,
+medieval,1096,solankis,Solankis,
+medieval,1096,seljuk_empire,Seljuk Empire,
+medieval,1096,icelandic_commonwealth,Icelandic Commonwealth,
+medieval,1096,sardinia,Sardinia,
+medieval,1096,dutchy_of_benevento,Dutchy of Benevento,
+medieval,1096,papal_states,Papal States,
+medieval,1096,imperial_japan_fujiwara,Imperial Japan (Fujiwara),
+medieval,1096,ainu,Ainu,
+medieval,1096,oghuz,Oghuz,
+medieval,1096,islamic_city_states,Islamic city-states,
+medieval,1096,khmer_empire,Khmer Empire,
+medieval,1096,kingdom_of_sukhotai,Kingdom of Sukhotai,
+medieval,1096,a_i_vie_t,Đại Việt,
+medieval,1096,alans,Alans,
+medieval,1096,madagascar,Madagascar,mg
+medieval,1096,expansionist_kingdom_of_merina,Expansionist Kingdom of Merina,
+medieval,1096,mesoamerican_city_states_and_chiefdoms,Mesoamerican city-states and chiefdoms,
+medieval,1096,toltec_empire,Toltec Empire,
+medieval,1096,mali,Mali,ml
+medieval,1096,pyu_state,Pyu state,
+medieval,1096,mon_state,Mon state,
+medieval,1096,ghana,Ghana,gh
+medieval,1096,kanem,Kanem,
+medieval,1096,norway,Norway,no
+medieval,1096,hadramaut,Hadramaut,
+medieval,1096,soomra_emirate,Soomra Emirate,
+medieval,1096,huari_empire,Huari Empire,
+medieval,1096,chimu_empire,Chimú Empire,
+medieval,1096,korea,Korea,
+medieval,1096,finno_ugric_taiga_hunter_gatherers,Finno-Ugric taiga hunter-gatherers,
+medieval,1096,paleo_siberian_hunter_gatherers,Paleo-Siberian hunter-gatherers,
+medieval,1096,volga_bulgars,Volga Bulgars,
+medieval,1096,karakalpaks,Karakalpaks,
+medieval,1096,khundzi,Khundzi,
+medieval,1096,alwa,Alwa,
+medieval,1096,takrur,Takrur,
+medieval,1096,sweden,Sweden,se
+medieval,1096,plain_bison_hunters,Plain bison hunters,
+medieval,1096,plateau_fichers_and_hunter_gatherers,Plateau fichers and hunter gatherers,
+medieval,1096,desert_hunter_gatherers,Desert hunter-gatherers,
+medieval,1096,caribbean_hunter_gatherers,Caribbean hunter-gatherers,
+medieval,1096,champa,Champa,
+medieval,1096,tu_i_tonga_empire,Tuʻi Tonga Empire,
+medieval,1096,yemen,Yemen,ye
+medieval,1096,great_zimbabwe,Great Zimbabwe,
+mongol,1300,ilkhanate,Ilkhanate,
+mongol,1300,mongol_empire,Mongol Empire,
+mongol,1300,bantou,Bantou,
+mongol,1300,byzantine_empire,Byzantine Empire,
+mongol,1300,arago_n,Aragón,
+mongol,1300,muscat,Muscat,
+mongol,1300,pampas_cultures,Pampas cultures,
+mongol,1300,patagonian_shellfish_and_marine_mammal_hunters,Patagonian shellfish and marine mammal hunters,
+mongol,1300,andean_hunter_gatherers,Andean hunter-gatherers,
+mongol,1300,savanna_hunter_gatherers,Savanna hunter-gatherers,
+mongol,1300,tasmanian_hunter_gatherers,Tasmanian hunter-gatherers,
+mongol,1300,australian_aboriginal_hunter_gatherers,Australian aboriginal hunter-gatherers,
+mongol,1300,holy_roman_empire,Holy Roman Empire,
+mongol,1300,west_african_cereal_farmers,West African cereal farmers,
+mongol,1300,mali,Mali,ml
+mongol,1300,sultanate_of_delhi,Sultanate of Delhi,
+mongol,1300,pagan,Pagan,
+mongol,1300,bulgar_khanate,Bulgar Khanate,
+mongol,1300,ras_ka,Raška,
+mongol,1300,hungary,Hungary,hu
+mongol,1300,lithuania,Lithuania,lt
+mongol,1300,khanate_of_the_golden_horde,Khanate of the Golden Horde,
+mongol,1300,maya_city_states,Maya city-states,
+mongol,1300,amazon_hunter_gatherers,Amazon hunter-gatherers,
+mongol,1300,aymara_kingdoms,Aymara kingdoms,
+mongol,1300,minor_hindu_and_buddhist_kingdoms,minor Hindu and Buddhist kingdoms,
+mongol,1300,tibet,Tibet,
+mongol,1300,khoiasan,Khoiasan,
+mongol,1300,subarctic_forest_hunter_gatherers,Subarctic forest hunter-gatherers,
+mongol,1300,athabaskan,Athabaskan,
+mongol,1300,eastern_north_amercian_hunter_gatherers,Eastern North Amercian hunter-gatherers,
+mongol,1300,beothuk,Beothuk,
+mongol,1300,hainan,Hainan,
+mongol,1300,taino,Taino,
+mongol,1300,guanahatabeyes,Guanahatabeyes,
+mongol,1300,cyprus,Cyprus,cy
+mongol,1300,shoa,Shoa,
+mongol,1300,arawaks,Arawaks,
+mongol,1300,denmark,Denmark,dk
+mongol,1300,hafsid_caliphate,Hafsid Caliphate,
+mongol,1300,shuar,Shuar,
+mongol,1300,mamluke_sultanate,Mamluke Sultanate,
+mongol,1300,castile,Castile,
+mongol,1300,granada,Granada,
+mongol,1300,teutonic_knights,Teutonic Knights,
+mongol,1300,ethiopia,Ethiopia,et
+mongol,1300,samis,Samis,
+mongol,1300,novgorod,Novgorod,
+mongol,1300,france,France,fr
+mongol,1300,english_territory,English territory,
+mongol,1300,corsica,Corsica,
+mongol,1300,britany,Britany,
+mongol,1300,scotland,Scotland,gb-sct
+mongol,1300,georgia,Georgia,ge
+mongol,1300,aceh,Aceh,
+mongol,1300,srivijaya_empire,Srivijaya Empire,
+mongol,1300,kediri,Kediri,
+mongol,1300,kashmir_and_ladakh,Kashmir and Ladakh,
+mongol,1300,minor_hindu_kingdoms,minor Hindu kingdoms,
+mongol,1300,pandya_state,Pandya state,
+mongol,1300,norway,Norway,no
+mongol,1300,sardinia,Sardinia,
+mongol,1300,sicily,Sicily,
+mongol,1300,papal_states,Papal States,
+mongol,1300,shogun_japan_kamakura,Shogun Japan (Kamakura),
+mongol,1300,ainus,Ainus,
+mongol,1300,islamic_city_states,Islamic city-states,
+mongol,1300,khmer_empire,Khmer Empire,
+mongol,1300,sukhothai,Sukhothai,
+mongol,1300,a_i_vie_t,Đại Việt,
+mongol,1300,sinhalese_kingdom,Sinhalese kingdom,
+mongol,1300,morocco,Morocco,ma
+mongol,1300,madagascar,Madagascar,mg
+mongol,1300,expansionist_kingdom_of_merina,Expansionist Kingdom of Merina,
+mongol,1300,zapotec_empire,Zapotec Empire,
+mongol,1300,bornu_kanem,Bornu-Kanem,
+mongol,1300,benin,Benin,bj
+mongol,1300,maori,Maori,
+mongol,1300,hadramaut,Hadramaut,
+mongol,1300,andean_states_and_chiefdoms,Andean states and chiefdoms,
+mongol,1300,chimu_empire,Chimú Empire,
+mongol,1300,poland,Poland,pl
+mongol,1300,portugal,Portugal,pt
+mongol,1300,siberians,Siberians,
+mongol,1300,makkura,Makkura,
+mongol,1300,alwa,Alwa,
+mongol,1300,sweden,Sweden,se
+mongol,1300,seljuk_caliphate,Seljuk Caliphate,
+mongol,1300,trebizond,Trebizond,
+mongol,1300,plain_bison_hunters,Plain bison hunters,
+mongol,1300,plateau_fichers_and_hunter_gatherers,Plateau fichers and hunter gatherers,
+mongol,1300,desert_hunter_gatherers,Desert hunter-gatherers,
+mongol,1300,caribbean_hunter_gatherers,Caribbean hunter-gatherers,
+mongol,1300,champa,Champa,
+mongol,1300,tu_i_tonga_empire,Tuʻi Tonga Empire,
+mongol,1300,yemen,Yemen,ye
+mongol,1300,great_zimbabwe,Great Zimbabwe,
+napoleonic,1804,afghanistan,Afghanistan,af
+napoleonic,1804,lunda,Lunda,
+napoleonic,1804,congo,Congo,
+napoleonic,1804,ottoman_empire,Ottoman Empire,
+napoleonic,1804,france,France,fr
+napoleonic,1804,pampas_cultures,Pampas cultures,
+napoleonic,1804,patagonian_shellfish_and_marine_mammal_hunters,Patagonian shellfish and marine mammal hunters,
+napoleonic,1804,viceroyalty_of_the_ri_o_de_la_plata,Viceroyalty of the Río de la Plata,
+napoleonic,1804,central_asian_khanates,Central Asian khanates,
+napoleonic,1804,aboriginal_tasmanians,Aboriginal Tasmanians,
+napoleonic,1804,wiradjuri,Wiradjuri,
+napoleonic,1804,warumungu,Warumungu,
+napoleonic,1804,wawula,Wawula,
+napoleonic,1804,kokatha,Kokatha,
+napoleonic,1804,iningai,Iningai,
+napoleonic,1804,austrian_empire,Austrian Empire,
+napoleonic,1804,rift_valley_states,Rift Valley States,
+napoleonic,1804,habsburg_austria,Habsburg Austria,
+napoleonic,1804,dahomey,Dahomey,
+napoleonic,1804,kong_empire,Kong Empire,
+napoleonic,1804,mossi_states,Mossi States,
+napoleonic,1804,bundelkhand,Bundelkhand,
+napoleonic,1804,burma,Burma,
+napoleonic,1804,russian_empire,Russian Empire,
+napoleonic,1804,uk,UK,
+napoleonic,1804,spain,Spain,es
+napoleonic,1804,portugal,Portugal,pt
+napoleonic,1804,bhutan,Bhutan,bt
+napoleonic,1804,rozwi,Rozwi,
+napoleonic,1804,rupert_s_land,Rupert's Land,
+napoleonic,1804,acadian_peninsula_uk,Acadian Peninsula (UK),
+napoleonic,1804,helvetic_republic,Helvetic Republic,
+napoleonic,1804,qing_empire,Qing Empire,
+napoleonic,1804,asante,Asante,
+napoleonic,1804,bornu_kanem,Bornu-Kanem,
+napoleonic,1804,lozi,Lozi,
+napoleonic,1804,luba,Luba,
+napoleonic,1804,prussia,Prussia,
+napoleonic,1804,swabia,Swabia,
+napoleonic,1804,saxony,Saxony,
+napoleonic,1804,denmark_norway,Denmark-Norway,
+napoleonic,1804,morocco,Morocco,ma
+napoleonic,1804,air,Air,
+napoleonic,1804,ethiopia,Ethiopia,et
+napoleonic,1804,awsa,Awsa,
+napoleonic,1804,oromo,Oromo,
+napoleonic,1804,sweden,Sweden,se
+napoleonic,1804,segu,Segu,
+napoleonic,1804,dutch_east_indies,Dutch East Indies,
+napoleonic,1804,sikhs,Sikhs,
+napoleonic,1804,rajputs,Rajputs,
+napoleonic,1804,nizam_s_dominions,Nizam's Dominions,
+napoleonic,1804,circars,Circars,
+napoleonic,1804,maratha_confederacy,Maratha Confederacy,
+napoleonic,1804,mysore,Mysore,
+napoleonic,1804,nepal,Nepal,np
+napoleonic,1804,persia,Persia,
+napoleonic,1804,papal_states,Papal States,
+napoleonic,1804,tuscany,Tuscany,
+napoleonic,1804,kingdom_of_the_two_sicilies,Kingdom of the Two Sicilies,
+napoleonic,1804,lombardy,Lombardy,
+napoleonic,1804,venetia,Venetia,
+napoleonic,1804,japan,Japan,jp
+napoleonic,1804,cambodia,Cambodia,kh
+napoleonic,1804,korea,Korea,
+napoleonic,1804,rattanakosin_kingdom,Rattanakosin Kingdom,
+napoleonic,1804,netherlands,Netherlands,nl
+napoleonic,1804,madagascar,Madagascar,mg
+napoleonic,1804,expansionist_kingdom_of_merina,Expansionist Kingdom of Merina,
+napoleonic,1804,kaarta,Kaarta,
+napoleonic,1804,arakan,Arakan,
+napoleonic,1804,malaya,Malaya,
+napoleonic,1804,songhai,Songhai,
+napoleonic,1804,hausa_states,Hausa States,
+napoleonic,1804,sotho,Sotho,
+napoleonic,1804,oyo,Oyo,
+napoleonic,1804,batavian_republic,Batavian Republic,
+napoleonic,1804,m_ori,M?ori,
+napoleonic,1804,oman,Oman,om
+napoleonic,1804,sindh,Sindh,
+napoleonic,1804,philippines,Philippines,ph
+napoleonic,1804,papua_new_guinea,Papua New Guinea,pg
+napoleonic,1804,nejd,Nejd,
+napoleonic,1804,darfur,Darfur,
+napoleonic,1804,funj,Funj,
+napoleonic,1804,zanzibar,Zanzibar,
+napoleonic,1804,wadai,Wadai,
+napoleonic,1804,bagirmi,Bagirmi,
+napoleonic,1804,united_states_of_america,United States of America,
+napoleonic,1804,a_i_vie_t,Đại Việt,
+napoleonic,1804,cochin_china,Cochin China,
+napoleonic,1804,yemen,Yemen,ye
+napoleonic,1804,zulu,Zulu,
+napoleonic,1804,xhosa,Xhosa,
+roman,117,parthian_empire,Parthian Empire,
+roman,117,suren_kingdom,Suren Kingdom,
+roman,117,khoiasan,Khoiasan,
+roman,117,roman_empire,Roman Empire,
+roman,117,pampas_cultures,Pampas cultures,
+roman,117,patagonian_shellfish_and_marine_mammal_hunters,Patagonian shellfish and marine mammal hunters,
+roman,117,andean_hunter_gatherers,Andean hunter-gatherers,
+roman,117,savanna_hunter_gatherers,Savanna hunter-gatherers,
+roman,117,armenia,Armenia,am
+roman,117,tasmanian_hunter_gatherers,Tasmanian hunter-gatherers,
+roman,117,australian_aboriginal_hunter_gatherers,Australian aboriginal hunter-gatherers,
+roman,117,west_african_cereal_farmers,West African cereal farmers,
+roman,117,magadha,Magadha,
+roman,117,maya_chiefdoms_and_states,Maya chiefdoms and states,
+roman,117,amazon_hunter_gatherers,Amazon hunter-gatherers,
+roman,117,shellfish_gatherers,Shellfish gatherers,
+roman,117,laurel_complex,Laurel complex,
+roman,117,subarctic_forest_hunter_gatherers,Subarctic forest hunter-gatherers,
+roman,117,plateau_fichers_and_hunter_gatherers,Plateau fichers and hunter gatherers,
+roman,117,arctic_marine_mammal_hunters,Arctic marine mammal hunters,
+roman,117,paleo_inuit,Paleo-Inuit,
+roman,117,han,Han,
+roman,117,hainan,Hainan,
+roman,117,caribbean_hunter_gatherers,Caribbean hunter-gatherers,
+roman,117,boihaenum,Boihaenum,
+roman,117,meroe,Meroe,
+roman,117,axum,Axum,
+roman,117,sa_mi,Sámi,
+roman,117,finno_ugric_taiga_hunter_gatherers,Finno-Ugric taiga hunter-gatherers,
+roman,117,dumonii,Dumonii,
+roman,117,saka_kingdom,Saka Kingdom,
+roman,117,satavahanihara,Satavahanihara,
+roman,117,chola,Chola,
+roman,117,kalinga,Kalinga,
+roman,117,ainu,Ainu,
+roman,117,paekche,Paekche,
+roman,117,koguryo,Koguryo,
+roman,117,silla,Silla,
+roman,117,simhala,Simhala,
+roman,117,desert_hunter_gatherers,Desert hunter-gatherers,
+roman,117,monte_alba_n,Monte Albán,
+roman,117,teotihuaca_n,Teotihuacán,
+roman,117,moche,Moche,
+roman,117,nazca,Nazca,
+roman,117,paleo_siberian_hunter_gatherers,Paleo-Siberian hunter-gatherers,
+roman,117,himyarite_kingdom,Himyarite Kingdom,
+roman,117,heruli,Heruli,
+roman,117,plain_bison_hunters,Plain bison hunters,
+roman,117,hopewell_culture,Hopewell Culture,
+roman,117,marksville_culture,Marksville Culture,
+roman,117,copena,Copena,
+roman,117,swift_creek_culture,Swift Creek Culture,
+roman,117,goodall_focus,Goodall Focus,
+roman,117,hadramaut,Hadramaut,
+timurid,1400,timurid_empire,Timurid Empire,
+timurid,1400,bantou,Bantou,
+timurid,1400,byzantine_empire,Byzantine Empire,
+timurid,1400,arago_n,Aragón,
+timurid,1400,muscat,Muscat,
+timurid,1400,pampas_cultures,Pampas cultures,
+timurid,1400,patagonian_shellfish_and_marine_mammal_hunters,Patagonian shellfish and marine mammal hunters,
+timurid,1400,andean_hunter_gatherers,Andean hunter-gatherers,
+timurid,1400,savanna_hunter_gatherers,Savanna hunter-gatherers,
+timurid,1400,tasmanian_hunter_gatherers,Tasmanian hunter-gatherers,
+timurid,1400,australian_aboriginal_hunter_gatherers,Australian aboriginal hunter-gatherers,
+timurid,1400,holy_roman_empire,Holy Roman Empire,
+timurid,1400,west_african_cereal_farmers,West African cereal farmers,
+timurid,1400,mali,Mali,ml
+timurid,1400,sultanate_of_delhi,Sultanate of Delhi,
+timurid,1400,pagan,Pagan,
+timurid,1400,ottoman_empire,Ottoman Empire,
+timurid,1400,bosnia,Bosnia,
+timurid,1400,hungary,Hungary,hu
+timurid,1400,poland_lithuania,Poland-Lithuania,
+timurid,1400,maya_city_states,Maya city-states,
+timurid,1400,amazon_hunter_gatherers,Amazon hunter-gatherers,
+timurid,1400,aymara_kingdoms,Aymara kingdoms,
+timurid,1400,minor_hindu_and_buddhist_kingdoms,minor Hindu and Buddhist kingdoms,
+timurid,1400,mongol_empire,Mongol Empire,
+timurid,1400,khoiasan,Khoiasan,
+timurid,1400,subarctic_forest_hunter_gatherers,Subarctic forest hunter-gatherers,
+timurid,1400,athabaskan,Athabaskan,
+timurid,1400,eastern_north_amercian_hunter_gatherers,Eastern North Amercian hunter-gatherers,
+timurid,1400,beothuk,Beothuk,
+timurid,1400,hainan,Hainan,
+timurid,1400,taino,Taino,
+timurid,1400,guanahatabeyes,Guanahatabeyes,
+timurid,1400,cyprus,Cyprus,cy
+timurid,1400,shoa,Shoa,
+timurid,1400,kalinago,Kalinago,
+timurid,1400,kalmar_union,Kalmar Union,
+timurid,1400,hafsid_caliphate,Hafsid Caliphate,
+timurid,1400,shuar,Shuar,
+timurid,1400,mamluke_sultanate,Mamluke Sultanate,
+timurid,1400,castile,Castile,
+timurid,1400,granada,Granada,
+timurid,1400,teutonic_knights,Teutonic Knights,
+timurid,1400,ethiopia,Ethiopia,et
+timurid,1400,sa_mi,Sámi,
+timurid,1400,france,France,fr
+timurid,1400,english_territory,English territory,
+timurid,1400,corsica,Corsica,
+timurid,1400,britany,Britany,
+timurid,1400,scotland,Scotland,gb-sct
+timurid,1400,georgia,Georgia,ge
+timurid,1400,aceh,Aceh,
+timurid,1400,srivijaya_empire,Srivijaya Empire,
+timurid,1400,kediri,Kediri,
+timurid,1400,kashmir_and_ladakh,Kashmir and Ladakh,
+timurid,1400,pandya_state,Pandya state,
+timurid,1400,sardinia,Sardinia,
+timurid,1400,sicily,Sicily,
+timurid,1400,papal_states,Papal States,
+timurid,1400,shogun_japan_kamakura,Shogun Japan (Kamakura),
+timurid,1400,ainus,Ainus,
+timurid,1400,islamic_city_states,Islamic city-states,
+timurid,1400,khmer_empire,Khmer Empire,
+timurid,1400,sukhothai,Sukhothai,
+timurid,1400,a_i_vie_t,Đại Việt,
+timurid,1400,sinhalese_kingdom,Sinhalese kingdom,
+timurid,1400,morocco,Morocco,ma
+timurid,1400,moldova,Moldova,md
+timurid,1400,madagascar,Madagascar,mg
+timurid,1400,expansionist_kingdom_of_merina,Expansionist Kingdom of Merina,
+timurid,1400,zapotec_empire,Zapotec Empire,
+timurid,1400,ayutthaya,Ayutthaya,
+timurid,1400,bornu_kanem,Bornu-Kanem,
+timurid,1400,benin,Benin,bj
+timurid,1400,maori,Maori,
+timurid,1400,hadramaut,Hadramaut,
+timurid,1400,andean_states_and_chiefdoms,Andean states and chiefdoms,
+timurid,1400,chimu_empire,Chimú Empire,
+timurid,1400,portugal,Portugal,pt
+timurid,1400,principality_of_wallachia,Principality of Wallachia,
+timurid,1400,siberians,Siberians,
+timurid,1400,makkura,Makkura,
+timurid,1400,alwa,Alwa,
+timurid,1400,beylik_of_aydin,Beylik of Aydin,
+timurid,1400,seljuk_caliphate,Seljuk Caliphate,
+timurid,1400,trebizond,Trebizond,
+timurid,1400,plain_bison_hunters,Plain bison hunters,
+timurid,1400,plateau_fichers_and_hunter_gatherers,Plateau fichers and hunter gatherers,
+timurid,1400,desert_hunter_gatherers,Desert hunter-gatherers,
+timurid,1400,caribbean_hunter_gatherers,Caribbean hunter-gatherers,
+timurid,1400,champa,Champa,
+timurid,1400,tu_i_tonga_empire,Tuʻi Tonga Empire,
+timurid,1400,yemen,Yemen,ye
+timurid,1400,great_zimbabwe,Great Zimbabwe,
+victorian,1850,afghanistan,Afghanistan,af
+victorian,1850,mbailundu,Mbailundu,
+victorian,1850,portugal,Portugal,pt
+victorian,1850,ovimbundu,Ovimbundu,
+victorian,1850,france,France,fr
+victorian,1850,greece,Greece,gr
+victorian,1850,trucial_oman,Trucial Oman,
+victorian,1850,argentina,Argentina,ar
+victorian,1850,persia,Persia,
+victorian,1850,new_south_wales_uk,New South Wales (UK),
+victorian,1850,northern_territory_uk,Northern Territory (UK),
+victorian,1850,western_australia_uk,Western Australia (UK),
+victorian,1850,south_australia_uk,South Australia (UK),
+victorian,1850,victoria_uk,Victoria (UK),
+victorian,1850,queensland_uk,Queensland (UK),
+victorian,1850,austria_hungary,Austria Hungary,
+victorian,1850,burundi,Burundi,bi
+victorian,1850,belgium,Belgium,be
+victorian,1850,borgu_states,Borgu States,
+victorian,1850,dahomey,Dahomey,
+victorian,1850,cotonou,Cotonou,
+victorian,1850,kong_empire,Kong Empire,
+victorian,1850,mossi_states,Mossi States,
+victorian,1850,british_empire,British Empire,
+victorian,1850,bulgaria,Bulgaria,bg
+victorian,1850,romania,Romania,ro
+victorian,1850,bosnia_herzegovina,Bosnia-Herzegovina,
+victorian,1850,russian_empire,Russian Empire,
+victorian,1850,belize,Belize,bz
+victorian,1850,bolivia,Bolivia,bo
+victorian,1850,kingdom_of_brazil,Kingdom of Brazil,
+victorian,1850,brunei,Brunei,
+victorian,1850,bhutan,Bhutan,bt
+victorian,1850,ngwato,Ngwato,
+victorian,1850,transvaal,Transvaal,
+victorian,1850,rabih_az_zubayr,Rabih az-Zubayr,
+victorian,1850,canada,Canada,ca
+victorian,1850,switzerland,Switzerland,ch
+victorian,1850,chile,Chile,cl
+victorian,1850,peru,Peru,pe
+victorian,1850,manchu_empire,Manchu Empire,
+victorian,1850,ivory_coast,Ivory Coast,
+victorian,1850,calabar,Calabar,
+victorian,1850,kuba,Kuba,
+victorian,1850,teke,Teke,
+victorian,1850,sultanate_of_utetera,Sultanate of Utetera,
+victorian,1850,lunda,Lunda,
+victorian,1850,colombia,Colombia,co
+victorian,1850,costa_rica,Costa Rica,cr
+victorian,1850,spain,Spain,es
+victorian,1850,ottoman_empire,Ottoman Empire,
+victorian,1850,germany,Germany,de
+victorian,1850,dominica,Dominica,dm
+victorian,1850,denmark,Denmark,dk
+victorian,1850,dominican_republic,Dominican Republic,do
+victorian,1850,ecuador,Ecuador,ec
+victorian,1850,ethiopia,Ethiopia,et
+victorian,1850,french_guiana,French Guiana,gf
+victorian,1850,italy,Italy,it
+victorian,1850,gabon,Gabon,ga
+victorian,1850,asante,Asante,
+victorian,1850,futa_jalon,Futa Jalon,
+victorian,1850,spanish_guinea,Spanish Guinea,
+victorian,1850,guatemala,Guatemala,gt
+victorian,1850,british_guiana,British Guiana,
+victorian,1850,venezuela,Venezuela,ve
+victorian,1850,honduras,Honduras,hn
+victorian,1850,haiti,Haiti,ht
+victorian,1850,netherlands,Netherlands,nl
+victorian,1850,arabia,Arabia,
+victorian,1850,imperial_japan,Imperial Japan,
+victorian,1850,sultinate_of_zanzibar,Sultinate of Zanzibar,
+victorian,1850,central_asian_khanates,Central Asian khanates,
+victorian,1850,korea,Korea,
+victorian,1850,rattanakosin_kingdom,Rattanakosin Kingdom,
+victorian,1850,liberia,Liberia,lr
+victorian,1850,ceylon,Ceylon,
+victorian,1850,basutoland,Basutoland,
+victorian,1850,luxembourg,Luxembourg,lu
+victorian,1850,morocco,Morocco,ma
+victorian,1850,imerina,Imerina,
+victorian,1850,madagascar,Madagascar,mg
+victorian,1850,mexico,Mexico,mx
+victorian,1850,dendi_kingdom,Dendi Kingdom,
+victorian,1850,tukular_caliphate,Tukular Caliphate,
+victorian,1850,wassoulou_empire,Wassoulou Empire,
+victorian,1850,montenegro,Montenegro,me
+victorian,1850,shona,Shona,
+victorian,1850,malaya,Malaya,
+victorian,1850,sokoto_caliphate,Sokoto Caliphate,
+victorian,1850,sultanate_of_damagaram,Sultanate of Damagaram,
+victorian,1850,oyo,Oyo,
+victorian,1850,ibadan,Ibadan,
+victorian,1850,ato_trading_confederacy,Ato trading confederacy,
+victorian,1850,benin,Benin,bj
+victorian,1850,nicaragua,Nicaragua,ni
+victorian,1850,sweden_norway,Sweden–Norway,
+victorian,1850,nepal,Nepal,np
+victorian,1850,m_ori,M?ori,
+victorian,1850,oman,Oman,om
+victorian,1850,philippines,Philippines,ph
+victorian,1850,papua_new_guinea,Papua New Guinea,pg
+victorian,1850,paraguay,Paraguay,py
+victorian,1850,qatar,Qatar,qa
+victorian,1850,rwanda,Rwanda,rw
+victorian,1850,wadai_empire,Wadai Empire,
+victorian,1850,futa_toro,Futa Toro,
+victorian,1850,sierra_leone,Sierra Leone,sl
+victorian,1850,el_salvador,El Salvador,sv
+victorian,1850,serbia,Serbia,rs
+victorian,1850,dutch_guiana,Dutch Guiana,
+victorian,1850,swaziland,Swaziland,
+victorian,1850,kanem_bornu,Kanem-Bornu,
+victorian,1850,bokhara_khanate,Bokhara Khanate,
+victorian,1850,taiwan,Taiwan,
+victorian,1850,mirambo_unyanyembe_ukimbu,Mirambo Unyanyembe Ukimbu,
+victorian,1850,nguni,Nguni,
+victorian,1850,buganda,Buganda,
+victorian,1850,bunyoro,Bunyoro,
+victorian,1850,uruguay,Uruguay,uy
+victorian,1850,united_states_of_america,United States of America,
+victorian,1850,annam,Annam,
+victorian,1850,samoa,Samoa,ws
+victorian,1850,cape_colony,Cape Colony,
+victorian,1850,orange_free_state,Orange Free State,
+victorian,1850,natal,Natal,
+victorian,1850,yeke,Yeke,
+victorian,1850,barotse,Barotse,
+victorian,1850,lozi,Lozi,
+victorian,1850,ndebele,Ndebele,
+ww1,1914,afghanistan,Afghanistan,af
+ww1,1914,portugal,Portugal,pt
+ww1,1914,albania,Albania,al
+ww1,1914,france,France,fr
+ww1,1914,british_empire,British Empire,
+ww1,1914,argentina,Argentina,ar
+ww1,1914,armenia,Armenia,am
+ww1,1914,australia,Australia,au
+ww1,1914,austria_hungary,Austria-Hungary,
+ww1,1914,azerbaijan,Azerbaijan,az
+ww1,1914,german_empire,German Empire,
+ww1,1914,belgium,Belgium,be
+ww1,1914,bulgaria,Bulgaria,bg
+ww1,1914,russia,Russia,ru
+ww1,1914,belize,Belize,bz
+ww1,1914,bolivia,Bolivia,bo
+ww1,1914,brazil,Brazil,br
+ww1,1914,barbados,Barbados,bb
+ww1,1914,brunei,Brunei,
+ww1,1914,bhutan,Bhutan,bt
+ww1,1914,kamerun,Kamerun,
+ww1,1914,canada,Canada,ca
+ww1,1914,switzerland,Switzerland,ch
+ww1,1914,chile,Chile,cl
+ww1,1914,manchu_empire,Manchu Empire,
+ww1,1914,tibet,Tibet,
+ww1,1914,xinjiang,Xinjiang,
+ww1,1914,liberia,Liberia,lr
+ww1,1914,colombia,Colombia,co
+ww1,1914,costa_rica,Costa Rica,cr
+ww1,1914,cuba,Cuba,cu
+ww1,1914,dominica,Dominica,dm
+ww1,1914,denmark,Denmark,dk
+ww1,1914,dominican_republic,Dominican Republic,do
+ww1,1914,ecuador,Ecuador,ec
+ww1,1914,italy,Italy,it
+ww1,1914,spain,Spain,es
+ww1,1914,abyssinia,Abyssinia,
+ww1,1914,finland,Finland,fi
+ww1,1914,french_guiana,French Guiana,gf
+ww1,1914,ottoman_empire,Ottoman Empire,
+ww1,1914,georgia,Georgia,ge
+ww1,1914,togoland,Togoland,
+ww1,1914,gambia_the,"Gambia, The",
+ww1,1914,portuguese_guinea,Portuguese Guinea,
+ww1,1914,equatorial_guinea,Equatorial Guinea,gq
+ww1,1914,greece,Greece,gr
+ww1,1914,guatemala,Guatemala,gt
+ww1,1914,guyana,Guyana,gy
+ww1,1914,honduras,Honduras,hn
+ww1,1914,haiti,Haiti,ht
+ww1,1914,netherlands_indies,Netherlands Indies,
+ww1,1914,persia,Persia,
+ww1,1914,iceland,Iceland,is
+ww1,1914,arabia_nejd,Arabia (Nejd),
+ww1,1914,empire_of_japan,Empire of Japan,
+ww1,1914,serbia,Serbia,rs
+ww1,1914,saint_lucia,Saint Lucia,lc
+ww1,1914,ceylon,Ceylon,
+ww1,1914,lesotho,Lesotho,ls
+ww1,1914,luxembourg,Luxembourg,lu
+ww1,1914,spanish_morocco,Spanish Morocco,
+ww1,1914,morocco,Morocco,ma
+ww1,1914,rio_de_oro,Rio De Oro,
+ww1,1914,romania,Romania,ro
+ww1,1914,mexico,Mexico,mx
+ww1,1914,montenegro,Montenegro,me
+ww1,1914,mongolia,Mongolia,mn
+ww1,1914,malaya,Malaya,
+ww1,1914,german_south_west_africa,German South-West Africa,
+ww1,1914,nicaragua,Nicaragua,ni
+ww1,1914,netherlands,Netherlands,nl
+ww1,1914,norway,Norway,no
+ww1,1914,nepal,Nepal,np
+ww1,1914,new_zealand,New Zealand,nz
+ww1,1914,panama,Panama,pa
+ww1,1914,peru,Peru,pe
+ww1,1914,philippines,Philippines,ph
+ww1,1914,papua_new_guinea,Papua New Guinea,pg
+ww1,1914,puerto_rico,Puerto Rico,pr
+ww1,1914,paraguay,Paraguay,py
+ww1,1914,qatar,Qatar,qa
+ww1,1914,sierra_leone,Sierra Leone,sl
+ww1,1914,el_salvador,El Salvador,sv
+ww1,1914,suriname,Suriname,sr
+ww1,1914,sweden,Sweden,se
+ww1,1914,swaziland,Swaziland,
+ww1,1914,rattanakosin_kingdom,Rattanakosin Kingdom,
+ww1,1914,tunisia,Tunisia,tn
+ww1,1914,uganda,Uganda,ug
+ww1,1914,uruguay,Uruguay,uy
+ww1,1914,united_states,United States,us
+ww1,1914,venezuela,Venezuela,ve
+ww1,1914,samoa,Samoa,ws
+ww2,1939,afghanistan,Afghanistan,af
+ww2,1939,portugal,Portugal,pt
+ww2,1939,albania,Albania,al
+ww2,1939,spain,Spain,es
+ww2,1939,trucial_oman,Trucial Oman,
+ww2,1939,argentina,Argentina,ar
+ww2,1939,ussr,USSR,
+ww2,1939,australia,Australia,au
+ww2,1939,germany,Germany,de
+ww2,1939,burundi,Burundi,bi
+ww2,1939,belgium,Belgium,be
+ww2,1939,france,France,fr
+ww2,1939,british_empire,British Empire,
+ww2,1939,bulgaria,Bulgaria,bg
+ww2,1939,romania,Romania,ro
+ww2,1939,bahamas,Bahamas,bs
+ww2,1939,yugoslavia,Yugoslavia,
+ww2,1939,poland,Poland,pl
+ww2,1939,belize,Belize,bz
+ww2,1939,bolivia,Bolivia,bo
+ww2,1939,brazil,Brazil,br
+ww2,1939,barbados,Barbados,bb
+ww2,1939,brunei,Brunei,
+ww2,1939,bhutan,Bhutan,bt
+ww2,1939,canada,Canada,ca
+ww2,1939,dominion_of_newfoundland,Dominion of Newfoundland,
+ww2,1939,switzerland,Switzerland,ch
+ww2,1939,chile,Chile,cl
+ww2,1939,chinese_warlords,Chinese warlords,
+ww2,1939,tibet,Tibet,
+ww2,1939,xinjiang,Xinjiang,
+ww2,1939,empire_of_japan,Empire of Japan,
+ww2,1939,liberia,Liberia,lr
+ww2,1939,colombia,Colombia,co
+ww2,1939,costa_rica,Costa Rica,cr
+ww2,1939,cuba,Cuba,cu
+ww2,1939,czechoslovakia,Czechoslovakia,
+ww2,1939,french_somaliland,French Somaliland,
+ww2,1939,dominica,Dominica,dm
+ww2,1939,denmark,Denmark,dk
+ww2,1939,dominican_republic,Dominican Republic,do
+ww2,1939,ecuador,Ecuador,ec
+ww2,1939,egypt,Egypt,eg
+ww2,1939,italy,Italy,it
+ww2,1939,estonia,Estonia,ee
+ww2,1939,finland,Finland,fi
+ww2,1939,french_guiana,French Guiana,gf
+ww2,1939,israel,Israel,il
+ww2,1939,gambia_the,"Gambia, The",
+ww2,1939,guinea_bissau,Guinea-Bissau,gw
+ww2,1939,greece,Greece,gr
+ww2,1939,guatemala,Guatemala,gt
+ww2,1939,united_states,United States,us
+ww2,1939,guyana,Guyana,gy
+ww2,1939,honduras,Honduras,hn
+ww2,1939,haiti,Haiti,ht
+ww2,1939,hungary,Hungary,hu
+ww2,1939,netherlands,Netherlands,nl
+ww2,1939,ireland,Ireland,ie
+ww2,1939,iran,Iran,ir
+ww2,1939,jamaica,Jamaica,jm
+ww2,1939,laos,Laos,la
+ww2,1939,libya,Libya,ly
+ww2,1939,saint_lucia,Saint Lucia,lc
+ww2,1939,ceylon,Ceylon,
+ww2,1939,lithuania,Lithuania,lt
+ww2,1939,luxembourg,Luxembourg,lu
+ww2,1939,latvia,Latvia,lv
+ww2,1939,mexico,Mexico,mx
+ww2,1939,mongolia,Mongolia,mn
+ww2,1939,malawi,Malawi,mw
+ww2,1939,union_of_south_africa,Union of South Africa,
+ww2,1939,nicaragua,Nicaragua,ni
+ww2,1939,norway,Norway,no
+ww2,1939,nepal,Nepal,np
+ww2,1939,new_zealand,New Zealand,nz
+ww2,1939,panama,Panama,pa
+ww2,1939,peru,Peru,pe
+ww2,1939,puerto_rico,Puerto Rico,pr
+ww2,1939,paraguay,Paraguay,py
+ww2,1939,qatar,Qatar,qa
+ww2,1939,saudi_arabia,Saudi Arabia,sa
+ww2,1939,sudan,Sudan,sd
+ww2,1939,el_salvador,El Salvador,sv
+ww2,1939,suriname,Suriname,sr
+ww2,1939,sweden,Sweden,se
+ww2,1939,togo,Togo,tg
+ww2,1939,siam,Siam,
+ww2,1939,trinidad,Trinidad,
+ww2,1939,tunisia,Tunisia,tn
+ww2,1939,turkey,Turkey,
+ww2,1939,uruguay,Uruguay,uy
+ww2,1939,venezuela,Venezuela,ve
+ww2,1939,samoa,Samoa,ws
