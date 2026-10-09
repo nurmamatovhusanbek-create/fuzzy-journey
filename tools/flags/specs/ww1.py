@@ -1,0 +1,57 @@
+import sys; sys.path.insert(0,'tools/flags')
+from mkspec import *
+RU=D("Flag of Russia (1914–1917).svg","Flag of Russia (1883–1914).svg","Flag of the Russian Empire (1914–1917).svg")
+S={
+'afghanistan':D("Flag of Afghanistan (1901–1919).svg","Flag of Afghanistan (1901).svg"),
+'portugal':I('pt'),'albania':D("Flag of Albania (1914).svg","Flag of the Principality of Albania.svg","Flag of Albania (1914–1925).svg"),
+'france':I('fr'),'british_empire':I('gb'),'argentina':I('ar'),
+'armenia':A('russia','Russian Caucasus in 1914'),'azerbaijan':A('russia','Russian Caucasus in 1914'),'georgia':A('russia','Russian Caucasus in 1914'),'finland':A('russia','Grand Duchy under the Russian Empire'),
+'australia':I('au'),
+'austria_hungary':D("Flag of Austria-Hungary (1869–1918).svg","Flag of Austria-Hungary (1867–1918).svg","Flag of Austria-Hungary.svg"),
+'german_empire':D("Flag of Germany (1871–1918).svg","Flag of the German Empire.svg","Flag of the German Empire (1871–1918).svg"),
+'belgium':I('be'),'bulgaria':I('bg'),'russia':RU,
+'belize':D("Flag of British Honduras (1870–1919).svg"),'bolivia':I('bo'),'brazil':D("Flag of Brazil (1889–1960).svg"),
+'barbados':D("Flag of Barbados (1870–1966).svg"),'brunei':D("Flag of Brunei 1906-1959.svg"),'bhutan':I('bt','Bhutan flag (dragon on orange and yellow), the design in use from the early 20th century'),
+'kamerun':A('german_empire','German colony'),'togoland':A('german_empire','German colony'),'german_south_west_africa':A('german_empire','German colony'),'samoa':A('german_empire','German Samoa'),
+'canada':D("Flag of Canada (1868–1921).svg","Canadian Red Ensign (1868–1921).svg","Canadian Red Ensign (1868-1921).svg","Canadian Red Ensign (1921–1957).svg"),
+'switzerland':I('ch'),'chile':I('cl'),
+'manchu_empire':D("Flag of China (1889–1912).svg","Flag of the Qing dynasty (1889–1912).svg","Flag of the Qing Dynasty (1889-1912).svg"),
+'tibet':D("Flag of Tibet.svg"),'xinjiang':D("Flag of China (1912–1928).svg","Flag of the Republic of China (1912–1928).svg",note='Under the Republic of China: the Five Races flag'),
+'liberia':I('lr'),'colombia':I('co'),'costa_rica':I('cr'),'cuba':I('cu'),'dominica':D("Flag of Dominica (1875–1955).svg"),'denmark':I('dk'),
+'dominican_republic':I('do'),'ecuador':I('ec'),
+'italy':D("Flag of Italy (1861–1946).svg","Flag of Italy (1861-1946, crowned).svg"),
+'spain':D("Flag of Spain (1785–1873, 1875–1931).svg","Flag of Spain (1875–1931).svg","Flag of Spain (1785-1873, 1875-1931).svg"),
+'abyssinia':D("Flag of Ethiopia (1897–1936, 1941–1974).svg","Flag of Ethiopia (1897–1936; 1941–1974).svg"),
+'french_guiana':A('france'),
+'ottoman_empire':D("Flag of the Ottoman Empire (1844–1922).svg","Flag of the Ottoman Empire.svg"),
+'gambia_the':D("Flag of the Gambia (1889–1965).svg","Flag of Gambia (1889–1965).svg",note='British colony'),
+'portuguese_guinea':A('portugal'),'equatorial_guinea':A('spain','Spanish Guinea'),'spanish_morocco':A('spain'),'rio_de_oro':A('spain'),
+'greece':I('gr'),'guatemala':I('gt'),'guyana':D("Flag of British Guiana (1875–1919).svg"),'honduras':I('hn'),'haiti':D("Flag of Haiti (1859–1964).svg"),
+'netherlands_indies':A('netherlands'),'netherlands':I('nl'),'suriname':A('netherlands'),
+'persia':D("Flag of Persia (1907–1925).svg","Flag of Iran (1907–1925).svg","Flag of Iran (1907-1925).svg"),
+'iceland':A('denmark','Under Denmark until 1918 (the blue-white-red flag was only adopted in 1915 for local use)'),
+'arabia_nejd':D("Flag of Nejd and Hasa (1913–1921).svg","Flag of the Emirate of Nejd.svg","Flag of Najd.svg","Flag of Nejd (1902–1921).svg"),
+'empire_of_japan':I('jp'),
+'serbia':D("Flag of Serbia (1882–1918).svg","Flag of Serbia (1882-1918).svg","Flag of the Kingdom of Serbia.svg"),
+'saint_lucia':D("Flag of Saint Lucia (1875–1939).svg"),'ceylon':D("Flag of Ceylon (1875–1948).svg"),'lesotho':A('british_empire','Basutoland, British protectorate'),
+'luxembourg':I('lu'),
+'morocco':D("Flag of Morocco (1666–1915).svg","Flag of Morocco (1258–1915).svg","Flag of Morocco (1666-1915).svg"),
+'romania':D("Flag of Romania (1867–1947).svg"),
+'mexico':I('mx'),'montenegro':D("Flag of Montenegro (1905–1918).svg","Flag of Montenegro (1905-1918).svg"),
+'mongolia':D("Flag of Mongolia (1911–1921).svg","Flag of Mongolia (1911-1921).svg","Flag of Mongolia (1911).svg"),
+'malaya':D("Flag of Malaya (1896–1950).svg"),
+'nicaragua':I('ni'),'norway':I('no'),'nepal':D("Flag of Nepal (1743–1962).svg"),'new_zealand':I('nz'),'panama':I('pa'),'peru':I('pe'),
+'philippines':A('united_states','American colony'),'papua_new_guinea':A('australia','Territory of Papua'),'puerto_rico':A('united_states'),
+'paraguay':I('py'),'qatar':D("Flag of Qatar (1916).svg","Flag of Qatar (1916–1936).svg","Flag of Qatar (1860–1916, 1916–1932).svg"),
+'sierra_leone':D("Flag of Sierra Leone (1889–1961).svg","Flag of Sierra Leone (1889-1961).svg",note='British colony'),
+'el_salvador':I('sv'),'sweden':I('se'),'swaziland':A('british_empire','British protectorate'),'uganda':A('british_empire','British protectorate'),
+'rattanakosin_kingdom':D("Flag of Thailand (1855–1916).svg","Flag of Siam (1855–1916).svg","Flag of Thailand (1855-1916).svg"),
+'tunisia':I('tn','The Beylik flag, the design the republic kept'),'uruguay':I('uy'),
+'united_states':D("Flag of the United States (1912–1959).svg"),
+'venezuela':D("Flag of Venezuela (1905–1930).svg","Flag of Venezuela (1905-1930).svg","Flag of Venezuela (1930–1954).svg"),
+}
+import json,os
+_old=json.load(open('tools/flags/specs/ww1.json')) if os.path.exists('tools/flags/specs/ww1.json') else {}
+for k in ('german_empire','russia','romania','serbia'):
+    if 'svg' in _old.get(k,{}): S[k]=_old[k]
+save('ww1',S)

@@ -1,0 +1,82 @@
+{
+ "rome": {
+  "c": [
+   "Vexillum of the Roman Republic.svg",
+   "Vexillum of the Roman Republic.svg",
+   "Vexillum of the Roman Empire.svg",
+   "Vexillum of the Roman Empire.svg",
+   "Roman vexillum.svg",
+   "Roman vexillum.svg",
+   "Vexillum with SPQR.svg",
+   "Vexillum with SPQR.svg",
+   "Flag of the Roman Republic.svg",
+   "Flag of the Roman Republic.svg"
+  ]
+ },
+ "carthage": {
+  "c": [
+   "Flag of Carthage.svg",
+   "Flag of Carthage.svg",
+   "Flag of Ancient Carthage.svg",
+   "Flag of Ancient Carthage.svg"
+  ]
+ },
+ "ptolemaic_kingdom": {
+  "c": [
+   "Flag of the Ptolemaic Kingdom.svg",
+   "Flag of the Ptolemaic Kingdom.svg",
+   "Flag of Ptolemaic Egypt.svg",
+   "Flag of Ptolemaic Egypt.svg"
+  ]
+ },
+ "han_empire": {
+  "c": [
+   "Flag of the Han dynasty.svg",
+   "Flag of the Han dynasty.svg"
+  ]
+ },
+ "mauryan_empire": {
+  "c": [
+   "Flag of the Maurya Empire.svg",
+   "Flag of the Maurya Empire.svg",
+   "Flag of the Mauryan Empire.svg",
+   "Flag of the Mauryan Empire.svg"
+  ]
+ },
+ "macedon_and_hellenic_league": {
+  "c": [
+   "Flag of Macedonia (ancient).svg",
+   "Flag of Macedonia (ancient).svg",
+   "Vergina Sun.svg",
+   "Vergina Sun.svg",
+   "Flag of the Kingdom of Macedon.svg",
+   "Flag of the Kingdom of Macedon.svg",
+   "Flag of Macedon.svg",
+   "Flag of Macedon.svg"
+  ]
+ },
+ "seleucid_kingdom": {
+  "c": [
+   "Flag of the Seleucid Empire.svg",
+   "Flag of the Seleucid Empire.svg",
+   "Flag of the Seleucid Empire (anchor).svg",
+   "Flag of the Seleucid Empire (anchor).svg"
+  ]
+ },
+ "parthia": {
+  "c": [
+   "Flag of the Parthian Empire.svg",
+   "Flag of the Parthian Empire.svg",
+   "Flag of Parthia.svg",
+   "Flag of Parthia.svg"
+  ]
+ },
+ "pergamon": {
+  "c": [
+   "Flag of Pergamon.svg",
+   "Flag of Pergamon.svg",
+   "Flag of the Attalid dynasty.svg",
+   "Flag of the Attalid dynasty.svg"
+  ]
+ }
+}

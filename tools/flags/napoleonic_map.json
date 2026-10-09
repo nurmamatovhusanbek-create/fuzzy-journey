@@ -1,0 +1,384 @@
+{
+ "afghanistan": {
+  "title": "Flag of Herat until 1842.svg",
+  "note": ""
+ },
+ "lunda": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "congo": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "ottoman_empire": {
+  "title": "Flag of the Ottoman Empire (1844–1922).svg",
+  "note": ""
+ },
+ "france": {
+  "title": "Flag of France.svg",
+  "note": "The tricolour: the First French Empire flew it with the imperial eagle on standards"
+ },
+ "pampas_cultures": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "patagonian_shellfish_and_marine_mammal_hunters": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "viceroyalty_of_the_ri_o_de_la_plata": {
+  "title": "Flag of Spain (1785–1873, 1875–1931).svg",
+  "note": ""
+ },
+ "central_asian_khanates": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "aboriginal_tasmanians": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "wiradjuri": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "warumungu": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "wawula": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "kokatha": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "iningai": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "austrian_empire": {
+  "title": "Flag of the Habsburg Monarchy.svg",
+  "note": ""
+ },
+ "rift_valley_states": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "dahomey": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "kong_empire": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "mossi_states": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "bundelkhand": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "burma": {
+  "title": "Royal Standard of Konbaung Dynasty (1753-1885).svg",
+  "note": ""
+ },
+ "russian_empire": {
+  "title": "Flag of Russia.svg",
+  "note": ""
+ },
+ "uk": {
+  "title": "Flag of United Kingdom.svg",
+  "iso": "gb",
+  "source": "flag-icons",
+  "note": "The Union Flag of 1801"
+ },
+ "spain": {
+  "title": "Flag of Spain (1785–1873, 1875–1931).svg",
+  "note": ""
+ },
+ "portugal": {
+  "title": "Flag of Portugal (1830–1910).svg",
+  "note": ""
+ },
+ "bhutan": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "rozwi": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "rupert_s_land": {
+  "title": "Flag of United Kingdom.svg",
+  "iso": "gb",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "acadian_peninsula_uk": {
+  "title": "Flag of United Kingdom.svg",
+  "iso": "gb",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "helvetic_republic": {
+  "title": "Flag of the Helvetic Republic.svg",
+  "note": ""
+ },
+ "qing_empire": {
+  "title": "Flag of China (1796–1862).svg",
+  "note": ""
+ },
+ "asante": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "bornu_kanem": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "lozi": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "luba": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "prussia": {
+  "title": "Flag of Prussia (1803–1892).svg",
+  "note": ""
+ },
+ "swabia": {
+  "title": null,
+  "note": "NOT FOUND on Commons: Flag of Württemberg (1803–1806).svg | Flag of Württemberg (1803-1806).svg | Flag of Württemberg.svg | Flag of Württemberg.svg"
+ },
+ "saxony": {
+  "title": "Flag of Saxony.svg",
+  "note": ""
+ },
+ "denmark_norway": {
+  "title": "Flag of Denmark.svg",
+  "note": "The Dannebrog was shared by Denmark and Norway"
+ },
+ "morocco": {
+  "title": "Flag of Morocco (1666–1915).svg",
+  "note": ""
+ },
+ "air": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "ethiopia": {
+  "title": null,
+  "note": "No national flag in 1804"
+ },
+ "awsa": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "oromo": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "sweden": {
+  "title": "Flag of Sweden.svg",
+  "note": ""
+ },
+ "segu": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "dutch_east_indies": {
+  "title": "Flag of the Netherlands.svg",
+  "note": ""
+ },
+ "sikhs": {
+  "title": "Flag of the Sikh Empire.svg",
+  "note": ""
+ },
+ "rajputs": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "nizam_s_dominions": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "circars": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "maratha_confederacy": {
+  "title": "Flag of the Maratha Empire.svg",
+  "note": ""
+ },
+ "mysore": {
+  "title": "Flag of Mysore.svg",
+  "note": ""
+ },
+ "nepal": {
+  "title": "Flag of Nepal (1743–1962).svg",
+  "note": ""
+ },
+ "persia": {
+  "title": null,
+  "note": "NOT FOUND on Commons: Flag of Persia (1736–1848).svg | Flag of Persia (1736-1848).svg | Flag of Persia (1794–1848).svg | Flag of Persia (1794-1848).svg | Flag of Qajar Persia.svg | Flag of Qajar Persia.svg"
+ },
+ "papal_states": {
+  "title": "Flag of the Papal States (1808-1870).svg",
+  "note": ""
+ },
+ "tuscany": {
+  "title": "Flag of the Grand Duchy of Tuscany.svg",
+  "note": ""
+ },
+ "kingdom_of_the_two_sicilies": {
+  "title": "Flag of the Kingdom of the Two Sicilies (1816–1861).svg",
+  "note": ""
+ },
+ "japan": {
+  "title": "Flag of Japan (1870–1999).svg",
+  "note": "The Hinomaru as ships of the shogunate flew it"
+ },
+ "cambodia": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "korea": {
+  "title": "Flag of Korea (1882–1910).svg",
+  "note": ""
+ },
+ "rattanakosin_kingdom": {
+  "title": null,
+  "note": "NOT FOUND on Commons: Flag of Thailand (1782–1855).svg | Flag of Thailand (1782-1855).svg | Flag of Siam (1782–1855).svg | Flag of Siam (1782-1855).svg"
+ },
+ "netherlands": {
+  "title": "Flag of the Netherlands.svg",
+  "note": ""
+ },
+ "madagascar": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "expansionist_kingdom_of_merina": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "kaarta": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "arakan": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "malaya": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "songhai": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "hausa_states": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "sotho": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "oyo": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "batavian_republic": {
+  "title": "Flag of the navy of the Batavian Republic.svg",
+  "note": ""
+ },
+ "m_ori": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "oman": {
+  "title": null,
+  "note": "NOT FOUND on Commons: Flag of Oman (1856–1970).svg | Flag of Oman (1856-1970).svg"
+ },
+ "sindh": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "papua_new_guinea": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "nejd": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "darfur": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "funj": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "zanzibar": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "wadai": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "bagirmi": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "united_states_of_america": {
+  "title": "Flag of the United States (1803–1818).svg",
+  "note": ""
+ },
+ "a_i_vie_t": {
+  "title": null,
+  "note": "NOT FOUND on Commons: Flag of Vietnam (Nguyen dynasty).svg | Flag of Vietnam (Nguyen dynasty).svg | Flag of the Nguyen dynasty.svg | Flag of the Nguyen dynasty.svg | Flag of Vietnam (1802–1885).svg | Flag of Vietnam (1802-1885).svg"
+ },
+ "cochin_china": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "yemen": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "zulu": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "xhosa": {
+  "title": null,
+  "note": "no flag in this era: generated emblem"
+ },
+ "habsburg_austria": {
+  "title": "Flag of the Habsburg Monarchy.svg",
+  "note": "shows the flag of austrian_empire"
+ },
+ "lombardy": {
+  "title": "Flag of the Habsburg Monarchy.svg",
+  "note": "shows the flag of austrian_empire"
+ },
+ "venetia": {
+  "title": "Flag of the Habsburg Monarchy.svg",
+  "note": "shows the flag of austrian_empire"
+ },
+ "philippines": {
+  "title": "Flag of Spain (1785–1873, 1875–1931).svg",
+  "note": "Spanish colony"
+ }
+}

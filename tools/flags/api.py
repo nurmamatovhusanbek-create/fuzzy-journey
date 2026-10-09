@@ -3,11 +3,11 @@ UA={'User-Agent':'TerraBellumFlagTool/1.0 (https://github.com/nurmamatovhusanbek
 def get(params):
     q=urllib.parse.urlencode(params)
     time.sleep(1.2)
-    for a in range(6):
+    for a in range(3):
         try:
             return json.load(urllib.request.urlopen(urllib.request.Request('https://commons.wikimedia.org/w/api.php?'+q,headers=UA),timeout=40))
         except Exception as e:
-            err=e; time.sleep(12*(a+1) if '429' in str(e) else 2*(a+1))
+            err=e; time.sleep(30*(a+1) if '429' in str(e) else 2*(a+1))
     raise err
 def exists(titles):
     out={}

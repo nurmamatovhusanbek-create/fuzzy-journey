@@ -1,21 +1,27 @@
 """Fetch the SVGs (and licence/author metadata) a <era>_map.json asks for from Wikimedia Commons.
-usage: python3 tools/flags/fetch.py coldwar
+usage: python3 tools/flags/fetch.py coldwar ww2 ww1 ...   (eras in priority order)
 Writes flags/src/<slug>.svg (originals, for provenance) and flags/meta/<era>.json. Throttled; safe to re-run (skips what exists)."""
 import sys,os,json,re,time,urllib.request
 sys.path.insert(0,os.path.dirname(__file__))
 from api import get,UA
 root=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
-era=sys.argv[1]
-M=json.load(open(os.path.join(root,'tools/flags',era+'_map.json')))
-titles=sorted({v['title'] for v in M.values() if v['title']})
+eras=sys.argv[1:]
+M={}
+for e in eras: M.update({k+'@'+e:v for k,v in json.load(open(os.path.join(root,'tools/flags',e+'_map.json'))).items()})
+titles=[]
+for k,v in M.items():                                   # queue order = era order given on the command line
+    if v['title'] and v.get('source')!='flag-icons' and v['title'] not in titles: titles.append(v['title'])
+era='all'
 src=os.path.join(root,'flags/src'); os.makedirs(src,exist_ok=True); os.makedirs(os.path.join(root,'flags/meta'),exist_ok=True)
 slug=lambda t:re.sub(r'[^A-Za-z0-9]+','_',t[:-4]).strip('_').lower()
 meta={}
-mp=os.path.join(root,'flags/meta',era+'.json')
-if os.path.exists(mp): meta=json.load(open(mp))
+for f in os.listdir(os.path.join(root,'flags/meta')):
+    if f.endswith('.json'): meta.update(json.load(open(os.path.join(root,'flags/meta',f))))
+mp=os.path.join(root,'flags/meta','all.json')
 need=[t for t in titles if t not in meta]
 for i in range(0,len(need),20):
-    d=get({'action':'query','titles':'|'.join('File:'+t for t in need[i:i+20]),'prop':'imageinfo','iiprop':'url|extmetadata','iiextmetadatafilter':'LicenseShortName|Artist|Credit|UsageTerms','format':'json','redirects':1})
+    try: d=get({'action':'query','titles':'|'.join('File:'+t for t in need[i:i+20]),'prop':'imageinfo','iiprop':'url|extmetadata','iiextmetadatafilter':'LicenseShortName|Artist|Credit|UsageTerms','format':'json','redirects':1})
+    except Exception as e: print('metadata unavailable:',str(e)[:60]); break
     red={r['to']:r['from'] for r in d['query'].get('redirects',[])}
     for p in d['query']['pages'].values():
         if 'imageinfo' not in p: print('NO FILE',p['title']); continue

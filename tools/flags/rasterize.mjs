@@ -15,8 +15,9 @@ await p.setContent('<canvas id=c width=192 height=128></canvas><canvas id=m widt
 let ok = 0, miss = [];
 for (const [nat, v] of Object.entries(M)) {
   let svg;
-  if (v.title) { const f = path.join(root, 'flags/src', slug(v.title) + '.svg'); if (!fs.existsSync(f)) { miss.push(nat); continue; } svg = fs.readFileSync(f, 'utf8'); }
-  else { const f = path.join(root, 'flags/authored', nat + '.svg'); if (!fs.existsSync(f)) { miss.push(nat); continue; } svg = fs.readFileSync(f, 'utf8'); }
+  if (v.title && fs.existsSync(path.join(root, 'flags/src', slug(v.title) + '.svg'))) { svg = fs.readFileSync(path.join(root, 'flags/src', slug(v.title) + '.svg'), 'utf8'); }
+  else if (v.title) { const f = path.join(root, 'flags/authored', nat + '.svg'); if (!fs.existsSync(f)) { miss.push(nat); continue; } svg = fs.readFileSync(f, 'utf8'); miss.push(nat + '(emblem)'); }
+  else { const f = [path.join(root, 'flags/authored', era, nat + '.svg'), path.join(root, 'flags/authored', nat + '.svg')].find(x => fs.existsSync(x)) || ''; if (!f) { miss.push(nat); continue; } svg = fs.readFileSync(f, 'utf8'); }
   const fk = v.title ? slug(v.title) : nat;
   const fcs = focus[fk] || [.5, .5, 1.0];
   const res = await p.evaluate(async ([svg, fcs]) => {

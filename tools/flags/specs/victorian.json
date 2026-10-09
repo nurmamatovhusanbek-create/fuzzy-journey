@@ -1,0 +1,413 @@
+{
+ "portugal": {
+  "c": [
+   "Flag of Portugal (1830).svg",
+   "Flag of Portugal (1830).svg",
+   "Flag of Portugal (1830–1910).svg",
+   "Flag of Portugal (1830-1910).svg"
+  ]
+ },
+ "france": {
+  "iso": "fr",
+  "note": "Second Republic: the tricolour"
+ },
+ "greece": {
+  "iso": "gr"
+ },
+ "persia": {
+  "c": [
+   "Flag of Persia (1848–1907).svg",
+   "Flag of Persia (1848-1907).svg",
+   "Flag of Iran (1848–1907).svg",
+   "Flag of Iran (1848-1907).svg",
+   "Flag of Persia (1873–1907).svg",
+   "Flag of Persia (1873-1907).svg"
+  ]
+ },
+ "new_south_wales_uk": {
+  "as": "british_empire",
+  "note": "British colony: the Union Flag"
+ },
+ "northern_territory_uk": {
+  "as": "british_empire"
+ },
+ "western_australia_uk": {
+  "as": "british_empire"
+ },
+ "south_australia_uk": {
+  "as": "british_empire"
+ },
+ "victoria_uk": {
+  "as": "british_empire"
+ },
+ "queensland_uk": {
+  "as": "british_empire"
+ },
+ "canada": {
+  "as": "british_empire",
+  "note": "British North America: the Union Flag"
+ },
+ "british_guiana": {
+  "as": "british_empire"
+ },
+ "belize": {
+  "as": "british_empire"
+ },
+ "cape_colony": {
+  "as": "british_empire"
+ },
+ "natal": {
+  "as": "british_empire"
+ },
+ "basutoland": {
+  "as": "british_empire"
+ },
+ "sierra_leone": {
+  "as": "british_empire"
+ },
+ "ceylon": {
+  "as": "british_empire"
+ },
+ "malaya": {
+  "as": "british_empire"
+ },
+ "austria_hungary": {
+  "c": [
+   "Flag of the Austrian Empire (1804–1867).svg",
+   "Flag of the Austrian Empire (1804-1867).svg",
+   "Flag of the Habsburg Monarchy.svg",
+   "Flag of the Habsburg Monarchy.svg",
+   "Flag of the Austrian Empire.svg",
+   "Flag of the Austrian Empire.svg",
+   "Flag of the Austrian Empire (1815–1867).svg",
+   "Flag of the Austrian Empire (1815-1867).svg"
+  ]
+ },
+ "belgium": {
+  "iso": "be"
+ },
+ "british_empire": {
+  "iso": "gb"
+ },
+ "bulgaria": {
+  "as": "ottoman_empire",
+  "note": "Under Ottoman rule"
+ },
+ "romania": {
+  "as": "ottoman_empire",
+  "note": "Moldavia and Wallachia under Ottoman suzerainty"
+ },
+ "bosnia_herzegovina": {
+  "as": "ottoman_empire",
+  "note": "Ottoman province"
+ },
+ "serbia": {
+  "as": "ottoman_empire",
+  "note": "Principality under Ottoman suzerainty"
+ },
+ "ottoman_empire": {
+  "c": [
+   "Flag of the Ottoman Empire (1844–1922).svg",
+   "Flag of the Ottoman Empire (1844-1922).svg",
+   "Flag of the Ottoman Empire.svg",
+   "Flag of the Ottoman Empire.svg"
+  ]
+ },
+ "russian_empire": {
+  "iso": "ru",
+  "note": "The white-blue-red tricolour (merchant flag)"
+ },
+ "bolivia": {
+  "c": [
+   "Flag of Bolivia (1851–1888).svg",
+   "Flag of Bolivia (1851-1888).svg",
+   "Flag of Bolivia (1826–1851).svg",
+   "Flag of Bolivia (1826-1851).svg"
+  ]
+ },
+ "kingdom_of_brazil": {
+  "c": [
+   "Flag of the Empire of Brazil (1822–1870).svg",
+   "Flag of the Empire of Brazil (1822-1870).svg",
+   "Flag of Brazil (1822–1870).svg",
+   "Flag of Brazil (1822-1870).svg",
+   "Flag of the Empire of Brazil.svg",
+   "Flag of the Empire of Brazil.svg"
+  ]
+ },
+ "brunei": {
+  "c": [
+   "Flag of Brunei up to 1906.svg",
+   "Flag of Brunei up to 1906.svg"
+  ]
+ },
+ "switzerland": {
+  "c": [
+   "Flag of Switzerland.svg",
+   "Flag of Switzerland.svg"
+  ]
+ },
+ "chile": {
+  "c": [
+   "Flag of Chile.svg",
+   "Flag of Chile.svg"
+  ]
+ },
+ "peru": {
+  "c": [
+   "Flag of Peru (1825–1950).svg",
+   "Flag of Peru (1825-1950).svg",
+   "Flag of Peru (1825).svg",
+   "Flag of Peru (1825).svg"
+  ]
+ },
+ "manchu_empire": {
+  "c": [
+   "Flag of China (1862–1889).svg",
+   "Flag of China (1862-1889).svg",
+   "Flag of the Qing dynasty (1862–1889).svg",
+   "Flag of the Qing dynasty (1862-1889).svg",
+   "Flag of the Qing Dynasty (1862-1889).svg",
+   "Flag of the Qing Dynasty (1862–1889).svg"
+  ]
+ },
+ "colombia": {
+  "c": [
+   "Flag of New Granada (1834–1861).svg",
+   "Flag of New Granada (1834-1861).svg",
+   "Flag of New Granada.svg",
+   "Flag of New Granada.svg"
+  ]
+ },
+ "costa_rica": {
+  "c": [
+   "Flag of Costa Rica (1848–1906).svg",
+   "Flag of Costa Rica (1848-1906).svg"
+  ]
+ },
+ "spain": {
+  "c": [
+   "Flag of Spain (1785–1873, 1875–1931).svg",
+   "Flag of Spain (1785-1873, 1875-1931).svg",
+   "Flag of Spain (1785–1873).svg",
+   "Flag of Spain (1785-1873).svg"
+  ]
+ },
+ "germany": {
+  "c": [
+   "Flag of the German Confederation (1848–1866).svg",
+   "Flag of the German Confederation (1848-1866).svg",
+   "Flag of the German Confederation.svg",
+   "Flag of the German Confederation.svg",
+   "Flag of the German Confederation (1848–1852).svg",
+   "Flag of the German Confederation (1848-1852).svg"
+  ]
+ },
+ "denmark": {
+  "iso": "dk"
+ },
+ "dominican_republic": {
+  "c": [
+   "Flag of the Dominican Republic.svg",
+   "Flag of the Dominican Republic.svg"
+  ]
+ },
+ "ethiopia": {
+  "c": [
+   "Flag of Ethiopia (1897–1936, 1941–1974).svg",
+   "Flag of Ethiopia (1897-1936, 1941-1974).svg"
+  ]
+ },
+ "french_guiana": {
+  "as": "france"
+ },
+ "gabon": {
+  "as": "france",
+  "note": "French influence"
+ },
+ "italy": {
+  "c": [
+   "Flag of the Kingdom of Sardinia (1848–1861).svg",
+   "Flag of the Kingdom of Sardinia (1848-1861).svg",
+   "Flag of Sardinia (1848–1861).svg",
+   "Flag of Sardinia (1848-1861).svg",
+   "Flag of the Kingdom of Sardinia.svg",
+   "Flag of the Kingdom of Sardinia.svg"
+  ]
+ },
+ "spanish_guinea": {
+  "as": "spain"
+ },
+ "guatemala": {
+  "c": [
+   "Flag of Guatemala (1851–1871).svg",
+   "Flag of Guatemala (1851-1871).svg"
+  ]
+ },
+ "venezuela": {
+  "c": [
+   "Flag of Venezuela (1836–1859).svg",
+   "Flag of Venezuela (1836-1859).svg"
+  ]
+ },
+ "honduras": {
+  "c": [
+   "Flag of Honduras (1866–1949).svg",
+   "Flag of Honduras (1866-1949).svg",
+   "Flag of the Federal Republic of Central America.svg",
+   "Flag of the Federal Republic of Central America.svg"
+  ]
+ },
+ "haiti": {
+  "c": [
+   "Flag of Haiti (1849–1859).svg",
+   "Flag of Haiti (1849-1859).svg",
+   "Flag of Haiti (1859–1964).svg",
+   "Flag of Haiti (1859-1964).svg"
+  ]
+ },
+ "netherlands": {
+  "iso": "nl"
+ },
+ "dutch_guiana": {
+  "as": "netherlands"
+ },
+ "imperial_japan": {
+  "c": [
+   "Flag of Japan (1870–1999).svg",
+   "Flag of Japan (1870-1999).svg",
+   "Flag of Japan.svg",
+   "Flag of Japan.svg"
+  ],
+  "note": "The Hinomaru as the Tokugawa shogunate used it"
+ },
+ "rattanakosin_kingdom": {
+  "c": [
+   "Flag of Thailand (1782–1855).svg",
+   "Flag of Thailand (1782-1855).svg",
+   "Flag of Siam (1782–1855).svg",
+   "Flag of Siam (1782-1855).svg"
+  ]
+ },
+ "liberia": {
+  "c": [
+   "Flag of Liberia.svg",
+   "Flag of Liberia.svg"
+  ]
+ },
+ "luxembourg": {
+  "iso": "lu"
+ },
+ "morocco": {
+  "c": [
+   "Flag of Morocco (1666–1915).svg",
+   "Flag of Morocco (1666-1915).svg",
+   "Flag of Morocco (1258–1915).svg",
+   "Flag of Morocco (1258-1915).svg"
+  ]
+ },
+ "mexico": {
+  "c": [
+   "Flag of Mexico (1848–1864).svg",
+   "Flag of Mexico (1848-1864).svg",
+   "Flag of Mexico (1823–1864).svg",
+   "Flag of Mexico (1823-1864).svg"
+  ]
+ },
+ "montenegro": {
+  "c": [
+   "Flag of Montenegro (1852–1905).svg",
+   "Flag of Montenegro (1852-1905).svg"
+  ]
+ },
+ "nicaragua": {
+  "c": [
+   "Flag of Nicaragua (1838–1858).svg",
+   "Flag of Nicaragua (1838-1858).svg"
+  ]
+ },
+ "sweden_norway": {
+  "c": [
+   "Flag of Sweden.svg",
+   "Flag of Sweden.svg"
+  ],
+  "note": "The Swedish flag; Norway flew a separate flag with the union canton"
+ },
+ "nepal": {
+  "c": [
+   "Flag of Nepal (1743–1962).svg",
+   "Flag of Nepal (1743-1962).svg"
+  ]
+ },
+ "paraguay": {
+  "c": [
+   "Flag of Paraguay (1842–1954).svg",
+   "Flag of Paraguay (1842-1954).svg",
+   "Flag of Paraguay.svg",
+   "Flag of Paraguay.svg"
+  ]
+ },
+ "el_salvador": {
+  "c": [
+   "Flag of El Salvador (1865–1912).svg",
+   "Flag of El Salvador (1865-1912).svg"
+  ]
+ },
+ "uruguay": {
+  "c": [
+   "Flag of Uruguay.svg",
+   "Flag of Uruguay.svg"
+  ]
+ },
+ "united_states_of_america": {
+  "c": [
+   "Flag of the United States (1848–1851).svg",
+   "Flag of the United States (1848-1851).svg",
+   "Flag of the United States (1846–1847).svg",
+   "Flag of the United States (1846-1847).svg",
+   "Flag of the United States (1837–1845).svg",
+   "Flag of the United States (1837-1845).svg",
+   "Flag of the United States (1851–1858).svg",
+   "Flag of the United States (1851-1858).svg"
+  ]
+ },
+ "oman": {
+  "c": [
+   "Flag of Oman (1856–1970).svg",
+   "Flag of Oman (1856-1970).svg"
+  ]
+ },
+ "korea": {
+  "c": [
+   "Flag of Korea (1882–1910).svg",
+   "Flag of Korea (1882-1910).svg",
+   "Flag of Korea (1882).svg",
+   "Flag of Korea (1882).svg",
+   "Flag of the Joseon Dynasty.svg",
+   "Flag of the Joseon Dynasty.svg"
+  ]
+ },
+ "philippines": {
+  "as": "spain",
+  "note": "Spanish colony"
+ },
+ "taiwan": {
+  "as": "manchu_empire",
+  "note": "Qing territory"
+ },
+ "annam": {
+  "c": [
+   "Flag of Vietnam (Nguyen dynasty).svg",
+   "Flag of Vietnam (Nguyen dynasty).svg",
+   "Flag of the Nguyen dynasty.svg",
+   "Flag of the Nguyen dynasty.svg",
+   "Flag of Annam (1802–1885).svg",
+   "Flag of Annam (1802-1885).svg",
+   "Flag of Vietnam (1802–1885).svg",
+   "Flag of Vietnam (1802-1885).svg"
+  ]
+ },
+ "samoa": {
+  "emblem": true
+ }
+}

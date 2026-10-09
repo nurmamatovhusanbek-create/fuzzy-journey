@@ -3,7 +3,9 @@ usage: python3 tools/flags/attribution.py coldwar"""
 import json,os,sys
 era=sys.argv[1]
 root=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
-M=json.load(open(os.path.join(root,'tools/flags',era+'_map.json'))); meta=json.load(open(os.path.join(root,'flags/meta',era+'.json')))
+M=json.load(open(os.path.join(root,'tools/flags',era+'_map.json'))); meta={}
+for f in os.listdir(os.path.join(root,'flags/meta')):
+    if f.endswith('.json'): meta.update(json.load(open(os.path.join(root,'flags/meta',f))))
 L=[f'# Flag credits: {era}','',"Each flag is the one flown in that era, rasterised to `godot/assets/flags/%s/<nation>.png` (192x128, aspect kept). Originals are in `flags/src/`."%era,'',
 '| Nation | File | Licence | Source | Note |','|---|---|---|---|---|']
 for nat,v in sorted(M.items()):

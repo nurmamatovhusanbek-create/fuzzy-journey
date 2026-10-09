@@ -1,0 +1,484 @@
+{
+ "afghanistan": {
+  "title": "Flag of Afghanistan (1931–1973).svg",
+  "note": ""
+ },
+ "portugal": {
+  "title": "Flag of Portugal.svg",
+  "iso": "pt",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "albania": {
+  "title": "Flag of Albania (1939–1943).svg",
+  "note": ""
+ },
+ "spain": {
+  "title": "Flag of Spain (1938–1945).svg",
+  "note": ""
+ },
+ "trucial_oman": {
+  "title": "Flag of the Trucial States.svg",
+  "note": ""
+ },
+ "argentina": {
+  "title": "Flag of Argentina.svg",
+  "iso": "ar",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "ussr": {
+  "title": "Flag of the Soviet Union (1936–1955).svg",
+  "note": ""
+ },
+ "australia": {
+  "title": "Flag of Australia.svg",
+  "iso": "au",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "germany": {
+  "title": "Flag of Germany (1935–1945).svg",
+  "note": ""
+ },
+ "belgium": {
+  "title": "Flag of Belgium.svg",
+  "iso": "be",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "france": {
+  "title": "Flag of France.svg",
+  "iso": "fr",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "british_empire": {
+  "title": "Flag of United Kingdom.svg",
+  "iso": "gb",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "bulgaria": {
+  "title": "Flag of Bulgaria.svg",
+  "iso": "bg",
+  "source": "flag-icons",
+  "note": "Kingdom of Bulgaria: the same tricolour"
+ },
+ "romania": {
+  "title": null,
+  "note": "Blue-yellow-red vertical tricolour (Kingdom of Romania)"
+ },
+ "bahamas": {
+  "title": "Flag of the Bahamas (1923–1953).svg",
+  "note": ""
+ },
+ "yugoslavia": {
+  "title": "Flag of Yugoslavia (1918–1943).svg",
+  "note": ""
+ },
+ "poland": {
+  "title": "Flag of Poland.svg",
+  "iso": "pl",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "belize": {
+  "title": "Flag of British Honduras (1919–1981).svg",
+  "note": ""
+ },
+ "bolivia": {
+  "title": "Flag of Bolivia, Plurinational State of.svg",
+  "iso": "bo",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "brazil": {
+  "title": "Flag of Brazil (1889–1960).svg",
+  "note": ""
+ },
+ "barbados": {
+  "title": "Flag of Barbados (1870–1966).svg",
+  "note": ""
+ },
+ "brunei": {
+  "title": "Flag of Brunei 1906-1959.svg",
+  "note": ""
+ },
+ "bhutan": {
+  "title": "Flag of Bhutan.svg",
+  "iso": "bt",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "canada": {
+  "title": "Flag of Canada (1921–1957).svg",
+  "note": ""
+ },
+ "dominion_of_newfoundland": {
+  "title": "Flag of United Kingdom.svg",
+  "iso": "gb",
+  "source": "flag-icons",
+  "note": "The Union Flag was the official flag of the Dominion"
+ },
+ "switzerland": {
+  "title": "Flag of Switzerland.svg",
+  "iso": "ch",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "chile": {
+  "title": "Flag of Chile.svg",
+  "iso": "cl",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "chinese_warlords": {
+  "title": "Flag of China (1912–1928).svg",
+  "note": "Five Races Under One Union, the Beiyang flag the warlords claimed"
+ },
+ "tibet": {
+  "title": "Flag of Tibet.svg",
+  "note": ""
+ },
+ "xinjiang": {
+  "title": "Flag of the Republic of China.svg",
+  "note": "Nominally under the Republic of China"
+ },
+ "empire_of_japan": {
+  "title": "Flag of Japan.svg",
+  "iso": "jp",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "liberia": {
+  "title": "Flag of Liberia.svg",
+  "iso": "lr",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "colombia": {
+  "title": "Flag of Colombia.svg",
+  "iso": "co",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "costa_rica": {
+  "title": "Flag of Costa Rica.svg",
+  "iso": "cr",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "cuba": {
+  "title": "Flag of Cuba.svg",
+  "iso": "cu",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "czechoslovakia": {
+  "title": "Flag of Czechoslovakia.svg",
+  "note": ""
+ },
+ "dominica": {
+  "title": "Flag of Dominica (1875–1955).svg",
+  "note": ""
+ },
+ "denmark": {
+  "title": "Flag of Denmark.svg",
+  "iso": "dk",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "dominican_republic": {
+  "title": "Flag of Dominican Republic.svg",
+  "iso": "do",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "ecuador": {
+  "title": "Flag of Ecuador.svg",
+  "iso": "ec",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "egypt": {
+  "title": null,
+  "note": "Kingdom of Egypt: a white crescent and three stars on green"
+ },
+ "italy": {
+  "title": "Flag of Italy (1861–1946).svg",
+  "note": ""
+ },
+ "estonia": {
+  "title": "Flag of Estonia.svg",
+  "iso": "ee",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "finland": {
+  "title": "Flag of Finland.svg",
+  "iso": "fi",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "israel": {
+  "title": "Flag of Israel.svg",
+  "iso": "il",
+  "source": "flag-icons",
+  "note": "The Zionist flag, in use since 1891 (Mandatory Palestine had no state flag)"
+ },
+ "gambia_the": {
+  "title": null,
+  "note": "NOT FOUND on Commons: Flag of the Gambia (1889–1965).svg | Flag of the Gambia (1889-1965).svg | Flag of Gambia (1889–1965).svg"
+ },
+ "greece": {
+  "title": "Flag of Greece.svg",
+  "iso": "gr",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "guatemala": {
+  "title": "Flag of Guatemala.svg",
+  "iso": "gt",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "united_states": {
+  "title": "Flag of the United States (1912-1959).svg",
+  "note": ""
+ },
+ "guyana": {
+  "title": "Flag of British Guiana (1919–1955).svg",
+  "note": ""
+ },
+ "honduras": {
+  "title": "Flag of Honduras.svg",
+  "iso": "hn",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "haiti": {
+  "title": "Flag of Haiti (1820–1849, 1859–1964).svg",
+  "note": ""
+ },
+ "hungary": {
+  "title": null,
+  "note": "Red-white-green, the Hungarian civil flag"
+ },
+ "netherlands": {
+  "title": "Flag of Netherlands.svg",
+  "iso": "nl",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "ireland": {
+  "title": "Flag of Ireland.svg",
+  "iso": "ie",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "iran": {
+  "title": "Flag of Iran (1933–1964).svg",
+  "note": ""
+ },
+ "jamaica": {
+  "title": "Flag of Jamaica (1906–1957).svg",
+  "note": "British colony"
+ },
+ "libya": {
+  "title": "Flag of Italy (1861–1946).svg",
+  "note": "Italian Libya: the Italian flag"
+ },
+ "saint_lucia": {
+  "title": "Flag of Saint Lucia (1939–1967).svg",
+  "note": ""
+ },
+ "ceylon": {
+  "title": "Flag of Ceylon (1875–1948).svg",
+  "note": ""
+ },
+ "lithuania": {
+  "title": "Flag of Lithuania.svg",
+  "iso": "lt",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "luxembourg": {
+  "title": "Flag of Luxembourg.svg",
+  "iso": "lu",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "latvia": {
+  "title": "Flag of Latvia.svg",
+  "iso": "lv",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "mexico": {
+  "title": "Flag of Mexico.svg",
+  "iso": "mx",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "mongolia": {
+  "title": "Flag of Mongolia (1924–1940).svg",
+  "note": ""
+ },
+ "malawi": {
+  "title": "Flag of Nyasaland (1925–1964).svg",
+  "note": "Nyasaland, British protectorate"
+ },
+ "union_of_south_africa": {
+  "title": "Flag of South Africa (1928–1994).svg",
+  "note": ""
+ },
+ "nicaragua": {
+  "title": "Flag of Nicaragua.svg",
+  "iso": "ni",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "norway": {
+  "title": "Flag of Norway.svg",
+  "iso": "no",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "nepal": {
+  "title": "Flag of Nepal (1743–1962).svg",
+  "note": ""
+ },
+ "new_zealand": {
+  "title": "Flag of New Zealand.svg",
+  "iso": "nz",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "panama": {
+  "title": "Flag of Panama.svg",
+  "iso": "pa",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "peru": {
+  "title": "Flag of Peru.svg",
+  "iso": "pe",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "paraguay": {
+  "title": "Flag of Paraguay.svg",
+  "iso": "py",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "qatar": {
+  "title": "Flag of Qatar (1936–1949).svg",
+  "note": ""
+ },
+ "saudi_arabia": {
+  "title": "Flag of Saudi Arabia (1938–1973).svg",
+  "note": ""
+ },
+ "sudan": {
+  "title": "Flag of Sudan (1899–1956).svg",
+  "note": "Anglo-Egyptian Sudan"
+ },
+ "el_salvador": {
+  "title": "Flag of El Salvador.svg",
+  "iso": "sv",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "sweden": {
+  "title": "Flag of Sweden.svg",
+  "iso": "se",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "siam": {
+  "title": "Flag of Thailand.svg",
+  "iso": "th",
+  "source": "flag-icons",
+  "note": "Siam became Thailand in 1939; the tricolour has flown since 1917"
+ },
+ "trinidad": {
+  "title": "Flag of Trinidad and Tobago (1889–1958).svg",
+  "note": ""
+ },
+ "tunisia": {
+  "title": "Flag of Tunisia.svg",
+  "iso": "tn",
+  "source": "flag-icons",
+  "note": "The Beylik flag, the design the republic kept"
+ },
+ "turkey": {
+  "title": "Flag of Republic of Türkiye.svg",
+  "iso": "tr",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "uruguay": {
+  "title": "Flag of Uruguay.svg",
+  "iso": "uy",
+  "source": "flag-icons",
+  "note": ""
+ },
+ "venezuela": {
+  "title": "Flag of Venezuela (1930–2006).svg",
+  "note": ""
+ },
+ "burundi": {
+  "title": "Flag of Belgium.svg",
+  "iso": "be",
+  "source": "flag-icons",
+  "note": "shows the flag of belgium"
+ },
+ "french_somaliland": {
+  "title": "Flag of France.svg",
+  "iso": "fr",
+  "source": "flag-icons",
+  "note": "shows the flag of france"
+ },
+ "french_guiana": {
+  "title": "Flag of France.svg",
+  "iso": "fr",
+  "source": "flag-icons",
+  "note": "shows the flag of france"
+ },
+ "guinea_bissau": {
+  "title": "Flag of Portugal.svg",
+  "iso": "pt",
+  "source": "flag-icons",
+  "note": "shows the flag of portugal"
+ },
+ "laos": {
+  "title": "Flag of France.svg",
+  "iso": "fr",
+  "source": "flag-icons",
+  "note": "shows the flag of france"
+ },
+ "puerto_rico": {
+  "title": "Flag of the United States (1912-1959).svg",
+  "note": "shows the flag of united_states"
+ },
+ "suriname": {
+  "title": "Flag of Netherlands.svg",
+  "iso": "nl",
+  "source": "flag-icons",
+  "note": "shows the flag of netherlands"
+ },
+ "togo": {
+  "title": "Flag of France.svg",
+  "iso": "fr",
+  "source": "flag-icons",
+  "note": "shows the flag of france"
+ },
+ "samoa": {
+  "title": "Flag of New Zealand.svg",
+  "iso": "nz",
+  "source": "flag-icons",
+  "note": "shows the flag of new_zealand"
+ }
+}
