@@ -65,6 +65,8 @@ var _dock: Array = []                         # rail items (landscape) / tab bar
 var _dock_more: P.IconBtn
 var _mode: P.ModeSwitch                       # map lens segmented control next to the minimap
 var _mm_btn: P.IconBtn                        # 700-1099 px: the minimap sits behind this button
+var _zin: P.IconBtn                           # round zoom buttons beside the minimap
+var _zout: P.IconBtn
 var _mm_open: bool = false
 var _ticker: TBAlertTicker                    # toasts
 var _seal: P.Seal                             # the primary turn button
@@ -147,6 +149,10 @@ func build() -> void:
 	add_child(_mode)
 	_mm_btn = P.IconBtn.new(); _mm_btn.glyph = "globe"; _mm_btn.show_label = false; _mm_btn.framed = true; _mm_btn.icon_px = 20.0
 	_mm_btn.set_a11y(T.call("tk_minimap")); _mm_btn.pressed.connect(func(): _mm_open = not _mm_open; layout_for(_vp)); add_child(_mm_btn)
+	_zin = P.IconBtn.new(); _zin.glyph = "plus"; _zin.show_label = false; _zin.framed = true; _zin.icon_px = 18.0
+	_zin.set_a11y(T.call("nav_zoom_in")); _zin.pressed.connect(func(): tapped.emit(); if map_view != null: map_view.zoom_by(1.4, true)); _wire(_zin, _tip_text.bind(T.call("nav_zoom_in"), "+")); add_child(_zin)
+	_zout = P.IconBtn.new(); _zout.glyph = "minus"; _zout.show_label = false; _zout.framed = true; _zout.icon_px = 18.0
+	_zout.set_a11y(T.call("nav_zoom_out")); _zout.pressed.connect(func(): tapped.emit(); if map_view != null: map_view.zoom_by(1.0 / 1.4, true)); _wire(_zout, _tip_text.bind(T.call("nav_zoom_out"), "−")); add_child(_zout)
 	_minimap = TBMinimap.new(); add_child(_minimap)
 	# ---- toasts, legend, hot-seat strip, turn button
 	_ticker = TBAlertTicker.new()
@@ -313,12 +319,15 @@ func layout_for(vp: Vector2) -> void:
 	if mode_ok:
 		_mode.size = Vector2(_mode.desired_w(), 32.0)
 		_mode.position = Vector2(m + (212.0 if show_mm else 0.0), bottom_row_y)
+		_zin.visible = show_mm; _zout.visible = show_mm
+		_zin.size = Vector2(36, 36); _zout.size = Vector2(36, 36)
+		_zout.position = Vector2(m + 212.0, bottom_row_y - 8.0 - 36.0); _zin.position = Vector2(m + 212.0, bottom_row_y - 16.0 - 72.0)
 		_mm_btn.visible = not full
 		_mm_btn.size = Vector2(32.0, 32.0)
 		_mm_btn.position = Vector2(m + (212.0 if show_mm else 0.0) + _mode.size.x + 8.0, bottom_row_y)
 		_mm_btn.active = _mm_open
 	else:
-		_mm_btn.visible = false
+		_mm_btn.visible = false; _zin.visible = false; _zout.visible = false
 	# ---- toasts (top-right under the HUD); phones: full width under the top row
 	var tw_: float = 320.0
 	_ticker.max_rows = 3 if not phone else 1

@@ -580,7 +580,7 @@ class DateText extends Control:
 		var ys: String = year.replace(" AD", "")
 		while yz > 12 and TBHudParts.tw(fb, ys, yz) > fr * 1.6: yz -= 1
 		draw_string(fb, Vector2(c.x - TBHudParts.tw(fb, ys, yz) * 0.5, TBHudParts.base(fb, yz, c.y - 3.0)), ys, HORIZONTAL_ALIGNMENT_LEFT, -1, yz, TBHudParts.tk("cream"))
-		var cf: Font = K.tracked(K.display(), 1)
+		var cf: Font = K.display()
 		var tz: int = TBHudParts.fs(12.0)
 		var ts: String = turn_cap.to_upper()
 		while tz > 12 and TBHudParts.tw(cf, ts, tz) > fr * 1.7: tz -= 1

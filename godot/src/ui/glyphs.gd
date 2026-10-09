@@ -45,6 +45,8 @@ const G := {
 	"tri_up": [["f", [0, -7, 8, 6, -8, 6]]],
 	"tri_down": [["f", [0, 7, 8, -6, -8, -6]]],
 	"arrowhead": [["f", [-6, -6.5, 8, 0, -6, 6.5]]],
+	"plus": [["p", [-7, 0, 7, 0]], ["p", [0, -7, 0, 7]]],
+	"minus": [["p", [-7, 0, 7, 0]]],
 }
 ## drawn only from 20 px up (16 px icons keep to the essentials)
 const G_DETAIL := {
