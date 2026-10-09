@@ -505,6 +505,7 @@ static func button(text: String, cb: Callable = Callable(), primary: bool = fals
 	b.custom_minimum_size = Vector2(96, touch())
 	b.focus_mode = Control.FOCUS_ALL
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+	if text_scale >= 1.4: b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART        # large text: a long label wraps rather than widening the panel
 	if primary: b.theme_type_variation = &"PrimaryButton"
 	if cb.is_valid(): b.pressed.connect(cb)
 	a11y(b, text, "button")
@@ -556,7 +557,9 @@ class DangerBtn extends Button:
 	func _draw() -> void:
 		if hold_confirm and _hold > 0.0:
 			var w: float = size.x * clampf(_hold / HOLD_T, 0.0, 1.0)
-			draw_rect(Rect2(0, size.y - 4.0, w, 4.0), TBTokens.HOLD_BAR)
+			var by: float = size.y - 4.0
+			if TBFrame.bezel and size.y > 38.0 and size.y <= 60.0: by = (size.y + 38.0) * 0.5 - 4.0       # the bar sits inside the trimmed plate
+			draw_rect(Rect2(0, by, w, 4.0), TBTokens.HOLD_BAR)
 		if glyph == "": return
 		var col := get_theme_color("font_disabled_color" if disabled else "font_color")
 		var dy: float = 1.0 if get_draw_mode() == BaseButton.DRAW_PRESSED else 0.0
@@ -737,6 +740,8 @@ class Meter extends Control:
 static func row(caption: String, value: String, value_col: Color = Color.TRANSPARENT, extra: Control = null) -> HBoxContainer:
 	var h := hbox(6)
 	var c := label(caption, 13, DIM); h.add_child(c)
+	if text_scale >= 1.4:                    # large text in a narrow column: the caption wraps instead of pushing the panel wider
+		c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; c.custom_minimum_size.x = 40; c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(Leader.new())
 	if extra != null: h.add_child(extra)
 	if value != "":
@@ -757,7 +762,9 @@ static func meter_row(caption: String, value: float, col: Color = Color.TRANSPAR
 ## section caption: small caps label and one hairline (no ornament)
 static func section(text: String) -> HBoxContainer:
 	var h := hbox(8)
-	h.add_child(caps(text, 12, DIM))
+	var cp := caps(text, 12, DIM)
+	if text_scale >= 1.4: cp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cp.custom_minimum_size.x = 40; cp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(cp)
 	var l := Control.new(); l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.size_flags_vertical = Control.SIZE_SHRINK_CENTER; l.custom_minimum_size = Vector2(8, 1); l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.draw.connect(func(): if not TBTokens.is_hc(): l.draw_rect(Rect2(0, 0, l.size.x, 1), TBTokens.c("hair")))
 	h.add_child(l)

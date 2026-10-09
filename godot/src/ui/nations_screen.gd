@@ -450,11 +450,13 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		return [[T.call("dv_will") if bool(vw[k]["ok"]) else T.call("dv_wont"), "check" if bool(vw[k]["ok"]) else "close", "pos" if bool(vw[k]["ok"]) else "neg"]]
 	var ask := func(k: String, what_key: String, cmd: Dictionary) -> void:
 		if not ai or not vw.has(k): done.call(cmd); return
+		var pre: Dictionary = g.can({"cmd": String(cmd["cmd"]), "n": me, "t": n, "kind": String(cmd.get("kind", ""))})      # a request the engine rejects before asking the court (no points, wrong state) gets no ceremony
+		if not bool(pre["ok"]) and String(pre["reason"]) != "refused": done.call(cmd); return
 		TBNegotiate.run(parent, what_key, g.dname(n), vw[k], func(): done.call(cmd))
 	if ai and rel in [0, 1, 2]:
 		var lead: String = "white" if rel == 1 else ("nap" if rel == 0 else "ally")
 		v.add_child(TBPanel.section("%s  ·  %s" % [T.call("dv_title"), T.call("dv_for", {"w": T.call({"white": "dv_peace_white", "nap": "dv_pact_nap", "ally": "dv_pact_ally"}[lead])})]))
-		v.add_child(TBNegotiate.meter(vw[lead], n))
+		v.add_child(TBNegotiate.meter(vw[lead], n * 8 + ["white", "nap", "ally"].find(lead)))
 		v.add_child(TBPanel.section(T.call("dv_why")))
 		v.add_child(TBNegotiate.why_list(vw[lead]))
 	v.add_child(TBPanel.section(T.call("diplomacy")))

@@ -27,11 +27,18 @@ func _init() -> void:
 	visible = false
 
 func show_verbs(p: int, list: Array) -> void:
+	var same: bool = p == subject and visible and _same_ids(list)         # a rebuild of the same ring (a hover, a refresh) must not replay the pop-in
 	subject = p; verbs = list
-	_t = 0.0
+	if not same: _t = 0.0
 	visible = p >= 0 and not list.is_empty() and not armed
 	_hover = -1
 	set_process(visible); queue_redraw()
+
+func _same_ids(list: Array) -> bool:
+	if list.size() != verbs.size(): return false
+	for i in list.size():
+		if String(list[i]["id"]) != String(verbs[i]["id"]): return false
+	return true
 
 func clear() -> void:
 	subject = -1; verbs = []; visible = false; set_process(false)
@@ -63,15 +70,19 @@ func _layout() -> void:
 	var R: float = _radius()
 	var n: int = verbs.size()
 	var reach: float = R + 56.0
+	if a.x < -40.0 or a.y < -40.0 or a.x > size.x + 40.0 or a.y > size.y + 40.0:          # the province is not on screen: no ring for it
+		_c = Vector2.INF; return
 	var c: Vector2 = a
-	# keep the whole ring on screen and out of the interface
-	c.x = clampf(c.x, reach, size.x - reach); c.y = clampf(c.y, reach + 70.0, size.y - reach - 20.0)
-	if avoid_fn.is_valid():
+	# keep the whole ring on screen: below the top bar, above the bottom row
+	c.x = clampf(c.x, reach, maxf(reach, size.x - reach)); c.y = clampf(c.y, minf(reach + 70.0, size.y * 0.5), maxf(reach + 70.0, size.y - reach - 20.0))
+	if avoid_fn.is_valid():                  # the inspector and the rail are tall rectangles: slide sideways clear of them
 		for r in avoid_fn.call():
 			var rc := Rect2((r as Rect2).position - global_position, (r as Rect2).size)
+			if rc.size.y < 140.0: continue
 			if Rect2(c - Vector2(reach, reach), Vector2(reach, reach) * 2.0).intersects(rc):
 				if rc.position.x > c.x: c.x = minf(c.x, rc.position.x - reach - 4.0)
 				elif rc.end.x < c.x: c.x = maxf(c.x, rc.end.x + reach + 4.0)
+	c.x = clampf(c.x, reach * 0.5, size.x - reach * 0.5)
 	_c = c
 	for i in n:
 		var ang: float = -PI * 0.5 + TAU * float(i) / maxf(1.0, float(n))

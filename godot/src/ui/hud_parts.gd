@@ -416,6 +416,9 @@ class Chip extends Hit:
 	var _t: float = 0.0
 	var _floats: Array = []              # [{t, txt, pos}]: the change that just happened, rising beside the ring
 	func _ready() -> void: set_process(false)
+	## drop the remembered value and any rising figures: the next number shown is a fresh start (seat change, new game)
+	func forget() -> void:
+		_shown = NAN; _floats.clear()
 	func fv() -> int: return TBHudParts.fs(15.0)
 	func fd() -> int: return TBHudParts.fs(13.0)
 	func fcap() -> int: return TBHudParts.fs(12.0)
@@ -712,6 +715,7 @@ class Seal extends Hit:
 	var compact: bool = false
 	var narrow: bool = false
 	var turn_no: int = 0                    # the number inside the circle
+	var year_phase: float = 0.5             # how far through the year (two turns a year: 0.5, then 1.0); the red arc and the hand
 	var seat_text: String = ""              # hot-seat: "P2" replaces the number
 	var _t: float = 0.0
 	var _pulses: int = 0
@@ -757,7 +761,7 @@ class Seal extends Hit:
 		var cc: Vector2 = c + Vector2(0, oy)
 		var fr: float = BZ.ring(self, cc, rad, 60, face)
 		var arc_r: float = fr - 5.0
-		var phase: float = clampf(float(turn_no % 12) / 12.0, 0.0, 1.0)
+		var phase: float = clampf(year_phase, 0.0, 1.0)
 		draw_arc(cc, arc_r, 0.0, TAU, 48, TBHudParts.al(BZ.TRACK, 0.9), 2.6, true)
 		if state == S.HINT:
 			var left: float = hint_left if _animated() else 1.0

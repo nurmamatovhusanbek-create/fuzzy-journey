@@ -173,7 +173,9 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		var head := K.hbox(10)
 		if TBFrame.bezel: head.add_child(K.ring_icon(["coins", "smile", "flask", "gear"][i], 38))
 		var tcol := K.vbox(0); tcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tcol.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		tcol.add_child(K.title(T.call(BUDGET_KEYS[i]), 16, K.TEXT))
+		var bt := K.title(T.call(BUDGET_KEYS[i]), 16, K.TEXT)
+		bt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; bt.custom_minimum_size.x = 40; bt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tcol.add_child(bt)
 		var fx := TBPanel.para("", 13, K.DIM); fx.add_theme_font_override("font", TBKit.body_i() if TBFrame.bezel else TBKit.body()); fx.custom_minimum_size.x = 40
 		if TBFrame.bezel: tcol.add_child(fx)
 		head.add_child(tcol)

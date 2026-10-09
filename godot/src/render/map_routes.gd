@@ -11,6 +11,7 @@ var map: TBMapView
 var g: TBGame
 var _seen: Dictionary = {}               # route key -> seconds since it appeared
 var _t := 0.0
+var _live := 0                           # routes drawn in the last frame (a map with none costs nothing)
 const SEG := 28
 
 func _init() -> void:
@@ -25,7 +26,7 @@ func _process(d: float) -> void:
 	if g == null or not is_visible_in_tree() or g.human_id <= 0: return
 	_t += d
 	for k in _seen.keys(): _seen[k] = float(_seen[k]) + d
-	queue_redraw()
+	if _live > 0 or not _seen.is_empty(): queue_redraw()
 
 ## capital of n as a unit vector and lon/lat degrees
 func _cap(n: int) -> Array:
@@ -67,6 +68,7 @@ func _draw() -> void:
 	var a: Array = _cap(me)
 	if a.is_empty(): return
 	var alive_keys: Dictionary = {}
+	_live = 0
 	for o in range(1, g.N1):
 		if o == me or g.alive[o] == 0 or o == g.rebel: continue
 		var b: Array = _cap(o)
@@ -81,7 +83,7 @@ func _draw() -> void:
 		if not alive_keys.has(k): _seen.erase(k)
 
 func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: Dictionary, income: int) -> void:
-	alive[key] = true
+	alive[key] = true; _live += 1
 	if not _seen.has(key): _seen[key] = 0.0 if K.motion_ok() else 99.0
 	var grow: float = clampf(float(_seen[key]) / 1.3, 0.0, 1.0)
 	grow = 1.0 - pow(1.0 - grow, 3.0)

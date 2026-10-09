@@ -174,6 +174,9 @@ static func is_top(h: Handle) -> bool:
 class Guard extends Node:
 	var h: Handle
 	func _input(e: InputEvent) -> void:
+		if TBNegotiate.active and e is InputEventKey and e.pressed:           # a negotiation dial owns the keyboard: any key skips the needle, nothing reaches the panel
+			if not e.echo and TBNegotiate.skip_fn.is_valid(): TBNegotiate.skip_fn.call()
+			get_viewport().set_input_as_handled(); return
 		if not (e is InputEventKey) or not e.pressed or e.echo or h == null or not h.is_open() or not TBPanel.is_top(h): return
 		var vp := get_viewport()
 		if e.is_action_pressed("ui_cancel"):

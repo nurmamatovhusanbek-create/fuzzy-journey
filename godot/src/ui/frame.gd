@@ -213,7 +213,7 @@ func _draw(ci: RID, rect: Rect2) -> void:
 	var w: int = roundi(rect.size.x); var h: int = roundi(rect.size.y)
 	if w < 3 or h < 3: return
 	var off := rect.position.round()
-	if kind == Kind.PLATE and vis_h > 0 and h > vis_h:
+	if kind == Kind.PLATE and vis_h > 0 and h > vis_h and h <= vis_h + 22:      # only a touch-sized single line is trimmed; a taller (wrapped) button keeps its whole plate
 		off.y += float((h - vis_h) / 2); h = vis_h
 	var moved: bool = off != Vector2.ZERO
 	if moved: RenderingServer.canvas_item_add_set_transform(ci, Transform2D(0.0, off))

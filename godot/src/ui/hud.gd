@@ -260,8 +260,8 @@ func layout_for(vp: Vector2) -> void:
 		if not shown.has(k): dropped.append(k)
 	_more_chip.visible = not dropped.is_empty()
 	if _more_chip.visible:
-		_more_chip.set_num(float(dropped.size()), func(v: float) -> String: return "+%d" % int(v))
 		_more_chip.tight = true; _more_chip.compact = compact_ui; _more_chip.caption = ""
+		_more_chip.set_num(float(dropped.size()), func(v: float) -> String: return "+%d" % int(v))
 		_more_chip.position = Vector2(cx, yc - (_more_chip.medal() * 0.5 + 1.0)); _more_chip.size = Vector2(_more_chip.desired_w(), _more_chip.desired_h())
 	# ---- rail / tab bar
 	var rail_top: float = m + crest_h + gap
@@ -438,11 +438,13 @@ func _layout_bar() -> void:
 	_sync_seal()
 
 var _last_sig: String = ""
+var _gauge_nat: int = -1
 func _bar_sig() -> String:
 	var parts: PackedStringArray = PackedStringArray()
 	for k in ["gold", "man", "mp", "dp"]: parts.append(str((_chips[k] as P.Chip).desired_w()))
 	parts.append(str(_wars > 0)); parts.append(str(_inf_on)); parts.append(_nat.nation); parts.append(_nat.subtitle); parts.append(_date.year + _date.turn_cap)
 	parts.append(str(P.text_scale))
+	for k2 in ["gold", "man", "mp", "dp"]: parts.append(str((_chips[k2] as P.Chip).desired_h()))
 	return ",".join(parts)
 
 ## hud rectangles (global) the map labels must keep clear of
@@ -494,6 +496,10 @@ func refresh() -> void:
 	if g == null or _nat == null: return
 	_pull_cfg()
 	var n: int = g.human_id
+	if n != _gauge_nat:                                   # another seat (hot-seat) or a new game: its numbers are not a change of ours, so no rising +/- figures
+		_gauge_nat = n
+		for ck in _chips: (_chips[ck] as P.Chip).forget()
+		for c3 in [_war, _inf, _more_chip]: (c3 as P.Chip).forget()
 	var inc: Dictionary = g.income(n)
 	var bd: Dictionary = TBAdvisor.breakdown(g, n, inc)
 	var fmt := func(v: float) -> String: return _fmt_num(v, true)
@@ -532,6 +538,7 @@ func refresh() -> void:
 	_nat.badge = 0
 	_nat.subtitle = (T.call(TBRulers.title_key(g, n)) + " " + TBRulers.display_name(g, n)) if (g.rules >= 1 and g.r_name[n] != "") else T.call("era_name_%d" % g.era[n])
 	_seal.turn_no = g.turn
+	_seal.year_phase = float(g.month_idx + 6) / 12.0
 	_date.year = _year(g.year)
 	_date.turn_cap = T.call("aoc_turn", {"k": g.turn}).replace(":", "")
 	# alerts
