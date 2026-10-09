@@ -1,0 +1,118 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terra Bellum — 3 · Almanac</title>
+<style>
+/*FONTS*/
+:root{--paper:#EADFC4;--paper2:#DDD0AE;--ink:#1F1710;--ink2:#4B3D2C;--rub:#A02F22;--night:#16130F;--cream:#EDE3C8;--gilt:#B8923F}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#050403;overflow:hidden;font-family:Alegreya,serif;color:var(--cream);font-feature-settings:'onum' 1,'kern' 1}
+#stage{position:absolute;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:var(--night)}
+svg#map{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.abs{position:absolute}
+.halo{text-shadow:0 0 3px #0c0a07,0 0 6px #0c0a07,0 1px 0 #000}
+/* masthead */
+#mast{left:0;top:0;width:1330px;padding:26px 44px 0 52px;background:linear-gradient(180deg,rgba(14,11,8,.96),rgba(14,11,8,.9) 78%,rgba(14,11,8,0));height:150px}
+#mast .t{display:flex;align-items:baseline;justify-content:space-between}
+#mast h1{font:500 40px/1 Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--cream)}
+#mast .d{font:italic 400 21px Alegreya;color:#cdbf9b}
+#mast .rule{height:7px;border-top:2px solid var(--cream);border-bottom:.8px solid var(--cream);margin:12px 0 8px;opacity:.9}
+#mast .line{display:flex;gap:0;font:400 20px Alegreya;color:#d9ceb0;flex-wrap:nowrap}
+#mast .line span{padding:0 22px 0 0;margin-right:22px;border-right:1px solid rgba(237,227,200,.35);white-space:nowrap}
+#mast .line span:last-child{border:0}
+#mast .line b{font:700 24px Alegreya;color:#fff;margin:0 4px 0 6px} #mast .line i{color:#9fc29a;font-size:18px}
+#mast .line em{font:500 12px Cinzel;letter-spacing:.2em;color:var(--gilt);font-style:normal;text-transform:uppercase}
+/* contents */
+#toc{left:52px;top:200px;width:210px}
+#toc h4{font:500 12px Cinzel;letter-spacing:.34em;color:var(--gilt);margin-bottom:10px}
+#toc a{display:flex;align-items:baseline;gap:12px;padding:8px 0;border-top:1px solid rgba(237,227,200,.22);font:italic 400 22px Alegreya;color:var(--cream);cursor:pointer;position:relative}
+#toc a em{font:500 13px Cinzel;font-style:normal;color:var(--gilt);width:28px;letter-spacing:.05em}
+#toc a:hover{color:#fff;padding-left:6px}#toc a.on{color:#fff;font-weight:500}
+#toc a .man{position:absolute;left:-36px;top:5px;width:30px;height:20px;opacity:0}#toc a.on .man{opacity:1}
+#toc a kbd{margin-left:auto;font:400 10.5px 'JetBrains Mono';color:#85795f}
+#lens{left:52px;bottom:60px;font:italic 400 21px Alegreya;color:#cdbf9b}
+#lens b{font:500 12px Cinzel;font-style:normal;letter-spacing:.3em;color:var(--gilt);display:block;margin-bottom:6px}
+#lens a{margin-right:20px;cursor:pointer;padding-bottom:3px;border-bottom:1.5px solid transparent}#lens a.on{color:#fff;border-bottom-color:var(--rub)}#lens a:hover{color:#fff}
+#inset{left:52px;bottom:140px;width:260px;height:146px;border:1px solid var(--cream);outline:1px solid rgba(237,227,200,.45);outline-offset:3px;background:#0d0b08;overflow:hidden}
+/* page */
+#page{left:1330px;top:0;width:590px;height:1080px;background:linear-gradient(90deg,#c9bb97 0,#EADFC4 26px,#EADFC4 100%);color:var(--ink);padding:54px 58px 0 66px;box-shadow:-30px 0 50px rgba(0,0,0,.6)}
+#page::before{content:'';position:absolute;left:-12px;top:0;width:12px;height:100%;background:linear-gradient(90deg,transparent,rgba(0,0,0,.45))}
+.run{display:flex;justify-content:space-between;font:italic 400 17px Alegreya;color:var(--ink2);border-bottom:1px solid var(--ink);padding-bottom:6px}
+.run span:first-child{font:500 12px Cinzel;font-style:normal;letter-spacing:.3em}
+h2.pt{font:700 66px/1 Alegreya;margin:26px 0 4px;letter-spacing:-.01em}
+h2.pt::first-letter{color:var(--rub);font-size:84px}
+.lede{font:italic 400 21px/1.3 Alegreya;color:var(--ink2)}
+.sec{display:flex;align-items:center;gap:14px;margin:24px 0 6px;font:500 12px Cinzel;letter-spacing:.3em;color:var(--ink2);text-transform:uppercase}.sec::after{content:'';flex:1;border-top:1px solid var(--ink)}
+.row{display:flex;align-items:baseline;font:400 23px Alegreya;padding:3px 0}
+.row .l{white-space:nowrap}.row .dots{flex:1;margin:0 8px;border-bottom:2px dotted #6b5a40;transform:translateY(-4px)}
+.row .v{font:700 25px Alegreya;font-variant-numeric:oldstyle-nums tabular-nums}
+.pbar{height:9px;margin:1px 0 7px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:repeating-linear-gradient(90deg,transparent 0 9px,rgba(31,23,16,.25) 9px 10px);position:relative}.pbar b{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--ink) 0 2px,transparent 2px 4px)}
+.ord{margin-top:2px}
+.ord a{display:flex;align-items:baseline;gap:12px;padding:7px 0 7px 38px;position:relative;font:italic 500 26px Alegreya;cursor:pointer;border-bottom:1px solid rgba(31,23,16,.2)}
+.ord a sup{font:500 13px Alegreya;font-style:normal;color:var(--rub);margin-left:-6px}
+.ord a kbd{margin-left:auto;font:400 11px 'JetBrains Mono';color:var(--ink2);border:1px solid var(--ink2);padding:0 5px}
+.ord a.pri{color:var(--rub);font-weight:700;font-size:30px}.ord a.pri kbd{color:var(--rub);border-color:var(--rub)}
+.ord a:hover{background:rgba(160,47,34,.08)}
+.ord a svg{position:absolute;left:2px;top:12px;width:30px;height:20px;opacity:0}.ord a.pri svg,.ord a:hover svg{opacity:1}
+.foot{font:400 15px/1.35 Alegreya;color:var(--ink2);border-top:1px solid var(--ink);margin-top:14px;padding-top:6px}.foot sup{color:var(--rub);font-style:normal;margin-right:2px}
+#disp{margin-top:6px}
+#disp p{font:400 18.5px/1.28 Alegreya;margin:5px 0;padding-left:20px;position:relative}#disp p::before{content:'§';position:absolute;left:0;color:var(--rub);font-weight:700}
+#stamp{position:absolute;right:58px;bottom:58px;width:268px;text-align:center;cursor:pointer;transform:rotate(-4deg);transition:transform .15s}
+#stamp:hover{transform:rotate(-4deg) scale(1.03)}#stamp:active{transform:rotate(-4deg) scale(.96)}
+#stamp .in{border:4px double var(--rub);color:var(--rub);padding:10px 8px 8px;font:700 34px/1 Cinzel;letter-spacing:.14em;background:rgba(160,47,34,.05);filter:url(#ink)}
+#stamp small{display:block;font:italic 500 18px Alegreya;letter-spacing:0;margin-top:4px}
+#pno{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:italic 400 17px Alegreya;color:var(--ink2)}
+.tk{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 6px;background:var(--paper);color:var(--ink);font:700 19px Alegreya;border:1px solid #14100b;box-shadow:0 0 0 2px rgba(237,227,200,.3),0 3px 6px rgba(0,0,0,.55)}
+.tk .f{width:20px;height:14px;display:flex;border:1px solid #14100b}.tk .f s{flex:1}
+.tk.me{background:#F3E7B8}.tk.foe{box-shadow:0 0 0 2px var(--rub),0 3px 6px rgba(0,0,0,.55)}
+</style></head><body><div id="stage">
+<svg id="map"></svg>
+<svg width="0" height="0" style="position:absolute"><filter id="ink"><feTurbulence baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.6 1.25"/><feComposite in2="SourceGraphic" operator="in" result="m"/><feComponentTransfer in="SourceGraphic"><feFuncA type="linear" slope="1"/></feComponentTransfer></filter></svg>
+<div id="mast" class="abs"><div class="t"><h1 class="halo">The Empire of France</h1><div class="d">Emperor Napoleon · Anno 1804 · <span style="font-feature-settings:'smcp'">Turn I</span></div></div><div class="rule"></div>
+<div class="line halo"><span><em>Treasury</em><b>100</b><i>+731</i></span><span><em>People</em><b>90</b><i>5%</i></span><span><em>Host</em><b>10</b> of 12 <i>+2.2</i></span><span><em>Envoys</em><b>6</b><i>+2</i></span></div></div>
+<div id="toc" class="abs halo"><h4>CONTENTS</h4></div>
+<div id="inset" class="abs"></div>
+<div id="lens" class="abs halo"><b>MAP</b></div>
+<div id="page" class="abs"></div>
+</div>
+<script>
+/*MAPDATA*/
+const MAN='<svg viewBox="0 0 30 20"><path d="M1 6h6v9H1z" fill="currentColor"/><path d="M7 7l5-1h5l2-2q1-1.600 3-.6l5 4q1 .8 0 1.600l-1.600 1.200 1.600 1.200q.8.8 0 1.600l-1.800 1.200 1.200 1q.6.9-.2 1.600l-2 1.300-8 .5q-5 0-8-1.600z" fill="currentColor" transform="translate(0 -1)"/></svg>';
+const PAL=['#48533E','#6A5A3C','#4B5A66','#6B4A40','#5A4C66','#66643E','#3F6560'];
+const svg=$('#map');let selected='Bas-Rhin';
+const paths=drawMap(svg,{sea:'#14181c',graticule:{step:5,color:'#EDE3C8',w:.35},
+ seaExtra:s=>{const d=el('defs',{},s);for(let i=0;i<7;i++){const pt=el('pattern',{id:'h'+i,width:6,height:6,patternUnits:'userSpaceOnUse',patternTransform:`rotate(${[45,-45,0,90,30,-30,60][i]})`},d);el('line',{x1:0,y1:0,x2:6,y2:0,stroke:'#000','stroke-width':1.1,opacity:.28},pt)}
+  const sp=el('pattern',{id:'sea',width:4,height:4,patternUnits:'userSpaceOnUse'},d);el('line',{x1:0,y1:2,x2:4,y2:2,stroke:'#9fb6c4','stroke-width':.6,opacity:.12},sp);el('rect',{width:MAP.W,height:MAP.H,fill:'url(#sea)'},s)},
+ coast:[[7,.10,'#9fb6c4'],[3,.12,'#9fb6c4']],
+ fill:c=>c.id==='france'?'#2F4770':PAL[c.c],stroke:()=>'#0b0907',strokeW:1.4,frDepts:{stroke:'rgba(0,0,0,.5)',w:.7}});
+// hatch overlay per nation
+const hg=el('g',{'pointer-events':'none'},svg);MAP.countries.forEach(c=>el('path',{d:c.d,fill:`url(#h${c.c})`},hg));
+const dp=paths.dept;const sel=()=>{for(const k in dp){const on=k===selected;dp[k].setAttribute('stroke',on?'#EDE3C8':'rgba(0,0,0,.5)');dp[k].setAttribute('stroke-width',on?3:.7);dp[k].setAttribute('fill',on?'rgba(237,227,200,.22)':'transparent');if(on)dp[k].parentNode.appendChild(dp[k]);}};sel();
+for(const k in dp)dp[k].addEventListener('click',()=>{selected=k;sel();page();});
+const lab=el('g',{'font-family':'Alegreya','font-style':'italic','text-anchor':'middle','paint-order':'stroke',stroke:'#0c0a07','stroke-width':4,'stroke-linejoin':'round',fill:'#EDE3C8','letter-spacing':'2.5','font-weight':500},svg);
+for(const id of LABELS){const c=MAP.countries.find(x=>x.id===id);if(!c||(c.cy<165&&c.cx<1340)||id==='portugal'||c.cx>1290&&c.cy>0&&c.w<150)continue;const fs=Math.max(14,Math.min(30,c.w/(nm(c).length*.5)));el('text',{x:c.cx,y:c.cy,'font-size':fs},lab,nm(c))}
+// contents
+const nav=[['I','Nations','N'],['II','Treasury','B'],['III','Decrees','D'],['IV','Council','C'],['V','Annals','A'],['VI','Goals','G']];
+$('#toc').insertAdjacentHTML('beforeend',nav.map((n,i)=>`<a class="${i?'':'on'}"><span class="man">${MAN}</span><em>${n[0]}.</em>${n[1]}<kbd>${n[2]}</kbd></a>`).join(''));
+$$('#toc a').forEach(a=>a.onclick=()=>{$$('#toc a').forEach(x=>x.classList.remove('on'));a.classList.add('on')});
+$('#lens').insertAdjacentHTML('beforeend',GAME.lens.map((l,i)=>`<a class="${i?'':'on'}">${l}</a>`).join(''));$$('#lens a').forEach(a=>a.onclick=()=>{$$('#lens a').forEach(x=>x.classList.remove('on'));a.classList.add('on')});
+// inset
+(function(){const s=el('svg',{width:260,height:146,viewBox:`0 0 ${MAP.W} ${MAP.H}`},null);for(const c of MAP.countries)el('path',{d:c.d,fill:c.id==='france'?'#6a8fcf':'#6b6048'},s);el('rect',{x:520,y:260,width:640,height:380,fill:'none',stroke:'#EDE3C8','stroke-width':14},s);$('#inset').appendChild(s)})();
+function page(){const p=GAME.prov;p.name=selected;const num=(v)=>v;
+ $('#page').innerHTML=`<div class="run"><span>FOLIO XVII</span><span>Of the Provinces</span></div>
+ <h2 class="pt">${p.name}</h2><div class="lede">A province of France, held in your name and garrisoned.</div>
+ <div class="sec">Of the garrison</div>
+ <div class="row"><span class="l">Army</span><span class="dots"></span><span class="v">${p.army}</span></div><div class="row"><span class="l">Defence</span><span class="dots"></span><span class="v">${p.def}</span></div>
+ <div class="sec">Of the people</div>
+ <div class="row"><span class="l">Population</span><span class="dots"></span><span class="v">${p.pop}</span></div>
+ <div class="row"><span class="l">Stability</span><span class="dots"></span><span class="v">${p.stab}%</span></div><div class="pbar"><b style="width:${p.stab}%"></b></div>
+ <div class="row"><span class="l">Happiness</span><span class="dots"></span><span class="v">${p.hap}%</span></div><div class="pbar"><b style="width:${p.hap}%"></b></div>
+ <div class="sec">Orders</div>
+ <div class="ord"><a class="pri">${MAN}Move army<kbd>M</kbd></a><a>${MAN}Recruit<sup>1</sup><kbd>R</kbd></a><a>${MAN}Build<sup>2</sup><kbd>B</kbd></a><a>${MAN}Fortify<kbd>F</kbd></a></div>
+ <div class="foot"><sup>1</sup>Recruiting costs 12 gold and 8 men. &nbsp;<sup>2</sup>Building takes three turns.</div>
+ <div class="sec">Dispatches</div><div id="disp"><p>${GAME.alerts[0][1]}.</p><p>${GAME.alerts[1][1]}.</p></div>
+ <div id="stamp"><div class="in">END TURN<small>Turn I → Turn II</small></div></div><div id="pno">— 17 —</div>`;
+ $('#stamp').onclick=()=>{$('#stamp small').textContent='Turn II → Turn III'};
+}
+page();fit();
+const T=[[1.2,46.2,'me',39,['#2F4E9E','#F3EEE3','#C8372D']],[5.4,43.5,'me',22,['#2F4E9E','#F3EEE3','#C8372D']],[13.8,45.6,'foe',41,['#d8d8d8','#c8372d','#d8d8d8']],[-4.5,38.2,'',27,['#c8372d','#e3b93c','#c8372d']],[7.6,48.6,'me',35,['#2F4E9E','#F3EEE3','#C8372D']]];
+T.forEach(([lo,la,cls,n,fl])=>{const d=document.createElement('div');d.className='tk '+cls;d.style.left=MAP.x(lo)+'px';d.style.top=MAP.y(la)+'px';d.innerHTML=`<div class="f">${fl.map(c=>`<s style="background:${c}"></s>`).join('')}</div>${n}`;$('#stage').appendChild(d)});
+</script></body></html>

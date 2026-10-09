@@ -1,0 +1,162 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terra Bellum — 1 · Neatline</title>
+<style>
+/*FONTS*/
+:root{--ink:#0B0F14;--night:#0E1A24;--paper:#E8DEC3;--paper2:#D9CDAC;--text:#1D1812;--cream:#F1E9D2;--brass:#C9A24B;--rubric:#9E3426;--sea:#0E1A24}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#05080c;overflow:hidden;font-family:Alegreya,serif;color:var(--cream)}
+#stage{position:absolute;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:var(--night)}
+svg#map{position:absolute;inset:0;width:100%;height:100%}
+.abs{position:absolute}
+.caps{font-family:Cinzel,serif;text-transform:uppercase;letter-spacing:.14em}
+/* cartouche */
+#cart{left:62px;top:56px;width:470px;height:108px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+#cart .in{position:absolute;inset:0;display:flex;align-items:center;gap:16px;padding:0 44px 0 52px;color:var(--text)}
+#cart .nat{font:700 28px/1 Cinzel;letter-spacing:.16em}
+#cart .sub{font:italic 400 17px/1.2 Alegreya;color:#4a4033;margin-top:5px}
+#cart .date{margin-left:auto;text-align:right;font:500 13px/1.25 Cinzel;letter-spacing:.14em;color:#4a4033}
+#cart .date b{display:block;font:700 22px Cinzel;color:var(--text);letter-spacing:.06em}
+/* readouts: engraved scale bars */
+#reads{left:558px;top:50px;display:flex;gap:30px;padding:10px 24px 12px;background:rgba(11,15,20,.9);border:1px solid var(--cream);outline:1px solid rgba(241,233,210,.45);outline-offset:3px}
+.rd{position:relative;padding:0 2px 0}
+.rd .l{font:500 12px Cinzel;letter-spacing:.2em;color:var(--paper2);opacity:.85}
+.rd .v{font:700 31px/1 Alegreya;color:var(--cream);margin-top:2px;text-shadow:0 1px 0 #000,0 0 12px rgba(0,0,0,.6)}
+.rd .v i{font:italic 400 16px Alegreya;color:#9fc29a;margin-left:7px;font-style:normal}
+.rd .sc{display:flex;height:5px;margin-top:6px;border:1px solid var(--cream);width:140px}
+.rd .sc s{flex:1;background:var(--cream)} .rd .sc s:nth-child(even){background:#0B0F14}
+/* index */
+#idx{left:62px;top:232px;width:198px;background:rgba(11,15,20,.9);border:1px solid var(--cream);outline:1px solid rgba(241,233,210,.45);outline-offset:3px;padding:6px 0}
+#idx h4{font:500 11px Cinzel;letter-spacing:.3em;color:var(--brass);padding:8px 16px 6px;text-transform:uppercase}
+#idx a{display:flex;align-items:baseline;gap:12px;padding:9px 16px;font:500 14.5px Cinzel;letter-spacing:.12em;color:var(--cream);cursor:pointer;border-top:1px solid rgba(241,233,210,.16);text-transform:uppercase}
+#idx a em{font:italic 400 14px Alegreya;color:var(--brass);width:22px;font-style:italic;text-transform:none;letter-spacing:0}
+#idx a:hover{background:rgba(201,162,75,.16)} #idx a.on{background:rgba(201,162,75,.22);color:#fff}
+#idx a kbd{margin-left:auto;font:400 10px 'JetBrains Mono';color:#8d8570;border:1px solid #5b5545;padding:0 4px}
+/* legend */
+#leg{left:62px;bottom:94px;width:262px;background:rgba(11,15,20,.92);border:1px solid var(--cream);outline:1px solid rgba(241,233,210,.45);outline-offset:3px;padding:12px 16px 10px}
+#leg h4{font:500 11px Cinzel;letter-spacing:.3em;color:var(--brass);margin-bottom:8px}
+#leg label{display:flex;align-items:center;gap:10px;padding:5px 0;font:500 16px Alegreya;cursor:pointer;color:var(--cream)}
+#leg label i{width:15px;height:15px;border:1px solid var(--cream);display:grid;place-items:center} #leg label.on i::after{content:'';width:7px;height:7px;background:var(--brass)}
+#leg label:hover{color:#fff}
+#inset{left:62px;bottom:420px;display:none}
+/* rose */
+#rose{right:64px;bottom:50px;width:220px;height:244px;cursor:pointer;text-align:center}
+#rose svg{width:220px;height:220px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.55))}
+#rose .cap{font:700 14px Cinzel;letter-spacing:.3em;color:var(--cream);text-shadow:0 1px 3px #000;margin-top:4px}
+#rose .needle{transform-origin:118px 118px;transition:transform .9s cubic-bezier(.3,1.5,.5,1)}
+#rose:hover .ring{stroke:#fff}
+/* slip */
+#slip{right:72px;top:168px;width:372px;background:var(--paper);color:var(--text);border:1px solid #2b2418;box-shadow:0 18px 30px rgba(0,0,0,.5),0 0 0 4px var(--paper2),0 0 0 5px #2b2418;padding:18px 26px 14px}
+#slip .k{font:500 11px Cinzel;letter-spacing:.3em;color:#6a5a40}
+#slip h2{font:700 36px/1.05 Cinzel;letter-spacing:.04em;margin:4px 0 2px}
+#slip .own{font:italic 400 18px Alegreya;color:var(--rubric)}
+.dbl{height:5px;border-top:1px solid #2b2418;border-bottom:1px solid #2b2418;margin:10px 0}
+#slip table{width:100%;border-collapse:collapse}
+#slip td{padding:2px 0;font:400 18px Alegreya;vertical-align:baseline}
+#slip td.n{text-align:right;font:700 20px Alegreya;font-variant-numeric:tabular-nums;white-space:nowrap}
+#slip td.d{width:100%;background:radial-gradient(circle,#5a4c33 0.9px,transparent 1.2px) 0 74%/6px 4px repeat-x}
+#slip td.t{white-space:nowrap;padding-right:6px}
+.bar{height:6px;border:1px solid #2b2418;margin:-2px 0 5px;display:flex}.bar b{background:#2b2418;display:block}
+.verbs a{display:flex;align-items:baseline;gap:12px;padding:6px 0;font:500 19px Alegreya;border-bottom:1px solid rgba(43,36,24,.28);cursor:pointer}
+.verbs a em{font:italic 400 15px Alegreya;color:#6a5a40;width:22px}
+.verbs a kbd{margin-left:auto;font:400 11px 'JetBrains Mono';border:1px solid #6a5a40;padding:0 5px;color:#4a4033}
+.verbs a:hover{background:rgba(158,52,38,.1)}
+.verbs a.pri{margin:4px 0 6px;padding:13px 16px;background:var(--text);color:var(--paper);border:0;font:700 18px Cinzel;letter-spacing:.14em;text-transform:uppercase;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+.verbs a.pri:hover{background:var(--rubric)} .verbs a.pri em{color:var(--brass);width:auto}
+.verbs a.pri kbd{border-color:#8a7d62;color:#d6c9a6}
+/* pennants */
+#alerts{right:72px;top:54px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.pen{display:flex;align-items:center;gap:10px;height:34px;padding:0 30px 0 14px;background:var(--paper);color:var(--text);font:500 15.5px Alegreya;clip-path:polygon(0 0,100% 0,calc(100% - 14px) 50%,100% 100%,0 100%);border-left:5px solid var(--rubric);box-shadow:0 3px 6px rgba(0,0,0,.4)}
+.pen.o{border-left-color:#3f6b8f}
+.tok{position:absolute;display:flex;align-items:stretch;height:26px;background:var(--paper);border:1.5px solid #14100b;color:var(--text);font:700 16px Alegreya;box-shadow:0 2px 4px rgba(0,0,0,.5);transform:translate(-50%,-50%)}
+.tok .f{width:14px;display:flex;flex-direction:column;border-right:1.5px solid #14100b}.tok .f s{flex:1}
+.tok span{padding:0 8px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+.tok.me{background:#F4E8BE;outline:2px solid var(--brass);outline-offset:1px}
+.tok.foe{outline:2px solid var(--rubric);outline-offset:1px}
+</style></head><body><div id="stage">
+<svg id="map"></svg><svg id="frame" class="abs" style="inset:0;width:1920px;height:1080px;pointer-events:none"></svg>
+
+<div id="cart" class="abs"><svg width="470" height="108" viewBox="0 0 470 108" style="position:absolute"><path d="M30 6H440q-14 10-14 24t14 24v0q-14 10-14 24t14 24H30q14-10 14-24T30 78q14-10 14-24T30 30q14-10 14-24" fill="#E8DEC3" stroke="#2b2418" stroke-width="1.6" transform="translate(0,6)"/><path d="M30 14H440" stroke="#2b2418" stroke-width="1" transform="translate(4,0)" opacity="0"/></svg>
+<div class="in"><div id="flag"></div><div><div class="nat">France</div><div class="sub">Emperor Napoleon</div></div><div class="date">Anno<b>1804</b></div></div></div>
+
+<div id="reads" class="abs"></div>
+<div id="alerts" class="abs"></div>
+<div id="idx" class="abs"><h4>Index</h4><a class="on"><em>I</em>Nations<kbd>N</kbd></a><a><em>II</em>Treasury<kbd>B</kbd></a><a><em>III</em>Decrees<kbd>D</kbd></a><a><em>IV</em>Council<kbd>C</kbd></a><a><em>V</em>Annals<kbd>A</kbd></a><a><em>VI</em>Goals<kbd>G</kbd></a></div>
+<div id="leg" class="abs"><h4>REFERENCES</h4></div>
+<div id="slip" class="abs"></div>
+<div id="rose" class="abs"><svg id="roseSvg" viewBox="0 0 236 236"></svg><div class="cap">END TURN</div></div>
+</div>
+<script>
+/*MAPDATA*/
+const PAL=['#9AA882','#C2A878','#C28F6B','#BC8C7E','#A99BC0','#B4B27E','#86AEA4'];
+const svg=$('#map'); let selected='Bas-Rhin';
+const paths=drawMap(svg,{sea:'#0E1A24',graticule:{step:5,color:'#9fb7c4',w:.5},
+ coast:[[16,.05,'#8fb0c2'],[9,.07,'#8fb0c2'],[4,.10,'#9dbdce']],
+ fill:c=>c.id==='france'?'#6E8FC9':PAL[c.c],stroke:()=>'#3b3224',strokeW:1.1,frDepts:{stroke:'rgba(40,32,20,.55)',w:.8},
+ onPick:(c)=>{}});
+// dash-dot national boundaries (chart convention)
+$$('path[data-id]',svg).forEach(p=>{p.setAttribute('stroke-dasharray','7 2.5 1.5 2.5');p.setAttribute('fill-opacity','.92')});
+// selected province
+const dp=paths.dept; const sel=()=>{for(const k in dp){dp[k].setAttribute('stroke',k===selected?'#C9A24B':'rgba(40,32,20,.55)');dp[k].setAttribute('stroke-width',k===selected?3.2:.8);dp[k].setAttribute('fill',k===selected?'rgba(201,162,75,.28)':'transparent');if(k===selected)dp[k].parentNode.appendChild(dp[k]);}};
+for(const k in dp){dp[k].addEventListener('click',()=>{selected=k;GAME.prov.name=k;sel();slip();});}
+sel();
+// labels
+const lab=el('g',{'font-family':'Cinzel','text-anchor':'middle','paint-order':'stroke','stroke':'rgba(238,228,196,.75)','stroke-width':3,'stroke-linejoin':'round',fill:'#1b150d','letter-spacing':'3','font-weight':700},svg);
+for(const id of LABELS){const c=MAP.countries.find(x=>x.id===id);if(!c||(c.cy<190&&c.cx>520)||id==='portugal')continue;const fs=Math.max(11,Math.min(26,c.w/ (nm(c).length*0.62)));el('text',{x:c.cx,y:c.cy,'font-size':fs},lab,nm(c).toUpperCase());}
+// graduated neatline
+const fr=$('#frame');const B=30;
+function frame(){
+ el('rect',{x:0,y:0,width:1920,height:B,fill:'#0B0F14'},fr);el('rect',{x:0,y:1080-B,width:1920,height:B,fill:'#0B0F14'},fr);el('rect',{x:0,y:0,width:B,height:1080,fill:'#0B0F14'},fr);el('rect',{x:1920-B,y:0,width:B,height:1080,fill:'#0B0F14'},fr);
+ const X=lon=>MAP.x(lon),Y=lat=>MAP.y(lat);
+ const g=el('g',{},fr);
+ for(let lon=-24;lon<49;lon++){const x0=X(lon),x1=X(lon+1);if(x1<B||x0>1920-B)continue;const on=((lon%2)+2)%2===0;
+  [[0,B-12,B-14],[1080-B+12,1080,14]].forEach(([y,y2,h],i)=>{el('rect',{x:Math.max(x0,B),y:i?1080-B+10:4,width:Math.min(x1,1920-B)-Math.max(x0,B),height:10,fill:on?'#F1E9D2':'#0B0F14',stroke:'#F1E9D2','stroke-width':.8},g)});
+  for(let m=1;m<6;m++){const xm=x0+(x1-x0)*m/6;if(xm>B&&xm<1920-B){el('line',{x1:xm,x2:xm,y1:14,y2:m===3?24:20,stroke:'#F1E9D2','stroke-width':.8},g);el('line',{x1:xm,x2:xm,y1:1080-14,y2:1080-(m===3?24:20),stroke:'#F1E9D2','stroke-width':.8},g)}}
+  if(lon%5===0&&x0>B+20&&x0<1920-B-20){const t=el('text',{x:x0,y:27,'text-anchor':'middle','font-family':'Alegreya','font-size':12,fill:'#C9A24B'},g,Math.abs(lon)+'°'+(lon<0?'W':lon>0?'E':''));const t2=el('text',{x:x0,y:1080-17,'text-anchor':'middle','font-family':'Alegreya','font-size':12,fill:'#C9A24B'},g,Math.abs(lon)+'°'+(lon<0?'W':lon>0?'E':''));}
+ }
+ for(let lat=30;lat<=60;lat++){const y0=Y(lat+1),y1=Y(lat);if(y1<B||y0>1080-B)continue;const on=lat%2===0;
+  [[4,10],[1920-B+10,10]].forEach(([x,w])=>el('rect',{x,y:Math.max(y0,B),width:w,height:Math.min(y1,1080-B)-Math.max(y0,B),fill:on?'#F1E9D2':'#0B0F14',stroke:'#F1E9D2','stroke-width':.8},g));
+  for(let m=1;m<6;m++){const ym=y1+(y0-y1)*m/6;if(ym>B&&ym<1080-B){el('line',{y1:ym,y2:ym,x1:14,x2:m===3?24:20,stroke:'#F1E9D2','stroke-width':.8},g);el('line',{y1:ym,y2:ym,x1:1920-14,x2:1920-(m===3?24:20),stroke:'#F1E9D2','stroke-width':.8},g)}}
+  if(lat%5===0&&y0>B+16&&y0<1080-B-16){[22,1920-22].forEach((x,i)=>{const t=el('text',{x,y:y1+4,'text-anchor':'middle','font-family':'Alegreya','font-size':12,fill:'#C9A24B',transform:`rotate(${i?90:-90} ${x} ${y1})`},g,lat+'°N')});}
+ }
+ // inner neatline
+ el('rect',{x:B,y:B,width:1920-2*B,height:1080-2*B,fill:'none',stroke:'#F1E9D2','stroke-width':1.4},fr);
+ el('rect',{x:B+4,y:B+4,width:1920-2*B-8,height:1080-2*B-8,fill:'none',stroke:'rgba(241,233,210,.35)','stroke-width':.8},fr);
+}
+frame();
+// readouts
+const R=[['Treasury',GAME.gold,GAME.goldD],['People',GAME.people,GAME.peopleD],['Host',GAME.army,GAME.armyD],['Envoys',GAME.dip,GAME.dipD]];
+$('#reads').innerHTML=R.map(([l,v,d])=>`<div class="rd"><div class="l">${l.toUpperCase()}</div><div class="v">${v}<i>${d}</i></div><div class="sc">${'<s></s>'.repeat(10)}</div></div>`).join('');
+$('#flag').innerHTML=FLAG_FR(46,31).replace('<svg','<svg style="border:1.5px solid #2b2418"');
+// alerts
+$('#alerts').innerHTML=`<div class="pen"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1l7 13H1z" fill="#9E3426"/></svg>${GAME.alerts[0][1]}</div><div class="pen o"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1l7 7-7 7-7-7z" fill="#3f6b8f"/></svg>${GAME.alerts[1][1]}</div>`;
+// legend
+$('#leg').insertAdjacentHTML('beforeend',GAME.lens.map((l,i)=>`<label class="${i?'':'on'}"><i></i>${l}</label>`).join(''));
+$$('#leg label').forEach(l=>l.onclick=()=>{$$('#leg label').forEach(x=>x.classList.remove('on'));l.classList.add('on')});
+// slip
+function slip(){const p=GAME.prov;p.name=selected;
+ $('#slip').innerHTML=`<div class="k">PROVINCE · FOLIO XVII</div><h2>${p.name}</h2><div class="own">France — your province</div><div class="dbl"></div>
+ <table>${[['Army',p.army],['Defence',p.def],['Population',p.pop]].map(r=>`<tr><td class="t">${r[0]}</td><td class="d"></td><td class="n">${r[1]}</td></tr>`).join('')}
+ <tr><td class="t">Stability</td><td class="d"></td><td class="n">${p.stab}%</td></tr><tr><td colspan="3"><div class="bar"><b style="width:${p.stab}%"></b></div></td></tr>
+ <tr><td class="t">Happiness</td><td class="d"></td><td class="n">${p.hap}%</td></tr><tr><td colspan="3"><div class="bar"><b style="width:${p.hap}%"></b></div></td></tr>
+ <tr><td class="t">Terrain</td><td class="d"></td><td class="n">${p.terrain}</td></tr></table>
+ <div class="dbl"></div><div class="verbs"><a class="pri"><em>▸</em>Move army<kbd>M</kbd></a>${GAME.verbs.slice(1).map((v,i)=>`<a><em>${['i','ii','iii'][i]}.</em>${v[0]}<kbd>${v[1]}</kbd></a>`).join('')}</div>`;
+ // leader line
+ let L=$('#leader');if(L)L.remove();const d=MAP.france.find(x=>x.name===selected);if(d){L=el('g',{id:'leader'},svg);const sx=1920-72-372,sy=300;el('path',{d:`M${d.cx} ${d.cy} L ${d.cx+60} ${d.cy-0} L ${sx} ${sy}`,stroke:'#F1E9D2','stroke-width':1.2,fill:'none'},L);el('circle',{cx:d.cx,cy:d.cy,r:5,fill:'#0B0F14',stroke:'#C9A24B','stroke-width':2},L)}
+}
+slip();
+// roses
+(function(){const s=$('#roseSvg'),c=118;el('circle',{cx:c,cy:c,r:112,fill:'#0B0F14',stroke:'#F1E9D2','stroke-width':1.5,class:'ring'},s);el('circle',{cx:c,cy:c,r:103,fill:'none',stroke:'#F1E9D2','stroke-width':.8},s);
+ for(let i=0;i<72;i++){const a=i*5*Math.PI/180,r1=103,r2=i%6===0?92:i%2===0?97:99;el('line',{x1:c+r1*Math.sin(a),y1:c-r1*Math.cos(a),x2:c+r2*Math.sin(a),y2:c-r2*Math.cos(a),stroke:'#F1E9D2','stroke-width':i%6===0?1.3:.7},s)}
+ const star=(R,r,n,fill,off=0)=>{let d='';for(let i=0;i<n*2;i++){const rr=i%2?r:R,a=(i*Math.PI/n)+off;d+=(i?'L':'M')+(c+rr*Math.sin(a)).toFixed(1)+' '+(c-rr*Math.cos(a)).toFixed(1)}return el('path',{d:d+'Z',fill,stroke:'#0B0F14','stroke-width':.8},s)};
+ star(86,12,8,'#8c7440',Math.PI/8);star(90,16,4,'#F1E9D2');
+ const n=el('g',{class:'needle'},s);el('path',{d:`M${c} ${c-96}L${c+9} ${c}L${c} ${c+8}L${c-9} ${c}Z`,fill:'#9E3426',stroke:'#0B0F14','stroke-width':.8},n);
+ el('circle',{cx:c,cy:c,r:34,fill:'#0B0F14',stroke:'#C9A24B','stroke-width':2},s);
+ const t=el('text',{x:c,y:c+11,'text-anchor':'middle','font-family':'Cinzel','font-weight':700,'font-size':30,fill:'#F1E9D2',id:'turnN'},s,'1');
+ ['N','E','S','W'].forEach((l,i)=>{const a=i*Math.PI/2;el('text',{x:c+75*Math.sin(a),y:c-75*Math.cos(a)+5,'text-anchor':'middle','font-family':'Cinzel','font-size':13,fill:'#0B0F14','font-weight':700},s,l)});
+ let rot=0,turn=1;$('#rose').onclick=()=>{rot+=45;turn++;n.style.transform=`rotate(${rot}deg)`;$('#turnN').textContent=turn;};
+})();
+fit();
+// army counters
+const T=[[2.6,48.9,'me',39,['#2F4E9E','#F3EEE3','#C8372D']],[7.6,48.6,'me',35,['#2F4E9E','#F3EEE3','#C8372D']],[5.4,43.5,'me',22,['#2F4E9E','#F3EEE3','#C8372D']],[13.0,48.2,'foe',41,['#d8d8d8','#c8372d','#d8d8d8']],[-4.5,38.2,'',27,['#c8372d','#e3b93c','#c8372d']],[13.4,52.5,'',30,['#222','#d8d8d8','#c8372d']]];
+T.forEach(([lo,la,cls,n,fl])=>{const d=document.createElement('div');d.className='tok '+cls;d.style.left=MAP.x(lo)+'px';d.style.top=MAP.y(la)+'px';d.innerHTML=`<div class="f">${fl.map(c=>`<s style="background:${c}"></s>`).join('')}</div><span>${n}</span>`;$('#stage').appendChild(d)});
+</script></body></html>

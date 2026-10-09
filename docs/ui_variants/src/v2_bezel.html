@@ -1,0 +1,141 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terra Bellum — 2 · Bezel</title>
+<style>
+/*FONTS*/
+:root{--bg:#0A0D12;--chassis:#12100D;--panel:#1A1612;--panel2:#241D16;--brass:#C9A24B;--brassd:#7F6A33;--ivory:#EFE6CF;--dim:#A89C80;--verd:#69B3A2;--rust:#D2603F}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#05070a;overflow:hidden;font-family:Alegreya,serif;color:var(--ivory)}
+#stage{position:absolute;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:var(--bg)}
+svg#map{position:absolute;inset:0;width:100%;height:100%}
+.abs{position:absolute} svg.abs{overflow:visible}
+.cz{font-family:Cinzel,serif;text-transform:uppercase}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(2,4,8,.7) 100%)}
+.btn{cursor:pointer}
+.btn:hover .hl{stroke:#fff}
+.tag{background:linear-gradient(180deg,#1d1812,#14110d);border:1px solid var(--brassd);box-shadow:0 10px 24px rgba(0,0,0,.55),inset 0 0 0 3px #14110d,inset 0 0 0 4px rgba(201,162,75,.3);padding:16px 18px 14px;width:292px;position:absolute}
+.tag .k{font:500 10.5px Cinzel;letter-spacing:.3em;color:var(--brass)}
+.tag h2{font:700 27px/1.05 Cinzel;letter-spacing:.05em;margin:5px 0 2px}
+.tag .own{font:italic 400 16px Alegreya;color:var(--dim)}
+.chips{display:flex;gap:6px;margin:12px 0 10px}
+.chips div{flex:1;border:1px solid #4a3f28;background:#100d0a;padding:6px 8px 5px;text-align:center}
+.chips b{display:block;font:700 22px/1 Alegreya;color:var(--ivory)} .chips small{font:500 9.5px Cinzel;letter-spacing:.2em;color:var(--dim)}
+.chips i{display:block;height:3px;background:#2a2318;margin-top:5px}.chips i u{display:block;height:3px;background:var(--verd)}
+.tag a{display:flex;justify-content:space-between;font:500 13px Cinzel;letter-spacing:.18em;color:var(--brass);text-transform:uppercase;cursor:pointer;padding-top:4px;border-top:1px solid #3a3022}
+.tag a:hover{color:#fff}
+.pill{position:absolute;display:flex;align-items:center;gap:10px;height:34px;padding:0 16px 0 10px;border-radius:17px;background:rgba(18,16,13,.94);border:1px solid var(--brassd);font:500 15.5px Alegreya;color:var(--ivory);box-shadow:0 4px 10px rgba(0,0,0,.5)}
+.pill.o{border-color:#3d6c88}
+.lab{font:600 11px Cinzel;letter-spacing:.2em;fill:#A89C80;text-transform:uppercase}
+.tk{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;height:30px;border-radius:15px;padding:0 12px 0 5px;gap:7px;background:#14110d;border:1.5px solid #6b5a30;font:700 16px Alegreya;color:var(--ivory);box-shadow:0 3px 6px rgba(0,0,0,.5)}
+.tk .f{width:22px;height:20px;border-radius:10px;overflow:hidden;display:flex}.tk .f s{flex:1}
+.tk.me{border-color:var(--brass);box-shadow:0 0 0 2px rgba(201,162,75,.25),0 3px 6px rgba(0,0,0,.5)}.tk.foe{border-color:var(--rust)}
+</style></head><body><div id="stage">
+<svg id="map"></svg><div class="vig"></div>
+<svg id="hud" class="abs" style="inset:0;width:1920px;height:1080px" viewBox="0 0 1920 1080"></svg>
+<div id="tagbox"></div>
+<div class="pill" style="right:170px;top:30px"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1l7 13H1z" fill="#D2603F"/></svg>Austria masses troops on your border</div>
+<div class="pill o" style="right:170px;top:72px"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1l7 7-7 7-7-7z" fill="#5aa0cc"/></svg>Spain proposes a pact</div>
+</div>
+<script>
+/*MAPDATA*/
+const PAL=['#33473F','#4A4034','#34455A','#4D3A3A','#40375A','#4A4B33','#2F5550'];
+const svg=$('#map'),hud=$('#hud');let selected='Bas-Rhin',lens=0;
+const paths=drawMap(svg,{sea:'#090C11',graticule:{step:5,color:'#C9A24B',w:.4},
+  seaExtra:s=>{const d=el('defs',{},s);const g=el('radialGradient',{id:'sg',cx:'50%',cy:'45%',r:'75%'},d);el('stop',{offset:0,'stop-color':'#101922'},g);el('stop',{offset:1,'stop-color':'#06080c'},g);el('rect',{width:MAP.W,height:MAP.H,fill:'url(#sg)'},s)},
+  coast:[[10,.06,'#6e8fa3'],[4,.09,'#8fb0c2']],
+  fill:c=>c.id==='france'?'#2D4C78':PAL[c.c],stroke:()=>'#0A0D12',strokeW:1.6,frDepts:{stroke:'rgba(0,0,0,.55)',w:.8}});
+$$('path[data-id]',svg).forEach(p=>p.setAttribute('stroke-linejoin','round'));
+const fr=$('path[data-id=france]',svg);fr.setAttribute('stroke','#C9A24B');fr.setAttribute('stroke-width',2.4);
+const dp=paths.dept;const sel=()=>{for(const k in dp){const on=k===selected;dp[k].setAttribute('stroke',on?'#EFE6CF':'rgba(0,0,0,.55)');dp[k].setAttribute('stroke-width',on?2.4:.8);dp[k].setAttribute('fill',on?'rgba(201,162,75,.35)':'transparent');if(on)dp[k].parentNode.appendChild(dp[k]);}};sel();
+for(const k in dp)dp[k].addEventListener('click',()=>{selected=k;sel();ring();});
+const lab=el('g',{'font-family':'Cinzel','text-anchor':'middle','paint-order':'stroke',stroke:'#06080c','stroke-width':4,'stroke-linejoin':'round',fill:'#CFC4A6','letter-spacing':'3','font-weight':500,opacity:.9},svg);
+for(const id of LABELS){const c=MAP.countries.find(x=>x.id===id);if(!c||(c.cy<180&&c.cx>1450)||id==='portugal'||(Math.hypot(c.cx-840,c.cy-470)<175)||(c.cy>960&&c.cx>650&&c.cx<1300))continue;const fs=Math.max(11,Math.min(24,c.w/(nm(c).length*0.66)));el('text',{x:c.cx,y:c.cy,'font-size':fs},lab,nm(c).toUpperCase())}
+// ---------- helpers
+const H=(tag,a,p,t)=>el(tag,a,p||hud,t);
+function ticks(g,cx,cy,r,n,len,major,col='#C9A24B',w=1,startDeg=0,spanDeg=360){for(let i=0;i<=(spanDeg===360?n-1:n);i++){const a=(startDeg+spanDeg*i/n)*Math.PI/180;const l=i%major===0?len*1.7:len;H('line',{x1:cx+r*Math.sin(a),y1:cy-r*Math.cos(a),x2:cx+(r-l)*Math.sin(a),y2:cy-(r-l)*Math.cos(a),stroke:col,'stroke-width':i%major===0?w*1.4:w},g)}}
+function arc(g,cx,cy,r,a0,a1,col,w,cap='butt'){const p=a=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];const [x0,y0]=p(a0),[x1,y1]=p(a1);return H('path',{d:`M${x0} ${y0}A${r} ${r} 0 ${a1-a0>180?1:0} 1 ${x1} ${y1}`,fill:'none',stroke:col,'stroke-width':w,'stroke-linecap':cap},g)}
+const brassGrad=H('defs',{});{const g=H('linearGradient',{id:'bg',x1:0,y1:0,x2:1,y2:1},brassGrad);H('stop',{offset:0,'stop-color':'#E5C77A'},g);H('stop',{offset:.5,'stop-color':'#B38F3E'},g);H('stop',{offset:1,'stop-color':'#6F5A27'},g);
+ const g2=H('radialGradient',{id:'face',cx:'40%',cy:'35%',r:'80%'},brassGrad);H('stop',{offset:0,'stop-color':'#2a2218'},g2);H('stop',{offset:1,'stop-color':'#0f0c09'},g2)}
+function bezel(g,cx,cy,r,nt=60){H('circle',{cx,cy,r:r+3,fill:'#050403',opacity:.5},g);H('circle',{cx,cy,r,fill:'url(#bg)'},g);H('circle',{cx,cy,r:r-5,fill:'#0f0c09'},g);H('circle',{cx,cy,r:r-6,fill:'none',stroke:'#E5C77A','stroke-width':.6},g);ticks(g,cx,cy,r-6,nt,5,5,'#C9A24B',.8)}
+// ---------- nation medallion + gauges
+(function(){const g=H('g',{class:'btn'});const cx=104,cy=104,r=66;
+ bezel(g,cx,cy,r);const d=H('defs',{},g);const cp=H('clipPath',{id:'fc'},d);H('circle',{cx,cy,r:r-14},cp);
+ const fo=H('foreignObject',{x:cx-60,y:cy-60,width:120,height:120,'clip-path':'url(#fc)'},g);fo.innerHTML=`<div xmlns="http://www.w3.org/1999/xhtml" style="width:120px;height:120px;display:flex"><div style="flex:1;background:#2F4E9E"></div><div style="flex:1;background:#F3EEE3"></div><div style="flex:1;background:#C8372D"></div></div>`;
+ H('circle',{cx,cy,r:r-14,fill:'none',stroke:'rgba(0,0,0,.5)','stroke-width':2},g);
+ const nt=H('text',{x:cx,y:cy+r+30,'text-anchor':'middle','font-family':'Cinzel','font-weight':700,'font-size':19,'letter-spacing':4,fill:'#EFE6CF'},g,'FRANCE');
+ H('text',{x:cx,y:cy+r+50,'text-anchor':'middle','font-family':'Alegreya','font-style':'italic','font-size':16,fill:'#A89C80'},g,'Emperor Napoleon');
+ // gauges
+ const items=[['Treasury','100','+731',.42,'#C9A24B'],['People','90','5%',.6,'#69B3A2'],['Host','10/12','+2.2',.83,'#D2603F'],['Envoys','6','+2',.55,'#7FA8E8']];
+ items.forEach(([l,v,dl,f,col],i)=>{const gx=236+i*152,gy=82,gr=52;const gg=H('g',{class:'btn'});
+  H('circle',{cx:gx,cy:gy,r:gr+8,fill:'url(#bg)'},gg);H('circle',{cx:gx,cy:gy,r:gr+3,fill:'#0f0c09'},gg);
+  arc(gg,gx,gy,gr-4,-135,135,'#2a2318',7);arc(gg,gx,gy,gr-4,-135,-135+270*f,col,7,'round');
+  ticks(gg,gx,gy,gr+1,20,4,5,'#7F6A33',.8,-135,270);
+  H('text',{x:gx,y:gy+6,'text-anchor':'middle','font-family':'Alegreya','font-weight':700,'font-size':v.length>3?22:28,fill:'#EFE6CF'},gg,v);
+  H('text',{x:gx,y:gy+26,'text-anchor':'middle','font-family':'Alegreya','font-size':14,fill:col},gg,dl);
+  H('text',{x:gx,y:gy+gr+34,'text-anchor':'middle',class:'lab'},gg,l);
+  H('line',{x1:gx-gr-8-18,x2:gx-gr-8,y1:gy,y2:gy,stroke:'#7F6A33','stroke-width':3},g)});
+})();
+// ---------- date dial + gear (top right)
+(function(){const g=H('g',{class:'btn'});const cx=1818,cy=84,r=52;bezel(g,cx,cy,r,48);
+ H('text',{x:cx,y:cy+2,'text-anchor':'middle','font-family':'Cinzel','font-weight':700,'font-size':21,fill:'#EFE6CF'},g,'1804');H('text',{x:cx,y:cy+20,'text-anchor':'middle','font-family':'Cinzel','font-size':10,'letter-spacing':2,fill:'#C9A24B'},g,'TURN 1');
+ arc(g,cx,cy,r-12,0,30,'#C9A24B',3);
+})();
+// ---------- rail on an arc
+(function(){const ic={nations:'<circle cx="0" cy="0" r="9" fill="none"/><path d="M-9 0h18M0 -9v18M-6 -6q6 6 12 0M-6 6q6 -6 12 0" fill="none"/>',coin:'<ellipse cx="0" cy="-4" rx="9" ry="4" fill="none"/><path d="M-9 -4v8q0 4 9 4t9 -4v-8M-9 2q0 4 9 4t9 -4" fill="none"/>',scale:'<path d="M0 -10v20M-8 10h16M-10 -6h20M-10 -6l-4 9h8zM10 -6l-4 9h8z" fill="none"/>',lamp:'<path d="M-6 -8h12l3 10h-18zM-4 2v6h8v-6" fill="none"/>',book:'<path d="M-10 -7q5 -2 10 2q5 -4 10 -2v14q-5 -2 -10 2q-5 -4 -10 -2z M0 -5v14" fill="none"/>',cup:'<path d="M-6 -9h12v7q0 6 -6 6t-6 -6zM-6 -6h-4q0 6 4 6M6 -6h4q0 6 -4 6M0 4v5M-5 9h10" fill="none"/>'};
+ const names=[['nations','Nations'],['coin','Treasury'],['scale','Decrees'],['lamp','Council'],['book','Annals'],['cup','Goals']];
+ const R=520,ox=-380,oy=560;const g=H('g',{});
+ arc(g,ox,oy,R,38,142,'#3a3022',2);const A0=70,A1=110;
+ names.forEach(([k,n],i)=>{const a=(A0+(A1-A0)*i/5)*Math.PI/180;const x=ox+R*Math.sin(a),y=oy-R*Math.cos(a);const b=H('g',{class:'btn',transform:`translate(${x} ${y})`},g);
+  bezel(b,0,0,31,24);if(i===0)H('circle',{cx:0,cy:0,r:25,fill:'rgba(201,162,75,.18)'},b);
+  const ig=H('g',{stroke:i===0?'#E5C77A':'#CDBF9A','stroke-width':1.7,'stroke-linecap':'round','stroke-linejoin':'round'},b);ig.innerHTML=ic[k];
+  H('text',{x:44,y:5,'font-family':'Cinzel','font-size':14,'letter-spacing':2.5,fill:i===0?'#EFE6CF':'#A89C80','font-weight':500},b,n.toUpperCase())});
+})();
+// ---------- tuner (lens)
+(function(){const g=H('g',{});const x0=640,y0=1020,w=640;H('rect',{x:x0-30,y:y0-44,width:w+60,height:78,rx:6,fill:'rgba(14,12,9,.92)',stroke:'#7F6A33'},g);
+ for(let i=0;i<=80;i++){const x=x0+w*i/80;H('line',{x1:x,x2:x,y1:y0,y2:y0+(i%20===0?14:i%5===0?9:5),stroke:'#C9A24B','stroke-width':i%20===0?1.4:.7},g)}
+ GAME.lens.forEach((l,i)=>{H('text',{x:x0+w*(i+.5)/4,y:y0-14,'text-anchor':'middle','font-family':'Cinzel','font-size':14,'letter-spacing':2.5,fill:i===0?'#EFE6CF':'#8d826a','font-weight':i===0?700:500,class:'btn'},g,l.toUpperCase())});
+ const ptr=H('path',{d:`M${x0+w*.125} ${y0-4}l-6 -12h12z`,fill:'#D2603F'},g);H('line',{x1:x0+w*.125,x2:x0+w*.125,y1:y0-4,y2:y0+16,stroke:'#D2603F','stroke-width':1.6},g);
+ g.addEventListener('click',e=>{const bx=g.getBoundingClientRect(),k=Math.min(3,Math.max(0,Math.floor((e.clientX-bx.left-30*(bx.width/(w+60)))/(bx.width/(w+60))/(w/4))));const x=x0+w*(k+.125+.375*0)+0;ptr.style.transition='transform .4s cubic-bezier(.3,1.4,.5,1)';ptr.style.transform=`translateX(${w*(k)/4}px)`;g.querySelectorAll('line:last-child')[0].style.transform=`translateX(${w*k/4}px)`;});
+})();
+// ---------- minimap (round)
+(function(){const g=H('g',{class:'btn'});const cx=148,cy=922,r=96;bezel(g,cx,cy,r,72);
+ const d=H('defs',{},g);const cp=H('clipPath',{id:'mm'},d);H('circle',{cx,cy,r:r-14},cp);
+ const inner=H('g',{'clip-path':'url(#mm)'},g);H('rect',{x:cx-r,y:cy-r,width:2*r,height:2*r,fill:'#090C11'},inner);
+ const m=H('g',{transform:`translate(${cx-70} ${cy-40}) scale(.074)`},inner);for(const c of MAP.countries)H('path',{d:c.d,fill:c.id==='france'?'#C9A24B':PAL[c.c],opacity:c.id==='france'?1:.8},m);
+ H('rect',{x:cx-22,y:cy-12,width:44,height:26,fill:'none',stroke:'#EFE6CF','stroke-width':1.2},inner);
+ H('line',{x1:cx-r+12,x2:cx+r-12,y1:cy,y2:cy,stroke:'#C9A24B','stroke-width':.4,opacity:.6},inner);H('line',{y1:cy-r+12,y2:cy+r-12,x1:cx,x2:cx,stroke:'#C9A24B','stroke-width':.4,opacity:.6},inner);
+ H('text',{x:cx,y:cy+r+26,'text-anchor':'middle',class:'lab'},g,'Minimap');
+})();
+// ---------- end turn chronometer
+let turn=1,hand;
+(function(){const g=H('g',{class:'btn',id:'et'});const cx=1790,cy=930,r=108;bezel(g,cx,cy,r,60);
+ H('circle',{cx,cy,r:r-14,fill:'url(#face)'},g);ticks(g,cx,cy,r-16,60,6,5,'#8a7338',.8);
+ arc(g,cx,cy,r-24,0,220,'#D2603F',4,'round');
+ [12,3,6,9].forEach((n,i)=>{const a=i*Math.PI/2;H('text',{x:cx+(r-38)*Math.sin(a),y:cy-(r-38)*Math.cos(a)+5,'text-anchor':'middle','font-family':'Cinzel','font-size':14,fill:'#8a7338'},g,n)});
+ H('text',{id:'tn',x:cx,y:cy+18,'text-anchor':'middle','font-family':'Cinzel','font-weight':700,'font-size':54,fill:'#EFE6CF'},g,'1');
+ H('text',{x:cx,y:cy-26,'text-anchor':'middle','font-family':'Cinzel','font-size':11,'letter-spacing':4,fill:'#C9A24B'},g,'TURN');
+ hand=H('g',{style:'transform-origin:'+cx+'px '+cy+'px;transition:transform 1.1s cubic-bezier(.4,0,.2,1)'},g);H('path',{d:`M${cx} ${cy-r+16}l-8 -16h16z`,fill:'#D2603F',stroke:'#0f0c09'},hand);H('circle',{cx,cy:cy-r+30,r:3,fill:'#D2603F'},hand);
+ H('text',{x:cx,y:cy+r+30,'text-anchor':'middle','font-family':'Cinzel','font-weight':700,'font-size':16,'letter-spacing':5,fill:'#EFE6CF'},g,'END TURN');
+ let rot=0;g.addEventListener('click',()=>{rot+=360;hand.style.transform=`rotate(${rot}deg)`;turn++;$('#tn').textContent=turn});
+})();
+// ---------- radial command ring on the selected province
+function ring(){const old=$('#rg');if(old)old.remove();$('#tagbox').innerHTML='';
+ const d=MAP.france.find(x=>x.name===selected);if(!d)return;const cx=d.cx,cy=d.cy,r=88;const g=H('g',{id:'rg'});
+ H('circle',{cx,cy,r:r+22,fill:'rgba(6,8,12,.5)'},g);H('circle',{cx,cy,r,fill:'none',stroke:'url(#bg)','stroke-width':10},g);H('circle',{cx,cy,r:r-5,fill:'none',stroke:'#0f0c09','stroke-width':2},g);ticks(g,cx,cy,r-6,72,6,6,'#C9A24B',.8);
+ H('circle',{cx,cy,r:44,fill:'rgba(15,12,9,.9)',stroke:'#7F6A33'},g);
+ H('text',{x:cx,y:cy+9,'text-anchor':'middle','font-family':'Alegreya','font-weight':700,'font-size':32,fill:'#EFE6CF'},g,GAME.prov.army);
+ H('text',{x:cx,y:cy-18,'text-anchor':'middle','font-family':'Cinzel','font-size':9,'letter-spacing':3,fill:'#C9A24B'},g,'ARMY');
+ const ic={move:'<path d="M-9 0h16M2 -7l7 7l-7 7" fill="none"/>',rec:'<path d="M0 -9v18M-9 0h18" fill="none"/>',build:'<path d="M-9 8v-10l9 -7l9 7v10zM-3 8v-6h6v6" fill="none"/>',fort:'<path d="M-9 8v-14h4v3h4v-3h4v3h4v-3h4v14z" fill="none"/>'};
+ [[0,'move','Move','M',1],[90,'rec','Recruit','R'],[180,'build','Build','B'],[270,'fort','Fortify','F']].forEach(([deg,k,l,key,pri])=>{const a=deg*Math.PI/180,x=cx+r*Math.sin(a),y=cy-r*Math.cos(a),rr=pri?30:25;const b=H('g',{class:'btn',transform:`translate(${x} ${y})`},g);
+  H('circle',{r:rr+4,fill:'#0b0907'},b);H('circle',{r:rr,fill:pri?'#C9A24B':'#1d1812',stroke:pri?'#F1DB9C':'#B38F3E','stroke-width':2,class:'hl'},b);
+  const ig=H('g',{stroke:pri?'#14100b':'#E5C77A','stroke-width':2.2,'stroke-linecap':'round','stroke-linejoin':'round',transform:pri?'scale(1.15)':''},b);ig.innerHTML=ic[k];
+  const lx=deg===90?rr+14:deg===270?-rr-14:0,ly=deg===0?-rr-12:deg===180?rr+22:5,anc=deg===90?'start':deg===270?'end':'middle';
+  const t=H('text',{x:lx,y:ly,'text-anchor':anc,'font-family':'Cinzel','font-weight':700,'font-size':13,'letter-spacing':2.5,fill:'#EFE6CF','paint-order':'stroke',stroke:'#05070a','stroke-width':4},b,l.toUpperCase());
+  H('text',{x:lx+(deg===90?t.getComputedTextLength()+8:deg===270?-t.getComputedTextLength()-8:0)+(deg===0||deg===180?t.getComputedTextLength()/2+8:0),y:ly,'text-anchor':deg===270?'end':'start','font-family':'JetBrains Mono','font-size':10,fill:'#C9A24B','paint-order':'stroke',stroke:'#05070a','stroke-width':3},b,key)});
+ const p=GAME.prov;const t=document.createElement('div');t.className='tag';t.style.left=(cx+r+215)+'px';t.style.top=(cy-100)+'px';
+ t.innerHTML=`<div class="k">PROVINCE</div><h2>${p.name}</h2><div class="own"><span style="color:#D2A05A">France</span> · your province</div><div class="chips"><div><b>${p.pop}</b><small>POP</small></div><div><b>${p.stab}%</b><small>STABILITY</small><i><u style="width:${p.stab}%"></u></i></div><div><b>${p.hap}%</b><small>HAPPY</small><i><u style="width:${p.hap}%;background:#C9A24B"></u></i></div></div><a><span>Dossier</span><span>›</span></a>`;
+ $('#tagbox').appendChild(t);
+ const L=H('path',{d:`M${cx+r+95} ${cy-10}L${cx+r+215} ${cy-10}`,stroke:'#C9A24B','stroke-width':1.2},g);H('circle',{cx:cx+r+95,cy:cy-10,r:3,fill:'#C9A24B'},g);}
+ring();fit();
+const T=[[1.2,46.2,'me',39,['#2F4E9E','#F3EEE3','#C8372D']],[5.4,43.5,'me',22,['#2F4E9E','#F3EEE3','#C8372D']],[13.8,45.6,'foe',41,['#d8d8d8','#c8372d','#d8d8d8']],[-4.5,38.2,'',27,['#c8372d','#e3b93c','#c8372d']],[13.4,52.5,'',30,['#222','#d8d8d8','#c8372d']]];
+T.forEach(([lo,la,cls,n,fl])=>{const d=document.createElement('div');d.className='tk '+cls;d.style.left=MAP.x(lo)+'px';d.style.top=MAP.y(la)+'px';d.innerHTML=`<div class="f">${fl.map(c=>`<s style="background:${c}"></s>`).join('')}</div>${n}`;$('#stage').appendChild(d)});
+</script></body></html>
