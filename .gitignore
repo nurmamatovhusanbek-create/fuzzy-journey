@@ -6,3 +6,5 @@ dist/
 export/
 build/
 .claude/worktrees/
+__pycache__/
+*.pyc
