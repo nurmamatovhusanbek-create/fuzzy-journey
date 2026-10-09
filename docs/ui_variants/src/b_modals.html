@@ -1,0 +1,468 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — modal variations</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto;background:#05070a}
+body{font-feature-settings:'lnum' 1}
+.tool{position:sticky;top:0;z-index:60;display:flex;gap:22px;align-items:center;flex-wrap:wrap;padding:10px 22px;background:rgba(8,10,14,.94);border-bottom:1px solid #33291a}
+.tool h1{font:700 16px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--hi)}
+.nav{display:flex;gap:2px}.nav a,.seg a{padding:8px 14px 11px;font:600 11.5px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:var(--dim2);cursor:pointer;position:relative;white-space:nowrap}
+.nav a.on,.seg a.on{color:var(--ivory)}
+.nav a::after,.seg a::after{content:'';position:absolute;left:8%;right:8%;bottom:3px;height:5px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 6px)}
+.nav a.on::before,.seg a.on::before{content:'';position:absolute;left:50%;bottom:0;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top:7px solid var(--bad)}
+.seg{display:flex;gap:2px;margin-left:auto}.seg.k{margin-left:0}
+main{max-width:1320px;margin:0 auto;padding:22px 22px 90px}
+.lead{font:italic 17px/1.4 Alegreya;color:var(--dim);margin:2px 0 26px;max-width:900px}
+.sec{display:none}.sec.on{display:block}
+.vg{display:grid;gap:40px 28px;grid-template-columns:1fr}
+.vg.ph{grid-template-columns:repeat(auto-fill,minmax(560px,1fr))}
+.vc{position:relative}
+.badge{display:inline-block;font:700 12px Cinzel;letter-spacing:.2em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:4px 14px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);margin-bottom:6px}
+.nt{font:italic 15px/1.35 Alegreya;color:var(--dim);margin:0 0 10px;max-width:760px}
+.frame{position:relative;width:100%;overflow:hidden;box-shadow:0 0 0 1px #3a2f1d;background:#0A0D12;container-type:inline-size}
+.stg{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;background:radial-gradient(ellipse at 40% 35%,#14283a,#0A0D12 70%)}
+.stg .grat{position:absolute;inset:0;opacity:.5}
+.stg .scrim{position:absolute;inset:0;background:rgba(3,5,8,.62)}
+.stg .vigl{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(2,4,8,.7) 100%);pointer-events:none}
+
+/* ===== modal chrome ===== */
+.md{position:absolute;filter:drop-shadow(0 18px 30px rgba(0,0,0,.65));display:flex}
+.md.dlg{left:50%;top:50%;transform:translate(-50%,-50%)}
+.md.drw{right:14px;top:14px;bottom:14px}
+.md .o{flex:1;min-width:0;min-height:0;display:flex;background:var(--lo);padding:1px;clip-path:polygon(13px 0,calc(100% - 13px) 0,100% 13px,100% calc(100% - 13px),calc(100% - 13px) 100%,13px 100%,0 calc(100% - 13px),0 13px)}
+.md .o>.i{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;position:relative;background:linear-gradient(180deg,#1d1812,#13100c);clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);box-shadow:inset 0 0 0 3px #13100c,inset 0 0 0 4px rgba(201,162,75,.22)}
+.md .hd{padding:16px 20px 10px;gap:13px;flex:none}
+.md .hd .t{font:700 20px/1.05 Cinzel;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.md .hd .s{font:italic 15px Alegreya;color:var(--dim);margin-top:4px;white-space:nowrap}
+.md .ring{width:42px;height:42px}
+.md .rule{flex:none;margin:0 20px}
+.md .bd{flex:1;min-height:0;overflow:auto;padding:14px 20px 16px;scrollbar-width:thin;scrollbar-color:#5a4a26 transparent}
+.md .bd.nopad{padding:0}
+.md .ft{flex:none;display:flex;gap:10px;padding:11px 20px 16px;border-top:1px solid #33291a;align-items:center;justify-content:space-between}
+.md .bt{height:38px;padding:0 18px;font-size:12px}
+.hdr-r{display:flex;align-items:center;gap:10px;margin-left:auto}
+/* phone landscape: denser */
+.ph .md .hd{padding:9px 14px 6px;gap:10px}
+.ph .md .hd .t{font-size:15px}.ph .md .hd .s{font-size:12.5px;margin-top:2px}
+.ph .md .ring{width:32px;height:32px}.ph .md .xbtn{width:30px;height:30px}
+.ph .md .rule{margin:0 14px}
+.ph .md .bd{padding:8px 14px 10px}
+.ph .md .ft{padding:7px 14px 10px}
+.ph .md .bt{height:32px;padding:0 13px;font-size:11px}
+.ph .md.drw{right:8px;top:8px;bottom:8px}
+
+/* ===== shared parts ===== */
+.cz{font-family:Cinzel,serif;text-transform:uppercase}
+.lead2{font:italic 14.5px/1.3 Alegreya;color:var(--dim)}
+.sct{display:flex;align-items:center;gap:10px;margin:12px 0 6px;font:600 11px Cinzel;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+.sct::after{content:'';flex:1;height:1px;background:#33291a}
+.ph .sct{margin:7px 0 4px;font-size:10px}
+.ld{display:flex;align-items:baseline;gap:8px}.ld>.dot{flex:1;border-bottom:1px dotted #5a4a26;transform:translateY(-4px);min-width:10px}
+.rt{display:flex;gap:2px;position:relative;flex:none}
+.rt a{padding:7px 14px 12px;font:600 11.5px Cinzel;letter-spacing:.15em;text-transform:uppercase;color:var(--dim2);cursor:pointer;position:relative;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.rt a.on{color:var(--ivory)}.rt a:hover{color:var(--ivory)}
+.rt a::after{content:'';position:absolute;left:8%;right:8%;bottom:3px;height:5px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 6px)}
+.rt a.on::before{content:'';position:absolute;left:50%;bottom:0;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top:7px solid var(--bad)}
+.rt .n{font:600 11px Alegreya;color:var(--dim);background:#0f0c09;box-shadow:inset 0 0 0 1px #3a2f1d;border-radius:9px;padding:0 6px;line-height:16px}
+.rt.tt a{padding:7px 8px 12px;letter-spacing:.08em;gap:5px}
+.ph .rt a{padding:5px 9px 10px;font-size:10px;letter-spacing:.1em;gap:5px}
+.you{font:700 9.5px Cinzel;letter-spacing:.16em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:2px 7px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);flex:none}
+.tick{height:6px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 6px)}
+.rmeter{position:relative;display:block;height:12px;flex:1;min-width:30px}
+.rmeter .tr{position:absolute;left:0;right:0;top:3px;height:7px;background:#0c0a07;box-shadow:inset 0 0 0 1px #4a3f28;overflow:hidden}
+.rmeter .fl{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(180deg,#E5C77A,#A8842f)}
+.rmeter .gr{position:absolute;left:0;right:0;top:0;height:4px;background:repeating-linear-gradient(90deg,rgba(15,12,9,.7) 0 1px,transparent 1px 10%)}
+.rmeter .nt2{position:absolute;top:0;width:2px;height:12px;background:var(--hi)}
+.med{display:inline-grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 38% 32%,#2a2218,#0f0c09);color:var(--hi);flex:none;position:relative}
+.sc{overflow:auto;scrollbar-width:thin;scrollbar-color:#5a4a26 transparent}
+.ibtn{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#0f0c09;box-shadow:0 0 0 1.5px var(--lo);color:var(--hi);cursor:pointer;flex:none}
+.ibtn:hover{box-shadow:0 0 0 1.5px var(--hi);color:#fff}.ibtn.off{opacity:.35;pointer-events:none}
+.pos{color:var(--good)}.neg{color:#ee8a68}.dim{color:var(--dim)}.dim2{color:var(--dim2)}
+.fl2{display:inline-flex;vertical-align:middle}
+input.q{font:500 15px Alegreya;color:var(--ivory);background:#0c0a07;border:0;box-shadow:inset 0 0 0 1px #4a3f28;height:32px;padding:0 10px 0 30px;width:180px;border-radius:3px;outline:none}
+input.q:focus{box-shadow:inset 0 0 0 1px var(--brass)}
+</style></head><body>
+<div class="tool">
+  <h1>Modals — variations</h1>
+  <div class="nav" id="nav"></div>
+  <div class="seg k" id="out" style="display:none"><a data-out="won" class="on">Victory</a><a data-out="lost">Defeat</a></div>
+  <div class="seg" id="vp"><a data-vp="d" class="on">Desktop 1280×720</a><a data-vp="p">Phone landscape 800×360</a></div>
+</div>
+<main>
+<div class="lead" id="lead"></div>
+<div id="secs"></div>
+</main>
+<script>/*KIT*/</script>
+<script>
+document.body.insertAdjacentHTML('afterbegin',DEFS);
+Object.assign(IC,{
+  pin:'<path d="M12 21s-6-6.2-6-11a6 6 0 0112 0c0 4.800-6 11-6 11z"/><circle cx="12" cy="10" r="2.200"/>',
+  chev:'<path d="M9 5l7 7-7 7"/>',chevl:'<path d="M15 5l-7 7 7 7"/>',chevd:'<path d="M5 9l7 7 7-7"/>',
+  search:'<circle cx="11" cy="11" r="6.500"/><path d="M16 16l5 5"/>',
+  up:'<path d="M12 18V6M6 11l6-6 6 6"/>',down:'<path d="M12 6v12M6 13l6 6 6-6"/>',
+  book:'<path d="M4 4h12a3 3 0 013 3v13H7a3 3 0 01-3-3zM4 17a3 3 0 013-3h12"/>',
+  trophy:'<path d="M7 4h10v6q0 5-5 5t-5-5zM7 6.500H4q0 4 3 4.500M17 6.500h3q0 4-3 4.500M12 15v4M8 20h8"/>',
+  lamp:'<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.500 10.900V16h7v-2.100A6 6 0 0012 3z"/>',
+  scroll:'<path d="M7 4h11v13a3 3 0 01-3 3H6a3 3 0 003-3V6a2 2 0 00-2-2zM9 8h6M9 12h6"/>',
+  swords:'<path d="M5 19L18 6M18 6h-4M18 6v4M19 19L6 6M6 6h4M6 6v4M3.500 17.500l3 3M20.500 17.500l-3 3"/>',
+  hour:'<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9"/>',
+  sort:'<path d="M8 4v16M4 16l4 4 4-4M16 20V4M12 8l4-4 4 4"/>'
+});
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+Object.assign(FLAGS,{RU:['#EEE','#2A4FA0','#C8372D'],OT:['#B22A2A','#B22A2A','#B22A2A']});
+const fmt=n=>n>=1e4?(n/1e3).toFixed(1).replace(/\.0$/,'')+'k':(n>=1000?String(Math.round(n)).replace(/\B(?=(\d{3})+$)/g,' '):String(Math.round(n)));
+const rg=(n,s,w=1.7)=>ico(n,s,w);
+const ringI=(n,s=42,is)=>`<span class="ring" style="width:${s}px;height:${s}px">${ico(n,is||Math.round(s*.5))}</span>`;
+const xb=`<span class="xbtn" data-close>${ico('close',15)}</span>`;
+const meter=(f,o={})=>`<span class="rmeter" style="${o.w?`width:${o.w}px;flex:none`:''}"><span class="tr"><span class="fl" style="width:${Math.max(0,Math.min(1,f))*100}%;${o.col?`background:${o.col}`:''}"></span><span class="gr"></span></span>${o.mark!=null?`<span class="nt2" style="left:calc(${o.mark*100}% - 1px)"></span>`:''}</span>`;
+const medal=(n,s,o={})=>`<span class="med" style="width:${s}px;height:${s}px;box-shadow:0 0 0 ${o.dim?1.5:2}px ${o.dim?'#3a2f1d':'var(--lo)'},0 0 0 ${o.dim?3:4}px #0b0907,0 0 0 ${o.dim?4:5}px ${o.dim?'#4a3f28':'var(--brass)'};${o.dim?'color:#6b5f46':''}">${ico(n,Math.round(s*.5),1.6)}</span>`;
+const nf=(c,s=24)=>`<span class="fl2">${flagMedal(c,s)}</span>`;
+const dateOf=t=>{const y=1805+Math.floor((t-1)/2);return (t%2? 'Jan':'Jul')+' '+y};
+const yearOf=t=>1805+Math.floor((t-1)/2);
+
+/* ====== shared model: Napoleonic scenario, you = France, turn 24 ====== */
+const NT=24;
+const NAT=[
+ {id:'FR',n:'France',c:'#E5C77A',me:1,p:[38,61],a:[210,340],g:[900,5400],k:[48,92]},
+ {id:'UK',n:'Britain',c:'#D2603F',p:[30,34],a:[120,150],g:[1400,6800],k:[45,70]},
+ {id:'AT',n:'Austria',c:'#D8D2BE',p:[44,38],a:[190,170],g:[800,1900],k:[40,44]},
+ {id:'RU',n:'Russia',c:'#69B3A2',p:[52,58],a:[260,300],g:[600,2300],k:[44,66]},
+ {id:'PR',n:'Prussia',c:'#7FA8E8',p:[24,22],a:[130,120],g:[500,800],k:[30,28]},
+ {id:'ES',n:'Spain',c:'#E4A94B',p:[28,31],a:[90,110],g:[1000,1500],k:[28,30]},
+ {id:'OT',n:'Ottomans',c:'#A592D6',p:[40,36],a:[170,160],g:[700,900],k:[32,31]}
+];
+const MET=[['p','Provinces','flag'],['a','Army','army'],['g','Gold','gold'],['k','Prestige','star']];
+const DASH=['','7 4','3 3','10 3 2 3','1.5 3.5','7 4','3 3'];
+(function(){let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+ NAT.forEach(n=>{n.S={};for(const [k] of MET){const [a,b]=n[k];n.S[k]=Array.from({length:NT+1},(_,t)=>{const f=t/NT,e=f*f*(3-2*f);return Math.round(a+(b-a)*(.35*f+.65*e)+(r()-.5)*Math.max(Math.abs(b-a),a*.25)*.05)})}})})();
+const val=(n,k,t=NT)=>n.S[k][t];
+const rank=(k,t=NT)=>NAT.slice().sort((a,b)=>val(b,k,t)-val(a,k,t));
+const ME=NAT[0];
+</script>
+<script>
+/* ===== frame engine ===== */
+const SIZES={d:[1280,720],p:[800,360]};
+const G={vp:'d',out:'won',sec:'stats'};
+const FR=[];   // all mounted frames
+const GRAT=(()=>{let d='';for(let i=1;i<12;i++){d+=`M${i*107} 0V720`}for(let j=1;j<7;j++){d+=`M0 ${j*103}H1280`}return `<svg class="grat" viewBox="0 0 1280 720" preserveAspectRatio="none"><path d="${d}" stroke="#2c4a60" stroke-width="1" fill="none"/><ellipse cx="520" cy="330" rx="330" ry="250" fill="none" stroke="#3b6a86" stroke-width="2"/><path d="M300 300q120-80 240-20t180 40M330 430q150 40 260-30" stroke="#35617a" stroke-width="2" fill="none"/></svg>`})();
+function mount(host,V,init){
+  const f=document.createElement('div');f.className='frame';
+  f.innerHTML=`<div class="stg">${GRAT}<div class="scrim"></div><div class="vigl"></div><div class="host"></div></div>`;
+  host.appendChild(f);
+  const o={el:f,V,st:Object.assign({},V.init||{},init||{}),stg:f.firstChild,host:f.querySelector('.host')};
+  FR.push(o);return o;
+}
+function fit(o){
+  const [W,H]=SIZES[G.vp];o.el.style.aspectRatio=W+'/'+H;
+  o.stg.style.width=W+'px';o.stg.style.height=H+'px';
+  o.stg.style.transform=`scale(${o.el.clientWidth/W})`;
+  o.el.classList.toggle('ph',G.vp==='p');
+}
+function draw(o){
+  const sc=$$('.sc,.bd',o.host).map(e=>e.scrollTop);
+  o.host.innerHTML=o.V.render(o.st,G.vp==='p',G);
+  $$('.sc,.bd',o.host).forEach((e,i)=>{if(sc[i]!=null)e.scrollTop=sc[i]});
+  if(o.V.post)o.V.post(o,G.vp==='p');
+}
+function redrawAll(){FR.forEach(o=>{fit(o);draw(o)})}
+addEventListener('resize',()=>FR.forEach(fit));
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-a]');if(!a)return;const fe=a.closest('.frame');if(!fe)return;
+  const o=FR.find(x=>x.el===fe);if(!o)return;
+  const [k,v]=a.dataset.a.split(':');
+  if(k==='tog'){const s=o.st[v]||(o.st[v]={});const w=a.dataset.w;s[w]=!s[w]}
+  else if(k==='step'){o.st[v]=Math.max(+a.dataset.lo,Math.min(+a.dataset.hi,(+o.st[v])+(+a.dataset.d)))}
+  else o.st[k]=isNaN(+v)||v===''?v:+v;
+  draw(o);
+});
+document.addEventListener('input',e=>{const q=e.target.closest('input[data-q]');if(!q)return;const o=FR.find(x=>x.el===q.closest('.frame'));if(!o)return;o.st.q=q.value;draw(o);const n=$('input[data-q]',o.host);if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length)}});
+</script>
+<script>
+/* ===== shell ===== */
+const shell=(o,ph)=>`<div class="md ${o.kind||'dlg'}" style="width:${o.w}px;${o.h?`height:${o.h}px;`:''}${o.kind==='drw'?'':'max-height:calc(100% - 24px);'}${o.style||''}"><div class="o"><div class="i">
+<div class="hd" style="display:flex;align-items:center">${ringI(o.icon,ph?32:42)}<div><div class="t">${o.title}</div>${o.sub?`<div class="s">${o.sub}</div>`:''}</div><div class="hdr-r">${o.hr||''}${xb}</div></div><div class="rule"><i></i></div>
+${o.tabs?`<div style="padding:${ph?'2px 14px 0':'6px 20px 0'};flex:none">${o.tabs}</div>`:''}
+<div class="bd ${o.nopad?'nopad':''}">${o.body}</div>${o.foot?`<div class="ft">${o.foot}</div>`:''}</div></div></div>`;
+const rtabs=(items,cur,key,tt)=>`<div class="rt${tt?' tt':''}">${items.map(([id,l,ic,n])=>`<a class="${id==cur?'on':''}" data-a="${key}:${id}">${ic?ico(ic,14):''}${l}${n!=null?`<span class="n">${n}</span>`:''}</a>`).join('')}</div>`;
+const nice=m=>{const e=Math.pow(10,Math.floor(Math.log10(m))),f=m/e;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e};
+const spark=(arr,w,h,col,n=13)=>{const a=arr.slice(-n),mn=Math.min(...a),mx=Math.max(...a),sp=Math.max(mx-mn,mx*.08)||1;const pts=a.map((v,i)=>[2+i*(w-4)/(a.length-1),h-2-(v-mn)/sp*(h-4)]);return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex:none"><polyline points="${pts.map(p=>p.map(x=>x.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${pts.at(-1)[0].toFixed(1)}" cy="${pts.at(-1)[1].toFixed(1)}" r="2.4" fill="${col}"/></svg>`};
+const delta=(n,k)=>{const d=val(n,k)-val(n,k,NT-6),up=d>=0;return `<span class="${up?'pos':'neg'}" style="display:inline-flex;align-items:center;font:600 13px Alegreya;gap:1px">${ico(up?'up':'down',11,2.2)}${fmt(Math.abs(d))}</span>`};
+const rk=(i,s=30)=>`<span class="med" style="width:${s}px;height:${s}px;font:700 ${Math.round(s*.46)}px Cinzel;${i===1?'background:linear-gradient(135deg,#EBCF85,#B38F3E);color:#1b1408;box-shadow:0 0 0 1.5px #6f5a27,0 0 0 3px #0b0907':'color:var(--ivory);box-shadow:0 0 0 1.5px var(--lo),0 0 0 3px #0b0907,0 0 0 4px #4a3f28'}">${i}</span>`;
+const hdrDate=`<span class="chip n" style="height:26px">${ico('clock',13)}Turn ${NT} · ${dateOf(NT)}</span>`;
+const ST={};
+
+/* ---------- A · Ledger ---------- */
+ST.A={init:{m:'p'},render(s,ph){
+  const rows=rank(s.m),cw=ph?'28px minmax(0,1.5fr) repeat(4,minmax(0,1.1fr))':'44px minmax(0,1.6fr) repeat(4,minmax(0,1.15fr))',rh=ph?29:48;
+  const head=`<div style="display:grid;grid-template-columns:${cw};align-items:end;gap:${ph?6:10}px;padding:0 ${ph?6:12}px ${ph?3:6}px;border-bottom:1px solid #4a3d22"><span></span><span class="cap" style="font-size:${ph?9.5:10.5}px">Power</span>${MET.map(([k,l,ic])=>`<a data-a="m:${k}" class="cap" style="cursor:pointer;display:flex;align-items:center;gap:5px;justify-content:flex-end;font-size:${ph?9.5:10.5}px;color:${s.m==k?'var(--hi)':'var(--dim)'}">${s.m==k?ico('down',10,2.4):''}${l}</a>`).join('')}</div>`;
+  const body=rows.map((n,i)=>{const me=n.me;return `<div style="display:grid;grid-template-columns:${cw};align-items:center;gap:${ph?6:10}px;height:${rh}px;padding:0 ${ph?6:12}px;position:relative;border-bottom:1px solid #261f15;${me?'background:linear-gradient(90deg,rgba(201,162,75,.16),rgba(201,162,75,.04))':''}">
+    ${me?'<i style="position:absolute;left:0;top:3px;bottom:3px;width:3px;background:var(--brass)"></i>':''}${rk(i+1,ph?22:32)}
+    <span style="display:flex;align-items:center;gap:${ph?6:10}px;min-width:0">${nf(n.id,ph?20:28)}<span style="font:600 ${ph?14:19}px Alegreya;white-space:nowrap">${n.n}</span>${me?'<span class="you">YOU</span>':''}</span>
+    ${MET.map(([k])=>`<span style="display:flex;align-items:center;justify-content:flex-end;gap:${ph?4:8}px;${s.m==k?'background:rgba(201,162,75,.07);align-self:stretch;margin:0 -4px;padding:0 4px':''}">${(!ph||s.m==k)?'':''}${ph?'':spark(n.S[k],56,20,n.c)}<span class="num" style="font:${s.m==k?700:500} ${ph?14:19}px Alegreya;min-width:${ph?26:38}px;text-align:right">${fmt(val(n,k))}</span>${!ph||s.m==k?delta(n,k):''}</span>`).join('')}</div>`}).join('');
+  return shell({title:'Statistics',sub:'The powers of the world, ranked',icon:'goals',hr:ph?'':hdrDate,w:ph?760:1020,body:`<div>${head}${body}</div>`,
+   foot:`<span class="lead2" style="font-size:${ph?12:14.5}px">Tap a column to rank by it · ▲▼ change over the last 3 years · spark = last 12 turns</span><span class="cap">${NAT.length} powers · ${NAT.reduce((a,n)=>a+val(n,'p'),0)} provinces</span>`},ph)}};
+
+/* ---------- B · Chronometer chart ---------- */
+ST.B={init:{m:'p',t:NT,hide:{}},render(s,ph){
+  const CW=ph?500:780,CH=ph?196:372,ml=ph?40:54,mr=ph?66:96,mt=12,mb=ph?22:30,pw=CW-ml-mr,phh=CH-mt-mb;
+  const ser=NAT.filter(n=>!s.hide[n.id]);let mx=1;ser.forEach(n=>n.S[s.m].forEach(v=>mx=Math.max(mx,v)));const top=nice(mx*1.04);
+  const X=t=>ml+(t-1)/(NT-1)*pw,Y=v=>mt+phh-(v/top)*phh;
+  let g='';for(let i=0;i<=4;i++){const v=top*i/4,y=Y(v);g+=`<line x1="${ml}" x2="${ml+pw}" y1="${y}" y2="${y}" stroke="${i?'#2a2318':'#6b5a30'}"/><text x="${ml-8}" y="${y+4}" text-anchor="end" fill="#A89C80" font-size="${ph?11:13}" font-family="Alegreya">${fmt(v)}</text>`}
+  let rl=`<line x1="${ml}" x2="${ml+pw}" y1="${mt+phh}" y2="${mt+phh}" stroke="#7F6A33"/>`;
+  for(let t=1;t<=NT;t++){const maj=t%2===1,x=X(t);rl+=`<line x1="${x}" x2="${x}" y1="${mt+phh}" y2="${mt+phh+(maj?8:4)}" stroke="${maj?'#C9A24B':'#7F6A33'}"/>`;if(maj&&(ph?t%4===1:true))rl+=`<text x="${x}" y="${mt+phh+(ph?19:22)}" text-anchor="middle" fill="#A89C80" font-size="${ph?10.5:12.5}" font-family="Alegreya">${yearOf(t)}</text>`}
+  let lines='',lab=[];ser.forEach(n=>{const i=NAT.indexOf(n),pts=n.S[s.m].slice(1).map((v,j)=>`${X(j+1).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');lines+=`<polyline points="${pts}" fill="none" stroke="${n.c}" stroke-width="${n.me?3.6:2}" stroke-dasharray="${DASH[i]}" stroke-linejoin="round" stroke-linecap="round" opacity="${n.me?1:.92}"/>`;lab.push([Y(val(n,s.m)),n])});
+  lab.sort((a,b)=>a[0]-b[0]);const gap=ph?12:15;for(let i=1;i<lab.length;i++)if(lab[i][0]-lab[i-1][0]<gap)lab[i][0]=lab[i-1][0]+gap;
+  const ends=lab.map(([y,n])=>`<text x="${ml+pw+8}" y="${y+4}" fill="${n.c}" font-size="${ph?11.5:14}" font-weight="${n.me?700:500}" font-family="Alegreya">${n.n}</text>`).join('');
+  const cx=X(s.t),dots=ser.map(n=>`<circle cx="${cx}" cy="${Y(n.S[s.m][s.t])}" r="${n.me?4.6:3.4}" fill="#0f0c09" stroke="${n.c}" stroke-width="2"/>`).join('');
+  const cur=`<line x1="${cx}" x2="${cx}" y1="${mt}" y2="${mt+phh}" stroke="#E5C77A" stroke-width="1" stroke-dasharray="2 3"/><path d="M${cx-6} ${mt+phh+12}l6-9 6 9z" fill="#D2603F" transform="translate(0 ${-4})"/>${dots}`;
+  const chart=`<svg width="${CW}" height="${CH}" viewBox="0 0 ${CW} ${CH}" style="display:block;flex:none">${g}${rl}${lines}${ends}${cur}<rect data-scrub x="${ml}" y="0" width="${pw}" height="${CH}" fill="transparent" style="cursor:crosshair"/></svg>`;
+  const rows=NAT.slice().sort((a,b)=>val(b,s.m,s.t)-val(a,s.m,s.t));const rmx=Math.max(...NAT.map(n=>val(n,s.m,s.t)));
+  const read=`<div style="flex:1;min-width:${ph?170:230}px;display:flex;flex-direction:column;gap:${ph?3:5}px">
+   <div style="display:flex;align-items:center;gap:8px;margin-bottom:${ph?2:4}px"><span class="ibtn ${s.t<=1?'off':''}" data-a="step:t" data-d="-1" data-lo="1" data-hi="${NT}" style="width:${ph?24:30}px;height:${ph?24:30}px">${ico('chevl',13,2)}</span><div style="flex:1;text-align:center"><div class="cz" style="font:700 ${ph?12:14}px Cinzel;letter-spacing:.14em">Turn ${s.t}</div><div class="lead2" style="font-size:${ph?11.5:13.5}px">${dateOf(s.t)}</div></div><span class="ibtn ${s.t>=NT?'off':''}" data-a="step:t" data-d="1" data-lo="1" data-hi="${NT}" style="width:${ph?24:30}px;height:${ph?24:30}px">${ico('chev',13,2)}</span></div>
+   ${rows.map((n,i)=>`<div style="display:flex;align-items:center;gap:6px;${s.hide[n.id]?'opacity:.35':''}"><span class="num dim2" style="width:14px;font:600 ${ph?11:13}px Alegreya">${i+1}</span>${nf(n.id,ph?17:21)}<span style="font:${n.me?700:500} ${ph?12.5:15.5}px Alegreya;flex:1;white-space:nowrap">${n.n}</span><span class="num" style="font:700 ${ph?12.5:15.5}px Alegreya">${fmt(val(n,s.m,s.t))}</span></div>${ph?'':`<div style="margin:-2px 0 1px 36px">${meter(val(n,s.m,s.t)/rmx,{col:n.c})}</div>`}`).join('')}</div>`;
+  const legend=`<div style="display:flex;gap:${ph?5:7}px;flex-wrap:wrap">${NAT.map((n,i)=>`<a data-a="tog:hide" data-w="${n.id}" style="display:inline-flex;align-items:center;gap:6px;height:${ph?20:24}px;padding:0 9px 0 7px;border-radius:12px;background:#100d09;box-shadow:inset 0 0 0 1px ${s.hide[n.id]?'#2a2318':'#3a2f1d'};cursor:pointer;font:600 ${ph?11:13}px Alegreya;color:${s.hide[n.id]?'var(--dim2)':'var(--ivory)'}"><svg width="22" height="8"><line x1="1" x2="21" y1="4" y2="4" stroke="${s.hide[n.id]?'#5a4a26':n.c}" stroke-width="2.4" stroke-dasharray="${DASH[i]}"/></svg>${n.n}</a>`).join('')}</div>`;
+  return shell({title:'Statistics',sub:'Rise and fall of the powers',icon:'goals',hr:ph?'':hdrDate,w:ph?770:1160,tabs:rtabs(MET.map(([k,l,ic])=>[k,l,ic]),s.m,'m'),
+   body:`<div style="display:flex;gap:${ph?10:22}px;align-items:flex-start"><div style="flex:none">${chart}</div>${read}</div>${legend?`<div style="margin-top:${ph?4:10}px">${legend}</div>`:''}`},ph)},
+  };
+document.addEventListener('mousemove',e=>{const sc=e.target.closest('[data-scrub]');if(!sc)return;const o=FR.find(x=>x.el===sc.closest('.frame'));if(!o||o.st.t==null)return;const r=sc.getBoundingClientRect(),f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),t=Math.round(1+f*(NT-1));if(t!==o.st.t){o.st.t=t;draw(o)}});
+
+/* ---------- C · Balance of power ---------- */
+ST.C={init:{m:'p',sel:''},render(s,ph){
+  const rows=rank(s.m),tot=rows.reduce((a,n)=>a+val(n,s.m),0),R=ph?78:118,SW=ph?20:30,S=2*(R+SW/2+(ph?18:26)),c=S/2;
+  let a0=0,arcs='';const GAP=1.6;
+  rows.forEach(n=>{const sh=val(n,s.m)/tot,a1=a0+sh*360,on=s.sel==n.id,r=R+(on?3:0);arcs+=`<path data-a="sel:${on?'':n.id}" d="${arcD(c,c,r,a0+GAP/2,a1-GAP/2)}" stroke="${n.c}" stroke-width="${SW+(on?6:0)}" fill="none" style="cursor:pointer;${s.sel&&!on?'opacity:.4':''}"/>`;a0=a1});
+  const ticks=tickMarks(c,c,R+SW/2+(ph?14:20),72,ph?4:6,6,'#7F6A33',1);
+  const sel=NAT.find(n=>n.id==s.sel)||null,sm=MET.find(m=>m[0]==s.m);
+  const cen=sel?`<text x="${c}" y="${c-(ph?10:16)}" text-anchor="middle" fill="${sel.c}" font-family="Cinzel" font-weight="700" font-size="${ph?12:15}" letter-spacing="2">${sel.n.toUpperCase()}</text><text x="${c}" y="${c+(ph?14:20)}" text-anchor="middle" fill="#EFE6CF" font-family="Alegreya" font-weight="700" font-size="${ph?30:44}">${Math.round(val(sel,s.m)/tot*100)}%</text><text x="${c}" y="${c+(ph?29:42)}" text-anchor="middle" fill="#A89C80" font-family="Alegreya" font-style="italic" font-size="${ph?12:15}">${fmt(val(sel,s.m))} of ${fmt(tot)}</text>`
+   :`<text x="${c}" y="${c-(ph?4:6)}" text-anchor="middle" fill="#EFE6CF" font-family="Alegreya" font-weight="700" font-size="${ph?30:46}">${fmt(tot)}</text><text x="${c}" y="${c+(ph?14:24)}" text-anchor="middle" fill="#A89C80" font-family="Cinzel" font-size="${ph?9:12}" letter-spacing="2.4">${sm[1].toUpperCase()}</text><text x="${c}" y="${c+(ph?25:40)}" text-anchor="middle" fill="#7d735c" font-family="Alegreya" font-style="italic" font-size="${ph?11:14}">in the world</text>`;
+  const ring=`<svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" style="flex:none"><circle cx="${c}" cy="${c}" r="${R+SW/2+(ph?22:30)}" fill="#0f0c09" opacity=".0"/><circle cx="${c}" cy="${c}" r="${R-SW/2-5}" fill="#0f0c09" stroke="#4a3f28"/>${ticks}${arcs}${cen}</svg>`;
+  const mx=Math.max(...rows.map(n=>val(n,s.m)));
+  const list=rows.map((n,i)=>`<div data-a="sel:${s.sel==n.id?'':n.id}" style="display:flex;align-items:center;gap:${ph?7:11}px;height:${ph?27:38}px;cursor:pointer;padding:0 8px;${s.sel==n.id?'background:rgba(201,162,75,.15);box-shadow:inset 3px 0 0 var(--brass)':''}">${rk(i+1,ph?20:28)}${nf(n.id,ph?18:24)}<span style="font:${n.me?700:500} ${ph?13.5:17.5}px Alegreya;width:${ph?64:90}px;white-space:nowrap">${n.n}</span>${meter(val(n,s.m)/mx,{col:n.c})}<span class="num" style="font:700 ${ph?13.5:17.5}px Alegreya;width:${ph?36:52}px;text-align:right">${fmt(val(n,s.m))}</span><span class="num dim" style="font:500 ${ph?12:14.5}px Alegreya;width:${ph?32:42}px;text-align:right">${Math.round(val(n,s.m)/tot*100)}%</span></div>`).join('');
+  const mb=`<div style="display:flex;gap:${ph?10:16}px;margin-bottom:${ph?4:10}px">${MET.map(([k,l,ic])=>`<a data-a="m:${k}" style="display:flex;flex-direction:column;align-items:center;gap:${ph?3:6}px;cursor:pointer;opacity:${s.m==k?1:.55}">${medal(ic,ph?30:44,{dim:s.m!=k})}<span class="cap" style="font-size:${ph?8.5:10}px;color:${s.m==k?'var(--hi)':'var(--dim)'}">${l}</span></a>`).join('')}</div>`;
+  return shell({title:'Balance of Power',sub:'Share of the world by power',icon:'goals',hr:ph?'':hdrDate,w:ph?770:1040,
+   body:`<div style="display:flex;gap:${ph?14:28}px;align-items:center"><div style="display:flex;flex-direction:column;align-items:center;flex:none">${ph?'':mb}${ring}</div><div style="flex:1;min-width:0">${ph?mb:''}${list}</div></div>`},ph)}};
+</script>
+<script>
+/* ================= ANNALS ================= */
+const CATS=[['mine','Mine','crown'],['war','War','swords'],['diplo','Diplomacy','pact'],['events','Events','scroll'],['all','All','annals']];
+const CCOL={war:'#D2603F',diplo:'#E5C77A',events:'#7FA8E8',other:'#A89C80'};
+const LOG=[
+ [24,'war',1,0,'swords','Your army took Mantua from Austria',1],[24,'diplo',1,0,'pact','Spain accepted your pact',0],[24,'events',1,0,'gold','Harvest festival in Provence: +60 gold',0],[24,'war',0,0,'swords','Russia declared war on the Ottomans',0],
+ [23,'war',1,1,'warn','Rebels seized Naples',1],[23,'diplo',0,0,'pact','Britain and Prussia signed an alliance',0],[23,'events',1,1,'warn','The Emperor fell ill: −1 ruler skill for 4 turns',0],
+ [22,'war',1,0,'swords','Battle near Brussels: 14k lost, 19k enemy lost',1],[22,'diplo',1,1,'envoys','Prussia refused your offer of peace',0],[22,'diplo',0,0,'envoys','Austria proposed a pact to Russia',0],
+ [21,'events',1,1,'trade','The trade deal with Britain ended',0],[21,'war',0,0,'swords','The Ottomans lost Cairo to rebels',1],[21,'diplo',1,0,'envoys','Envoys reached Madrid',0],
+ [20,'war',1,0,'swords','You declared war on Austria',0],[20,'diplo',1,0,'scroll','A casus belli was forged against Austria',0],
+ [19,'events',1,0,'crown','A new heir was born at court',0],[19,'diplo',0,0,'pact','Russia and Austria ended their pact',0],
+ [18,'war',1,0,'swords','Siege of Turin lifted; the city is yours',1],[18,'war',0,0,'swords','Spain lost Lisbon to rebels',1],
+ [17,'diplo',1,0,'pact','Non-aggression pact with Prussia signed',0],[17,'events',1,0,'research','Your scholars finished Conscription',0],
+ [16,'war',1,1,'warn','Typhus in the Army of the Rhine: −8k men',1],[16,'events',0,0,'scroll','Britain issued a decree: Naval Supremacy',0],
+ [15,'diplo',1,0,'trade','Trade deal with the Ottomans: +46 gold a turn',0],[15,'war',1,0,'swords','Rebels crushed at Lyon',1],
+ [14,'events',1,0,'flag','Corsica joined the Empire',1],[14,'diplo',0,0,'envoys','Spain asked Britain for help',0]
+].map(([t,cat,me,bad,ic,tx,p])=>({t,cat,me,bad,ic,tx,p}));
+const inCat=(e,c)=>c==='all'||(c==='mine'?e.me:e.cat===c);
+const cnt=c=>LOG.filter(e=>inCat(e,c)).length;
+const pinB=(p,ph)=>p?`<span class="ibtn" style="width:${ph?22:28}px;height:${ph?22:28}px" title="Show on the map">${ico('pin',ph?12:14,1.8)}</span>`:'';
+const AN={};
+
+/* ---------- A · Rail timeline (drawer) ---------- */
+AN.A={init:{c:'mine',lim:12},render(s,ph){
+  const list=LOG.filter(e=>inCat(e,s.c)),shown=list.slice(0,s.lim);let h='',last=-1;
+  shown.forEach(e=>{if(e.t!==last){last=e.t;h+=`<div style="display:flex;align-items:center;gap:10px;margin:${ph?8:14}px 0 ${ph?3:5}px -${ph?34:42}px;position:relative">${rk(e.t,ph?24:30)}<span class="cz" style="font:700 ${ph?10.5:12}px Cinzel;letter-spacing:.16em;color:var(--hi)">${dateOf(e.t)}</span><span style="flex:1;height:1px;background:#33291a"></span></div>`}
+   h+=`<div style="display:flex;align-items:flex-start;gap:${ph?7:10}px;padding:${ph?3:5}px 0">
+     <span style="color:${e.bad?'#ee8a68':CCOL[e.cat]};margin-top:2px">${ico(e.ic,ph?14:17,1.8)}</span><span style="flex:1;font:500 ${ph?13.5:16.5}px/1.2 Alegreya;color:${e.bad?'#ee8a68':'var(--ivory)'}">${e.tx}</span>${pinB(e.p,ph)}</div>`});
+  const rail=`<div style="position:relative;padding-left:${ph?34:42}px"><div style="position:absolute;left:${ph?11:14}px;top:0;bottom:0;width:1px;background:#4a3d22"></div><div style="position:absolute;left:${ph?7:10}px;top:0;bottom:0;width:8px;background:repeating-linear-gradient(180deg,#7F6A33 0 1px,transparent 1px 8px)"></div>${h||`<div class="lead2" style="padding:30px 0">Nothing recorded under this heading yet.</div>`}</div>`;
+  return shell({kind:'drw',w:ph?470:560,title:'Annals',sub:'The chronicle of your reign',icon:'annals',tabs:rtabs(CATS.map(([id,l,ic])=>[id,l,null,cnt(id)]),s.c,'c',1),
+   body:rail,foot:`<span class="cap" style="font-size:${ph?9.5:11}px">Showing ${shown.length} of ${list.length}</span>${list.length>shown.length?`<a class="bt" data-a="lim:${s.lim+12}">Older</a>`:`<span class="lead2">Start of the record</span>`}`},ph)}};
+
+/* ---------- B · Dispatch columns ---------- */
+AN.B={init:{c:'mine',q:''},render(s,ph){
+  const q=(s.q||'').toLowerCase(),list=LOG.filter(e=>inCat(e,s.c)&&(!q||e.tx.toLowerCase().includes(q)));
+  const side=`<div style="width:${ph?138:220}px;flex:none;display:flex;flex-direction:column;gap:${ph?2:4}px">${CATS.map(([id,l,ic])=>`<a data-a="c:${id}" style="display:flex;align-items:center;gap:${ph?7:11}px;padding:${ph?3:6}px 8px;cursor:pointer;position:relative;${s.c==id?'background:rgba(201,162,75,.15);box-shadow:inset 3px 0 0 var(--brass)':''}">${medal(ic,ph?24:34,{dim:s.c!=id})}<span class="cz" style="font:600 ${ph?10.5:12}px Cinzel;letter-spacing:.14em;flex:1;color:${s.c==id?'var(--ivory)':'var(--dim)'}">${l}</span><span class="num" style="font:700 ${ph?12.5:15}px Alegreya;color:${s.c==id?'var(--hi)':'var(--dim)'}">${cnt(id)}</span></a>`).join('')}
+   <div style="position:relative;margin-top:${ph?4:10}px"><span style="position:absolute;left:9px;top:${ph?5:8}px;color:var(--dim2)">${ico('search',ph?14:15,1.8)}</span><input class="q" data-q placeholder="Search…" value="${s.q||''}" style="width:100%;height:${ph?26:32}px;font-size:${ph?13:15}px"></div></div>`;
+  const cards=list.map(e=>`<div style="position:relative;display:flex;align-items:center;gap:${ph?8:12}px;padding:${ph?5:9}px 10px ${ph?5:9}px ${ph?14:18}px;background:#15110d;box-shadow:inset 0 0 0 1px #2e2519;margin-bottom:${ph?4:7}px">
+    <i style="position:absolute;left:0;top:0;bottom:0;width:5px;background:repeating-linear-gradient(180deg,${e.bad?'#D2603F':CCOL[e.cat]} 0 1px,transparent 1px 4px)"></i><i style="position:absolute;left:0;top:0;bottom:0;width:2px;background:${e.bad?'#D2603F':CCOL[e.cat]}"></i>
+    <span style="color:${e.bad?'#ee8a68':CCOL[e.cat]}">${ico(e.ic,ph?15:19,1.8)}</span>
+    <div style="flex:1;min-width:0"><div class="cz" style="font:600 ${ph?8.5:10}px Cinzel;letter-spacing:.2em;color:${CCOL[e.cat]}">${({war:'War',diplo:'Diplomacy',events:'Event',other:''})[e.cat]}</div><div style="font:500 ${ph?13.5:16.5}px/1.15 Alegreya;color:${e.bad?'#ee8a68':'var(--ivory)'}">${e.tx}</div></div>
+    <span class="num dim" style="font:500 ${ph?11.5:13.5}px Alegreya;white-space:nowrap">${dateOf(e.t)}</span>${pinB(e.p,ph)}</div>`).join('');
+  return shell({w:ph?770:1060,h:ph?340:640,title:'Annals',sub:'Dispatches from the realm',icon:'annals',hr:ph?'':hdrDate,
+   body:`<div style="display:flex;gap:${ph?12:22}px;height:100%">${side}<div class="sc" style="flex:1;min-width:0;margin:-4px -6px -4px 0;padding-right:6px">${cards||`<div class="lead2" style="padding:30px 10px">No dispatch matches.</div>`}</div></div>`},ph)}};
+
+/* ---------- C · Calendar ruler ---------- */
+AN.C={init:{t:22,c:'mine'},render(s,ph){
+  const T0=13,W=ph?700:960,H=ph?84:104,ml=14,pw=W-2*ml,X=t=>ml+(t-T0)/(NT-T0)*pw,base=H-(ph?20:26),cw=pw/(NT-T0);
+  const per={};LOG.filter(e=>inCat(e,s.c)).forEach(e=>(per[e.t]=per[e.t]||[]).push(e));
+  let sv=`<rect x="${X(s.t)-cw/2}" y="0" width="${cw}" height="${H}" fill="rgba(201,162,75,.12)"/>`;
+  sv+=`<line x1="${ml}" x2="${ml+pw}" y1="${base}" y2="${base}" stroke="#7F6A33"/>`;
+  for(let t=T0;t<=NT;t++){const maj=t%2===1,x=X(t);sv+=`<line x1="${x}" x2="${x}" y1="${base}" y2="${base+(maj?9:5)}" stroke="${maj?'#C9A24B':'#7F6A33'}"/>`;if(maj)sv+=`<text x="${x}" y="${H-(ph?4:7)}" text-anchor="middle" fill="${s.t==t||s.t==t+1?'#E5C77A':'#A89C80'}" font-size="${ph?10:12.5}" font-family="Alegreya">${yearOf(t)}</text>`;
+   (per[t]||[]).slice(0,4).forEach((e,i)=>{const cx=x,cy=base-9-i*(ph?10:14),col=e.bad?'#D2603F':CCOL[e.cat],r=ph?3.4:4.6;sv+=e.cat==='war'?`<path d="M${cx} ${cy-r-1}l${r+1} ${r*2}h${-(r+1)*2}z" fill="${col}"/>`:e.cat==='diplo'?`<path d="M${cx} ${cy-r-1}l${r+1} ${r+1}-${r+1} ${r+1}-${r+1}-${r+1}z" fill="${col}"/>`:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}"/>`});
+   sv+=`<rect data-a="t:${t}" x="${x-cw/2}" y="0" width="${cw}" height="${H}" fill="transparent" style="cursor:pointer"/>`}
+  sv+=`<path d="M${X(s.t)-6} ${base+(ph?14:16)}l6-8 6 8z" fill="#D2603F" transform="translate(0 2)"/>`;
+  const ruler=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;margin:0 auto">${sv}</svg>`;
+  const es=(per[s.t]||[]);
+  const detail=`<div style="display:flex;align-items:center;gap:12px;margin:${ph?6:12}px 0 ${ph?4:8}px"><span class="ibtn ${s.t<=T0?'off':''}" data-a="step:t" data-d="-1" data-lo="${T0}" data-hi="${NT}">${ico('chevl',14,2)}</span>${rk(s.t,ph?26:34)}<div style="flex:1"><div class="cz" style="font:700 ${ph?12:15}px Cinzel;letter-spacing:.14em">Turn ${s.t}</div><div class="lead2" style="font-size:${ph?12:14.5}px">${dateOf(s.t)} · ${es.length?es.length+' entr'+(es.length>1?'ies':'y'):'quiet'}</div></div>${CATS.slice(0,4).map(([id,l,ic])=>`<a data-a="c:${id}" class="chip ${s.c==id?'i':'n'}" style="cursor:pointer;height:${ph?22:26}px;${s.c==id?'box-shadow:inset 0 0 0 1px #E5C77A;color:var(--hi)':''}">${ph?l.slice(0,5):l}</a>`).join('')}<span class="ibtn ${s.t>=NT?'off':''}" data-a="step:t" data-d="1" data-lo="${T0}" data-hi="${NT}">${ico('chev',14,2)}</span></div>`;
+  const rows=es.map(e=>`<div style="display:flex;align-items:center;gap:${ph?7:11}px;padding:${ph?4:8}px 0;border-bottom:1px solid #261f15"><span style="color:${e.bad?'#ee8a68':CCOL[e.cat]}">${ico(e.ic,ph?15:19,1.8)}</span><span style="flex:1;font:500 ${ph?13.5:17}px/1.2 Alegreya;color:${e.bad?'#ee8a68':'var(--ivory)'}">${e.tx}</span><span class="cz" style="font:600 ${ph?8.5:10}px Cinzel;letter-spacing:.18em;color:${CCOL[e.cat]}">${({war:'War',diplo:'Diplomacy',events:'Event'})[e.cat]}</span>${pinB(e.p,ph)}</div>`).join('');
+  return shell({w:ph?740:1020,title:'Annals',sub:'Turn by turn — click a tick',icon:'annals',hr:ph?'':hdrDate,
+   body:`${ruler}${detail}${rows||`<div class="lead2" style="padding:${ph?10:26}px 4px;font-size:${ph?13:16}px">A quiet turn: nothing under “${CATS.find(c=>c[0]==s.c)[1]}” was recorded.</div>`}`,
+   foot:`<span class="lead2" style="font-size:${ph?11.5:14}px">▲ war · ◆ diplomacy · ● events — up to four marks per turn</span><span class="cap" style="font-size:${ph?9.5:11}px">${LOG.length} entries</span>`},ph)}};
+
+/* ================= COUNCIL ================= */
+const ALERTS=[
+ {sev:2,tx:'Rebels hold 3 of your provinces',p:1},{sev:2,tx:'The treasury runs dry in 2 turns at this rate',p:0},
+ {sev:1,tx:'An Austrian army of 41k masses near Strasbourg',p:1},{sev:1,tx:'Unrest is rising in Lombardy (62%)',p:1},{sev:1,tx:'The Army of Italy is out of supply',p:1},
+ {sev:0,tx:'Spain proposes a pact — answer within 3 turns',p:0},{sev:0,tx:'2 provinces can build a granary',p:1}];
+const SEV=['Notice','Warning','Crisis'];
+const GOALS=[['Conquest','Hold 60% of the world’s provinces.',.86],['Prosperity','Keep 10 000 gold in the treasury.',.54],['Concert of Europe','Be allied with four great powers.',.5],['Enlightenment','Reach the Modern era.',.38],['Dominion','Take every capital in Europe.',.27],['Supremacy','Rule the strongest army for 20 turns.',.12]];
+const REALMS=[['Rhineland',.64],['Italia',.48],['Iberia',.31]];
+const sevMark=(sev,s=16)=>sev===2?`<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="flex:none"><path d="M12 3L22 20H2z" fill="#D2603F"/><path d="M12 10v5M12 17.5v.5" stroke="#1b0c06" stroke-width="2" stroke-linecap="round"/></svg>`:sev===1?`<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="flex:none"><path d="M12 3.500L21.500 19.500h-19z" fill="none" stroke="#E4A94B" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4.500" stroke="#E4A94B" stroke-width="2" stroke-linecap="round"/></svg>`:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="flex:none"><path d="M12 3l9 9-9 9-9-9z" fill="none" stroke="#E5C77A" stroke-width="2"/></svg>`;
+const advice=(ph,only)=>{let h='';[2,1,0].filter(v=>!only||only.includes(v)).forEach(sv=>{const l=ALERTS.filter(a=>a.sev===sv);if(!l.length)return;h+=`<div class="sct" style="color:${sv==2?'#ee8a68':sv==1?'#E4A94B':'var(--dim)'}">${SEV[sv]} · ${l.length}</div>`+l.map(a=>`<div style="display:flex;align-items:flex-start;gap:${ph?7:10}px;padding:${ph?3:5}px 0">${sevMark(sv,ph?14:17)}<span style="flex:1;font:500 ${ph?13.5:16.5}px/1.2 Alegreya;color:${sv==2?'#ee8a68':'var(--ivory)'}">${a.tx}</span>${pinB(a.p,ph)}</div>`).join('')});return h};
+const ringPct=(f,s,col='#C9A24B')=>{const c=s/2,r=s/2-6;return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" style="flex:none">${bezelSvg(c,c,s/2-1,0)}<path d="${arcD(c,c,r-3,0,Math.max(1,f*359.9))}" stroke="${col}" stroke-width="${s>50?5:4}" fill="none" stroke-linecap="round"/><text x="${c}" y="${c+s*.1}" text-anchor="middle" font-family="Alegreya" font-weight="700" font-size="${(s*.3).toFixed(0)}" fill="#EFE6CF">${Math.round(f*100)}</text></svg>`};
+const CN={};
+
+/* ---------- A · Split cabinet ---------- */
+CN.A={init:{},render(s,ph){
+  const top=GOALS.slice(0,3),more=GOALS.slice(3);
+  const goals=top.map(([n,d,f],i)=>`<div style="display:flex;gap:${ph?9:14}px;align-items:center;padding:${ph?3:8}px 0">${ringPct(f,ph?40:62,f>=.8?'#69B3A2':'#C9A24B')}<div style="flex:1;min-width:0"><div class="cz" style="font:700 ${ph?11.5:14}px Cinzel;letter-spacing:.12em">${n}</div><div class="lead2" style="font-size:${ph?12:14.5}px;margin:1px 0 ${ph?3:5}px">${d}</div>${meter(f,{col:f>=.8?'#69B3A2':null})}</div></div>`).join('');
+  const rest=more.map(([n,d,f])=>`<div class="ld" style="padding:${ph?1:3}px 0"><span style="font:500 ${ph?13:15.5}px Alegreya;color:var(--dim)">${n}</span><span class="dot"></span><span class="num" style="font:700 ${ph?13:15.5}px Alegreya">${Math.round(f*100)}%</span></div>`).join('');
+  const realms=REALMS.map(([n,f])=>`<div class="ld" style="padding:${ph?1:3}px 0"><span style="font:500 ${ph?13:15.5}px Alegreya">${n}</span><span class="dot"></span><span class="num" style="font:700 ${ph?13:15.5}px Alegreya;color:var(--hi)">${Math.round(f*100)}%</span></div>`).join('');
+  return shell({w:ph?770:1020,title:'Council',sub:'What needs you, and where you stand',icon:'council',
+   body:`<div style="display:flex;gap:${ph?18:34}px"><div style="flex:1.1;min-width:0">${advice(ph).replace(/<div class="sct"/,'<div class="sct" style="margin-top:2px"')}</div><div style="width:1px;background:#33291a;flex:none"></div><div style="flex:1;min-width:0"><div class="sct" style="margin-top:0">Closest goals</div>${goals}${ph?`<div class="lead2" style="font-size:12.5px;margin-top:5px">Realms in reach: ${REALMS.map(([n,f])=>n+' '+Math.round(f*100)+'%').join(' · ')}</div>`:`<div class="sct">Further off</div>${rest}<div class="sct">Realms in reach</div>${realms}`}</div></div>`},ph)}};
+
+/* ---------- B · Tabbed rulers (drawer) ---------- */
+CN.B={init:{tab:'goals'},render(s,ph){
+  let body;
+  if(s.tab==='advice')body=advice(ph).replace(/^<div class="sct" style="color/,'<div class="sct" style="margin-top:0;color');
+  else body=GOALS.map(([n,d,f],i)=>`<div style="padding:${ph?5:9}px 0 ${ph?5:8}px;border-bottom:1px solid #261f15"><div style="display:flex;align-items:baseline;gap:8px"><span class="cz" style="font:700 ${ph?11.5:14}px Cinzel;letter-spacing:.12em;color:${i==0?'var(--hi)':'var(--ivory)'}">${n}</span>${i==0?'<span class="you" style="align-self:center">CLOSEST</span>':''}<span class="dot" style="flex:1;border-bottom:1px dotted #5a4a26"></span><span class="num" style="font:700 ${ph?15:19}px Alegreya;color:${f>=.8?'#69B3A2':'var(--hi)'}">${Math.round(f*100)}%</span></div><div class="lead2" style="font-size:${ph?12:14.5}px;margin:2px 0 ${ph?4:7}px">${d}</div><div style="display:flex;align-items:center;gap:8px"><span style="flex:1;position:relative;display:flex">${meter(f,{col:f>=.8?'#69B3A2':null,mark:1})}<span style="position:absolute;left:0;right:0;top:11px;height:5px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px calc(10% ));opacity:.6"></span></span></div></div>`).join('')+`<div class="sct">Realms in reach</div>`+`<div style="display:flex;gap:${ph?10:16}px;flex-wrap:wrap">${REALMS.map(([n,f])=>`<div style="display:flex;align-items:center;gap:8px">${ringPct(f,ph?32:44)}<span style="font:500 ${ph?13:16}px Alegreya">${n}</span></div>`).join('')}</div>`;
+  return shell({kind:'drw',w:ph?460:540,title:'Council',sub:s.tab==='advice'?'Advice from your ministers':'The road to victory',icon:'council',tabs:rtabs([['advice','Advice',null,ALERTS.length],['goals','Goals']],s.tab,'tab'),body},ph)}};
+
+/* ---------- C · Dials + ledger ---------- */
+CN.C={init:{},render(s,ph){
+  const r=ph?19:52;
+  const dials=GOALS.slice(0,3).map(([n,d,f])=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0">${gaugeSvg({r,v:Math.round(f*100)+'%',f,col:f>=.8?'#69B3A2':'#C9A24B'})}<div class="cz" style="font:700 ${ph?10.5:13}px Cinzel;letter-spacing:.12em;margin-top:${ph?0:2}px">${n}</div>${ph?'':`<div class="lead2" style="font-size:14px;max-width:240px;margin-top:2px">${d}</div>`}</div>`).join('');
+  const realms=REALMS.map(([n,f])=>`<div style="display:flex;align-items:center;gap:8px;padding:${ph?2:4}px 0"><span style="font:500 ${ph?13:16}px Alegreya;width:${ph?72:100}px">${n}</span>${meter(f)}<span class="num" style="font:700 ${ph?13:16}px Alegreya;width:36px;text-align:right">${Math.round(f*100)}%</span></div>`).join('');
+  return shell({w:ph?770:1040,title:'Council',sub:'Dials and dispatches',icon:'council',
+   body:`<div style="display:flex;gap:${ph?6:16}px;padding:${ph?0:4}px 0 ${ph?2:8}px">${dials}</div>${ph?'':`<div class="rule" style="margin:0 0 6px"><i></i></div>`}<div style="display:flex;gap:${ph?18:34}px"><div style="flex:1.3;min-width:0">${advice(ph,[2,1]).replace(/^<div class="sct"/,'<div class="sct" style="margin-top:2px"')}</div><div style="flex:1;min-width:0"><div class="sct" style="margin-top:2px">Realms in reach</div>${realms}${ph?'':'<div class="sct">Further goals</div>'}${ph?'':GOALS.slice(3).map(([n,d,f])=>`<div class="ld" style="padding:${ph?1:3}px 0"><span style="font:500 ${ph?13:15.5}px Alegreya;color:var(--dim)">${n}</span><span class="dot"></span><span class="num" style="font:700 ${ph?13:15.5}px Alegreya">${Math.round(f*100)}%</span></div>`).join('')}</div></div>`},ph)}};
+</script>
+<script>
+/* ================= HONOURS ================= */
+const HON=[
+ ['first_blood','First Blood','Take your first province by force.','attack','Conquest',1805],['empire_30','Rising Power','Hold 30 provinces at once.','flag','Conquest',1809],['empire_60','Great Power','Hold 60 provinces at once.','flag','Conquest',1816],['empire_100','Hegemon','Hold 100 provinces at once.','flag','Conquest',null,[61,100]],
+ ['veteran','Veteran','Win 25 battles in a single campaign.','army','Conquest',1814],['never_kneel','Never Kneel','Win a war after losing your capital.','fortify','Conquest',null,[0,1]],['five_star','Marshal','Field five armies of 50k or more.','star','Conquest',null,[2,5]],['unifier','Unifier','Reunite every province of a lost realm.','nations','Conquest',null,[3,5]],
+ ['treasure','Dragon’s Hoard','Hold 10 000 gold at once.','gold','Economy',1812],['merchant','Merchant Prince','Hold five trade deals at once.','trade','Economy',1813],['decreed','By Decree','Pass ten decrees.','decrees','Economy',1807],['modern_age','Age of Reason','Reach the Modern era.','research','Economy',null,[1,2]],
+ ['matchmaker','Matchmaker','Arrange three royal marriages.','heart','Diplomacy',null,[2,3]],['alliances','Concert','Hold four alliances at once.','pact','Diplomacy',null,[3,4]],['suzerain','Suzerain','Make another power your vassal.','crown','Diplomacy',null,[0,1]],['ultimatum_win','Iron Word','Win a war with an ultimatum.','envoys','Diplomacy',null,[0,1]],
+ ['heir','Heir Apparent','See an heir crowned.','crown','Legacy',1806],['infamous','Infamous','Reach infamy 30.','skull','Legacy',null,[18,30]],['victor','Victor','Win a campaign.','trophy','Legacy',null,[0,1]]
+].map(([id,n,d,ic,cat,y,p])=>({id,n,d,ic,cat,y,p}));
+const HE=HON.filter(h=>h.y).length;
+const HN={};
+const hpct=h=>h.y?1:h.p?h.p[0]/h.p[1]:0;
+const hstat=(h,ph)=>h.y?`<span style="color:var(--good);font:600 ${ph?12:14.5}px Alegreya;display:inline-flex;gap:5px;align-items:center">${ico('check',ph?12:14,2.2)}Earned ${h.y}</span>`:`<span class="num dim" style="font:600 ${ph?12:14.5}px Alegreya">${h.p[0]} / ${h.p[1]}</span>`;
+
+/* ---------- A · Medal grid ---------- */
+HN.A={init:{sel:'empire_100'},render(s,ph){
+  const sel=HON.find(h=>h.id==s.sel)||HON[0],ms=ph?38:64;
+  const cell=h=>`<a data-a="sel:${h.id}" style="display:flex;flex-direction:column;align-items:center;gap:${ph?3:6}px;cursor:pointer;padding:${ph?3:8}px 2px;position:relative;${s.sel==h.id?'background:rgba(201,162,75,.13);box-shadow:inset 0 0 0 1px #5d4d26':''}">
+   <span style="position:relative">${medal(h.ic,ms,{dim:!h.y})}${h.y?'':`<span style="position:absolute;right:-4px;bottom:-3px;color:var(--dim);background:#0f0c09;border-radius:50%;box-shadow:0 0 0 1.5px #4a3f28;width:${ph?15:20}px;height:${ph?15:20}px;display:grid;place-items:center">${ico('lock',ph?9:12,2)}</span>`}</span>
+   <span class="cz" style="font:600 ${ph?8:10}px/1.15 Cinzel;letter-spacing:.1em;text-align:center;color:${h.y?'var(--ivory)':'var(--dim2)'}">${h.n}</span>${ph?'':`<span class="num" style="font:500 12.5px Alegreya;color:${h.y?'var(--hi)':'#4a3f28'}">${h.y||'—'}</span>`}</a>`;
+  const det=`<div style="display:flex;align-items:center;gap:${ph?10:16}px;flex:1">${medal(sel.ic,ph?34:54,{dim:!sel.y})}<div style="flex:1;min-width:0"><div class="cz" style="font:700 ${ph?12:15}px Cinzel;letter-spacing:.14em;color:${sel.y?'var(--hi)':'var(--ivory)'}">${sel.n}</div><div class="lead2" style="font-size:${ph?12.5:15.5}px">${sel.d}</div></div><div style="width:${ph?120:200}px;display:flex;flex-direction:column;gap:4px;align-items:flex-end">${hstat(sel,ph)}${sel.y?'':meter(hpct(sel),{w:ph?100:170})}</div></div>`;
+  return shell({w:ph?770:940,title:'Honours',sub:'Deeds that outlive a single reign',icon:'trophy',hr:`<span class="chip i" style="height:${ph?22:26}px;color:var(--hi)">${ico('star',ph?11:13)}<b class="num">${HE}</b> / ${HON.length} earned</span>`,
+   body:`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${ph?84:112}px,1fr));gap:${ph?0:4}px ${ph?2:6}px">${HON.map(cell).join('')}</div>`,foot:det},ph)}};
+
+/* ---------- B · Ribbon list ---------- */
+HN.B={init:{f:'all'},render(s,ph){
+  const vis=HON.filter(h=>s.f==='all'||(s.f==='got'?h.y:!h.y));let h2='';
+  ['Conquest','Economy','Diplomacy','Legacy'].forEach(c=>{const l=vis.filter(h=>h.cat===c);if(!l.length)return;h2+=`<div class="sct">${c} · ${l.filter(h=>h.y).length}/${HON.filter(h=>h.cat===c).length}</div><div style="display:grid;grid-template-columns:${ph?'1fr 1fr':'1fr'};gap:0 ${ph?18:0}px">`+l.map(h=>`<div style="display:flex;align-items:center;gap:${ph?9:13}px;padding:${ph?3:6}px 0;border-bottom:1px solid #261f15;opacity:${h.y?1:.78}">${medal(h.ic,ph?26:38,{dim:!h.y})}<div style="flex:1;min-width:0"><div class="cz" style="font:700 ${ph?10:12}px Cinzel;letter-spacing:.12em;color:${h.y?'var(--hi)':'var(--ivory)'}">${h.n}</div><div class="lead2" style="font-size:${ph?11.5:14}px;line-height:1.15">${h.d}</div></div>${h.y?`<span class="chip g" style="height:${ph?20:24}px">${ico('check',ph?11:13,2.2)}${h.y}</span>`:`<span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;width:${ph?64:96}px">${hstat(h,ph)}${meter(hpct(h),{w:ph?64:96})}</span>`}</div>`).join('')+`</div>`});
+  return shell({kind:'dlg',w:ph?770:700,h:ph?340:660,title:'Honours',sub:`${HE} of ${HON.length} earned`,icon:'trophy',tabs:rtabs([['all','All',null,HON.length],['got','Earned',null,HE],['lock','Locked',null,HON.length-HE]],s.f,'f'),body:h2||'<div class="lead2">Nothing here.</div>'},ph)}};
+
+/* ---------- C · Cabinet shelves ---------- */
+HN.C={init:{sel:'empire_100'},render(s,ph){
+  const sel=HON.find(h=>h.id==s.sel)||HON[0],sh=[HON.slice(0,7),HON.slice(7,13),HON.slice(13)],cs=ph?56:92;
+  const shelf=l=>`<div><div style="display:flex;gap:${ph?5:9}px;flex-wrap:wrap">${l.map(h=>`<a data-a="sel:${h.id}" style="width:${cs}px;height:${cs}px;display:grid;place-items:center;cursor:pointer;background:radial-gradient(circle at 50% 38%,#0f0c09,#080605);${s.sel==h.id?'background:radial-gradient(circle at 50% 38%,#2c2314,#15100a);':''}box-shadow:inset 0 0 0 1px ${s.sel==h.id?'#C9A24B':'#2e2519'},inset 0 ${ph?4:8}px ${ph?8:14}px rgba(0,0,0,.7);clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)">${h.y?medal(h.ic,ph?36:60):`<span style="opacity:.45">${medal(h.ic,ph?34:56,{dim:true})}</span>`}</a>`).join('')}</div><div style="height:${ph?8:12}px;margin-top:${ph?2:4}px;background:linear-gradient(#2a2216,#17120c);box-shadow:0 1px 0 #4a3d22"><div style="height:5px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 8px)"></div></div></div>`;
+  const next=HON.filter(h=>!h.y&&h.p).sort((a,b)=>hpct(b)-hpct(a)).slice(0,3);
+  const pw=ph?210:300;
+  const panel=`<div style="width:${pw}px;flex:none;display:flex;flex-direction:column;align-items:center;text-align:center;gap:${ph?4:9}px;padding-left:${ph?12:22}px;border-left:1px solid #33291a">
+    <svg width="${ph?64:116}" height="${ph?64:116}" viewBox="0 0 116 116">${bezelSvg(58,58,52,48)}<foreignObject x="30" y="30" width="56" height="56"><div xmlns="http://www.w3.org/1999/xhtml" style="color:${sel.y?'#E5C77A':'#6b5f46'};display:grid;place-items:center;width:56px;height:56px">${ico(sel.ic,40,1.5)}</div></foreignObject></svg>
+    <div class="cz" style="font:700 ${ph?12:16}px Cinzel;letter-spacing:.14em;color:${sel.y?'var(--hi)':'var(--ivory)'}">${sel.n}</div><div class="lead2" style="font-size:${ph?12:15}px;line-height:1.2">${sel.d}</div>${hstat(sel,ph)}${sel.y?'':`<div style="width:100%">${meter(hpct(sel))}</div>`}
+    <div class="sct" style="width:100%;margin:${ph?2:8}px 0 0">Closest</div>${next.map(h=>`<a data-a="sel:${h.id}" style="display:flex;align-items:center;gap:7px;width:100%;cursor:pointer"><span style="font:500 ${ph?11.5:14}px Alegreya;flex:1;text-align:left;white-space:nowrap">${h.n}</span>${meter(hpct(h),{w:ph?44:70})}<span class="num dim" style="font:500 ${ph?11:13}px Alegreya;width:30px;text-align:right">${Math.round(hpct(h)*100)}%</span></a>`).join('')}</div>`;
+  return shell({w:ph?770:1090,title:'Honours',sub:'The cabinet of deeds',icon:'trophy',hr:`<span class="chip i" style="height:${ph?22:26}px;color:var(--hi)"><b class="num">${HE}</b> / ${HON.length}</span>`,
+   body:`<div style="display:flex;gap:0"><div style="flex:1;display:flex;flex-direction:column;gap:${ph?7:14}px;padding-right:${ph?12:22}px">${sh.map(shelf).join('')}</div>${panel}</div>`},ph)}};
+
+/* ================= FINAL RESULT ================= */
+function resData(out){
+  const p={FR:61,RU:58,AT:38,OT:36,UK:34,ES:31,PR:22};
+  if(out==='lost'){Object.assign(p,{FR:17,RU:77,AT:44,OT:40,UK:36,ES:31,PR:25})}
+  const a={FR:340,RU:300,AT:170,OT:160,UK:150,ES:110,PR:120};if(out==='lost')a.FR=60;
+  const rows=NAT.map(n=>({n,p:p[n.id],a:a[n.id]})).sort((x,y)=>y.p-x.p),rank=rows.findIndex(r=>r.n.me)+1;
+  const w=rows[0].n;return{rows,rank,peak:out==='lost'?52:66,win:out==='won',winner:w,sub:out==='won'?'Hegemony — France':'Lost to Russia — Hegemony'};
+}
+const wax=(s,ic,won)=>`<span style="width:${s}px;height:${s}px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 36% 30%,${won?'#c0452f,#7e2616 70%':'#7a7266,#3b362f 70%'});box-shadow:0 0 0 2px ${won?'#4c180d':'#26221d'},inset 0 -3px 6px rgba(0,0,0,.4),inset 0 2px 3px rgba(255,255,255,.18);color:#f4e4d0;flex:none">${ico(ic,Math.round(s*.5),1.6)}</span>`;
+const orn=`<div style="display:flex;align-items:center;gap:10px;margin:4px 0"><span style="flex:1;height:1px;background:linear-gradient(90deg,transparent,#7F6A33)"></span><svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1l6 6-6 6-6-6z" fill="none" stroke="#C9A24B"/><path d="M7 4.500l2.500 2.500L7 9.500 4.500 7z" fill="#C9A24B"/></svg><span style="flex:1;height:1px;background:linear-gradient(270deg,transparent,#7F6A33)"></span></div>`;
+const RS={};
+const rfoot=ph=>`<a class="bt">View final map</a><a class="bt pri">Main menu</a>`;
+
+/* ---------- A · Verdict + standings ---------- */
+RS.A={render(s,ph,g){
+  const d=resData(g.out),mx=Math.max(...d.rows.map(r=>r.p));
+  const left=`<div style="width:${ph?250:340}px;flex:none;display:flex;flex-direction:column;gap:${ph?5:12}px"><div>${wax(ph?48:76,d.win?'trophy':'skull',d.win)}</div>
+   <div class="cz" style="font:700 ${ph?25:36}px/1 Cinzel;letter-spacing:.14em;color:${d.win?'var(--hi)':'#ee8a68'}">${d.win?'Victory':'Defeat'}</div>${orn}<div style="font:500 ${ph?14:19}px/1.25 Alegreya">${d.sub}</div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip n">${ico('clock',13)}Turn ${NT}</span><span class="chip n">${ico('flag',13)}Peak ${d.peak}</span><span class="chip i" style="color:var(--hi)">${ico('trophy',13)}Rank ${d.rank}</span></div></div>`;
+  const right=`<div style="flex:1;min-width:0"><div class="sct" style="margin-top:0">Final standings</div>${d.rows.map((r,i)=>`<div style="display:flex;align-items:center;gap:${ph?7:11}px;height:${ph?26:38}px;border-bottom:1px solid #261f15;${r.n.me?'background:linear-gradient(90deg,rgba(201,162,75,.16),transparent)':''}">${rk(i+1,ph?20:28)}${nf(r.n.id,ph?18:24)}<span style="font:${r.n.me?700:500} ${ph?13.5:17.5}px Alegreya;width:${ph?66:96}px;white-space:nowrap">${r.n.n}</span>${r.n.me?'<span class="you">YOU</span>':''}${meter(r.p/mx,{col:r.n.c})}<span class="num" style="font:700 ${ph?13.5:17.5}px Alegreya;width:30px;text-align:right">${r.p}</span><span class="num dim" style="display:inline-flex;gap:4px;align-items:center;width:${ph?44:56}px;justify-content:flex-end;font:500 ${ph?12:14}px Alegreya">${ico('swords',ph?10:12)}${fmt(r.a)}</span></div>`).join('')}</div>`;
+  return shell({w:ph?770:980,title:'The campaign ends',sub:'Napoleonic Wars · '+dateOf(NT),icon:d.win?'trophy':'skull',body:`<div style="display:flex;gap:${ph?20:36}px;align-items:flex-start">${left}${right}</div>`,foot:rfoot(ph)},ph)}};
+
+/* ---------- B · Instrument cluster ---------- */
+RS.B={render(s,ph,g){
+  const d=resData(g.out),tp=d.rows.reduce((a,r)=>a+r.p,0),me=d.rows.find(r=>r.n.me),r=ph?28:50;
+  const dials=`<div style="display:flex;gap:${ph?4:10}px;justify-content:center">${[
+   [gaugeSvg({r,v:'#'+d.rank,f:1-(d.rank-1)/6,col:d.win?'#69B3A2':'#D2603F'}),'Rank'],
+   [gaugeSvg({r,v:me.p,f:me.p/tp*1.6>1?1:me.p/tp*1.6,col:'#C9A24B'}),'Provinces'],
+   [gaugeSvg({r,v:d.win?92:41,f:d.win?.92:.41,col:'#7FA8E8'}),'Prestige']].map(([g,l])=>`<div style="text-align:center">${g}<div class="cap" style="font-size:${ph?8.5:10.5}px;margin-top:${ph?-4:0}px">${l}</div></div>`).join('')}</div>`;
+  const CW=ph?330:520,CH=ph?114:200,ml=30,mr=12,mt=8,mb=18,pw=CW-ml-mr,phh=CH-mt-mb,X=t=>ml+(t-1)/(NT-1)*pw,mx=nice(80),Y=v=>mt+phh-v/mx*phh;
+  const k=d.win?1:.3;const line=n=>n.S.p.slice(1).map((v,j)=>`${X(j+1).toFixed(1)},${Y(n.me&&!d.win?v*.28+8*(j/NT):v).toFixed(1)}`).join(' ');
+  let ch=[0,20,40,60,80].map(v=>`<line x1="${ml}" x2="${ml+pw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v?'#2a2318':'#6b5a30'}"/><text x="${ml-6}" y="${Y(v)+4}" text-anchor="end" fill="#A89C80" font-size="${ph?10:12}" font-family="Alegreya">${v}</text>`).join('');
+  for(let t=1;t<=NT;t++){const mj=t%2===1;ch+=`<line x1="${X(t)}" x2="${X(t)}" y1="${mt+phh}" y2="${mt+phh+(mj?6:3)}" stroke="${mj?'#C9A24B':'#7F6A33'}"/>`;if(t%4===1)ch+=`<text x="${X(t)}" y="${CH-3}" text-anchor="middle" fill="#A89C80" font-size="${ph?9.5:11.5}" font-family="Alegreya">${yearOf(t)}</text>`}
+  NAT.slice(1).forEach((n,i)=>ch+=`<polyline points="${line(n)}" fill="none" stroke="${n.c}" stroke-width="1.4" opacity=".55" stroke-dasharray="${DASH[i+1]}"/>`);
+  ch+=`<polyline points="${line(NAT[0])}" fill="none" stroke="#E5C77A" stroke-width="3.2" stroke-linejoin="round"/><circle cx="${X(NT)}" cy="${Y(me.p)}" r="4.5" fill="#E5C77A"/>`;
+  const chart=`<div><div class="sct" style="margin-top:0">Provinces over the campaign</div><svg width="${CW}" height="${CH}" viewBox="0 0 ${CW} ${CH}" style="display:block">${ch}</svg></div>`;
+  const top=d.rows.slice(0,5),pod=`<div style="display:flex;gap:${ph?10:18}px;justify-content:center;align-items:flex-end">${top.map((r,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">${nf(r.n.id,ph?26:40)}<span style="font:${r.n.me?700:500} ${ph?11.5:14.5}px Alegreya">${r.n.n}</span><span class="num" style="font:700 ${ph?13:17}px Alegreya;color:${r.n.me?'var(--hi)':'var(--ivory)'}">${r.p}</span></div>`).join('')}</div>`;
+  return shell({w:ph?770:1040,title:d.win?'Victory':'Defeat',sub:d.sub,icon:d.win?'trophy':'skull',body:`<div style="display:flex;gap:${ph?14:30}px;align-items:center"><div style="flex:none">${dials}</div><div style="flex:1;display:flex;flex-direction:column;gap:${ph?6:14}px;align-items:center">${chart}${pod}</div></div>`,foot:rfoot(ph)},ph)}};
+
+/* ---------- C · Proclamation ---------- */
+RS.C={render(s,ph,g){
+  const d=resData(g.out),me=d.rows.find(r=>r.n.me),facts=[['Reign ended',dateOf(NT)],['Provinces held',me.p],['At the peak',d.peak],['Battles won',d.win?19:7],['Treasury',d.win?'5 400':'120'],['Pacts kept',d.win?3:0]];
+  const doc=`<div style="text-align:center;padding:${ph?0:6}px ${ph?10:36}px 0">
+   <div class="cap" style="font-size:${ph?9:11}px;letter-spacing:.34em">By the hand of history</div>${orn}
+   <div class="cz" style="font:700 ${ph?20:30}px/1.1 Cinzel;letter-spacing:.12em;color:${d.win?'var(--hi)':'#ee8a68'};margin:${ph?2:6}px 0">${d.win?'France achieves Hegemony':'France is overthrown'}</div>
+   <div class="lead2" style="font-size:${ph?13:17.5}px;line-height:1.3;max-width:520px;margin:0 auto ${ph?4:10}px">${d.win?'After twelve years of war and counsel, the crowns of Europe bend to Paris, and the Empire stands unbroken.':'Russia’s armies hold the field. The Empire is broken, and the name of France passes into the chronicles.'}</div>${ph?'':orn}
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 ${ph?24:44}px;text-align:left;margin:${ph?2:6}px 0">${facts.map(([k,v])=>`<div class="ld" style="padding:${ph?1:3}px 0"><span style="font:500 ${ph?12.5:16}px Alegreya;color:var(--dim)">${k}</span><span class="dot"></span><span class="num" style="font:700 ${ph?13:16.5}px Alegreya">${v}</span></div>`).join('')}</div>
+   <div class="sct" style="justify-content:center;margin:${ph?4:10}px 0 ${ph?3:7}px">Signatories</div>
+   <div style="display:flex;gap:${ph?10:18}px;justify-content:center">${d.rows.slice(0,5).map((r,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">${nf(r.n.id,ph?24:34)}<span style="font:${r.n.me?700:500} ${ph?11:13.5}px Alegreya;color:${r.n.me?'var(--hi)':'var(--dim)'}">${r.n.n}</span></div>`).join('')}</div></div>`;
+  return shell({w:ph?560:720,title:'Proclamation',sub:'The campaign ends',icon:d.win?'trophy':'skull',body:doc,foot:rfoot(ph)},ph)}};
+</script>
+<script>
+/* ===== boot ===== */
+const SECS=[
+ ['stats','Statistics',ST,'Power rankings — three ways to read the same seven nations. Rankings tab of the Nations screen today.',[['A','A · Ledger','A table first: rank, flag, every metric with its trend. Tap a column to re-rank by it.'],['B','B · Chronometer','One chart, a graduated time ruler and a scrubber; the readout beside it follows the needle.'],['C','C · Balance of power','The world as a ring: each power’s share of the metric. Tap an arc or a row.']]],
+ ['annals','Annals',AN,'The chronicle of your reign — the drawer opened with F5.',[['A','A · Rail timeline','A drawer with a graduated rail; turns are date medallions on it.'],['B','B · Dispatches','Filter column with counters, search, and entries as colour-struck dispatch plates.'],['C','C · Calendar ruler','A ruler of all 24 turns with event marks; pick a tick, read that turn.']]],
+ ['council','Council',CN,'Advice and goals in one place — F4 and F6 today.',[['A','A · Split cabinet','Advice on the left, goals on the right with ring gauges for the three nearest.'],['B','B · Tabbed rulers (drawer)','Two tabs; each goal a long graduated ruler with milestones.'],['C','C · Dials row','The three nearest victories as big instruments, advice and realms beneath.']]],
+ ['honours','Honours',HN,'Cross-game achievements, found in Settings → Honours today.',[['A','A · Medal grid','Every honour a medal; tap one for its detail strip.'],['B','B · Ribbon list','Grouped by kind, with a filter; progress ruler on every locked one.'],['C','C · Cabinet','Medals in notched alcoves on shelves; a big bezel for the one selected, and the closest to earn.']]],
+ ['result','Final result',RS,'The end-of-campaign sheet — toggle Victory / Defeat above.',[['A','A · Verdict + standings','Wax seal, verdict, key facts; standings with bars.'],['B','B · Instrument cluster','Three dials, the provinces curve over the campaign, and a podium.'],['C','C · Proclamation','A document: decree typography, facts as a leader list, signatories.']]]
+];
+const secs=$('#secs');
+SECS.forEach(([id,name,M,lead,vars])=>{
+  const s=document.createElement('section');s.className='sec';s.id='sec-'+id;
+  s.innerHTML=`<div class="vg"></div>`;secs.appendChild(s);
+  vars.forEach(([k,t,n])=>{const c=document.createElement('div');c.className='vc';c.innerHTML=`<span class="badge">${t}</span><div class="nt">${n}</div>`;$('.vg',s).appendChild(c);mount(c,M[k])});
+});
+$('#nav').innerHTML=SECS.map(([id,n])=>`<a data-sec="${id}">${n}</a>`).join('');
+function show(id){G.sec=id;$$('.sec').forEach(s=>s.classList.toggle('on',s.id==='sec-'+id));$$('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.sec===id));$('#lead').textContent=SECS.find(s=>s[0]===id)[3];$('#out').style.display=id==='result'?'flex':'none';history.replaceState(null,'','#'+id);redrawAll()}
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-sec]');if(a)return show(a.dataset.sec);
+  const v=e.target.closest('[data-vp]');if(v){G.vp=v.dataset.vp;$$('#vp a').forEach(x=>x.classList.toggle('on',x===v));$$('.vg').forEach(g=>g.classList.toggle('ph',G.vp==='p'));return redrawAll()}
+  const o=e.target.closest('[data-out]');if(o){G.out=o.dataset.out;$$('#out a').forEach(x=>x.classList.toggle('on',x===o));redrawAll()}
+});
+const hv=location.hash.slice(1);
+if(/vp=p/.test(location.search))G.vp='p';
+show(SECS.some(s=>s[0]===hv)?hv:'stats');
+if(G.vp==='p'){$$('#vp a').forEach(x=>x.classList.toggle('on',x.dataset.vp==='p'));$$('.vg').forEach(g=>g.classList.add('ph'))}
+redrawAll();
+</script>
+</body></html>
