@@ -580,7 +580,10 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 		var ult: bool = e["id"] == "ultimatum"
 		var from_n: int = int(e["from"])
 		var from_name: String = g.dname(from_n) if g != null else ""
-		var gl := K.glyph("swords" if ult else ("dove" if e["id"] == "peace" else "scroll"), gpx, TBTokens.c("oxblood")); gl.custom_minimum_size = Vector2(gpx + 8, gpx + 8); gl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		var gid0: String = "swords" if ult else ("dove" if e["id"] == "peace" else "scroll")
+		var gl: Control = K.ring_icon(gid0, gpx + 14) if TBFrame.bezel else K.glyph(gid0, gpx, TBTokens.c("oxblood"))
+		if not TBFrame.bezel: gl.custom_minimum_size = Vector2(gpx + 8, gpx + 8)
+		gl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		head_row.add_child(gl)
 		var kk := K.caps(T.call("ev_ultimatum") if ult else T.call("ev_proposal"), 12, K.GOLD); kk.size_flags_vertical = Control.SIZE_SHRINK_CENTER; head_row.add_child(kk)
 		var tl := K.title(T.call("prop_ult_title" if ult else "prop_title", {"a": from_name}), 22 if short else 24); tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -606,7 +609,9 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 	var cat_raw: String = String(e.get("cat", "")).to_lower()
 	var icon_id: String = String(e.get("icon", ""))
 	var gid: String = icon_id if (icon_id != "" and TBGlyph.G.has(icon_id)) else String(CAT_GLYPH.get(cat_raw, "globe" if (not rand and e.get("world", false)) else "scroll"))
-	var gl2 := K.glyph(gid, gpx, TBTokens.c("oxblood")); gl2.custom_minimum_size = Vector2(gpx + 8, gpx + 8); gl2.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var gl2: Control = K.ring_icon(gid, gpx + 14) if TBFrame.bezel else K.glyph(gid, gpx, TBTokens.c("oxblood"))
+	if not TBFrame.bezel: gl2.custom_minimum_size = Vector2(gpx + 8, gpx + 8)
+	gl2.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	head_row.add_child(gl2)
 	var cat_key := "evcat_" + cat_raw.replace(" ", "_")
 	var kicker: String = T.call("ev_worldwide") if (not rand and e.get("world", false)) else (T.call("ev_event") if not rand else (T.call(cat_key) if TBI18n.has_key(cat_key) else String(e.get("cat", ""))))

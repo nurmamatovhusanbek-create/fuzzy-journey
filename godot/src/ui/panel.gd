@@ -670,7 +670,21 @@ class Card extends PanelContainer:
 			var cc: Control = TBKit.chip(String(c[0]), String(c[1]) if c.size() > 1 else "", String(c[2]) if c.size() > 2 else "neutral")
 			cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			cf.add_child(cc)
-		if (below or TBFrame.bezel) and not chips.is_empty(): col.add_child(cf)
+		if TBFrame.bezel and not chips.is_empty():
+			var fxv := TBKit.vbox(0); fxv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var rest: Array = []
+			for c2 in chips:
+				var gl2: String = String(c2[1]) if c2.size() > 1 else ""
+				if gl2 == "tri_up" or gl2 == "tri_down":
+					var fr: Control = TBKit.fx_row(String(c2[0]), String(c2[2]) if c2.size() > 2 else "neutral"); fr.mouse_filter = Control.MOUSE_FILTER_IGNORE; fxv.add_child(fr)
+				else: rest.append(c2)
+			if fxv.get_child_count() > 0: col.add_child(fxv)
+			for c3 in cf.get_children(): c3.queue_free()
+			for c4 in rest:
+				var cc4: Control = TBKit.chip(String(c4[0]), String(c4[1]) if c4.size() > 1 else "", String(c4[2]) if c4.size() > 2 else "neutral")
+				cc4.mouse_filter = Control.MOUSE_FILTER_IGNORE; cf.add_child(cc4)
+			if not rest.is_empty(): col.add_child(cf)
+		elif below and not chips.is_empty(): col.add_child(cf)
 		if reason != "":
 			var rr := TBKit.hbox(4); rr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			rr.add_child(TBKit.glyph("lock", 14, TBTokens.c("neg")))

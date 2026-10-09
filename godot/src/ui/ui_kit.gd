@@ -1297,6 +1297,21 @@ class Mark extends HBoxContainer:
 		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER; l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(l)
 
+static var _fig_re: RegEx
+## an effect as a leader row: "−3 happiness" -> happiness ......... −3 (figure bold in the tone colour; the sign is never the only cue: the dotted rule carries it to the figure)
+static func fx_row(txt: String, tone: String) -> Control:
+	if _fig_re == null:
+		_fig_re = RegEx.new(); _fig_re.compile("[+−-]?\\d[\\d.,]*\\s?%?")
+	var m := _fig_re.search(txt)
+	var fig := ""; var lab := txt
+	if m != null:
+		fig = m.get_string().strip_edges(); lab = (txt.substr(0, m.get_start()) + txt.substr(m.get_end())).strip_edges()
+		lab = lab.trim_prefix("·").trim_prefix(":").strip_edges()
+	var col: Color = TBTokens.c("pos") if tone == "pos" else (TBTokens.c("neg") if tone == "neg" else (TBTokens.c("warn") if tone == "warn" else TBTokens.c("ink_0")))
+	var r := row(lab if lab != "" else txt, fig, col)
+	if fig == "": return r
+	return r
+
 static func _mark(txt: String, glyph_id: String, tone: String, on_bar: bool, height: int) -> Control:
 	var suffix := "_bar" if on_bar else ""
 	var col: Color = TBTokens.c("brass_lt")

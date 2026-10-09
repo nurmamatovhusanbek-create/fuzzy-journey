@@ -129,10 +129,11 @@ func _draw() -> void:
 	var tx: String = K.fmt(float(army))
 	if grow > 0.5:
 		draw_string(fb, Vector2(_c.x - P.tw(fb, tx, z) * 0.5, P.base(fb, z, _c.y + 3.0)), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, z, TBTokens.c("cream"))
-		var cf: Font = K.tracked(K.display(), 1)
-		var cz: int = P.fs(12.0)
-		var cap: String = TBI18n.T("army").to_upper()
-		draw_string(cf, Vector2(_c.x - P.tw(cf, cap, cz) * 0.5, P.base(cf, cz, _c.y - fr * 0.55)), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, cz, TBTokens.c("smoke"))
+		if R >= 80.0:
+			var cf: Font = K.tracked(K.display(), 1)
+			var cz: int = P.fs(12.0)
+			var cap: String = TBI18n.T("army").to_upper()
+			draw_string(cf, Vector2(_c.x - P.tw(cf, cap, cz) * 0.5, P.base(cf, cz, _c.y - fr * 0.58)), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, cz, TBTokens.c("smoke"))
 	for i in n:
 		var st: float = clampf((_t - 0.04 * i) / 0.2, 0.0, 1.0) if K.motion_ok() else 1.0
 		var k: float = 1.0 - pow(1.0 - st, 3.0)

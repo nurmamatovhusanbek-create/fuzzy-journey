@@ -8,7 +8,7 @@ func _shot(name: String) -> void:
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	_out = a[0]
-	root.size = Vector2i(int(a[1]), int(a[2]))
+	DisplayServer.window_set_size(Vector2i(int(a[1]), int(a[2]))); root.size = Vector2i(int(a[1]), int(a[2]))
 	var which: PackedStringArray = (a[3] if a.size() > 3 else "nations,budget,decisions,council,annals,menu,dialog").split(",")
 	var main: Control = load("res://src/ui/main.tscn").instantiate()
 	root.add_child(main)
