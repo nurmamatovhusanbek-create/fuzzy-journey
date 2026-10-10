@@ -29,6 +29,7 @@ var _push_v := Vector2.ZERO
 var _push_sp := -1           # ... and, when the order is committed or previewed (not on hover), the source marker slides back by a share
 var _push_sv := Vector2.ZERO
 var last_shaft := 0.0        # visible shaft length of the current order arrow (px; tests assert it)
+var _ring_tgt := Vector2.INF    # the order target's centre while the order arrow draws (the attack rings sit there)
 var _order_box := Rect2()    # screen bounds of the arrow + label + source marker (the preview chip keeps out of it)
 const SHAFT_MIN := 30.0      # visible shaft between the two marker rims (px)
 
@@ -45,6 +46,9 @@ func clear_order() -> void:
 
 ## screen bounds of the current order arrow (control-local); empty Rect2 when there is none
 func order_bounds() -> Rect2: return _order_box
+## true while an order is previewed / committed (not a mere hover): the command ring becomes the armed medallion
+func order_from() -> int: return int(_order["from"]) if not _order.is_empty() else -1
+func order_committed() -> bool: return not _order.is_empty() and not bool(_order.get("hover", false))
 
 func attach(m: TBMapView) -> void:
 	map = m
@@ -164,6 +168,26 @@ func _project_v(u: Vector3, c0: float, s0: float, sl: float, cl: float, R: float
 	var z := u.y * s0 + z0 * c0
 	return Vector3(cx + R * x, cy - R * y, z)
 
+
+## the demo's label face: Cinzel 500 with 2.4 tracking
+static func label_font() -> Font:
+	return TBKit.tracked(TBKit._font("cinzel-latin-500-normal", ["alegreya-sc-cyrillic-500-normal"]), 2)
+
+var phone := false
+var ring_c := Vector2(-999.0, -999.0)      # the command ring's centre (screen px) while a province is selected, else far away
+
+## on-screen length (logical px) of a nation along its long axis; falls back to a count-based guess for round nations
+func _nation_px(n: int, cnt: int) -> float:
+	var ext := _ax_ext[n] if n < _ax_ext.size() else 0.0
+	var sc: float = map.radius_px() if map.mode == 0 else map.flat_scale()
+	if ext > 0.001: return 2.0 * ext * sc
+	return sqrt(float(cnt)) * 0.02 * sc
+
+## the demo hides names that the open command ring would sit on (150 units round the ring centre)
+func pos_hidden_by_ring(core: Vector3) -> bool:
+	var pr := _proj_vec(core)
+	return Vector2(pr.x, pr.y).distance_to(ring_c) < (105.0 if phone else 150.0)
+
 func _label_fonts() -> void:
 	var rf := (1 if TBKit.readable_fonts else 0) + (2 if TBKit.serif else 0) + (4 if TBFrame.bezel else 0)
 	if _tracked != null and _tracked_for == rf: return
@@ -207,6 +231,11 @@ func _two_lines(txt: String) -> PackedStringArray:
 ## drops to its first word, and is dropped only when none of that fits.
 func _draw_nation_names() -> void:
 	_nl_rects.clear()
+	phone = map.size.y < 560.0
+	ring_c = Vector2(-999.0, -999.0)
+	if map.selected >= 0 and g.human_id != 0:
+		var rp := map.project(g.world.lon[map.selected], g.world.lat[map.selected])
+		if rp.z > 0.0: ring_c = Vector2(rp.x, rp.y)
 	if map.zoom > (4.0 if map.mode == 0 else 5.5): return
 	_label_fonts()
 	var N1 := g.N1
@@ -243,9 +272,14 @@ func _draw_nation_names() -> void:
 		if txt.contains(" ") and not GENERIC_FIRST.has(txt.split(" ")[0]): variants.append([txt.split(" ")[0]])
 		var rel := -1 if mine else g.get_rel(g.human_id, n)
 		var atlas: bool = map.atlas_look() and not TBKit.readable_fonts
-		if atlas:                                                           # Atlas: Barlow Condensed 600, uppercase, +.08em, paper-100 at 85 % over a 3 px ink-900 halo
-			font = TBKit.tracked(TBKit.map_font(), maxi(1, roundi(fs * 0.08)))
+		if atlas:                                                           # Bezel: Cinzel 500, uppercase, +2.4 tracking, #CFC4A6 over a 4 wide #06080c stroke, .92
+			font = label_font()
 			for vi in variants.size(): variants[vi] = (variants[vi] as Array).map(func(t: String) -> String: return t.to_upper())
+			var px_w := _nation_px(n, cnt[n])
+			if px_w < (50.0 if phone else 70.0): continue                   # the demo hides a name once its nation is narrower than 70 units on screen
+			fs = int(clampf(px_w / (txt.length() * 0.7), 10.0, 15.0 if phone else 23.0) * tsc)
+			fs = clampi(maxi(fs, TBKit.min_font()), TBKit.min_font(), 44)
+			if ring_c.x > -900.0 and pos_hidden_by_ring(core): continue
 		var placed_ok := false
 		var ext := _ax_ext[n]
 		var perp := core.cross(_ax_dir[n]).normalized() if _ax_dir[n] != Vector3.ZERO else Vector3.ZERO
@@ -283,8 +317,8 @@ func _draw_nation_names() -> void:
 					var lw := font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 					var bp := Vector2(tx + (w - lw) * 0.5, rect.position.y + 3.0 + lh * li + font.get_ascent(fs))
 					if atlas:
-						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(TBTokens.INK_900, 0.9))
-						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(TBTokens.PAPER_100, 0.85))
+						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.0235, 0.0314, 0.0471, 0.92))
+						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.812, 0.769, 0.651, 0.92))
 					else:
 						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(halo, ha))
 						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
@@ -529,7 +563,7 @@ func _draw() -> void:
 	var chosen_set := {}
 	var chosen_rects: Array = []
 	var cap_n := mini(max_labels, 60 if ztier == 0 else max_labels)
-	var nfont: Font = TBKit.mono_b()
+	var nfont: Font = TBKit.body_b() if map.atlas_look() else TBKit.mono_b()
 	for v in vis:
 		if drawn >= cap_n: break
 		var p: int = v[0]
@@ -604,11 +638,11 @@ var _star_poly := PackedVector2Array()
 var _star_line := PackedVector2Array()
 ## army badge size (px, before the marker scale): a flat rectangle, wider for bigger numbers; the near tier is a little larger
 func _badge_w(f: Font, n: int, near: bool, flag := true) -> float:
-	if map != null and map.atlas_look():                                # Atlas token: 6 px owner stripe, 16 px flag, number 14/600
-		return 6.0 + 6.0 + (22.0 if flag else 0.0) + 6.0 + f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(14.0 if near else 13.0)).x + 10.0
+	if map != null and map.atlas_look():                                # Bezel token: width = digits x 9 + 44 (the demo's renderDyn), 28 tall
+		return float(TBKit.fmt(n).length()) * 9.0 + (44.0 if flag else 22.0)
 	return (_badge_h(near) * 1.3 + 3.0 + 4.0 if flag else 8.0) + f.get_string_size(TBKit.fmt(n), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13.0 if near else 12.0)).x + 6.0
 func _badge_h(near: bool) -> float:
-	if map != null and map.atlas_look(): return 28.0 if near else 24.0
+	if map != null and map.atlas_look(): return 28.0
 	return 22.0 if near else 19.0
 
 func _ensure_star() -> void:
@@ -648,11 +682,11 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var ally := rel == 3
 	var hot := p == map.selected
 	var army: int = g.army[p]
-	if not own and not war and not ally and not hot and p != map.hover: al *= 0.7        # quiet foreign stacks recede
+	if not own and not war and not ally and not hot and p != map.hover and not map.atlas_look(): al *= 0.7        # quiet foreign stacks recede
 	var ease_in: float = float(st["a"])
 	var sc := (0.6 + 0.4 * (1.0 - pow(1.0 - ease_in, 3.0))) * mk()                       # out-cubic appear, no overshoot
 	sc *= 1.0 + 0.26 * float(st["pop"]) * float(st["pop"])
-	if hot and map.atlas_look(): sc *= 1.08
+	if map.atlas_look() and own and hot and not order_committed() and ztier > 0: return        # the command ring shows the army instead
 	var nat := _nat_col(o)
 	var ink := tk("ink_0")
 	var lift := -4.0 if (hot and ztier == 2) else 0.0
@@ -664,7 +698,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var txt := TBKit.fmt(int(round(st["shown"])))
 	var near: bool = ztier == 2
 	var atlas := map.atlas_look()
-	var fsz: int = TBKit.fs((14.0 if near else 13.0) if atlas else (13.0 if near else 12.0))
+	var fsz: int = TBKit.fs(15.0 if atlas else (13.0 if near else 12.0))
 	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var bw := _badge_w(nfont, int(round(st["shown"])), near, o != 0)
 	var bh: float = _badge_h(near)
@@ -710,47 +744,53 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	if g.capital[p] != 0: _capital_mark(base + Vector2((-bw * 0.5 - 8.0) * sc, -bh * 0.5 * sc), al, own)
 	_floater(p, pos, st, o, me, nfont)
 
-## Atlas map token: ink-800 pill, 6 px stripe in the owner's colour on the left, 16 px flag, number 14/600; ring = own accent / hostile bad / allied info
+## a stadium (pill) polygon filling r: semicircular caps, 14 segments each
+func _pill(r: Rect2, col: Color) -> void:
+	var rad := r.size.y * 0.5
+	var pts := PackedVector2Array()
+	var cl := Vector2(r.position.x + rad, r.position.y + rad)
+	var cr := Vector2(r.end.x - rad, r.position.y + rad)
+	for i in 15: pts.append(cr + Vector2.from_angle(-PI * 0.5 + PI * float(i) / 14.0) * rad)
+	for i in 15: pts.append(cl + Vector2.from_angle(PI * 0.5 + PI * float(i) / 14.0) * rad)
+	draw_colored_polygon(pts, col)
+
+## Bezel map token (the demo's renderDyn army marker): a 28 tall pill #14110d with a 1.6 ring (own brass #C9A24B, hostile #D2603F, else #6b5a30), the flag cropped
+## to a 9 radius circle at the left, the number in Alegreya 700 15. Width = digits x 9 + 44.
 func _draw_token(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, o: int, own: bool, war: bool, ally: bool, hot: bool, txt: String, fsz: int, bw: float, bh: float, sc: float, near: bool) -> void:
-	var ring := TBTokens.INK_500
-	if own: ring = TBTokens.accent
-	elif war: ring = TBTokens.BAD
-	elif ally: ring = TBTokens.INFO
-	if hot: ring = TBTokens.PAPER_100
-	var r := Rect2(pos + Vector2(-bw * 0.5, -bh * 0.5) * sc, Vector2(bw, bh) * sc)
-	if hot: draw_style_box(TBHudParts.sbox(_a(TBTokens.INK_900, 0.4 * al), Color.TRANSPARENT, bh * 0.5 * sc + 3.0, 0), r.grow(3.0))
-	draw_style_box(TBHudParts.sbox(_a(TBTokens.INK_800, 0.97 * al), _a(ring, al), bh * 0.5 * sc, 2 if (own or war or ally or hot) else 1), r)
-	if o != 0:                                                       # stripe: the circular segment of the left cap, 6 px wide
-		var rad := bh * 0.5 * sc
-		var sw := 6.0 * sc
-		var cth := acos(clampf((sw - rad) / rad, -1.0, 1.0))
-		var poly := PackedVector2Array()
-		var steps := 10
-		for i in steps + 1:
-			var th := cth + (TAU - 2.0 * cth) * float(i) / steps
-			poly.append(Vector2(r.position.x + rad + rad * cos(th), r.position.y + rad + rad * sin(th)))
-		draw_colored_polygon(poly, _a(_nat_col(o), al))
-	var fx := r.position.x + (6.0 + 6.0) * sc
+	var ring := Color("6b5a30")
+	if own: ring = Color("C9A24B")
+	elif war: ring = Color("D2603F")
+	elif ally: ring = Color("7FA8E8")
+	if hot: ring = Color("EFE6CF")
+	var w := bw * sc; var h := bh * sc
+	var half := Vector2(w, h) * 0.5
+	var outer := Rect2(pos - half - Vector2(0.8, 0.8) * sc, Vector2(w + 1.6 * sc, h + 1.6 * sc))
+	var inner := Rect2(pos - half + Vector2(0.8, 0.8) * sc, Vector2(w - 1.6 * sc, h - 1.6 * sc))
+	if hot: _pill(outer.grow(3.0), _a(Color(0.02, 0.03, 0.05), 0.4 * al))
+	_pill(outer, _a(ring, al))
+	_pill(inner, _a(Color("14110d"), al))
+	var fx := pos.x + (-bw * 0.5 + 6.0) * sc
 	if o != 0:
-		var fl := Rect2(fx, pos.y - 8.0 * sc, 22.0 * sc, 16.0 * sc)
-		draw_texture_rect(TBFlags.texture(g.nat_code[o], g.color[o]), fl, false, _a(Color.WHITE, al))
-		draw_rect(fl, _a(TBTokens.INK_900, 0.6 * al), false, 1.0)
-		fx = fl.end.x + 6.0 * sc
-	else:
-		fx = r.position.x + 12.0 * sc
-	var asc := nfont.get_ascent(fsz); var hgt := nfont.get_height(fsz)
-	draw_string(nfont, Vector2(fx, pos.y + (asc - hgt * 0.5) * 1.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(TBTokens.PAPER_100, al))
-	st["tx"] = r.end.x - 4.0; st["ty"] = r.position.y - 10.0
+		var c := Vector2(pos.x + (-bw * 0.5 + 15.0) * sc, pos.y)
+		var r := 9.0 * sc
+		var pts := PackedVector2Array(); var uvs := PackedVector2Array()
+		for i in 28:
+			var a := TAU * float(i) / 28.0
+			pts.append(c + Vector2(cos(a), sin(a)) * r); uvs.append(Vector2(0.5 + cos(a) * 0.5, 0.5 + sin(a) * 0.5))
+		draw_colored_polygon(pts, _a(Color.WHITE, al), uvs, TBFlags.texture(g.nat_code[o], g.color[o]))
+		fx = pos.x + (-bw * 0.5 + 30.0) * sc
+	draw_string(nfont, Vector2(fx, pos.y + 5.5 * sc), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(Color("EFE6CF"), al))
+	st["tx"] = pos.x + bw * 0.5 * sc - 4.0; st["ty"] = pos.y - h * 0.5 - 10.0
 	if near and g.gen[p] != 0:                                       # general: 1-5 stars above the pill
 		_ensure_star()
 		var n := mini(5, TBGenerals.skill(g, p))
 		for i in n:
 			var sx := (i - (n - 1) * 0.5) * 9.0
-			draw_set_transform(Vector2(pos.x + sx * sc, r.position.y - 7.0), 0.0, Vector2(sc, sc))
+			draw_set_transform(Vector2(pos.x + sx * sc, pos.y - h * 0.5 - 7.0), 0.0, Vector2(sc, sc))
 			draw_colored_polygon(_star_poly, _a(TBTokens.WARN, al))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	if near and g.capital[p] != 0: _capital_mark(Vector2(r.position.x - 8.0 * sc, r.position.y + 2.0), al, own)
-	_pip(Vector2(r.end.x + 1.0, r.position.y), war, ally, al, 1.0 if near else 0.8)
+	if near and g.capital[p] != 0: _capital_mark(Vector2(pos.x - w * 0.5 - 8.0 * sc, pos.y - h * 0.5 + 2.0), al, own)
+	_pip(Vector2(pos.x + w * 0.5 + 1.0, pos.y - h * 0.5), war, ally, al, 1.0 if near else 0.8)
 	_floater(p, pos, st, o, 0 if g == null else g.human_id, nfont)
 
 ## "+n" tab: stacked armies collapse into one gonfalon (12 px Mono 700, drawn above every marker)
@@ -827,7 +867,7 @@ func _order_path(from: int, to: int) -> int:
 	var key := "%d>%d|%.4f|%.4f|%.3f|%d|%d,%d|%d,%d" % [from, to, map.lon0, map.lat0, map.zoom, map.mode, int(_push_v.x * 4.0), int(_push_v.y * 4.0), int(_push_sv.x * 4.0), int(_push_sv.y * 4.0)]
 	if key == _path_key: return _path.size()
 	_path_key = key
-	var n := 14
+	var n := 20
 	_path.resize(n)
 	var ok := true
 	if map.mode == 0:
@@ -841,7 +881,11 @@ func _order_path(from: int, to: int) -> int:
 			_path[i] = Vector2(pr.x, pr.y)
 	else:
 		var pa := map.project(g.world.lon[from], g.world.lat[from]); var pb := map.project(g.world.lon[to], g.world.lat[to])
-		for i in n: _path[i] = Vector2(pa.x, pa.y).lerp(Vector2(pb.x, pb.y), float(i) / float(n - 1))
+		var qa := Vector2(pa.x, pa.y); var qb := Vector2(pb.x, pb.y)
+		var qc := (qa + qb) * 0.5 + (Vector2(0.0, -40.0) if map.atlas_look() else Vector2.ZERO)      # the demo's order arrow bows 40 units up (a quadratic)
+		for i in n:
+			var tq := float(i) / float(n - 1)
+			_path[i] = qa * ((1.0 - tq) * (1.0 - tq)) + qc * (2.0 * (1.0 - tq) * tq) + qb * (tq * tq)
 		if absf(pa.x - pb.x) > map.size.x * 0.6: ok = false          # across the seam: skip
 	if ok and _push_p == to:
 		for i in n:
@@ -911,7 +955,9 @@ func _draw_order() -> void:
 	var dir := (tip - base).normalized() if tip.distance_to(base) > 0.5 else d1
 	var k := _clip(_path, n, ta, s_base)
 	last_shaft = s_base - ta
+	_ring_tgt = _path[n - 1]
 	_draw_arrow_cut(k, tip, dir, attack, bool(_order["dashed"]), 1.0, phase)
+	_ring_tgt = Vector2.INF
 	# bounds for the chip placement: the shaft, the head and the source marker
 	var bb := Rect2(tip, Vector2.ZERO).expand(_path[0]).grow(26.0)
 	for i in k: bb = bb.expand(_cut[i])
@@ -936,8 +982,50 @@ func _draw_order() -> void:
 		draw_string(f, r.position + Vector2(5.0, f.get_ascent(fs) + 3.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tk("table"))
 		_order_box = _order_box.merge(r.grow(6.0))
 
+## the demo's order arrow: a #05070a casing 9 wide at .6, a #E5C77A core 4 wide dotted "1 9" with round caps (the dots crawl 28 px/s) and a notched head
+## (M0 0 L-16 -8 L-12 0 L-16 8 Z, gold with a 1.5 ink edge). A committed (not dashed) order draws the core solid.
+func _draw_arrow_bezel(k: int, tip: Vector2, d1: Vector2, attack: bool, dashed: bool, alpha: float) -> void:
+	var casing := Color(0.0196, 0.0275, 0.0392, 0.6 * alpha)
+	var gold := Color(0.898, 0.78, 0.478, alpha)
+	var side := Vector2(-d1.y, d1.x)
+	if k >= 2:
+		_cut.resize(k)
+		draw_polyline(_cut, casing, 9.0, true)
+		draw_circle(_cut[0], 4.5, casing); draw_circle(_cut[k - 1], 4.5, casing)
+		if not dashed:
+			draw_polyline(_cut, gold, 4.0, true)
+			draw_circle(_cut[0], 2.0, gold); draw_circle(_cut[k - 1], 2.0, gold)
+		else:
+			var off := 0.0 if not TBKit.motion_ok() else fmod(Time.get_ticks_msec() / 1000.0 * (40.0 / 1.4), 10.0)
+			var run := -off
+			for i in range(1, k):
+				var a := _cut[i - 1]; var b := _cut[i]
+				var sl := a.distance_to(b)
+				if sl < 0.01: continue
+				var dir := (b - a) / sl
+				var s := fposmod(-run, 10.0)
+				while s < sl:
+					draw_circle(a + dir * s, 2.0, gold)
+					s += 10.0
+				run += sl
+	var hp := PackedVector2Array([tip, tip - d1 * 16.0 + side * 8.0, tip - d1 * 12.0, tip - d1 * 16.0 - side * 8.0])
+	draw_colored_polygon(hp, gold)
+	var hl := hp.duplicate(); hl.append(hp[0])
+	draw_polyline(hl, Color(0.0196, 0.0275, 0.0392, alpha), 1.5, true)
+	if attack:                                                          # the target marked: ring r 20 and a dotted ring r 28 (the demo's attack preview)
+		var c := _ring_tgt if _ring_tgt != Vector2.INF else tip + d1 * 22.0
+		draw_arc(c, 20.0, 0.0, TAU, 40, gold, 2.0, true)
+		var r := 28.0
+		var n := int(TAU * r / 6.0)
+		for i in n:
+			var a2 := TAU * float(i) / float(n)
+			draw_arc(c, r, a2, a2 + 2.0 / r, 2, Color(0.898, 0.78, 0.478, alpha), 0.8, true)
+
 ## arrow body = _cut[0..k) (casing 2 px each side under a 4 px core), then the head at tip pointing along dir
 func _draw_arrow_cut(k: int, tip: Vector2, d1: Vector2, attack: bool, dashed: bool, alpha: float, phase: float) -> void:
+	if map.atlas_look() and not strong():
+		_draw_arrow_bezel(k, tip, d1, attack, dashed, alpha)
+		return
 	var core := _a(tk("neg_bar") if attack else tk("brass_lt"), alpha)
 	var casing := _a(tk("table"), 0.85 * alpha)
 	var side := Vector2(-d1.y, d1.x)
