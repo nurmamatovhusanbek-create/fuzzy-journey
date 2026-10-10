@@ -373,12 +373,11 @@ func _seal_geom(vp: Vector2, m: float, rc: float, ph: bool) -> void:
 	var sw_: float = _seal.width_px()
 	var sh_: float = _seal.height_px()
 	var k: float = (2.0 * rc) / _seal.diameter()
-	_seal.scale = Vector2(k, k)
-	_seal.size = Vector2(sw_, sh_)
+	_seal.u = k; _seal.scale = Vector2.ONE; _seal.pivot_offset = Vector2.ZERO
+	_seal.size = Vector2(sw_ * k, sh_ * k)
 	var cx: float = vp.x - m - rc
 	var cy: float = vp.y - m - rc - (21.0 if ph else 29.0)
-	_seal.pivot_offset = Vector2(sw_ * 0.5, _seal.diameter() * 0.5)
-	_seal.position = Vector2(cx - sw_ * 0.5, cy - _seal.diameter() * 0.5)
+	_seal.position = Vector2(cx - sw_ * k * 0.5, cy - _seal.diameter() * k * 0.5)
 
 ## portrait phones (no demo layout): crest + gauges + gear on the top row, the tab bar below, bottom sheets
 func _layout_portrait(vp: Vector2) -> void:
@@ -408,7 +407,7 @@ func _layout_portrait(vp: Vector2) -> void:
 	_dock_more.position = Vector2(4.0 * cell, vp.y - bh); _dock_more.size = Vector2(cell, bh)
 	_minimap.visible = false; _minimap_ok = false; _mode.visible = false; _lens_btn.visible = false; _mm_btn.visible = false
 	_zin.visible = false; _zout.visible = false
-	_seal.compact = false; _seal.narrow = true; _seal.scale = Vector2.ONE; _seal.pivot_offset = Vector2.ZERO
+	_seal.compact = false; _seal.narrow = true; _seal.scale = Vector2.ONE; _seal.pivot_offset = Vector2.ZERO; _seal.u = 1.0
 	var sw_: float = _seal.width_px(); var sh_: float = _seal.height_px()
 	_seal.size = Vector2(sw_, sh_)
 	_seal.position = Vector2(vp.x - m - sw_, vp.y - (bh + 12.0) - sh_)

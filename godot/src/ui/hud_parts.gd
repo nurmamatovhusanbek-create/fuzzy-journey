@@ -959,6 +959,7 @@ class Seal extends Hit:
 	var hint_left: float = 0.0              # 0..1 remaining of the 3 s confirm window
 	var compact: bool = false
 	var narrow: bool = false
+	var u: float = 1.0                      # drawing scale: shapes are drawn in the 72 unit design and scaled as vectors, text is drawn at u times its size (crisp)
 	var turn_no: int = 0                    # the number inside the circle
 	var year_phase: float = 0.5             # how far through the year (two turns a year: 0.5, then 1.0); the red arc and the hand
 	var seat_text: String = ""              # hot-seat: "P2" replaces the number
@@ -979,8 +980,9 @@ class Seal extends Hit:
 		queue_redraw()
 	func set_state(s: int) -> void: state = s; _sync()
 	func set_pulse(p: bool) -> void: pulse = p; _pulses = 0; _sync()
-	func _centre() -> Vector2: return Vector2(size.x * 0.5, diameter() * 0.5)
-	func _has_point(p: Vector2) -> bool:
+	func _centre() -> Vector2: return Vector2(size.x / u * 0.5, diameter() * 0.5)   # in the unscaled design space
+	func _has_point(pp: Vector2) -> bool:
+		var p: Vector2 = pp / u
 		var c: Vector2 = _centre()
 		var rr: float = maxf(diameter() * 0.5 + 4.0, TBHudParts.touch() * 0.5)
 		return (p - c).length() <= rr or Rect2(Vector2(c.x - width_px() * 0.5, diameter()), Vector2(width_px(), 22.0)).has_point(p)
@@ -990,6 +992,7 @@ class Seal extends Hit:
 		queue_redraw()
 		if state != S.BUSY and state != S.HINT and attention <= 0 and not (pulse and _pulses < 3): set_process(false)
 	func _draw() -> void:
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
 		var c: Vector2 = _centre()
 		var rad: float = diameter() * 0.5
 		var dead: bool = state == S.BUSY or state == S.WAIT or state == S.OVER
@@ -1021,36 +1024,46 @@ class Seal extends Hit:
 		var hd := Vector2(cos(ha), sin(ha))
 		draw_line(cc + hd * (fr * 0.52), cc + hd * (fr - 3.0), rust, 2.0, true)
 		draw_colored_polygon(PackedVector2Array([cc + Vector2(-4.5, -rad + 3.0), cc + Vector2(4.5, -rad + 3.0), cc + Vector2(0, -rad + 10.0)]), rust)
-		# content: the turn number, chevrons while seats pass
+		# content: the turn number, chevrons while seats pass (text is drawn unscaled at u times its size so it stays sharp)
 		var fb: Font = K.body_b()
-		var z: int = TBHudParts.fs(24.0 if not (compact or narrow) else 20.0)
+		var z: int = TBHudParts.fs((24.0 if not (compact or narrow) else 20.0) * u)
+		var cs: Vector2 = cc * u
 		if state == S.HINT:
 			TBHudParts.chev(self, Vector2(cc.x - 3.0, cc.y), 16.0, on, 2.2); TBHudParts.chev(self, Vector2(cc.x + 6.0, cc.y), 16.0, on, 2.2)
 		elif state == S.SEAT:
 			var tt: String = seat_text if seat_text != "" else "›"
-			draw_string(fb, Vector2(cc.x - TBHudParts.tw(fb, tt, z) * 0.5, TBHudParts.base(fb, z, cc.y)), tt, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			draw_string(fb, Vector2(cs.x - TBHudParts.tw(fb, tt, z) * 0.5, TBHudParts.base(fb, z, cs.y)), tt, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
 		else:
 			var tt2: String = str(turn_no) if turn_no > 0 else ""
 			if tt2 != "":
 				var cf: Font = K.tracked(K.display(), 1)
-				var tz: int = TBHudParts.fs(12.0)
+				var tz: int = TBHudParts.fs(12.0 * u)
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 				if not (compact or narrow):
-					draw_string(cf, Vector2(cc.x - TBHudParts.tw(cf, "TURN", tz) * 0.5, TBHudParts.base(cf, tz, cc.y - fr * 0.42)), "TURN", HORIZONTAL_ALIGNMENT_LEFT, -1, tz, TBHudParts.tk("smoke"))
-				draw_string(fb, Vector2(cc.x - TBHudParts.tw(fb, tt2, z) * 0.5, TBHudParts.base(fb, z, cc.y + (fr * 0.12 if not (compact or narrow) else 0.0))), tt2, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
+					draw_string(cf, Vector2(cs.x - TBHudParts.tw(cf, "TURN", tz) * 0.5, TBHudParts.base(cf, tz, (cc.y - fr * 0.42) * u)), "TURN", HORIZONTAL_ALIGNMENT_LEFT, -1, tz, TBHudParts.tk("smoke"))
+				draw_string(fb, Vector2(cs.x - TBHudParts.tw(fb, tt2, z) * 0.5, TBHudParts.base(fb, z, (cc.y + (fr * 0.12 if not (compact or narrow) else 0.0)) * u)), tt2, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
 			else:
 				TBHudParts.chev(self, Vector2(cc.x - 3.0, cc.y), 18.0, on, 2.4); TBHudParts.chev(self, Vector2(cc.x + 7.0, cc.y), 18.0, on, 2.4)
 		# label under the circle
 		var f: Font = K.tracked(K.display(), 1)
-		var fz: int = TBHudParts.fs(12.0)
+		var fz: int = TBHudParts.fs(12.0 * u)
 		var cap: String = (caption.to_upper() if TBI18n.lang != "ru" else caption) if caption_inside else ""
 		if cap != "":
-			TBHudParts.txt_o(self, f, Vector2((size.x - TBHudParts.tw(f, cap, fz)) * 0.5, diameter() + 16.0), cap, fz, TBHudParts.tk("cream") if state != S.OVER else TBHudParts.tk("ink_off"))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			TBHudParts.txt_o(self, f, Vector2((size.x - TBHudParts.tw(f, cap, fz)) * 0.5, (diameter() + 16.0) * u), cap, fz, TBHudParts.tk("cream") if state != S.OVER else TBHudParts.tk("ink_off"))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
 		if attention > 0 and state == S.IDLE:
 			var bc := Vector2(c.x + rad * 0.72, c.y - rad * 0.72)
 			draw_circle(bc, 10.0, TBHudParts.tk("neg_bar"))
 			var fm: Font = K.mono_b()
 			var s: String = str(mini(attention, 9))
-			draw_string(fm, Vector2(bc.x - TBHudParts.tw(fm, s, 12) * 0.5, TBHudParts.base(fm, 12, bc.y)), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TBHudParts.tk("table"))
+			var bz: int = int(round(12.0 * u))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			draw_string(fm, Vector2(bc.x * u - TBHudParts.tw(fm, s, bz) * 0.5, TBHudParts.base(fm, bz, bc.y * u)), s, HORIZONTAL_ALIGNMENT_LEFT, -1, bz, TBHudParts.tk("table"))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
 		if has_focus():
 			draw_arc(c, rad + 4.0, 0.0, TAU, 48, TBHudParts.tk("cream"), 2.0, true)
 
