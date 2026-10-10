@@ -325,7 +325,14 @@ func _open_nations(select: int = -1, filter: String = "", tab: String = "") -> v
 func _open_nation(n: int) -> void: _open_nations(n)
 
 func _open_council(tab: String = "") -> void:
-	if g != null: TBModals.council(_overlay, g, _goto_province, tab)
+	if g != null: TBModals.council(_overlay, g, _goto_province, tab, _open_screen)
+
+## the council's buttons open the other screens by name
+func _open_screen(k: String) -> void:
+	match k:
+		"nations": _open_nations()
+		"budget": _open_budget()
+		"decrees": _open_decisions()
 
 func _open_budget() -> void:
 	if g != null: TBModals.budget(_overlay, g, func(): hud.refresh())

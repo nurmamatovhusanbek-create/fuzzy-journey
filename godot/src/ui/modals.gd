@@ -276,22 +276,19 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 # Annals (drawer / sheet): filter chips, rows grouped by turn, whole row jumps to the map, "Older" instead of a silent cap
 # =====================================================================================================================================================
 static func chronicle(parent: Control, g: TBGame, on_goto: Callable, feed: Array = []) -> TBPanel.Handle:
-	var h := TBPanel.open(parent, TBPanel.Kind.DRAWER, T.call("dk_chronicle"), "book")
+	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_chronicle"), "annals", {"w": 560, "h": 660, "sub": T.call("annals_sub")})
 	var S := {"cat": "mine", "limit": 40}
-	if not feed.is_empty():                      # text mirror of the toasts and alerts of this session (A11Y-SR-003): readable, selectable, screen-reader friendly
-		h.body.add_child(TBPanel.section(T.call("recent_notices")))
-		for line in feed.slice(maxi(0, feed.size() - 6)):
-			var t: String = line if line is String else String((line as Dictionary).get("text", line))
-			h.body.add_child(TBPanel.para(t, 14, K.TEXT))
-	var chips := TBPanel.flow(6); h.body.add_child(chips)
-	var list := K.vbox(0); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.body.add_child(list)
-	var cbs := {}
+	var mirror := Label.new()                                    # text mirror of the toasts and alerts of this session (A11Y-SR-003): for screen readers, not drawn
+	var lines := PackedStringArray()
+	for line in feed.slice(maxi(0, feed.size() - 6)): lines.append(line if line is String else String((line as Dictionary).get("text", line)))
+	mirror.text = "\n".join(lines); mirror.visible = false; h.body.add_child(mirror)
+	var list_slot := K.vbox(0); list_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var draw := func() -> void:
-		for c in list.get_children(): c.queue_free()
+		for c in list_slot.get_children(): c.queue_free()
+		var holder := TBBzScreens.TimelineHolder.new()
+		var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; holder.add_child(col)
 		var shown := 0
 		var total := 0
-		var last_turn := -1
 		for i in range(g.log.size() - 1, -1, -1):
 			var e: Dictionary = g.log[i]
 			var cat := TBChron.category(e)
@@ -301,110 +298,92 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable, feed: Array
 			if tx == "": continue
 			total += 1
 			if shown >= int(S["limit"]): continue
-			var tn: int = int(e["turn"])
-			if tn != last_turn:
-				last_turn = tn
-				var sec := TBPanel.section("%s %d · %s" % [T.call("turn"), tn, TBChron.date(g, tn)])
-				sec.add_theme_constant_override("separation", 8)
-				var pad := MarginContainer.new(); pad.add_theme_constant_override("margin_top", 8); pad.add_child(sec); list.add_child(pad)
-			var bad := TBChron.is_bad(e, g.human_id)
 			var jump := Callable()
 			if e.has("p") and int(e["p"]) >= 0:
 				var pp: int = e["p"]
 				jump = func(): h.close(); on_goto.call(pp)
-			var egl: String = TBChron.glyph(e)
-			if egl == "" and bad: egl = "warning"
-			list.add_child(TBPanel.entry(tx, egl, TBTokens.c("neg") if bad else TBTokens.c("ink_0"), jump, TBTokens.c("neg") if bad else TBTokens.c("ink_1"), "pin" if jump.is_valid() else ""))
+			var ik: Array = TBBzScreens.chron_kind(String(e["kind"]))
+			col.add_child(TBBzScreens.TimelineItem.new(String(ik[0]), TBBzScreens.date_str(g, int(e["turn"])), T.call(String(ik[1])), tx, jump))
 			shown += 1
 		if total == 0:
-			list.add_child(TBPanel.empty_state("book", T.call("chron_empty"), T.call("chron_empty_why"), T.call("chron_all") if S["cat"] == "mine" else "", func(): S["cat"] = "all"; for k in cbs: (cbs[k] as TBPanel.ChipBtn).set_on(k == "all"); (S["draw"] as Callable).call()))
-		elif total > shown:
-			list.add_child(TBPanel.para(T.call("showing_n", {"a": shown, "b": total}), 13, K.DIM))
-			var older := K.button(T.call("older"), func(): S["limit"] = int(S["limit"]) + 60; (S["draw"] as Callable).call())
-			list.add_child(older)
+			list_slot.add_child(TBPanel.empty_state("annals", T.call("chron_empty"), T.call("chron_empty_why"), T.call("chron_all") if S["cat"] == "mine" else "", func(): S["cat"] = "events"; (S["draw"] as Callable).call()))
+			return
+		list_slot.add_child(holder)
+		if total > shown:
+			var older := K.button(T.call("older"), func(): S["limit"] = int(S["limit"]) + 60; (S["draw"] as Callable).call(), false, true)
+			older.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			list_slot.add_child(older)
 	S["draw"] = draw
-	for c in TBChron.CATS:
-		var cid: String = c
-		var cb := TBPanel.chip_button(T.call("chron_" + cid), cid == String(S["cat"]), func():
-			S["cat"] = cid; S["limit"] = 40
-			for k in cbs: (cbs[k] as TBPanel.ChipBtn).set_on(k == cid)
-			draw.call())
-		chips.add_child(cb); cbs[cid] = cb
+	var tabs := K.tabs([["mine", T.call("an_t_all")], ["war", T.call("an_t_war")], ["diplo", T.call("an_t_dip")], ["events", T.call("an_t_ev")]], "mine", func(id: String):
+		S["cat"] = id; S["limit"] = 40; draw.call())
+	h.body.add_child(tabs)
+	var lm := MarginContainer.new(); lm.add_theme_constant_override("margin_top", 3); lm.add_child(list_slot); h.body.add_child(lm)
 	draw.call()
 	return h
 
 # =====================================================================================================================================================
-# Council = Advice + Goals (drawer / sheet, two tabs)
+# Council (the ministers' advice) and Goals (what the realm strives for): two screens, as in the demo
 # =====================================================================================================================================================
-static var _council_tab := "advice"
-static var _goals_all := false
+## alert id -> [icon, minister key, button key, screen to open or "map"]
+const MINISTERS := {
+	"threat": ["army", "min_army", "min_show_map", "map"], "occupied": ["army", "min_army", "min_show_map", "map"], "capital_lost": ["army", "min_army", "min_show_map", "map"],
+	"war_winning": ["army", "min_army", "min_open_nations", "nations"], "war_declared": ["army", "min_army", "min_open_nations", "nations"], "idle_men": ["army", "min_army", "min_show_map", "map"],
+	"no_general": ["army", "min_army", "", ""], "attrition": ["army", "min_army", "min_show_map", "map"], "idle_mp": ["army", "min_army", "", ""], "ult_chance": ["army", "min_army", "min_open_nations", "nations"],
+	"coalition": ["pact", "min_foreign", "min_open_nations", "nations"], "infamy": ["pact", "min_foreign", "min_open_nations", "nations"], "peacetime": ["pact", "min_foreign", "min_open_nations", "nations"], "no_trade": ["pact", "min_foreign", "min_open_nations", "nations"],
+	"bankrupt": ["treasury", "min_treasury", "min_open_budget", "budget"], "low_treasury": ["treasury", "min_treasury", "min_open_budget", "budget"], "idle_gold": ["treasury", "min_treasury", "min_open_budget", "budget"], "no_research": ["treasury", "min_treasury", "min_open_budget", "budget"],
+	"unrest": ["spy", "min_police", "min_open_decrees", "decrees"]}
 
-static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String = "") -> TBPanel.Handle:
-	var h := TBPanel.open(parent, TBPanel.Kind.DRAWER, T.call("council"), "lamp")
-	if tab != "": _council_tab = tab
-	var render := func() -> void:
-		for c in h.body.get_children(): c.queue_free()
-		if _council_tab == "goals": _goals_tab(h, g)
-		else: _advice_tab(h, g, on_goto)
-	var al := TBAdvisor.alerts(g, g.human_id)
-	var crisis := 0
-	for a in al:
-		if int(a["sev"]) == 2: crisis += 1
-	h.set_tabs(K.tabs([["advice", T.call("council_advice") + ((" (%d)" % al.size()) if not al.is_empty() else "")], ["goals", T.call("dk_goals")]], _council_tab, func(id: String): _council_tab = id; render.call()))
-	render.call()
-	return h
-
-static func _advice_tab(h: TBPanel.Handle, g: TBGame, on_goto: Callable) -> void:
+static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String = "", on_screen: Callable = Callable()) -> TBPanel.Handle:
+	if tab == "goals": return goals(parent, g)
+	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("council"), "council", {"w": 600, "h": 560, "sub": T.call("council_sub")})
 	var al := TBAdvisor.alerts(g, g.human_id)
 	if al.is_empty():
-		h.body.add_child(TBPanel.empty_state("lamp", T.call("al_quiet"), T.call("al_quiet_why"))); return
+		h.body.add_child(TBPanel.empty_state("council", T.call("al_quiet"), T.call("al_quiet_why"))); return h
 	al.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["sev"]) > int(b["sev"]))
-	var last_sev := -1
 	for a in al:
-		var sev: int = a["sev"]
-		if sev != last_sev:
-			last_sev = sev
-			h.body.add_child(TBPanel.section(T.call("sev_" + str(sev))))
-		var glyph_id: String = "warning" if sev >= 1 else "diamond"
-		var gcol: Color = K.RED if sev == 2 else (TBTokens.c("warn") if sev == 1 else K.GOLD)
-		var tx: String = T.call("al_" + String(a["id"]), {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)})
-		var jump := Callable()
-		if int(a["p"]) >= 0:
+		var id: String = String(a["id"])
+		var m: Array = MINISTERS.get(id, ["info", "min_police", "", ""])
+		var quote: String = T.call("al_" + id, {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0)})
+		var btn := ""
+		var cb := Callable()
+		if String(m[3]) == "map" and int(a["p"]) >= 0:
 			var pp: int = a["p"]
-			jump = func(): h.close(); on_goto.call(pp)
-		var e := TBPanel.entry(tx, glyph_id, K.TEXT, jump, gcol, "pin" if jump.is_valid() else "")
-		h.body.add_child(e)
+			btn = T.call(String(m[2])); cb = func(): h.close(); on_goto.call(pp)
+		elif String(m[3]) != "map" and String(m[3]) != "" and on_screen.is_valid():
+			var sc: String = String(m[3])
+			btn = T.call(String(m[2])); cb = func(): h.close(); on_screen.call(sc)
+		h.body.add_child(TBBzScreens.minister_row(String(m[0]), T.call(String(m[1])), T.call(String(m[1]) + "_r"), quote, btn, cb))
+	return h
 
-static func _goals_tab(h: TBPanel.Handle, g: TBGame) -> void:
-	var prog := TBTurn.victory_progress(g, g.human_id)
+static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
+	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_goals"), "goals", {"w": 660, "h": 400, "sub": T.call("goals_sub")})
+	var me := g.human_id
+	var prog := TBTurn.victory_progress(g, me)
 	var ids: Array = TBTurn.VICTORY_IDS.duplicate()
 	ids.sort_custom(func(a: String, b: String) -> bool: return float(prog[a]) > float(prog[b]))
-	var shown: Array = ids if _goals_all else ids.slice(0, 3)
-	for id in shown:
-		var pct: float = prog[id]
-		var col: Color = TBTokens.c("pos") if pct >= 0.9 else (TBTokens.c("brass_ink") if pct >= 0.4 else K.STEEL)
-		var hb := K.hbox(6)
-		var gtl := K.title(T.call("vc_" + id), 16, K.GOLD2 if pct >= 0.9 else K.TEXT)
-		gtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; gtl.custom_minimum_size.x = 40; gtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; gtl.size_flags_stretch_ratio = 4.0
-		hb.add_child(gtl); hb.add_child(K.Leader.new()); hb.add_child(K.num("%d%%" % int(pct * 100.0), 15, col))
-		h.body.add_child(hb)
-		h.body.add_child(TBPanel.para(T.call("vc_" + id + "_d", {"s": int(roundf(g.econ_goal * 100.0))}), 13, K.DIM))
-		h.body.add_child(K.Meter.new(pct * 100.0, col))
-		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); h.body.add_child(gap)
-	if ids.size() > 3:
-		var tg := K.button(T.call("goals_less") if _goals_all else T.call("goals_all"), func(): _goals_all = not _goals_all; for c in h.body.get_children(): c.queue_free(); _goals_tab(h, g))
-		h.body.add_child(tg)
-	var nearest: Array = []
+	var grid := GridContainer.new(); grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 12); grid.add_theme_constant_override("v_separation", 12); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.body.add_child(grid)
+	var own: int = g.own_count(me)
+	var alive_others := 0; var allies := 0
+	for o in range(1, g.N1):
+		if o == me or g.alive[o] == 0 or o == g.rebel: continue
+		alive_others += 1
+		if g.get_rel(me, o) == TBData.REL_ALLY: allies += 1
+	for id in ids:
+		var a: Variant; var b: Variant
+		match id:
+			"domination": a = own; b = int(ceil(g.P * TBTurn.DOMINATION_SHARE))
+			"economic": a = int(float(g.income(me)["gold"]) / maxf(1.0, g.world_y) * 100.0); b = int(roundf(g.econ_goal * 100.0))
+			"technological": a = "%.1f" % g.tech_level[me]; b = "%.1f" % (g.tech_second if g.tech_level[me] >= g.tech_top else g.tech_top)
+			"diplomatic": a = allies; b = int(maxf(TBTurn.DIPLOMATIC_ALLIES, ceilf(alive_others * TBTurn.DIPLOMATIC_SHARE)))
+			_: a = own; b = g.P - g.own_count(0)
+		grid.add_child(TBBzScreens.GoalCard.new(T.call("vc_" + String(id)), T.call("vcs_" + String(id), {"a": a, "b": b}), float(prog[id]), T.call("vc_%s_d" % String(id), {"s": int(roundf(g.econ_goal * 100.0))})))
 	for i in TBRealms.count():
-		if g.realm_done.size() != g.N1 * TBRealms.count() or g.realm_done[g.human_id * TBRealms.count() + i] != 0: continue
-		var sh := TBRealms.share(g, g.human_id, i)
-		if sh >= 0.25: nearest.append([sh, i])
-	nearest.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
-	if not nearest.is_empty():
-		h.body.add_child(TBPanel.section(T.call("realms_title")))
-		for k in mini(3, nearest.size()):
-			var hb2 := K.hbox(6); hb2.add_child(K.label(T.call("realm_" + String(TBRealms.LIST[nearest[k][1]][0])), 14)); hb2.add_child(K.Leader.new()); hb2.add_child(K.num("%d%%" % int(nearest[k][0] * 100.0), 14, K.GOLD2))
-			h.body.add_child(hb2); h.body.add_child(K.Meter.new(nearest[k][0] * 100.0, K.GOLD2))
+		if g.realm_done.size() != g.N1 * TBRealms.count() or g.realm_done[me * TBRealms.count() + i] != 0: continue
+		var sh := TBRealms.share(g, me, i)
+		if sh >= 0.25: grid.add_child(TBBzScreens.GoalCard.new(T.call("realm_" + String(TBRealms.LIST[i][0])), T.call("realms_title"), sh))
+	return h
 
 # =====================================================================================================================================================
 # Briefing (start of a campaign): who you are, who borders you, what to do first. Wide dialog: facts left, neighbours and advice right.

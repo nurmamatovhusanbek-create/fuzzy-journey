@@ -26,8 +26,21 @@ func _init() -> void:
 			"nations": main._open_nations()
 			"budget": main._open_budget()
 			"decrees": main._open_decisions()
-			"council": main._open_council()
-			"annals": main._open_annals()
+			"council":
+				main.g.gold[fr] = 5.0
+				for q in main.g.owned(fr).slice(0, 4):
+					if main.g.capital[q] == 0: main.g.stab[q] = 10
+				main._open_council()
+			"annals":
+				var au2: int = main.g.nat_code.find("austrian_empire")
+				var sp2: int = main.g.nat_code.find("spain")
+				var uk2: int = main.g.nat_code.find("united_kingdom")
+				main.g.log.append({"turn": 0, "kind": "war", "a": au2, "b": fr})
+				main.g.log.append({"turn": 0, "kind": "ally", "a": sp2, "b": fr})
+				main.g.log.append({"turn": 0, "kind": "trade", "a": fr, "b": uk2})
+				main.g.log.append({"turn": 0, "kind": "bankrupt", "a": fr})
+				main.g.log.append({"turn": 0, "kind": "era", "a": fr, "k": 1})
+				main._open_annals()
 			"goals": main._open_council("goals")
 			"menu": main._open_menu_hub("")
 			"event":
