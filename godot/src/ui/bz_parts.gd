@@ -364,6 +364,7 @@ class BzSlider extends HSlider:
 		var track_bg: Color = TBTokens.BZ_TRACK_BG if not hc else TBTokens.c("paper_1")
 		var line: Color = TBTokens.BZ_TRACK_LINE if not hc else TBTokens.c("ink_0")
 		TBBz.poly(ci, tr, _c(track_bg))
+		RenderingServer.canvas_item_add_polyline(ci, TBBzParts.rrect(0.5, 12.5, w - 0.5, 21.5, 4.5, 8), PackedColorArray([_c(line)]), TBBz.aaw(1.0), true)
 		var fw: float = w * ratio
 		if fw > 0.5:
 			for pg in Geometry2D.intersect_polygons(tr, PackedVector2Array([Vector2(0, 12), Vector2(fw, 12), Vector2(fw, 22), Vector2(0, 22)])):
@@ -379,8 +380,6 @@ class BzSlider extends HSlider:
 				for bp in box:
 					for pg in Geometry2D.intersect_polygons(s, bp): TBBz.poly(ci, pg, _c(TBTokens.BZ_ZONE))
 				k += per
-		var ring := tr.duplicate(); ring.append(tr[0])
-		RenderingServer.canvas_item_add_polyline(ci, TBBzParts.rrect(0.5, 12.5, w - 0.5, 21.5, 4.5, 8), PackedColorArray([_c(line)]), 1.0, true)
 		# ticks: 1 unit every 5 % (lo, 4 tall), 1 unit every 25 % (brass, 8 tall) under them, one at the right edge
 		var lo: Color = _c(TBTokens.c("rule")); var br: Color = _c(TBTokens.c("brass"))
 		if hc: lo = TBTokens.c("ink_1"); br = TBTokens.c("ink_0")
@@ -465,6 +464,8 @@ class Stp extends Button:
 class SRow extends MarginContainer:
 	signal changed(v: float)
 	var slider: BzSlider
+	var minus: Stp
+	var plus: Stp
 	var eff: TBBz.TLabel
 	var val: TBBz.TLabel
 	var _fmt := Callable()
@@ -492,8 +493,8 @@ class SRow extends MarginContainer:
 		top.add_child(val)
 		inner.add_child(top)
 		var row := TBKit.hbox(8)
-		var minus := Stp.new("−", func(): _nudge(-step_v))
-		var plus := Stp.new("+", func(): _nudge(step_v))
+		minus = Stp.new("−", func(): _nudge(-step_v))
+		plus = Stp.new("+", func(): _nudge(step_v))
 		TBKit.a11y(minus, TBI18n.T("step_down", {"s": caption}), "button"); TBKit.a11y(plus, TBI18n.T("step_up", {"s": caption}), "button")
 		slider = BzSlider.new(); slider.min_value = min_v; slider.max_value = max_v; slider.step = step_v; slider.value = value; slider.zone_from = zone_from
 		TBKit.a11y(slider, caption, "slider")
@@ -623,7 +624,7 @@ class Para extends Control:
 		var w: float = size.x if size.x > 1.0 else (minf(natural_w(), shrink_to) if shrink_to > 0.0 else maxf(natural_w(), 1.0))
 		if shrink_to > 0.0: w = minf(natural_w(), shrink_to)
 		_layout(maxf(w, 20.0))
-		return Vector2(w if shrink_to > 0.0 else 0.0, ceilf(_lhu() * maxf(_lines.size(), 1)))
+		return Vector2(w if shrink_to > 0.0 else 0.0, _lhu() * maxf(_lines.size(), 1))
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_RESIZED:
 			if not is_equal_approx(size.x, _lay_w): _lay_w = -1.0; update_minimum_size()

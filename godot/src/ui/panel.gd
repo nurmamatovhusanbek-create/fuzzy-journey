@@ -901,14 +901,14 @@ class Seg extends PanelContainer:
 	var _btns := {}
 	func setup(items: Array, cur: String) -> Seg:
 		current = cur
-		add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1))
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 1); add_child(row)
+		add_theme_stylebox_override("panel", TBKit._empty if TBFrame.bezel else TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1))
+		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 6 if TBFrame.bezel else 1); add_child(row)
 		var n := items.size()
 		for i in n:
 			var id: String = items[i][0]
 			var b := SegCell.new(); b.text = String(items[i][1]); b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.custom_minimum_size = Vector2(0, TBKit.touch() - 8)
-			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.custom_minimum_size = Vector2(0, (TBKit.touch() if TBKit.touch_large else 28) if TBFrame.bezel else TBKit.touch() - 8)
+			if not TBFrame.bezel: b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			b.set_meta("mask", (TBFrame.TL | TBFrame.BL if i == 0 else 0) | (TBFrame.TR | TBFrame.BR if i == n - 1 else 0))
 			b.pressed.connect(func(): select(id, true))
 			row.add_child(b); _btns[id] = b
@@ -921,6 +921,8 @@ class Seg extends PanelContainer:
 		for k in _btns:
 			var b: SegCell = _btns[k]
 			var on: bool = k == current
+			if TBFrame.bezel:
+				TBBz.style_cell(b, on); b.on = on; continue
 			var m: int = b.get_meta("mask")
 			var fills: Array = ["paper_2", "paper_2", "paper_2"] if on else ["paper_0", "paper_hover", "paper_2"]
 			b.add_theme_stylebox_override("normal", TBKit._pl(fills[0], "", 4, 0, 10.0, 6, false, 1.0, m))

@@ -38,7 +38,7 @@ static func drawer(r: Control) -> void:
 	g.add_child(K.srow("tax", "Tax", 0, 100, 5, 50, Callable(), Callable(), func(v): return "Tolerable" if v <= 50 else "People grow restless", 50))
 	var s2 := K.srow("happy", "Public goods", 0, 100, 5, 20, Callable(), Callable(), func(v): return "+%d happiness / turn" % roundi(v * 0.3))
 	g.add_child(s2)
-	s2.slider._hot = true
+	s2.slider._hot = true; s2.minus.preview_state = "hover"
 	g.add_child(K.srow("research", "Research", 0, 100, 5, 15, Callable(), Callable(), func(v): return "%s research points / turn" % str(snappedf(v * 0.44, 0.1))))
 	hd.body.add_child(g)
 	hd.actions(K.button("Revert"), K.button("Done", Callable(), true))
@@ -88,7 +88,9 @@ static func build(r: Control) -> void:
 	var tb := MarginContainer.new(); tb.add_theme_constant_override("margin_top", 6); tb.add_child(K.tbl([["Taxes", "+640"], ["Trade", "+180"], ["Net", "+758", true]]))
 	place(r, tb, 960, 462, 300)
 	# tooltip, notices
-	place(r, K.tip("Treasury", "Gold in the treasury. Next turn [b][color=#69B3A2]+731[/color][/b].", "B", true), 640, 573)
+	var tp := K.tip("Treasury", "Gold in the treasury. Next turn [b][color=#69B3A2]+731[/color][/b].", "B", true)
+	place(r, tp, 640, 573)
+	r.set_meta("tip", tp)
 	var nv := K.vbox(14)
 	var ns: Array = []
 	for it in [["bad", "warn", "Austria masses troops on your border"], ["dip", "envoys", "Spain proposes a pact"], ["good", "check", "Turn 3 ended: +629 gold"], ["info", "info", "Spanish envoys arrive in Paris."]]:
@@ -130,6 +132,9 @@ func _init() -> void:
 	if ua.size() > 0: out = ua[0]
 	TBTokens.legacy = false; K.serif = true; TBFrame.rounded = false; TBFrame.bezel = true
 	TBI18n.load_lang("en")
+	if "--hc" in ua: TBTokens.mode = TBTokens.Mode.HIGH_CONTRAST
+	if "--hcd" in ua: TBTokens.mode = TBTokens.Mode.HC_DARK
+	if "--scale" in ua: K.text_scale = float(ua[ua.find("--scale") + 1])
 	await process_frame
 	var vp := SubViewport.new(); vp.size = Vector2i(W, H); vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(vp)
@@ -139,7 +144,9 @@ func _init() -> void:
 	build(r)
 	for i in 10: await process_frame
 	vp.get_texture().get_image().save_png(out)
-	if "--dump" in ua: _dump(r, "")
+	if "--dump" in ua:
+		_dump(r, "")
+		_dump_tree(r.get_meta("tip"), "")
 	print("KIT PARITY written to ", out)
 	quit()
 
@@ -154,3 +161,8 @@ func _dump(n: Node, ind: String) -> void:
 			print("DUMP %s\t%s\t%.2f\t%.2f\t%.2f\t%.2f" % [c.get_class(), String(c.get("text")).substr(0, 18), cc.global_position.x, cc.global_position.y, cc.size.x, cc.size.y])
 			if c is Label and String(c.get("text")) == "Declare war?": print("DBG vis ", (c as Label).visible_characters, " native ", c.get("_native"), " fs ", (c as Label).get_theme_font_size("font_size"), " col ", (c as Label).get_theme_color("font_color"), " visible ", cc.is_visible_in_tree(), " mod ", cc.modulate)
 		_dump(c, ind + " ")
+
+func _dump_tree(n: Node, ind: String) -> void:
+	if n is TBBz.TLabel: print("TL px ", n.px, " fsz ", n.fsz(), " lh ", n.lh, " line_h ", n.line_h(), " asc ", TBBz.ascent(n.face, n.fsz()), " desc ", TBBz.descent(n.face, n.fsz()), " min ", n.custom_minimum_size)
+	if n is Control: print("TREE ", ind, n.get_class(), " ", (n as Control).global_position, " ", (n as Control).size)
+	for c in n.get_children(): _dump_tree(c, ind + "  ")

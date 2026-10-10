@@ -183,8 +183,18 @@ static func tw(base: Font, s: String, size: float, spacing_px: float = 0.0) -> f
 		if float(g["advance"]) > 0.0: n += rep
 	return w / K4 + n * spacing_px
 
-static func ascent(base: Font, size: float) -> float: return base.get_ascent(1000) * size / 1000.0
-static func descent(base: Font, size: float) -> float: return base.get_descent(1000) * size / 1000.0
+static var _met := {}
+## ascent / descent per 1000 of the font's OWN face (Font.get_ascent() takes the maximum over the fallbacks, which would make Cinzel as tall as Alegreya SC)
+static func _metrics(base: Font) -> Vector2:
+	var id: int = base.get_instance_id()
+	if _met.has(id): return _met[id]
+	var rids: Array[RID] = base.get_rids()
+	var ts := TextServerManager.get_primary_interface()
+	var v := Vector2(ts.font_get_ascent(rids[0], 1000), ts.font_get_descent(rids[0], 1000)) if not rids.is_empty() else Vector2(base.get_ascent(1000), base.get_descent(1000))
+	_met[id] = v
+	return v
+static func ascent(base: Font, size: float) -> float: return _metrics(base).x * size / 1000.0
+static func descent(base: Font, size: float) -> float: return _metrics(base).y * size / 1000.0
 
 ## text with its baseline-left corner at p (units, in the item's own space)
 static func text(ci: RID, base: Font, p: Vector2, s: String, size: float, col: Color, spacing_px: float = 0.0) -> void:
@@ -571,3 +581,45 @@ static func draw_notch_focus_at(ci: RID, r: Rect2, k: float = 6.0) -> void:
 	shift(ci, r.position)
 	draw_notch_focus(ci, r.size.x, r.size.y, k)
 	unshift(ci)
+
+# ---- engraved well (cards) ---------------------------------------------------------------------------------------------------------
+## `background:#100d0a; box-shadow:inset 0 0 0 1px <line>`: the square card of the decrees / goals / event screens; high contrast: paper plate with a 2 unit rule
+class Well extends StyleBox:
+	var line := Color.TRANSPARENT
+	var fill := Color.TRANSPARENT
+	func _init(line_col: Color, pad_x: float = 12.0, pad_y: float = 10.0, fill_col: Color = Color.TRANSPARENT) -> void:
+		line = line_col; fill = fill_col if fill_col.a > 0.0 else TBTokens.BZ_WELL
+		content_margin_left = pad_x; content_margin_right = pad_x; content_margin_top = pad_y; content_margin_bottom = pad_y
+	func _draw(ci: RID, rect: Rect2) -> void:
+		var w: float = roundf(rect.size.x)
+		var h: float = roundf(rect.size.y)
+		TBBz.shift(ci, rect.position.round())
+		var hc: bool = TBTokens.is_hc()
+		var bw: float = 2.0 if hc else 1.0
+		TBBz.poly(ci, PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, h), Vector2(0, h)]), TBTokens.c("paper_1") if hc else line)
+		TBBz.poly(ci, PackedVector2Array([Vector2(bw, bw), Vector2(w - bw, bw), Vector2(w - bw, h - bw), Vector2(bw, h - bw)]), TBTokens.c("paper_1") if hc else fill)
+		if hc: RenderingServer.canvas_item_add_polyline(ci, PackedVector2Array([Vector2(1, 1), Vector2(w - 1, 1), Vector2(w - 1, h - 1), Vector2(1, h - 1), Vector2(1, 1)]), PackedColorArray([line]), 2.0, false)
+		TBBz.unshift(ci)
+
+static func well_box(line_col: Color, pad_x: float = 12.0, pad_y: float = 10.0) -> StyleBox:
+	return Well.new(line_col, pad_x, pad_y)
+
+## a segmented-control cell as the demo's small button (`.bt.sm`, the selected one `.pri`): notched plate styleboxes, Cinzel 10.5 tracked text in capitals
+static func style_cell(b: Button, on: bool) -> void:
+	var v: int = V.PRI if on else V.SEC
+	var sts := {"normal": [false, false], "hover": [true, false], "pressed": [true, true], "hover_pressed": [true, true]}
+	for st in sts:
+		var sb := Notch.new(v, sts[st][0], sts[st][1], false)
+		sb.content_margin_left = 11.0; sb.content_margin_right = 11.0; sb.content_margin_top = 4.0; sb.content_margin_bottom = 4.0
+		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_stylebox_override("focus", TBKit._empty)
+	var c0: Dictionary = btn_colors_hc(v, false) if TBTokens.is_hc() else btn_colors(v, false)
+	var c1: Dictionary = btn_colors_hc(v, true) if TBTokens.is_hc() else btn_colors(v, true)
+	for fc in ["font_color", "font_focus_color"]: b.add_theme_color_override(fc, c0["tx"])
+	for fc in ["font_hover_color", "font_pressed_color", "font_hover_pressed_color"]: b.add_theme_color_override(fc, c1["tx"])
+	b.add_theme_font_override("font", TBKit.tracked(TBKit.cinzel(700), 2)); b.add_theme_font_size_override("font_size", TBKit.fs(10.5))
+	if not b.has_meta("raw"):
+		b.set_meta("raw", b.text); b.text = TBKit._cap(b.text)
+	b.tooltip_text = ""
+	TBKit.a11y(b, String(b.get_meta("raw")), "option", TBI18n.T("a11y_selected") if on else "")
+	b.queue_redraw()

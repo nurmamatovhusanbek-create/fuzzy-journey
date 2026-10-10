@@ -539,7 +539,33 @@ static func theme() -> Theme:
 	# tooltips: dark plate, cream text
 	t.set_stylebox("panel", "TooltipPanel", _pl("bar_0", "rule_dark", 4, 0, 10, 6, false, 0.96))
 	t.set_color("font_color", "TooltipLabel", TBTokens.c("cream")); t.set_font("font", "TooltipLabel", body()); t.set_font_size("font_size", "TooltipLabel", fs(14))
+	if TBFrame.bezel: _bz_theme(t)
 	return t
+
+## Bezel overrides of the base theme: thin brass-brown scrollbars (scrollbar-color #5a4a26), tooltip plate (#tip), inputs as engraved wells, popups as plates
+static func _bz_theme(t: Theme) -> void:
+	t.default_font = alegreya(400)
+	var gb := StyleBoxFlat.new(); gb.bg_color = TBTokens.BZ_SCROLL if not TBTokens.is_hc() else TBTokens.c("ink_1"); gb.set_corner_radius_all(4)
+	var gh := StyleBoxFlat.new(); gh.bg_color = TBTokens.c("rule") if not TBTokens.is_hc() else TBTokens.c("ink_0"); gh.set_corner_radius_all(4)
+	for sb in [gb, gh]:
+		(sb as StyleBoxFlat).content_margin_left = 4; (sb as StyleBoxFlat).content_margin_right = 4; (sb as StyleBoxFlat).content_margin_top = 4; (sb as StyleBoxFlat).content_margin_bottom = 4
+	var tr := StyleBoxEmpty.new(); tr.content_margin_left = 4; tr.content_margin_right = 4; tr.content_margin_top = 4; tr.content_margin_bottom = 4
+	for cls in ["VScrollBar", "HScrollBar"]:
+		t.set_stylebox("scroll", cls, tr); t.set_stylebox("scroll_focus", cls, tr)
+		t.set_stylebox("grabber", cls, gb); t.set_stylebox("grabber_highlight", cls, gh); t.set_stylebox("grabber_pressed", cls, gh)
+	var tp := TBBz.Plate.new(6.0, true)
+	tp.content_margin_left = 16.0; tp.content_margin_right = 16.0; tp.content_margin_top = 12.0; tp.content_margin_bottom = 11.0
+	t.set_stylebox("panel", "TooltipPanel", tp)
+	t.set_font("font", "TooltipLabel", alegreya(400)); t.set_font_size("font_size", "TooltipLabel", fs(15.5)); t.set_color("font_color", "TooltipLabel", DIM)
+	var le := TBBz.Well.new(TBTokens.BZ_WELL_LINE if not TBTokens.is_hc() else TBTokens.c("ink_0"), 12.0, 8.0)
+	t.set_stylebox("normal", "LineEdit", le)
+	t.set_stylebox("read_only", "LineEdit", TBBz.Well.new(TBTokens.BZ_WELL_LINE, 12.0, 8.0))
+	t.set_font("font", "LineEdit", alegreya(400)); t.set_font_size("font_size", "LineEdit", fs(16))
+	var pp := TBBz.Plate.new(8.0, true)
+	pp.content_margin_left = 7.0; pp.content_margin_right = 7.0; pp.content_margin_top = 6.0; pp.content_margin_bottom = 6.0
+	t.set_stylebox("panel", "PopupMenu", pp)
+	t.set_font("font", "PopupMenu", cinzel(700)); t.set_font_size("font_size", "PopupMenu", fs(12.5))
+	t.set_stylebox("hover", "PopupMenu", TBBz.Well.new(TBTokens.BZ_ROW_HOT, 0, 0, TBTokens.BZ_ROW_HOT))
 
 static func _hline() -> StyleBoxLine:
 	var sep := StyleBoxLine.new(); sep.color = TBTokens.c("hair"); sep.thickness = 1
@@ -816,6 +842,14 @@ class Meter extends Control:
 		custom_minimum_size = Vector2(0, 12); size_flags_horizontal = Control.SIZE_EXPAND_FILL; mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func low() -> bool: return auto and v < 30.0
 	func _draw() -> void:
+		if TBFrame.bezel and not TBTokens.is_hc():          # the demo's thin bar: a 3 unit track (#2a2318) with the fill in the tone colour
+			var yb := roundf((size.y - 3.0) * 0.5)
+			var wb := roundf(size.x)
+			draw_rect(Rect2(0, yb, wb, 3), TBTokens.BZ_TRACK)
+			var fb: Color = col
+			if auto: fb = TBTokens.c("pos") if v >= 50.0 else (TBTokens.c("warn") if v >= 30.0 else TBTokens.c("neg"))
+			draw_rect(Rect2(0, yb, roundf(wb * clampf(v / 100.0, 0.0, 1.0)), 3), fb)
+			return
 		var y := roundf((size.y - 8.0) * 0.5)
 		var w := roundf(size.x)
 		draw_rect(Rect2(0, y, w, 8), TBTokens.c("rule"))
@@ -939,20 +973,25 @@ class ListRow extends Button:
 		left = l; right = r; left_col = col; flat = true; focus_mode = Control.FOCUS_ALL
 		action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		custom_minimum_size = Vector2(0, maxf(float(TBKit.touch()), ceilf(TBKit.body_b().get_height(TBKit.fs(15))) + 16.0))     # grows with the text size
+		if TBFrame.bezel:                                  # `.row` of plain text: padding 10 12, 16 unit Alegreya, the line box of the font
+			custom_minimum_size = Vector2(0, maxf(float(TBKit.touch()) if TBKit.touch_large else 0.0, ceilf(TBKit.alegreya(400).get_height(TBKit.fs(16))) + 20.0))
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		if cb.is_valid(): pressed.connect(cb)
 		TBKit.a11y(self, l if r == "" else "%s, %s" % [l, r], "button")
-	func _slot_w() -> float: return float(maxi(16, TBKit.fs(16))) + 6.0
+	func _slot_w() -> float: return 0.0 if TBFrame.bezel else float(maxi(16, TBKit.fs(16))) + 6.0
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_RESIZED: _dirty = true
 	func _rebuild() -> void:
 		_dirty = false
-		_trt.clear(); _trt.add_string(right, TBKit.mono_b(), TBKit.fs(14))
+		var lf: Font = TBKit.alegreya(400) if TBFrame.bezel else TBKit.body_b()
+		var rf: Font = TBKit.alegreya(700) if TBFrame.bezel else TBKit.mono_b()
+		var lsz: int = TBKit.fs(16) if TBFrame.bezel else TBKit.fs(15)
+		_trt.clear(); _trt.add_string(right, rf, TBKit.fs(16) if TBFrame.bezel else TBKit.fs(14))
 		var x0 := 12.0 + (_slot_w() if _slot else 0.0)
-		_tl.clear(); _tl.add_string(left, TBKit.body_b(), TBKit.fs(15))
+		_tl.clear(); _tl.add_string(left, lf, lsz)
 		_tl.width = maxf(size.x - x0 - _trt.get_line_width() - 24.0, 24.0)
 		_tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		tooltip_text = left if TBKit.body_b().get_string_size(left, HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(15)).x > _tl.width else ""
+		tooltip_text = left if lf.get_string_size(left, HORIZONTAL_ALIGNMENT_LEFT, -1, lsz).x > _tl.width else ""
 	func _draw() -> void:
 		if _dirty: _rebuild()
 		var w := size.x; var h := size.y
@@ -960,6 +999,19 @@ class ListRow extends Button:
 		if preview_state == "hover": mode = BaseButton.DRAW_HOVER
 		elif preview_state == "pressed": mode = BaseButton.DRAW_PRESSED
 		var ink: Color = TBTokens.c("ink_0")
+		if TBFrame.bezel:                                  # `.row`: hover wash, selected wash + 3 unit brass bar, radius 3, no hairline
+			var hot: bool = (mode == BaseButton.DRAW_HOVER or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED) and not disabled
+			if TBTokens.is_hc():
+				if selected: draw_rect(Rect2(0, 0, w, h), TBTokens.c("paper_2")); draw_rect(Rect2(0, 0, 4, h), TBTokens.c("ink_0"))
+				elif hot: draw_rect(Rect2(0, 0, w, h), TBTokens.c("paper_hover"))
+			elif selected:
+				TBBz.poly(get_canvas_item(), TBBzParts.rrect(0, 0, w, h, 3.0), TBTokens.BZ_ROW_ON); draw_rect(Rect2(0, 0, 3, h), TBTokens.c("brass"))
+			elif hot: TBBz.poly(get_canvas_item(), TBBzParts.rrect(0, 0, w, h, 3.0), TBTokens.BZ_ROW_HOT)
+			var lc2: Color = TBTokens.c("ink_off") if disabled else (left_col if left_col.a > 0.0 else ink)
+			_tl.draw(get_canvas_item(), Vector2(12.0, roundf((h - _tl.get_size().y) * 0.5)), lc2)
+			_trt.draw(get_canvas_item(), Vector2(roundf(w - 12.0 - _trt.get_line_width()), roundf((h - _trt.get_size().y) * 0.5)), TBTokens.c("ink_off") if disabled else (right_col if right_col.a > 0.0 else ink))
+			if (has_focus() and TBFrame.kbd_nav) or preview_state == "focus": draw_style_box(TBFrame.focus(false, 3, 0), Rect2(0, 0, w, h))
+			return
 		if selected: draw_rect(Rect2(0, 0, w, h - 1), TBTokens.c("paper_2"))
 		elif disabled: pass
 		elif mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED: draw_rect(Rect2(0, 0, w, h - 1), TBTokens.c("paper_2"))
@@ -990,15 +1042,16 @@ class Segmented extends Container:
 	var _cell_h := 0.0
 	var _last_min := Vector2.ZERO
 	var _sig := ""
-	const GAP := 1.0
+	var GAP := 1.0
 	func setup(items: Array, cur: String, compact_cells: bool = false) -> Segmented:
 		current = cur; compact = compact_cells; _items = items
+		if TBFrame.bezel: GAP = 6.0                       # `.bt.sm` cells: 6 unit gaps, the selected one is the primary button
 		var n := items.size()
 		for i in n:
 			var id: String = items[i][0]
 			var b := Button.new(); b.text = items[i][1]; b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			b.add_theme_font_size_override("font_size", TBKit.fs((12 if compact else 13) if TBFrame.bezel else (13 if compact else 15)))
+			if not TBFrame.bezel: b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.add_theme_font_size_override("font_size", TBKit.fs(10.5 if TBFrame.bezel else (13 if compact else 15)))
 			b.pressed.connect(func(): select(id, true))
 			b.draw.connect(func(): _draw_cell(id, b))
 			add_child(b); _btns[id] = b; _order.append(id)
@@ -1007,15 +1060,21 @@ class Segmented extends Container:
 	func select(id: String, emit: bool = false) -> void:
 		current = id; _restyle()
 		if emit: chosen.emit(id)
+	func _h0() -> float:
+		if TBFrame.bezel: return float(TBKit.touch()) if TBKit.touch_large else maxf(28.0, ceilf(TBKit.fsf(10.5) + 16.0))
+		return float(TBKit.touch())
 	func _pad_x() -> float: return 8.0 if compact else 14.0
 	func _nat(i: int) -> float:
+		if TBFrame.bezel:
+			var zz: float = TBKit.fsf(10.5)
+			return maxf(TBBz.tw(TBKit.cinzel(700), TBKit._cap(String(_items[i][1])), zz, TBKit.trk(zz, 0.16)) + 22.0, 40.0)
 		var f: Font = TBKit.body_b()
 		return maxf(f.get_string_size(String(_items[i][1]), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13 if compact else 15)).x + 2.0 * _pad_x(), float(TBKit.MIN_TOUCH))
 	## Layout for a width: {"rows": [[cell index, ...], ...], "prop": bool, "h": cell height}. Preferred: one equal-width grid (columns as many as fit);
 	## when packing the cells by their own widths needs fewer rows (one short word beside long ones) the proportional rows win.
 	func _plan(w: float) -> Dictionary:
 		var n := _order.size()
-		if n == 0: return {"rows": [], "prop": false, "h": float(TBKit.touch())}
+		if n == 0: return {"rows": [], "prop": false, "h": _h0()}
 		var nat := PackedFloat32Array(); var widest: float = 0.0
 		for i in n:
 			nat.append(_nat(i)); widest = maxf(widest, nat[i])
@@ -1042,8 +1101,9 @@ class Segmented extends Container:
 		var f: Font = TBKit.body_b()
 		var fsz: int = TBKit.fs(13 if compact else 15)
 		var lh: float = f.get_height(fsz)
-		var h: float = float(TBKit.touch())
+		var h: float = _h0()
 		for row in rows:
+			if TBFrame.bezel: break
 			var widths := _row_widths(row, nat, w, prop)
 			for k in row.size():
 				var tw: float = f.get_string_size(String(_items[row[k]][1]), HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
@@ -1065,7 +1125,7 @@ class Segmented extends Container:
 		return out
 	func _get_minimum_size() -> Vector2:
 		var p := _plan(size.x)
-		var widest: float = float(TBKit.MIN_TOUCH)
+		var widest: float = 40.0 if TBFrame.bezel else float(TBKit.MIN_TOUCH)
 		for i in _order.size(): widest = maxf(widest, minf(_nat(i), 140.0))
 		var rn: int = (p["rows"] as Array).size()
 		return Vector2(widest, rn * float(p["h"]) + maxi(rn - 1, 0) * GAP)
@@ -1099,9 +1159,10 @@ class Segmented extends Container:
 		if mask_changed: _restyle()
 		if need != _last_min: _last_min = need; update_minimum_size()
 	func _draw() -> void:
+		if TBFrame.bezel: return
 		draw_style_box(TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1), Rect2(Vector2.ZERO, size))
 	func _draw_cell(id: String, b: Button) -> void:
-		if id != current: return
+		if TBFrame.bezel or id != current: return
 		var w: float = b.size.x; var h: float = b.size.y
 		if TBTokens.is_hc(): b.draw_rect(Rect2(0, 0, w, h), TBTokens.c("ink_0"), false, 2.0)
 		b.draw_rect(Rect2(0, h - 3.0, w, 3.0), TBTokens.c("oxblood"))
@@ -1113,11 +1174,15 @@ class Segmented extends Container:
 		var x: float = (w - tw) * 0.5 - gs * 0.5 - 6.0
 		if x >= gs * 0.5 + 2.0 and tw < w - 2.0 * _pad_x() - 1.0:
 			TBGlyph.draw_filled(b, "check", Vector2(roundf(x), roundf((h - 3.0) * 0.5)), gs, TBTokens.c("oxblood"))
+	func _bz_cell(b: Button, on: bool) -> void: TBBz.style_cell(b, on)
 	func _restyle() -> void:
 		for k in _btns:
 			var b: Button = _btns[k]
 			var on: bool = k == current
 			var m: int = int(b.get_meta("mask", TBFrame.ALL))
+			if TBFrame.bezel:
+				_bz_cell(b, on)
+				continue
 			var fills: Array = ["paper_2", "paper_2", "paper_2"] if on else ["paper_1", "paper_hover", "paper_2"]
 			var py: float = 6.0
 			b.add_theme_stylebox_override("normal", TBKit._pl(fills[0], "", 4, 0, _pad_x(), py, false, 1.0, m))
@@ -1374,9 +1439,19 @@ static func alert_strip(text: String, kind: String = "info") -> Control:
 
 # ---- command card, chip, glyph label -------------------------------------------------------------------------------------------------------------------
 static var _card_styles := {}
-static func card_style(state: String, recommended: bool, armed: bool) -> TBFrame:
+static func card_style(state: String, recommended: bool, armed: bool) -> StyleBox:
 	var key := "%s%d%d%d" % [state, int(recommended), int(armed), TBTokens.sig()]
 	if _card_styles.has(key): return _card_styles[key]
+	if TBFrame.bezel:                                    # the engraved well: #100d0a with a 1 unit inset line (brass when advised / armed, lit on hover)
+		var ln: Color = TBTokens.BZ_WELL_LINE
+		if state == "hover": ln = TBTokens.c("rule")
+		if state == "pressed": ln = TBTokens.c("brass")
+		if recommended: ln = TBTokens.c("brass")
+		if armed: ln = TBTokens.c("brass_lt")
+		if TBTokens.is_hc(): ln = TBTokens.c("ink_0") if (armed or state == "hover") else TBTokens.c("rule")
+		var wb := TBBz.Well.new(ln, 12.0, 9.0)
+		_card_styles[key] = wb
+		return wb
 	var fill := "paper_1"
 	match state:
 		"hover": fill = "paper_hover"
@@ -1664,6 +1739,9 @@ static func header_strip(content: Control, left: int = 14, right: int = 6) -> Pa
 ## Landscape: card up to 920 wide. Portrait: full-width bottom sheet <= 92 %. Header bar = title (Cinzel 700 22 oxblood) + close (48 hit).
 ## `hero` = the one hero sheet (ceremony only) with its single ornament rule. Enter 180 ms, no scale (respects reduce motion).
 static func modal(parent: Control, title_text: String = "", width: int = 520, glyph_id: String = "", hero: bool = false) -> Array:
+	if TBFrame.bezel:                                   # the demo's modal plate (header, rule, body, foot), one implementation: TBPanel
+		var mh: TBPanel.Handle = TBPanel.open(parent, TBPanel.Kind.DIALOG, title_text, glyph_id, {"w": float(clampi(width, 380, 640)), "hero": hero, "dismissable": title_text != ""})
+		return [mh.root, mh.body, mh.footer]
 	TBFrame.ensure_watch()
 	var vp := parent.get_viewport_rect().size
 	var portrait := vp.y > vp.x
