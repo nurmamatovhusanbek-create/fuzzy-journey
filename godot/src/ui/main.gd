@@ -111,24 +111,28 @@ func _offer_comfort() -> void:
 	if scripted: return
 	TBMenuHub.comfort(_overlay, cfg, _on_setting_changed)
 
-## phones in portrait need a different logical base size, otherwise the landscape 1280x720 base shrinks the UI to a few px
+## The UI is laid out in the Bezel demo's design units: a stage 1180 units tall on a desktop (390 on a phone held in landscape), scaled to the window.
+## So a number in the demo (a 46 unit medallion, a 22 unit title) is the same number here. cfg "ui" is the demo's S / M / L (taller stage = smaller UI).
 func _update_ui_scale() -> void:
 	var w := get_window()
 	var s := w.size
-	var k: float = {"small": 1.18, "normal": 1.0, "large": 0.84}.get(cfg.get("ui", "normal"), 1.0)      # bigger logical size = smaller UI
-	var ppu: float = _px_per_unit(s) / k
+	var k: float = {"small": 1.18, "normal": 1.0, "large": 0.86}.get(cfg.get("ui", "normal"), 1.0)
+	var ppu: float = _px_per_unit(s, k)
 	w.content_scale_size = Vector2i(maxi(320, int(round(s.x / ppu))), maxi(240, int(round(s.y / ppu))))
 	_apply_safe_area()
 
-## physical pixels per logical unit "u" (design/ux/hud.md Q1): ~1 dp on phones (DPI based), 1.5 px/u on a 1080p desktop,
-## and never below 1.0 so an 800x360 window is 800x360u. TB_UI_SCALE overrides it (tests emulating a phone's density).
-func _px_per_unit(s: Vector2i) -> float:
+## the demo's rule: a phone in landscape (css height < 560 and width < 1300) uses a 390 unit stage, everything else 1180.
+## On Android the css size is the window in dp (dpi / 160). TB_UI_SCALE (px per unit) overrides it for tests that emulate a density.
+func _px_per_unit(s: Vector2i, k: float = 1.0) -> float:
 	var env := OS.get_environment("TB_UI_SCALE")
-	if env != "": return clampf(float(env), 0.5, 4.0)
-	if OS.get_name() in ["Android", "iOS"]:
-		return clampf(DisplayServer.screen_get_dpi() / 160.0, 1.0, 4.0)
-	if s.y > s.x: return clampf(s.x / 360.0, 1.0, 3.0)         # portrait window: 540 px = 360u
-	return clampf(s.y / 720.0, 1.0, 3.0)
+	if env != "": return clampf(float(env), 0.3, 4.0) / k
+	var dpr: float = 1.0
+	if OS.get_name() in ["Android", "iOS"]: dpr = clampf(DisplayServer.screen_get_dpi() / 160.0, 1.0, 4.0)
+	var vw: float = s.x / dpr; var vh: float = s.y / dpr
+	if s.y > s.x: return clampf(s.x / 360.0, 1.0, 3.0) / k                    # portrait: 360 unit wide column
+	var phone: bool = vh < 560.0 and vw < 1300.0
+	var dh: float = (390.0 if phone else 1180.0) * k
+	return s.y / dh
 
 ## keep UI clear of notches / rounded corners / gesture bars on phones
 func _apply_safe_area() -> void:
