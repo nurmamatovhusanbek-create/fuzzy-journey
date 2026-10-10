@@ -382,6 +382,7 @@ static func _parse_d(d: String, subs: Array) -> void:
 				cur = p3
 			"Z":
 				closed = true; cur = start
+				if pts.size() > 0 and pts[pts.size() - 1] != start: pts.append(start); cor.append(1)
 				subs.append({"pts": pts, "corner": cor, "closed": true}); have = false
 				pts = PackedVector2Array(); cor = PackedByteArray()
 				# a path continuing after z starts a new subpath at the start point
@@ -429,7 +430,7 @@ static func draw_ic(ci: CanvasItem, name: String, c: Vector2, size: float, col: 
 		return
 	var k: float = size / 24.0
 	var o: Vector2 = c - Vector2(size, size) * 0.5
-	var sw: float = w * k
+	var sw: float = maxf(w * k - 0.85, 0.5)                    # Godot's antialiased lines add a ~1 px feather: take it off the stroke so the weight matches the SVG
 	for sh in shapes:
 		var src: PackedVector2Array = sh["pts"]
 		var cor: PackedByteArray = sh["corner"]

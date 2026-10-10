@@ -273,7 +273,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	root.set_meta("tb_modal", true)
 	root.z_index = TBTokens.Z_MODAL                  # above every HUD tooltip / popover (they sit at 60-70)
 	h.root = root
-	if h.modal:
+	if h.modal and bool(opts.get("scrim", true)):
 		var bd := ColorRect.new()
 		bd.set_anchors_preset(Control.PRESET_FULL_RECT)
 		bd.color = TBTokens.c("table") if bool(opts.get("opaque", false)) else TBTokens.ca("table", 0.55 if h.form == "dialog" else 0.40)
@@ -476,16 +476,16 @@ static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyp
 		K.a11y(bb, T.call("back"), "button"); hb.add_child(bb); h.back_btn = bb
 	elif glyph_id != "":
 		hb.add_child(K.ring_icon(glyph_id, 36 if phone else 46))
-	var tb := K.vbox(5)
+	var tb := K.vbox(0)
 	tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var tl := K.title(title_text, 17 if phone else 22, TBTokens.c("ink_0"))
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tl.custom_minimum_size.x = 40; tl.tooltip_text = title_text
-	if h.form == "dialog": tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART           # a dialog title wraps (a confirm names the act), page titles ellipsize
+	if h.form == "dialog": (tl as TBBz.TLabel).wrap_ok = true                           # a dialog title wraps when it does not fit (a confirm names the act), page titles ellipsize
 	else: tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	tb.add_child(tl); h.title_label = tl
-	var sub := Label.new()                                                              # `.hd .s`: italic 16, dim
-	sub.add_theme_font_override("font", K.alegreya(400, true)); sub.add_theme_font_size_override("font_size", K.fs(13.0 if phone else 16.0))
+	var gap5 := Control.new(); gap5.custom_minimum_size = Vector2(0, 5); gap5.mouse_filter = Control.MOUSE_FILTER_IGNORE; tb.add_child(gap5)            # `.s{margin-top:5px}` is there even when the subtitle is empty
+	var sub := TBBz.TLabel.new(K.alegreya(400, true), 13.0 if phone else 16.0, 0.0)                    # `.hd .s`: italic 16, dim
 	sub.add_theme_color_override("font_color", K.DIM); sub.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; sub.custom_minimum_size.x = 40
 	sub.visible = false; sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tb.add_child(sub); h.sub_label = sub

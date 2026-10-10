@@ -46,10 +46,13 @@ static func aa_diag(ci: RID, pts: PackedVector2Array, col: Color) -> void:
 		if absf(a.x - b.x) > 0.01 and absf(a.y - b.y) > 0.01:
 			RenderingServer.canvas_item_add_line(ci, a, b, col, 1.0, true)
 
+static var _off := Vector2.ZERO            # the active shift(): TBBz.text() draws with its own scaled transform, so it adds this origin itself
 static func shift(ci: RID, off: Vector2) -> void:
+	_off = off
 	RenderingServer.canvas_item_add_set_transform(ci, Transform2D(0.0, off))
 
 static func unshift(ci: RID) -> void:
+	_off = Vector2.ZERO
 	RenderingServer.canvas_item_add_set_transform(ci, Transform2D.IDENTITY)
 
 ## the demo's .dis / .bt.off: opacity .4 and saturate(.3 or .4), applied to a colour
@@ -146,12 +149,24 @@ static func plate_box(c: float = 12.0, shadow: bool = true) -> StyleBox:
 ## Godot font sizes are integers and letter-spacing is an integer, the demo's are fractional (11.5, .16em). So a string is shaped once at K4 times its size
 ## (kerning and fallbacks included), then each glyph is placed with an exact fractional pen and drawn at 1/K4 scale.
 static var _shaped := {}
+static var _bold := {}
+## Chromium's text is a little heavier than Godot's at the same size (gamma, LCD filtering); a touch of outline embolden evens the weight out (units of stroke)
+static var emb: float = 0.10 if OS.get_environment("TB_EMB") == "" else float(OS.get_environment("TB_EMB"))
+static func _bf(base: Font, ksize: int) -> Font:
+	if emb <= 0.0: return base
+	var key := "%d|%d" % [base.get_instance_id(), ksize]
+	if _bold.has(key): return _bold[key]
+	var v := FontVariation.new()
+	v.base_font = base; v.variation_embolden = emb * K4 * 24.0 / float(ksize)
+	_bold[key] = v
+	return v
+
 static func _glyphs(base: Font, s: String, ksize: int) -> Array:
 	var key := "%d|%d|%s" % [base.get_instance_id(), ksize, s]
 	if _shaped.has(key): return _shaped[key]
 	if _shaped.size() > 800: _shaped.clear()
 	var tl := TextLine.new()
-	tl.add_string(s, base, ksize)
+	tl.add_string(s, _bf(base, ksize), ksize)
 	var out: Array = TextServerManager.get_primary_interface().shaped_text_get_glyphs(tl.get_rid()).duplicate(true)
 	_shaped[key] = out
 	return out
@@ -177,7 +192,7 @@ static func text(ci: RID, base: Font, p: Vector2, s: String, size: float, col: C
 	var ks: int = roundi(size * K4)
 	var gl := _glyphs(base, s, ks)
 	var ts := TextServerManager.get_primary_interface()
-	RenderingServer.canvas_item_add_set_transform(ci, Transform2D(Vector2(1.0 / K4, 0.0), Vector2(0.0, 1.0 / K4), p))
+	RenderingServer.canvas_item_add_set_transform(ci, Transform2D(Vector2(1.0 / K4, 0.0), Vector2(0.0, 1.0 / K4), p + _off))
 	var pen := 0.0
 	for g in gl:
 		var rep: int = maxi(int(g.get("repeat", 1)), 1)
@@ -185,7 +200,7 @@ static func text(ci: RID, base: Font, p: Vector2, s: String, size: float, col: C
 			if int(g["index"]) != 0 or float(g["advance"]) > 0.0:
 				ts.font_draw_glyph(g["font_rid"], ci, int(g["font_size"]), Vector2(pen, 0.0) + Vector2(g["offset"]), int(g["index"]), col)
 			pen += float(g["advance"]) + (spacing_px * K4 if float(g["advance"]) > 0.0 else 0.0)
-	RenderingServer.canvas_item_add_set_transform(ci, Transform2D.IDENTITY)
+	RenderingServer.canvas_item_add_set_transform(ci, Transform2D(0.0, _off))
 
 ## baseline y that centres a line box of `line` units (CSS line-height) in [top, top + h], the way Chromium lays out a flex row:
 ## ascent and descent are rounded, the half-leading is added to the ascent and floored, the result is snapped to a whole unit
@@ -215,9 +230,12 @@ static func _closed_circle(c: Vector2, r: float, n: int) -> PackedVector2Array:
 		p.append(c + Vector2(cos(a), sin(a)) * r)
 	return p
 
+## width of an antialiased line that looks like a `w` unit stroke: Godot feathers a line by about half a unit on each side
+static func aaw(w: float) -> float: return maxf(w - 0.55, 0.35) if w < 4.0 else w - 0.45
+
 ## ring (stroke) of width w whose outer edge is at radius r_out
 static func ring_stroke(ci: RID, c: Vector2, r_out: float, w: float, col: Color) -> void:
-	RenderingServer.canvas_item_add_polyline(ci, _closed_circle(c, r_out - w * 0.5, 64), PackedColorArray([col]), w, true)
+	RenderingServer.canvas_item_add_polyline(ci, _closed_circle(c, r_out - w * 0.5, 64), PackedColorArray([col]), aaw(w), true)
 
 ## `.ring`: the header icon medallion. box d (46 in headers): radial face, brass hairline 1.3 outside it, 3 unit dark shade under that
 static func ring_face(ci: RID, c: Vector2, d: float, hot_k: bool = true) -> void:
@@ -383,7 +401,8 @@ class Btn extends Button:
 		if legacy: return
 		if _mk_key() != _key: _refit()
 		if autowrap_mode != TextServer.AUTOWRAP_OFF and not _native:
-			_go_native()
+			_go_native.call_deferred()
+			return
 		var ci := get_canvas_item()
 		var mode := get_draw_mode()
 		if preview_state == "hover": mode = BaseButton.DRAW_HOVER
@@ -442,8 +461,10 @@ class TLabel extends Label:
 	var em := 0.0                    # letter-spacing in em
 	var lh := 0.0                    # CSS line-height in units (0 = the font's own line)
 	var upper := false               # text-transform: uppercase (not for Cyrillic / Readable fonts)
+	var base_y := -1.0               # fixed baseline (units from the label's top) for rows that align several faces on one baseline
 	var _key := ""
 	var _lastw := -1.0
+	var wrap_ok := false              # wrap onto several lines (native text) only when the single line does not fit
 	var _native := false
 	func _init(f: Font, size_px: float, spacing_em: float, line_h: float = 0.0, caps: bool = false) -> void:
 		face = f; px = size_px; em = spacing_em; lh = line_h; upper = caps
@@ -473,6 +494,8 @@ class TLabel extends Label:
 		if _native: return
 		_native = true
 		visible_characters = -1
+		if upper: text = _t()
+		autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap_ok else autowrap_mode
 		var base: Font = TBBz.fvar_int(face, spacing())
 		add_theme_font_override("font", base); add_theme_font_size_override("font_size", roundi(fsz()))
 		custom_minimum_size.y = 0.0
@@ -480,9 +503,11 @@ class TLabel extends Label:
 		if _native: return
 		if _mk() != _key: refit()
 		if autowrap_mode != TextServer.AUTOWRAP_OFF:
-			_to_native(); queue_redraw(); return
+			_to_native(); queue_redraw.call_deferred(); return
 		var s: String = _t()
 		if s == "": return
+		if wrap_ok and autowrap_mode == TextServer.AUTOWRAP_OFF and size.x >= 40.0 and exact_w() > size.x + 0.5:
+			_to_native(); queue_redraw.call_deferred(); return
 		var f := face
 		var z: float = fsz(); var sp: float = spacing()
 		var avail: float = size.x
@@ -494,7 +519,7 @@ class TLabel extends Label:
 		var x := 0.0
 		if horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER: x = (avail - w) * 0.5
 		elif horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT: x = avail - w
-		var bl: float = TBBz.baseline(f, z, 0.0, size.y, line_h())
+		var bl: float = base_y if base_y >= 0.0 else TBBz.baseline(f, z, 0.0, size.y, line_h())
 		TBBz.text(get_canvas_item(), f, Vector2(x, bl), s, z, get_theme_color("font_color"), sp)
 
 static var _fvi := {}
@@ -508,3 +533,41 @@ static func fvar_int(base: Font, spacing_px: float) -> Font:
 	v.base_font = base; v.spacing_glyph = sp
 	_fvi[key] = v
 	return v
+
+# ---- ticks, brass disc, focus ring at a rect ---------------------------------------------------------------------------------------
+## tickMarks() of the demo kit for a full circle: n marks starting at the top, every `major`-th 1.7x longer, drawn inwards from radius r
+static func ticks(ci: RID, c: Vector2, r: float, n: int, len_px: float, major: int, col: Color, w: float = 1.0) -> void:
+	var pts := PackedVector2Array()
+	for i in n:
+		var a: float = deg_to_rad(360.0 * i / n)
+		var l: float = len_px * (1.7 if i % major == 0 else 1.0)
+		pts.append(c + Vector2(sin(a), -cos(a)) * r); pts.append(c + Vector2(sin(a), -cos(a)) * (r - l))
+	RenderingServer.canvas_item_add_multiline(ci, pts, PackedColorArray([col]), aaw(w), true)
+
+## tickMarks() over an arc: a0 / span in degrees from the top, clockwise; n + 1 marks
+static func ticks_arc(ci: RID, c: Vector2, r: float, n: int, len_px: float, major: int, col: Color, w: float, a0: float, span: float) -> void:
+	var pts := PackedVector2Array()
+	for i in n + 1:
+		var a: float = deg_to_rad(a0 + span * i / n)
+		var l: float = len_px * (1.7 if i % major == 0 else 1.0)
+		pts.append(c + Vector2(sin(a), -cos(a)) * r); pts.append(c + Vector2(sin(a), -cos(a)) * (r - l))
+	RenderingServer.canvas_item_add_multiline(ci, pts, PackedColorArray([col]), aaw(w), true)
+
+## gBrass: the diagonal brass gradient (#EBCF85 -> #B38F3E -> #6F5A27) of a disc; the colour is affine in position so a fan from the centre is exact
+static func brass_disc(ci: RID, c: Vector2, r: float, n: int = 48) -> void:
+	var a: Color = TBTokens.BZ_PRI_A; var b: Color = TBTokens.BZ_PRI_B; var z: Color = TBTokens.BZ_BRASS_Z
+	var pts := PackedVector2Array(); var cols := PackedColorArray(); var idx := PackedInt32Array()
+	pts.append(c); cols.append(b)
+	for i in n:
+		var ang: float = TAU * i / n
+		var p: Vector2 = c + Vector2(cos(ang), sin(ang)) * r
+		var t: float = clampf(((p.x - (c.x - r)) + (p.y - (c.y - r))) / (4.0 * r), 0.0, 1.0)
+		pts.append(p); cols.append(a.lerp(b, t * 2.0) if t < 0.5 else b.lerp(z, (t - 0.5) * 2.0))
+	for i in n:
+		idx.append(0); idx.append(1 + i); idx.append(1 + (i + 1) % n)
+	RenderingServer.canvas_item_add_triangle_array(ci, idx, pts, cols)
+
+static func draw_notch_focus_at(ci: RID, r: Rect2, k: float = 6.0) -> void:
+	shift(ci, r.position)
+	draw_notch_focus(ci, r.size.x, r.size.y, k)
+	unshift(ci)
