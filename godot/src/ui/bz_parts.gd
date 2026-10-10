@@ -124,6 +124,9 @@ class RowBox extends PanelContainer:
 	var preview_state := "":
 		set(v): preview_state = v; queue_redraw()
 	var interactive := true
+	var fill := Color(0, 0, 0, 0)         # inline `background` on a row (an event choice: #100d0a)
+	var edge := Color(0, 0, 0, 0)         # inline `box-shadow: inset 0 0 0 1px` on a row (#3a2f1d, brass when advised)
+	var wash := true                      # false: the inline background wins over the `.row:hover` wash (a row with a `fill`)
 	var _hover := false
 	var _down := false
 	var _default_pad := false
@@ -143,7 +146,12 @@ class RowBox extends PanelContainer:
 		mouse_exited.connect(func(): _hover = false; _down = false; queue_redraw())
 	func _draw() -> void:
 		var ci := get_canvas_item()
-		var hot: bool = _hover or preview_state == "hover"
+		var hot: bool = (_hover or preview_state == "hover") and wash
+		if fill.a > 0.0 and not TBTokens.is_hc(): TBBz.poly(ci, TBBzParts.rrect(0, 0, size.x, size.y, 3.0), fill)
+		if edge.a > 0.0:
+			var ep := TBBzParts.rrect(0.5, 0.5, size.x - 0.5, size.y - 0.5, 2.5)
+			ep.append(ep[0])
+			RenderingServer.canvas_item_add_polyline(ci, ep, PackedColorArray([edge]), 1.0, true)
 		if TBTokens.is_hc():
 			if selected: draw_rect(Rect2(Vector2.ZERO, size), TBTokens.c("paper_2")); draw_rect(Rect2(0, 0, 4, size.y), TBTokens.c("ink_0"))
 			elif hot: draw_rect(Rect2(Vector2.ZERO, size), TBTokens.c("paper_hover"))

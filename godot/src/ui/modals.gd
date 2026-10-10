@@ -515,82 +515,148 @@ class LinkBtn extends Button:
 		TBGlyph.draw(self, glyph, Vector2(14, roundf(size.y * 0.5)), 16.0, TBTokens.c("ink_1"))
 		if is_hovered() or has_focus(): draw_rect(Rect2(30, size.y - 8, size.x - 38, 1), TBTokens.c("ink_1"))
 
+## `eventBody` medallion: a 96 unit instrument ring shown at 76 (bezelSvg(48,48,44,36)) with the category icon (34, stroke 1.5) in its face
+class EventMedal extends Control:
+	var glyph := "warn"
+	var col := Color.WHITE
+	func _init(g: String, c: Color) -> void:
+		glyph = g; col = c; custom_minimum_size = Vector2(76, 76); mouse_filter = Control.MOUSE_FILTER_IGNORE
+		size_flags_horizontal = Control.SIZE_SHRINK_BEGIN; size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	func _draw() -> void:
+		var k: float = size.x / 96.0
+		var c := size * 0.5
+		TBBezel.ring(self, c, 44.0 * k, 36, TBTokens.BZ_FACE, true, false, k)
+		TBGlyph.draw_ic(self, glyph, c, 34.0, col, 1.5)
+
+## kicker colour / icon of an event category (the demo's ultimatum is bad-toned; boons are brass)
+const CAT_IC := {"military": "war", "crisis": "warn", "domestic": "crown", "trade": "trade", "enlightenment": "research", "diplomacy": "envoys", "disaster": "warn", "golden age": "star"}
+const CAT_BAD := ["military", "crisis", "disaster"]
+
+## the icon of a choice's ring: what its first effect touches
+static func choice_icon(effects_text: String, fallback: String = "check") -> String:
+	var t: String = effects_text.to_lower()
+	var keys := [["gold", "gold"], ["coin", "gold"], ["manpower", "people"], ["population", "people"], ["army", "army"], ["armies", "army"], ["troop", "army"], ["stability", "happy"], ["happiness", "happy"],
+		["infamy", "crown"], ["prestige", "crown"], ["research", "research"], ["intel", "spy"], ["diplomacy", "envoys"], ["relation", "envoys"], ["trade", "trade"], ["move point", "move"], ["develops", "build"]]
+	var best := 1 << 30
+	var ic := fallback
+	for kv in keys:
+		var i: int = t.find(String(kv[0]))
+		if i >= 0 and i < best:
+			best = i; ic = String(kv[1])
+	return ic
+
+## one choice row (`.row` with an inline #100d0a fill and a 1 unit inset edge, padding 9 12): ring 36, Cinzel 13 title, effect leader rows beneath
+static func event_choice(icon: String, title_text: String, chips: Array, cb: Callable, advised: bool = false) -> Control:
+	var rb := K.row_box(12.0, 9.0, cb)
+	rb.fill = TBTokens.BZ_WELL; rb.edge = TBTokens.c("brass") if advised else TBTokens.BZ_WELL_LINE; rb.wash = false
+	var hb := K.hbox(14); hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; rb.add_child(hb)
+	var ri: Control = K.ring_icon(icon, 36); ri.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(ri)
+	var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; col.size_flags_vertical = Control.SIZE_SHRINK_CENTER; col.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_child(col)
+	var tl := TBBz.TLabel.new(K.cinzel(700), 13.0, 0.1, 0.0, true)
+	tl.text = title_text; tl.add_theme_color_override("font_color", TBTokens.BZ_IVORY)
+	tl.wrap_ok = true; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tl.refit()
+	col.add_child(tl)
+	if not chips.is_empty():
+		_gap(col, 4)
+		for c in chips:
+			var fr: Control = K.fx_row(String(c[0]), String(c[2]) if c.size() > 2 else "neutral"); fr.mouse_filter = Control.MOUSE_FILTER_IGNORE; col.add_child(fr)
+		_gap(col, 2)                                       # `.fxl{margin:2px 0}`: the bottom margin stays inside the row
+	K.a11y(rb, title_text, "button", " · ".join(chips.map(func(c): return String(c[0]))))
+	return rb
+
+static func _gap(v: Control, px: float) -> void:
+	var g := Control.new(); g.custom_minimum_size = Vector2(0, px); g.mouse_filter = Control.MOUSE_FILTER_IGNORE; v.add_child(g)
+
 static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g: TBGame = null, on_defer: Callable = Callable()) -> TBPanel.Handle:
-	var vs: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
-	var wide: bool = not TBPanel.is_portrait(vs) and vs.x >= 720.0 and K.text_scale < 1.4
-	var short: bool = vs.y < 480.0
-	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, "", "", {"hero": true, "wide": true, "dismissable": false, "split": true, "split_wide": wide})
-	var nar: VBoxContainer = h.body
-	var cho: VBoxContainer = h.pinned
-	var gpx: int = 28 if short else 32
 	var can_defer: bool = on_defer.is_valid() and not (e["kind"] == "prop" and e["id"] == "ultimatum")
-	var finish := func() -> void:
-		if can_defer:
-			var later := LinkBtn.new(T.call("decide_later"), func(): h.close(); on_defer.call())
-			later.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			K.a11y(later, T.call("decide_later"), "button", T.call("decide_later_d"))
-			cho.add_child(later)
-	# header block: glyph + kicker on one line when short
-	var head_row := K.hbox(10)
-	nar.add_child(head_row)
+	var phone: bool = K.is_phone(parent)
+	var turn: int = g.turn if g != null else 0
+	var opts := {"w": 600.0 if phone else 520.0, "dismissable": can_defer, "sub": ("%s %d" % [T.call("turn"), turn]) if turn > 0 else ""}
+	if can_defer: opts["on_dismiss"] = on_defer
+	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("ev_event"), "warn", opts)
+	var box := K.vbox(0); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.body.add_child(box)
+	var kicker := ""
+	var title := ""
+	var flavor := ""
+	var icon := "warn"
+	var bad := true
+	var choices: Array = []                        # [icon, title, chips, index]
+	var after: Control = null
 	if e["kind"] == "prop":
 		var ult: bool = e["id"] == "ultimatum"
 		var from_n: int = int(e["from"])
 		var from_name: String = g.dname(from_n) if g != null else ""
-		var gid0: String = "swords" if ult else ("dove" if e["id"] == "peace" else "scroll")
-		var gl: Control = K.ring_icon(gid0, gpx + 14) if TBFrame.bezel else K.glyph(gid0, gpx, TBTokens.c("oxblood"))
-		if not TBFrame.bezel: gl.custom_minimum_size = Vector2(gpx + 8, gpx + 8)
-		gl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		head_row.add_child(gl)
-		var kk := K.caps(T.call("ev_ultimatum") if ult else T.call("ev_proposal"), 12, K.GOLD); kk.size_flags_vertical = Control.SIZE_SHRINK_CENTER; head_row.add_child(kk)
-		var tl := K.title(T.call("prop_ult_title" if ult else "prop_title", {"a": from_name}), 22 if short else 24); tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nar.add_child(tl)
-		if not short: nar.add_child(K.ornament())
+		kicker = "%s · %s" % [T.call("ev_ultimatum") if ult else T.call("ev_proposal"), from_name]
+		title = T.call("prop_ult_title" if ult else "prop_title", {"a": from_name})
 		var place: String = TBI18n.place(g.world.name[int(e["p"])]) if ult and g != null else ""
-		var fl := TBPanel.para(T.call("prop_" + String(e["id"]), {"a": from_name, "p": place}), 15); fl.add_theme_font_override("font", K.body_i()); nar.add_child(fl)
+		flavor = T.call("prop_" + String(e["id"]), {"a": from_name, "p": place})
+		icon = "warn" if ult else ("pact" if e["id"] != "peace" else "flag")
+		bad = ult
 		if ult and g != null:
-			var mine: int = int(TBDiplo.power(g, g.human_id)); var theirs: int = int(TBDiplo.power(g, from_n))
-			var cf := TBPanel.flow(6); cf.add_child(K.chip("%s %s" % [T.call("strength_theirs"), K.fmt(theirs)], "swords", "neg" if theirs > mine else "neutral")); cf.add_child(K.chip("%s %s" % [T.call("strength_yours"), K.fmt(mine)], "shield", "neutral"))
-			nar.add_child(cf)
+			var mine: int = int(TBDiplo.power(g, g.human_id))
+			var theirs: int = int(TBDiplo.power(g, from_n))
+			var cf := TBPanel.flow(14)
+			cf.add_child(K.chip("%s %s" % [T.call("strength_theirs"), K.fmt(theirs)], "swords", "neg" if theirs > mine else "neutral"))
+			cf.add_child(K.chip("%s %s" % [T.call("strength_yours"), K.fmt(mine)], "shield", "neutral"))
+			after = cf
 		var yes_chips: Array = [[T.call("ev_yield_lost", {"p": place}), "tri_down", "neg"]] if ult and place != "" else []
-		var yes := TBPanel.card("", T.call("mp_yield") if ult else T.call("mp_accept"), "", yes_chips, func(): h.close(); on_choose.call(0), "", false, true)
 		var no_chips: Array = [[T.call("ev_defy_war", {"a": from_name}), "swords", "neg"]] if ult else []
-		var no := TBPanel.card("", T.call("mp_defy") if ult else T.call("mp_decline"), T.call("mp_defy_d") if ult else "", no_chips, func(): h.close(); on_choose.call(1), "", false, true)
-		cho.add_child(yes); cho.add_child(no)
-		finish.call()
-		return h
-	var rand: bool = e["kind"] == "rand"
-	var id: String = e["id"]
-	var title: String = T.call("ev_%s_t" % id) if rand else _loc(e.get("title", {}))
-	var flavor: String = T.call("ev_%s_f" % id) if rand else _loc(e.get("flavor", {}))
-	var cat_raw: String = String(e.get("cat", "")).to_lower()
-	var icon_id: String = String(e.get("icon", ""))
-	var gid: String = icon_id if (icon_id != "" and TBGlyph.G.has(icon_id)) else String(CAT_GLYPH.get(cat_raw, "globe" if (not rand and e.get("world", false)) else "scroll"))
-	var gl2: Control = K.ring_icon(gid, gpx + 14) if TBFrame.bezel else K.glyph(gid, gpx, TBTokens.c("oxblood"))
-	if not TBFrame.bezel: gl2.custom_minimum_size = Vector2(gpx + 8, gpx + 8)
-	gl2.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	head_row.add_child(gl2)
-	var cat_key := "evcat_" + cat_raw.replace(" ", "_")
-	var kicker: String = T.call("ev_worldwide") if (not rand and e.get("world", false)) else (T.call("ev_event") if not rand else (T.call(cat_key) if TBI18n.has_key(cat_key) else String(e.get("cat", ""))))
-	if kicker != "":
-		var kk2 := K.caps(kicker, 12, K.GOLD); kk2.size_flags_vertical = Control.SIZE_SHRINK_CENTER; head_row.add_child(kk2)
-	var tl2 := K.title(title, 22 if short else 24); tl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tl2.custom_minimum_size.x = 40; tl2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	nar.add_child(tl2)
-	if not short: nar.add_child(K.ornament())
-	var fl2 := TBPanel.para(flavor, 15); fl2.add_theme_font_override("font", K.body_i()); nar.add_child(fl2)
-	var count: int = e["count"]
-	var labels: Array = e.get("labels", [])
-	for i in count:
-		var ttl: String; var chips: Array = []
-		if rand: ttl = T.call("ev_%s_c%d" % [id, i]); chips = chips_from_text(T.call("ev_%s_d%d" % [id, i]))
-		elif i < labels.size():
-			ttl = _loc(labels[i])
-			var fx: Array = e.get("fx", [])
-			if i < fx.size(): chips = fx_chips(fx[i])
-		else: ttl = T.call("ev_ack")
-		var idx := i
-		cho.add_child(TBPanel.card("", ttl, "", chips, func(): h.close(); on_choose.call(idx), "", false, true))
-	finish.call()
+		choices.append(["flag" if ult else "check", T.call("mp_yield") if ult else T.call("mp_accept"), yes_chips, 0])
+		choices.append(["war" if ult else "close", T.call("mp_defy") if ult else T.call("mp_decline"), no_chips, 1])
+	else:
+		var rand: bool = e["kind"] == "rand"
+		var id: String = e["id"]
+		title = T.call("ev_%s_t" % id) if rand else _loc(e.get("title", {}))
+		flavor = T.call("ev_%s_f" % id) if rand else _loc(e.get("flavor", {}))
+		var cat_raw: String = String(e.get("cat", "")).to_lower()
+		var icon_id: String = String(e.get("icon", ""))
+		icon = icon_id if (icon_id != "" and TBGlyph.ic_name(icon_id) != "") else String(CAT_IC.get(cat_raw, "star" if (not rand and e.get("world", false)) else "warn"))
+		bad = cat_raw in CAT_BAD or (cat_raw == "" and icon == "warn")
+		var cat_key := "evcat_" + cat_raw.replace(" ", "_")
+		kicker = T.call("ev_worldwide") if (not rand and e.get("world", false)) else (T.call("ev_event") if not rand else (T.call(cat_key) if TBI18n.has_key(cat_key) else String(e.get("cat", ""))))
+		var labels: Array = e.get("labels", [])
+		for i in int(e["count"]):
+			var ttl: String
+			var chips: Array = []
+			if rand:
+				ttl = T.call("ev_%s_c%d" % [id, i]); chips = chips_from_text(T.call("ev_%s_d%d" % [id, i]))
+			elif i < labels.size():
+				ttl = _loc(labels[i])
+				var fx: Array = e.get("fx", [])
+				if i < fx.size(): chips = fx_chips(fx[i])
+			else: ttl = T.call("ev_ack")
+			var raw: String = " ".join(chips.map(func(c): return String(c[0])))
+			choices.append([choice_icon(raw, "check" if chips.is_empty() else "move"), ttl, chips, i])
+	# ---- header block: medallion + kicker + title
+	var top := K.hbox(14); top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(EventMedal.new(icon, TBTokens.BZ_BAD if bad else TBTokens.c("brass_lt")))
+	var tc := K.vbox(3); tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var kk := K.caps(kicker, 11, TBTokens.BZ_BAD if bad else TBTokens.c("brass_lt")); (kk as TBBz.TLabel).wrap_ok = true; kk.custom_minimum_size.x = 40; kk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tc.add_child(kk)
+	var tl := K.title(title, 19, TBTokens.BZ_IVORY, 0.06, 19.0 * 1.15); (tl as TBBz.TLabel).wrap_ok = true; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tc.add_child(tl)
+	top.add_child(tc)
+	box.add_child(top); _gap(box, 10)
+	box.add_child(K.para_bz(flavor, 17.0, 1.4)); _gap(box, 12)
+	if after != null:
+		box.add_child(after); _gap(box, 12)
+	var cv := K.vbox(6); cv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(cv)
+	var first: Control = null
+	for c in choices:
+		var idx: int = int(c[3])
+		var row := event_choice(String(c[0]), String(c[1]), c[2], func(): h.close(); on_choose.call(idx))
+		cv.add_child(row)
+		if first == null: first = row
+	if can_defer:
+		_gap(box, 6)
+		var later := LinkBtn.new(T.call("decide_later"), func(): h.close(); on_defer.call())
+		later.autowrap_mode = TextServer.AUTOWRAP_OFF
+		K.a11y(later, T.call("decide_later"), "button", T.call("decide_later_d"))
+		box.add_child(later)
+	if first != null: h.focus_target = first
 	return h
 
 # =====================================================================================================================================================

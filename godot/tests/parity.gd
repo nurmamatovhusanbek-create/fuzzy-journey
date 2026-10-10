@@ -30,10 +30,29 @@ func _init() -> void:
 			"annals": main._open_annals()
 			"goals": main._open_council("goals")
 			"menu": main._open_menu_hub("")
+			"event":
+				var au: int = main.g.nat_code.find("austria")
+				var pr := -1
+				for p in main.g.P:
+					if main.g.owner[p] == main.g.human_id: pr = p; break
+				TBModals.event_prompt(main._overlay, {"uid": 901, "n": main.g.human_id, "kind": "prop", "id": "ultimatum", "from": au, "p": pr}, func(_i): pass, main.g, Callable())
+			"event2":
+				TBModals.event_prompt(main._overlay, {"uid": 902, "n": main.g.human_id, "kind": "rand", "id": "plague", "cat": "CRISIS", "count": 2}, func(_i): pass, main.g, func(): pass)
 			"select":
 				for p in main.g.P:
 					if main.world.name[p] == "Bas-Rhin": main._select(p)
 		for i in 14: await process_frame
 		root.get_viewport().get_texture().get_image().save_png("%s/gd_%s.png" % [dir, s])
+		if OS.get_environment("TB_DUMP") != "":
+			_dump(main._overlay, 0)
 		print("shot ", s, " logical ", root.content_scale_size)
 	quit(0)
+
+func _dump(n: Node, d: int) -> void:
+	if n is Control and (n as Control).visible and d > 0:
+		var c: Control = n
+		var gp := c.global_position
+		var t: String = ""
+		if "text" in c: t = String(c.get("text")).substr(0, 22)
+		print("  ".repeat(mini(d, 14)), c.get_class(), "/", c.get_script().get_global_name() if c.get_script() != null else "", " | ", snappedf(gp.x, 0.1), " | ", snappedf(gp.y, 0.1), " | ", snappedf(c.size.x, 0.1), " | ", snappedf(c.size.y, 0.1), " | ", t)
+	for ch in n.get_children(): _dump(ch, d + 1)
