@@ -65,6 +65,32 @@ static func texture(code: String, base_rgb: int, era: String = "") -> Texture2D:
 	_cache[key] = tex
 	return tex
 
+## draws the flag as a filled circle of radius r at c (a 64-gon textured from the centred square of the flag; an era medal is already cropped on its main element)
+static func draw_medal(ci: CanvasItem, tex: Texture2D, c: Vector2, r: float) -> void:
+	if tex == null: return
+	var pts := PackedVector2Array(); var uvs := PackedVector2Array()
+	var fs_: Vector2 = tex.get_size()
+	var side: float = minf(fs_.x, fs_.y)
+	var uo := Vector2((fs_.x - side) * 0.5, (fs_.y - side) * 0.5)
+	for i in 64:
+		var a: float = TAU * i / 64.0
+		var d := Vector2(cos(a), sin(a))
+		pts.append(c + d * r)
+		uvs.append((uo + Vector2(side, side) * 0.5 + d * side * 0.5) / fs_)
+	ci.draw_colored_polygon(pts, Color.WHITE, uvs, tex)
+
+## flagMedal(code, size): a brass disc, the flag in a circle 4 units inside it and a thin dark ring at the flag's edge
+static func draw_flag_medal(ci: CanvasItem, tex: Texture2D, c: Vector2, size: float) -> void:
+	var r: float = size * 0.5
+	TBBz.brass_disc(ci.get_canvas_item(), c, r - 0.5)
+	draw_medal(ci, tex, c, r - 4.0)
+	ci.draw_arc(c, r - 4.0, 0.0, TAU, 48, Color(0, 0, 0, 0.55), 1.5, true)
+
+## the medal texture of a nation in the current era (falls back to the generated flag)
+static func medal_of(g: TBGame, n: int) -> Texture2D:
+	var m: Texture2D = medal(g.nat_code[n], g.era_id)
+	return m if m != null else texture(g.nat_code[n], g.color[n], g.era_id)
+
 static func chip(g: TBGame, n: int, scale: float = 0.6) -> TextureRect:
 	var t := TextureRect.new()
 	t.texture = texture(g.nat_code[n], g.color[n], g.era_id)

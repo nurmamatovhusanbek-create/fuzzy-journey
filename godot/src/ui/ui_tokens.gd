@@ -61,6 +61,7 @@ const BZ_DNG_LO_HOT := Color("FF9A78"); const BZ_DNG_TX := Color("FFF0E4"); cons
 ## round instruments: face gradient, outer shade; chips and rows: engraved well, row hover / selected washes, ink-wells (sliders)
 const BZ_FACE_A := Color("2A2218"); const BZ_FACE_B := Color("0F0C09"); const BZ_SHADE := Color(0.0196, 0.0157, 0.0118, 0.35)
 const BZ_WELL := Color("100D0A"); const BZ_WELL_LINE := Color("3A2F1D"); const BZ_TRACK_BG := Color("0C0A07"); const BZ_TRACK_LINE := Color("4A3F28")
+const BZ_REL_WARM := Color("D98A4A"); const BZ_PANE_LINE := Color("33291A")
 const BZ_ROW_HOT := Color(0.788, 0.635, 0.294, 0.08); const BZ_ROW_ON := Color(0.788, 0.635, 0.294, 0.15)
 const BZ_SCRIM := Color(0.0118, 0.0196, 0.0314, 0.62); const BZ_FOOT_LINE := Color("33291A"); const BZ_DOTS := Color("4A3D22")
 const BZ_SLIDER_FILL_A := Color("E5C77A"); const BZ_SLIDER_FILL_B := Color("A8842F"); const BZ_ZONE := Color(0.824, 0.376, 0.247, 0.45)
