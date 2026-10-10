@@ -2,6 +2,7 @@ extends SceneTree
 ## Specimen boards of every kit control in all states -> /tmp/ui_foundation/*.png (art bible 7.5 check).
 ## TB_NOANIM=1 xvfb-run -a -s "-screen 0 1280x720x24" godot --path godot --rendering-driver opengl3 -s tests/ui_kit_sheet.gd
 const K = preload("res://src/ui/ui_kit.gd")
+const KP = preload("res://tests/kit_parity.gd")      # the Bezel specimen sheet (same specimens as docs/ui_variants/src/b_kitparity.html)
 var OUT := "/tmp/ui_foundation"          # first user arg overrides
 
 ## mode: 0 normal, 1 high contrast light, 2 high contrast dark; scale = text size step (1.0 / 1.25 / 1.5 / 2.0)
@@ -260,6 +261,13 @@ func _init() -> void:
 	await _board("11_text200_controls", Vector2i(560, 1900), _scale_board, 0, true, 2.0)
 	await _board("12_text200_hc_dark", Vector2i(560, 1900), _scale_board, 2, true, 2.0)
 	await _board("13_text150_portrait_modal", Vector2i(540, 960), _modal_portrait, 0, true, 1.5)
+	# the game's look: the demo's kit (units = px) in normal, high contrast (light, dark) and at 150 % text
+	K.serif = true; TBTokens.legacy = false; TBFrame.rounded = false; TBFrame.bezel = true
+	await _board("14_bezel_kit", Vector2i(1280, 1180), KP.build)
+	await _board("15_bezel_kit_hc", Vector2i(1280, 1180), KP.build, 1)
+	await _board("16_bezel_kit_hc_dark", Vector2i(1280, 1180), KP.build, 2)
+	await _board("17_bezel_kit_text150", Vector2i(1280, 1180), KP.build, 0, true, 1.5)
+	TBFrame.bezel = false; K.serif = false
 	TBTokens.mode = TBTokens.Mode.NORMAL
 	K.text_scale = 1.0
 	print("UI KIT SHEET written to ", OUT)

@@ -230,7 +230,7 @@ class Notice extends Control:
 			"dip": return TBTokens.c("brass_lt")
 			"good": return TBTokens.c("pos")
 		return TBTokens.c("info")
-	func _x_rect() -> Rect2: return Rect2(size.x - 10.0 - 18.0 - 1.0, 11.0, 18.0, 18.0)
+	func _x_rect() -> Rect2: return Rect2(22.0 + 34.0 + TBBz.tw(_f(), text, _sz()) + 10.0, 11.0, 18.0, 18.0)       # `.in{gap:10px}`: right after the text
 	func _draw() -> void:
 		var ci := get_canvas_item()
 		var hot: bool = _hover or preview_hover
@@ -274,7 +274,7 @@ class Notice extends Control:
 		TBBz.brass_disc(ci, c, 21.0)
 		TBBz.poly(ci, _circle(c, 17.0), TBTokens.BZ_FACE_B)
 		TBBz.ring_stroke(ci, c, 16.4 + 0.3, 0.6, TBTokens.c("brass_lt"))
-		TBBz.ticks(ci, c, 16.0, 24, 2.4, 6, TBTokens.with_a(TBTokens.c("brass"), 1.0), 0.7)
+		TBBz.ticks(ci, c, 16.0, 24, 2.4, 6, TBTokens.c("brass"), 0.7)
 		TBGlyph.draw_ic(self, icon, c, 17.0, tone())
 	static func _circle(c: Vector2, r: float) -> PackedVector2Array:
 		var p := PackedVector2Array()

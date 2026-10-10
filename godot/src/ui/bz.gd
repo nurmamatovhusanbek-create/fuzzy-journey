@@ -242,10 +242,12 @@ static func _closed_circle(c: Vector2, r: float, n: int) -> PackedVector2Array:
 
 ## width of an antialiased line that looks like a `w` unit stroke: Godot feathers a line by about half a unit on each side
 static func aaw(w: float) -> float: return maxf(w - 0.55, 0.35) if w < 4.0 else w - 0.45
+## colour of a hairline thinner than one unit: coverage becomes opacity (a 0.7 unit stroke is a 1 unit line at .7)
+static func thin(col: Color, w: float) -> Color: return TBTokens.with_a(col, col.a * w) if w < 1.0 else col
 
 ## ring (stroke) of width w whose outer edge is at radius r_out
 static func ring_stroke(ci: RID, c: Vector2, r_out: float, w: float, col: Color) -> void:
-	RenderingServer.canvas_item_add_polyline(ci, _closed_circle(c, r_out - w * 0.5, 64), PackedColorArray([col]), aaw(w), true)
+	RenderingServer.canvas_item_add_polyline(ci, _closed_circle(c, r_out - w * 0.5, 64), PackedColorArray([thin(col, w)]), aaw(w), true)
 
 ## `.ring`: the header icon medallion. box d (46 in headers): radial face, brass hairline 1.3 outside it, 3 unit dark shade under that
 static func ring_face(ci: RID, c: Vector2, d: float, hot_k: bool = true) -> void:
@@ -362,6 +364,7 @@ class Btn extends Button:
 			add_theme_color_override(fc, Color.TRANSPARENT)
 	func _go_native() -> void:
 		_native = true
+		custom_minimum_size = Vector2(0.0, 0.0)
 		var f: Font = TBKit.tracked(TBKit.cinzel(700), 2)
 		add_theme_font_override("font", f); add_theme_font_size_override("font_size", TBKit.fs(12))
 		var tx: Color = _col(false)["tx"]
@@ -552,7 +555,7 @@ static func ticks(ci: RID, c: Vector2, r: float, n: int, len_px: float, major: i
 		var a: float = deg_to_rad(360.0 * i / n)
 		var l: float = len_px * (1.7 if i % major == 0 else 1.0)
 		pts.append(c + Vector2(sin(a), -cos(a)) * r); pts.append(c + Vector2(sin(a), -cos(a)) * (r - l))
-	RenderingServer.canvas_item_add_multiline(ci, pts, PackedColorArray([col]), aaw(w), true)
+	RenderingServer.canvas_item_add_multiline(ci, pts, PackedColorArray([thin(col, w)]), aaw(w), true)
 
 ## tickMarks() over an arc: a0 / span in degrees from the top, clockwise; n + 1 marks
 static func ticks_arc(ci: RID, c: Vector2, r: float, n: int, len_px: float, major: int, col: Color, w: float, a0: float, span: float) -> void:
@@ -561,7 +564,7 @@ static func ticks_arc(ci: RID, c: Vector2, r: float, n: int, len_px: float, majo
 		var a: float = deg_to_rad(a0 + span * i / n)
 		var l: float = len_px * (1.7 if i % major == 0 else 1.0)
 		pts.append(c + Vector2(sin(a), -cos(a)) * r); pts.append(c + Vector2(sin(a), -cos(a)) * (r - l))
-	RenderingServer.canvas_item_add_multiline(ci, pts, PackedColorArray([col]), aaw(w), true)
+	RenderingServer.canvas_item_add_multiline(ci, pts, PackedColorArray([thin(col, w)]), aaw(w), true)
 
 ## gBrass: the diagonal brass gradient (#EBCF85 -> #B38F3E -> #6F5A27) of a disc; the colour is affine in position so a fan from the centre is exact
 static func brass_disc(ci: RID, c: Vector2, r: float, n: int = 48) -> void:

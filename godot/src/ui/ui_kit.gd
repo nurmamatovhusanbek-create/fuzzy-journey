@@ -948,7 +948,7 @@ static func section(text: String) -> HBoxContainer:
 	if text_scale >= 1.4: cp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cp.custom_minimum_size.x = 40; cp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(cp)
 	var l := Control.new(); l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.size_flags_vertical = Control.SIZE_SHRINK_CENTER; l.custom_minimum_size = Vector2(8, 1); l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.draw.connect(func(): if not TBTokens.is_hc(): l.draw_rect(Rect2(0, 0, l.size.x, 1), TBTokens.c("hair")))
+	l.draw.connect(func(): if not TBTokens.is_hc() and not TBFrame.bezel: l.draw_rect(Rect2(0, 0, l.size.x, 1), TBTokens.c("hair")))      # the demo's captions carry no rule
 	h.add_child(l)
 	return h
 
