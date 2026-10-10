@@ -291,7 +291,7 @@ class DemoBox extends StyleBox:
 			var n: int = 10
 			for i in n:
 				var g: float = 22.0 * 0.9 * (2.0 * float(i) / (n - 1) - 1.0) * 0.5
-				RenderingServer.canvas_item_add_polygon(ci, TBBezel.notch(Rect2(r.position + Vector2(0, 14.0), r.size).grow(g), maxf(0.0, cut + g * 0.4)), PackedColorArray([Color(0, 0, 0, 0.6 / n)]))
+				RenderingServer.canvas_item_add_polygon(ci, TBBezel.notch(Rect2(r.position + Vector2(0, 14.0), r.size).grow(g), maxf(0.0, cut + g * 0.4)), PackedColorArray([TBTokens.with_a(Color.BLACK, 0.6 / n)]))
 		var lo: Color = TBBezel.BRASS_LO if not TBTokens.is_hc() else TBTokens.c("rule_dark")
 		RenderingServer.canvas_item_add_polygon(ci, TBBezel.notch(r, cut), PackedColorArray([lo]))
 		var inner: Rect2 = r.grow(-1.0)
@@ -383,7 +383,7 @@ static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Arr
 			vl.add_theme_font_override("font", fal(700)); vl.add_theme_font_size_override("font_size", fu(14.5))
 			vl.add_theme_color_override("font_color", TBTokens.BZ_GOOD if tone == "pos" else (TBTokens.BZ_BAD_TXT if tone == "neg" else tk("cream")))
 			if tone == "sum":
-				var rule := ColorRect.new(); rule.color = Color(0.2902, 0.2431, 0.1569); rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				var rule := ColorRect.new(); rule.color = TBTokens.BZ_RULER; rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				g.add_child(rule)
 			var lm := MarginContainer.new(); lm.add_theme_constant_override("margin_top", 2); lm.add_theme_constant_override("margin_bottom", 2); lm.add_theme_constant_override("margin_right", 0); lm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			line.add_child(l); line.add_child(vl)
@@ -531,8 +531,10 @@ class Chip extends Hit:
 		if sub_text != "": return sub_text
 		return ("+%s" % K.fmt(float(delta))) if delta >= 0 else ("−%s" % K.fmt(float(-delta)))
 	func desired_w() -> float:
-		var w: float = gsz()
-		if caption != "": w = maxf(w, TBHudParts.twl(cap_font(), cap_text(), fcap(), cap_ls()) + 4.0)
+		var w: float = gsz()                                                      # the demo's cell is a fixed 84 (56): a caption a little wider than it just overhangs
+		if caption != "":
+			var cw: float = TBHudParts.twl(cap_font(), cap_text(), fcap(), cap_ls())
+			if cw > w + 12.0: w = cw + 4.0
 		return ceilf(w)
 	func desired_h() -> float:
 		var h: float = gbox()

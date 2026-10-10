@@ -363,7 +363,7 @@ func _layout_demo(vp: Vector2) -> void:
 	if tr.size.x > 0.0 and not ph: tk_bottom = maxf(tk_bottom, tr.end.y - global_position.y + 12.0)
 	var iw: float = (300.0 if not ph else 240.0) * (1.0 + (P.text_scale - 1.0) * 0.7)
 	iw = minf(iw, vp.x * 0.62)
-	var ibottom: float = _seal.position.y - 16.0
+	var ibottom: float = _seal_rect().position.y - 16.0
 	_insp = Rect2(vp.x - m - iw, tk_bottom, iw, maxf(130.0, ibottom - tk_bottom))
 	var dw: float = minf(660.0 if not ph else vp.x - float(L["panelX"]) - m, vp.x - float(L["panelX"]) - m)
 	_drawer = Rect2(float(L["panelX"]), float(L["panelY"]), dw, maxf(200.0, float(L["panelH"])))
