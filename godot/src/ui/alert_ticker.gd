@@ -112,7 +112,7 @@ class AlertRow extends P.Hit:
 		var need: float = P.tw(font(), text, fz())
 		var n: int = 1 if need <= avail else 2
 		if n != lines: lines = n; queue_redraw()
-		_nat = (w if drawer else lead() + 2.0 + pad_l() + (need if n == 1 else avail) + text_right())
+		_nat = (w if (drawer or compact) else lead() + 2.0 + pad_l() + (need if n == 1 else avail) + text_right())      # phones: the demo stretches the notice over its column
 	## the width this row takes in the stack
 	func natural_w() -> float: return _nat if _nat > 0.0 else _w
 	func full_h() -> float: return base_h() + ((P.touch() if compact else 32.0) + 6.0 if expanded else 0.0)
