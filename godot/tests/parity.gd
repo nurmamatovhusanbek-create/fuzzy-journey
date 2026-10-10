@@ -23,10 +23,7 @@ func _init() -> void:
 	for s in states:
 		main._clear_overlay(); main._select(-1)
 		match s:
-			"nations":
-				var au: int = main.g.nat_code.find("austrian_empire")
-				if au < 0: au = main.g.nat_code.find("austria")
-				main._open_nations(au if au > 0 else -1)
+			"nations": main._open_nations()
 			"budget": main._open_budget()
 			"decrees": main._open_decisions()
 			"council": main._open_council()

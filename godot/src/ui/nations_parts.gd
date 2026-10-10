@@ -8,7 +8,7 @@ class RelBar extends Control:
 	var col := Color.WHITE
 	func _init(value: float, c: Color) -> void:
 		v = value; col = c
-		custom_minimum_size = Vector2(0, 52); size_flags_horizontal = Control.SIZE_EXPAND_FILL; mouse_filter = Control.MOUSE_FILTER_IGNORE
+		custom_minimum_size = Vector2(0, 59); size_flags_horizontal = Control.SIZE_EXPAND_FILL; mouse_filter = Control.MOUSE_FILTER_IGNORE   # the inline svg is 52 tall and sits on its baseline: 7 more units of line box
 	func _draw() -> void:
 		var s: float = minf(size.x / 440.0, 1.0)                        # preserveAspectRatio meet: never scaled up, centred
 		var ox: float = (size.x - 440.0 * s) * 0.5
@@ -53,7 +53,7 @@ class StatCell extends Control:
 		var x: float = 1.0 + 9.0 + 19.0 + 8.0
 		var fb: Font = TBKit.alegreya(700); var fc: Font = TBKit.cinzel(700)
 		var top: float = cy - 27.0
-		TBBz.text(ci, fb, Vector2(x, top + 23.0), value, 16.0, TBTokens.BZ_IVORY)
+		TBBz.text(ci, fb, Vector2(x, top + 20.0), value, 16.0, TBTokens.BZ_IVORY)
 		TBBz.text(ci, fc, Vector2(x, top + 39.5), cap.to_upper() if TBI18n.lang != "ru" else cap, 8.5, TBTokens.BZ_DIM, 8.5 * 0.2)
 
 ## flagMedal(code, size) as a control

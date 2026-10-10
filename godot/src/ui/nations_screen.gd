@@ -232,14 +232,14 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		var left := K.vbox(8)
 		left.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		var lm := MarginContainer.new()
-		lm.add_theme_constant_override("margin_left", 0); lm.add_theme_constant_override("margin_right", 18 if not portrait else 0)
+		lm.add_theme_constant_override("margin_left", 0); lm.add_theme_constant_override("margin_right", 10 if not portrait else 0)
 		lm.add_theme_constant_override("margin_top", 0); lm.add_theme_constant_override("margin_bottom", 0)
 		lm.add_child(left)
 		if portrait: lm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		else: lm.custom_minimum_size = Vector2(270.0 if ph0 else 290.0, 0)
+		else: lm.custom_minimum_size = Vector2((270.0 if ph0 else 290.0) + 18.0, 0)      # the demo's 290 unit column and the 18 unit gap (the list's scrollbar sits in the last 8 units of the gap)
 		lm.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		split.add_child(lm)
-		var srow := K.hbox(8); left.add_child(srow)
+		var srow := K.hbox(8); srow.visible = pick; left.add_child(srow)
 		var search := LineEdit.new(); search.placeholder_text = T.call("search"); search.clear_button_enabled = true
 		search.custom_minimum_size = Vector2(80, 30); search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		search.text = String(S["q"]); search.tooltip_text = T.call("search")
@@ -248,11 +248,11 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		if K.text_scale >= 1.4 or TBPanel.is_portrait(vs): sort_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; sort_btn.custom_minimum_size = Vector2(90, 28)      # wraps instead of widening the page
 		srow.add_child(sort_btn)
 		var fsc := ScrollContainer.new(); fsc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; fsc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-		fsc.custom_minimum_size = Vector2(0, 34); left.add_child(fsc)
+		fsc.custom_minimum_size = Vector2(0, 34); fsc.visible = pick; left.add_child(fsc)
 		var fl := K.hbox(6); fsc.add_child(fl)
 		var filters: Array = [["all", T.call("f_all")], ["powers", T.call("tier_powers")], ["regional", T.call("tier_regional")], ["minor", T.call("tier_minor")]] if pick else [["all", T.call("f_all")], ["near", T.call("f_near")], ["war", T.call("f_war")], ["ally", T.call("f_ally")]]
 		var fchips := {}
-		var cntl := K.label("", 13, K.DIM); left.add_child(cntl)
+		var cntl := K.label("", 13, K.DIM); cntl.visible = false; left.add_child(cntl)
 		var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; scroll.follow_focus = true; scroll.scroll_deadzone = 12
 		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		left.add_child(scroll)
@@ -263,6 +263,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		ui["empty"] = empty
 		for n in st["ids"]:
 			var nn: int = n
+			if nn == me and not pick: continue                    # the demo's list holds the other courts only
 			var r := NationRow.new(nn, g.dname(nn), TBFlags.medal_of(g, nn), func(): (ui["select"] as Callable).call(nn, true))
 			r.custom_minimum_size.y = row_h(portrait)
 			r.rank = int(st["rank_p"][nn]); r.me = nn == me and not pick
@@ -277,6 +278,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		# ---- detail column
 		var right := ScrollContainer.new(); right.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; right.follow_focus = true; right.scroll_deadzone = 12
 		right.size_flags_vertical = Control.SIZE_EXPAND_FILL; right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_hide_scrollbar(right)
 		var rm := MarginContainer.new()
 		rm.add_theme_constant_override("margin_left", 18 if not portrait else 0); rm.add_theme_constant_override("margin_right", 0)
 		rm.add_theme_constant_override("margin_top", 0); rm.add_theme_constant_override("margin_bottom", 0)
@@ -297,9 +299,15 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			var q: String = String(S["q"]).to_lower()
 			var key: String = S["sort"]
 			var ord: Array = st["ids"].duplicate()
+			if not pick: ord = ord.filter(func(x: int) -> bool: return rows.has(x))
 			if key == "army": ord.sort_custom(func(a: int, b: int) -> bool: return st["army"][a] > st["army"][b] if st["army"][a] != st["army"][b] else a < b)
 			elif key == "name": ord.sort_custom(func(a: int, b: int) -> bool: return names_l[a] < names_l[b])
 			else: ord = st["by_p"].duplicate()
+			if not pick and key == "prov":                          # the neighbours first, then the rest by size
+				ord = ord.filter(func(x: int) -> bool: return rows.has(x))
+				ord.sort_custom(func(a: int, b: int) -> bool:
+					var ka: int = (1000000 if near.has(a) else 0) + int(st["prov"][a]); var kb: int = (1000000 if near.has(b) else 0) + int(st["prov"][b])
+					return ka > kb if ka != kb else a < b)
 			var shown := 0
 			for i in ord.size():
 				var nn2: int = ord[i]
@@ -316,7 +324,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 				r2.visible = ok
 				if ok: shown += 1
 			cntl.text = T.call("showing_n", {"a": shown, "b": st["ids"].size()})
-			cntl.visible = shown != st["ids"].size()
+			cntl.visible = pick and shown != st["ids"].size()
 			var emp: Control = ui["empty"]
 			emp.visible = shown == 0
 			if shown == 0:
@@ -341,7 +349,9 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		var sel0: int = int(S["sel"])
 		if sel0 > 0 and rows.has(sel0): (ui["select"] as Callable).call(sel0, false)
 		elif not portrait:
-			var first_n: int = me if (me > 0 and rows.has(me) and not pick) else int(st["by_p"][0])
+			var first_n: int = int(st["by_p"][0])
+			for c in list.get_children():
+				if c is NationRow and c.visible: first_n = (c as NationRow).n; break
 			(ui["select"] as Callable).call(first_n, false)
 	# =========================================================================================================================================
 	ui["select"] = func(n: int, push: bool) -> void:
@@ -366,6 +376,16 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			(ui["master"] as Control).visible = false; (ui["detail_scroll"] as Control).visible = true
 			h.set_title(g.dname(n))
 		_footer(h, g, n, pick, taken, on_goto, on_play, opts)
+		if not ph0:                                             # the panel is as tall as the demo's card (min 470); the extras below it scroll
+			var dsc: ScrollContainer = ui["detail_scroll"]
+			var dv2: VBoxContainer = ui["detail_box"]
+			dv2.get_tree().process_frame.connect(func() -> void:
+				if not is_instance_valid(dv2) or not h.is_open(): return
+				var de: int = int(dv2.get_meta("demo_end", dv2.get_child_count()))
+				var hh := 0.0
+				for i in mini(de, dv2.get_child_count()): hh += (dv2.get_child(i) as Control).size.y
+				dsc.custom_minimum_size.y = maxf(470.0, hh)
+				TBPanel._fit_bz(h), CONNECT_ONE_SHOT)
 		if rows.has(n) and not portrait: (ui["list_scroll"] as ScrollContainer).ensure_control_visible.call_deferred(rows[n])
 	# ---- rankings tab
 	var build_rank := func() -> void:
@@ -378,12 +398,6 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		mg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var v := K.vbox(10); v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; mg.add_child(v); sc.add_child(mg); content.add_child(sc)
 		_rankings(v, g, st, parent)
-	# ---- tabs (not in pick mode)
-	if not pick:
-		var tabs := K.tabs([["list", T.call("dk_nations")], ["rank", T.call("rankings")]], String(S["tab"]), func(id: String):
-			S["tab"] = id; mem["tab"] = id
-			if id == "rank": build_rank.call() else: build_list.call())
-		h.set_tabs(tabs)
 	if ph0:                                                      # a phone in landscape: the panel is the full height (the demo's `height:100%`), the columns scroll inside it
 		var fit_h := func() -> void:
 			if not h.is_open(): return
@@ -399,8 +413,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			h.clear_actions()
 			return true
 		return false
-	if String(S["tab"]) == "rank" and not pick: build_rank.call()
-	else: build_list.call()
+	build_list.call()
 	if portrait and int(S["sel"]) > 0 and rows.has(int(S["sel"])): (ui["select"] as Callable).call(int(S["sel"]), true)
 	elif rows.has(int(S["sel"])): h.focus_target = rows[int(S["sel"])]          # keyboard / pad: focus starts on the selected nation row
 	return h
@@ -416,6 +429,13 @@ static func _footer(h: TBPanel.Handle, g: TBGame, n: int, pick: bool, taken: Arr
 		show.queue_free()                                                       # "Show on map" lives in the card header (the demo's nations panel has no footer)
 
 # ---- nation card (right pane): nationBody of the demo --------------------------------------------------------------------------------------
+## a scroll container that scrolls (wheel, drag, keys) but draws no bar and takes no width
+static func _hide_scrollbar(sc: ScrollContainer) -> void:
+	var sb: VScrollBar = sc.get_v_scroll_bar()
+	for st in ["scroll", "scroll_focus", "grabber", "grabber_highlight", "grabber_pressed"]: sb.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	sb.custom_minimum_size = Vector2.ZERO
+	sb.modulate.a = 0.0
+
 static func _cap(txt: String, top: float = 14.0, bottom: float = 6.0) -> Control:
 	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", int(top)); m.add_theme_constant_override("margin_bottom", int(bottom))
 	m.add_child(K.caps(txt)); return m
@@ -433,16 +453,18 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 	v.add_theme_constant_override("separation", 0)
 	# header: the flag medal, the name (Cinzel 21 / 1.05, tracked .06), the ruler in italic, the standing chip
 	var top := K.hbox(14); v.add_child(top)
-	top.add_child(TBNationParts.FlagMedal.new(TBFlags.medal_of(g, n), 64.0 if ph else 80.0))
+	var medal := TBNationParts.FlagMedal.new(TBFlags.medal_of(g, n), 64.0 if ph else 80.0)
+	if not pick and (ctx["on_goto"] as Callable).is_valid():      # tapping the flag shows the nation on the map (the demo has no button for it)
+		medal.mouse_filter = Control.MOUSE_FILTER_STOP; medal.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		medal.gui_input.connect(func(e: InputEvent):
+			if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: (ctx["h"] as TBPanel.Handle).close(); (ctx["on_goto"] as Callable).call(n))
+		K.a11y(medal, T.call("goto"), "button")
+	top.add_child(medal)
 	var tv := K.vbox(0); tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER; top.add_child(tv)
 	var nsz: int = 17 if ph else 21
 	var nl := K.title(g.dname(n), nsz, Color.TRANSPARENT, 0.06, nsz * 1.05); tv.add_child(nl)
 	if g.rules >= 1 and g.r_name[n] != "":
 		tv.add_child(_pad(K.para_bz("[i]%s %s[/i]" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], 15.0, 1.25), 3.0))
-	if not pick and (ctx["on_goto"] as Callable).is_valid():
-		var gb: Button = K.button(T.call("goto"), func(): (ctx["h"] as TBPanel.Handle).close(); (ctx["on_goto"] as Callable).call(n), false, true, "flag")
-		gb.size_flags_horizontal = Control.SIZE_SHRINK_END; gb.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		top.add_child(gb)
 	var chips := TBPanel.flow(6); tv.add_child(_pad(chips, 7.0))
 	if pick:
 		var rt := start_rating(g, n, st)
@@ -462,7 +484,7 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 	cells.add_child(TBNationParts.StatCell.new("gold", K.fmt(float(g.income(n)["gold"])), T.call("cap_economy")))
 	var tr_txt := "—"
 	if n != me and me > 0 and g.rules >= 1 and TBTrade.has(g, me, n): tr_txt = "+%d" % TBTrade.value(g, n)
-	cells.add_child(TBNationParts.StatCell.new("trade", tr_txt, T.call("trade")))
+	cells.add_child(TBNationParts.StatCell.new("trade", tr_txt, T.call("cap_trade")))
 	v.add_child(_pad(cells, 6.0 if (not pick and n != me) else 14.0, 10.0))
 	# the one-line note
 	var note := ""
@@ -562,24 +584,24 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		acts.add_child(b)
 	if rel == 1:
 		var ws: int = g.war_score[me * g.N1 + n]
-		add_btn.call(T.call("white_peace"), "flag", sub_of.call("white", D.DP_PEACE), func(): ask.call("white", "dv_peace_white", {"cmd": "peace", "t": n, "kind": "white"}), dpw.call(D.DP_PEACE))
-		add_btn.call(T.call("demand_land"), "flag", sub_of.call("cede", 0), func(): ask.call("cede", "dv_peace_cede", {"cmd": "peace", "t": n, "kind": "cede"}), "" if ws >= 25 else T.call("err_warscore") + " (25%)")
-		if g.rules >= 1: add_btn.call(T.call("demand_vassal"), "crown", sub_of.call("vassal", 0), func(): ask.call("vassal", "dv_peace_vassal", {"cmd": "peace", "t": n, "kind": "vassal"}), "" if ws >= 50 else T.call("err_warscore") + " (50%)")
+		add_btn.call(T.call("dip_peace"), "flag", sub_of.call("white", D.DP_PEACE), func(): ask.call("white", "dv_peace_white", {"cmd": "peace", "t": n, "kind": "white"}), dpw.call(D.DP_PEACE))
+		add_btn.call(T.call("dip_land"), "flag", sub_of.call("cede", 0), func(): ask.call("cede", "dv_peace_cede", {"cmd": "peace", "t": n, "kind": "cede"}), "" if ws >= 25 else T.call("err_warscore") + " (25%)")
+		if g.rules >= 1: add_btn.call(T.call("dip_vassal"), "crown", sub_of.call("vassal", 0), func(): ask.call("vassal", "dv_peace_vassal", {"cmd": "peace", "t": n, "kind": "vassal"}), "" if ws >= 50 else T.call("err_warscore") + " (50%)")
 	else:
 		if rel == 0:
-			add_btn.call(T.call("propose_nap"), "pact", sub_of.call("nap", D.DP_NAP), func(): ask.call("nap", "dv_pact_nap", {"cmd": "nap", "t": n}), dpw.call(D.DP_NAP))
-			add_btn.call(T.call("propose_ally"), "star", sub_of.call("ally", D.DP_ALLY), func(): ask.call("ally", "dv_pact_ally", {"cmd": "ally", "t": n}), dpw.call(D.DP_ALLY))
+			add_btn.call(T.call("dip_nap"), "pact", sub_of.call("nap", D.DP_NAP), func(): ask.call("nap", "dv_pact_nap", {"cmd": "nap", "t": n}), dpw.call(D.DP_NAP))
+			add_btn.call(T.call("dip_ally"), "star", sub_of.call("ally", D.DP_ALLY), func(): ask.call("ally", "dv_pact_ally", {"cmd": "ally", "t": n}), dpw.call(D.DP_ALLY))
 		if TBDiplo.can_marry(g, me, n):
-			add_btn.call(T.call("marry_propose"), "heart", sub_of.call("ally", TBDiplo.DP_MARRY), func(): ask.call("ally", "dv_marry", {"cmd": "marry", "t": n}), dpw.call(TBDiplo.DP_MARRY))
+			add_btn.call(T.call("dip_marry"), "heart", sub_of.call("ally", TBDiplo.DP_MARRY), func(): ask.call("ally", "dv_marry", {"cmd": "marry", "t": n}), dpw.call(TBDiplo.DP_MARRY))
 		if g.rules >= 1:
-			if TBTrade.has(g, me, n): add_btn.call(T.call("trade_cancel"), "trade", "", func(): done.call({"cmd": "cancelTrade", "t": n}))
-			else: add_btn.call(T.call("trade_propose"), "trade", sub_of.call("trade", TBTrade.DP_COST), func(): ask.call("trade", "dv_trade", {"cmd": "trade", "t": n}), dpw.call(TBTrade.DP_COST))
+			if TBTrade.has(g, me, n): add_btn.call(T.call("dip_close"), "trade", "", func(): done.call({"cmd": "cancelTrade", "t": n}))
+			else: add_btn.call(T.call("dip_trade"), "trade", sub_of.call("trade", TBTrade.DP_COST), func(): ask.call("trade", "dv_trade", {"cmd": "trade", "t": n}), dpw.call(TBTrade.DP_COST))
 		if rel == 2 or rel == 3:
-			add_btn.call(T.call("break_pact"), "close", "", func():
+			add_btn.call(T.call("dip_break"), "close", "", func():
 				TBPanel.confirm(parent, T.call("confirm_break_t", {"a": g.dname(n)}), T.call("confirm_break_b"), T.call("break_pact"), func(): done.call({"cmd": "breakPact", "t": n})))
 	if rel != 1:
 		var why: String = dpw.call(D.DP_WAR)
-		var wb: Button = K.danger(T.call("declare_war"), func():
+		var wb: Button = K.danger(T.call("dip_war"), func():
 			var cbk := TBDiplo.cb(g, me, n)
 			var body: String = T.call("confirm_war_cb", {"cb": T.call("cb_" + cbk)}) if cbk != "" else T.call("confirm_war_nocb", {"k": int(TBDiplo.NO_CB_INFAMY)})
 			TBPanel.confirm(parent, T.call("confirm_war_t", {"a": g.dname(n)}), body + " " + T.call("confirm_war_b", {"dp": D.DP_WAR}), T.call("declare_war_on", {"a": g.dname(n)}), func(): done.call({"cmd": "declareWar", "t": n}), true, "war"), "war")
@@ -588,6 +610,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		if why != "": K.disable(wb, why)
 		var wrap := K.vbox(0); wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL; wrap.add_child(wb)
 		v.add_child(_pad(wrap, 8.0))
+	v.set_meta("demo_end", v.get_child_count())                     # everything above is the demo's card; what follows (intel, facts, allies) scrolls below it
 	# intel
 	if g.rules >= 1:
 		v.add_child(_cap("%s  ·  %s %.0f" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]], 14.0, 6.0))
