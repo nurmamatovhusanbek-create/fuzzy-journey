@@ -372,6 +372,8 @@ static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Arr
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pc.add_child(v)
 	var width: float = clampf(max_w, 190.0, 330.0 - 30.0)
+	if max_w <= 190.0 and body != "":                                  # `#tip`: as wide as the text wants, 190 to 300 (the demo shrink-wraps)
+		width = clampf(ceilf(fal(400).get_string_size(body, HORIZONTAL_ALIGNMENT_LEFT, -1, fu(15.5)).x), 190.0, 300.0)
 	var dim: Color = TBTokens.BZ_DIM if not TBTokens.is_hc() else tk("smoke")
 	if title != "":
 		var t := Label.new(); t.text = (title.to_upper() if TBI18n.lang != "ru" else title); t.mouse_filter = Control.MOUSE_FILTER_IGNORE

@@ -49,6 +49,7 @@ func _init() -> void:
 				for p in main.g.P:
 					if main.g.owner[p] == main.g.human_id: pr = p; break
 				TBModals.event_prompt(main._overlay, {"uid": 901, "n": main.g.human_id, "kind": "prop", "id": "ultimatum", "from": au, "p": pr}, func(_i): pass, main.g, Callable())
+			"lens": main.hud._pick_lens("diplomatic")
 			"tip":
 				main.hud._tip_show(main.hud._chips["gold"], main.hud._tip_chip("gold"))
 			"world":
@@ -71,6 +72,13 @@ func _init() -> void:
 								if main.g.owner[q] != main.g.human_id and main.g.owner[q] != 0:
 									main.g.set_rel(main.g.human_id, main.g.owner[q], 1)
 									main.flow.preview_to(q); break
+			"tip2":
+				for p in main.g.P:
+					if main.world.name[p] == "Bas-Rhin":
+						main._select(p)
+				for i in 10: await process_frame
+				main.ring._hover = 0
+				main.ring._tip_show(0)
 			"map", "select", "dossier":
 				for p in main.g.P:
 					if main.world.name[p] == "Bas-Rhin":

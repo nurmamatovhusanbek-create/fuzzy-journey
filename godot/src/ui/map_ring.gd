@@ -23,6 +23,8 @@ var tag: TBTagCard
 var _tag_key := ""
 var _tag_off := 118.0
 var _hover := -1
+var _tip: Control                                  # the verb tooltip (the demo's showTip: 220 ms after the pointer rests on a verb)
+var _tip_wait := 0.0
 var _t := 0.0
 var _c := Vector2.ZERO                           # ring centre, local
 var _spots: Array = []                           # [{p: Vector2, r: float}] per verb, local
@@ -39,6 +41,30 @@ func show_verbs(p: int, list: Array) -> void:
 	visible = _want()
 	_hover = -1
 	set_process(p >= 0); queue_redraw()
+
+func _tip_hide() -> void:
+	if _tip != null and is_instance_valid(_tip): _tip.queue_free()
+	_tip = null
+
+## showTip(): centred under the verb, 10 units below its label (above it when that does not fit), kept 6 from the edges
+func _tip_show(i: int) -> void:
+	_tip_hide()
+	if i < 0 or i >= _spots.size() or i >= verbs.size() or _is_armed(): return
+	var v: Dictionary = verbs[i]
+	var id: String = String(v["id"])
+	var key := "vt_" + id.trim_prefix("cmd:")
+	var body: String = TBI18n.T(key) if TBI18n.has_key(key) else ""
+	var hot: String = String(TBProvincePanel.HOT.get(id, ""))
+	_tip = TBHudParts.tip_box(String(v.get("label", "")).split("  ")[0], body, 190.0, [], hot)
+	_tip.z_index = 20
+	add_child(_tip)
+	var sz: Vector2 = _tip.get_combined_minimum_size()
+	_tip.size = sz
+	var sp: Dictionary = _spots[i]
+	var c: Vector2 = sp["p"]; var r: float = float(sp["r"])
+	var below: float = c.y + r + (16.0 if (size.y >= 560.0 and c.y > _c.y + 40.0) else 0.0) + 10.0        # only the bottom verb has its label under the medallion
+	var y: float = below if below + sz.y <= size.y - 6.0 else c.y - r - sz.y - 10.0
+	_tip.position = Vector2(clampf(c.x - sz.x * 0.5, 6.0, maxf(6.0, size.x - sz.x - 6.0)), maxf(4.0, y)).floor()
 
 func _same_ids(list: Array) -> bool:
 	if list.size() != verbs.size(): return false
@@ -79,6 +105,10 @@ func _process(d: float) -> void:
 	var want: bool = _want()                                                        # while an order is previewed the panel sends no verbs: the armed medallion stays
 	if want != visible: visible = want; _t = 0.0
 	_t += d
+	if _tip_wait > 0.0:
+		_tip_wait -= d
+		if _tip_wait <= 0.0 and _hover >= 0: _tip_show(_hover)
+	if _hover < 0 or not visible: _tip_hide()
 	_sync_tag()
 	queue_redraw()
 
@@ -207,15 +237,16 @@ func _gui_input(e: InputEvent) -> void:
 		var i := _idx_at((e as InputEventMouseMotion).position)
 		if i != _hover:
 			_hover = i; hovered.emit(i if i >= 0 else 0); queue_redraw()
+			_tip_hide(); _tip_wait = 0.22 if i >= 0 else 0.0
 	elif e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and not (e as InputEventMouseButton).pressed:
 		var j := _idx_at((e as InputEventMouseButton).position)
-		if j >= 0: pressed.emit(j); accept_event()
+		if j >= 0: _tip_hide(); _tip_wait = 0.0; pressed.emit(j); accept_event()
 	elif e is InputEventMouseButton and (e as InputEventMouseButton).pressed and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 		if _idx_at((e as InputEventMouseButton).position) >= 0: accept_event()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_MOUSE_EXIT and _hover != -1:
-		_hover = -1; queue_redraw()
+		_hover = -1; _tip_hide(); _tip_wait = 0.0; queue_redraw()
 
 ## the demo's ring icons (IC.move / recruit / build / fortify / attack, 24 box, stroke 2 round): true when drawn, false for a verb the demo has no icon for
 func _demo_icon(id: String, c: Vector2, px: float, col: Color, w: float) -> bool:

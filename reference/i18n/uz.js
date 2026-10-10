@@ -942,6 +942,7 @@ export default {
   rep_all: "boshqa: {k}",
   tk_report: "{t}-navbat hisoboti: {s}",
   tkr_taxes: "Soliqlar ({p}%)", tkr_trade_routes: "Savdo yo‘llari", tkr_provinces: "Viloyatlar", tk_last8: "oxirgi 8 navbat", tk_hint_budget: "Byudjetni ochish uchun bosing · B", tk_hint_nations: "Davlatlarni ochish uchun bosing · N", tk_hint_army: "Qo‘shinlar ro‘yxati uchun bosing", tk_g_per_turn: "navbatiga", tk_g_gold: "tilla", tk_g_men: "jangchi", tk_g_moves: "yurish", tk_g_points: "diplomatiya ochkosi",
+  vt_move: "Armiyaga yurishni buyuradi. Yoritilgan yerlar — mumkin bo‘lgan nishonlar.", vt_attack: "Armiyaga yurishni buyuradi. Yoritilgan yerlar — mumkin bo‘lgan nishonlar.", vt_recruit: "Bu yerda odam yollaydi. Tilla va aholiga tushadi.", vt_build: "Kazarma, qal‘a, bozor yoki ferma. Bir necha navbat oladi.", vt_hire: "Tilla evaziga yollanma askar yollaydi.", vt_general: "Sarkarda tayinlaydi: har yulduz uchun +6% kuch.", vt_colonize: "Chegarangiz yonidagi egasiz yerni egallaydi.", vt_diplo: "Davlat kartasini ochadi.",
   tk_gold_1: "Xazina {v}",
   tk_gold_2: "Daromad +{g} · xarajat −{u} · boshqaruv −{a}",
   tk_gold_3: "Sof {n} har navbatda",
