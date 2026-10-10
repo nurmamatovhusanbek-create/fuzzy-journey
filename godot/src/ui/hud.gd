@@ -77,6 +77,7 @@ var map_view: TBMapView                      # the main map (the minimap shows a
 var _minimap: TBMinimap
 var _rail_n: int = 6                          # rail items shown (the rest sit behind More)
 var _minimap_ok: bool = false
+var _mm_globe: bool = false                  # the minimap's shape when the layout last ran (it follows the map's view mode)
 var _insp: Rect2 = Rect2()                    # where the inspector (province card) goes, hud coordinates
 var _drawer: Rect2 = Rect2()                  # where drawers open (right of the rail)
 var _strip_rows_h: float = 72.0
@@ -315,20 +316,22 @@ func layout_for(vp: Vector2) -> void:
 	_seal.size = Vector2(sw_, sh_)
 	_seal.position = Vector2(vp.x - m - sw_, vp.y - (m if not phone else safe_b + 12.0) - sh_)
 	# ---- minimap + mode switch (bottom-left)
-	_minimap.size = Vector2(200.0, mm_h)
+	var mm_w: float = _minimap.want_w(mm_h)                                  # wide plate (flat map) or round medallion (globe)
+	_mm_globe = _minimap.is_globe()
+	_minimap.size = Vector2(mm_w, mm_h)
 	_minimap.position = Vector2(m, mm_top)
 	_minimap.visible = show_mm
 	var mode_ok: bool = not phone and vp.y >= 520.0
 	_mode.visible = mode_ok
 	if mode_ok:
 		_mode.size = Vector2(_mode.desired_w(), 32.0)
-		_mode.position = Vector2(m + (212.0 if show_mm else 0.0), bottom_row_y)
+		_mode.position = Vector2(m + ((mm_w + 12.0) if show_mm else 0.0), bottom_row_y)
 		_zin.visible = show_mm; _zout.visible = show_mm
 		_zin.size = Vector2(36, 36); _zout.size = Vector2(36, 36)
-		_zout.position = Vector2(m + 212.0, bottom_row_y - 8.0 - 36.0); _zin.position = Vector2(m + 212.0, bottom_row_y - 16.0 - 72.0)
+		_zout.position = Vector2(m + mm_w + 12.0, bottom_row_y - 8.0 - 36.0); _zin.position = Vector2(m + mm_w + 12.0, bottom_row_y - 16.0 - 72.0)
 		_mm_btn.visible = not full
 		_mm_btn.size = Vector2(32.0, 32.0)
-		_mm_btn.position = Vector2(m + (212.0 if show_mm else 0.0) + _mode.size.x + 8.0, bottom_row_y)
+		_mm_btn.position = Vector2(m + ((mm_w + 12.0) if show_mm else 0.0) + _mode.size.x + 8.0, bottom_row_y)
 		_mm_btn.active = _mm_open
 	else:
 		_mm_btn.visible = false; _zin.visible = false; _zout.visible = false
@@ -396,6 +399,11 @@ func card_band() -> Vector2: return Vector2(_insp.position.x, _insp.end.x)
 
 ## where the inspector (province card) sits: right of the map, below the toasts, above the turn button (hud coordinates)
 func inspector_rect() -> Rect2: return _insp
+func _on_view_changed() -> void:
+	if _minimap == null: return
+	_minimap.queue_redraw()
+	if _minimap.is_globe() != _mm_globe and _vp.x > 0.0: layout_for(_vp)      # flat <-> globe: the plate and the things beside it change width
+
 ## where drawers open: right of the rail, above the minimap
 func drawer_rect() -> Rect2: return _drawer
 ## phones show the inspector as a bottom sheet; true there
@@ -560,7 +568,7 @@ func refresh() -> void:
 	if _minimap != null and map_view != null:
 		if _minimap.g != g or _minimap.map != map_view:
 			_minimap.setup(g, map_view)
-			if not map_view.view_changed.is_connected(_minimap.queue_redraw): map_view.view_changed.connect(_minimap.queue_redraw)
+			if not map_view.view_changed.is_connected(_on_view_changed): map_view.view_changed.connect(_on_view_changed)
 		_minimap.refresh()
 	_layout_bar()
 	_place_strip()

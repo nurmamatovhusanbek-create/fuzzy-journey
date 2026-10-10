@@ -22,7 +22,8 @@ for t in map_arrows map_a11y; do
   out=$(TB_NOANIM=1 timeout 500 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/$t.gd -- /tmp/tb_map 2>&1)
   if echo "$out" | grep -qE "^(ARROWS|MAPA11Y) OK" && ! echo "$out" | grep -qE "SCRIPT ERROR|^FAIL"; then echo "ok: tests/$t.gd"; else echo "FAIL: tests/$t.gd"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; fi
 done
-mkdir -p /tmp/tb_cc; run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
+mkdir -p /tmp/tb_cc; run tests/mm_globe.gd -- /tmp/tb_cc
+run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960
 # HUD / command-card layout: no overlap with End Turn, nothing off screen, 48 u hit areas (sizes x text scales)
 for cfg in "800 360 1.0" "800 360 2.0" "900 415 1.0" "1280 720 1.5" "540 960 1.0" "540 960 2.0"; do

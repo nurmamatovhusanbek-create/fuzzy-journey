@@ -13,11 +13,19 @@ var _src := PackedInt32Array()          # texel -> province (-1 sea)
 var _w := 0
 var _h := 0
 var _dirty := true
+var _gl: ColorRect                      # the mini-globe (shader), shown while the main map is a globe
+var _mat: ShaderMaterial
+var globe := false
+
+const GLOBE_PAD := 8.0                  # space around the sphere for the ring and tick marks
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	clip_contents = true
+	_gl = ColorRect.new(); _gl.mouse_filter = Control.MOUSE_FILTER_IGNORE; _gl.color = Color.WHITE; _gl.visible = false
+	_mat = ShaderMaterial.new(); _mat.shader = load("res://src/render/minimap_globe.gdshader"); _gl.material = _mat
+	add_child(_gl)
 
 func setup(game: TBGame, view: TBMapView) -> void:
 	g = game; map = view
@@ -37,6 +45,13 @@ func _build() -> void:
 			_src[y * _w + x] = (wd.ids[i] | (wd.ids[i + 1] << 8)) - 1
 	_img = Image.create(_w, _h, false, Image.FORMAT_RGBA8)
 	_tex = ImageTexture.create_from_image(_img)
+
+## the corner it needs: a wide plate for the flat map, a round medallion (square box) for the globe
+func is_globe() -> bool: return map != null and map.mode == 0
+func want_w(h: float) -> float: return h if is_globe() else 200.0
+
+func _globe_geom() -> Array:                    # [centre, sphere radius]
+	return [size * 0.5, minf(size.x, size.y) * 0.5 - GLOBE_PAD]
 
 func refresh() -> void:
 	_dirty = true
@@ -82,9 +97,31 @@ func _view_rect() -> Rect2:
 		half_lat = ang / PI * dh
 	return Rect2(cx - half_lon, cy - half_lat, half_lon * 2.0, half_lat * 2.0)
 
+func _draw_globe() -> void:
+	var gm: Array = _globe_geom()
+	var c: Vector2 = gm[0]; var R: float = gm[1]
+	_gl.position = c - Vector2(R, R); _gl.size = Vector2(R, R) * 2.0
+	_gl.visible = true
+	_mat.set_shader_parameter("tex", _tex)
+	_mat.set_shader_parameter("lon0", map.lon0)
+	_mat.set_shader_parameter("lat0", map.lat0)
+	var ang: float = minf(PI * 0.5, 1.15 / maxf(0.4, map.zoom))
+	_mat.set_shader_parameter("view_r", sin(ang) if ang < 1.45 else 0.0)
+	_mat.set_shader_parameter("brass", TBTokens.c("brass_lt"))
+	draw_circle(c, R + 3.0, TBTokens.ca("bar_0", 0.9))                                         # backing plate
+	draw_arc(c, R + 4.0, 0.0, TAU, 72, TBTokens.c("rule"), 1.5, true)                          # thin brass ring
+	var tk: Color = TBTokens.ca("brass_lt", 0.55)
+	for i in 36:                                                                                # graduated bezel: a mark every 10 degrees, longer every 30
+		var a: float = i * TAU / 36.0
+		var l: float = 4.0 if i % 3 == 0 else 2.0
+		draw_line(c + Vector2(cos(a), sin(a)) * (R + 6.0), c + Vector2(cos(a), sin(a)) * (R + 6.0 + l), tk, 1.0)
+
 func _draw() -> void:
 	if g == null: return
 	if _dirty or _w == 0: _recolor()
+	if is_globe():
+		_draw_globe(); return
+	_gl.visible = false
 	var poly: PackedVector2Array = TBHudParts.chamfer(Rect2(Vector2.ZERO, size), 9.0)
 	var uvs := PackedVector2Array()
 	for q in poly: uvs.append(Vector2(q.x / maxf(1.0, size.x), q.y / maxf(1.0, size.y)))
@@ -111,6 +148,18 @@ func _draw() -> void:
 
 func _fly(pos: Vector2) -> void:
 	if map == null: return
+	if is_globe():
+		var gm: Array = _globe_geom()
+		var d: Vector2 = (pos - (gm[0] as Vector2)) / float(gm[1])
+		d.y = -d.y
+		if d.length_squared() >= 1.0: d = d.normalized() * 0.999            # a tap on the bezel flies to the nearest edge
+		var z: float = sqrt(1.0 - d.length_squared())
+		var s0: float = sin(map.lat0); var c0: float = cos(map.lat0)
+		var lat: float = asin(clampf(z * s0 + d.y * c0, -1.0, 1.0))
+		var lon: float = map.lon0 + atan2(d.x, z * c0 - d.y * s0)
+		looked.emit(rad_to_deg(lon), rad_to_deg(lat))
+		map.fly_to(rad_to_deg(lon), rad_to_deg(lat))
+		return
 	pos = Vector2(clampf(pos.x, 0.0, size.x), clampf(pos.y, 0.0, size.y))
 	var lon: float = (pos.x / maxf(1.0, size.x) - 0.5) * 360.0
 	var lat: float = (0.5 - pos.y / maxf(1.0, size.y)) * 180.0
