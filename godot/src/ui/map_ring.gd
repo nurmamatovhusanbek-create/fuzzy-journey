@@ -156,7 +156,7 @@ func _demo_icon(id: String, c: Vector2, px: float, col: Color, w: float) -> bool
 		draw_circle(pts[0], w * 0.5, col); draw_circle(pts[pts.size() - 1], w * 0.5, col)
 	return true
 
-const BRASS_A := Color("EBCF85"); const BRASS_B := Color("B38F3E"); const BRASS_C := Color("6F5A27")
+const BRASS_A := TBTokens.MAP_BRASS_A; const BRASS_B := TBTokens.MAP_BRASS_MID; const BRASS_C := TBTokens.MAP_BRASS_C
 
 ## the demo's gBrass: a linear gradient from the top left (#EBCF85) through #B38F3E to the bottom right (#6F5A27) over the ring's bounding box
 static func _gbrass(a: float) -> Color:
@@ -194,37 +194,37 @@ func _draw() -> void:
 	var tx: String = K.fmt(float(army))
 	if _is_armed():
 		# orders armed: a dark disc, the instrument medallion (r 40) with the army, and a dashed ring turning once per 12 s
-		draw_circle(_c, 54.0 * rs * grow, Color(6.0 / 255.0, 8.0 / 255.0, 12.0 / 255.0, 0.45))
+		draw_circle(_c, 54.0 * rs * grow, TBTokens.MAP_SHADE45)
 		var mr: float = 40.0 * rs * grow
-		draw_circle(_c, mr + 2.0, Color(5.0 / 255.0, 4.0 / 255.0, 3.0 / 255.0, 0.35))
-		draw_circle(_c, mr, Color("0f0c09"))
-		draw_arc(_c, mr - 0.7, 0.0, TAU, 64, Color(0.788, 0.635, 0.294, 0.85), 1.3, true)
-		_ticks(_c, mr - 3.0, 36, 3.2, 5, Color("8f7637"), 0.7)
+		draw_circle(_c, mr + 2.0, TBTokens.MAP_SHADOW)
+		draw_circle(_c, mr, TBTokens.MAP_FACE)
+		draw_arc(_c, mr - 0.7, 0.0, TAU, 64, Color(TBTokens.BZ_BRASS, 0.85), 1.3, true)
+		_ticks(_c, mr - 3.0, 36, 3.2, 5, TBTokens.MAP_TICK, 0.7)
 		var z2: int = P.fs(26.0 * rs)
 		if grow > 0.5: draw_string(fb, Vector2(_c.x - P.tw(fb, tx, z2) * 0.5, _c.y + 8.0 * rs), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, z2, TBTokens.c("cream"))
-		_dots(_c, 50.0 * rs * grow, Color("E5C77A"), 1.0, 2.0, 5.0, (Time.get_ticks_msec() / 12000.0 * TAU) if K.motion_ok() else 0.0)
+		_dots(_c, 50.0 * rs * grow, TBTokens.MAP_HI, 1.0, 2.0, 5.0, (Time.get_ticks_msec() / 12000.0 * TAU) if K.motion_ok() else 0.0)
 		return
 	# the dial: a translucent disc, a brass gradient band with graduated marks, a dotted outer ring
-	draw_circle(_c, (R + 22.0 * rs) * grow, Color(6.0 / 255.0, 8.0 / 255.0, 12.0 / 255.0, 0.5))
+	draw_circle(_c, (R + 22.0 * rs) * grow, TBTokens.MAP_SHADE)
 	var seg: int = 72
 	for i in seg:
 		var a0: float = TAU * float(i) / seg
 		var a1: float = a0 + TAU / seg + 0.03
 		draw_arc(_c, R * grow, a0, a1, 3, _gbrass((a0 + a1) * 0.5), 10.0 * rs, true)
-	draw_arc(_c, (R - 5.0 * rs) * grow, 0.0, TAU, 72, Color("0f0c09"), 2.0, true)
-	_ticks(_c, (R - 6.0 * rs) * grow, 72, 5.0 * rs, 6, Color("C9A24B"), 0.8)
-	_dots(_c, (R + 8.0 * rs) * grow, Color(0.788, 0.635, 0.294, 0.7), 0.6, 1.0, 5.0)
+	draw_arc(_c, (R - 5.0 * rs) * grow, 0.0, TAU, 72, TBTokens.MAP_FACE, 2.0, true)
+	_ticks(_c, (R - 6.0 * rs) * grow, 72, 5.0 * rs, 6, TBTokens.BZ_BRASS, 0.8)
+	_dots(_c, (R + 8.0 * rs) * grow, Color(TBTokens.BZ_BRASS, 0.7), 0.6, 1.0, 5.0)
 	# the centre: the army
 	var cr: float = 44.0 * rs * grow
-	draw_circle(_c, cr, Color(15.0 / 255.0, 12.0 / 255.0, 9.0 / 255.0, 0.92))
-	draw_arc(_c, cr, 0.0, TAU, 48, Color("7F6A33"), 1.0, true)
+	draw_circle(_c, cr, TBTokens.MAP_FACE92)
+	draw_arc(_c, cr, 0.0, TAU, 48, TBTokens.BZ_LO, 1.0, true)
 	if grow > 0.5:
 		var z: int = P.fs(30.0 * rs)
 		draw_string(fb, Vector2(_c.x - P.tw(fb, tx, z) * 0.5, _c.y + 9.0 * rs), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, z, TBTokens.c("cream"))
 		var cf: Font = K.tracked(K.display(), 3)
 		var cz: int = maxi(1, int(round(8.5 * rs)))
 		var cap: String = TBI18n.T("army").to_upper()
-		draw_string(cf, Vector2(_c.x - P.tw(cf, cap, cz) * 0.5, _c.y - 17.0 * rs), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, cz, Color("C9A24B"))
+		draw_string(cf, Vector2(_c.x - P.tw(cf, cap, cz) * 0.5, _c.y - 17.0 * rs), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, cz, TBTokens.BZ_BRASS)
 	for i in n:
 		var st: float = clampf((_t - 0.04 * i) / 0.2, 0.0, 1.0) if K.motion_ok() else 1.0
 		var k: float = 1.0 - pow(1.0 - st, 3.0)
@@ -238,13 +238,13 @@ func _draw() -> void:
 		var danger: bool = bool(v.get("danger", false))
 		var hot: bool = i == _hover
 		if hot and ok:                                                       # .rv:hover  drop-shadow(0 0 8px rgba(229,199,122,.7))
-			for gi in 4: draw_circle(pp, rr + 4.0 + 8.0 - float(gi) * 2.5, Color(0.898, 0.78, 0.478, 0.12))
-		draw_circle(pp, rr + 4.0, Color("0b0907"))
-		var face: Color = Color("C9A24B") if (prim and ok) else Color("1d1812")
-		var edge: Color = Color("F1DB9C") if (prim and ok) else Color("B38F3E")
+			for gi in 4: draw_circle(pp, rr + 4.0 + 8.0 - float(gi) * 2.5, Color(TBTokens.MAP_HI, 0.12))
+		draw_circle(pp, rr + 4.0, TBTokens.MAP_DISC_EDGE)
+		var face: Color = TBTokens.BZ_BRASS if (prim and ok) else TBTokens.MAP_PLATE
+		var edge: Color = TBTokens.BZ_HI if (prim and ok) else TBTokens.MAP_BRASS_MID
 		draw_circle(pp, rr, face)
 		draw_arc(pp, rr, 0.0, TAU, 40, edge, 2.0, true)
-		var ink: Color = Color("14100b") if (prim and ok) else (TBTokens.c("neg_bar") if danger else Color("E5C77A"))
+		var ink: Color = TBTokens.MAP_ON_BRASS if (prim and ok) else (TBTokens.c("neg_bar") if danger else TBTokens.MAP_HI)
 		if not ok: ink = TBTokens.c("ink_off")
 		var ipx: float = 24.0 * (1.1 if prim else 0.95) * rs
 		if not _demo_icon(String(v["id"]), pp, ipx, ink, 2.0 * 1.0): P.icon(self, String(v["glyph"]), pp, ipx, ink, 2.0)
@@ -264,6 +264,6 @@ func _draw() -> void:
 			if absf(dir.x) < 0.3: lp = Vector2(pp.x - lw * 0.5, pp.y - (34.0 + 8.0) if dir.y < 0.0 else pp.y + 34.0 + 19.0)
 			elif dir.x > 0.0: lp = Vector2(pp.x + 34.0 + 10.0, pp.y + 5.0)
 			else: lp = Vector2(pp.x - 34.0 - 10.0 - lw, pp.y + 5.0)
-			var col: Color = Color("EFE6CF") if ok else TBTokens.c("ink_off")
-			draw_string_outline(lf, lp, lab, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, 4, Color("05070a"))
+			var col: Color = TBTokens.MAP_IVORY if ok else TBTokens.c("ink_off")
+			draw_string_outline(lf, lp, lab, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, 4, TBTokens.MAP_INK)
 			draw_string(lf, lp, lab, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, col)

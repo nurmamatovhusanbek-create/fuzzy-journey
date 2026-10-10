@@ -40,6 +40,9 @@ const GOOD := Color("6CC38F"); const BAD := Color("E06A5E"); const WARN := Color
 
 ## Bezel brass ramp (instrument rings), the gauge track, the map-text halo, hard shadow and the hold-to-confirm bar
 const BZ_HI := Color("F1DB9C"); const BZ_BRASS := Color("C9A24B"); const BZ_LO := Color("7F6A33"); const BZ_TRACK := Color("2A2318")
+const MAP_SHADE := Color(0.0235, 0.0314, 0.0471, 0.5); const MAP_SHADE45 := Color(0.0235, 0.0314, 0.0471, 0.45); const MAP_SHADOW := Color(0.0196, 0.0157, 0.0118, 0.35)   # the demo's map overlays: rgba(6,8,12,.5 / .45), #050403 at .35
+const MAP_FACE := Color("0F0C09"); const MAP_FACE92 := Color(0.0588, 0.0471, 0.0353, 0.92); const MAP_PLATE := Color("1D1812"); const MAP_DISC_EDGE := Color("0B0907"); const MAP_ON_BRASS := Color("14100B")
+const MAP_BAD := Color("D2603F"); const MAP_HI := Color("E5C77A"); const MAP_BRASS_MID := Color("B38F3E"); const MAP_BRASS_A := Color("EBCF85"); const MAP_BRASS_C := Color("6F5A27"); const MAP_TICK := Color("8F7637"); const MAP_IVORY := Color("EFE6CF"); const MAP_INK := Color("05070A")
 const HALO := Color(0.02, 0.03, 0.05, 0.85); const DROP := Color(0.0, 0.0, 0.0, 0.45); const HOLD_BAR := Color(1.0, 1.0, 1.0, 0.85)
 
 static func sig() -> int: return mode * 1000 + ver + (500 if legacy else 0)

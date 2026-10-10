@@ -26,10 +26,10 @@ const DARK_NEUTRAL := 0x26292d                  # land nobody owns (the demo's d
 const DARK_REBEL := 0x55504a
 const REGIME_DARK_MIX := 0.6                    # categorical lenses: the standard hue pulled 60 % towards the demo's ink (#0A0D12)
 const TERRAIN_DARK := [0x3d4a2f, 0x52483a, 0x4a4a45, 0x2f4234, 0x3a4a44, 0x5c5238]    # the demo's terrain lens colours (+2 for the game's six)
-const POP_DARK := [0x0f1822, 0x1f3550, 0x3a5f8f, 0x7FA8E8]
-const ARMY_DARK := [0x1b1511, 0x4a2a1c, 0x8a4228, 0xD2603F]                           # shades of the demo's military #D2603F
-const ECON_DARK := [0x1b1710, 0x4a3d1a, 0x8a7030, 0xE5C77A]
-const STAB_DARK := [0x4a1f1a, 0x8a4a2a, 0xb09040, 0xa7d9c9]
+const POP_DARK := [0x0f1822, 0x1b2f48, 0x2f4f7c, 0x4f7bb8]
+const ARMY_DARK := [0x1b1511, 0x3d2419, 0x683421, 0x8a4028]                           # shades of the demo's military #D2603F
+const ECON_DARK := [0x1b1710, 0x3f3318, 0x6a5428, 0x9a7d38]
+const STAB_DARK := [0x4a1f1a, 0x7a4a2a, 0x8f7a38, 0x5a9a88]
 const REL_DARK := {0: 0x433e33, 1: 0x542619, 2: 0x2a4841, 3: 0x33435c, 4: 0x4a3a5c}    # the demo's shade(relCol, .4)
 const DISCOVERABLE := 0x6a5d46
 

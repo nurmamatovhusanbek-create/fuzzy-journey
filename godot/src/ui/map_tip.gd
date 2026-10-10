@@ -23,7 +23,8 @@ func _init() -> void:
 	z_index = 50
 	var box := CC.plate("bar_0", "rule_dark", TBTokens.CUT)
 	box.fill_a = 0.96
-	box.set_content_margin_all(8)
+	box.content_margin_left = 15; box.content_margin_right = 15; box.content_margin_top = 12; box.content_margin_bottom = 11      # the demo tip: padding 12 15 11
+	custom_minimum_size = Vector2(190, 0)
 	add_theme_stylebox_override("panel", box)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 2)
 	add_child(v)
@@ -31,18 +32,18 @@ func _init() -> void:
 	_flag = TextureRect.new(); _flag.custom_minimum_size = Vector2(24, 16); _flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; _flag.stretch_mode = TextureRect.STRETCH_SCALE
 	_flag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top.add_child(_flag)
-	_name = _lab("brass_lt", TBKit.tracked(TBKit.display(), 1) if TBFrame.bezel else TBKit.body_b()); top.add_child(_name)
+	_name = _lab("brass_lt", TBKit.tracked(TBKit.display(), 2) if TBFrame.bezel else TBKit.body_b(), 13); top.add_child(_name)       # Cinzel 700 12.5, .16em, hi
 	var rel := HBoxContainer.new(); rel.add_theme_constant_override("separation", 4); v.add_child(rel)
 	_rel_glyph = Control.new(); _rel_glyph.custom_minimum_size = Vector2(14, 16); _rel_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rel_glyph.draw.connect(func(): if _glyph_id != "": CC.glyph(_rel_glyph, _glyph_id, _rel_glyph.size * 0.5, 13.0, CC.tk(_glyph_tok), 1.4))
 	rel.add_child(_rel_glyph)
-	_rel = _lab("cream", TBKit.body()); rel.add_child(_rel)
-	_army = _lab("cream", TBKit.body()); v.add_child(_army)
-	_lens = _lab("smoke", TBKit.body()); v.add_child(_lens)
-	_note = _lab("cream", TBKit.body_b()); v.add_child(_note)
+	_rel = _lab("smoke", TBKit.body(), 15); rel.add_child(_rel)
+	_army = _lab("smoke", TBKit.body(), 15); v.add_child(_army)
+	_lens = _lab("ink_1", TBKit.mono(), 11); v.add_child(_lens)      # the demo's key line: JetBrains Mono 10.5, #8d826a
+	_note = _lab("cream", TBKit.body_b(), 15); v.add_child(_note)
 
-func _lab(tok: String, f: Font) -> Label:
-	var l := CC.label("", 14, tok, f)
+func _lab(tok: String, f: Font, size: int = 14) -> Label:
+	var l := CC.label("", size, tok, f)
 	return l
 
 func show_for(g: TBGame, p: int, flow: TBOrderFlow) -> void:

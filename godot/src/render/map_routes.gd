@@ -59,7 +59,7 @@ func _arc(a: Array, b: Array, bend: float) -> Array:
 		var nrm: Vector2 = (p1 - p0).orthogonal().normalized()
 		var span: float = (p1 - p0).length()
 		for i in pts.size():
-			pts[i][0] = Vector2(pts[i][0]) + nrm * sin(PI * float(i) / SEG) * bend * minf(span, 600.0) * 0.12
+			pts[i][0] = Vector2(pts[i][0]) + nrm * sin(PI * float(i) / SEG) * bend * (span * 0.085 if map.atlas_look() else minf(span, 600.0) * 0.12)       # demo: control point .17 x length off the chord
 	return pts
 
 ## slerp between two unit vectors a quarter turn apart (never degenerate)
@@ -100,15 +100,25 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 	var grow: float = clampf(float(_seen[key]) / 1.3, 0.0, 1.0)
 	grow = 1.0 - pow(1.0 - grow, 3.0)
 	var pts: Array = _arc(a, b, bend)
+	var atlas: bool = map.atlas_look()
 	var col: Color = TBTokens.c("brass_lt")
 	var w := 2.0
 	match kind:
-		"war": col = TBTokens.c("neg_bar")
+		"war": col = TBTokens.MAP_BAD if atlas else TBTokens.c("neg_bar")
 		"trade": col = TBTokens.c("pos_bar")
 		"ally": w = 3.2
 		"nap": w = 1.8
 		"marry": w = 2.2
 	var halo: Color = TBTokens.with_a(TBTokens.HALO, 0.7)
+	if atlas:                                                                    # the demo's route group: no casing; pact #E5C77A 2.2 .9, trade #69B3A2 1.8 dashed "3 6" .9, war #D2603F 2 dotted "2 7" .85
+		halo = Color(0, 0, 0, 0)
+		match kind:
+			"war": col.a = 0.85; w = 2.0
+			"trade": col.a = 0.9; w = 1.8
+			"ally": col.a = 0.9; w = 3.0
+			"nap": col.a = 0.9; w = 2.2
+			"marry": col.a = 0.9; w = 2.2
+			_: col.a = 0.9; w = 2.2
 	var last: int = int(round(SEG * grow))
 	var run: PackedVector2Array = PackedVector2Array()
 	var runs: Array = []
@@ -125,9 +135,9 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 		var rr: PackedVector2Array = r
 		match kind:
 			"war":
-				_dotted(rr, halo, col, 3.5, 9.0)
+				_dotted(rr, halo, col, 2.6 if atlas else 3.5, 9.0)
 			"trade":
-				_dashed(rr, halo, col, w, 10.0, 7.0)
+				_dashed(rr, halo, col, w, 3.0 if atlas else 10.0, 6.0 if atlas else 7.0)
 			"nap":
 				_dashed(rr, halo, col, w, 12.0, 5.0)
 			"marry":
@@ -141,21 +151,22 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 	var mp: Vector2 = pts[mid][0]
 	if bool(pts[mid][1]) and bool(pts[0][1]) or bool(pts[mid][1]):
 		if kind != "war":
-			var s: float = 5.5 if kind != "nap" else 4.0
+			var s: float = (7.07 if kind != "nap" else 5.5) if map.atlas_look() else (5.5 if kind != "nap" else 4.0)
 			draw_colored_polygon(PackedVector2Array([mp + Vector2(0, -s), mp + Vector2(s, 0), mp + Vector2(0, s), mp + Vector2(-s, 0)]), TBTokens.c("bar_0"))
 			var ring := PackedVector2Array([mp + Vector2(0, -s), mp + Vector2(s, 0), mp + Vector2(0, s), mp + Vector2(-s, 0), mp + Vector2(0, -s)])
 			draw_polyline(ring, col, 1.6, true)
 		if kind == "trade":
 			var f: Font = K.body_b()
 			var tx: String = "+%d" % income
-			draw_string_outline(f, mp + Vector2(-f.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x * 0.5, -10.0), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, TBTokens.HALO)
-			draw_string(f, mp + Vector2(-f.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x * 0.5, -10.0), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TBTokens.c("brass_lt"))
+			var lz: int = 13 if map.atlas_look() else 14
+			draw_string_outline(f, mp + Vector2(-f.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz).x * 0.5, -9.0 if map.atlas_look() else -10.0), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, 3 if map.atlas_look() else 4, TBTokens.HALO)
+			draw_string(f, mp + Vector2(-f.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz).x * 0.5, -9.0 if map.atlas_look() else -10.0), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, TBTokens.c("brass_lt"))
 			if K.motion_ok():
 				for ph in [0.0, 0.5]:                                  # gold goes out, goods come back
 					var q: float = fposmod(_t * 0.12 + ph, 1.0)
 					var p1: Vector2 = _at(pts, q)
 					if p1 != Vector2.INF:
-						draw_circle(p1, 4.2, TBTokens.HALO); draw_circle(p1, 3.0, TBTokens.c("brass_lt"))
+						draw_circle(p1, 4.2, TBTokens.HALO); draw_circle(p1, 3.4 if map.atlas_look() else 3.0, TBTokens.c("brass_lt"))
 				var p2: Vector2 = _at(pts, 1.0 - fposmod(_t * 0.12 + 0.25, 1.0))
 				if p2 != Vector2.INF:
 					draw_circle(p2, 4.0, TBTokens.HALO); draw_circle(p2, 2.8, TBTokens.c("pos_bar"))
