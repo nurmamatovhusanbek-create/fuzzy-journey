@@ -8,6 +8,6 @@ GODOT=${GODOT:-/opt/godot/Godot_v4.4.1-stable_linux.x86_64}
 cd "$(dirname "$0")/.."
 mkdir -p "$OUT"
 (cd docs/ui_variants && node build.mjs >/dev/null && node shoot_bezel.mjs "$OUT" bezel_demo.html $W $H $STATES >/dev/null 2>&1)
-GS=$(echo $STATES | tr ',' '\n' | grep -E '^(map|nations|budget|decrees|council|annals|goals|menu|select|event|event2|hub|settings|saves|howto|honours|dialog|result|resultlost|briefing|tutorial|hotseat|banner|toasts|help|tip|tip3)$' | paste -sd,)
+GS=$STATES
 (cd godot && TB_NOANIM=1 timeout 280 xvfb-run -a -s "-screen 0 ${W}x${H}x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/parity.gd -- "$OUT" $W $H "$GS" 2>&1 | grep -E "SCRIPT|^ERROR" | grep -v "status < 0")
 python3 tools/parity_cmp.py "$OUT" "$STATES"

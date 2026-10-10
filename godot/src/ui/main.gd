@@ -66,6 +66,8 @@ func _ready() -> void:
 	panel.verbs_ready.connect(func(sp: int, vs: Array): ring.g = g; ring.show_verbs(sp, vs))
 	panel.visibility_changed.connect(func(): if not panel.visible: ring.clear())
 	ring.pressed.connect(func(i: int): panel._press(i))
+	ring.dossier_requested.connect(func(q: int): _open_dossier(q))
+	ring.nation_requested.connect(func(n: int): _open_nations(n))
 	ring.hovered.connect(func(i: int): panel._set_focus_verb(i))
 	tip = TBMapTip.new(); add_child(tip)
 	TBMapCursor.install(self)                       # keyboard map cursor + on-screen nav pad (accessibility)
@@ -334,6 +336,9 @@ func _open_screen(k: String) -> void:
 		"budget": _open_budget()
 		"decrees": _open_decisions()
 
+func _open_dossier(p: int) -> void:
+	if g != null: TBDossier.open(_overlay, g, p, func(c: Dictionary): _on_command(c, false))
+
 func _open_budget() -> void:
 	if g != null: TBModals.budget(_overlay, g, func(): hud.refresh())
 
@@ -547,6 +552,7 @@ func _select(p: int) -> void:
 	flow.on_select(p)
 	if p >= 0 and hud.exclusive_panels() and not hud.sheet_mode(): TBPanel.close_drawers(_overlay)       # 700-1099 px: the drawer and the inspector never share the width
 	panel.show_province(g, p) if p >= 0 else panel.show_province(g, -1)
+	ring.g = g; ring.set_selection(p)
 
 ## the Move verb / M: arm the selected army (own armies become targets too)
 func _on_move_requested(p: int) -> void:

@@ -67,6 +67,7 @@ var _scroll: ScrollContainer
 var _body: VBoxContainer
 var _footer_box: VBoxContainer
 var _px0 := 0.0
+var stealth := true                       # the demo has no inspector: the card keeps computing verbs / hotkeys / orders for the ring, but is kept off screen
 var _act_node: Control                    # the idle verb row: AoC action buttons floating above the minimap (top level)
 
 func _init() -> void:
@@ -113,6 +114,9 @@ func _refit() -> void:
 	var body_min: float = _body.get_combined_minimum_size().y
 	_scroll.custom_minimum_size = Vector2(0, clampf(body_min, 0.0, maxf(0.0, cap - chrome - 6.0)))
 	var h: float = minf(get_combined_minimum_size().y, rc.size.y if profile != "P" else 99999.0)
+	if stealth:
+		position = Vector2(-6000.0, -6000.0); size = Vector2(maxf(rc.size.x, 320.0), h)
+		return
 	if profile == "P":
 		position = Vector2(8.0, _vp.y - reserve - h + _rise); size = Vector2(_vp.x - 16.0, h)
 	else:

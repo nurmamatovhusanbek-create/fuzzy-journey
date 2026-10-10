@@ -51,9 +51,11 @@ func _init() -> void:
 				TBModals.event_prompt(main._overlay, {"uid": 901, "n": main.g.human_id, "kind": "prop", "id": "ultimatum", "from": au, "p": pr}, func(_i): pass, main.g, Callable())
 			"event2":
 				TBModals.event_prompt(main._overlay, {"uid": 902, "n": main.g.human_id, "kind": "rand", "id": "plague", "cat": "CRISIS", "count": 2}, func(_i): pass, main.g, func(): pass)
-			"select":
+			"map", "select", "dossier":
 				for p in main.g.P:
-					if main.world.name[p] == "Bas-Rhin": main._select(p)
+					if main.world.name[p] == "Bas-Rhin":
+						main._select(p)
+						if s == "dossier": main._open_dossier(p)
 		for i in 14: await process_frame
 		root.get_viewport().get_texture().get_image().save_png("%s/gd_%s.png" % [dir, s])
 		if OS.get_environment("TB_DUMP") != "":

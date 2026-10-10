@@ -5,6 +5,8 @@ extends Control
 
 signal pressed(idx: int)
 signal hovered(idx: int)
+signal dossier_requested(p: int)
+signal nation_requested(n: int)
 
 const K = preload("res://src/ui/ui_kit.gd")
 const P = preload("res://src/ui/hud_parts.gd")
@@ -16,6 +18,10 @@ var avoid_fn: Callable = Callable()              # () -> Array of global Rect2 t
 var subject := -1
 var verbs: Array = []                            # [{id, glyph, label, can, why, primary, danger, hot}]
 var armed := false                               # false while an order is being previewed / confirmed: the ring steps aside
+var sel := -1                                    # the selected province (a foreign one shows the nation ring and its tag card)
+var tag: TBTagCard
+var _tag_key := ""
+var _tag_off := 118.0
 var _hover := -1
 var _t := 0.0
 var _c := Vector2.ZERO                           # ring centre, local
@@ -30,7 +36,7 @@ func show_verbs(p: int, list: Array) -> void:
 	var same: bool = p == subject and visible and _same_ids(list)         # a rebuild of the same ring (a hover, a refresh) must not replay the pop-in
 	subject = p; verbs = list
 	if not same: _t = 0.0
-	visible = p >= 0 and (not list.is_empty() or _is_armed())
+	visible = _want()
 	_hover = -1
 	set_process(p >= 0); queue_redraw()
 
@@ -41,17 +47,39 @@ func _same_ids(list: Array) -> bool:
 	return true
 
 func clear() -> void:
-	subject = -1; verbs = []; visible = false; set_process(false)
+	subject = -1; verbs = []; visible = false; set_process(false); _drop_tag()
+
+## the selection (any province): foreign land shows the nation ring and tag card, own land the verb ring (its verbs arrive in show_verbs)
+func set_selection(p: int) -> void:
+	sel = p
+	_tag_key = ""
+	visible = _want()
+	set_process(p >= 0 or subject >= 0); queue_redraw()
+	if p < 0: _drop_tag()
+
+func _nation_mode() -> bool:
+	if g == null or sel < 0 or sel >= g.P or g.human_id <= 0: return false
+	var o: int = g.owner[sel]
+	return o != 0 and o != g.human_id
+
+func _want() -> bool:
+	if _nation_mode(): return not _is_armed()
+	return subject >= 0 and (not verbs.is_empty() or _is_armed())
+
+func _drop_tag() -> void:
+	if tag != null and is_instance_valid(tag): tag.queue_free()
+	tag = null; _tag_key = ""
 
 func set_armed(a: bool) -> void:
 	armed = a
-	visible = subject >= 0 and (not verbs.is_empty() or _is_armed())
+	visible = _want()
 	set_process(subject >= 0); queue_redraw()
 
 func _process(d: float) -> void:
-	var want: bool = subject >= 0 and (not verbs.is_empty() or _is_armed())       # while an order is previewed the panel sends no verbs: the armed medallion stays
+	var want: bool = _want()                                                        # while an order is previewed the panel sends no verbs: the armed medallion stays
 	if want != visible: visible = want; _t = 0.0
 	_t += d
+	_sync_tag()
 	queue_redraw()
 
 ## the demo's ring metrics (desktop stage: R 88; phone stage: rs .66, no verb labels)
@@ -65,7 +93,7 @@ func _subj() -> int:
 	if _is_armed() and map != null and map.labels != null:
 		var f: int = map.labels.order_from()
 		if f >= 0: return f
-	return subject
+	return subject if subject >= 0 else sel
 
 ## where the province sits on screen (ring-local coordinates), or Vector2.INF when it is on the far side of the globe
 func _anchor() -> Vector2:
@@ -74,6 +102,62 @@ func _anchor() -> Vector2:
 	var pr: Vector3 = map.project(g.world.lon[sj], g.world.lat[sj])
 	if pr.z <= 0.05: return Vector2.INF
 	return Vector2(pr.x, pr.y) + map.global_position - global_position
+
+## the tag card: built when the selection or its numbers change, shown beside the ring (never while an order is armed)
+func _sync_tag() -> void:
+	if g == null or not visible or _is_armed() or sel < 0 or sel >= g.P:
+		if tag != null: tag.visible = false
+		return
+	var key: String
+	if _nation_mode(): key = "n%d:%d" % [g.owner[sel], g.turn]
+	else: key = "p%d:%d:%d:%d" % [sel, g.stab[sel], g.happy[sel], g.pop[sel]]
+	if key == _tag_key and tag != null and is_instance_valid(tag): tag.visible = _c != Vector2.INF; return
+	_drop_tag(); _tag_key = key
+	var me: int = g.human_id
+	var o: int = g.owner[sel]
+	if _nation_mode():
+		var army := 0
+		for q in g.P:
+			if g.owner[q] == o: army += g.army[q]
+		var op: int = TBNationsScreen.opinion(g, me, o)
+		var ruler := ""
+		if g.rules >= 1 and g.r_name[o] != "": ruler = "%s %s" % [TBI18n.T(TBRulers.title_key(g, o)), TBRulers.display_name(g, o)]
+		tag = TBTagCard.new().build_nation({"state": TBNationsScreen.rel_text(g, me, o, op), "name": g.dname(o), "ruler": ruler,
+			"army": K.fmt(float(army)), "rel": ("+%d" % op) if op > 0 else str(op), "rel_col": TBNationsScreen.rel_color(op)})
+		tag.link_pressed.connect(func(): nation_requested.emit(o))
+	else:
+		var oname: String = g.dname(o) if o != 0 else TBI18n.T("cc_tag_unclaimed")
+		var mine: bool = o == me
+		tag = TBTagCard.new().build_province({"name": TBI18n.place(g.world.name[sel]), "owner_name": oname, "own": mine, "tag": TBI18n.T("tag_yours") if mine else "",
+			"pop": K.fmt(float(g.pop[sel])), "stab": g.stab[sel], "happy": g.happy[sel]})
+		var pp: int = sel
+		tag.link_pressed.connect(func(): dossier_requested.emit(pp))
+	tag.size = tag.get_combined_minimum_size(); tag.z_index = 5
+	add_child(tag)
+
+func _place_tag(off: float) -> void:
+	if tag == null or not is_instance_valid(tag):
+		return
+	if _c == Vector2.INF:
+		tag.visible = false
+		return
+	tag.visible = true
+	tag.size = tag.get_combined_minimum_size()
+	var w: float = tag.size.x
+	var h: float = tag.size.y
+	var x: float = _c.x + off + 34.0
+	var flip: bool = x + w > size.x - 28.0
+	if flip: x = _c.x - off - 34.0 - w
+	var y: float = clampf(_c.y - h * 0.45, 150.0, maxf(150.0, size.y - h - 110.0))
+	tag.position = Vector2(x, y).floor()
+	_tag_off = off; _tag_flip = flip
+
+var _tag_flip := false
+func _draw_connector() -> void:
+	if tag == null or not is_instance_valid(tag) or not tag.visible or _c == Vector2.INF: return
+	var y: float = _c.y
+	if _tag_flip: draw_line(Vector2(tag.position.x, y), Vector2(_c.x - _tag_off - 4.0, y), TBTokens.BZ_BRASS, 1.2)
+	else: draw_line(Vector2(_c.x + _tag_off + 4.0, y), Vector2(tag.position.x, y), TBTokens.BZ_BRASS, 1.2)
 
 func _layout() -> void:
 	_spots.clear()
@@ -188,6 +272,12 @@ func _draw() -> void:
 	var rs: float = _rs()
 	var R: float = _radius()
 	var n: int = verbs.size()
+	if _nation_mode() and not _is_armed():                              # a foreign nation: a small instrument ring with the nations icon (the demo's `nat` selection)
+		draw_circle(_c, 26.0 * rs + 6.0, TBTokens.MAP_SHADE)
+		TBBezel.ring(self, _c, 24.0 * rs, 36, Color.TRANSPARENT, true, false, 1.0)
+		TBBzIcons.draw(self, "nations", _c, 24.0 * 1.17 * rs, TBTokens.MAP_HI, 1.7)
+		_place_tag(26.0 * rs); _draw_connector()
+		return
 	var grow: float = 1.0 if not K.motion_ok() else 1.0 - pow(1.0 - clampf(_t / 0.22, 0.0, 1.0), 3.0)
 	var army: int = g.army[_subj()] if _subj() >= 0 and _subj() < g.P else 0
 	var fb: Font = K.body_b()
@@ -225,6 +315,7 @@ func _draw() -> void:
 		var cz: int = maxi(1, int(round(8.5 * rs)))
 		var cap: String = TBI18n.T("army").to_upper()
 		draw_string(cf, Vector2(_c.x - P.tw(cf, cap, cz) * 0.5, _c.y - 17.0 * rs), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, cz, TBTokens.BZ_BRASS)
+	_place_tag(R + 30.0 * rs); _draw_connector()
 	for i in n:
 		var st: float = clampf((_t - 0.04 * i) / 0.2, 0.0, 1.0) if K.motion_ok() else 1.0
 		var k: float = 1.0 - pow(1.0 - st, 3.0)
