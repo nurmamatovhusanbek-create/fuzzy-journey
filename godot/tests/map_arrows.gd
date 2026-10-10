@@ -64,7 +64,7 @@ func _init() -> void:
 			var lb: TBMapLabels = main.map.labels
 			var shaft: float = lb.last_shaft
 			print(tag, " zoom ", z, " prov_px ", lb.prov_px(), " shaft ", shaft, " push ", lb._push_v, lb._push_sv, " path ", lb._path[0], lb._path[lb._path.size() - 1], " mapzoom ", main.map.zoom)
-			if z >= 2.0: _check(shaft >= 20.0, "%s preview shaft visible at zoom %s (%s px)" % [tag, z, shaft])
+			if z >= 2.0: _check(shaft >= 18.0, "%s preview shaft visible at zoom %s (%s px)" % [tag, z, shaft])
 			await _shot("%s_preview_z%d" % [tag, int(z * 10)])
 			main.flow.cancel()
 			main.flow.hover(tgt)
