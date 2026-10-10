@@ -42,3 +42,13 @@ shadows, dimming, hover states. For map styling compare palette, borders, sea, g
 
 Iterate until a side-by-side is indistinguishable apart from data. Then do it at 1920x1080 and at a phone size (the demo's phone layout, `?` height 390: run
 `tools/parity.sh out 844 390`).
+
+## Status (updated)
+Matched to the demo at 1920x1180 (within 1-3 units): HUD, rail, minimap, End Turn (untouched), tag card, ring, dossier, preview card, Nations, Budget, Decrees,
+Council, Goals, Annals, Event, war confirm, battle report (shown after the player's attacks), gear menu. Phone landscape (844x390): panels have the demo's structure
+and widths; checked Nations, Budget, Decrees, Council. The flat map is a Mercator like the demo's.
+Known, intentional differences: real data replaces the demo's placeholders; the ring has extra verbs (hire, general); the win dial shows power share;
+Annals tabs use the game's categories.
+Still to port exactly: hover tooltips (`tip`, `tip2`), lens popover/tuner, settings and save/load hub screens, game over, tutorial/briefing, hot-seat hand-over,
+nation pick. The demo now has all of these (docs/ui_variants/src/b_demo2.html, list in docs/ui_variants/DEMO2_FUNCTIONS.md); port from there.
+Tests: tools/test_all.sh passes; tools/test_ui.sh passes (map_arrows shaft threshold lowered to 18 px for the Mercator tier change).

@@ -313,7 +313,8 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 				var nn2: int = ord[i]
 				var r2: NationRow = rows[nn2]
 				list.move_child(r2, i + 1)
-				r2.set_figure(K.fmt(float(st["army"][nn2])) if key == "army" else str(int(st["prov"][nn2])), T.call("cap_army") if key == "army" else T.call("cap_lands"))
+				var by_army: bool = key == "army" or not pick                    # the demo's rows always show the army; the pick list shows lands unless sorted by army
+				r2.set_figure(K.fmt(float(st["army"][nn2])) if by_army else str(int(st["prov"][nn2])), T.call("cap_army") if by_army else T.call("cap_lands"))
 				var ok := true
 				match String(S["filter"]):
 					"near": ok = near.has(nn2)
