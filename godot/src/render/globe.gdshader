@@ -51,9 +51,11 @@ bool unproject(vec2 p, out float lon, out float lat, out vec3 n) {
 		return true;
 	}
 	lon = lon0 + (p.x - rect_size.x * 0.5) / flat_scale;
-	lat = lat0 - (p.y - rect_size.y * 0.5) / flat_scale;
+	// Mercator: y = ln tan(pi/4 + lat/2)
+	float my = log(tan(PI * 0.25 + clamp(lat0, -1.4844, 1.4844) * 0.5)) - (p.y - rect_size.y * 0.5) / flat_scale;
+	lat = 2.0 * atan(exp(my)) - PI * 0.5;
 	n = vec3(0.0, 0.0, 1.0);
-	return abs(lat) <= PI * 0.5;
+	return abs(my) <= 3.1316;                            // ln tan(pi/4 + 85.05 deg / 2)
 }
 
 vec2 tex_coord(float lon, float lat) {

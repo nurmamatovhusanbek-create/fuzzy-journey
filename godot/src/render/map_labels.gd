@@ -179,7 +179,7 @@ var ring_c := Vector2(-999.0, -999.0)      # the command ring's centre (screen p
 ## on-screen length (logical px) of a nation along its long axis; falls back to a count-based guess for round nations
 func _nation_px(n: int, cnt: int) -> float:
 	var ext := _ax_ext[n] if n < _ax_ext.size() else 0.0
-	var sc: float = map.radius_px() if map.mode == 0 else map.flat_scale()
+	var sc: float = map.radius_px() if map.mode == 0 else map.flat_local()
 	if ext > 0.001: return 2.0 * ext * sc
 	return sqrt(float(cnt)) * 0.02 * sc
 
@@ -472,7 +472,7 @@ func _screen(p: int, c0: float, s0: float, sl: float, cl: float, R: float, cx: f
 ## average province size on screen (px): picks the marker tier. Far < 14 (dot), mid 14-40 (pennant), near > 40 (gonfalon)
 func prov_px() -> float:
 	var k := sqrt(3.7 / float(maxi(1, g.P)))
-	return (map.radius_px() if map.mode == 0 else map.flat_scale()) * k
+	return (map.radius_px() if map.mode == 0 else map.flat_local()) * k
 
 ## half extent of a marker along direction d (unit) at tier zt, for the arrow trim and the target push
 func _ext_tier(zt: int, army: int, d: Vector2, hot: bool = false) -> float:

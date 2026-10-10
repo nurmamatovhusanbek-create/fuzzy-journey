@@ -61,7 +61,7 @@ class TimelineHolder extends MarginContainer:
 ## a minister: a 50 unit ring with the icon, the name (Cinzel 14.5), the role in brass caps, the advice in italic, an optional small button
 static func minister_row(icon: String, name_text: String, role: String, quote: String, btn_text: String, cb: Callable) -> Control:
 	var box := PanelContainer.new(); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new(); sb.bg_color = Color(0, 0, 0, 0); sb.border_color = TBTokens.BZ_ROW_LINE; sb.border_width_bottom = 1
+	var sb := StyleBoxFlat.new(); sb.bg_color = Color.TRANSPARENT; sb.border_color = TBTokens.BZ_ROW_LINE; sb.border_width_bottom = 1
 	sb.content_margin_top = 12; sb.content_margin_bottom = 13; sb.content_margin_left = 0; sb.content_margin_right = 0
 	box.add_theme_stylebox_override("panel", sb)
 	var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 14); box.add_child(hb)

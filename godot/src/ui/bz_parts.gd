@@ -124,8 +124,8 @@ class RowBox extends PanelContainer:
 	var preview_state := "":
 		set(v): preview_state = v; queue_redraw()
 	var interactive := true
-	var fill := Color(0, 0, 0, 0)         # inline `background` on a row (an event choice: #100d0a)
-	var edge := Color(0, 0, 0, 0)         # inline `box-shadow: inset 0 0 0 1px` on a row (#3a2f1d, brass when advised)
+	var fill := Color.TRANSPARENT         # inline `background` on a row (an event choice: #100d0a)
+	var edge := Color.TRANSPARENT         # inline `box-shadow: inset 0 0 0 1px` on a row (#3a2f1d, brass when advised)
 	var wash := true                      # false: the inline background wins over the `.row:hover` wash (a row with a `fill`)
 	var _hover := false
 	var _down := false

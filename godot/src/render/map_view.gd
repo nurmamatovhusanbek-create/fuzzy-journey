@@ -215,6 +215,13 @@ func _select_ids_texture() -> void:
 # ---------------------------------------------------------------- camera
 func radius_px() -> float: return minf(size.x, size.y) * 0.44 * zoom
 func flat_scale() -> float: return size.x / TAU * zoom
+## the flat map is a Mercator (as in the Bezel demo): x = lon, y = ln tan(pi/4 + lat/2), so shapes keep their proportions at every latitude
+const MERC_LIM := 1.4844                                    # 85.05 deg, where the Mercator square ends
+static func merc(lat: float) -> float: return log(tan(PI * 0.25 + clampf(lat, -MERC_LIM, MERC_LIM) * 0.5))
+static func imerc(y: float) -> float: return 2.0 * atan(exp(y)) - PI * 0.5
+## px per radian of the ground at the view centre (Mercator stretches by 1 / cos(lat)): sizes of things that live on the ground (nations, provinces)
+func flat_local() -> float: return flat_scale() / maxf(0.2, cos(lat0))
+## screen px per radian of longitude / of Mercator y at the view centre is flat_scale(); px per radian of latitude at lat is flat_scale() / cos(lat)
 
 func _push_view() -> void:
 	if _mat == null: return
@@ -264,7 +271,7 @@ var _anim_t := 0.0
 
 func set_mode(m: int) -> void:
 	mode = m
-	zoom = 1.0 if m == 0 else maxf(1.0, (size.y / PI) / (size.x / TAU))
+	zoom = 1.0 if m == 0 else flat_fit()
 	lat0 = 0.35 if m == 0 else 0.0
 	_push_view()
 
@@ -294,8 +301,11 @@ func fly_to(lon_deg: float, lat_deg: float, z: float = -1.0) -> void:
 	var span := absf(dl) + absf(tla - lat0) + absf(log(tz / zoom)) * 0.4
 	_fly = {"t": 0.0, "dur": clampf(0.30 + span * 0.55, 0.30, 1.0), "l0": lon0, "dl": dl, "a0": lat0, "da": tla - lat0, "z0": zoom, "z1": tz}
 
+## zoom at which the whole Mercator world is as tall as the view (never less than 1: the world is as wide as the view)
+func flat_fit() -> float: return maxf(1.0, (size.y / (2.0 * merc(MERC_LIM))) / (size.x / TAU))
+
 func zoom_by(f: float, smooth: bool = false) -> void:
-	var lo := 0.6 if mode == 0 else maxf(0.5, (size.y / PI) / (size.x / TAU))
+	var lo := 0.6 if mode == 0 else maxf(0.5, (size.y / (2.0 * merc(MERC_LIM))) / (size.x / TAU))
 	var hi := 14.0 if mode == 0 else 24.0
 	_fly = {}
 	if smooth and TBKit.motion_ok():
@@ -359,7 +369,7 @@ func drag_by(d: Vector2) -> void:
 	else:
 		var k := 1.0 / flat_scale()
 		lon0 = wrapf(lon0 - d.x * k, -PI, PI)
-		lat0 += d.y * k
+		lat0 = imerc(merc(lat0) + d.y * k)
 		_clamp_flat()
 	_push_view()
 
@@ -381,8 +391,8 @@ func _sample_frame() -> void:
 
 func _clamp_flat() -> void:
 	if mode != 1: return
-	var lim := maxf(0.0, PI / 2 - (size.y / 2.0) / flat_scale())
-	lat0 = clampf(lat0, -lim, lim)
+	var lim := maxf(0.0, merc(MERC_LIM) - (size.y / 2.0) / flat_scale())
+	lat0 = imerc(clampf(merc(lat0), -lim, lim))
 
 # ---------------------------------------------------------------- picking
 ## screen position (control-local px) -> province index or -1
@@ -406,8 +416,8 @@ func unproject(pos: Vector2) -> Vector2:
 		var s0 := sin(lat0); var c0 := cos(lat0)
 		return Vector2(lon0 + atan2(d.x, z * c0 - d.y * s0), asin(clampf(z * s0 + d.y * c0, -1.0, 1.0)))
 	var lon := lon0 + (pos.x - size.x * 0.5) / flat_scale()
-	var lat := lat0 - (pos.y - size.y * 0.5) / flat_scale()
-	return Vector2.INF if absf(lat) > PI / 2 else Vector2(lon, lat)
+	var my := merc(lat0) - (pos.y - size.y * 0.5) / flat_scale()
+	return Vector2.INF if absf(my) > merc(MERC_LIM) else Vector2(lon, imerc(my))
 
 ## forward projection of lon/lat (degrees) -> screen px; z>0 means visible. Used by overlays.
 func project(lon_deg: float, lat_deg: float) -> Vector3:
@@ -420,7 +430,7 @@ func project(lon_deg: float, lat_deg: float) -> Vector3:
 		return Vector3(size.x * 0.5 + R * x, size.y * 0.5 - R * y, z)
 	var dl2 := wrapf(lon - lon0, -PI, PI)
 	var s := flat_scale()
-	return Vector3(size.x * 0.5 + dl2 * s, size.y * 0.5 - (lat - lat0) * s, 1.0)
+	return Vector3(size.x * 0.5 + dl2 * s, size.y * 0.5 - (merc(lat) - merc(lat0)) * s, 1.0)
 
 # ---------------------------------------------------------------- input
 ## fingers wobble: on touch devices a tap may move a little before it stops being a tap

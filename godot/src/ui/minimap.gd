@@ -152,12 +152,13 @@ func _footprint() -> Array:
 	var pts: Array = []
 	if map == null: return pts
 	if map.mode == 1:
-		var fit: float = maxf(1.0, (map.size.y / PI) / (map.size.x / TAU))
+		var fit: float = map.flat_fit()
 		if map.zoom <= fit * 1.12: return pts
 		var fs: float = maxf(0.001, map.flat_scale())
 		var hw: float = map.size.x * 0.5 / fs; var hh: float = map.size.y * 0.5 / fs
 		var x0: float = map.lon0 - hw; var x1: float = map.lon0 + hw
-		var y0: float = clampf(map.lat0 - hh, -1.48, 1.48); var y1: float = clampf(map.lat0 + hh, -1.48, 1.48)
+		var my0: float = TBMapView.merc(map.lat0)
+		var y0: float = TBMapView.imerc(clampf(my0 - hh, -3.13, 3.13)); var y1: float = TBMapView.imerc(clampf(my0 + hh, -3.13, 3.13))
 		for i in 9: pts.append(Vector2(x0 + (x1 - x0) * i / 8.0, y1))
 		for i in range(1, 9): pts.append(Vector2(x1, y1 + (y0 - y1) * i / 8.0))
 		for i in range(1, 9): pts.append(Vector2(x1 - (x1 - x0) * i / 8.0, y0))

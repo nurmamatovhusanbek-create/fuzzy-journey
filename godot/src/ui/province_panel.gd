@@ -1221,6 +1221,6 @@ func _keep_province_visible() -> void:
 	var gp := Vector2(pt.x, pt.y) + origin
 	if pt.z <= 0.0 or not r.grow(14.0).has_point(gp): return
 	var shift := (gp.y - (r.position.y - 70.0))                   # lift the province above the card top
-	if m.mode == 1: m.lat0 -= shift / m.flat_scale(); m._clamp_flat()
+	if m.mode == 1: m.lat0 = TBMapView.imerc(TBMapView.merc(m.lat0) - shift / m.flat_scale()); m._clamp_flat()
 	else: m.lat0 = clampf(m.lat0 - shift / m.radius_px(), -1.45, 1.45)
 	m._push_view()
