@@ -350,7 +350,22 @@ static func btn(text: String, kind: String, cb: Callable, dark: bool = true, px:
 
 ## tooltip / pinned popover content (the demo's #tip): the plate, a title (Cinzel 700 12.5, caps, --hi), a headline (Alegreya 15.5, --dim), figure rows (label ..... value, 14.5)
 ## and a key hint in JetBrains Mono 10.5. rows: [[label, value, tone]]; tone: "" | "pos" | "neg" | "sum" (a total: a rule above it)
-static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Array = [], hint: String = "") -> PanelContainer:
+## `.spark`: the last values as a brass polyline with a pale dot on the newest, 170 x 34
+class Spark extends Control:
+	var vals: Array = []
+	func _init(v: Array) -> void:
+		vals = v; custom_minimum_size = Vector2(170, 34); mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func _draw() -> void:
+		if vals.size() < 2: return
+		var mn: float = vals.min(); var mx: float = vals.max()
+		var pts := PackedVector2Array()
+		for i in vals.size():
+			pts.append(Vector2(i * 170.0 / (vals.size() - 1), 34.0 - 3.0 - (float(vals[i]) - mn) / maxf(mx - mn, 1.0) * 28.0))
+		draw_polyline(pts, TBTokens.BZ_BRASS, 1.6, true)
+		draw_circle(pts[pts.size() - 1], 3.0, TBTokens.MAP_HI)
+
+## `lead`: [[text, kind], ...] one line, kind big (Alegreya 700 20 ivory) | dim | pos | neg; `spark`: last values for the sparkline
+static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Array = [], hint: String = "", lead: Array = [], spark: Array = []) -> PanelContainer:
 	var pc := PanelContainer.new()
 	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pc.add_theme_stylebox_override("panel", DemoBox.new().setup(6.0, 15.0, 12.0, 11.0))
@@ -363,6 +378,17 @@ static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Arr
 		var tf := FontVariation.new(); tf.base_font = fcz(true); tf.spacing_glyph = 2; tf.variation_embolden = EMBOLDEN
 		t.add_theme_font_override("font", tf); t.add_theme_font_size_override("font_size", fu(12.5)); t.add_theme_color_override("font_color", tk("brass_lt"))
 		v.add_child(t)
+	if not lead.is_empty():
+		var lh := HBoxContainer.new(); lh.add_theme_constant_override("separation", 0); lh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for it in lead:
+			var ll := Label.new(); ll.text = String(it[0]); ll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var kind: String = String(it[1])
+			ll.add_theme_font_override("font", fal(700 if kind != "dim" else 400)); ll.add_theme_font_size_override("font_size", fu(20.0 if kind == "big" else 15.5))
+			ll.add_theme_color_override("font_color", tk("cream") if kind == "big" else (TBTokens.BZ_GOOD if kind == "pos" else (TBTokens.BZ_BAD_TXT if kind == "neg" else dim)))
+			ll.size_flags_vertical = Control.SIZE_SHRINK_END
+			lh.add_child(ll)
+		var lm0 := MarginContainer.new(); lm0.add_theme_constant_override("margin_top", 5); lm0.mouse_filter = Control.MOUSE_FILTER_IGNORE; lm0.add_child(lh)
+		v.add_child(lm0)
 	if body != "":
 		var b := Label.new(); b.text = body; b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_theme_font_override("font", fal(400)); b.add_theme_font_size_override("font_size", fu(15.5)); b.add_theme_color_override("font_color", dim)
@@ -381,7 +407,8 @@ static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Arr
 			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var vl := Label.new(); vl.text = String(r[1]); vl.mouse_filter = Control.MOUSE_FILTER_IGNORE; vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			vl.add_theme_font_override("font", fal(700)); vl.add_theme_font_size_override("font_size", fu(14.5))
-			vl.add_theme_color_override("font_color", TBTokens.BZ_GOOD if tone == "pos" else (TBTokens.BZ_BAD_TXT if tone == "neg" else tk("cream")))
+			var vt: String = String(r[1]); var sgn: String = vt.left(1)               # the demo's rows(): a leading + is green, a leading − red, the rest cream
+			vl.add_theme_color_override("font_color", TBTokens.BZ_GOOD if (tone == "pos" or sgn == "+") else (TBTokens.BZ_BAD_TXT if (tone == "neg" or sgn == "−") else tk("cream")))
 			if tone == "sum":
 				var rule := ColorRect.new(); rule.color = TBTokens.BZ_RULER; rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				g.add_child(rule)
@@ -390,6 +417,11 @@ static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Arr
 			lm.add_child(line); g.add_child(lm)
 		var gm := MarginContainer.new(); gm.add_theme_constant_override("margin_top", 6); gm.mouse_filter = Control.MOUSE_FILTER_IGNORE; gm.add_child(g)
 		v.add_child(gm)
+	if spark.size() >= 2:
+		var sm := MarginContainer.new(); sm.add_theme_constant_override("margin_top", 8); sm.mouse_filter = Control.MOUSE_FILTER_IGNORE; sm.add_child(Spark.new(spark)); v.add_child(sm)
+		var cap := Label.new(); cap.text = TBI18n.T("tk_last8").to_upper(); cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cap.add_theme_font_override("font", fcz(false)); cap.add_theme_font_size_override("font_size", fu(9.5)); cap.add_theme_color_override("font_color", TBTokens.BZ_DIM2)
+		v.add_child(cap)
 	if hint != "":
 		var h := Label.new(); h.text = hint; h.mouse_filter = Control.MOUSE_FILTER_IGNORE; h.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		h.add_theme_font_override("font", fmono()); h.add_theme_font_size_override("font_size", fu(10.5)); h.add_theme_color_override("font_color", TBTokens.BZ_DIM2 if not TBTokens.is_hc() else tk("smoke"))

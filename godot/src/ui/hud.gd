@@ -784,7 +784,7 @@ func _tip_hide() -> void:
 func _tip_show(anchor: Control, pair: Array) -> void:
 	_tip_hide()
 	if _pop != null or pair.size() < 2 or not is_instance_valid(anchor): return
-	_tip = P.tip_box(String(pair[0]), String(pair[1]), 320.0, pair[2] if pair.size() > 2 else [], String(pair[3]) if pair.size() > 3 else "")
+	_tip = P.tip_box(String(pair[0]), String(pair[1]), 190.0, pair[2] if pair.size() > 2 else [], String(pair[3]) if pair.size() > 3 else "", pair[4] if pair.size() > 4 else [], pair[5] if pair.size() > 5 else [])
 	_tip.z_index = 70
 	add_child(_tip)
 	_place_tip(_tip, anchor)
@@ -857,18 +857,21 @@ func _chip_text(key: String) -> Array:
 	var sg := func(v: float) -> String: return ("+" if v >= 0.0 else "−") + fmt.call(absf(v))
 	match key:
 		"gold":
-			var ro: int = int(bd["runs_out"])
-			var rows: Array = [[T.call("tkr_income"), sg.call(float(bd["gross"])), "pos"], [T.call("tkr_upkeep"), sg.call(-float(bd["upkeep"])), "neg"], [T.call("tkr_admin"), sg.call(-float(bd["admin"])), "neg"], [T.call("tkr_net"), sg.call(float(bd["net"])), "sum"]]
-			return [T.call("hud_cap_gold"), T.call("tk_gold_1", {"v": fmt.call(float(bd["gold"]))}), rows, T.call("tk_gold_safe") if ro < 0 else (T.call("tk_gold_empty") if ro == 0 else T.call("tk_gold_out", {"k": ro}))]
+			var tr: int = int(TBTrade.income(g, n)) if g.rules >= 1 else 0
+			var rows: Array = [[T.call("tkr_taxes", {"p": int(g.budget[n * 4])}), sg.call(float(bd["tax"])), ""], [T.call("tkr_trade_routes"), sg.call(float(tr)), ""], [T.call("tkr_provinces"), sg.call(float(bd["production"])), ""], [T.call("tkr_upkeep"), sg.call(-float(bd["upkeep"])), ""], [T.call("tkr_admin"), sg.call(-float(bd["admin"])), ""], [T.call("tkr_net"), sg.call(float(bd["net"])), "sum"]]
+			var hist: Array = []
+			for pt in TBStats.series(g, n, "g"): hist.append(float(pt[1]))
+			var lead_g: Array = [[fmt.call(float(bd["gold"])), "big"], [" " + T.call("tk_g_gold") + " · ", "dim"], [sg.call(float(bd["net"])), "pos" if bd["net"] >= 0 else "neg"], [" " + T.call("tk_g_per_turn"), "dim"]]
+			return [T.call("hud_cap_gold"), "", rows, T.call("tk_hint_budget"), lead_g, hist.slice(maxi(0, hist.size() - 8))]
 		"man":
 			var rows2: Array = [[T.call("tkr_men"), "%s / %s" % [fmt.call(float(bd["man"])), fmt.call(float(bd["man_cap"]))], ""], [T.call("tkr_growth"), "+%d" % int(bd["man_gain"]), "pos"], [T.call("tkr_recruit"), "%d g · %d" % [TBData.COST_RECRUIT_GOLD, TBData.COST_RECRUIT_MAN], ""]]
-			return [T.call("hud_cap_man"), T.call("tk_man_1", {"v": fmt.call(float(bd["man"])), "c": fmt.call(float(bd["man_cap"]))}), rows2, T.call("tk_man_full") if bool(bd["man_full"]) else ""]
+			return [T.call("hud_cap_man"), T.call("tk_man_full") if bool(bd["man_full"]) else "", rows2, "", [[fmt.call(float(bd["man"])), "big"], [" " + T.call("tk_g_men") + ", +%d " % int(bd["man_gain"]) + T.call("tk_g_per_turn"), "dim"]]]
 		"mp":
 			var rows3: Array = [[T.call("tkr_moves"), "%d / %d" % [int(floorf(float(bd["mp"]))), int(bd["mp_cap"])], ""], [T.call("tkr_refill"), "+%.1f" % float(bd["mp_gain"]), "pos"], [T.call("tkr_move"), str(TBData.MP_MOVE), ""], [T.call("tkr_attack"), str(TBData.MP_ATTACK), ""], [T.call("tkr_recr"), str(TBData.MP_RECRUIT), ""]]
-			return [T.call("hud_cap_mp"), T.call("tk_mp_1", {"v": int(floorf(float(bd["mp"]))), "c": int(bd["mp_cap"])}), rows3, ""]
+			return [T.call("hud_cap_mp"), "", rows3, T.call("tk_hint_army"), [[str(int(floorf(float(bd["mp"])))), "big"], [" " + T.call("tk_g_moves") + ", +%.1f " % float(bd["mp_gain"]) + T.call("tk_g_per_turn"), "dim"]]]
 		"dp":
 			var rows4: Array = [[T.call("tkr_points"), "%d / %d" % [int(floorf(float(bd["dp"]))), int(bd["dp_cap"])], ""], [T.call("tkr_growth"), "+%.1f" % float(bd["dp_gain"]), "pos"], [T.call("tkr_pact"), str(TBData.DP_NAP), ""], [T.call("tkr_ally"), str(TBData.DP_ALLY), ""], [T.call("tkr_ult"), str(TBDiplo.DP_ULT), ""], [T.call("tkr_marry"), str(TBDiplo.DP_MARRY), ""]]
-			return [T.call("hud_cap_dp"), T.call("tk_dp_1", {"v": int(floorf(float(bd["dp"]))), "c": int(bd["dp_cap"])}), rows4, ""]
+			return [T.call("hud_cap_dp"), "", rows4, T.call("tk_hint_nations"), [[str(int(floorf(float(bd["dp"])))), "big"], [" " + T.call("tk_g_points") + ", +%.1f " % float(bd["dp_gain"]) + T.call("tk_g_per_turn"), "dim"]]]
 		"wars":
 			var names: PackedStringArray = PackedStringArray()
 			for o in range(1, g.N1):
@@ -888,7 +891,7 @@ func _pin_chip(key: String) -> void:
 	if g == null: return
 	tapped.emit()
 	var pair: Array = _chip_text(key)
-	var box: PanelContainer = P.tip_box(String(pair[0]), String(pair[1]), 320.0, pair[2] if pair.size() > 2 else [], String(pair[3]) if pair.size() > 3 else "")
+	var box: PanelContainer = P.tip_box(String(pair[0]), String(pair[1]), 190.0, pair[2] if pair.size() > 2 else [], String(pair[3]) if pair.size() > 3 else "", pair[4] if pair.size() > 4 else [], pair[5] if pair.size() > 5 else [])
 	box.mouse_filter = Control.MOUSE_FILTER_STOP
 	var link: String = ""
 	var act: Callable = Callable()
