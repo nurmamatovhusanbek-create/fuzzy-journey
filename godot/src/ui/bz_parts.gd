@@ -91,14 +91,16 @@ class Mark extends Control:
 	var col := Color.WHITE
 	var hollow := false
 	var ink := Color.TRANSPARENT
-	func _init(t: String, c: Color, hol: bool = false, ink_c: Color = Color.TRANSPARENT) -> void:
-		txt = t; col = c; hollow = hol; ink = ink_c
+	var icon := ""                                       # `.chip` with an `ico(x, 13)` child: the icon sits after the 15 unit pad, then a 6 unit gap
+	func _init(t: String, c: Color, hol: bool = false, ink_c: Color = Color.TRANSPARENT, ico: String = "") -> void:
+		txt = t; col = c; hollow = hol; ink = ink_c; icon = ico
 		mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		custom_minimum_size = _msize()
 	func _f() -> Font: return TBKit.alegreya(400, true)
 	func _sz() -> float: return TBKit.fsf(15.5)
 	func _lh() -> float: return roundf(TBBz.ascent(_f(), _sz())) + roundf(TBBz.descent(_f(), _sz()))
-	func _msize() -> Vector2: return Vector2(15.0 + TBBz.tw(_f(), txt, _sz()), _lh())
+	func _ix() -> float: return 15.0 + (13.0 + 6.0 if icon != "" else 0.0)
+	func _msize() -> Vector2: return Vector2(_ix() + TBBz.tw(_f(), txt, _sz()), maxf(_lh(), 13.0) if icon != "" else _lh())
 	func _draw() -> void:
 		var ci := get_canvas_item()
 		var c := Vector2(3.5, size.y * 0.5)
@@ -110,7 +112,8 @@ class Mark extends Control:
 			var i := PackedVector2Array([c + Vector2(0, -hi), c + Vector2(hi, 0), c + Vector2(0, hi), c + Vector2(-hi, 0)])
 			for s in 4: TBBz.poly(ci, PackedVector2Array([o[s], o[(s + 1) % 4], i[(s + 1) % 4], i[s]]), col)
 		var tc: Color = ink if ink.a > 0.0 else TBTokens.c("ink_0")
-		TBBz.text(ci, _f(), Vector2(15.0, TBBz.baseline(_f(), _sz(), 0.0, size.y, _lh())), txt, _sz(), tc)
+		if icon != "": TBGlyph.draw_ic(self, icon, Vector2(15.0 + 6.5, size.y * 0.5), 13.0, tc)
+		TBBz.text(ci, _f(), Vector2(_ix(), TBBz.baseline(_f(), _sz(), 0.0, size.y, _lh())), txt, _sz(), tc)
 
 # =====================================================================================================================================
 ## `.row`: padding 10 12, radius 3; hover wash rgba(brass, .08), selected wash .15 plus a 3 unit brass bar on the left. Free-form content, one signal.

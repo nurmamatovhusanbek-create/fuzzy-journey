@@ -166,118 +166,110 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 	return h
 
 # =====================================================================================================================================================
-# Decisions (wide panel / page): doctrine on the left, decisions grouped Active / Available / Unavailable on the right
+# Decrees (panel / page): the demo's `decreesBody`, a grid of engraved cards (2 columns, 3 on a phone); doctrine (game only) above it
 # =====================================================================================================================================================
-const DEC_GLYPH := {"mil_reform": "swords", "trade_fair": "scales", "centralize": "crown", "conscript": "men", "propaganda": "scroll", "patronage": "book", "fortify": "shield", "amnesty": "dove"}
+const DEC_GLYPH := {"mil_reform": "army", "trade_fair": "trade", "centralize": "decrees", "conscript": "people", "propaganda": "star", "patronage": "annals", "fortify": "fortify", "amnesty": "pact"}
+## effect rows of each decree (i18n `dec_<id>_e1` / `_e2`), the tone of each: pos = good (teal), neg = bad (rust), "" = neutral note
+const DEC_FX := {"mil_reform": ["pos"], "trade_fair": ["pos"], "centralize": ["pos"], "conscript": ["pos", "neg"], "propaganda": ["pos", "pos"], "patronage": ["pos"], "fortify": ["pos"], "amnesty": ["pos", ""]}
 
 static func _dec_reason(why: String) -> String:
 	var key := "err_" + why
 	return T.call(key) if TBI18n.has_key(key) else why
 
+static var _fxp_re: RegEx
+static var _fxp_re2: RegEx
+## the demo's `fxp`: "+8 army / turn" -> ["Army / turn", "+8", sign]; a leading or trailing figure, label capitalised
+static func fx_item(txt: String, tone: String) -> Array:
+	if _fxp_re == null:
+		_fxp_re = RegEx.new(); _fxp_re.compile("^([+−-]?\\d[\\d.,]*%?)\\s+(.*)$")
+		_fxp_re2 = RegEx.new(); _fxp_re2.compile("^(.*?)\\s*([+−-]\\d[\\d.,]*%?)$")
+	var n := ""; var t := txt
+	var m := _fxp_re.search(txt)
+	if m != null: n = m.get_string(1).replace("-", "−"); t = m.get_string(2)
+	else:
+		m = _fxp_re2.search(txt)
+		if m != null: t = m.get_string(1); n = m.get_string(2).replace("-", "−")
+	if t != "": t = t.substr(0, 1).to_upper() + t.substr(1)
+	return [t, n, 1 if tone == "pos" else (-1 if tone == "neg" else 0)]
+
+## one decree card: ring + name, the effect rows, then the cost mark and Enact / In force
 class DecisionRow extends PanelContainer:
 	func _init(g: TBGame, i: int, me: int, on_enact: Callable) -> void:
 		var d: Dictionary = TBDecisions.LIST[i]
+		var id: String = d["id"]
 		var active := TBDecisions.is_active(g, me, i)
 		var why := TBDecisions.why_not(g, me, i)
+		var locked: bool = why != "" and not active
 		var reason: String = "" if active else TBModals._dec_reason(why)
-		add_theme_stylebox_override("panel", TBKit.card_style("disabled" if (why != "" and not active) else "normal", false, false))
-		var row := TBKit.hbox(12); add_child(row)
-		var gid: String = TBModals.DEC_GLYPH.get(d["id"], "scroll")
-		if TBFrame.bezel:
-			var ri: Control = TBKit.ring_icon(gid, 40, why != "" and not active); ri.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; row.add_child(ri)
-		else:
-			var tile := Control.new(); tile.custom_minimum_size = Vector2(32, 32); tile.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var ts := TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("hair"), 2, 0, 0, 0)
-			tile.draw.connect(func():
-				tile.draw_style_box(ts, Rect2(Vector2.ZERO, tile.size))
-				TBGlyph.draw(tile, gid, (tile.size * 0.5).round(), 20.0, TBTokens.c("ink_0")))
-			row.add_child(tile)
-		var col := TBKit.vbox(3); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(col)
-		var tt := TBKit.title(TBI18n.T("dec_" + String(d["id"])), 15, TBTokens.c("oxblood") if active else TBTokens.c("ink_0"))
-		tt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tt.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tt.custom_minimum_size.x = 40
-		col.add_child(tt)
-		col.add_child(TBPanel.para(TBI18n.T("dec_%s_d" % d["id"]), 13, TBTokens.c("ink_1")))
-		var cf := TBPanel.flow(6)
+		add_theme_stylebox_override("panel", TBBz.well_box(TBTokens.BZ_GOOD if active else TBTokens.BZ_WELL_LINE, 11.0, 11.0))
+		size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tooltip_text = TBI18n.T("dec_%s_d" % id)
+		var col := TBKit.vbox(8); add_child(col)
+		var head := TBKit.hbox(10); col.add_child(head)
+		head.add_child(TBKit.ring_icon(TBModals.DEC_GLYPH.get(id, "decrees"), 36, locked))
+		var tt := TBKit.title(TBI18n.T("dec_" + id), 12, TBTokens.c("ink_0"), 0.08, 1.2)
+		(tt as TBBz.TLabel).px = 12.5; (tt as TBBz.TLabel).refit()
+		tt.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tt.size_flags_vertical = Control.SIZE_SHRINK_CENTER; tt.custom_minimum_size.x = 40
+		head.add_child(tt)
+		var items: Array = []
+		var tones: Array = TBModals.DEC_FX.get(id, [])
+		for k in tones.size():
+			var key := "dec_%s_e%d" % [id, k + 1]
+			if TBI18n.has_key(key): items.append(TBModals.fx_item(TBI18n.T(key), tones[k]))
+		if not items.is_empty(): col.add_child(TBKit.fxl(items))
+		if reason != "":                                  # a locked decree says why (the demo has no such state: a `.mk` rust mark)
+			col.add_child(TBKit.mark(reason, "bad"))
+		var sp := Control.new(); sp.size_flags_vertical = Control.SIZE_EXPAND_FILL; sp.mouse_filter = Control.MOUSE_FILTER_IGNORE; col.add_child(sp)
+		var foot := TBKit.hbox(8); col.add_child(foot)
+		var cf := TBKit.hbox(10); cf.size_flags_vertical = Control.SIZE_SHRINK_CENTER; foot.add_child(cf)
 		if active:
 			var left := TBDecisions.turns_left(g, me, i)
-			cf.add_child(TBKit.chip(TBI18n.T("dec_forever") if left > 5000 else TBI18n.T("dec_left", {"n": left}), "check", "pos"))
+			foot.add_child(TBKit.chip_icon(TBI18n.T("dec_forever") if left > 5000 else TBI18n.T("dec_left", {"n": left}), "check", "pos"))
 		else:
-			cf.add_child(TBKit.chip(str(int(d["gold"])), "coin", "neutral" if g.gold[me] >= float(d["gold"]) else "neg"))
-			cf.add_child(TBKit.chip(str(int(d["mp"])), "swords", "neutral" if g.mp[me] >= float(d["mp"]) else "neg"))
-		col.add_child(cf)
-		if reason != "":
-			var rr := TBKit.hbox(4); rr.add_child(TBKit.glyph("lock", 14, TBTokens.c("neg")))
-			var rl := TBPanel.para(reason, 13, TBTokens.c("neg")); rr.add_child(rl); col.add_child(rr)
+			cf.add_child(TBKit.chip_icon(str(int(d["gold"])), "gold", "info" if g.gold[me] >= float(d["gold"]) else "neg"))
+			cf.add_child(TBKit.chip_icon(str(int(d["mp"])), "army", "info" if g.mp[me] >= float(d["mp"]) else "neg"))
+		var fs := Control.new(); fs.size_flags_horizontal = Control.SIZE_EXPAND_FILL; fs.mouse_filter = Control.MOUSE_FILTER_IGNORE; foot.add_child(fs); foot.move_child(fs, 1)
 		if not active:
-			var b := TBKit.button(TBI18n.T("dec_do"), on_enact)
+			var b := TBKit.button(TBI18n.T("dec_do"), on_enact, true, true)
 			b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			if why != "": TBKit.disable(b, reason)
-			row.add_child(b)
+			foot.add_child(b)
 
 static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.Handle:
 	var me := g.human_id
-	var vs: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
-	var portrait := TBPanel.is_portrait(vs)
-	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("decisions"), "scales", {"scroll": portrait, "padded": portrait})
-	var wide: bool = not portrait
-	var left: Control; var right: Control
-	var lv: VBoxContainer; var rv: VBoxContainer
-	if wide:
-		var split := K.hbox(0); split.size_flags_vertical = Control.SIZE_EXPAND_FILL; split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		h.body.add_child(split)
-		var cols: Array = []
-		for k in 2:
-			var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; sc.follow_focus = true; sc.scroll_deadzone = 12
-			sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			var mg := MarginContainer.new(); mg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			mg.add_theme_constant_override("margin_left", h.pad if k == 0 else 16); mg.add_theme_constant_override("margin_right", 16 if k == 0 else h.pad)
-			mg.add_theme_constant_override("margin_top", 12); mg.add_theme_constant_override("margin_bottom", 12)
-			var v := K.vbox(10); v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			mg.add_child(v); sc.add_child(mg)
-			cols.append([sc, v])
-		(cols[0][0] as Control).custom_minimum_size = Vector2(330, 0)
-		(cols[1][0] as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		split.add_child(cols[0][0])
-		var vr := ColorRect.new(); vr.color = TBTokens.c("hair"); vr.custom_minimum_size = Vector2(1, 0); split.add_child(vr)
-		split.add_child(cols[1][0])
-		lv = cols[0][1]; rv = cols[1][1]
-	else:
-		lv = h.body; rv = h.body
-	# ---- doctrine
+	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_decisions"), "decrees", {"w": 740 if K.is_phone(parent) else 680, "h": 540, "sub": T.call("dec_sub", {"n": int(g.dp[me])})})
+	var body: VBoxContainer = h.body
+	# ---- doctrine (game rules >= 1)
 	if g.rules >= 1:
-		lv.add_child(TBPanel.section(T.call("doctrine")))
-		lv.add_child(TBPanel.para(T.call("doctrine_hint", {"c": TBDoctrine.cost(g, me)}), 13, K.DIM))
+		body.add_child(K.caps(T.call("doctrine")))
+		body.add_child(K.para_bz(T.call("doctrine_hint", {"c": TBDoctrine.cost(g, me)}), 16.0, 1.3))
 		var items: Array = []
 		for di in range(1, TBDoctrine.IDS.size()): items.append([TBDoctrine.IDS[di], T.call("doc_" + TBDoctrine.IDS[di])])
 		var cur_id: String = TBDoctrine.IDS[g.doctrine[me]] if g.doctrine[me] != 0 else ""
-		var fx := TBPanel.para("", 13, K.GOLD2)
-		var shown := {"id": cur_id}
+		var fx_slot := K.vbox(0)
+		var say := func(txt: String, col: Color) -> void:
+			for c in fx_slot.get_children(): c.queue_free()
+			fx_slot.add_child(K.para_bz(txt, 16.0, 1.3, col))
 		var seg := TBPanel.seg(items, cur_id, func(id: String):
-			if id == String(shown["id"]): return
+			if id == cur_id: return
 			if g.dp[me] < TBDoctrine.cost(g, me):
-				fx.text = T.call("err_dp"); fx.add_theme_color_override("font_color", K.RED)
+				say.call(T.call("err_dp"), TBTokens.BZ_BAD_TXT)
 				return
 			on_cmd.call({"cmd": "doctrine", "id": id})
 			h.close())
-		lv.add_child(seg)
-		fx.text = T.call("doc_%s_d" % cur_id) if cur_id != "" else T.call("doc_none")
-		lv.add_child(fx)
-		for it in items:
-			lv.add_child(TBPanel.para("%s: %s" % [it[1], T.call("doc_%s_d" % it[0])], 13, K.DIM))
-	# ---- decisions grouped
-	var groups := {"active": [], "avail": [], "locked": []}
+		var sm := MarginContainer.new(); sm.add_theme_constant_override("margin_top", 8); sm.add_theme_constant_override("margin_bottom", 8); sm.add_child(seg)
+		body.add_child(sm)
+		say.call(T.call("doc_%s_d" % cur_id) if cur_id != "" else T.call("doc_none"), TBTokens.c("brass_lt"))
+		body.add_child(fx_slot)
+		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 16); gap.mouse_filter = Control.MOUSE_FILTER_IGNORE; body.add_child(gap)
+	# ---- the decrees, in the game's order (the card carries the state: teal rule = in force, rust mark = why not)
+	var grid := GridContainer.new(); grid.columns = 3 if h.phone else 2
+	grid.add_theme_constant_override("h_separation", 10); grid.add_theme_constant_override("v_separation", 10)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(grid)
 	for i in TBDecisions.LIST.size():
-		if TBDecisions.is_active(g, me, i): groups["active"].append(i)
-		elif TBDecisions.why_not(g, me, i) == "": groups["avail"].append(i)
-		else: groups["locked"].append(i)
-	if not wide: rv.add_child(K.hair())
-	for gk in ["active", "avail", "locked"]:
-		var arr: Array = groups[gk]
-		if arr.is_empty(): continue
-		rv.add_child(TBPanel.section("%s  (%d)" % [T.call("dec_g_" + gk), arr.size()]))
-		for idx in arr:
-			var i2: int = idx
-			rv.add_child(DecisionRow.new(g, i2, me, func(): on_cmd.call({"cmd": "decide", "id": String(TBDecisions.LIST[i2]["id"])}); h.close()))
+		var i2: int = i
+		grid.add_child(DecisionRow.new(g, i2, me, func(): on_cmd.call({"cmd": "decide", "id": String(TBDecisions.LIST[i2]["id"])}); h.close()))
 	return h
 
 # =====================================================================================================================================================

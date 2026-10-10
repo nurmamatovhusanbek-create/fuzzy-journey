@@ -1635,6 +1635,12 @@ static func chip(text: String, glyph_id: String = "", tone: String = "neutral", 
 	pc.add_child(h)
 	return pc
 
+## the demo's `<span class="chip i">${ico('envoys',13)}2</span>`: a Mark with a 13 unit demo icon after the diamond (bezel only; elsewhere a plain chip)
+static func chip_icon(text: String, icon_id: String, tone: String = "neutral") -> Control:
+	if not TBFrame.bezel: return chip(text, "", tone)
+	var cc: Color = {"pos": TBTokens.c("pos"), "neg": TBTokens.BZ_BAD, "info": TBTokens.c("info"), "warn": TBTokens.c("warn"), "own": TBTokens.c("brass_lt")}.get(tone, TBTokens.c("ink_1"))
+	return TBBzParts.Mark.new(text, cc, tone == "neutral", Color.TRANSPARENT, icon_id)
+
 ## tiny drawn glyph followed by a Mono figure
 class GlyphLabel extends HBoxContainer:
 	func _init(g: String, text: String, col: Color, size_px: int = 13) -> void:
