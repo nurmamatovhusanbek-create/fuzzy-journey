@@ -49,6 +49,9 @@ func _init() -> void:
 				for p in main.g.P:
 					if main.g.owner[p] == main.g.human_id: pr = p; break
 				TBModals.event_prompt(main._overlay, {"uid": 901, "n": main.g.human_id, "kind": "prop", "id": "ultimatum", "from": au, "p": pr}, func(_i): pass, main.g, Callable())
+			"war":
+				var au3: int = main.g.nat_code.find("austrian_empire")
+				TBModals.war_confirm(main._overlay, main.g, au3, func(): pass)
 			"event2":
 				TBModals.event_prompt(main._overlay, {"uid": 902, "n": main.g.human_id, "kind": "rand", "id": "plague", "cat": "CRISIS", "count": 2}, func(_i): pass, main.g, func(): pass)
 			"move", "preview":

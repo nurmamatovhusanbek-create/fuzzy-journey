@@ -171,6 +171,7 @@ export default {
   confirm_war_t: 'Declare war on {a}?',
   confirm_war_cb: 'Casus belli: {cb}.',
   confirm_war_nocb: 'You have no casus belli: infamy +{k}, and neighbours may form a coalition.',
+  war_hold: 'Hold to declare war', war_body_cb: 'Casus belli: {cb}. It costs [b]{dp} envoys[/b] and cannot be undone.', war_body_nocb: 'You have no casus belli, neighbours may form a coalition against you. It costs [b]{dp} envoys[/b] and cannot be undone.', war_fx_grudge: 'Their grudge', war_fx_env: 'Envoys', war_fx_inf: 'Infamy', war_fx_trade: 'Trade route', war_fx_ends: 'ends', war_fx_none: 'none',
   confirm_war_b: 'It costs {dp} diplomacy points and cannot be undone.',
   council: 'Council',
   create_room: 'Create room',

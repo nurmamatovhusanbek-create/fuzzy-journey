@@ -547,6 +547,32 @@ static func event_choice(icon: String, title_text: String, chips: Array, cb: Cal
 static func _gap(v: Control, px: float) -> void:
 	var g := Control.new(); g.custom_minimum_size = Vector2(0, px); g.mouse_filter = Control.MOUSE_FILTER_IGNORE; v.add_child(g)
 
+## the demo's "Declare war on X?" modal (`panel('war')`): a 460 wide dialog, a dim paragraph, the effect ledger, Cancel + hold-to-declare
+static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) -> TBPanel.Handle:
+	var me: int = g.human_id
+	var phone: bool = K.is_phone(parent)
+	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("confirm_war_t", {"a": g.dname(n)}), "war", {"w": 480.0 if phone else 460.0})
+	var cbk := TBDiplo.cb(g, me, n)
+	var dp: int = int(D.DP_WAR)
+	var body: String = T.call("war_body_cb", {"cb": T.call("cb_" + cbk), "dp": dp}) if cbk != "" else T.call("war_body_nocb", {"dp": dp})
+	var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.body.add_child(col)
+	col.add_child(K.para_bz(body, 17.0, 1.4))
+	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 12); col.add_child(gap)
+	var rows: Array = [[T.call("war_fx_env"), "−%d" % dp, -1]]
+	var was: int = g.get_rel(me, n)
+	rows.append([T.call("war_fx_grudge"), "+%d" % (80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)), -1])
+	rows.append([T.call("war_fx_inf"), "+%d" % int(TBDiplo.NO_CB_INFAMY) if cbk == "" else T.call("war_fx_none"), -1 if cbk == "" else 0])
+	if TBTrade.has(g, me, n): rows.append([T.call("war_fx_trade"), T.call("war_fx_ends"), 0])
+	col.add_child(K.fxl(rows))
+	var cancel := K.button(T.call("cancel"), func(): h.close())
+	var db := K.danger(T.call("war_hold"), Callable(), "war") as K.DangerBtn
+	db.make_hold()
+	db.confirmed.connect(func(): h.close(); on_yes.call())
+	h.actions(cancel, db)
+	h.focus_target = cancel
+	if TBPanel.wants_focus(): cancel.grab_focus.call_deferred()
+	return h
+
 static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g: TBGame = null, on_defer: Callable = Callable()) -> TBPanel.Handle:
 	var can_defer: bool = on_defer.is_valid() and not (e["kind"] == "prop" and e["id"] == "ultimatum")
 	var phone: bool = K.is_phone(parent)

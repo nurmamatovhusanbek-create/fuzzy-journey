@@ -602,9 +602,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 	if rel != 1:
 		var why: String = dpw.call(D.DP_WAR)
 		var wb: Button = K.danger(T.call("dip_war"), func():
-			var cbk := TBDiplo.cb(g, me, n)
-			var body: String = T.call("confirm_war_cb", {"cb": T.call("cb_" + cbk)}) if cbk != "" else T.call("confirm_war_nocb", {"k": int(TBDiplo.NO_CB_INFAMY)})
-			TBPanel.confirm(parent, T.call("confirm_war_t", {"a": g.dname(n)}), body + " " + T.call("confirm_war_b", {"dp": D.DP_WAR}), T.call("declare_war_on", {"a": g.dname(n)}), func(): done.call({"cmd": "declareWar", "t": n}), true, "war"), "war")
+			TBModals.war_confirm(parent, g, n, func(): done.call({"cmd": "declareWar", "t": n})), "war")
 		(wb as TBBz.Btn).sub = "%d ✉" % D.DP_WAR
 		wb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if why != "": K.disable(wb, why)
