@@ -44,6 +44,7 @@ class Handle extends RefCounted:
 	var bz_pos := Vector2(-1, -1)        # bezel: fixed top-left (tests, specimen sheets); (-1, -1) = docked by `dock`
 	var dock := "left"                   # bezel: left (next to the rail) | right | center
 	var bz := false                      # drawn as the demo's plate
+	var phone := false                   # the demo's phone metrics (a landscape viewport shorter than 560 units)
 	var chip_slot: HBoxContainer
 	var action_slot: HBoxContainer
 	var tabs_slot: PanelContainer
@@ -264,7 +265,8 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	h.bz_w = float(opts.get("w", 0.0)); h.bz_h = float(opts.get("h", 0.0))
 	h.dock = String(opts.get("dock", "center" if kind == Kind.DIALOG else "left"))
 	h.bz_pos = opts.get("pos", Vector2(-1, -1))
-	if h.bz: h.pad = 14 if vp0.y < 560.0 else 22
+	h.phone = h.bz and K.is_phone(parent)
+	if h.bz: h.pad = 14 if h.phone else 22
 	# at most one panel: a new drawer / panel replaces the old one (dialogs may stack above a panel)
 	if kind != Kind.DIALOG:
 		for ch in parent.get_children():
@@ -295,7 +297,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	holder.add_child(card); h.card = card
 	var pad := h.pad
 	if h.bz and h.form in ["dialog", "drawer", "panel"]:
-		card.add_theme_stylebox_override("panel", TBBz.plate_box(12.0 if not (h.short or vp0.y < 560.0) else 10.0, true))
+		card.add_theme_stylebox_override("panel", TBBz.plate_box(12.0, true))
 	elif h.hero:
 		card.add_theme_stylebox_override("panel", TBFrame.hero(pad + 4, pad))
 	elif h.form == "page":
@@ -366,7 +368,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	# ---- tab row (filled by set_tabs)
 	var tp := PanelContainer.new()
 	if h.bz:                                               # the demo's `.tabs` sit in the body: no band, the body's own padding above
-		var tsb := StyleBoxEmpty.new(); tsb.content_margin_left = float(pad); tsb.content_margin_right = float(pad); tsb.content_margin_top = 16.0 if vp0.y >= 560.0 else 10.0; tsb.content_margin_bottom = 0.0
+		var tsb := StyleBoxEmpty.new(); tsb.content_margin_left = float(pad); tsb.content_margin_right = float(pad); tsb.content_margin_top = 10.0 if h.phone else 16.0; tsb.content_margin_bottom = 0.0
 		tp.add_theme_stylebox_override("panel", tsb)
 	else:
 		tp.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_1"), Color.TRANSPARENT, 0, 0, 8, 0, false, 0))
@@ -378,7 +380,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	wrap.add_theme_constant_override("margin_left", side); wrap.add_theme_constant_override("margin_right", side)
 	wrap.add_theme_constant_override("margin_top", (12 if not h.short else 6) if padded else 0); wrap.add_theme_constant_override("margin_bottom", (12 if not h.short else 6) if padded else 0)
 	if h.bz and padded:                                    # `.body{padding:16px 22px 20px}` (phone 10 14 12)
-		var ph0: bool = vp0.y < 560.0
+		var ph0: bool = h.phone
 		wrap.add_theme_constant_override("margin_top", 10 if ph0 else 16); wrap.add_theme_constant_override("margin_bottom", 12 if ph0 else 20)
 	var body := K.vbox(10 if not h.short else 8)
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -426,7 +428,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	fm.add_theme_constant_override("margin_left", side if padded else pad); fm.add_theme_constant_override("margin_right", side if padded else pad)
 	fm.add_theme_constant_override("margin_top", 8 if not h.short else 4); fm.add_theme_constant_override("margin_bottom", 12 if not h.short else 4)
 	if h.bz:                                               # `.foot{padding:10px 18px 14px;gap:10px}` (phone: tighter)
-		var ph1: bool = vp0.y < 560.0
+		var ph1: bool = h.phone
 		fm.add_theme_constant_override("margin_left", 12 if ph1 else 18); fm.add_theme_constant_override("margin_right", 12 if ph1 else 18)
 		fm.add_theme_constant_override("margin_top", 8 if ph1 else 10); fm.add_theme_constant_override("margin_bottom", 10 if ph1 else 14)
 	var foot := BoxContainer.new(); foot.add_theme_constant_override("separation", 10 if h.bz else 8)
@@ -470,7 +472,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 
 ## the demo's header (`.hd`): ring icon 46, title (Cinzel 700 22, .12em) over an italic subtitle, 36 unit close button, then the graduated rule
 static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyph_id: String, opts: Dictionary, vp0: Vector2) -> void:
-	var phone: bool = vp0.y < 560.0
+	var phone: bool = h.phone
 	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 0)
 	var hm := MarginContainer.new()
 	hm.add_theme_constant_override("margin_left", 14 if phone else 22); hm.add_theme_constant_override("margin_right", 14 if phone else 22)
@@ -491,7 +493,7 @@ static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyp
 	else: tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	tb.add_child(tl); h.title_label = tl
 	var gap5 := Control.new(); gap5.custom_minimum_size = Vector2(0, 5); gap5.mouse_filter = Control.MOUSE_FILTER_IGNORE; tb.add_child(gap5)            # `.s{margin-top:5px}` is there even when the subtitle is empty
-	var sub := TBBz.TLabel.new(K.alegreya(400, true), 13.0 if phone else 16.0, 0.0)                    # `.hd .s`: italic 16, dim
+	var sub := TBBz.TLabel.new(K.alegreya(400, true), 16.0, 0.0)                    # `.hd .s`: italic 16, dim
 	sub.add_theme_color_override("font_color", K.DIM); sub.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; sub.custom_minimum_size.x = 40
 	sub.visible = false; sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tb.add_child(sub); h.sub_label = sub
@@ -511,7 +513,7 @@ static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyp
 static func _fit_bz(h: Handle) -> void:
 	if not h.is_open() or not h.bz: return
 	var vs := _vs(h)
-	var phone: bool = vs.y < 560.0
+	var phone: bool = h.phone
 	var wdef: float = {"dialog": 460.0, "drawer": 560.0, "panel": 900.0}.get(h.form, 460.0)
 	var w: float = h.bz_w if h.bz_w > 0.0 else (600.0 if (h.wide and h.form == "dialog") else wdef)
 	w = minf(w, vs.x - (12.0 if phone else 32.0))

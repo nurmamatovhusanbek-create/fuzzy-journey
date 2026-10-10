@@ -263,6 +263,14 @@ static func alegreya(w: int = 400, italic: bool = false) -> Font:
 static func jbm(bold: bool = false) -> Font:
 	var ww: int = 700 if bold else 400
 	return _font("jetbrains-mono-latin-%d-normal" % ww, ["jetbrains-mono-cyrillic-%d-normal" % ww])
+## the demo's phone layout (a 390 unit stage, css height < 560): 34 unit buttons, smaller leader rows, windows next to the rail. `phone_override` = 1 / 0 forces it
+## (specimen sheets, tests); -1 decides by the viewport of `n` (landscape and shorter than 560 units)
+static var phone_override := -1
+static func is_phone(n: Node = null) -> bool:
+	if phone_override >= 0: return phone_override == 1
+	if n == null or not n.is_inside_tree(): return false
+	var vs: Vector2 = n.get_viewport().get_visible_rect().size
+	return vs.y < 560.0 and vs.x > vs.y
 ## fractional font size through the text scale (the demo uses 11.5, 15.5 ...); the old 12 unit floor is gone: the demo's captions are 8.5 to 11 units
 static func fsf(px: float) -> float: return maxf(px * text_scale, 7.0)
 ## letter-spacing in units for a tracked face (`em` of the size, e.g. .16); none for Readable fonts
@@ -751,6 +759,7 @@ static func icon_button(g: String, cb: Callable, px: int = 40) -> Button: return
 class RingIcon extends Control:
 	var glyph := ""
 	var muted := false
+	var icon_px := 0.0               # explicit icon size (0 = .48 of the ring)
 	func _init(g: String, px: int = 38) -> void:
 		glyph = g; custom_minimum_size = Vector2(px, px); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	func _draw() -> void:
@@ -758,7 +767,7 @@ class RingIcon extends Control:
 		if TBFrame.bezel:                                         # `.ring`: radial face, 1.3 brass hairline, 3 unit shade, the demo icon at .48 of the box
 			var d: float = minf(size.x, size.y)
 			TBBz.ring_face(get_canvas_item(), c, d)
-			TBGlyph.draw_ic(self, glyph, c, roundf(d * 0.48), TBTokens.c("ink_off" if muted else "brass_lt"))
+			TBGlyph.draw_ic(self, glyph, c, icon_px if icon_px > 0.0 else roundf(d * 0.48), TBTokens.c("ink_off" if muted else "brass_lt"))
 			return
 		var fr: float = TBBezel.ring(self, c, minf(size.x, size.y) * 0.5 - 1.5, 0, TBTokens.c("bar_0"))
 		TBGlyph.draw(self, glyph, c.round(), fr * 1.2, TBTokens.c("ink_off" if muted else "brass_lt"), 1.6)
@@ -923,7 +932,9 @@ static func _fxl_wrap(c: Control) -> Control:
 ## wrapped paragraph at the demo's exact size / line-height with [b] [i] [color=#hex] markup (px 17, lh 1.4 = a modal text; px 15.5, lh 1.3 = a tooltip body)
 static func para_bz(markup: String, px: float = 17.0, lh: float = 1.4, color: Color = Color.TRANSPARENT) -> Control: return TBBzParts.Para.new(markup, px, lh, color if color.a > 0.0 else DIM)
 ## `.tbl` ledger: [[label, figure], ..., [label, figure, true]] (true = the sum row with a rule above it)
-static func tbl(rows: Array) -> Control: return TBBzParts.Tbl.new(rows)
+static func tbl(rows: Array, auto_tone: bool = false) -> Control: return TBBzParts.Tbl.new(rows, auto_tone)
+## the dossier ledger (`F()`): [[caption, figure], [caption, figure, "pos" | "neg"], ...] with a dotted rule under each row
+static func ledger(rows: Array) -> Control: return TBBzParts.Ledger.new(rows)
 ## `#tip` tooltip plate: title (Cinzel), body (Alegreya, dim) and an optional key hint (mono); bbcode = rich body ([b]..[/b], [color=#69B3A2]..[/color])
 static func tip(title_text: String, body_text: String, key: String = "", bbcode: bool = false) -> Control: return TBBzParts.tip(title_text, body_text, key, bbcode)
 ## `.tz` notice (alerts and toasts): kind bad | dip | info | good, icon = a demo icon; signals activated / dismissed
@@ -931,7 +942,7 @@ static func notice(kind: String, icon: String, text: String) -> Control: return 
 ## gaugeSvg: radius r (the control is 2 * (r + 12) square), the figure, a caption under it, fill 0..1, colour
 static func gauge(r: float, value: String, delta: String, frac: float, col: Color) -> Control: return TBBzParts.Gauge.new(r, value, delta, frac, col)
 ## `.row` container: free-form content with the demo's hover wash / selected wash + brass bar; `activated` fires on click or Enter
-static func row_box(pad_x: float = 12.0, pad_y: float = 10.0, cb: Callable = Callable()) -> TBBzParts.RowBox: return TBBzParts.RowBox.new(pad_x, pad_y, cb)
+static func row_box(pad_x: float = 12.0, pad_y: float = 10.0, cb: Callable = Callable(), phone_pad: bool = true) -> TBBzParts.RowBox: return TBBzParts.RowBox.new(pad_x, pad_y, cb, phone_pad)      # phone_pad: 10 / 8 on a phone like `.phone .row`; false for rows with their own padding
 ## the demo's `.mk` status mark (engraved diamond + italic text): kind good | bad | info | zero
 static func mark(text_: String, kind: String = "zero") -> Control:
 	var col: Color = {"good": TBTokens.c("pos"), "bad": TBTokens.c("neg"), "info": TBTokens.c("info")}.get(kind, TBTokens.c("ink_off"))

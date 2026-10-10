@@ -45,19 +45,33 @@ class Leader extends Control:
 class FxRow extends HBoxContainer:
 	var cap: TBBz.TLabel
 	var val: TBBz.TLabel
+	var lead: Leader
+	var _ph := false
+	## `.phone .x2 em{14.5px} b{16px}`: the sizes (and the common baseline) follow the phone state
+	func _apply(ph: bool) -> void:
+		_ph = ph
+		var vf: Font = TBKit.alegreya(700)
+		var av: float = roundf(TBBz.ascent(vf, TBKit.fsf(16.0 if ph else 18.0))); var dv: float = roundf(TBBz.descent(vf, TBKit.fsf(16.0 if ph else 18.0)))
+		custom_minimum_size.y = 4.0 + av + dv
+		var by: float = 2.0 + av
+		cap.px = 14.5 if ph else 16.0; cap.base_y = by; cap.refit()
+		lead.base_y = by; lead.queue_redraw()
+		if val != null: val.px = 16.0 if ph else 18.0; val.base_y = by; val.refit()
+	func _enter_tree() -> void:
+		var ph: bool = TBKit.is_phone(self)
+		if ph != _ph and cap != null: _apply(ph)
 	func _init(caption: String, value: String, col: Color, extra: Control = null) -> void:
 		add_theme_constant_override("separation", 0)
 		var vf: Font = TBKit.alegreya(700)
-		var av: float = roundf(TBBz.ascent(vf, TBKit.fsf(18.0))); var dv: float = roundf(TBBz.descent(vf, TBKit.fsf(18.0)))
-		custom_minimum_size.y = 4.0 + av + dv
-		var by: float = 2.0 + av
+		var by: float = 20.0
 		cap = TBBz.TLabel.new(TBKit.alegreya(400), 16.0, 0.0)             # `.x2 em` is italic in its font shorthand but font-style:normal wins
 		cap.base_y = by; cap.text = caption; cap.size_flags_vertical = Control.SIZE_FILL
 		cap.add_theme_color_override("font_color", TBKit.DIM)
 		if TBKit.text_scale >= 1.4:                    # large text in a narrow column: the caption wraps instead of pushing the panel wider
 			cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cap.custom_minimum_size.x = 40; cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		add_child(cap)
-		var ld := Leader.new(by); ld.size_flags_vertical = Control.SIZE_FILL
+		lead = Leader.new(by); lead.size_flags_vertical = Control.SIZE_FILL
+		var ld := lead
 		add_child(ld)
 		if extra != null: add_child(extra)
 		if value != "":
@@ -68,6 +82,7 @@ class FxRow extends HBoxContainer:
 			add_child(val)
 		else:
 			ld.visible = false
+		_apply(TBKit.phone_override == 1)
 
 # =====================================================================================================================================
 ## `.mk` / `.chip`: no capsule, an engraved diamond (7 units, turned 45 degrees) in the tone colour, then the text in italic 15.5. `hollow` = outline only (neutral, zero).
@@ -108,7 +123,13 @@ class RowBox extends PanelContainer:
 	var interactive := true
 	var _hover := false
 	var _down := false
-	func _init(pad_x: float = 12.0, pad_y: float = 10.0, cb: Callable = Callable()) -> void:
+	var _default_pad := false
+	func _enter_tree() -> void:                          # `.phone .row{padding:8px 10px}`
+		if _default_pad and TBKit.is_phone(self):
+			var sb: StyleBoxEmpty = get_theme_stylebox("panel")
+			sb.content_margin_left = 10.0; sb.content_margin_right = 10.0; sb.content_margin_top = 8.0; sb.content_margin_bottom = 8.0
+	func _init(pad_x: float = 12.0, pad_y: float = 10.0, cb: Callable = Callable(), phone_pad: bool = true) -> void:
+		_default_pad = phone_pad and is_equal_approx(pad_x, 12.0) and is_equal_approx(pad_y, 10.0)
 		var sb := StyleBoxEmpty.new()
 		sb.content_margin_left = pad_x; sb.content_margin_right = pad_x; sb.content_margin_top = pad_y; sb.content_margin_bottom = pad_y
 		add_theme_stylebox_override("panel", sb)
@@ -147,8 +168,9 @@ class RowBox extends PanelContainer:
 class Tbl extends Control:
 	var rows: Array = []
 	var gap := 18.0
-	func _init(r: Array) -> void:
-		rows = r; mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var auto_tone := false           # figures starting with + are green, with − red (the demo's rows() in tooltips)
+	func _init(r: Array, tone: bool = false) -> void:
+		rows = r; auto_tone = tone; mouse_filter = Control.MOUSE_FILTER_IGNORE
 		custom_minimum_size = _msize()
 	func _sz() -> float: return TBKit.fsf(14.5)
 	func _rh() -> float: return 4.0 + roundf(TBBz.ascent(TBKit.alegreya(400), _sz())) + roundf(TBBz.descent(TBKit.alegreya(400), _sz()))
@@ -168,7 +190,12 @@ class Tbl extends Control:
 			var bl: float = y + 2.0 + roundf(TBBz.ascent(f, _sz()))
 			TBBz.text(ci, f, Vector2(0, bl), String(r[0]), _sz(), TBTokens.c("ink_0") if sum else TBTokens.c("ink_1"))
 			var vw: float = TBBz.tw(fb, String(r[1]), _sz())
-			TBBz.text(ci, fb, Vector2(size.x - vw, bl), String(r[1]), _sz(), TBTokens.c("ink_0"))
+			var vc: Color = TBTokens.c("ink_0")
+			if auto_tone:
+				var v0: String = String(r[1])
+				if v0.begins_with("+"): vc = TBTokens.c("pos")
+				elif v0.begins_with("−") or v0.begins_with("-"): vc = TBTokens.BZ_NEG_SOFT
+			TBBz.text(ci, fb, Vector2(size.x - vw, bl), String(r[1]), _sz(), vc)
 			y += rh
 
 # =====================================================================================================================================
@@ -222,19 +249,23 @@ class Notice extends Control:
 		custom_minimum_size = _msize()
 		TBKit.a11y(self, t, "button")
 	func _f() -> Font: return TBKit.alegreya(500)
-	func _sz() -> float: return TBKit.fsf(15.5)
-	func _msize() -> Vector2: return Vector2(22.0 + 34.0 + TBBz.tw(_f(), text, _sz()) + 10.0 + 18.0 + 10.0 + 2.0, 40.0)
+	func _ph() -> bool: return TBKit.is_phone(self)
+	func _sz() -> float: return TBKit.fsf(13.0 if _ph() else 15.5)
+	func _px() -> float: return 18.0 if _ph() else 22.0
+	func _tx() -> float: return 28.0 if _ph() else 34.0
+	func _msize() -> Vector2: return Vector2(_px() + _tx() + TBBz.tw(_f(), text, _sz()) + 10.0 + 18.0 + 10.0 + 2.0, 34.0 if _ph() else 40.0)
+	func _enter_tree() -> void: custom_minimum_size = _msize()
 	func tone() -> Color:
 		match kind:
 			"bad": return TBTokens.c("neg")
 			"dip": return TBTokens.c("brass_lt")
 			"good": return TBTokens.c("pos")
 		return TBTokens.c("info")
-	func _x_rect() -> Rect2: return Rect2(22.0 + 34.0 + TBBz.tw(_f(), text, _sz()) + 10.0, 11.0, 18.0, 18.0)       # `.in{gap:10px}`: right after the text
+	func _x_rect() -> Rect2: return Rect2(_px() + _tx() + TBBz.tw(_f(), text, _sz()) + 10.0, size.y * 0.5 - 9.0, 18.0, 18.0)       # `.in{gap:10px}`: right after the text
 	func _draw() -> void:
 		var ci := get_canvas_item()
 		var hot: bool = _hover or preview_hover
-		var px: float = 22.0
+		var px: float = _px()
 		var w: float = size.x - px
 		var h: float = size.y
 		if not TBTokens.is_hc(): TBBz.shift(ci, Vector2(px, 0)); _shadow(ci, w, h); TBBz.unshift(ci)
@@ -246,13 +277,13 @@ class Notice extends Control:
 			var ic2 := TBBz.notch(1, 1, w - 1, h - 1, 6.0)
 			TBBz.poly(ci, PackedVector2Array([oc[s], oc[(s + 1) % 8], ic2[(s + 1) % 8], ic2[s]]), lo)
 		TBBz.poly(ci, TBBz.notch(1, 1, w - 1, h - 1, 6.0), fill)
-		var bl: float = TBBz.baseline(_f(), _sz(), 1.0, 38.0, _sz() * 1.1)
-		TBBz.text(ci, _f(), Vector2(34.0, bl), text, _sz(), TBTokens.c("ink_0"))
+		var bl: float = TBBz.baseline(_f(), _sz(), 1.0, h - 2.0, _sz() * 1.1)
+		TBBz.text(ci, _f(), Vector2(_tx(), bl), text, _sz(), TBTokens.c("ink_0"))
 		TBBz.unshift(ci)
 		if closable:
 			var xr: Rect2 = _x_rect()
 			TBGlyph.draw_ic(self, "close", xr.get_center(), 10.0, TBTokens.BZ_WHITE if (hot and _hover_x) or (hot and false) else (TBTokens.BZ_WHITE if hot else TBTokens.c("ink_off")))
-		_medallion(ci, Vector2(23.0, h * 0.5), hot)
+		_medallion(ci, Vector2(px + 1.0, h * 0.5), hot)
 		if has_focus() and TBFrame.kbd_nav: TBBz.draw_notch_focus_at(ci, Rect2(px, 0, w, h), 7.0)
 	func _shadow(ci: RID, w: float, h: float) -> void:
 		var oc := TBBz.notch(0, 0, w, h, 7.0)
@@ -265,17 +296,19 @@ class Notice extends Control:
 			for i in pts.size(): pts[i] = cen + (pts[i] - cen) + (pts[i] - cen).normalized() * g
 			TBBz.poly(ci, pts, TBTokens.with_a(Color.BLACK, 0.55 / 6.0 * 1.2))
 	func _medallion(ci: RID, c: Vector2, hot: bool) -> void:
+		var k: float = 38.0 / 46.0 if _ph() else 1.0                     # `.phone .tz .med{38px}`
+		var ip: float = 14.0 if _ph() else 17.0
 		if TBTokens.is_hc():
-			TBBz.disc(ci, c, 21.0, c, TBTokens.c("paper_1"), TBTokens.c("paper_1"), 21.0)
-			TBBz.ring_stroke(ci, c, 23.0, 2.0, TBTokens.c("ink_0"))
-			TBGlyph.draw_ic(self, icon, c, 17.0, TBTokens.c("ink_0")); return
+			TBBz.disc(ci, c, 21.0 * k, c, TBTokens.c("paper_1"), TBTokens.c("paper_1"), 21.0 * k)
+			TBBz.ring_stroke(ci, c, 23.0 * k, 2.0, TBTokens.c("ink_0"))
+			TBGlyph.draw_ic(self, icon, c, ip, TBTokens.c("ink_0")); return
 		var shade := TBTokens.with_a(Color.BLACK, 0.45)
-		TBBz.poly(ci, _circle(c, 24.0), shade)
-		TBBz.brass_disc(ci, c, 21.0)
-		TBBz.poly(ci, _circle(c, 17.0), TBTokens.BZ_FACE_B)
-		TBBz.ring_stroke(ci, c, 16.4 + 0.3, 0.6, TBTokens.c("brass_lt"))
-		TBBz.ticks(ci, c, 16.0, 24, 2.4, 6, TBTokens.c("brass"), 0.7)
-		TBGlyph.draw_ic(self, icon, c, 17.0, tone())
+		TBBz.poly(ci, _circle(c, 24.0 * k), shade)
+		TBBz.brass_disc(ci, c, 21.0 * k)
+		TBBz.poly(ci, _circle(c, 17.0 * k), TBTokens.BZ_FACE_B)
+		TBBz.ring_stroke(ci, c, (16.4 + 0.3) * k, 0.6, TBTokens.c("brass_lt"))
+		TBBz.ticks(ci, c, 16.0 * k, 24, 2.4 * k, 6, TBTokens.c("brass"), 0.7)
+		TBGlyph.draw_ic(self, icon, c, ip, tone())
 	static func _circle(c: Vector2, r: float) -> PackedVector2Array:
 		var p := PackedVector2Array()
 		for i in 48: p.append(c + Vector2(cos(TAU * i / 48.0), sin(TAU * i / 48.0)) * r)
@@ -355,11 +388,14 @@ class BzSlider extends HSlider:
 		drag_ended.connect(func(_c: bool): _drag = false; queue_redraw())
 		value_changed.connect(func(_v: float): queue_redraw())
 	func _c(col: Color) -> Color: return TBBz.dim(col, 0.3, 0.4) if not editable else col
+	func _enter_tree() -> void:
+		custom_minimum_size.y = 40.0 if TBKit.is_phone(self) else 44.0                 # `.phone .slr{height:40px}`
 	func _draw() -> void:
 		var ci := get_canvas_item()
 		var w: float = size.x
 		var ratio: float = 0.0 if max_value <= min_value else clampf((value - min_value) / (max_value - min_value), 0.0, 1.0)
 		var hc: bool = TBTokens.is_hc()
+		var phn: bool = TBKit.is_phone(self)
 		var tr := TBBzParts.rrect(0, 12, w, 22, 5.0, 8)
 		var track_bg: Color = TBTokens.BZ_TRACK_BG if not hc else TBTokens.c("paper_1")
 		var line: Color = TBTokens.BZ_TRACK_LINE if not hc else TBTokens.c("ink_0")
@@ -387,7 +423,7 @@ class BzSlider extends HSlider:
 		draw_rect(Rect2(w - 1.0, 25, 1, 8), br)
 		for k2 in 20: draw_rect(Rect2(roundf(w * k2 * 0.05), 25, 1, 4), lo)
 		# numerals: Cinzel 500 9.5 tracked .1em, spread edge to edge
-		if show_nums:
+		if show_nums and not phn:
 			var f: Font = TBKit.cinzel(500)
 			var z: float = TBKit.fsf(9.5); var sp: float = TBKit.trk(z, 0.1)
 			var labs: Array = ["0", "25", "50", "75", "100"]
@@ -429,12 +465,15 @@ class Stp extends Button:
 	var _txt := ""
 	func _init(t: String, cb: Callable = Callable()) -> void:
 		_txt = t; custom_minimum_size = Vector2(34, 34); size_flags_vertical = Control.SIZE_SHRINK_CENTER; size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		if TBKit.phone_override == 1: custom_minimum_size = Vector2(32, 32)
 		focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE; flat = true
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		add_theme_font_size_override("font_size", 1)
 		for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]: add_theme_color_override(fc, Color.TRANSPARENT)
 		text = t
 		if cb.is_valid(): pressed.connect(cb)
+	func _enter_tree() -> void:
+		if TBKit.is_phone(self): custom_minimum_size = Vector2(32, 32)                  # `.phone .stp{width:32px;height:32px}`
 	func _has_point(p: Vector2) -> bool:
 		var grow: float = maxf((float(TBKit.touch()) - 34.0) * 0.5, 0.0)
 		return Rect2(-grow, -grow, size.x + 2.0 * grow, size.y + 2.0 * grow).has_point(p)
@@ -449,9 +488,9 @@ class Stp extends Button:
 		if prs: RenderingServer.canvas_item_add_set_transform(ci, Transform2D(Vector2(0.94, 0), Vector2(0, 0.94), c * 0.06))
 		var off: bool = disabled
 		var ring: Color = TBTokens.c("brass_lt") if hot else TBTokens.c("rule")
-		TBBz.round_btn(ci, c, 34.0, TBBz.dim(ring, 0.3, 0.4) if off else ring, hot)
+		TBBz.round_btn(ci, c, minf(size.x, size.y), TBBz.dim(ring, 0.3, 0.4) if off else ring, hot)
 		var f: Font = TBKit.alegreya(700)
-		var z: float = TBKit.fsf(19.0)
+		var z: float = TBKit.fsf(19.0 * minf(size.x, size.y) / 34.0)
 		var tw: float = TBBz.tw(f, _txt, z)
 		var ink: Color = TBTokens.BZ_WHITE if hot else TBTokens.c("brass_lt")
 		if TBTokens.is_hc(): ink = TBTokens.c("ink_0")
@@ -468,6 +507,18 @@ class SRow extends MarginContainer:
 	var plus: Stp
 	var eff: TBBz.TLabel
 	var val: TBBz.TLabel
+	var cap_l: TBBz.TLabel
+	var ring: TBKit.RingIcon
+	var _ph := false
+	func _apply(ph: bool) -> void:
+		_ph = ph
+		ring.custom_minimum_size = Vector2(32, 32) if ph else Vector2(38, 38); ring.icon_px = 16.0 if ph else 19.0; ring.queue_redraw()
+		cap_l.px = 11.5 if ph else 12.5; cap_l.refit()
+		eff.px = 13.0 if ph else 15.0; eff.refit()
+		val.px = 20.0 if ph else 25.0; val.refit()
+	func _enter_tree() -> void:
+		var ph: bool = TBKit.is_phone(self)
+		if ph != _ph and ring != null: _apply(ph)
 	var _fmt := Callable()
 	var _eff := Callable()
 	func _init(icon: String, caption: String, min_v: float, max_v: float, step_v: float, value: float, fmt: Callable = Callable(), effect: Callable = Callable(), zone_from: float = -1.0) -> void:
@@ -477,10 +528,12 @@ class SRow extends MarginContainer:
 		var inner := VBoxContainer.new(); inner.add_theme_constant_override("separation", 6)
 		add_child(inner)
 		var top := TBKit.hbox(10)
-		top.add_child(TBKit.ring_icon(icon, 38))
+		ring = TBKit.ring_icon(icon, 38) as TBKit.RingIcon
+		top.add_child(ring)
 		var col := TBKit.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var cap := TBKit.title(caption, 12, TBTokens.c("ink_0"), 0.14, 0.0)
-		(cap as TBBz.TLabel).px = 12.5; (cap as TBBz.TLabel).refit(); cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cap.custom_minimum_size.x = 40
+		cap_l = cap as TBBz.TLabel
+		cap_l.px = 12.5; cap_l.refit(); cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cap.custom_minimum_size.x = 40
 		col.add_child(cap)
 		eff = TBBz.TLabel.new(TBKit.alegreya(400, true), 15.0, 0.0)
 		eff.add_theme_color_override("font_color", TBKit.DIM); eff.size_flags_horizontal = Control.SIZE_EXPAND_FILL; eff.custom_minimum_size.x = 40
@@ -503,6 +556,7 @@ class SRow extends MarginContainer:
 		slider.value_changed.connect(func(v: float):
 			_sync(v); changed.emit(v))
 		_sync(value)
+		if TBKit.phone_override == 1: _apply(true)
 	func _text(v: float) -> String: return String(_fmt.call(v)) if _fmt.is_valid() else "%d%%" % int(round(v))
 	func _sync(v: float) -> void:
 		val.text = _text(v); eff.text = String(_eff.call(v)) if _eff.is_valid() else ""
@@ -646,3 +700,40 @@ class Para extends Control:
 					var c: Color = p["c"] if Color(p["c"]).a > 0.0 else col
 					TBBz.text(ci, f, Vector2(x, bl), String(p["t"]), z, c)
 					x += TBBz.tw(f, String(p["t"]), z)
+
+# =====================================================================================================================================
+## the demo's dossier ledger `F()`: caption (Alegreya 400 16 dim) ........ figure (Alegreya 700 17), padding 4 0, a 1 unit dotted rule under every row.
+## rows: [[caption, figure], [caption, figure, "pos" | "neg"], ...]
+class Ledger extends Control:
+	var rows: Array = []
+	func _init(r: Array) -> void:
+		rows = r; mouse_filter = Control.MOUSE_FILTER_IGNORE
+		custom_minimum_size = _msize()
+	func _lf() -> Font: return TBKit.alegreya(400)
+	func _vf() -> Font: return TBKit.alegreya(700)
+	func _asc() -> float: return maxf(roundf(TBBz.ascent(_lf(), TBKit.fsf(16.0))), roundf(TBBz.ascent(_vf(), TBKit.fsf(17.0))))
+	func _desc() -> float: return maxf(roundf(TBBz.descent(_lf(), TBKit.fsf(16.0))), roundf(TBBz.descent(_vf(), TBKit.fsf(17.0))))
+	func _rh() -> float: return 8.0 + _asc() + _desc() + 1.0
+	func _msize() -> Vector2:
+		var w := 0.0
+		for r in rows: w = maxf(w, TBBz.tw(_lf(), String(r[0]), TBKit.fsf(16.0)) + 24.0 + TBBz.tw(_vf(), String(r[1]), TBKit.fsf(17.0)))
+		return Vector2(w, _rh() * rows.size())
+	func _draw() -> void:
+		var ci := get_canvas_item()
+		var rh: float = _rh()
+		var dots: Color = TBTokens.BZ_WELL_LINE if not TBTokens.is_hc() else TBTokens.c("ink_1")
+		for i in rows.size():
+			var r: Array = rows[i]
+			var y: float = i * rh
+			var bl: float = y + 4.0 + _asc()
+			TBBz.text(ci, _lf(), Vector2(0, bl), String(r[0]), TBKit.fsf(16.0), TBTokens.c("ink_1"))
+			var vc: Color = TBTokens.c("ink_0")
+			if r.size() > 2:
+				if String(r[2]) == "pos": vc = TBTokens.c("pos")
+				elif String(r[2]) == "neg": vc = TBTokens.BZ_NEG_SOFT
+			var vw: float = TBBz.tw(_vf(), String(r[1]), TBKit.fsf(17.0))
+			TBBz.text(ci, _vf(), Vector2(size.x - vw, bl), String(r[1]), TBKit.fsf(17.0), vc)
+			var x := 0.0
+			while x < size.x:
+				draw_rect(Rect2(x, y + rh - 1.0, 1, 1), dots)
+				x += 2.0

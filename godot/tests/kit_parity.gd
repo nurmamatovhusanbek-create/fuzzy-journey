@@ -105,7 +105,7 @@ static func build(r: Control) -> void:
 	var mvv := K.vbox(0); mg.add_child(mvv)
 	var idx := 0
 	for it in [["check", "Resume", "Esc"], ["save", "Save game", "S"], ["settings", "Settings", ""]]:
-		var rb2 := K.row_box(12, 10); if idx == 1: rb2.preview_state = "hover"
+		var rb2 := K.row_box(12, 10, Callable(), false); if idx == 1: rb2.preview_state = "hover"
 		var hb2 := K.hbox(14)
 		hb2.add_child(K.glyph(it[0], 18, TBTokens.c("brass_lt")))
 		var tl := K.title(it[1], 12, TBTokens.c("ink_0"), 0.14, 0.0); (tl as TBBz.TLabel).px = 12.5; (tl as TBBz.TLabel).refit(); tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hb2.add_child(tl)
@@ -113,6 +113,7 @@ static func build(r: Control) -> void:
 		rb2.add_child(hb2); mvv.add_child(rb2); idx += 1
 	mp.custom_minimum_size.x = 250
 	place(r, mp, 640, 731)
+	place(r, K.ledger([["Army", "35"], ["Defence", "0"], ["Terrain", "Plains"], ["Garrison upkeep", "−4 gold", "neg"]]), 640, 900, 300)
 	# gauges
 	place(r, row(10, [K.gauge(34, "172", "", 0.62, TBTokens.c("brass")), K.gauge(34, "87%", "", 0.87, K.GREEN)]), 940, 800)
 	# scrim + modal
@@ -132,6 +133,7 @@ func _init() -> void:
 	if ua.size() > 0: out = ua[0]
 	TBTokens.legacy = false; K.serif = true; TBFrame.rounded = false; TBFrame.bezel = true
 	TBI18n.load_lang("en")
+	if "--phone" in ua: K.phone_override = 1
 	if "--hc" in ua: TBTokens.mode = TBTokens.Mode.HIGH_CONTRAST
 	if "--hcd" in ua: TBTokens.mode = TBTokens.Mode.HC_DARK
 	if "--scale" in ua: K.text_scale = float(ua[ua.find("--scale") + 1])

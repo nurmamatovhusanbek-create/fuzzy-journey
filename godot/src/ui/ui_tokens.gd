@@ -55,7 +55,7 @@ const BZ_WELL := Color("100D0A"); const BZ_WELL_LINE := Color("3A2F1D"); const B
 const BZ_ROW_HOT := Color(0.788, 0.635, 0.294, 0.08); const BZ_ROW_ON := Color(0.788, 0.635, 0.294, 0.15)
 const BZ_SCRIM := Color(0.0118, 0.0196, 0.0314, 0.62); const BZ_FOOT_LINE := Color("33291A"); const BZ_DOTS := Color("4A3D22")
 const BZ_SLIDER_FILL_A := Color("E5C77A"); const BZ_SLIDER_FILL_B := Color("A8842F"); const BZ_ZONE := Color(0.824, 0.376, 0.247, 0.45)
-const BZ_TIP_DIM := Color("8D826A"); const BZ_BAD := Color("D2603F"); const BZ_SCROLL := Color("5A4A26"); const BZ_NOTICE_FILL := Color("15110D"); const BZ_BRASS_Z := Color("6F5A27"); const BZ_SHADE_40 := Color(0.0196, 0.0157, 0.0118, 0.4)
+const BZ_TIP_DIM := Color("8D826A"); const BZ_BAD := Color("D2603F"); const BZ_SCROLL := Color("5A4A26"); const BZ_NOTICE_FILL := Color("15110D"); const BZ_BRASS_Z := Color("6F5A27"); const BZ_NEG_SOFT := Color("EE8A68"); const BZ_SHADE_40 := Color(0.0196, 0.0157, 0.0118, 0.4)
 
 static func sig() -> int: return mode * 1000 + ver + (500 if legacy else 0)
 

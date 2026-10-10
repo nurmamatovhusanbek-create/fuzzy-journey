@@ -379,15 +379,16 @@ class Btn extends Button:
 		queue_redraw()
 	func _col(hot: bool) -> Dictionary:
 		return TBBz.btn_colors_hc(variant, hot) if TBTokens.is_hc() else TBBz.btn_colors(variant, hot)
-	func fsz() -> float: return TBKit.fsf(10.5 if small else 11.5)
+	func _ph() -> bool: return TBKit.is_phone(self)
+	func fsz() -> float: return TBKit.fsf(11.5 if (_ph() or not small) else 10.5)           # `.phone .bt{font-size:11.5px}` also wins over `.bt.sm`
 	func _h() -> float:
-		var base: float = 28.0 if small else 32.0
+		var base: float = (30.0 if small else 34.0) if _ph() else (28.0 if small else 32.0)
 		var want: float = maxf(base, ceilf(fsz() + (16.0 if small else 18.0)))
 		return maxf(want, float(TBKit.touch()) if TBKit.touch_large else 0.0)
 	func _items() -> Dictionary:
 		var f: Font = TBKit.cinzel(700)
 		var s: float = fsz()
-		var d := {"font": f, "size": s, "sp": TBKit.trk(s, 0.16), "gap": 6.0 if small else 7.0, "padx": 11.0 if small else 14.0}
+		var d := {"font": f, "size": s, "sp": TBKit.trk(s, 0.16), "gap": 6.0 if small else 7.0, "padx": 12.0 if _ph() else (11.0 if small else 14.0)}
 		d["tw"] = TBBz.tw(f, text, s, d["sp"])
 		d["icon"] = (glyph_px * (0.75 if small and glyph_px >= 16.0 else 1.0)) if glyph != "" else 0.0
 		var sf: float = TBKit.fsf(12.0)
@@ -402,7 +403,7 @@ class Btn extends Button:
 		d["content"] = total + float(maxi(n - 1, 0)) * float(d["gap"])
 		return d
 	func _mk_key() -> String:
-		return "%s|%s|%s|%s|%d|%f" % [text, glyph, sub, kbd, int(small), TBKit.text_scale]
+		return "%s|%s|%s|%s|%d|%f|%d" % [text, glyph, sub, kbd, int(small), TBKit.text_scale, int(_ph())]
 	func _refit() -> void:
 		var d := _items()
 		_key = _mk_key()
