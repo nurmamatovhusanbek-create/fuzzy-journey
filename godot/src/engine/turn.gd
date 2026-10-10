@@ -197,7 +197,10 @@ static func rebel_turn(g: TBGame) -> void:
 const VICTORY_IDS := ["domination", "economic", "technological", "diplomatic", "conquest"]
 const DOMINATION_SHARE := 0.25
 const ECONOMIC_GOLD := 5000.0
+const ECONOMIC_MIN_TURN := 30              # a flat 5000 gold fell in the first turns to every large nation, so it also takes a full trade network and some time
+const TECH_MIN_TURN := 60                  # late eras start within 0.3 of the 5.0 cap, so the race needs a minimum length
 const DIPLOMATIC_ALLIES := 8
+const DIPLOMATIC_SHARE := 0.05            # in the largest eras (250 nations) 8 allies was reached by turn 50 in every simulated game
 
 static func victory_progress(g: TBGame, n: int) -> Dictionary:
 	var allies := 0
@@ -206,11 +209,14 @@ static func victory_progress(g: TBGame, n: int) -> Dictionary:
 		if o == n or g.alive[o] == 0 or o == g.rebel: continue
 		alive_others += 1
 		if g.get_rel(n, o) == D.REL_ALLY: allies += 1
+	var deals: float = float(g.trade_cnt[n]) / maxf(1.0, float(TBTrade.max_deals(g, n)))
+	var econ: float = minf(g.gold[n] / ECONOMIC_GOLD, deals)
+	var tech: float = g.tech_level[n] / 5.0
 	return {
 		"domination": clampf(float(g.own_count(n)) / g.P / DOMINATION_SHARE, 0.0, 1.0),
-		"economic": clampf(g.gold[n] / ECONOMIC_GOLD, 0.0, 1.0),
-		"technological": clampf(g.tech_level[n] / 5.0, 0.0, 1.0),
-		"diplomatic": clampf(float(allies) / DIPLOMATIC_ALLIES, 0.0, 1.0),
+		"economic": clampf(econ, 0.0, 1.0 if g.turn >= ECONOMIC_MIN_TURN else 0.99),
+		"technological": clampf(tech, 0.0, 1.0 if g.turn >= TECH_MIN_TURN else 0.99),
+		"diplomatic": clampf(float(allies) / maxf(DIPLOMATIC_ALLIES, ceilf(alive_others * DIPLOMATIC_SHARE)), 0.0, 1.0),
 		"conquest": 1.0 if alive_others == 0 else clampf(float(g.own_count(n)) / maxf(1.0, g.P - g.own_count(0)), 0.0, 0.99),
 	}
 
