@@ -696,8 +696,26 @@ class Surface extends Control:
 				draw_rect(Rect2(0, 0, size.x, 1.0), TBHudParts.tk("rule"))
 				BZ.ruler_h(self, 8.0, size.x - 8.0, 1.0, 8.0, 5, TBHudParts.al(TBHudParts.tk("rule"), 0.8), 3.0)
 			_:
-				draw_line(Vector2(3.5, 4.0), Vector2(3.5, size.y - 4.0), TBHudParts.al(TBHudParts.tk("rule"), 0.9), 1.0)
-				BZ.ruler_v(self, 4.0, size.y - 4.0, 3.5, 8.0, 5, TBHudParts.al(TBHudParts.tk("rule"), 0.9), 3.0, true)
+				var col: Color = TBHudParts.al(TBHudParts.tk("rule"), 0.9)
+				var pts := PackedVector2Array()                                   # the ruler follows the same shallow arc as the rail buttons
+				var y: float = 4.0
+				while y <= size.y - 4.0 + 0.1:
+					pts.append(Vector2(3.5 + arc_dx(y, size.y), y)); y += 4.0
+				if pts.size() >= 2: draw_polyline(pts, col, 1.0)
+				var i: int = 0
+				y = 4.0
+				while y <= size.y - 4.0 + 0.1:
+					var dx: float = arc_dx(y, size.y)
+					var l: float = 3.0 * (1.8 if i % 5 == 0 else 1.0)
+					draw_line(Vector2(3.5 + dx - l, y), Vector2(3.5 + dx, y), col, 1.0)
+					y += 8.0; i += 1
+
+	const ARC_R := 560.0
+	## how far right a rail point `y` (in a rail `h` tall) sits: a shallow circle bulging toward the map, zero at both ends
+	static func arc_dx(y: float, h: float) -> float:
+		var half: float = h * 0.5
+		var t: float = clampf(y - half, -half, half)
+		return sqrt(ARC_R * ARC_R - t * t) - sqrt(ARC_R * ARC_R - half * half)
 
 # ---------------------------------------------------------------- End Turn seal
 ## the one wax object (art bible 7.5): an 80 px circle (72 compact / portrait) drawn by TBFrame.seal (wax grain + one brass ring), the

@@ -288,11 +288,15 @@ func layout_for(vp: Vector2) -> void:
 		var count: int = _rail_n + (1 if overflow else 0)
 		if overflow: _rail_n = fit - 1
 		count = _rail_n + (1 if overflow else 0)
-		_rail.position = Vector2(rail_x, rail_top); _rail.size = Vector2(rail_w, count * item_h + 8.0)
+		var rail_h: float = count * item_h + 8.0
+		var sag: float = P.Surface.arc_dx(rail_h * 0.5, rail_h)
+		_rail.position = Vector2(rail_x, rail_top); _rail.size = Vector2(rail_w + sag, rail_h)
 		for i in count:
 			var b3: P.IconBtn = _dock[i] if i < _rail_n else _dock_more
 			b3.visible = true; b3.edge = 0; b3.icon_px = 22.0; b3.show_label = rail_w >= 110.0
-			b3.position = Vector2(rail_x + 12.0, rail_top + 4.0 + i * item_h); b3.size = Vector2(rail_w - 12.0, item_h)
+			var by: float = rail_top + 4.0 + i * item_h
+			var bdx: float = P.Surface.arc_dx(4.0 + (i + 0.5) * item_h, rail_h)
+			b3.position = Vector2(rail_x + 12.0 + bdx, by); b3.size = Vector2(rail_w - 12.0, item_h)
 	else:
 		var bh: float = 56.0
 		_bottom.position = Vector2(0, vp.y - bh); _bottom.size = Vector2(vp.x, bh)
@@ -343,7 +347,7 @@ func layout_for(vp: Vector2) -> void:
 	iw = minf(iw, vp.x * 0.62)
 	var ibottom: float = _seal.position.y - 16.0
 	_insp = Rect2(vp.x - m - iw, tk_bottom, iw, maxf(130.0, ibottom - tk_bottom))
-	var dx: float = (rail_x + rail_w + gap) if not phone else m
+	var dx: float = (rail_x + _rail.size.x + gap) if not phone else m
 	var dw: float = 380.0 if wide else 340.0
 	_drawer = Rect2(dx, rail_top, dw, maxf(200.0, lower_limit - rail_top))
 	# ---- legend (above the minimap / mode switch), seat strip
