@@ -93,8 +93,8 @@ static func os_prefers_reduced_motion() -> bool:
 static func need_confirm(risky: bool) -> bool:
 	return confirm == "all" or (confirm == "risky" and risky)
 
-static func fs(px: float) -> int:                       ## a font size through the text scale, never below the 12 px caption floor
-	return maxi(roundi(px * text_scale), min_font())
+static func fs(px: float) -> int:                       ## a font size through the text scale (the demo's captions go down to 8.5 units; the 12 unit floor is for map labels, min_font())
+	return maxi(roundi(px * text_scale), roundi(7.0 * dp_scale))
 static func min_font() -> int: return roundi(12.0 * dp_scale)
 static func dp(n: float) -> int: return roundi(n * dp_scale)
 static func touch() -> int: return TBTokens.TOUCH_LARGE if touch_large else TBTokens.TOUCH
@@ -224,7 +224,9 @@ static func _font(file: String, fallbacks: Array = []) -> FontFile:
 static var serif := false
 static func _inter(w: int) -> Font:
 	return _font("inter-latin-%d-normal" % w, ["inter-cyrillic-%d-normal" % w])
-static func body() -> Font: return _font("alegreya-latin-500-normal", ["alegreya-cyrillic-500-normal"]) if serif else _inter(400)
+static func body() -> Font:
+	if serif and TBFrame.bezel: return alegreya(400)               # the demo's body face is Alegreya 400
+	return _font("alegreya-latin-500-normal", ["alegreya-cyrillic-500-normal"]) if serif else _inter(400)
 static func body_b() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _inter(600)
 static func body_m() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _inter(500)
 static func body_i() -> Font: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"]) if serif else _inter(400)
@@ -250,6 +252,22 @@ static func wordmark() -> Font: return _font("cinzel-latin-900-normal", ["alegre
 ## JetBrains Mono: figures 700, deltas 400
 static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"]) if (serif and not TBFrame.bezel) else tabular(body())
 static func mono_b() -> Font: return _font("jetbrains-mono-latin-700-normal", ["jetbrains-mono-cyrillic-700-normal"]) if (serif and not TBFrame.bezel) else tabular(body_b())
+## ---- the demo's faces (bezel.css): Cinzel 500 / 700 caps, Alegreya 400 / 500 / 700 and 400 italic, JetBrains Mono. Readable fonts swap Cinzel for Alegreya Bold.
+static func cinzel(w: int = 700) -> Font:
+	if readable_fonts: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"])
+	return _font("cinzel-latin-%d-normal" % (500 if w < 600 else 700), ["alegreya-sc-cyrillic-%d-normal" % (500 if w < 600 else 700)])
+static func alegreya(w: int = 400, italic: bool = false) -> Font:
+	if italic: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"])
+	var ww: int = 400 if w < 450 else (500 if w < 600 else 700)
+	return _font("alegreya-latin-%d-normal" % ww, ["alegreya-cyrillic-%d-normal" % ww])
+static func jbm(bold: bool = false) -> Font:
+	var ww: int = 700 if bold else 400
+	return _font("jetbrains-mono-latin-%d-normal" % ww, ["jetbrains-mono-cyrillic-%d-normal" % ww])
+## fractional font size through the text scale (the demo uses 11.5, 15.5 ...); the old 12 unit floor is gone: the demo's captions are 8.5 to 11 units
+static func fsf(px: float) -> float: return maxf(px * text_scale, 7.0)
+## letter-spacing in units for a tracked face (`em` of the size, e.g. .16); none for Readable fonts
+static func trk(size: float, em: float) -> float: return 0.0 if readable_fonts else size * em
+
 ## letter-spaced face, created once per (font, spacing)
 static func tracked(base: Font, spacing: float) -> Font:
 	var key := "%d:%d" % [base.get_instance_id(), int(spacing)]
@@ -267,7 +285,13 @@ static func label(text: String, size: int = 0, color: Color = Color.TRANSPARENT)
 	return l
 
 ## panel / modal title: Cinzel 700, oxblood on paper (brass-lt on bar); Cyrillic falls back to Alegreya SC one px larger
-static func title(text: String, size: int = 20, color: Color = Color.TRANSPARENT) -> Label:
+static func title(text: String, size: int = 20, color: Color = Color.TRANSPARENT, em: float = -1.0) -> Label:
+	if TBFrame.bezel:                                   # `.hd .t`: Cinzel 700, line-height 1, tracked .12em, uppercase
+		var tl := TBBz.TLabel.new(cinzel(700), float(size), em if em >= 0.0 else (0.12 if size >= 18 else 0.14), float(size), true)
+		tl.text = text
+		tl.add_theme_color_override("font_color", color if color.a > 0.0 else TEXT)
+		tl.refit()
+		return tl
 	var l := label(text, size + (1 if TBI18n.lang == "ru" and not readable_fonts else 0), color if color.a > 0.0 else GOLD2)
 	l.add_theme_font_override("font", display() if readable_fonts else tracked(display(), 1))
 	return l
@@ -286,6 +310,12 @@ static func delta(text: String, color: Color = Color.TRANSPARENT) -> Label:
 
 ## caption / unit / label: Alegreya 700 caps, 12 px floor (Cyrillic keeps sentence case and no tracking)
 static func caps(text: String, size: int = 12, color: Color = Color.TRANSPARENT) -> Label:
+	if TBFrame.bezel:                                   # `.cap`: Cinzel 600 (= 700) 11, tracked .2em, uppercase, dim
+		var tl := TBBz.TLabel.new(cinzel(700), float(11 if size == 12 else size), 0.2, 0.0, true)
+		tl.text = text
+		tl.add_theme_color_override("font_color", color if color.a > 0.0 else DIM)
+		tl.refit()
+		return tl
 	var up: bool = TBI18n.lang != "ru" and not readable_fonts
 	var l := label(text.to_upper() if up else text, maxi(size, 12), color if color.a > 0.0 else DIM)
 	l.add_theme_font_override("font", tracked(body_b(), 1) if up else body_b())
@@ -390,7 +420,29 @@ static func _bpl(fill_tok: String, border_tok: String, px: float, pressed: bool,
 	if TBFrame.bezel: f.vis_h = 38
 	return f
 
+## the Bezel notched button as theme styleboxes (for plain Button nodes; K.button() draws the same plate itself with exact text)
+static func _bz_button_set(t: Theme, cls: String, variant: int, left_pad: float = 14.0) -> void:
+	var states := {"normal": [false, false, false], "hover": [true, false, false], "pressed": [true, true, false], "hover_pressed": [true, true, false], "disabled": [false, false, true]}
+	for st in states:
+		var a: Array = states[st]
+		var sb := TBBz.Notch.new(variant, a[0], a[1], a[2])
+		sb.content_margin_left = left_pad; sb.content_margin_right = 14.0; sb.content_margin_top = 8.0; sb.content_margin_bottom = 8.0
+		t.set_stylebox(st, cls, sb)
+	t.set_stylebox("focus", cls, _empty)
+	var c1: Dictionary = TBBz.btn_colors_hc(variant, false) if TBTokens.is_hc() else TBBz.btn_colors(variant, false)
+	var c2: Dictionary = TBBz.btn_colors_hc(variant, true) if TBTokens.is_hc() else TBBz.btn_colors(variant, true)
+	t.set_color("font_color", cls, c1["tx"]); t.set_color("font_focus_color", cls, c1["tx"])
+	t.set_color("font_hover_color", cls, c2["tx"]); t.set_color("font_pressed_color", cls, c2["tx"]); t.set_color("font_hover_pressed_color", cls, c2["tx"])
+	t.set_color("font_disabled_color", cls, TBBz.dim(c1["tx"]))
+	t.set_font("font", cls, tracked(cinzel(700), 2)); t.set_font_size("font_size", cls, fs(12))
+
 static func _button_set(t: Theme, cls: String, fill: String, hover: String, press: String, border: String, text_tok: String, dis_alpha: float, ring_on_bar: bool, left_pad: float = 16.0, border_px: int = 1) -> void:
+	if TBFrame.bezel:
+		var vr: int = TBBz.V.SEC
+		if fill == "act": vr = TBBz.V.PRI
+		elif fill == "wax": vr = TBBz.V.DNG
+		_bz_button_set(t, cls, vr, 44.0 if left_pad > 40.0 else 14.0)
+		return
 	var bw: int = border_px
 	var hb: String = border
 	if TBFrame.bezel and fill.begins_with("paper"): border = "rule"; hb = "brass_lt"
@@ -499,30 +551,37 @@ static func _hline() -> StyleBoxLine:
 static func _cap(text: String) -> String:
 	return text.to_upper() if (TBFrame.bezel and TBI18n.lang != "ru" and not readable_fonts) else text
 
-static func button(text: String, cb: Callable = Callable(), primary: bool = false) -> Button:
-	var b := Button.new()
-	b.text = _cap(text)
-	b.custom_minimum_size = Vector2(96, touch())
-	b.focus_mode = Control.FOCUS_ALL
-	b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-	if text_scale >= 1.4: b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART        # large text: a long label wraps rather than widening the panel
+static func button(text: String, cb: Callable = Callable(), primary: bool = false, small: bool = false, icon: String = "", sub: String = "", kbd: String = "") -> Button:
+	var b: Button
+	if TBFrame.bezel:                                   # the demo's notched plate (.bt): 32 units, exact text, 5 unit hit margin
+		var bb := TBBz.Btn.new(_cap(text), TBBz.V.PRI if primary else TBBz.V.SEC, small)
+		bb.glyph = icon; bb.sub = sub; bb.kbd = kbd
+		b = bb
+	else:
+		b = Button.new()
+		b.text = _cap(text)
+		b.custom_minimum_size = Vector2(96, touch())
+		b.focus_mode = Control.FOCUS_ALL
+		b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+		if text_scale >= 1.4: b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART        # large text: a long label wraps rather than widening the panel
 	if primary: b.theme_type_variation = &"PrimaryButton"
 	if cb.is_valid(): b.pressed.connect(cb)
 	a11y(b, text, "button")
 	return b
 
 ## flat wax button for irreversible verbs (declare war, attack, break pact); a left glyph is drawn when given
-class DangerBtn extends Button:
+class DangerBtn extends TBBz.Btn:
 	signal confirmed
 	const HOLD_T := 0.6
-	var glyph := ""
 	var hold_confirm := false         ## destructive confirm: hold 600 ms, or press Enter twice
 	var _hold := 0.0
 	var _holding := false
 	var _armed := false
 	var _text0 := ""
 	func _init(g: String) -> void:
+		super._init("", TBBz.V.DNG, false)
 		glyph = g
+		if not TBFrame.bezel: make_legacy()           # the title screen keeps the old flat wax button (theme styleboxes, glyph at the left)
 	## turns the button into a hold-to-confirm control; `confirmed` fires instead of `pressed`
 	func make_hold() -> void:
 		hold_confirm = true; _text0 = text
@@ -555,10 +614,13 @@ class DangerBtn extends Button:
 		if _hold >= HOLD_T:
 			_holding = false; _hold = 0.0; set_process(false); queue_redraw(); confirmed.emit()
 	func _draw() -> void:
+		if not legacy:
+			hold = clampf(_hold / HOLD_T, 0.0, 1.0) if (hold_confirm and _hold > 0.0) else 0.0
+			super._draw()
+			return
 		if hold_confirm and _hold > 0.0:
 			var w: float = size.x * clampf(_hold / HOLD_T, 0.0, 1.0)
 			var by: float = size.y - 4.0
-			if TBFrame.bezel and size.y > 38.0 and size.y <= 60.0: by = (size.y + 38.0) * 0.5 - 4.0       # the bar sits inside the trimmed plate
 			draw_rect(Rect2(0, by, w, 4.0), TBTokens.HOLD_BAR)
 		if glyph == "": return
 		var col := get_theme_color("font_disabled_color" if disabled else "font_color")
@@ -568,9 +630,11 @@ class DangerBtn extends Button:
 static func danger(text: String, cb: Callable = Callable(), glyph: String = "swords") -> Button:
 	var b := DangerBtn.new(glyph)
 	b.text = _cap(text)
-	b.custom_minimum_size = Vector2(96, touch())
-	b.focus_mode = Control.FOCUS_ALL
-	b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+	if TBFrame.bezel: b._refit()
+	if not TBFrame.bezel:
+		b.custom_minimum_size = Vector2(96, touch())
+		b.focus_mode = Control.FOCUS_ALL
+		b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 	b.theme_type_variation = &"DangerGlyphButton" if glyph != "" else &"DangerButton"
 	if cb.is_valid(): b.pressed.connect(cb)
 	a11y(b, text, "button")
@@ -599,29 +663,44 @@ class IconBtn extends Button:
 	var on_bar := false
 	var active := false
 	var preview_state := ""          # "hover" / "pressed" / "focus": freezes a state for specimen sheets and tests
+	var _px := 40
 	func _init(g: String, cb: Callable, px: int = 40, bar: bool = false) -> void:
-		glyph = g; on_bar = bar
+		glyph = g; on_bar = bar; _px = px
 		var hit := maxi(px, TBKit.touch())
-		custom_minimum_size = Vector2(hit, hit); focus_mode = Control.FOCUS_ALL; flat = true
+		if TBFrame.bezel:                  # `.xbtn`: a 36 unit round button; the hit area grows to the touch size around it
+			custom_minimum_size = Vector2(px, px); size_flags_vertical = Control.SIZE_SHRINK_CENTER; size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		else:
+			custom_minimum_size = Vector2(hit, hit)
+		focus_mode = Control.FOCUS_ALL; flat = true
 		action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		if cb.is_valid(): pressed.connect(cb)
 		var nm: String = {"gear": "settings"}.get(g, g)
 		TBKit.a11y(self, TBI18n.T(nm) if TBI18n.has_key(nm) else nm.replace("_", " ").capitalize(), "button")     # icon-only: always named (callers may refine with K.a11y)
+	func _has_point(p: Vector2) -> bool:
+		if not TBFrame.bezel: return Rect2(Vector2.ZERO, size).has_point(p)
+		var grow: float = maxf((float(TBKit.touch()) - minf(size.x, size.y)) * 0.5, 0.0)
+		return Rect2(-grow, -grow, size.x + 2.0 * grow, size.y + 2.0 * grow).has_point(p)
 	func _draw() -> void:
 		var mode := get_draw_mode()
 		if preview_state == "hover": mode = BaseButton.DRAW_HOVER
 		elif preview_state == "pressed": mode = BaseButton.DRAW_PRESSED
+		if TBFrame.bezel:
+			var hot: bool = (mode == BaseButton.DRAW_HOVER or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED) and not disabled
+			var d: float = minf(size.x, size.y)
+			var c: Vector2 = (size * 0.5)
+			var ci := get_canvas_item()
+			var ring: Color = TBTokens.c("brass_lt") if hot else TBTokens.c("rule")
+			TBBz.round_btn(ci, c, d, ring, hot)
+			var ink: Color = TBTokens.c("cream") if hot else TBTokens.c("ink_1")
+			if TBTokens.is_hc(): ink = TBTokens.c("ink_0")
+			if disabled: ink = TBTokens.c("ink_off")
+			var gs: float = roundf(d * 0.42) if glyph in ["close", "back"] else roundf(d * 0.6)
+			TBGlyph.draw_ic(self, glyph if glyph != "back" else "back", c, gs, ink)
+			if has_focus() and TBFrame.kbd_nav or preview_state == "focus": TBBz.ring_stroke(ci, c, d * 0.5 + 4.0, 2.0, TBTokens.c("brass_lt") if not TBTokens.is_hc() else TBTokens.c("ink_0"))
+			return
 		var vis := float(mini(int(minf(size.x, size.y)), TBTokens.ICON_VISUAL))
 		var r := Rect2(roundf((size.x - vis) * 0.5), roundf((size.y - vis) * 0.5), vis, vis)
-		if TBFrame.bezel and (glyph == "close" or glyph == "back") and not TBTokens.is_hc():
-			var rv: float = minf(vis, 36.0)
-			var rc: Vector2 = r.get_center().round() + Vector2(0, 1.0 if mode == BaseButton.DRAW_PRESSED else 0.0)
-			var hot: bool = mode == BaseButton.DRAW_HOVER or mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED
-			var fr: float = TBBezel.ring(self, rc, rv * 0.5, 0, TBTokens.c("bar_2" if hot else "bar_0"))
-			TBGlyph.draw(self, glyph, rc, fr * 1.0, TBTokens.c("cream" if hot else "ink_1"), 1.8)
-			if has_focus() or preview_state == "focus": draw_style_box(TBFrame.focus(on_bar, 4, 0), r)
-			return
 		var fill := Color.TRANSPARENT
 		if mode == BaseButton.DRAW_PRESSED or mode == BaseButton.DRAW_HOVER_PRESSED: fill = TBTokens.c("bar_2" if on_bar else "paper_2")
 		elif mode == BaseButton.DRAW_HOVER: fill = TBTokens.c("bar_2" if on_bar else "paper_hover")
@@ -644,7 +723,12 @@ class RingIcon extends Control:
 	func _init(g: String, px: int = 38) -> void:
 		glyph = g; custom_minimum_size = Vector2(px, px); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	func _draw() -> void:
-		var c := size * 0.5
+		var c := (size * 0.5)
+		if TBFrame.bezel:                                         # `.ring`: radial face, 1.3 brass hairline, 3 unit shade, the demo icon at .48 of the box
+			var d: float = minf(size.x, size.y)
+			TBBz.ring_face(get_canvas_item(), c, d)
+			TBGlyph.draw_ic(self, glyph, c, roundf(d * 0.48), TBTokens.c("ink_off" if muted else "brass_lt"))
+			return
 		var fr: float = TBBezel.ring(self, c, minf(size.x, size.y) * 0.5 - 1.5, 0, TBTokens.c("bar_0"))
 		TBGlyph.draw(self, glyph, c.round(), fr * 1.2, TBTokens.c("ink_off" if muted else "brass_lt"), 1.6)
 
@@ -652,18 +736,31 @@ static func ring_icon(g: String, px: int = 38, muted: bool = false) -> Control:
 	var r := RingIcon.new(g, px); r.muted = muted
 	return r
 
-## the rule under a window header: a brass hairline with graduated marks beneath it
+## the rule under a window header: `.rule` = minor ticks every 8 units (4.5 tall, lo), major every 40 (9 tall, brass), a 1 unit lo line at the foot
 class TickRule extends Control:
 	func _init() -> void:
-		custom_minimum_size = Vector2(0, 7); mouse_filter = Control.MOUSE_FILTER_IGNORE
+		custom_minimum_size = Vector2(0, 10); mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
-		draw_rect(Rect2(0, 0, size.x, 1), TBTokens.c("rule"))
-		if TBTokens.is_hc(): return
-		TBBezel.ruler_h(self, 6.0, size.x - 6.0, 1.0, 6.0, 5, TBTokens.ca("rule", 0.85), 3.0)
+		if TBTokens.is_hc():
+			draw_rect(Rect2(0, 8, size.x, 2), TBTokens.c("rule")); return
+		var lo: Color = TBTokens.c("rule"); var br: Color = TBTokens.c("brass")
+		var x := 0.0
+		while x < size.x:
+			draw_rect(Rect2(x, 0, 1, 4.5), lo)
+			x += 8.0
+		x = 0.0
+		while x < size.x:
+			draw_rect(Rect2(x, 0, 1, 9), br)
+			x += 40.0
+		draw_rect(Rect2(0, size.y - 1, size.x, 1), lo)
 
-## header rule: the graduated brass rule in the Bezel look, a hairline otherwise
-static func header_rule() -> Control:
-	if TBFrame.bezel: return TickRule.new()
+## header rule: the graduated brass rule inset 22 units on each side in the Bezel look, a hairline otherwise
+static func header_rule(inset: int = 22) -> Control:
+	if TBFrame.bezel:
+		var m := MarginContainer.new()
+		m.add_theme_constant_override("margin_left", inset); m.add_theme_constant_override("margin_right", inset); m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		m.add_child(TickRule.new())
+		return m
 	var r := ColorRect.new(); r.color = TBTokens.c("rule"); r.custom_minimum_size = Vector2(0, 1); r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return r
 
