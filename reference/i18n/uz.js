@@ -781,6 +781,7 @@ export default {
   confirm_war_t: "{a} ga urush e’lon qilasizmi?",
   confirm_war_cb: "Urush sababi: {cb}.",
   confirm_war_nocb: "Urush sababi yo‘q: shuhrat +{k}, qo‘shnilar koalitsiya tuzishi mumkin.",
+  br_title: "Jang hisoboti", br_victory: "G‘ALABA", br_defeat: "MAG‘LUBIYAT", br_of: "{p} uchun jang", br_won: "Dushman saflari oqshomga borib yorildi.", br_lost: "Hujum qaytarildi.", br_my: "Sizning yo‘qotishlaringiz", br_foe: "Dushman yo‘qotishlari", br_claimed: "Egallangan viloyatlar", br_left: "Qolgan himoyachilar", br_onward: "Oldinga",
   war_hold: "Urush e'lon qilish uchun bosib turing", war_body_cb: "Urush sababi: {cb}. Bu [b]{dp} elchiga[/b] tushadi va qaytarib bo‘lmaydi.", war_body_nocb: "Urush sababi yo‘q, qo‘shnilar sizga qarshi koalitsiya tuzishi mumkin. Bu [b]{dp} elchiga[/b] tushadi va qaytarib bo‘lmaydi.", war_fx_grudge: "Ularning kegini", war_fx_env: "Elchilar", war_fx_inf: "Yomon nom", war_fx_trade: "Savdo yo‘li", war_fx_ends: "tugaydi", war_fx_none: "yo‘q",
   confirm_war_b: "Bu {dp} diplomatiya ochkosiga tushadi va qaytarib bo‘lmaydi.",
   council: "Kengash",

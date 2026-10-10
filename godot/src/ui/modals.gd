@@ -498,14 +498,15 @@ class LinkBtn extends Button:
 class EventMedal extends Control:
 	var glyph := "warn"
 	var col := Color.WHITE
-	func _init(g: String, c: Color) -> void:
-		glyph = g; col = c; custom_minimum_size = Vector2(76, 76); mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var gsize := 34.0
+	func _init(g: String, c: Color, px: float = 76.0, gs: float = 34.0) -> void:
+		glyph = g; col = c; gsize = gs; custom_minimum_size = Vector2(px, px); mouse_filter = Control.MOUSE_FILTER_IGNORE
 		size_flags_horizontal = Control.SIZE_SHRINK_BEGIN; size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	func _draw() -> void:
 		var k: float = size.x / 96.0
 		var c := size * 0.5
 		TBBezel.ring(self, c, 44.0 * k, 36, TBTokens.BZ_FACE, true, false, k)
-		TBGlyph.draw_ic(self, glyph, c, 34.0, col, 1.5)
+		TBGlyph.draw_ic(self, glyph, c, gsize, col, 1.5)
 
 ## kicker colour / icon of an event category (the demo's ultimatum is bad-toned; boons are brass)
 const CAT_IC := {"military": "war", "crisis": "warn", "domestic": "crown", "trade": "trade", "enlightenment": "research", "diplomacy": "envoys", "disaster": "warn", "golden age": "star"}
@@ -571,6 +572,34 @@ static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) ->
 	h.actions(cancel, db)
 	h.focus_target = cancel
 	if TBPanel.wants_focus(): cancel.grab_focus.call_deferred()
+	return h
+
+## the demo's battle report (`battleBody`): result medallion, kicker, "Battle of X", a line of flavour and the ledger; one "Onward" button
+## r = {win, name, my_loss, foe_loss, claimed (bool), left (men that hold the province)}
+static func battle_report(parent: Control, r: Dictionary) -> TBPanel.Handle:
+	var win: bool = r["win"]
+	var phone: bool = K.is_phone(parent)
+	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("br_title"), "attack", {"w": 480.0 if phone else 460.0})
+	var box := K.vbox(0); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.body.add_child(box)
+	var tone: Color = TBTokens.BZ_GOOD if win else TBTokens.BZ_BAD
+	var top := K.hbox(16); top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(EventMedal.new("crown" if win else "skull", tone, 84.0, 36.0))
+	var tc := K.vbox(3); tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var kk := K.caps(T.call("br_victory" if win else "br_defeat"), 11, tone); (kk as TBBz.TLabel).wrap_ok = true; kk.custom_minimum_size.x = 40; kk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tc.add_child(kk)
+	var tl := K.title(T.call("br_of", {"p": r["name"]}), 20, TBTokens.BZ_IVORY, 0.06, 20.0 * 1.15); (tl as TBBz.TLabel).wrap_ok = true; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tc.add_child(tl)
+	tc.add_child(K.para_bz("[i]%s[/i]" % T.call("br_won" if win else "br_lost"), 16.0, 1.3))
+	top.add_child(tc)
+	box.add_child(top); _gap(box, 7)
+	var rows: Array = [[T.call("br_my"), "−%d" % int(r["my_loss"])], [T.call("br_foe"), "−%d" % int(r["foe_loss"])]]
+	rows.append([T.call("br_claimed"), "+1" if r["claimed"] else "0"])
+	rows.append([T.call("br_left"), str(int(r["left"]))])
+	box.add_child(K.tbl(rows, true))
+	var onward := K.button(T.call("br_onward"), func(): h.close(), true)
+	h.actions(onward, null)
+	h.focus_target = onward
+	if TBPanel.wants_focus(): onward.grab_focus.call_deferred()
 	return h
 
 static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g: TBGame = null, on_defer: Callable = Callable()) -> TBPanel.Handle:

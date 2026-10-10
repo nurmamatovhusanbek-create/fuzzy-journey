@@ -171,6 +171,7 @@ export default {
   confirm_war_t: 'Declare war on {a}?',
   confirm_war_cb: 'Casus belli: {cb}.',
   confirm_war_nocb: 'You have no casus belli: infamy +{k}, and neighbours may form a coalition.',
+  br_title: 'Battle report', br_victory: 'VICTORY', br_defeat: 'DEFEAT', br_of: 'Battle of {p}', br_won: 'The enemy line broke at dusk.', br_lost: 'The assault was thrown back.', br_my: 'Your losses', br_foe: 'Enemy losses', br_claimed: 'Provinces claimed', br_left: 'Defenders left', br_onward: 'Onward',
   war_hold: 'Hold to declare war', war_body_cb: 'Casus belli: {cb}. It costs [b]{dp} envoys[/b] and cannot be undone.', war_body_nocb: 'You have no casus belli, neighbours may form a coalition against you. It costs [b]{dp} envoys[/b] and cannot be undone.', war_fx_grudge: 'Their grudge', war_fx_env: 'Envoys', war_fx_inf: 'Infamy', war_fx_trade: 'Trade route', war_fx_ends: 'ends', war_fx_none: 'none',
   confirm_war_b: 'It costs {dp} diplomacy points and cannot be undone.',
   council: 'Council',

@@ -52,6 +52,8 @@ func _init() -> void:
 			"war":
 				var au3: int = main.g.nat_code.find("austrian_empire")
 				TBModals.war_confirm(main._overlay, main.g, au3, func(): pass)
+			"battle":
+				TBModals.battle_report(main._overlay, {"win": true, "name": "Swabia", "claimed": true, "my_loss": 14, "foe_loss": 38, "left": 30})
 			"event2":
 				TBModals.event_prompt(main._overlay, {"uid": 902, "n": main.g.human_id, "kind": "rand", "id": "plague", "cat": "CRISIS", "count": 2}, func(_i): pass, main.g, func(): pass)
 			"move", "preview":
