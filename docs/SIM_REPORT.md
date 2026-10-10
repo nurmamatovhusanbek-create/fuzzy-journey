@@ -35,9 +35,9 @@ The engine test suite (`tests/run_all.gd`) passes, including the bit-exact oracl
 | modern | 251->250 | 79->86 | 0.014 | 88 | 0 | 2,570 | diplomatic 4 runs, turn 130 |
 
 * **No invariant broke** in 78 games (0 in every era).
-* **Economic victory is gone as an AI path** (share-based rule): no era reports it. Max treasuries fell from 160,000 / 1,000,000+ to 150,000 (Roman, a one-nation empire of 413 provinces) and 1,140 to 38,000 elsewhere; inflation holds the hoard to a level.
+* **Economic victory is gone as an AI path** (share-based rule): no era reports it. Max treasuries were 160,000 (Napoleonic) and over 1,000,000 (Roman) in the first run; now Napoleonic peaks at 29,563 and Roman at 150,419 (a 413-province empire), the other eras between 1,140 and 38,373.
 * **Technology** is only reachable in the Roman era (6 of 6 runs, turn 190 at the earliest): the lead rule (0.4 over the second) makes it a race there, and late eras are skipped on purpose.
-* **Rebels:** 0-4 rebel-held provinces at the end of 300 turns (was 3-5% of the map, up to 33 provinces in the first run).
+* **Rebels:** 0-4 rebel-held provinces on average at the end of 300 turns (first run: 3-5% of the map). Individual games still spike (ancient seed 3 had 33 rebel provinces at turn 75).
 * **Diplomatic hegemony** is the AI's easiest path (turn 90 in the medieval and Victorian worlds). Open item: scale the threshold by era or require the alliances to hold for N turns.
 * **Roman** is the one runaway world (top nation 268 -> 413 provinces, HHI 0.12): worth a look at supply and overextension for very large empires.
 
