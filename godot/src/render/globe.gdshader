@@ -292,8 +292,11 @@ void fragment() {
 				col = sea_grad(lp, sz);
 				float dpp = max(length(ex), length(ey)) * 360.0 / id_size.x;                 // degrees per logical px
 				float gk = mode == 0 ? cos(lat) : 1.0;
-				float dla = abs(fract(lat_d / 5.0 + 0.5) - 0.5) * 5.0 / max(dpp, 1e-5);
-				float dlo = abs(fract(lon_d / 5.0 + 0.5) - 0.5) * 5.0 * gk / max(dpp, 1e-5);
+				float dppx = mode == 1 ? abs(ex.x) * 360.0 / id_size.x : dpp;          // flat (Mercator): lon and lat degrees per px differ by cos(lat)
+				float dppy = mode == 1 ? abs(ey.y) * 360.0 / id_size.x : dpp;
+				float gstep = 5.0 / max(dppx, 1e-6) < 34.0 ? (15.0 / max(dppx, 1e-6) < 34.0 ? 30.0 : 15.0) : 5.0;       // zoomed far out the 5 degree mesh turns into a hatch: widen it
+				float dla = abs(fract(lat_d / gstep + 0.5) - 0.5) * gstep / max(dppy, 1e-6);
+				float dlo = abs(fract(lon_d / gstep + 0.5) - 0.5) * gstep * gk / max(dppx, 1e-6);
 				float gcov = max(clamp(1.5 - dla, 0.0, 1.0), clamp(1.5 - dlo, 0.0, 1.0)) * 0.4 * ms * clamp(gk * 2.0, 0.0, 1.0);
 				col = mix(col, vec3(0.788, 0.635, 0.294), gcov);
 				if (quality >= 1) {
