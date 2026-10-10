@@ -582,6 +582,7 @@ static func button(text: String, cb: Callable = Callable(), primary: bool = fals
 	if TBFrame.bezel:                                   # the demo's notched plate (.bt): 32 units, exact text, 5 unit hit margin
 		var bb := TBBz.Btn.new(_cap(text), TBBz.V.PRI if primary else TBBz.V.SEC, small)
 		bb.glyph = icon; bb.sub = sub; bb.kbd = kbd
+		if text_scale >= 1.4: bb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART          # large text: a long label wraps rather than widening the panel (native text, same plate)
 		b = bb
 	else:
 		b = Button.new()
@@ -1050,7 +1051,7 @@ class Segmented extends Container:
 		for i in n:
 			var id: String = items[i][0]
 			var b := Button.new(); b.text = items[i][1]; b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-			if not TBFrame.bezel: b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			b.add_theme_font_size_override("font_size", TBKit.fs(10.5 if TBFrame.bezel else (13 if compact else 15)))
 			b.pressed.connect(func(): select(id, true))
 			b.draw.connect(func(): _draw_cell(id, b))

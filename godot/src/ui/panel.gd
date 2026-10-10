@@ -112,6 +112,12 @@ class Handle extends RefCounted:
 				if b2 != null: (b2 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL; footer.add_child(b2)
 			return
 		if bz:                                            # `.foot{justify-content:space-between}`: buttons keep their own width
+			var room: float = minf(bz_w if bz_w > 0.0 else 460.0, TBPanel._vs(self).x - 32.0) - 36.0 - 10.0
+			var need := 0.0
+			for b0 in [secondary, primary]: need += (b0 as Control).custom_minimum_size.x if b0 != null else 0.0
+			if need > room:                               # a narrow screen: the labels wrap instead of pushing the card off the screen
+				for b1 in [secondary, primary]:
+					if b1 is TBBz.Btn and not (b1 as TBBz.Btn).legacy: (b1 as TBBz.Btn).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; (b1 as TBBz.Btn)._go_native(); (b1 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			if secondary != null: footer.add_child(secondary)
 			var sp0 := Control.new(); sp0.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sp0.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			footer.add_child(sp0)
@@ -248,8 +254,8 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	h.wide = bool(opts.get("wide", false))
 	match kind:
 		Kind.DIALOG: h.form = "dialog"
-		Kind.DRAWER: h.form = "sheet" if portrait else ("page" if short else "drawer")
-		_: h.form = "page" if (portrait or short) else "panel"
+		Kind.DRAWER: h.form = "sheet" if portrait else ("page" if (short and not TBFrame.bezel) else "drawer")      # the demo keeps floating windows on a phone in landscape
+		_: h.form = "page" if (portrait or (short and not TBFrame.bezel)) else "panel"
 	h.modal = kind != Kind.DRAWER or h.form == "page"
 	h.short = short and h.form in ["page", "dialog"]
 	h.narrow = vp0.x < 480.0
@@ -908,7 +914,7 @@ class Seg extends PanelContainer:
 			var id: String = items[i][0]
 			var b := SegCell.new(); b.text = String(items[i][1]); b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.custom_minimum_size = Vector2(0, (TBKit.touch() if TBKit.touch_large else 28) if TBFrame.bezel else TBKit.touch() - 8)
-			if not TBFrame.bezel: b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			b.set_meta("mask", (TBFrame.TL | TBFrame.BL if i == 0 else 0) | (TBFrame.TR | TBFrame.BR if i == n - 1 else 0))
 			b.pressed.connect(func(): select(id, true))
 			row.add_child(b); _btns[id] = b

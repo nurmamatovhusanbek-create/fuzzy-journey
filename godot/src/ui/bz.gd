@@ -364,7 +364,7 @@ class Btn extends Button:
 			add_theme_color_override(fc, Color.TRANSPARENT)
 	func _go_native() -> void:
 		_native = true
-		custom_minimum_size = Vector2(0.0, 0.0)
+		custom_minimum_size = Vector2(0.0, _h())
 		var f: Font = TBKit.tracked(TBKit.cinzel(700), 2)
 		add_theme_font_override("font", f); add_theme_font_size_override("font_size", TBKit.fs(12))
 		var tx: Color = _col(false)["tx"]
@@ -408,6 +408,8 @@ class Btn extends Button:
 		_key = _mk_key()
 		var minw: float = float(d["content"]) + 2.0 * float(d["padx"])
 		custom_minimum_size = Vector2(minw if not _native else 0.0, _h())
+	func _enter_tree() -> void:
+		if autowrap_mode != TextServer.AUTOWRAP_OFF and not _native and not legacy: _go_native()       # callers set wrapping before adding the button: switch before the first layout
 	func _has_point(p: Vector2) -> bool:
 		return Rect2(-5.0, -5.0, size.x + 10.0, size.y + 10.0).has_point(p)
 	func _draw() -> void:
@@ -501,8 +503,11 @@ class TLabel extends Label:
 		var w: float = exact_w()
 		var cur: float = custom_minimum_size.x
 		var nx: float = w if (_lastw < 0.0 or is_equal_approx(cur, _lastw)) else cur
-		_lastw = w
+		if (text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING or clip_text) and (_lastw < 0.0 or is_equal_approx(cur, _lastw)): nx = 0.0         # a trimming label may shrink below its text
+		_lastw = w if nx > 0.0 or w <= 0.0 else w
 		custom_minimum_size = Vector2(nx, line_h())
+	func _enter_tree() -> void:
+		if autowrap_mode != TextServer.AUTOWRAP_OFF and not _native: _to_native()
 	func _to_native() -> void:
 		if _native: return
 		_native = true
@@ -515,6 +520,8 @@ class TLabel extends Label:
 	func _draw() -> void:
 		if _native: return
 		if _mk() != _key: refit()
+		if (text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING or clip_text) and is_equal_approx(custom_minimum_size.x, _lastw) and _lastw > 0.0:
+			custom_minimum_size.x = 0.0; _lastw = 0.0                      # trimming was set after construction: let it shrink
 		if autowrap_mode != TextServer.AUTOWRAP_OFF:
 			_to_native(); queue_redraw.call_deferred(); return
 		var s: String = _t()
@@ -525,7 +532,7 @@ class TLabel extends Label:
 		var z: float = fsz(); var sp: float = spacing()
 		var avail: float = size.x
 		var w: float = TBBz.tw(f, s, z, sp)
-		if w > avail + 0.5 and text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING:
+		if w > avail + 0.5 and (text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING or clip_text):
 			var t := s
 			while t.length() > 1 and TBBz.tw(f, t + "…", z, sp) > avail: t = t.substr(0, t.length() - 1)
 			s = t + "…"; w = TBBz.tw(f, s, z, sp)
