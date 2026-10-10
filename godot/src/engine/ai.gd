@@ -31,7 +31,8 @@ static func _nation(g: TBGame, n: int) -> void:
 	var pers: Dictionary = D.PERSONALITIES[g.personality[n]]
 	var own := g.owned(n)
 	if own.is_empty(): return
-	var aggr: float = float(pers["aggr"]) * float(g.diff["aiAggr"])
+	var lvl: Dictionary = D.AGGRESSION[g.aggr_level]
+	var aggr: float = float(pers["aggr"]) * float(g.diff["aiAggr"]) * (float(lvl["mul"]) if g.rules >= 1 else 1.0)
 	var fr := _frontier(g, n)
 	var at_war := g.at_war(n)
 
@@ -139,8 +140,9 @@ static func _budget(g: TBGame, n: int, pers: Dictionary, at_war: bool) -> void:
 	g.budget[o] = tax; g.budget[o + 1] = goods; g.budget[o + 2] = res; g.budget[o + 3] = inv
 
 static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array) -> void:
-	if g.turn < 6 or g.turn - g.last_war_turn[n] < (6 if g.rules == 0 else 10) or g.dp[n] < D.DP_WAR: return
-	if g.rules >= 1 and g.war_cnt[n] >= 2: return          # no endless multi-front wars
+	var lvl: Dictionary = D.AGGRESSION[g.aggr_level]
+	if g.turn < 6 or g.turn - g.last_war_turn[n] < (6 if g.rules == 0 else int(lvl["cd"])) or g.dp[n] < D.DP_WAR: return
+	if g.rules >= 1 and g.war_cnt[n] >= 2 + int(lvl["wars"]): return          # no endless multi-front wars
 	if not g.rng.chance(minf(1.0, aggr * 0.5)): return
 	var tgt := 0; var ts := -1.0
 	var seen := {}
@@ -153,7 +155,7 @@ static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array)
 		var t := g.owner[q]
 		if t == 0 or t == n or seen.has(t) or g.alive[t] == 0 or g.friendly(n, t) or g.has_truce(n, t) or g.get_rel(n, t) == D.REL_NAP or g.get_rel(n, t) == D.REL_WAR: continue
 		seen[t] = true
-		if float(g.army[p]) / maxf(8.0, g.army[q] + 10.0) < 1.15: continue
+		if float(g.army[p]) / maxf(8.0, g.army[q] + 10.0) < (1.15 if g.rules == 0 else float(lvl["ratio"])): continue
 		var s: float = float(g.army[p]) / (g.army[q] + 10.0) + g.grudge[n * g.N1 + t] / 50.0 + g.rng.next() * 0.5
 		if g.rules >= 1:
 			var share := float(g.own_count(t)) / maxf(1.0, total_owned)
@@ -185,7 +187,7 @@ static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		var atk := g.army[p] * 0.9
 		var dfn := g.army[q] * g.def_mul(q) + 1.0
 		var score := atk / dfn + g.province_value(q) * 0.05 + (1.0 if g.capital[q] != 0 else 0.0)
-		if atk > dfn * 1.1: cands.append([score, p, q])
+		if atk > dfn * (1.1 if g.rules == 0 else float(D.AGGRESSION[g.aggr_level]["atk"])): cands.append([score, p, q])
 	cands.sort_custom(func(a, b):
 		if a[0] != b[0]: return a[0] > b[0]
 		if a[1] != b[1]: return a[1] < b[1]
@@ -268,7 +270,11 @@ static func accepts_peace(g: TBGame, t: int, p: int, kind: String) -> bool:
 	want -= g.grudge[t * N1 + p] / 80.0
 	if kind == "cede": want -= 0.5 + their_ws * 0.02
 	if kind == "vassal": want -= 1.5 + their_ws * 0.03
-	return want > 0.2
+	return want > peace_bar(g)
+
+## how convincing a peace offer must be: 0.2, higher in a warlike world (rules >= 1)
+static func peace_bar(g: TBGame) -> float:
+	return 0.2 + (float(D.AGGRESSION[g.aggr_level]["peace"]) if g.rules >= 1 else 0.0)
 
 static func accepts_pact(g: TBGame, t: int, p: int, rel: int) -> bool:
 	var pers: Dictionary = D.PERSONALITIES[g.personality[t]]

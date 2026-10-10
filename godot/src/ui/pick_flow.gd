@@ -11,6 +11,7 @@ const HOT_COLORS := [0xC63A4A, 0x3A7AC6, 0x3AA66A, 0xC6A23A]
 signal play(n: int)
 signal back_requested
 signal list_requested
+signal aggression_changed(level: int)
 
 var g: TBGame
 var map: TBMapView
@@ -32,6 +33,7 @@ var _back_btn: Button
 var _list_btn: Button
 var _shown_at := 0
 var _hint_override := ""
+var _agg_hint: Label
 
 func setup(game: TBGame, map_view: TBMapView, hot_count: int, picked: PackedInt32Array) -> TBPickFlow:
 	g = game; map = map_view; hot_n = hot_count; hot_list = picked
@@ -250,6 +252,18 @@ func _build_card(n: int) -> void:
 		_card_v.add_child(TBPanel.facts_grid(rows, 1))
 		cf.add_child(TBNationsScreen.rating_chip(rt)); _card_v.add_child(cf)
 	_card_v.add_child(TBPanel.para(TBNationsScreen.rating_reason(rt), 13, K.DIM))
+	if g.rules >= 1:                                              # how warlike the AI world is (chosen once per game, shown with the nation)
+		var ag := K.hbox(8)
+		var al := K.label(T.call("aggr_title"), 13, K.DIM); al.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ag.add_child(al)
+		var items: Array = []
+		for i in TBData.AGGRESSION.size(): items.append([str(i), T.call("aggr_" + String(TBData.AGGRESSION[i]["id"]))])
+		var sg := TBPanel.seg(items, str(g.aggr_level), func(v: String): g.aggr_level = int(v); aggression_changed.emit(g.aggr_level); _agg_hint.text = T.call("aggr_%s_d" % TBData.AGGRESSION[g.aggr_level]["id"]))
+		sg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ag.add_child(sg)
+		_card_v.add_child(ag)
+		_agg_hint = TBPanel.para(T.call("aggr_%s_d" % TBData.AGGRESSION[g.aggr_level]["id"]), 12, K.DIM)
+		_card_v.add_child(_agg_hint)
 	var taken := hot_list.has(n)
 	if taken: cf.add_child(K.chip(T.call("taken_by_seat", {"p": "P%d" % (hot_list.find(n) + 1)}), "lock", "warn"))
 	# pinned footer: the one primary of the card, always on screen

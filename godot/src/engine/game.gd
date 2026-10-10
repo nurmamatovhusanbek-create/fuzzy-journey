@@ -121,12 +121,25 @@ var r_mil := PackedByteArray()
 var r_trait := PackedByteArray()
 var nap_expiry: Dictionary = {}
 var occ_rev: int = 0
+# rules >= 1 economy / world state (all derived each tick, kept so a save round-trips)
+var infl: float = 0.0                # share of every treasury lost to inflation this turn
+var world_y: float = 0.0             # gross income of all living nations, last tick
+var econ_goal: float = 0.0           # income share Economic Supremacy needs (set from the era's start)
+var tech_top: float = 0.0            # best tech level, second best, mean (last tick)
+var tech_second: float = 0.0
+var tech_avg: float = 0.0
+var tech_start_top: float = 0.0      # best tech level when the game began
+var aggr_level: int = 1              # TBData.AGGRESSION index: how warlike the AI world is
+var reb_age := PackedByteArray()     # turns a province has been held by rebels
+var reb_from := PackedInt32Array()   # who it rebelled from
+var own_since := PackedInt32Array()  # turn the current owner took the province (conquered land is unruly until it is assimilated)
 
 func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	world = w
 	P = w.P
 	seed_value = int(opts.get("seed", 1))
 	rules = int(opts.get("rules", 1))
+	aggr_level = clampi(int(opts.get("aggression", 1)), 0, D.AGGRESSION.size() - 1)
 	rng = TBRng.new(seed_value)
 	difficulty = String(opts.get("difficulty", "normal"))
 	diff = D.DIFFICULTY.get(difficulty, D.DIFFICULTY["normal"])
@@ -160,7 +173,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	N1 = N + 1
 
 	# ---- provinces ----
-	occupier.resize(P); army.resize(P); pop.resize(P); occ_turns.resize(P); gen.resize(P)
+	occupier.resize(P); army.resize(P); pop.resize(P); occ_turns.resize(P); gen.resize(P); reb_age.resize(P); reb_from.resize(P); own_since.resize(P)
 	for a in [dev, econ, stab, happy, defense, terrain, building, b_level, b_building, b_turns, capital, discoverable, dirty_flag]:
 		a.resize(P)
 	if has_era:
@@ -239,6 +252,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		TBRegimes.assign(self)
 		TBRulers.init(self)
 		TBRealms.init(self)
+		TBTurn.refresh_world(self)          # world income, tech stats and the era's economic goal
 
 ## nation name for display (localised)
 func dname(n: int) -> String: return TBI18n.nation(nat_name[n])
@@ -363,7 +377,9 @@ func take_dirty() -> PackedInt32Array:
 
 func set_owner(p: int, n: int) -> void:
 	if owner[p] == n: return
-	owner[p] = n; own_dirty = true; touch(p)
+	if n == rebel and rebel > 0: reb_from[p] = owner[p]; reb_age[p] = 0       # a rebel province remembers who it rose against
+	elif owner[p] == rebel: reb_from[p] = 0; reb_age[p] = 0
+	owner[p] = n; own_since[p] = turn; own_dirty = true; touch(p)
 	if gen[p] != 0: gen[p] = 0
 	if n != 0 and not core.is_empty() and core[p] == 0: core[p] = n      # first settlers make it home land
 

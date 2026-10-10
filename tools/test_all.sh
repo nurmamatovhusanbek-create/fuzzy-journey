@@ -18,6 +18,7 @@ run "ultimatums" tests/ultimatum.gd
 run "honours" tests/honours.gd
 run "supply / attrition" tests/supply.gd
 run "doctrine" tests/doctrine.gd
+run "economy / research / aggression / rebellion model" tests/model.gd
 run "plaque animation state" tests/labels_anim.gd
 run "can(): read-only and in step with apply()" tests/can.gd
 run "regional unification" tests/realms.gd

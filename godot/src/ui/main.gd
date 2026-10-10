@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto"}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto"}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -425,7 +425,7 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	cfg["difficulty"] = difficulty; _save_cfg()
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	TBFlags.cur_era = String(era.get("id", ""))
-	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty})
+	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty, "aggression": int(cfg.get("aggression", 1))})
 	TBLenses.dark_land = true
 	map.setup(g)
 	mode = "pick"; _spin = false; _enter_game_visuals()
@@ -440,6 +440,7 @@ func _show_pick() -> void:
 	_clear_overlay()
 	_pick_flow = TBPickFlow.new().setup(g, map, _hot_n, _hot_list)
 	_pick_flow.play.connect(_confirm_pick)
+	_pick_flow.aggression_changed.connect(func(l: int): cfg["aggression"] = l; _save_cfg())
 	_pick_flow.back_requested.connect(_open_era_picker)
 	_pick_flow.list_requested.connect(_open_pick_list)
 	_overlay.add_child(_pick_flow)

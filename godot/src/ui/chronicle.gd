@@ -8,7 +8,7 @@ const CATS := ["mine", "all", "war", "diplo", "events"]
 
 static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
-		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "independence", "ultimatum": return "war"
+		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "reconciled", "rebels_end", "independence", "ultimatum": return "war"
 		"coalition", "coalition_end": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union": return "diplo"
 		"realm": return "events"
@@ -54,6 +54,8 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"independence": return T.call("e_indep", {"a": a, "b": b})
 		"eliminated": return T.call("e_elim", {"a": a})
 		"rebels": return T.call("e_rebels", {"a": a}) if involves(e, g.human_id) else ""
+		"reconciled": return T.call("e_reconciled", {"a": a, "p": pn}) if involves(e, g.human_id) else ""
+		"rebels_end": return T.call("e_rebels_end", {"a": a, "p": pn}) if involves(e, g.human_id) else ""
 		"occupied": return T.call("e_occupied", {"a": a, "b": b, "p": pn})
 		"annexed": return T.call("e_annexed", {"a": a, "b": b, "p": pn})
 		"ruler":
@@ -109,7 +111,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
 		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "ultimatum", "trade", "marriage", "marriage_end", "union": return involves(e, me)
-		"rebels", "bankrupt", "era", "ruler", "realm", "general_up", "general_fell": return e.get("a", -1) == me
+		"rebels", "reconciled", "rebels_end", "bankrupt", "era", "ruler", "realm", "general_up", "general_fell": return e.get("a", -1) == me
 		"coalition", "coalition_end": return true
 		"eliminated": return true
 		"event": return e.get("a", 0) == me or e.get("a", 0) == 0

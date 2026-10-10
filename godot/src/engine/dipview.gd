@@ -61,7 +61,7 @@ static func peace(g: TBGame, t: int, p: int, kind: String) -> Dictionary:
 	elif kind == "vassal":
 		var v: float = -(1.5 + their_ws * 0.03)
 		want += v; terms.append(["dv_vassal", v])
-	return _res(want, 0.2, terms, "")
+	return _res(want, TBAI.peace_bar(g), terms, "")
 
 ## the disposition meter value 0..100 for a result: need sits at 45
 static func meter(r: Dictionary) -> float:

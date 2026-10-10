@@ -144,6 +144,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 			if g.rules >= 1 and TBTrade.income(g, n) > 0: lv.add_child(K.row(T.call("trade"), K.signed(float(TBTrade.income(g, n))), TBTokens.c("pos")))
 			lv.add_child(K.row(T.call("tkr_upkeep"), K.signed(-float(inc["upkeep"])), TBTokens.c("neg")))
 			lv.add_child(K.row(T.call("tkr_admin"), K.signed(-float(inc["admin"])), TBTokens.c("neg")))
+			if g.rules >= 1 and g.gold[n] > 0: lv.add_child(K.row(T.call("infl_row"), K.signed(-g.gold[n] * g.infl), TBTokens.c("neg")))
 			if net != base_net: lv.add_child(K.row(T.call("dv_total"), K.signed(net - base_net), TBTokens.c("pos") if net > base_net else TBTokens.c("neg")))
 			net_slot.add_child(lv)
 		else:
@@ -433,7 +434,7 @@ static func _goals_tab(h: TBPanel.Handle, g: TBGame) -> void:
 		gtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; gtl.custom_minimum_size.x = 40; gtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; gtl.size_flags_stretch_ratio = 4.0
 		hb.add_child(gtl); hb.add_child(K.Leader.new()); hb.add_child(K.num("%d%%" % int(pct * 100.0), 15, col))
 		h.body.add_child(hb)
-		h.body.add_child(TBPanel.para(T.call("vc_" + id + "_d"), 13, K.DIM))
+		h.body.add_child(TBPanel.para(T.call("vc_" + id + "_d", {"s": int(roundf(g.econ_goal * 100.0))}), 13, K.DIM))
 		h.body.add_child(K.Meter.new(pct * 100.0, col))
 		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); h.body.add_child(gap)
 	if ids.size() > 3:

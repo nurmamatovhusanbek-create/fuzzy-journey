@@ -43,6 +43,21 @@ const REGIMES := [
 	{"incMul": 1.00, "stabCeil": 95, "colonyFree": false, "rebelChance": 0.0, "incTax": 1.02, "incProd": 1.02, "adminCost": 1.20, "upkeep": 0.94, "defenseBonus": 0.12, "moveCost": 1.25, "recruitCost": 1.125, "sinceEra": 0},
 	{"incMul": 0.70, "stabCeil": 60, "colonyFree": true, "rebelChance": 0.0, "incTax": 0.60, "incProd": 0.80, "adminCost": 1.50, "upkeep": 1.20, "defenseBonus": 0.08, "moveCost": 1.00, "recruitCost": 1.50, "sinceEra": 0},
 ]
+## rules >= 1: annual rate at which the era's money loses value (price revolution, assignats, wartime printing...); a turn is half a year
+const INFLATION_ANNUAL := {"ancient": 0.002, "roman": 0.005, "medieval": 0.004, "mongol": 0.006, "timurid": 0.005, "discovery": 0.015, "gunpowder": 0.008,
+	"napoleonic": 0.020, "victorian": 0.003, "ww1": 0.050, "ww2": 0.050, "coldwar": 0.040, "modern": 0.030}
+static func infl_base(era_id: String) -> float: return pow(1.0 + float(INFLATION_ANNUAL.get(era_id, 0.01)), 0.5) - 1.0
+
+## rules >= 1: how warlike the AI world is (chosen when picking a nation). Level 1 is the original behaviour.
+## mul = AI aggression multiplier, wars = extra simultaneous wars, cd = turns between declarations, ratio = army edge an AI wants before declaring, atk = edge it wants before attacking,
+## peace = how much harder an AI is to talk into peace
+const AGGRESSION := [
+	{"id": "calm", "mul": 0.5, "wars": 0, "cd": 20, "ratio": 1.30, "atk": 1.25, "peace": 0.0},
+	{"id": "normal", "mul": 1.0, "wars": 0, "cd": 10, "ratio": 1.15, "atk": 1.10, "peace": 0.0},
+	{"id": "warlike", "mul": 1.7, "wars": 1, "cd": 6, "ratio": 1.00, "atk": 1.00, "peace": 0.10},
+	{"id": "total", "mul": 2.6, "wars": 2, "cd": 3, "ratio": 0.90, "atk": 0.90, "peace": 0.25},
+]
+
 const REGIME_REBELS := 10
 const REGIME_POOL := [2, 3, 4, 5, 1, 6, 7, 9, 8]
 
