@@ -60,7 +60,7 @@ func _init() -> void:
 		var vp := Vector2(w, h)
 		var et: Rect2 = hud.end_turn_rect()
 		_check(et.position.x >= 0.0 and et.end.x <= vp.x + 0.5 and et.end.y <= vp.y + 0.5, "%s %s: End Turn inside the screen %s" % [tag, k, et])
-		if main.panel.visible:
+		if main.panel.visible and main.panel.get_global_rect().position.x > -5000.0:           # the province panel is stealth (off screen): the ring's tag card is what the player sees
 			var cr: Rect2 = main.panel.get_global_rect()
 			_check(cr.position.x >= -0.5 and cr.end.x <= vp.x + 0.5 and cr.position.y >= -0.5 and cr.end.y <= vp.y + 0.5, "%s %s: card inside the screen %s" % [tag, k, cr])
 			_check(not cr.grow(15.0).intersects(et) or cr.end.x + 15.9 <= et.position.x, "%s %s: card %s keeps 16 u from End Turn %s" % [tag, k, cr, et])

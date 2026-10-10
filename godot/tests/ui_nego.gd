@@ -6,7 +6,7 @@ func _ck(c: bool, m: String) -> void:
 	if not c: fails += 1; print("FAIL: ", m)
 
 func _cards(n: Node, out: Array) -> void:
-	if n is PanelContainer and n.has_method("_fire") and (n as Control).is_visible_in_tree(): out.append(n)
+	if n is TBBz.Btn and (n as TBBz.Btn).sub != "" and not (n as Button).disabled and (n as Control).is_visible_in_tree(): out.append(n)       # the diplomacy plates carry their envoy cost as a sub line
 	for k in n.get_children(): _cards(k, out)
 
 func _init() -> void:
@@ -31,10 +31,10 @@ func _init() -> void:
 	var expect: Dictionary = TBDipView.pact(g, sp, fr, TBData.REL_NAP)
 	var dp0: float = g.dp[fr]
 	var rel0: int = g.get_rel(fr, sp)
-	(cards[0] as Control).call("_fire")
+	(cards[0] as Button).pressed.emit()
 	await create_timer(0.3).timeout
 	_ck(TBNegotiate.active, "dial is on screen")
-	(cards[1] as Control).call("_fire")                      # a second request while the dial runs
+	(cards[1] as Button).pressed.emit()                      # a second request while the dial runs
 	await create_timer(0.1).timeout
 	_ck(g.dp[fr] == dp0 and g.get_rel(fr, sp) == rel0, "no command ran yet")
 	var k := InputEventKey.new(); k.keycode = KEY_ESCAPE; k.pressed = true

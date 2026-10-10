@@ -930,6 +930,11 @@ static func _fxl_wrap(c: Control) -> Control:
 	return m
 
 ## wrapped paragraph at the demo's exact size / line-height with [b] [i] [color=#hex] markup (px 17, lh 1.4 = a modal text; px 15.5, lh 1.3 = a tooltip body)
+## a Cinzel label (K.title / K.caps) that may wrap onto several lines instead of widening its card (narrow screens, large text)
+static func wrappable(c: Control) -> Control:
+	if c is TBBz.TLabel:
+		(c as TBBz.TLabel).wrap_ok = true; c.custom_minimum_size.x = 40.0; c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return c
 static func para_bz(markup: String, px: float = 17.0, lh: float = 1.4, color: Color = Color.TRANSPARENT) -> Control: return TBBzParts.Para.new(markup, px, lh, color if color.a > 0.0 else DIM)
 ## `.tbl` ledger: [[label, figure], ..., [label, figure, true]] (true = the sum row with a rule above it)
 static func tbl(rows: Array, auto_tone: bool = false) -> Control: return TBBzParts.Tbl.new(rows, auto_tone)

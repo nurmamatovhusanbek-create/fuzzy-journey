@@ -438,7 +438,7 @@ static func _hide_scrollbar(sc: ScrollContainer) -> void:
 
 static func _cap(txt: String, top: float = 14.0, bottom: float = 6.0) -> Control:
 	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", int(top)); m.add_theme_constant_override("margin_bottom", int(bottom))
-	m.add_child(K.caps(txt)); return m
+	m.add_child(K.wrappable(K.caps(txt))); return m
 
 static func _pad(c: Control, top: float = 0.0, bottom: float = 0.0) -> Control:
 	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", int(top)); m.add_theme_constant_override("margin_bottom", int(bottom))
@@ -462,7 +462,7 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 	top.add_child(medal)
 	var tv := K.vbox(0); tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER; top.add_child(tv)
 	var nsz: int = 17 if ph else 21
-	var nl := K.title(g.dname(n), nsz, Color.TRANSPARENT, 0.06, nsz * 1.05); tv.add_child(nl)
+	var nl := K.wrappable(K.title(g.dname(n), nsz, Color.TRANSPARENT, 0.06, nsz * 1.05)); tv.add_child(nl)
 	if g.rules >= 1 and g.r_name[n] != "":
 		tv.add_child(_pad(K.para_bz("[i]%s %s[/i]" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], 15.0, 1.25), 3.0))
 	var chips := TBPanel.flow(6); tv.add_child(_pad(chips, 7.0))

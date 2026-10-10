@@ -129,7 +129,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		gw.add_child(K.gauge(24.0 if h.phone else 40.0, K.signed(float(net)), "" if h.phone else T.call("bud_per_turn").to_upper(), clampf(absf(float(net)) / maxf(1.0, float(inc["gold"])), 0.02, 1.0), TBTokens.c("pos") if net >= 0 else TBTokens.c("neg")))
 		net_slot.add_child(gw)
 		var lv := K.vbox(0); lv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; lv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		lv.add_child(K.caps(T.call("income_net")))
+		lv.add_child(K.wrappable(K.caps(T.call("income_net"))))
 		var mt := MarginContainer.new(); mt.add_theme_constant_override("margin_top", 6)
 		var items: Array = [[T.call("bud_taxes"), K.signed(float(inc["tax"])), 1], [T.call("bud_provinces"), K.signed(float(inc["production"])) if int(inc["production"]) != 0 else "0", 1 if int(inc["production"]) != 0 else 0]]
 		if g.rules >= 1 and TBTrade.income(g, n) > 0: items.insert(1, [T.call("trade"), K.signed(float(TBTrade.income(g, n))), 1])
@@ -270,6 +270,10 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 	for i in TBDecisions.LIST.size():
 		var i2: int = i
 		grid.add_child(DecisionRow.new(g, i2, me, func(): on_cmd.call({"cmd": "decide", "id": String(TBDecisions.LIST[i2]["id"])}); h.close()))
+	var vsd: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size            # fewer columns when the rows do not fit side by side
+	var cell_w := 0.0
+	for k in grid.get_children(): cell_w = maxf(cell_w, (k as Control).get_combined_minimum_size().x)
+	grid.columns = clampi(int((minf(740.0, vsd.x - 12.0) - 40.0 + 10.0) / (cell_w + 10.0)), 1, grid.columns)
 	return h
 
 # =====================================================================================================================================================
@@ -316,7 +320,9 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable, feed: Array
 	S["draw"] = draw
 	var tabs := K.tabs([["mine", T.call("an_t_all")], ["war", T.call("an_t_war")], ["diplo", T.call("an_t_dip")], ["events", T.call("an_t_ev")]], "mine", func(id: String):
 		S["cat"] = id; S["limit"] = 40; draw.call())
-	h.body.add_child(tabs)
+	var tsc := ScrollContainer.new(); tsc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; tsc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tsc.get_h_scroll_bar().modulate.a = 0.0; tsc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tsc.add_child(tabs)      # four tabs in a narrow card scroll sideways instead of widening it
+	h.body.add_child(tsc)
 	var lm := MarginContainer.new(); lm.add_theme_constant_override("margin_top", 3); lm.add_child(list_slot); h.body.add_child(lm)
 	draw.call()
 	return h
@@ -534,8 +540,8 @@ static func event_choice(icon: String, title_text: String, chips: Array, cb: Cal
 	var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; col.size_flags_vertical = Control.SIZE_SHRINK_CENTER; col.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_child(col)
 	var tl := TBBz.TLabel.new(K.cinzel(700), 13.0, 0.1, 0.0, true)
 	tl.text = title_text; tl.add_theme_color_override("font_color", TBTokens.BZ_IVORY)
-	tl.wrap_ok = true; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tl.refit()
+	tl.wrap_ok = true; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tl.refit(); tl.custom_minimum_size.x = 40             # after refit (which sets the one-line width): the title may wrap on a narrow screen
 	col.add_child(tl)
 	if not chips.is_empty():
 		_gap(col, 4)
