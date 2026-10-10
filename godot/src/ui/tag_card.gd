@@ -15,8 +15,9 @@ class Cell extends Control:
 	var bar := 0.0
 	var bar_col := Color.WHITE
 	var val_col := Color.WHITE
-	func _init(v: String, c: String, b: float = 0.0, bc: Color = Color.WHITE, vc: Color = Color.WHITE) -> void:
-		value = v; cap = c; bar = b; bar_col = bc; val_col = vc
+	var cap_em := 0.2
+	func _init(v: String, c: String, b: float = 0.0, bc: Color = Color.WHITE, vc: Color = Color.WHITE, em: float = 0.2) -> void:
+		value = v; cap = c; bar = b; bar_col = bc; val_col = vc; cap_em = em
 		size_flags_horizontal = Control.SIZE_EXPAND_FILL; mouse_filter = Control.MOUSE_FILTER_IGNORE
 		custom_minimum_size = Vector2(0, 5.0 + 18.0 + _cap_h() + 4.0 + (7.0 if b > 0.0 else 0.0) + 2.0)
 	func _cap_h() -> float:
@@ -29,8 +30,8 @@ class Cell extends Control:
 		var fb: Font = TBKit.alegreya(700); var fc: Font = TBKit.cinzel(700)
 		var vw: float = TBBz.tw(fb, value, 18.0)
 		TBBz.text(ci, fb, Vector2((size.x - vw) * 0.5, 1.0 + 5.0 + 13.5), value, 18.0, val_col)
-		var cw: float = TBBz.tw(fc, cap, 8.5, 8.5 * 0.2) - 8.5 * 0.2
-		TBBz.text(ci, fc, Vector2((size.x - cw) * 0.5, 1.0 + 5.0 + 18.0 + roundf(TBBz.ascent(fc, 8.5)) + 1.0), cap, 8.5, TBTokens.BZ_DIM, 8.5 * 0.2)
+		var cw: float = TBBz.tw(fc, cap, 8.5, 8.5 * cap_em) - 8.5 * cap_em
+		TBBz.text(ci, fc, Vector2((size.x - cw) * 0.5, 1.0 + 5.0 + 18.0 + roundf(TBBz.ascent(fc, 8.5)) + 1.0), cap, 8.5, TBTokens.BZ_DIM, 8.5 * cap_em)
 		if bar > 0.0:
 			var y: float = size.y - 1.0 - 4.0 - 3.0 + 3.0
 			draw_rect(Rect2(3, y, size.x - 6, 3), TBTokens.BZ_TRACK)

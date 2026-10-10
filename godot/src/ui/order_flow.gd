@@ -24,7 +24,7 @@ var explicit := false                   # "Move" pressed: own armies become targ
 var targets := PackedInt32Array()       # provinces lit on the map
 var touch := false                      # the last pick came from a finger
 var focus_p := -1                       # keyboard focus ring (Tab)
-var _chip: PreviewChip
+var _chip: TBPreviewCard
 var _hover := -1
 
 func _me() -> int: return g.human_id
@@ -275,7 +275,7 @@ func _show_preview() -> void:
 	var c := check(tgt)
 	if not c["valid"]: return
 	if _chip == null or not is_instance_valid(_chip):
-		_chip = PreviewChip.new()
+		_chip = TBPreviewCard.new()
 		_chip.confirmed.connect(func(): confirm())
 		_chip.cancelled.connect(func(): cancel())
 		host.add_child(_chip)
@@ -299,30 +299,10 @@ func _place_chip() -> void:
 	_chip.reset_size()
 	var sz := _chip.size
 	var vp := host.size
-	var obstacles: Array = []                    # the interface (End Turn, dock, ribbon, card), the arrow with its label and source marker, the target itself
-	if map.keepout_fn.is_valid():
-		var o := host.get_global_rect().position
-		for r in map.keepout_fn.call(): obstacles.append(Rect2((r as Rect2).position - o, (r as Rect2).size).grow(6.0))
-	var ob: Rect2 = map.labels.order_bounds() if map.labels != null else Rect2()
-	if not ob.size.is_zero_approx(): obstacles.append(ob)
-	obstacles.append(Rect2(t - Vector2(22, 22), Vector2(44, 44)))
-	var top := 56.0
-	var gap := 30.0
-	var cands := [Vector2(t.x + gap, t.y - sz.y * 0.5), Vector2(t.x - gap - sz.x, t.y - sz.y * 0.5), Vector2(t.x - sz.x * 0.5, t.y - gap - sz.y), Vector2(t.x - sz.x * 0.5, t.y + gap),
-		Vector2(t.x + gap, t.y - gap - sz.y), Vector2(t.x - gap - sz.x, t.y - gap - sz.y), Vector2(t.x + gap, t.y + gap), Vector2(t.x - gap - sz.x, t.y + gap)]
-	var best := Vector2.INF
-	var best_score := INF
-	for c in cands:
-		var cp: Vector2 = c
-		cp.x = clampf(cp.x, 6.0, maxf(6.0, vp.x - sz.x - 6.0)); cp.y = clampf(cp.y, top, maxf(top, vp.y - sz.y - 6.0))
-		var r := Rect2(cp, sz)
-		var score := 0.0
-		for k in obstacles:
-			var ov := r.intersection(k as Rect2)
-			score += ov.size.x * ov.size.y
-		score += cp.distance_to(c) * 40.0                      # moved by the clamp: it no longer sits beside the target
-		if score < best_score: best_score = score; best = cp
-		if score <= 0.0: break
+	var x: float = t.x + 60.0                                   # the demo's rule: right of the target, flipped to its left when it does not fit
+	if x + sz.x > vp.x - 28.0: x = t.x - 60.0 - sz.x
+	var y: float = clampf(t.y - sz.y * 0.5, 150.0, maxf(150.0, vp.y - sz.y - 120.0))
+	var best := Vector2(x, y).floor()
 	_chip.position = best
 
 ## the order as the command card shows it (read-only): the chip owns Cancel / Attack, the card only explains.
@@ -340,94 +320,3 @@ func summary() -> Dictionary:
 
 func is_previewing() -> bool: return mode == Mode.PREVIEW
 
-# ---------------------------------------------------------------- the on-map preview chip (260 px paper document)
-class PreviewChip extends PanelContainer:
-	signal confirmed
-	signal cancelled
-	var _title: Label
-	var _bar: Bar
-	var _out_glyph: Control
-	var _out: Label
-	var _cancel: TBCmdCard.VerbBtn
-	var _ok: TBCmdCard.VerbBtn
-	var _win := true
-	var _is_attack := true
-
-	class Bar extends Control:
-		var a := 1.0
-		var d := 1.0
-		var na := ""
-		var nd := ""
-		func _init() -> void:
-			custom_minimum_size = Vector2(236, 24); mouse_filter = Control.MOUSE_FILTER_IGNORE
-		func _draw() -> void:
-			var f: Font = TBKit.mono_b()
-			var wl := f.get_string_size(na, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-			var wr := f.get_string_size(nd, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-			draw_string(f, Vector2(0, 17), na, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TBCmdCard.tk("brass_ink"))
-			draw_string(f, Vector2(size.x - wr, 17), nd, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TBCmdCard.tk("neg"))
-			var x0 := wl + 8.0; var x1 := size.x - wr - 8.0
-			var tr := Rect2(x0, 6, maxf(10.0, x1 - x0), 12)
-			var share := clampf(a / maxf(0.01, a + d), 0.0, 1.0)
-			draw_rect(tr, TBCmdCard.tk("neg"))
-			draw_rect(Rect2(tr.position, Vector2(tr.size.x * share, tr.size.y)), TBCmdCard.tk("brass_ink"))
-			draw_rect(tr, TBCmdCard.tk("ink_0"), false, 1.0)
-			draw_line(Vector2(tr.position.x + tr.size.x * 0.5, 3), Vector2(tr.position.x + tr.size.x * 0.5, 21), TBCmdCard.tk("ink_0"), 2.0)
-
-	func _init() -> void:
-		visible = false
-		mouse_filter = Control.MOUSE_FILTER_STOP
-		z_index = 30
-		custom_minimum_size = Vector2(260, 0)
-		var box := TBCmdCard.plate("paper_0", "rule", TBTokens.CUT_PANEL, 1)
-		box.set_content_margin_all(12)
-		box.content_margin_top = 10; box.content_margin_bottom = 12
-		add_theme_stylebox_override("panel", box)
-		var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 6)
-		add_child(v)
-		var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 6); v.add_child(head)
-		var gl := Control.new(); gl.custom_minimum_size = Vector2(22, 22); gl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		gl.draw.connect(func(): TBCmdCard.glyph(gl, "swords" if _is_attack else "arrowhead", gl.size * 0.5, 20.0, TBCmdCard.tk("ink_0"), 1.7))
-		head.add_child(gl)
-		_title = TBCmdCard.label("", 15, "ink_0", TBKit.body_b()); _title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; _title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		head.add_child(_title)
-		_bar = Bar.new(); v.add_child(_bar)
-		var oh := HBoxContainer.new(); oh.add_theme_constant_override("separation", 6); v.add_child(oh)
-		_out_glyph = Control.new(); _out_glyph.custom_minimum_size = Vector2(16, 18); _out_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_out_glyph.draw.connect(func(): TBCmdCard.glyph(_out_glyph, "tri_up" if _win else "tri_down", _out_glyph.size * 0.5, 13.0, TBCmdCard.tk("pos") if _win else TBCmdCard.tk("neg"), 1.4))
-		oh.add_child(_out_glyph)
-		_out = TBCmdCard.label("", 14, "pos", TBKit.body_b()); _out.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; _out.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		oh.add_child(_out)
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); v.add_child(row)
-		_cancel = TBCmdCard.VerbBtn.new().setup("cancel", "", TBI18n.T("pv_cancel"), "", false, false)
-		_cancel.custom_minimum_size = Vector2(88, 44); _cancel.pressed.connect(func(): cancelled.emit())
-		row.add_child(_cancel)
-		_ok = TBCmdCard.VerbBtn.new().setup("attack", "swords", TBI18n.T("pv_attack"), "", false, true)
-		_ok.custom_minimum_size = Vector2(0, 44); _ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _ok.pressed.connect(func(): confirmed.emit())
-		row.add_child(_ok)
-
-	func setup(place: String, kind: String, info: Dictionary, moves: int, send: int) -> void:
-		_is_attack = kind == "attack"
-		_cancel.label = TBI18n.T("pv_cancel"); _cancel.queue_redraw()
-		if _is_attack:
-			_win = bool(info["win"])
-			_title.text = TBI18n.T("pv_title", {"p": place})
-			_bar.visible = true
-			_bar.a = float(info["atk"]); _bar.d = float(info["dfn"])
-			_bar.na = TBKit.fmt(int(info["send"])); _bar.nd = TBKit.fmt(int(info["defenders"]))
-			_bar.queue_redraw()
-			_out.text = TBI18n.T("cc_victory", {"k": int(info.get("hold", 0)), "l": int(info.get("lost", 0))}) if _win else TBI18n.T("cc_defeat", {"a": int(info["lost"])})
-			_out.add_theme_color_override("font_color", TBCmdCard.tk("pos") if _win else TBCmdCard.tk("neg"))
-			_ok.glyph = "swords"; _ok.danger = true; _ok._make_boxes()
-			_ok.label = "%s · %s" % [TBI18n.T("pv_attack"), TBCmdCard.unit(moves, "u_move")]
-		else:
-			_win = true
-			_title.text = TBI18n.T("cc_move_to", {"p": place})
-			_bar.visible = false
-			_out.text = "%s · %s" % [TBCmdCard.unit(send, "u_man"), TBCmdCard.unit(moves, "u_move")]
-			_out.add_theme_color_override("font_color", TBCmdCard.tk("ink_0"))
-			_ok.glyph = "arrowhead"; _ok.danger = false; _ok.primary = true; _ok._make_boxes()
-			_ok.label = TBI18n.T("move")
-		_ok.tooltip_text = _out.text
-		_out_glyph.queue_redraw(); queue_redraw()
-		reset_size()

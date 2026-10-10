@@ -51,6 +51,17 @@ func _init() -> void:
 				TBModals.event_prompt(main._overlay, {"uid": 901, "n": main.g.human_id, "kind": "prop", "id": "ultimatum", "from": au, "p": pr}, func(_i): pass, main.g, Callable())
 			"event2":
 				TBModals.event_prompt(main._overlay, {"uid": 902, "n": main.g.human_id, "kind": "rand", "id": "plague", "cat": "CRISIS", "count": 2}, func(_i): pass, main.g, func(): pass)
+			"move", "preview":
+				for p in main.g.P:
+					if main.world.name[p] == "Bas-Rhin":
+						main._select(p)
+						main._on_move_requested(p)
+						if s == "preview":
+							for i in range(main.g.nb_off[p], main.g.nb_off[p + 1]):
+								var q: int = main.g.nb[i]
+								if main.g.owner[q] != main.g.human_id and main.g.owner[q] != 0:
+									main.g.set_rel(main.g.human_id, main.g.owner[q], 1)
+									main.flow.preview_to(q); break
 			"map", "select", "dossier":
 				for p in main.g.P:
 					if main.world.name[p] == "Bas-Rhin":
