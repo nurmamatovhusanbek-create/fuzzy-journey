@@ -9,7 +9,9 @@ signal view_changed
 signal performance_low        # sustained slow frames while interacting -> UI may lower the quality tier
 
 const SHADER := preload("res://src/render/globe.gdshader")
+const VIGNETTE := preload("res://src/render/vignette.gdshader")
 const PAL_W := 2048
+var _vig: ColorRect
 
 var g: TBGame
 var world: TBWorld
@@ -107,6 +109,12 @@ func setup(game: TBGame) -> void:
 		resized.connect(_push_view)
 		routes = TBMapRoutes.new(); add_child(routes); routes.attach(self)
 		labels = TBMapLabels.new(); add_child(labels); labels.attach(self)
+		_vig = ColorRect.new()                                        # the demo's vignette, over the map and its markers but under the interface
+		_vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_vig.set_anchors_preset(Control.PRESET_FULL_RECT)
+		var vm := ShaderMaterial.new(); vm.shader = VIGNETTE
+		_vig.material = vm
+		add_child(_vig)
 	lenses = TBLenses.new(g)
 	labels.set_game(g)
 	routes.set_game(g)
@@ -182,6 +190,7 @@ func set_targets(list: PackedInt32Array) -> void:
 	_targets = list
 	for p in _targets: _pal[(3 * PAL_W + p + 1) * 4] = 255
 	_upload()
+	_push_view()
 
 func set_lens(name: String) -> void:
 	lenses.mode = name
@@ -238,6 +247,8 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("signal_owner", g.human_id if (g != null and atlas_look()) else -1)
 	_mat.set_shader_parameter("signal_col", Vector3(TBTokens.accent.r, TBTokens.accent.g, TBTokens.accent.b))
 	_mat.set_shader_parameter("marching", 1 if TBKit.motion_ok() else 0)
+	_mat.set_shader_parameter("tgt_any", 1 if not _targets.is_empty() else 0)
+	if _vig != null: _vig.visible = atlas_look()
 	_select_ids_texture()
 	if labels != null:
 		labels.max_labels = [30, 70, 110][quality]

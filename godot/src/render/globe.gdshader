@@ -32,6 +32,7 @@ uniform int signal_owner = -1;    // the player's nation (inner 2 px stroke in t
 uniform vec3 signal_col = vec3(0.89, 0.66, 0.29);
 uniform float anim_t = 0.0;       // seconds, drives the marching dashes of the selection
 uniform int marching = 1;         // 0 = static dashes (reduced motion)
+uniform int tgt_any = 0;          // 1 while move / attack targets are lit
 uniform vec4 bg_color : source_color = vec4(0.024, 0.039, 0.078, 1.0);
 
 
@@ -235,7 +236,16 @@ float own_edge(vec2 t, vec2 ex, vec2 ey, int own, bool hqf, int maxr) {
 	return 99.0;
 }
 
+// the demo's sea: an objectBoundingBox radial gradient (cx 50 %, cy 45 %, r 75 %) over the map rect (+2000 margin each side), seen through the stage scale
+vec3 sea_grad(vec2 lp, vec2 sz) {
+	float ms = sz.y / 1000.0;
+	vec2 c = vec2(0.5 * sz.x, 0.5 * sz.y + (286.0 - 520.0) * ms);
+	float t = length(((lp - c) / ms) / vec2(4440.0, 3810.0));
+	return mix(vec3(0.0627, 0.0980, 0.1333), vec3(0.0235, 0.0314, 0.0471), clamp(t, 0.0, 1.0));
+}
+
 void fragment() {
+	float ms = rect_size.y / px_scale / 1000.0;           // the demo's map scale on the stage (cam.ms = H / 1080 * 1.08 at H = stage height)
 	vec2 p = UV * rect_size;
 	vec2 lp = p / px_scale;                              // logical px: pattern pitch and stroke widths
 	float lon, lat;
@@ -275,29 +285,31 @@ void fragment() {
 			// faint graticule every 15 degrees
 			float gl = min(abs(fract(lat_d / 15.0 + 0.5) - 0.5) * 15.0, abs(fract(lon_d / 15.0 + 0.5) - 0.5) * 15.0 * cos(lat));
 			if (atlas == 1 && hc == 0) {
-				col = vec3(0.086, 0.133, 0.165);                                         // sea-900
+				// Bezel sea: radial gradient #101922 -> #06080c (the demo's, in map space scaled to the stage), 5 degree graticule #C9A24B 0.4, coastal glow
+				vec2 sz = rect_size / px_scale;
+				col = sea_grad(lp, sz);
+				float dpp = max(length(ex), length(ey)) * 360.0 / id_size.x;                 // degrees per logical px
 				float gk = mode == 0 ? cos(lat) : 1.0;
-				float gw = tpp * 0.09 + 0.002;                                           // 0.5 logical px, in degrees
-				float gla = min(abs(fract(lat_d / 15.0 + 0.5) - 0.5) * 15.0, abs(fract(lon_d / 15.0 + 0.5) - 0.5) * 15.0 * gk);
-				col = mix(col, vec3(0.118, 0.184, 0.22), (1.0 - smoothstep(gw * 0.5, gw * 1.5 + 0.004, gla)) * 0.9 * clamp(gk * 2.0, 0.0, 1.0));   // sea-700 graticule
+				float dla = abs(fract(lat_d / 5.0 + 0.5) - 0.5) * 5.0 / max(dpp, 1e-5);
+				float dlo = abs(fract(lon_d / 5.0 + 0.5) - 0.5) * 5.0 * gk / max(dpp, 1e-5);
+				float gcov = max(clamp(1.5 - dla, 0.0, 1.0), clamp(1.5 - dlo, 0.0, 1.0)) * 0.4 * ms * clamp(gk * 2.0, 0.0, 1.0);
+				col = mix(col, vec3(0.788, 0.635, 0.294), gcov);
 				if (quality >= 1) {
-					// coastal glow: land within 6 px lightens the water
-					float gl_a = 0.0;
 					bool any_far = false;
 					for (int i = 0; i < 8; i++) {
-						if (id_at(ivec2(floor(t + (ex * D8[i].x + ey * D8[i].y) * 6.0))) != 0) any_far = true;
+						if (id_at(ivec2(floor(t + (ex * D8[i].x + ey * D8[i].y) * 5.6 * ms))) != 0) any_far = true;
 					}
 					if (any_far) {
-						for (int k = 1; k <= 3; k++) {
-							float rk = float(k) * 2.0;
-							float hit = 0.0;
+						float dmin = 99.0;
+						for (int k = 1; k <= 5; k++) {
 							for (int i = 0; i < 8; i++) {
-								if (id_at(ivec2(floor(t + (ex * D8[i].x + ey * D8[i].y) * rk))) != 0) hit += 0.125;
+								if (id_at(ivec2(floor(t + (ex * D8[i].x + ey * D8[i].y) * float(k) * ms))) != 0) { dmin = min(dmin, float(k)); }
 							}
-							gl_a += hit * (4.0 - float(k)) / 6.0;
+							if (dmin < 99.0) break;
 						}
+						if (dmin <= 5.0) col = mix(col, vec3(0.431, 0.561, 0.639), 0.06);       // 10 wide #6e8fa3 at .06
+						if (dmin <= 2.0) col = mix(col, vec3(0.561, 0.690, 0.761), 0.09);       // 4 wide #8fb0c2 at .09
 					}
-					col = mix(col, vec3(0.20, 0.31, 0.37), clamp(gl_a, 0.0, 1.0) * 0.55);
 				}
 			}
 			else if (mode == 1 && hc == 0) col = theme == 1 ? col : vec3(0.055, 0.12, 0.24);        // flat map: one flat sea, no graticule (it smears into bands towards the poles)
@@ -308,14 +320,34 @@ void fragment() {
 			vec4 occ = texelFetch(pal, ivec2(id, 2), 0);
 			if (occ.a > 0.5 && mod(p.x + p.y, 8.0) < 4.0) col = occ.rgb;
 			bool is_tgt = texelFetch(pal, ivec2(id, 3), 0).r > 0.5;
-			if (is_tgt) {
-				col = mix(col, acc, 0.12);   // valid target: 12 % brass tint (+ a 2 px outline below), static
-				if (strong == 1 && mod(floor(lp.x / 4.0) + floor(lp.y / 4.0), 2.0) < 1.0) col = mix(col, acc, 0.4);   // dotted fill: not hue alone
+			if (atlas == 1) {
+				// Bezel: no tint on targets (a dashed brass outline + glow marks them below); hover = brightness(1.28) on the whole nation (your own land: per province,
+				// like the demo's departments); the selected province takes a 35 % brass wash
+				float hv = 0.0;
+				if (quality >= 1) {
+					if (hover_id > 0 && hover_t > 0.0) {
+						int ho = owner_of(hover_id);
+						bool same = (own != 0 && own == ho && own != signal_owner) || id == hover_id;
+						if (same) hv = hover_t;
+					}
+					if (hover_prev > 0 && hover_prev_t > 0.0) {
+						int po = owner_of(hover_prev);
+						bool same = (own != 0 && own == po && own != signal_owner) || id == hover_prev;
+						if (same) hv = max(hv, hover_prev_t);
+					}
+				}
+				col *= 1.0 + 0.28 * hv;
+				if (id == sel_id) col = mix(col, vec3(0.788, 0.635, 0.294), 0.35 * sel_t);
+				if (hi_owner >= 0) col = (own == hi_owner) ? min(col * 1.12 + 0.03, vec3(1.0)) : col * 0.32;
+			} else {
+				if (is_tgt) {
+					col = mix(col, acc, 0.12);   // valid target: 12 % brass tint (+ a 2 px outline below), static
+					if (strong == 1 && mod(floor(lp.x / 4.0) + floor(lp.y / 4.0), 2.0) < 1.0) col = mix(col, acc, 0.4);   // dotted fill: not hue alone
+				}
+				else if (dim_others > 0.5 && id != sel_id) col *= 0.6;
+				if (hi_owner >= 0) col = (own == hi_owner) ? min(col * 1.12 + 0.03, vec3(1.0)) : col * 0.32;   // pick screen: the chosen nation lit, the rest at ~30 %
+				if (id == sel_id) col = mix(col, min(col * 1.08 + 0.02, vec3(1.0)), sel_t);
 			}
-			else if (dim_others > 0.5 && id != sel_id) col *= 0.6;
-			if (hi_owner >= 0) col = (own == hi_owner) ? min(col * 1.12 + 0.03, vec3(1.0)) : col * 0.32;   // pick screen: the chosen nation lit, the rest at ~30 %
-			if (id == sel_id) col = mix(col, min(col * 1.08 + 0.02, vec3(1.0)), sel_t);
-			else if (atlas == 1 && id == hover_id && quality >= 1) col = mix(col, col + (vec3(1.0) - col) * 0.09, hover_t);   // hover: +8 % lightness                // selection: +8 %, no wash, no pulse
 		}
 
 		if (theme == 1 && id != 0) col = mix(col, vec3(0.86, 0.76, 0.55) * (0.55 + 0.9 * dot(col, vec3(0.33))), 0.62);   // aged-paper wash
@@ -337,7 +369,7 @@ void fragment() {
 		}
 		// ---- relation patterns on the national borders (never hue alone): war = 45 degree hatch on the shared front, ally = double line,
 		// own = heavy line, truce / NAP = dotted, rebels = cross-hatch. Subtle in the standard look, full strength when `strong`.
-		if (id != 0 && own != 0 && quality >= 1 && (fl > 0.5 || strong == 1)) {
+		if (id != 0 && own != 0 && quality >= 1 && (atlas == 0 || strong == 1) && (fl > 0.5 || strong == 1)) {
 			bool band_hq = hq && quality >= 2;
 			vec2 ne = nat_edge(t, ex, ey, own, band_hq, strong == 1 ? 5 : 3);
 			float dn = ne.x; float nfl = ne.y;
@@ -359,32 +391,81 @@ void fragment() {
 			}
 		}
 		if (fl == 5.0 && (mod(lp.x + lp.y, 6.0) < 1.0 || mod(lp.x - lp.y, 6.0) < 1.0)) col = mix(col, vec3(0.07, 0.05, 0.04), strong == 1 ? 0.55 : 0.3);
+		bool atlas_done = false;
 		if (quality >= 2 && atlas == 1) {
-			// Atlas strokes: nation 1.5 px, province 0.5 px (1 px at 20 %), coast 1 px
-			vec2 ox = dtx * 1.5 * hcm, oy = dty * 1.5 * hcm;
-			int nids[2] = hq ? int[2](hq_id(t + ox), hq_id(t + oy)) : int[2](smooth_id(t + ox), smooth_id(t + oy));
-			int cids[2] = int[2](id, id);
-			if (nids[0] != id || nids[1] != id) cids = hq ? int[2](hq_id(t + dtx), hq_id(t + dty)) : int[2](smooth_id(t + dtx), smooth_id(t + dty));
-			for (int i = 0; i < 2; i++) {
-				int nid = nids[i];
-				if (nid != id) {
-					if (my_tgt > 0.5 || (nid != 0 && texelFetch(pal, ivec2(nid, 3), 0).r > 0.5)) e_tgt = 0.0;
-					if (id != 0 && nid != 0) {
-						int nown = owner_of(nid);
-						if (nown != own) {
-							e_nat = 0.0;
-							if ((hi_owner >= 0 && (own == hi_owner || nown == hi_owner)) || (outline_owner >= 0 && (own == outline_owner || nown == outline_owner))) e_hi = 0.0;
-							float nfl = flags_of(nid);
-							if ((fl >= 2.0 && fl < 3.0 && nfl == 1.0) || (nfl >= 2.0 && nfl < 3.0 && fl == 1.0)) e_war = 0.0;
-						}
-					}
-				}
-				int cid = cids[i];
-				if (cid != id) {
-					if (id == 0 || cid == 0) e_coast = 0.0;
-					else if (owner_of(cid) == own) e_prov = 0.0;
+			// Bezel strokes, all centred on the edge like an SVG stroke: nation + coast #0A0D12 1.6, province rgba(0,0,0,.55) 0.8, your nation brass 2.4,
+			// selection #EFE6CF 2.4 (nation 2.6), targets #E5C77A 2.2 dashed 8 5. Widths are in demo map units (x ms).
+			atlas_done = true;
+			vec2 pr[4] = vec2[4](ex, -ex, ey, -ey);
+			bool b_coast = false, b_nat = false, b_prov = false, b_war = false, near_prov = false;
+			float r1 = 0.8 * ms;
+			for (int i = 0; i < 4; i++) {
+				int nid = sid(t + pr[i] * r1, hq);
+				if (nid == id) continue;
+				if (id == 0 || nid == 0) { b_coast = true; continue; }
+				int nown = owner_of(nid);
+				if (nown != own) {
+					b_nat = true;
+					float nfl = flags_of(nid);
+					if ((fl >= 2.0 && fl < 3.0 && nfl == 1.0) || (nfl >= 2.0 && nfl < 3.0 && fl == 1.0)) b_war = true;
+				} else near_prov = true;
+			}
+			if (near_prov && id != 0) {
+				float rp = 0.4 * ms;
+				for (int i = 0; i < 4; i++) {
+					int nid = sid(t + pr[i] * rp, hq);
+					if (nid != id && nid != 0 && owner_of(nid) == own) b_prov = true;
 				}
 			}
+			float pa = 0.55 * clamp((1.6 - tpp) / 0.8, 0.0, 1.0);
+			if (b_prov) col = mix(col, vec3(0.0), pa);
+			float ink_a = mix(1.0, 0.72, smoothstep(0.8, 2.0, tpp));
+			if (b_nat || b_coast) col = mix(col, vec3(0.039, 0.051, 0.071), ink_a);
+			if (b_war) col = mix(col, vec3(0.824, 0.376, 0.247), 0.9);
+			// rings centred on a boundary: your nation (brass), the outlined / picked nation (cream), the selected province (cream), lit targets (dashed brass)
+			float rs = 1.2 * ms;
+			bool s_own = false, s_hi = false, s_sel = false, s_tgt = false;
+			bool me_in = signal_owner > 0 && id != 0 && own == signal_owner;
+			bool hi_in = (hi_owner >= 0 || outline_owner >= 0) && id != 0 && (own == hi_owner || own == outline_owner);
+			bool hi_on = (hi_owner >= 0 || outline_owner >= 0);
+			bool tself = my_tgt > 0.5;
+			vec2 nrm = vec2(0.0);
+			for (int i = 0; i < 4; i++) {
+				int nid = sid(t + pr[i] * rs, hq);
+				if (signal_owner > 0 && ((nid != 0 && owner_of(nid) == signal_owner) != me_in)) s_own = true;
+				if (hi_on) {
+					bool hn = nid != 0 && (owner_of(nid) == hi_owner || owner_of(nid) == outline_owner);
+					if (hn != hi_in) s_hi = true;
+				}
+				if (sel_id > 0 && ((nid == sel_id) != (id == sel_id))) s_sel = true;
+				if (tgt_any == 1 && nid != id) {
+					bool tn = nid != 0 && texelFetch(pal, ivec2(nid, 3), 0).r > 0.5;
+					if (tself || tn) { s_tgt = true; nrm += D8[i]; }
+				}
+			}
+			if (s_own) col = vec3(0.788, 0.635, 0.294);
+			if (s_hi && !(signal_owner > 0 && (outline_owner == signal_owner) && hi_owner < 0)) col = vec3(0.937, 0.902, 0.812);
+			if (s_sel) col = mix(col, vec3(0.937, 0.902, 0.812), sel_t);
+			if (s_tgt) {
+				// dashes run along the edge: tangent from the probe directions; 8 on / 5 off (x ms)
+				vec2 tg = length(nrm) > 0.01 ? vec2(-normalize(nrm).y, normalize(nrm).x) : vec2(1.0, 0.0);
+				float ph = mod(dot(lp, tg), 13.0 * ms);
+				if (ph < 8.0 * ms) col = vec3(0.898, 0.780, 0.478);
+			}
+			if (tgt_any == 1 && !tself) {
+				// soft brass glow round the lit targets: 6 px drop-shadow at .5
+				float gl = 0.0;
+				for (int i = 0; i < 8; i++) {
+					vec2 dv = ex * D8[i].x + ey * D8[i].y;
+					int c1 = id_at(ivec2(floor(t + dv * 3.0)));
+					int c2 = id_at(ivec2(floor(t + dv * 6.0)));
+					if (c1 != 0 && texelFetch(pal, ivec2(c1, 3), 0).r > 0.5) gl += 0.0625;
+					if (c2 != 0 && texelFetch(pal, ivec2(c2, 3), 0).r > 0.5) gl += 0.0375;
+				}
+				col = mix(col, vec3(0.898, 0.780, 0.478), clamp(gl, 0.0, 1.0) * 0.5);
+			}
+			// orders armed: land that is not a target (or yours) recedes to .45 over the sea
+			if (dim_others > 0.5 && id != 0 && !tself && own != signal_owner && id != sel_id) col = mix(sea_grad(lp, rect_size / px_scale), col, 0.45);
 		} else if (quality >= 2) {
 			// screen-space: compare smoothed ids one pixel to the right / below
 			float lw = (1.0 + 1.3 * smoothstep(0.4, 0.04, tpp)) * hcm;          // line weight grows as you zoom in: 1 px far away, ~2.3 px close; 2x in high contrast
@@ -427,17 +508,13 @@ void fragment() {
 			}
 		}
 		if (atlas == 1) {
-			float pa = clamp(2.2 - tpp, 0.0, 1.0) * 0.2;
-			col = mix(col, vec3(0.0), clamp(1.3 - e_prov, 0.0, 1.0) * pa);
-			col = mix(col, col * 0.65, clamp(1.3 - e_nat, 0.0, 1.0));                                  // nation border: its own fill darkened 35 %
-			col = mix(col, vec3(0.0), clamp(1.3 - e_coast, 0.0, 1.0) * 0.4);
-			if (signal_owner > 0 && own == signal_owner && id != 0 && quality >= 1) {
-				float de = own_edge(t, ex, ey, own, hq, 2);
-				if (de <= 2.0) col = mix(col, signal_col, 0.95);                                          // the player's territory: 2 px inner stroke in the accent
+			if (!atlas_done) {                                                                         // low tiers: plain ink lines
+				col = mix(col, vec3(0.039, 0.051, 0.071), clamp(1.3 - e_nat, 0.0, 1.0));
+				col = mix(col, vec3(0.039, 0.051, 0.071), clamp(1.3 - e_coast, 0.0, 1.0));
+				col = mix(col, vec3(0.824, 0.376, 0.247), clamp(1.3 - e_war, 0.0, 1.0));
+				col = mix(col, vec3(0.937, 0.902, 0.812), clamp(1.3 - e_hi, 0.0, 1.0));
+				col = mix(col, vec3(0.898, 0.780, 0.478), clamp(1.3 - e_tgt, 0.0, 1.0));
 			}
-			col = mix(col, vec3(0.878, 0.416, 0.369), clamp(1.3 - e_war, 0.0, 1.0));
-			col = mix(col, vec3(0.933, 0.914, 0.875), clamp(1.3 - e_hi, 0.0, 1.0) * 0.6);
-			col = mix(col, acc, clamp(1.3 - e_tgt, 0.0, 1.0));
 		} else {
 		float prov_alpha = clamp(2.2 - tpp, 0.0, 1.0) * (hc == 1 ? 0.7 : 0.45);
 		col = mix(col, col * 0.55, clamp(0.5 + 0.8 - e_prov, 0.0, 1.0) * prov_alpha);
@@ -454,18 +531,7 @@ void fragment() {
 			float rh = ring_of(t, ex, ey, id, hover_id, hq, hw, 0.0);
 			if (rh == 1.0) col = mix(col, vec3(0.949, 0.773, 0.322), hover_t);
 		}
-		if (atlas == 1 && quality >= 1 && sel_id > 0 && id == sel_id) {
-			// selection: 2 px paper-100 outline with marching dashes (6 on / 4 off, one period per 1.2 s)
-			if (edge_in(t, ex, ey, sel_id, hq, 2) <= 2.0) {
-				vec2 nrm = vec2(0.0);
-				for (int i = 0; i < 8; i++) {
-					if (sid(t + (ex * D8[i].x + ey * D8[i].y) * 2.0, hq) != sel_id) nrm += D8[i];
-				}
-				vec2 tg = length(nrm) > 0.01 ? vec2(-normalize(nrm).y, normalize(nrm).x) : vec2(1.0, 0.0);
-				float ph = mod(dot(lp, tg) - (marching == 1 ? anim_t * (10.0 / 1.2) : 0.0), 10.0);
-				float on = smoothstep(0.0, 0.6, ph) * (1.0 - smoothstep(5.4, 6.0, ph));
-				col = mix(col, vec3(0.933, 0.914, 0.875), sel_t * on * 0.96);
-			}
+		if (atlas == 1) {
 		} else if (atlas == 0 && quality >= 1 && sel_id > 0) {
 			float rs = ring_of(t, ex, ey, id, sel_id, hq, hc == 1 ? 3.0 : 3.0, hc == 1 ? 2.0 : 1.0);
 			if (rs == 1.0) col = mix(col, vec3(0.953, 0.914, 0.824), sel_t);

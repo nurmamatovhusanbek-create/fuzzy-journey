@@ -11,9 +11,26 @@ const NAMES := ["political", "diplomatic", "economic", "military", "wars", "stab
 const MODES := ["off", "deuter", "protan", "tritan"]
 
 ## in game the political colours are a little darker (Age-of-Civilizations muted palette); the title globe keeps the lifted colours
-static var dark_land := false
+static var dark_land := false:
+	set(v):
+		if dark_land == v: return
+		dark_land = v
+		_apply_palettes()
 const NEUTRAL := 0x5b5142
-static func neutral() -> int: return 0x48505a if dark_land else NEUTRAL
+static func neutral() -> int: return DARK_NEUTRAL if dark_land else NEUTRAL
+
+# ---- Bezel look (in game): the demo's muted land palette `PAL` (greedy neighbour colouring), the player's nation in #2D4C78, every lens in the same dark register
+const PAL := [0x33473F, 0x4A4034, 0x34455A, 0x4D3A3A, 0x40375A, 0x4A4B33, 0x2F5550]
+const DARK_OWN := 0x2D4C78
+const DARK_NEUTRAL := 0x26292d                  # land nobody owns (the demo's diplomatic-lens fallback)
+const DARK_REBEL := 0x55504a
+const REGIME_DARK_MIX := 0.6                    # categorical lenses: the standard hue pulled 60 % towards the demo's ink (#0A0D12)
+const TERRAIN_DARK := [0x3d4a2f, 0x52483a, 0x4a4a45, 0x2f4234, 0x3a4a44, 0x5c5238]    # the demo's terrain lens colours (+2 for the game's six)
+const POP_DARK := [0x0f1822, 0x1f3550, 0x3a5f8f, 0x7FA8E8]
+const ARMY_DARK := [0x1b1511, 0x4a2a1c, 0x8a4228, 0xD2603F]                           # shades of the demo's military #D2603F
+const ECON_DARK := [0x1b1710, 0x4a3d1a, 0x8a7030, 0xE5C77A]
+const STAB_DARK := [0x4a1f1a, 0x8a4a2a, 0xb09040, 0xa7d9c9]
+const REL_DARK := {0: 0x433e33, 1: 0x542619, 2: 0x2a4841, 3: 0x33435c, 4: 0x4a3a5c}    # the demo's shade(relCol, .4)
 const DISCOVERABLE := 0x6a5d46
 
 # ---- standard palettes (historical look) ------------------------------------------------------------------------------------------
@@ -58,7 +75,19 @@ static func set_cvd(mode: String) -> bool:
 	if not MODES.has(mode): mode = "off"
 	if mode == cvd: return false
 	cvd = mode
-	var on := mode != "off"
+	_apply_palettes()
+	return true
+
+## the palette statics hold the ACTIVE set: colour-vision first, else the Bezel dark register in game, else the historical look
+static func _apply_palettes() -> void:
+	var on := cvd != "off"
+	var dk := dark_land and not on
+	if dk:
+		REGIME_COL = REGIME_STD.map(func(c: int) -> int: return lerp_rgb(c, 0x0A0D12, REGIME_DARK_MIX))
+		BUILD_COL = BUILD_STD.map(func(c: int) -> int: return lerp_rgb(c, 0x0A0D12, REGIME_DARK_MIX) if c != 0 else 0)
+		TERRAIN_COL = TERRAIN_DARK; POP_RAMP = POP_DARK; ARMY_RAMP = ARMY_DARK; ECON_RAMP = ECON_DARK; STAB_RAMP = STAB_DARK
+		REL_COL = REL_DARK; SELF_COL = DARK_OWN
+		return
 	REGIME_COL = REGIME_CVD if on else REGIME_STD
 	TERRAIN_COL = TERRAIN_CVD if on else TERRAIN_STD
 	BUILD_COL = BUILD_CVD if on else BUILD_STD
@@ -68,7 +97,6 @@ static func set_cvd(mode: String) -> bool:
 	STAB_RAMP = STAB_STD
 	REL_COL = REL_CVD if on else REL_STD
 	SELF_COL = SELF_CVD if on else SELF_STD
-	return true
 
 var g: TBGame
 var mode := "political"
@@ -92,19 +120,18 @@ func refresh_nations() -> bool:
 	nat_rgb.resize(g.N1)
 	if cvd == "off":
 		for n in range(1, g.N1):
-			nat_rgb[n] = lerp_rgb(g.color[n], 0x000000, 0.16) if dark_land else lerp_rgb(g.color[n], 0xFFFFFF, 0.18)
-		if dark_land: _atlas_nations()
+			nat_rgb[n] = lerp_rgb(g.color[n], 0x0A0D12, 0.55) if dark_land else lerp_rgb(g.color[n], 0xFFFFFF, 0.18)
+		if dark_land: _assign_dark()
 	else:
 		_assign_cvd()
 		for n in range(1, g.N1):
 			var i := _pal_idx[n]
 			nat_rgb[n] = OWN_CVD if i == -2 else (int(_pal_cols[i]) if i >= 0 else lerp_rgb(g.color[n], 0xFFFFFF, 0.18))
-	nat_rgb[g.rebel] = 0x777777
+	nat_rgb[g.rebel] = DARK_REBEL if (dark_land and cvd == "off") else 0x777777
 	return before != nat_rgb
 
 
 # ---------------------------------------------------------------- Atlas land colours (OKLCH, chroma 0.06-0.12, lightness 0.42-0.62, neighbours dE >= 12)
-const ATLAS_DE := 12.0
 
 static func to_oklab(rgb: int) -> Vector3:
 	var r := _lin(((rgb >> 16) & 255) / 255.0); var gg := _lin(((rgb >> 8) & 255) / 255.0); var b := _lin((rgb & 255) / 255.0)
@@ -141,8 +168,14 @@ static func oklch_rgb(L: float, C: float, h: float) -> int:
 static func de_ok(a: int, b: int) -> float:
 	return (to_oklab(a) - to_oklab(b)).length() * 100.0
 
-func _atlas_nations() -> void:
+var _dk_idx := PackedInt32Array()       # nation -> index into PAL (-1 none, -2 the player's own)
+
+## The demo's land colouring: every nation takes one of the seven muted `PAL` colours, greedy on the nation adjacency graph (biggest degree first), the
+## player's nation is #2D4C78. Assignments are kept between turns; only a nation that now clashes with a neighbour (or has no colour yet) is re-solved.
+func _assign_dark() -> void:
 	var n1 := g.N1
+	if _dk_idx.size() != n1:
+		_dk_idx.resize(n1); _dk_idx.fill(-1)
 	var adj: Array = []
 	adj.resize(n1)
 	var cnt := PackedInt32Array(); cnt.resize(n1)
@@ -157,38 +190,39 @@ func _atlas_nations() -> void:
 			if adj[oq] == null: adj[oq] = {}
 			adj[o][oq] = true; adj[oq][o] = true
 	var order: Array = []
-	var base := {}
 	for n in range(1, n1):
-		var lab := to_oklab(g.color[n])
-		var C := clampf(Vector2(lab.y, lab.z).length(), 0.06, 0.12)
-		var h := atan2(lab.z, lab.y)
-		var L := clampf(lab.x, 0.42, 0.62)
-		base[n] = Vector3(L, C, h)
-		nat_rgb[n] = oklch_rgb(L, C, h)
 		if cnt[n] > 0 and n != g.rebel: order.append(n)
 	order.sort_custom(func(a: int, b: int) -> bool:
-		if a == g.human_id: return true
-		if b == g.human_id: return false
 		var da: int = (adj[a] as Dictionary).size() if adj[a] != null else 0
 		var db: int = (adj[b] as Dictionary).size() if adj[b] != null else 0
 		return cnt[a] > cnt[b] if da == db else da > db)
+	var usage := PackedInt32Array(); usage.resize(PAL.size())
 	var fixed := {}
 	for n in order:
+		if n == g.human_id and g.human_id != 0:
+			_dk_idx[n] = -2; nat_rgb[n] = DARK_OWN; fixed[n] = true; continue
 		var nbrs: Dictionary = adj[n] if adj[n] != null else {}
-		var b: Vector3 = base[n]
-		var best := nat_rgb[n]; var best_d := -1.0
-		for step in 24:                                              # hue rotation in 15 degree steps: 0, +15, -15, +30, ...
-			var k := (step + 1) / 2 * (1 if step % 2 == 1 else -1)
-			if step == 0: k = 0
-			var c := oklch_rgb(b.x, b.y, b.z + deg_to_rad(15.0 * k))
-			var md := 1000.0
+		var cur := _dk_idx[n]
+		var clash := cur < 0
+		if not clash:
 			for q in nbrs:
-				if fixed.has(q): md = minf(md, de_ok(c, nat_rgb[q]))
-			if md >= ATLAS_DE: best = c; best_d = md; break
-			if md > best_d: best_d = md; best = c
-			if n == g.human_id: break
-		nat_rgb[n] = best
+				if fixed.has(q) and _dk_idx[q] == cur: clash = true; break
+		if clash:
+			var best := 0; var best_s := 1 << 30
+			for c in PAL.size():
+				var used := 0
+				for q in nbrs:
+					if fixed.has(q) and _dk_idx[q] == c: used += 1
+				var sc := used * 1000 + usage[c]
+				if sc < best_s: best_s = sc; best = c
+			cur = best
+			_dk_idx[n] = cur
 		fixed[n] = true
+		usage[cur] += 1
+		nat_rgb[n] = PAL[cur]
+	for n in range(1, n1):                                           # nations without land keep a stable colour from the palette
+		if cnt[n] == 0 or n == g.rebel:
+			nat_rgb[n] = PAL[n % PAL.size()]
 
 func cvd_active() -> bool: return cvd != "off"
 

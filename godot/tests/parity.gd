@@ -18,7 +18,7 @@ func _init() -> void:
 	main.hud.set_seal_pulse(false)
 	main._update_ui_scale()
 	for i in 8: await process_frame
-	main.map.fly_to(8.0, 47.0, 2.0)                       # Europe, like the demo's framing
+	main.map.fly_to(9.5, 46.0, 5.3)                     # Europe, like the demo's framing
 	for i in 30: await process_frame
 	for s in states:
 		main._clear_overlay(); main._select(-1)
