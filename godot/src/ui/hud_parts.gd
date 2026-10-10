@@ -20,6 +20,72 @@ static var _f_nat: Font
 ## a font size through the text scale; never below the 12 px caption floor (A11Y-TXT-002)
 static func fs(px: float) -> int: return maxi(12, int(round(px * text_scale)))
 static func tk(token: String) -> Color: return TBTokens.c(token)
+
+# ---- Bezel demo type. Sizes are the demo's design units (a unit is not a screen pixel, so no 12 px floor), CSS-style letter spacing, Cinzel / Alegreya / JetBrains Mono.
+static var _fv: Dictionary = {}
+## light text on a dark ground looks heavier in a browser (gamma / stem darkening) than FreeType draws it: a touch of embolden closes the gap
+const EMBOLDEN := 0.12
+## a demo font size through the player's text scale
+static func fu(px: float) -> int: return maxi(6, int(px * text_scale + 0.4999))        # 10.5 -> 10: a half unit rounds down (a browser sets 10.5 px type a little narrower than 11)
+## Cinzel 700 (heavy) or 500; Cyrillic falls back to Alegreya SC
+static func fcz(heavy: bool = true) -> Font:
+	var k: String = "cz%d" % int(heavy)
+	if not _fv.has(k):
+		var v := FontVariation.new()
+		v.base_font = K._font("cinzel-latin-700-normal" if heavy else "cinzel-latin-500-normal", ["alegreya-sc-cyrillic-700-normal" if heavy else "alegreya-sc-cyrillic-500-normal"])
+		v.variation_embolden = EMBOLDEN
+		_fv[k] = v
+	return _fv[k]
+## Alegreya 400 / 500 / 700 (or 400 italic) with lining figures (the demo: font-feature-settings 'lnum')
+static func fal(w: int = 700, italic: bool = false) -> Font:
+	var k: String = "al%d%d" % [w, int(italic)]
+	if not _fv.has(k):
+		var f: String = "alegreya-latin-400-italic" if italic else ("alegreya-latin-%d-normal" % w)
+		var fb: String = "alegreya-cyrillic-400-italic" if italic else ("alegreya-cyrillic-%d-normal" % w)
+		var v := FontVariation.new(); v.base_font = K._font(f, [fb]); v.opentype_features = {"lnum": 1}; v.variation_embolden = EMBOLDEN
+		_fv[k] = v
+	return _fv[k]
+static func fmono() -> Font:
+	if not _fv.has("mono"): _fv["mono"] = K._font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"])
+	return _fv["mono"]
+## width of `s` with CSS letter-spacing `ls` px (it trails the last glyph too, as CSS does)
+static func twl(font: Font, s: String, size: int, ls: float = 0.0) -> float:
+	if ls == 0.0: return font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var w: float = 0.0
+	for i in s.length(): w += font.get_char_size(s.unicode_at(i), size).x + ls
+	return w
+## text on a baseline; align 0 left / 1 centre / 2 right of x. `halo` > 0 draws a dark outline of that radius under it (paint-order: stroke). Returns the width.
+static func txtl(ci: CanvasItem, font: Font, x: float, base: float, s: String, size: int, col: Color, ls: float = 0.0, align: int = 0, halo: float = 0.0, halo_col: Color = Color.TRANSPARENT) -> float:
+	var w: float = twl(font, s, size, ls)
+	var x0: float = x - (w * 0.5 if align == 1 else (w if align == 2 else 0.0))
+	if halo > 0.0:
+		var hc: Color = halo_col if halo_col.a > 0.0 else TBTokens.HALO
+		if ls == 0.0: ci.draw_string_outline(font, Vector2(x0, base), s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, int(ceil(halo * 2.0)), hc)
+		else:
+			var hx: float = x0
+			for i in s.length():
+				ci.draw_char_outline(font, Vector2(hx, base), s[i], size, int(ceil(halo * 2.0)), hc)
+				hx += font.get_char_size(s.unicode_at(i), size).x + ls
+	if ls == 0.0:
+		ci.draw_string(font, Vector2(x0, base), s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+	else:
+		var cx: float = x0
+		for i in s.length():
+			ci.draw_char(font, Vector2(cx, base), s[i], size, col)
+			cx += font.get_char_size(s.unicode_at(i), size).x + ls
+	return w
+## the rail labels' text-shadow: 0 0 3px / 7px / 12px of the ground colour, as three growing dark outlines under the text
+static func glow_text(ci: CanvasItem, font: Font, x: float, base: float, s: String, size: int, col: Color, ls: float = 0.0) -> void:
+	var gc: Color = TBTokens.BZ_HALO
+	for pass_ in [[6, 0.16], [3, 0.30], [1, 0.55]]:
+		var hx: float = x
+		for i in s.length():
+			ci.draw_char_outline(font, Vector2(hx, base), s[i], size, int(pass_[0]), Color(gc.r, gc.g, gc.b, float(pass_[1])))
+			hx += font.get_char_size(s.unicode_at(i), size).x + ls
+	txtl(ci, font, x, base, s, size, col, ls)
+## keyboard focus on a rectangular demo control: `outline: 2px solid var(--hi)` (the caller grows the rect by the 3 unit offset)
+static func focus_box(ci: CanvasItem, r: Rect2) -> void:
+	ci.draw_rect(r, tk("brass_lt"), false, 2.0)
 ## a kit setting read defensively (the kit may not define it yet): TBKit.get-style access on the script
 static func kit(setting: String, fallback: Variant) -> Variant:
 	var sc: Script = K
@@ -209,10 +275,43 @@ class PlateBox extends StyleBox:
 		if bar_w > 0.0 and bar.a > 0.0:
 			RenderingServer.canvas_item_add_rect(ci, Rect2(body.position.x, body.position.y + cut, bar_w, body.size.y - cut * 2.0), bar)
 
-## dark furniture plate (tooltips, toasts, popovers on the map)
-static func bar_box(pad_x: float = 12.0, pad_y: float = 8.0, cut: float = 4.0, elevated: bool = false) -> PlateBox:
-	var b: PlateBox = PlateBox.new().setup(al(tk("bar_0"), 0.96), tk("rule_dark"), cut, pad_x, pad_y)
-	b.elevation = 1 if elevated else 0
+## the demo's `plate()` (bezel_kit.js + bezel.css .pw/.plate/.pin): a drop shadow (0 14 22 black 60 %), a notched #7F6A33 hairline plate, a #1d1812 -> #13100c face with a
+## 3 unit darker frame and a faint brass line 1 unit inside it. Tooltips, popovers and the gear menu.
+class DemoBox extends StyleBox:
+	var cut: float = 6.0
+	var shadow: bool = true
+	func setup(c: float, pad_x: float, pad_y_top: float, pad_y_bottom: float) -> DemoBox:
+		cut = c
+		set_content_margin(SIDE_LEFT, pad_x); set_content_margin(SIDE_RIGHT, pad_x)
+		set_content_margin(SIDE_TOP, pad_y_top); set_content_margin(SIDE_BOTTOM, pad_y_bottom)
+		return self
+	func _draw(ci: RID, r: Rect2) -> void:
+		if r.size.x < 4.0 or r.size.y < 4.0: return
+		if shadow:
+			var n: int = 10
+			for i in n:
+				var g: float = 22.0 * 0.9 * (2.0 * float(i) / (n - 1) - 1.0) * 0.5
+				RenderingServer.canvas_item_add_polygon(ci, TBBezel.notch(Rect2(r.position + Vector2(0, 14.0), r.size).grow(g), maxf(0.0, cut + g * 0.4)), PackedColorArray([Color(0, 0, 0, 0.6 / n)]))
+		var lo: Color = TBBezel.BRASS_LO if not TBTokens.is_hc() else TBTokens.c("rule_dark")
+		RenderingServer.canvas_item_add_polygon(ci, TBBezel.notch(r, cut), PackedColorArray([lo]))
+		var inner: Rect2 = r.grow(-1.0)
+		var pts: PackedVector2Array = TBBezel.notch(inner, cut - 1.0)
+		var cols := PackedColorArray()
+		var ca: Color = TBTokens.BZ_PL_A if not TBTokens.is_hc() else TBTokens.c("bar_1")
+		var cb: Color = TBTokens.BZ_PL_B if not TBTokens.is_hc() else TBTokens.c("bar_0")
+		for q in pts: cols.append(ca.lerp(cb, clampf((q.y - inner.position.y) / maxf(1.0, inner.size.y), 0.0, 1.0)))
+		RenderingServer.canvas_item_add_polygon(ci, pts, cols)
+		var frame: PackedVector2Array = TBBezel.notch(inner.grow(-1.5), maxf(0.0, cut - 1.0 - 0.9))
+		frame.append(frame[0])
+		RenderingServer.canvas_item_add_polyline(ci, frame, PackedColorArray([cb]), 3.0, true)
+		var hair: PackedVector2Array = TBBezel.notch(inner.grow(-3.5), maxf(0.0, cut - 1.0 - 2.1))
+		hair.append(hair[0])
+		RenderingServer.canvas_item_add_polyline(ci, hair, PackedColorArray([TBTokens.with_a(TBBezel.BRASS, 0.22)]), 1.0, true)
+
+## the demo's plate as a popover / tooltip box
+static func bar_box(pad_x: float = 12.0, pad_y: float = 8.0, cut: float = 6.0, elevated: bool = false) -> DemoBox:
+	var b: DemoBox = DemoBox.new().setup(maxf(cut, 6.0), pad_x, pad_y, pad_y)
+	b.shadow = elevated
 	return b
 
 ## pale document plate (realm sheet)
@@ -221,86 +320,82 @@ static func paper_box(pad_x: float = 16.0, pad_y: float = 14.0) -> PlateBox:
 	b.elevation = 1
 	return b
 
-## flat button: kind "primary" (brass), "secondary" (outlined); dark = on bar ground
+## the demo's `.bt` button: a notched plate, Cinzel caps 11.5 letter-spaced .16em, 32 high. kind "primary" (brass face), "danger" (rust), anything else the dark plate with brass text
 static func btn(text: String, kind: String, cb: Callable, dark: bool = true, px: int = 14) -> Button:
 	var b := Button.new()
-	b.text = text; b.focus_mode = Control.FOCUS_ALL
-	b.custom_minimum_size = Vector2(0, 40)
-	var fill: Color; var fill_h: Color; var fill_p: Color; var edge: Color; var ink: Color
+	b.text = text.to_upper() if TBI18n.lang != "ru" else text
+	b.focus_mode = Control.FOCUS_ALL
+	b.custom_minimum_size = Vector2(0, 32)
+	var fill: Color; var fill_h: Color; var edge: Color; var edge_h: Color; var ink: Color; var ink_h: Color
 	if kind == "primary":
-		fill = tk("brass"); fill_h = tk("brass_hover"); fill_p = tk("brass_press"); edge = tk("brass_ink"); ink = tk("ink_0")
+		fill = Color(TBTokens.BZ_G_A.lerp(TBTokens.BZ_G_B, 0.5)); fill_h = fill.lightened(0.08); edge = TBTokens.BZ_G_B; edge_h = TBTokens.BZ_HI; ink = tk("on_act"); ink_h = ink
 	elif kind == "danger":
-		fill = tk("wax"); fill_h = tk("wax_hover"); fill_p = tk("wax_press"); edge = tk("wax_rim"); ink = tk("on_wax")
-	elif dark:
-		fill = tk("bar_1"); fill_h = tk("bar_2"); fill_p = tk("bar_2"); edge = tk("rule_dark"); ink = tk("cream")
+		fill = tk("wax_hover"); fill_h = tk("wax_hover").lightened(0.08); edge = tk("wax"); edge_h = tk("wax_rim"); ink = tk("on_wax"); ink_h = Color.WHITE
 	else:
-		fill = tk("paper_1"); fill_h = tk("paper_hover"); fill_p = tk("paper_2"); edge = tk("rule"); ink = tk("ink_0")
-	b.add_theme_stylebox_override("normal", PlateBox.new().setup(fill, edge, 4.0, 12, 6))
-	b.add_theme_stylebox_override("hover", PlateBox.new().setup(fill_h, edge, 4.0, 12, 6))
-	b.add_theme_stylebox_override("pressed", PlateBox.new().setup(fill_p, edge, 4.0, 12, 6))
-	b.add_theme_stylebox_override("disabled", PlateBox.new().setup(al(fill, 0.5), edge, 4.0, 12, 6))
-	b.add_theme_stylebox_override("focus", PlateBox.new().setup(Color.TRANSPARENT, tk("cream") if dark else tk("ink_0"), 4.0, 12, 6))
-	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]: b.add_theme_color_override(k, ink)
-	b.add_theme_font_override("font", TBHudParts.body_b())
-	b.add_theme_font_size_override("font_size", fs(px))
+		fill = tk("bar_1"); fill_h = tk("bar_2"); edge = TBBezel.BRASS_LO; edge_h = TBBezel.BRASS; ink = tk("brass_lt"); ink_h = Color.WHITE
+	if TBTokens.is_hc():
+		edge = tk("rule_dark"); edge_h = tk("brass_lt"); ink = tk("cream") if kind != "primary" else tk("on_act"); ink_h = ink
+	b.add_theme_stylebox_override("normal", PlateBox.new().setup(fill, edge, 6.0, 14, 6))
+	b.add_theme_stylebox_override("hover", PlateBox.new().setup(fill_h, edge_h, 6.0, 14, 6))
+	b.add_theme_stylebox_override("pressed", PlateBox.new().setup(fill.darkened(0.15), edge_h, 6.0, 14, 6))
+	b.add_theme_stylebox_override("disabled", PlateBox.new().setup(al(fill, 0.5), edge, 6.0, 14, 6))
+	b.add_theme_stylebox_override("focus", PlateBox.new().setup(Color.TRANSPARENT, tk("brass_lt"), 6.0, 14, 6))
+	for k in ["font_color", "font_pressed_color", "font_focus_color"]: b.add_theme_color_override(k, ink)
+	b.add_theme_color_override("font_hover_color", ink_h)
+	var f := FontVariation.new(); f.base_font = fcz(true); f.spacing_glyph = 2; f.variation_embolden = EMBOLDEN
+	b.add_theme_font_override("font", f)
+	b.add_theme_font_size_override("font_size", fu(11.5))
 	if cb.is_valid(): b.pressed.connect(cb)
 	return b
 
-## dark tooltip / pinned popover content: title (Cinzel, brass), a headline, optional figure rows (label ..... value) and a hint line. rows: [[label, value, tone]]
-## tone: "" | "pos" | "neg" | "sum" (a total: bold with a rule above)
+## tooltip / pinned popover content (the demo's #tip): the plate, a title (Cinzel 700 12.5, caps, --hi), a headline (Alegreya 15.5, --dim), figure rows (label ..... value, 14.5)
+## and a key hint in JetBrains Mono 10.5. rows: [[label, value, tone]]; tone: "" | "pos" | "neg" | "sum" (a total: a rule above it)
 static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Array = [], hint: String = "") -> PanelContainer:
 	var pc := PanelContainer.new()
 	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if TBFrame.bezel:
-		var pb: PlateBox = PlateBox.new().setup(al(tk("bar_0"), 0.97), tk("rule"), 6.0, 14, 11)
-		pb.elevation = 1
-		pc.add_theme_stylebox_override("panel", pb)
-	else:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = tk("bar_1"); sb.border_color = tk("rule"); sb.set_border_width_all(1); sb.set_corner_radius_all(10)
-		sb.shadow_color = al(Color.BLACK, 0.55); sb.shadow_size = 14; sb.shadow_offset = Vector2(0, 8)
-		sb.content_margin_left = 12; sb.content_margin_right = 12; sb.content_margin_top = 10; sb.content_margin_bottom = 10
-		pc.add_theme_stylebox_override("panel", sb)
-	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4); v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pc.add_theme_stylebox_override("panel", DemoBox.new().setup(6.0, 15.0, 12.0, 11.0))
+	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pc.add_child(v)
-	var width: float = minf(max_w, 300.0 if TBFrame.bezel else 280.0)
+	var width: float = clampf(max_w, 190.0, 330.0 - 30.0)
+	var dim: Color = TBTokens.BZ_DIM if not TBTokens.is_hc() else tk("smoke")
 	if title != "":
-		var t := Label.new(); t.text = (title.to_upper() if TBFrame.bezel and TBI18n.lang != "ru" else title); t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if TBFrame.bezel:
-			t.add_theme_font_override("font", K.tracked(K.display(), 1)); t.add_theme_font_size_override("font_size", fs(13)); t.add_theme_color_override("font_color", tk("brass_lt"))
-		else:
-			t.add_theme_font_override("font", TBHudParts.body_b()); t.add_theme_font_size_override("font_size", fs(13)); t.add_theme_color_override("font_color", tk("cream"))
+		var t := Label.new(); t.text = (title.to_upper() if TBI18n.lang != "ru" else title); t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var tf := FontVariation.new(); tf.base_font = fcz(true); tf.spacing_glyph = 2; tf.variation_embolden = EMBOLDEN
+		t.add_theme_font_override("font", tf); t.add_theme_font_size_override("font_size", fu(12.5)); t.add_theme_color_override("font_color", tk("brass_lt"))
 		v.add_child(t)
 	if body != "":
 		var b := Label.new(); b.text = body; b.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_theme_font_override("font", TBHudParts.body_b() if (TBFrame.bezel and not rows.is_empty()) else TBHudParts.body())
-		b.add_theme_font_size_override("font_size", fs(15 if (TBFrame.bezel and not rows.is_empty()) else 13))
-		b.add_theme_color_override("font_color", tk("cream") if (TBFrame.bezel and not rows.is_empty()) else tk("smoke"))
+		b.add_theme_font_override("font", fal(400)); b.add_theme_font_size_override("font_size", fu(15.5)); b.add_theme_color_override("font_color", dim)
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.custom_minimum_size = Vector2(width, 0)
-		v.add_child(b)
+		var bm := MarginContainer.new(); bm.add_theme_constant_override("margin_top", 5); bm.mouse_filter = Control.MOUSE_FILTER_IGNORE; bm.add_child(b)
+		v.add_child(bm)
 	if not rows.is_empty():
-		var g := VBoxContainer.new(); g.add_theme_constant_override("separation", 1); g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var g := VBoxContainer.new(); g.add_theme_constant_override("separation", 0); g.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		g.custom_minimum_size = Vector2(width, 0)
 		for r in rows:
 			var tone: String = String(r[2]) if r.size() > 2 else ""
 			var line := HBoxContainer.new(); line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var l := Label.new(); l.text = String(r[0]); l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			l.add_theme_font_override("font", TBHudParts.body()); l.add_theme_font_size_override("font_size", fs(13)); l.add_theme_color_override("font_color", tk("smoke"))
+			l.add_theme_font_override("font", fal(400)); l.add_theme_font_size_override("font_size", fu(14.5)); l.add_theme_color_override("font_color", tk("cream") if tone == "sum" else dim)
 			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var vl := Label.new(); vl.text = String(r[1]); vl.mouse_filter = Control.MOUSE_FILTER_IGNORE; vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			vl.add_theme_font_override("font", TBHudParts.body_b()); vl.add_theme_font_size_override("font_size", fs(14 if tone == "sum" else 13))
-			vl.add_theme_color_override("font_color", tk("pos_bar") if tone == "pos" else (tk("neg_bar") if tone == "neg" else tk("cream")))
+			vl.add_theme_font_override("font", fal(700)); vl.add_theme_font_size_override("font_size", fu(14.5))
+			vl.add_theme_color_override("font_color", TBTokens.BZ_GOOD if tone == "pos" else (TBTokens.BZ_BAD_TXT if tone == "neg" else tk("cream")))
 			if tone == "sum":
-				var rule := ColorRect.new(); rule.color = al(tk("rule"), 0.8); rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				var rule := ColorRect.new(); rule.color = Color(0.2902, 0.2431, 0.1569); rule.custom_minimum_size = Vector2(0, 1); rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				g.add_child(rule)
-			line.add_child(l); line.add_child(vl); g.add_child(line)
-		v.add_child(g)
+			var lm := MarginContainer.new(); lm.add_theme_constant_override("margin_top", 2); lm.add_theme_constant_override("margin_bottom", 2); lm.add_theme_constant_override("margin_right", 0); lm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			line.add_child(l); line.add_child(vl)
+			lm.add_child(line); g.add_child(lm)
+		var gm := MarginContainer.new(); gm.add_theme_constant_override("margin_top", 6); gm.mouse_filter = Control.MOUSE_FILTER_IGNORE; gm.add_child(g)
+		v.add_child(gm)
 	if hint != "":
 		var h := Label.new(); h.text = hint; h.mouse_filter = Control.MOUSE_FILTER_IGNORE; h.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		h.add_theme_font_override("font", TBHudParts.body_i() if TBFrame.bezel else TBHudParts.body()); h.add_theme_font_size_override("font_size", fs(13)); h.add_theme_color_override("font_color", tk("ink_1"))
+		h.add_theme_font_override("font", fmono()); h.add_theme_font_size_override("font_size", fu(10.5)); h.add_theme_color_override("font_color", TBTokens.BZ_DIM2 if not TBTokens.is_hc() else tk("smoke"))
 		h.custom_minimum_size = Vector2(width, 0)
-		v.add_child(h)
+		var hm := MarginContainer.new(); hm.add_theme_constant_override("margin_top", 7); hm.mouse_filter = Control.MOUSE_FILTER_IGNORE; hm.add_child(h)
+		v.add_child(hm)
 	return pc
 
 # ---------------------------------------------------------------- interactive base
@@ -392,9 +487,10 @@ static func card_box(radius: float = 16.0, fill_a: float = 0.97) -> StyleBox:
 	return sbox(al(tk("bar_0"), fill_a), tk("rule"), radius, 1)
 
 # ---------------------------------------------------------------- resource gauge
-## Bezel gauge: a brass instrument ring with the value in its face and a 270 degree arc, caption (Cinzel) and signed delta beneath.
+## Bezel gauge (gaugeSvg + the `.g` cell of renderTop): a brass instrument ring with the value in its face and a 270 degree arc, the caption (Cinzel caps) and
+## a signed delta beneath. Sizes are the demo's: gauge radius 30, cell 84 wide (phone 15 / 56, no delta line).
 class Chip extends Hit:
-	var glyph: String = "coin"
+	var glyph: String = "coin"          # kept for callers; the demo's gauge shows its value, not an icon
 	var value: String = ""
 	var final_text: String = ""
 	var suffix: String = ""
@@ -403,46 +499,52 @@ class Chip extends Hit:
 	var delta_on: bool = true
 	var sub_text: String = ""           # replaces the delta (manpower: "43 %")
 	var state: int = 0                  # 0 normal, 1 caution, 2 critical
-	var compact: bool = false
+	var compact: bool = false           # phone landscape: gauge radius 15, caption 8.5, no delta line
 	var tight: bool = false
 	var glyph_col: Color = Color.TRANSPARENT
 	var val_col: Color = Color.TRANSPARENT
-	var spark: Array = []               # kept for the tooltip; the ring shows `frac`
+	var spark: Array = []               # kept for the tooltip
 	var caption: String = ""
-	var frac: float = -1.0              # 0..1 arc fill, < 0 no arc
+	var frac: float = -1.0              # 0..1 arc fill
+	var delta_tone: int = 0             # 0 dim, 1 signed colour (the Treasury figure)
 	var _shown: float = NAN
 	var _target: float = 0.0
 	var _fmt: Callable = Callable()
 	var _t: float = 0.0
-	var _floats: Array = []              # [{t, txt, pos}]: the change that just happened, rising beside the ring
+	var _floats: Array = []              # [{t, txt, pos}]: the change that just happened, rising over the gauge
+	var _pulse: float = 1.0
 	func _ready() -> void: set_process(false)
 	## drop the remembered value and any rising figures: the next number shown is a fresh start (seat change, new game)
 	func forget() -> void:
 		_shown = NAN; _floats.clear()
-	func fv() -> int: return TBHudParts.fs(15.0)
-	func fd() -> int: return TBHudParts.fs(13.0)
-	func fcap() -> int: return TBHudParts.fs(12.0)
-	func medal() -> float: return 40.0 if (compact or tight) else 46.0
-	func has_sub() -> bool: return (sub_text != "" or (delta_on and has_delta)) and not tight
+	func gr() -> float: return 15.0 if (compact or tight) else 30.0
+	func gsz() -> float: return 56.0 if (compact or tight) else 84.0
+	func gbox() -> float: return 2.0 * (gr() + 12.0)
+	func medal() -> float: return gbox() - 6.0
+	func fcap() -> int: return TBHudParts.fu(8.5 if (compact or tight) else 10.5)
+	func cap_font() -> Font: return TBHudParts.fcz(true)
+	func cap_ls() -> float: return (8.5 if (compact or tight) else 10.5) * 0.16
+	func cap_text() -> String: return caption.to_upper() if TBI18n.lang != "ru" else caption
+	func cap_h() -> float: return roundf(cap_font().get_height(fcap()))
+	func has_sub() -> bool: return (sub_text != "" or (delta_on and has_delta)) and not (compact or tight)
 	func dtext() -> String:
 		if sub_text != "": return sub_text
 		return ("+%s" % K.fmt(float(delta))) if delta >= 0 else ("−%s" % K.fmt(float(-delta)))
-	func cap_font() -> Font: return K.tracked(K.display(), 1)
-	func cap_text() -> String: return caption.to_upper() if TBI18n.lang != "ru" else caption
 	func desired_w() -> float:
-		var w: float = medal() + 8.0
-		if caption != "" and not tight: w = maxf(w, TBHudParts.tw(cap_font(), cap_text(), fcap()) + 6.0)
+		var w: float = gsz()
+		if caption != "": w = maxf(w, TBHudParts.twl(cap_font(), cap_text(), fcap(), cap_ls()) + 4.0)
 		return ceilf(w)
 	func desired_h() -> float:
-		var h: float = medal() + 3.0
-		if caption != "" and not tight: h += fcap() + 4.0
-		if has_sub(): h += fd() + 3.0
+		var h: float = gbox()
+		if caption != "": h += cap_h()
+		if has_sub(): h += 1.0 + 16.0
 		return ceilf(h)
 	func set_num(v: float, fmt: Callable) -> void:
 		_fmt = fmt; final_text = fmt.call(v)
-		if not is_nan(_shown) and not TBHudParts.reduced_motion() and absf(v - _target) >= 1.0 and tight == false and v != _target:
+		if not is_nan(_shown) and not TBHudParts.reduced_motion() and absf(v - _target) >= 1.0 and v != _target:
 			_floats.append({"t": 0.0, "txt": ("+" if v > _target else "−") + K.fmt(absf(v - _target)), "pos": v > _target})
 			if _floats.size() > 3: _floats.pop_front()
+			_pulse = 0.0
 			set_process(true)
 		if is_nan(_shown) or TBHudParts.reduced_motion():
 			_shown = v; _target = v; value = final_text; set_process(state >= 1 and not TBHudParts.reduced_motion()); queue_redraw(); return
@@ -452,7 +554,7 @@ class Chip extends Hit:
 			value = final_text
 		queue_redraw()
 	func _process(d: float) -> void:
-		_t += d
+		_t += d; _pulse += d
 		for fl in _floats: fl["t"] = float(fl["t"]) + d
 		_floats = _floats.filter(func(e): return float(e["t"]) < 1.3)
 		if not is_nan(_shown) and _shown != _target:
@@ -460,53 +562,58 @@ class Chip extends Hit:
 			if absf(_target - _shown) < 0.5: _shown = _target
 			value = _fmt.call(_shown)
 		queue_redraw()
-		if _shown == _target and state < 1 and _floats.is_empty(): set_process(false)
+		if _shown == _target and state < 1 and _floats.is_empty() and _pulse > 0.5: set_process(false)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		var oy: float = 1.0 if down else 0.0
-		var R: float = medal() * 0.5
-		var c := Vector2(size.x * 0.5, R + 1.0 + oy)
-		var tone: Color = glyph_col if glyph_col.a > 0.0 else TBHudParts.tk("brass_lt")
+		var gs: float = gbox()
+		var c := Vector2(size.x * 0.5, gs * 0.5)
+		var tone: Color = glyph_col if glyph_col.a > 0.0 else TBBezel.BRASS
 		var edge: Color = tone
-		if state == 2: edge = TBHudParts.tk("neg_bar")
+		if state == 2: edge = TBTokens.BZ_BAD
 		elif state == 1: edge = TBHudParts.tk("warn_bar")
-		var face: Color = TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.tk("bar_0")
-		var fr: float = BZ.ring(self, c, R, 30 if R >= 20.0 else 24, face)
-		if frac >= 0.0: BZ.gauge(self, c, fr - 2.6, frac, edge, 2.0)          # light arc, colour kept
+		var k: float = 1.0
+		if _pulse < 0.5 and not TBHudParts.reduced_motion(): k = 1.0 + 0.13 * sin(PI * clampf(_pulse / 0.5, 0.0, 1.0)) * (1.0 if _pulse < 0.5 else 0.0)   # .g.pulse: scale 1.13 at 40 %
+		if hover: TBBezel.glow(self, c, (gr() + 8.0 + 2.0) * k, TBTokens.with_a(TBTokens.c("brass_lt"), 0.45), 8.0)
+		if k != 1.0: draw_set_transform(c, 0.0, Vector2(k, k)); c = Vector2.ZERO
+		var f: float = frac if frac >= 0.0 else 0.0
+		TBBezel.gauge_demo(self, c, gr(), f, edge)
 		if state >= 1:
 			var pulse: float = 0.5 + 0.5 * sin(_t * 3.14) if not TBHudParts.reduced_motion() else 1.0
-			draw_arc(c, R + 3.0, 0.0, TAU, 40, TBHudParts.al(edge, 0.35 + 0.4 * pulse), 1.6, true)
-		var fb: Font = K.body_b()
-		var z: int = fv()
+			draw_arc(c, gr() + 8.0 + 3.0, 0.0, TAU, 48, TBHudParts.al(edge, 0.35 + 0.4 * pulse), 1.6, true)
+		var fb: Font = TBHudParts.fal(700)
+		var base_z: float = maxf(11.0, gr() * 0.6) * (0.78 if value.length() > 3 else 1.0)
+		var z: int = TBHudParts.fu(base_z)
 		var vc: Color = val_col if val_col.a > 0.0 else TBHudParts.tk("cream")
-		var maxw: float = fr * 1.55
-		while z > 12 and TBHudParts.tw(fb, value, z) > maxw: z -= 1
-		draw_string(fb, Vector2(c.x - TBHudParts.tw(fb, value, z) * 0.5, TBHudParts.base(fb, z, c.y)), value, HORIZONTAL_ALIGNMENT_LEFT, -1, z, vc)
-		var y: float = medal() + 3.0 + oy
-		if caption != "" and not tight:
+		var maxw: float = (gr() + 8.0) * 1.7
+		while z > 6 and TBHudParts.tw(fb, value, z) > maxw: z -= 1
+		draw_string(fb, c + Vector2(-TBHudParts.tw(fb, value, z) * 0.5, gr() * 0.12), value, HORIZONTAL_ALIGNMENT_LEFT, -1, z, vc)
+		if k != 1.0: draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var y: float = gs
+		if caption != "":
 			var cf: Font = cap_font()
-			var ct: String = cap_text()
-			var cc: Color = edge if state >= 1 else TBHudParts.tk("smoke")
-			TBHudParts.txt_o(self, cf, Vector2((size.x - TBHudParts.tw(cf, ct, fcap())) * 0.5, y + cf.get_ascent(fcap()) - 1.0), ct, fcap(), cc)
-			y += fcap() + 4.0
+			var cc: Color = TBTokens.BZ_DIM if not TBTokens.is_hc() else TBHudParts.tk("smoke")
+			if state >= 1: cc = edge
+			TBHudParts.txtl(self, cf, size.x * 0.5, y + cf.get_ascent(fcap()), cap_text(), fcap(), cc, cap_ls(), 1)
+			y += cap_h()
 		if has_sub():
-			var fm: Font = K.body_b()
-			var col: Color = TBHudParts.tk("smoke")
-			if sub_text == "": col = TBHudParts.tk("pos_bar") if delta > 0 else (TBHudParts.tk("neg_bar") if delta < 0 else TBHudParts.tk("smoke"))
-			var dt: String = dtext()
-			TBHudParts.txt_o(self, fm, Vector2((size.x - TBHudParts.tw(fm, dt, fd())) * 0.5, y + fm.get_ascent(fd()) - 1.0), dt, fd(), col)
-		for fl in _floats:
-			var k: float = float(fl["t"]) / 1.3
-			var fa: float = clampf((1.0 - k) * 2.0, 0.0, 1.0)
-			var fb2: Font = K.body_b()
-			var fz: int = TBHudParts.fs(17.0)
-			var fp := Vector2(c.x + R + 4.0, c.y + 5.0 - k * 22.0)
-			draw_string_outline(fb2, fp, String(fl["txt"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, 4, TBTokens.with_a(TBTokens.HALO, fa))
-			draw_string(fb2, fp, String(fl["txt"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, TBTokens.with_a(TBHudParts.tk("pos_bar") if bool(fl["pos"]) else TBHudParts.tk("neg_bar"), fa))
-		if has_focus(): TBHudParts.focus_ring(self, r)
+			var fm: Font = TBHudParts.fal(700)
+			var col: Color = TBTokens.BZ_DIM if not TBTokens.is_hc() else TBHudParts.tk("smoke")
+			if delta_tone == 1 and sub_text == "": col = TBTokens.BZ_GOOD if delta >= 0 else TBTokens.BZ_NOTICE_BAD
+			var dz: int = TBHudParts.fu(13.0)
+			y += 1.0
+			TBHudParts.txtl(self, fm, size.x * 0.5, y + (16.0 - fm.get_height(dz)) * 0.5 + fm.get_ascent(dz), dtext(), dz, col, 0.0, 1)
+		for fl in _floats:                                                       # floatTop: the change rises over the gauge and fades
+			var kk: float = float(fl["t"]) / 1.3
+			var fa: float = clampf(kk / 0.15, 0.0, 1.0) * (1.0 - clampf((kk - 0.15) / 0.85, 0.0, 1.0))
+			var fb2: Font = TBHudParts.fal(700)
+			var fz: int = TBHudParts.fu(22.0)
+			var fy: float = gs * 0.35 + 22.0 + lerpf(6.0, -26.0, kk)
+			var fcol: Color = TBTokens.BZ_GOOD if bool(fl["pos"]) else TBTokens.BZ_BAD_TXT
+			TBHudParts.txtl(self, fb2, size.x * 0.5, fy, String(fl["txt"]), fz, TBHudParts.al(fcol, fa), 0.0, 1, 2.0, TBTokens.with_a(TBTokens.HALO, fa))
+		if has_focus(): TBHudParts.focus_box(self, Rect2(c.x - (gr() + 10.0), 0, (gr() + 10.0) * 2.0, size.y).grow(2.0))
 
 # ---------------------------------------------------------------- crest
-## the nation medallion: the flag inside a brass instrument ring, name in Cinzel and the ruler in italic beside it
+## the nation medallion (renderTop): the flag in a brass instrument ring (radius med-2, flag circle med-14), the name in Cinzel caps and the ruler in italic beside it
 class NationChip extends Hit:
 	var flag: Texture2D
 	var nation: String = ""
@@ -516,95 +623,134 @@ class NationChip extends Hit:
 	var seat_text: String = ""
 	var badge: int = 0
 	var rank_text: String = ""
-	var compact: bool = false
-	func medal() -> float: return 48.0 if compact else 56.0
-	func name_font() -> Font: return K.tracked(K.display(), 1)
+	var compact: bool = false           # phone landscape: medallion 25, no name
+	func med() -> float: return 25.0 if compact else 46.0
+	func medal() -> float: return 2.0 * med()
+	func name_font() -> Font: return TBHudParts.fcz(true)
+	func fname() -> int: return TBHudParts.fu(19.0)
+	func fsub() -> int: return TBHudParts.fu(15.0)
 	func desired_w() -> float:
-		var w: float = medal() + 4.0
-		if not show_name: return ceilf(w + 4.0)
-		var tn: float = TBHudParts.tw(name_font(), nation.to_upper(), TBHudParts.fs(17.0))
-		var ts: float = TBHudParts.tw(K.body_i(), subtitle, TBHudParts.fs(14.0)) if subtitle != "" else 0.0
-		w += 10.0 + maxf(tn, ts)
+		var w: float = 2.0 * med() + 8.0
+		if not show_name: return ceilf(w)
+		var tn: float = TBHudParts.twl(name_font(), nation.to_upper() if TBI18n.lang != "ru" else nation, fname(), 19.0 * 0.2)
+		var ts: float = TBHudParts.tw(TBHudParts.fal(400, true), subtitle, fsub()) if subtitle != "" else 0.0
+		w = 2.0 * med() + 22.0 + maxf(tn, ts) + 6.0
 		if seat >= 0: w += 34.0
 		return ceilf(w)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		var oy: float = 1.0 if down else 0.0
-		var R: float = medal() * 0.5
-		var c := Vector2(2.0 + R, size.y * 0.5 + oy)
-		var fr: float = BZ.ring(self, c, R, 40, TBHudParts.tk("bar_0"))
-		if flag != null:                                                    # the flag fills the circle (an era flag is pre-cropped on its main element: tools/flags/focus.json)
-			var pr: float = R - 1.6
+		var m: float = med()
+		var c := Vector2(m + 4.0, m + 4.0)
+		TBBezel.ring(self, c, m - 2.0, 48, TBTokens.c("bar_0"))
+		var pr: float = m - 14.0
+		if flag != null:                                                    # the flag fills its circle (an era flag is pre-cropped on its main element: tools/flags/focus.json)
 			var pts := PackedVector2Array(); var uvs := PackedVector2Array()
 			var fs_: Vector2 = flag.get_size()
 			var side: float = minf(fs_.x, fs_.y)
 			var uo := Vector2((fs_.x - side) * 0.5, (fs_.y - side) * 0.5)
-			for i in 48:
-				var a: float = TAU * i / 48.0
+			for i in 64:
+				var a: float = TAU * i / 64.0
 				var d := Vector2(cos(a), sin(a))
 				pts.append(c + d * pr)
 				uvs.append((uo + Vector2(side, side) * 0.5 + d * side * 0.5) / fs_)
 			draw_colored_polygon(pts, Color.WHITE, uvs, flag)
-		if hover or has_focus(): draw_arc(c, R + 2.5, 0.0, TAU, 40, TBHudParts.tk("brass_lt"), 1.5, true)
 		if show_name:
-			var x: float = c.x + R + 10.0
+			var x: float = 2.0 * m + 22.0
 			var fb: Font = name_font()
-			var fn: int = TBHudParts.fs(17.0)
-			var has_sub: bool = subtitle != ""
-			var ny: float = size.y * (0.4 if has_sub else 0.5) + oy
-			TBHudParts.txt_o(self, fb, Vector2(x, TBHudParts.base(fb, fn, ny)), nation.to_upper(), fn, TBHudParts.tk("cream"))
-			if has_sub:
-				var f2: Font = K.body_i()
-				var z2: int = TBHudParts.fs(14.0)
-				TBHudParts.txt_o(self, f2, Vector2(x, TBHudParts.base(f2, z2, size.y * 0.72 + oy)), subtitle, z2, TBHudParts.tk("smoke"))
+			var fn: int = fname()
+			var top: float = m - 21.0 + 4.0                                  # the demo's text block top (renderTop: top = M + med - 21)
+			var nm: String = nation.to_upper() if TBI18n.lang != "ru" else nation
+			TBHudParts.txtl(self, fb, x, top + fb.get_ascent(fn), nm, fn, TBTokens.c("cream"), 19.0 * 0.2)
+			if subtitle != "":
+				var f2: Font = TBHudParts.fal(400, true)
+				var z2: int = fsub()
+				TBHudParts.txtl(self, f2, x, top + roundf(fb.get_height(fn)) + 3.0 + f2.get_ascent(z2), subtitle, z2, TBTokens.c("smoke"))
 		if seat >= 0:
 			var sx: float = size.x - 22.0
-			TBHudParts.seat_shape(self, Vector2(sx, size.y * 0.5 - 6.0), 10.0, seat, TBHudParts.tk("brass_lt"))
-			var fs2: Font = K.body_b()
-			var zs: int = TBHudParts.fs(12.0)
-			draw_string(fs2, Vector2(sx - TBHudParts.tw(fs2, seat_text, zs) * 0.5, size.y * 0.5 + 14.0), seat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, zs, TBHudParts.tk("brass_lt"))
-		if badge > 0: draw_circle(Vector2(c.x + R * 0.7, c.y - R * 0.7), 4.0, TBHudParts.tk("warn_bar"))
-		if has_focus(): TBHudParts.focus_ring(self, r)
+			TBHudParts.seat_shape(self, Vector2(sx, c.y - 6.0), 10.0, seat, TBHudParts.tk("brass_lt"))
+			var fs2: Font = TBHudParts.fal(700)
+			var zs: int = TBHudParts.fu(12.0)
+			draw_string(fs2, Vector2(sx - TBHudParts.tw(fs2, seat_text, zs) * 0.5, c.y + 14.0), seat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, zs, TBHudParts.tk("brass_lt"))
+		if badge > 0: draw_circle(Vector2(c.x + m * 0.7, c.y - m * 0.7), 4.0, TBHudParts.tk("warn_bar"))
+		if has_focus(): TBHudParts.focus_box(self, Rect2(2.0, 2.0, 2.0 * m, 2.0 * m + 4.0))
 
 # ---------------------------------------------------------------- date medallion
-## the calendar: year over turn number, in a graduated brass ring (round = an instrument)
+## the calendar (renderTop, 84 box scaled): the year over the turn caption in a graduated brass ring with the year's progress as a brass arc
 class DateText extends Control:
 	var year: String = ""
 	var turn_cap: String = ""
-	var compact: bool = false
+	var turn_no: int = 0
+	var phase: float = 0.5               # share of the year gone (the demo: 30 degrees per month)
+	var compact: bool = false            # phone landscape: 46 box, the turn number only
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
-	func medal() -> float: return 60.0 if compact else 72.0
-	func desired_w() -> float: return medal() + 4.0
+	func medal() -> float: return 46.0 if compact else 84.0
+	func desired_w() -> float: return medal()
 	func _draw() -> void:
-		var R: float = medal() * 0.5
+		var s: float = medal() / 84.0
 		var c := Vector2(size.x * 0.5, size.y * 0.5)
-		var fr: float = BZ.ring(self, c, R, 48, TBHudParts.tk("bar_0"))
-		var fb: Font = K.body_b()
-		var yz: int = TBHudParts.fs(16.0)
-		var ys: String = year.replace(" AD", "")
-		while yz > 12 and TBHudParts.tw(fb, ys, yz) > fr * 1.6: yz -= 1
-		draw_string(fb, Vector2(c.x - TBHudParts.tw(fb, ys, yz) * 0.5, TBHudParts.base(fb, yz, c.y - 3.0)), ys, HORIZONTAL_ALIGNMENT_LEFT, -1, yz, TBHudParts.tk("cream"))
-		var cf: Font = K.display()
-		var tz: int = TBHudParts.fs(12.0)
-		var ts: String = turn_cap.to_upper()
-		while tz > 12 and TBHudParts.tw(cf, ts, tz) > fr * 1.7: tz -= 1
-		draw_string(cf, Vector2(c.x - TBHudParts.tw(cf, ts, tz) * 0.5, TBHudParts.base(cf, tz, c.y + fr * 0.46)), ts, HORIZONTAL_ALIGNMENT_LEFT, -1, tz, TBHudParts.tk("brass_lt"))
+		TBBezel.ring(self, c, 40.0 * s, 48, TBTokens.c("bar_0"), true, false, s)
+		TBBezel.arc_deg(self, c, 30.0 * s, 0.0, minf(359.9, 360.0 * clampf(phase, 0.0, 1.0)), TBBezel.BRASS, 3.0 * s)
+		var o: Vector2 = c - Vector2(42.0, 42.0) * s
+		if compact:
+			var fb: Font = TBHudParts.fcz(false)
+			var z: int = TBHudParts.fu(19.0 * s)
+			TBHudParts.txtl(self, fb, o.x + 42.0 * s, o.y + 52.0 * s, str(turn_no) if turn_no > 0 else "", z, TBBezel.BRASS, 1.5 * s, 1)
+		else:
+			var fb2: Font = TBHudParts.fcz(true)
+			var z2: int = TBHudParts.fu(16.0 * s)
+			var ys: String = year.replace(" AD", "")
+			TBHudParts.txtl(self, fb2, o.x + 42.0 * s, o.y + 43.0 * s, ys, z2, TBTokens.c("cream"), 0.0, 1)
+			var cf: Font = TBHudParts.fcz(false)
+			var tz: int = TBHudParts.fu(10.0 * s)
+			TBHudParts.txtl(self, cf, o.x + 42.0 * s, o.y + 57.0 * s, turn_cap.to_upper() if TBI18n.lang != "ru" else turn_cap, tz, TBBezel.BRASS, 1.5 * s, 1)
 
-# ---------------------------------------------------------------- lens tabs
-## the map lenses: Cinzel tabs over a graduated rule, a marker under the active one (docs/ui_variants .tabs)
+# ---------------------------------------------------------------- lens tuner
+## renderTuner: a notched-less plate (hairline rect) with a graduated scale, the lens names over it and a red pointer under the active one
 class ModeSwitch extends Hit:
 	signal picked(id: String)
 	var items: Array = []               # [[id, label]]
 	var current: String = ""
+	var compact: bool = false           # phone landscape: 380 x 38
 	var _rects: Array = []
-	func fz() -> int: return TBHudParts.fs(12.0)
-	func _font() -> Font: return K.tracked(K.display(), 1)
+	var _px: float = -1.0                # the pointer's x offset, eased toward the active lens (the demo: .4 s cubic-bezier(.3,1.4,.5,1))
+	var _from: float = 0.0
+	var _to: float = 0.0
+	var _t: float = 1.0
+	func plate_w() -> float: return 380.0 if compact else 560.0
+	func plate_h() -> float: return 38.0 if compact else 60.0
+	func fz() -> int: return TBHudParts.fu(9.5 if compact else 12.5)
+	func ls() -> float: return 0.8 if compact else 2.4
+	func _font(on: bool) -> Font: return TBHudParts.fcz(on)
 	func _lab(i: int) -> String: return String(items[i][1]).to_upper() if TBI18n.lang != "ru" else String(items[i][1])
-	func _seg_w(i: int) -> float: return ceilf(TBHudParts.tw(_font(), _lab(i), fz()) + 26.0)
-	func desired_w() -> float:
-		var w: float = 6.0
-		for i in items.size(): w += _seg_w(i)
-		return w + 6.0
+	func desired_w() -> float: return plate_w()
+	func set_current(id: String) -> void:
+		var idx: int = -1
+		for i in items.size():
+			if String(items[i][0]) == id: idx = i
+		current = id
+		var w: float = plate_w()
+		var tgt: float = (w - 28.0) * idx / maxf(1.0, float(items.size())) if idx >= 0 else _to
+		if _px < 0.0 or TBHudParts.reduced_motion(): _px = tgt; _to = tgt; _from = tgt; _t = 1.0
+		elif tgt != _to:
+			_from = _px; _to = tgt; _t = 0.0; set_process(true)
+		queue_redraw()
+	func _process(d: float) -> void:
+		_t = minf(1.0, _t + d / 0.4)
+		var u: float = _t
+		var e: float = _bez(u)
+		_px = lerpf(_from, _to, e)
+		queue_redraw()
+		if _t >= 1.0: set_process(false)
+	## cubic-bezier(.3, 1.4, .5, 1) solved for t by bisection
+	static func _bez(x: float) -> float:
+		var lo: float = 0.0; var hi: float = 1.0
+		for _i in 18:
+			var m: float = (lo + hi) * 0.5
+			var bx: float = 3.0 * (1.0 - m) * (1.0 - m) * m * 0.3 + 3.0 * (1.0 - m) * m * m * 0.5 + m * m * m
+			if bx < x: lo = m
+			else: hi = m
+		var t: float = (lo + hi) * 0.5
+		return 3.0 * (1.0 - t) * (1.0 - t) * t * 1.4 + 3.0 * (1.0 - t) * t * t * 1.0 + t * t * t
 	func _has_point(p: Vector2) -> bool: return Rect2(Vector2.ZERO, size).grow(2.0).has_point(p)
 	func _gui_input(e: InputEvent) -> void:
 		if e is InputEventMouseButton and (e as InputEventMouseButton).pressed and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
@@ -612,28 +758,33 @@ class ModeSwitch extends Hit:
 				if (_rects[i] as Rect2).has_point((e as InputEventMouseButton).position):
 					picked.emit(String(items[i][0])); accept_event(); return
 	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO, size)
-		TBHudParts.plate(self, r, TBHudParts.al(TBHudParts.tk("bar_0"), 0.92), TBHudParts.tk("rule"), 6.0)
-		BZ.ruler_h(self, 12.0, size.x - 12.0, size.y - 8.0, 6.0, 5, TBHudParts.al(TBHudParts.tk("rule"), 0.9), 3.0, true)
+		var w: float = plate_w(); var h: float = plate_h()
+		draw_rect(Rect2(0.5, 0.5, w - 1.0, h - 1.0), TBTokens.with_a(TBTokens.BZ_TUNER, 0.93))
+		draw_rect(Rect2(0.5, 0.5, w - 1.0, h - 1.0), TBBezel.BRASS_LO if not TBTokens.is_hc() else TBTokens.c("rule_dark"), false, 1.0)
+		var pts := PackedVector2Array()
+		for i in 61:
+			var x: float = 14.0 + (w - 28.0) * i / 60.0
+			pts.append(Vector2(x, h - 12.0)); pts.append(Vector2(x, h - 12.0 + (10.0 if i % 15 == 0 else (7.0 if i % 5 == 0 else 4.0))))
+		var tcol: Color = TBTokens.with_a(TBBezel.BRASS, 0.7 if compact else 1.0)
+		var tcol2: Color = TBBezel.ac(tcol, 0.8)
+		for i4 in range(0, pts.size() - 1, 2): draw_line(pts[i4], pts[i4 + 1], tcol2, TBBezel.aw(0.8), true)
 		_rects.clear()
-		var x: float = 6.0
-		for i in items.size():
-			var w: float = _seg_w(i)
-			var rc := Rect2(x, 2.0, w, size.y - 4.0)
-			_rects.append(rc)
+		var n: int = items.size()
+		for i in n:
+			var cx: float = 14.0 + (w - 28.0) * (i + 0.5) / maxf(1.0, float(n))
 			var on: bool = String(items[i][0]) == current
-			var f: Font = _font()
-			var t: String = _lab(i)
-			var ty: float = TBHudParts.base(f, fz(), size.y * 0.42)
-			draw_string(f, Vector2(rc.position.x + (rc.size.x - TBHudParts.tw(f, t, fz())) * 0.5, ty), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fz(), TBHudParts.tk("cream") if on else TBHudParts.tk("ink_off"))
-			if on:
-				var mx: float = rc.get_center().x
-				draw_colored_polygon(PackedVector2Array([Vector2(mx - 4.5, size.y - 7.0), Vector2(mx + 4.5, size.y - 7.0), Vector2(mx, size.y - 1.0)]), TBHudParts.tk("neg_bar"))
-			x += w
-		if has_focus(): TBHudParts.focus_ring(self, Rect2(Vector2.ZERO, size))
+			var f: Font = _font(on)
+			var cw: float = (w - 28.0) / maxf(1.0, float(n))
+			_rects.append(Rect2(cx - cw * 0.5, 0.0, cw, h))
+			TBHudParts.txtl(self, f, cx, (15.0 if compact else 24.0), _lab(i), fz(), TBTokens.c("cream") if on else (TBTokens.BZ_DIM2 if not TBTokens.is_hc() else TBHudParts.tk("smoke")), ls(), 1)
+		if current != "" and _px >= 0.0:
+			var px: float = 14.0 + (w - 28.0) * 0.5 / maxf(1.0, float(n)) + _px
+			draw_colored_polygon(PackedVector2Array([Vector2(px, h - 13.0), Vector2(px - 5.0, h - 22.0), Vector2(px + 5.0, h - 22.0)]), TBTokens.BZ_BAD)
+		if has_focus(): TBHudParts.focus_box(self, Rect2(Vector2.ZERO, size).grow(3.0))
 
 # ---------------------------------------------------------------- dock / lens / menu icon button
-## round brass medallion with the icon inside. In a wide slot the label (Cinzel caps) sits to its right (the rail); in a narrow one beneath.
+## round medallion with the demo's icon inside. A rail item (edge 0, `row`): the Cinzel label sits to its right on a pill that lights on hover.
+## `framed`: a bare medallion standing on the map (gear, zoom, more lenses). edge 1 / 2: the portrait tab bar (label beneath).
 class IconBtn extends Hit:
 	var glyph: String = "gear"
 	var label: String = ""
@@ -646,31 +797,101 @@ class IconBtn extends Hit:
 	var show_label: bool = true
 	var hint: String = ""               # hotkey text (menus)
 	var framed: bool = false            # stands alone on the map: a bare medallion
+	var ticks_n: int = 24               # ring ticks of a framed medallion (the zoom buttons have none)
+	var compact: bool = false           # phone landscape: rail icon 20, no label
+	var dia: float = 52.0               # the medallion's diameter in a rail row (railD)
+	## the game's glyph names -> the demo's icon names
+	static func demo_icon(g: String) -> String:
+		match g:
+			"globe": return "nations"
+			"coins": return "treasury"
+			"scales": return "decrees"
+			"lamp": return "council"
+			"book": return "annals"
+			"trophy": return "goals"
+			"gear", "menu": return "settings"
+		return g
 	func _lab() -> String: return label.to_upper() if TBI18n.lang != "ru" else label
+	## width of a rail row: the medallion, 14 gap, the label, 16 padding
+	func row_w() -> float:
+		var lw: float = TBHudParts.twl(TBHudParts.fcz(active), _lab(), TBHudParts.fu(13.0), 2.6) if (show_label and label != "") else 0.0
+		return dia + ((14.0 + lw + 16.0) if lw > 0.0 else 0.0)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
+		var ic: String = demo_icon(glyph)
+		if edge > 0:
+			_draw_tab(r, ic)
+			return
+		if framed:
+			var d: float = minf(size.x, size.y)
+			var c := Vector2(size.x * 0.5, size.y * 0.5)
+			var k: float = d / 54.0
+			TBBezel.ring(self, c, 25.0 * k, ticks_n, TBTokens.c("bar_0"), true, false, k)
+			if active: draw_arc(c, 25.0 * k + 3.0, 0.0, TAU, 48, TBHudParts.tk("brass_lt"), 1.6, true)
+			var col: Color = TBHudParts.tk("brass_lt")
+			if ic == "plus" or ic == "minus":                                              # the zoom buttons: a 12-box + / -
+				var s: float = d * 0.46; var u: float = s / 12.0
+				var o: Vector2 = c - Vector2(s, s) * 0.5
+				draw_line(o + Vector2(1, 6) * u, o + Vector2(11, 6) * u, col, 1.8 * u)
+				draw_circle(o + Vector2(1, 6) * u, 0.9 * u, col); draw_circle(o + Vector2(11, 6) * u, 0.9 * u, col)
+				if ic == "plus":
+					draw_line(o + Vector2(6, 1) * u, o + Vector2(6, 11) * u, col, 1.8 * u)
+					draw_circle(o + Vector2(6, 1) * u, 0.9 * u, col); draw_circle(o + Vector2(6, 11) * u, 0.9 * u, col)
+			else:
+				TBBzIcons.draw(self, ic, c, icon_px, col)
+			if has_focus(): TBHudParts.focus_box(self, r.grow(3.0))
+			return
+		# rail row
+		var D: float = dia
+		var row: bool = show_label and label != ""
+		var c2 := Vector2(D * 0.5, size.y * 0.5)
+		if hover or has_focus():                                                          # .rail-b:hover: a pill lit from the left (border-radius 30, gradient to rgba(201,162,75,.12))
+			var rad: float = minf(30.0, size.y * 0.5)
+			var poly := PackedVector2Array(); var cols := PackedColorArray()
+			var arc_n: int = 10
+			for i in arc_n + 1:                                                           # right cap, top to bottom
+				var an: float = -PI * 0.5 + PI * i / arc_n
+				poly.append(Vector2(size.x - rad + cos(an) * rad, rad + sin(an) * rad + (size.y * 0.5 - rad)))
+			for i in arc_n + 1:                                                           # left cap, bottom to top
+				var an2: float = PI * 0.5 + PI * i / arc_n
+				poly.append(Vector2(rad + cos(an2) * rad, rad + sin(an2) * rad + (size.y * 0.5 - rad)))
+			for q in poly:
+				cols.append(Color(TBBezel.BRASS.r, TBBezel.BRASS.g, TBBezel.BRASS.b, 0.12 * clampf(q.x / maxf(1.0, size.x), 0.0, 1.0)))
+			draw_polygon(poly, cols)
+		var k2: float = D / 66.0
+		if hover or has_focus(): TBBezel.glow(self, c2, 33.0 * k2, TBTokens.with_a(TBTokens.c("brass_lt"), 0.5), 7.0)
+		TBBezel.ring(self, c2, 31.0 * k2, 24, TBTokens.c("bar_0"), true, false, k2)
+		if active: draw_circle(c2, 25.0 * k2, TBTokens.with_a(TBBezel.BRASS, 0.22))
+		var col2: Color = TBTokens.c("cream")
+		if not TBTokens.is_hc(): col2 = Color.WHITE if active else TBTokens.BZ_RAIL_ICON
+		TBBzIcons.draw(self, ic, c2, icon_px, col2)
+		if row:
+			var f: Font = TBHudParts.fcz(active)
+			var z: int = TBHudParts.fu(13.0)
+			var lc: Color = (TBTokens.c("cream") if active else TBTokens.BZ_DIM) if not hover else Color.WHITE
+			if TBTokens.is_hc(): lc = TBTokens.c("cream")
+			TBHudParts.glow_text(self, f, D + 14.0, size.y * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5), _lab(), z, lc, 2.6)
+		if badge > 0:
+			var bc: Vector2 = c2 + Vector2(D * 0.39, -D * 0.39)
+			draw_circle(bc, 8.0, TBTokens.BZ_BAD if badge_crit else TBHudParts.tk("brass_lt"))
+			var fbm: Font = K.mono_b()
+			var s4: String = str(mini(badge, 99))
+			draw_string(fbm, Vector2(bc.x - TBHudParts.tw(fbm, s4, 12) * 0.5, TBHudParts.base(fbm, 12, bc.y)), s4, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TBHudParts.tk("table"))
+		if has_focus(): TBHudParts.focus_box(self, r.grow(3.0))
+	## the portrait tab bar item: medallion with the label beneath (the layout the phone had before the demo's landscape one)
+	func _draw_tab(r: Rect2, ic: String) -> void:
 		var oy: float = 1.0 if down else 0.0
 		var col: Color = TBHudParts.tk("brass_lt") if active else TBHudParts.tk("cream")
-		var row: bool = (not framed) and show_label and label != "" and size.x >= 110.0
-		var labelled: bool = show_label and label != "" and not framed and not row
-		var d: float = minf(size.y - 4.0, 44.0) if row else (minf(size.x, size.y) - 2.0 if (framed or not labelled) else minf(size.x - 6.0, size.y * 0.62))
+		var labelled: bool = show_label and label != ""
+		var d: float = (minf(size.x, size.y) - 2.0) if not labelled else minf(size.x - 6.0, size.y * 0.62)
 		d = maxf(d, 24.0)
 		var R: float = d * 0.5
-		var c: Vector2
-		if row: c = Vector2(R + 2.0, size.y * 0.5 + oy)
-		elif labelled: c = Vector2(size.x * 0.5, R + 2.0 + oy)
-		else: c = Vector2(size.x * 0.5, size.y * 0.5 + oy)
-		var face: Color = TBHudParts.tk("bar_2") if (hover or down or active) else TBHudParts.tk("bar_0")
-		var fr: float = BZ.ring(self, c, R, 0 if R < 17.0 else 30, face)
+		var c: Vector2 = Vector2(size.x * 0.5, R + 2.0 + oy) if labelled else Vector2(size.x * 0.5, size.y * 0.5 + oy)
+		var fr: float = TBBezel.ring(self, c, R, 0 if R < 17.0 else 24, TBTokens.c("bar_2") if (hover or down or active) else TBTokens.c("bar_0"))
 		if active: draw_arc(c, R + 2.5, 0.0, TAU, 40, TBHudParts.tk("brass_lt"), 1.6, true)
-		TBHudParts.icon(self, glyph, c, minf(icon_px, fr * 1.15), col, 1.6)
-		if row:
-			var f: Font = K.tracked(K.display(), 1)
-			var z: int = TBHudParts.fs(12.0)
-			var s2: String = TBHudParts.fit(f, _lab(), z, size.x - (c.x + R + 12.0) - 2.0)
-			TBHudParts.txt_o(self, f, Vector2(c.x + R + 10.0, TBHudParts.base(f, z, c.y)), s2, z, TBHudParts.tk("cream") if (active or hover) else TBHudParts.tk("smoke"))
-		elif labelled:
-			var f2: Font = K.tracked(K.display(), 0)
+		TBBzIcons.draw(self, ic, c, minf(icon_px, fr * 1.15), col)
+		if labelled:
+			var f2: Font = TBHudParts.fcz(false)
 			var z2: int = TBHudParts.fs(12.0)
 			var s3: String = TBHudParts.fit(f2, _lab(), z2, size.x - 2.0)
 			draw_string(f2, Vector2((size.x - TBHudParts.tw(f2, s3, z2)) * 0.5, size.y - 4.0 + oy), s3, HORIZONTAL_ALIGNMENT_LEFT, -1, z2, TBHudParts.tk("cream") if active else TBHudParts.tk("smoke"))
@@ -679,43 +900,46 @@ class IconBtn extends Hit:
 			draw_circle(bc, 8.0, TBHudParts.tk("neg_bar") if badge_crit else TBHudParts.tk("brass_lt"))
 			var fb: Font = K.mono_b()
 			var s4: String = str(mini(badge, 99))
-			var sw: float = TBHudParts.tw(fb, s4, 12)
-			draw_string(fb, Vector2(bc.x - sw * 0.5, TBHudParts.base(fb, 12, bc.y)), s4, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TBHudParts.tk("table"))
+			draw_string(fb, Vector2(bc.x - TBHudParts.tw(fb, s4, 12) * 0.5, TBHudParts.base(fb, 12, bc.y)), s4, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TBHudParts.tk("table"))
 		if has_focus(): TBHudParts.focus_ring(self, r)
 
 # ---------------------------------------------------------------- surfaces
-## the ground behind the rail / phone tab bar. The rail is open ground with a graduated ruler beside the medallions (no card).
+## the ground behind the portrait tab bar, and the rail's graduated ruler (renderRail): a shallow arc of hairline with a tick every 8 units,
+## brass every 5th, bulging toward the map and zero at both ends
 class Surface extends Control:
-	var kind: String = "card"           # card (rail, drawers) | bottom (phone tab bar)
-	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_STOP
+	var kind: String = "card"           # card (the rail ruler) | bottom (phone tab bar)
+	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO, size)
 		match kind:
 			"bottom":
-				draw_rect(r, TBHudParts.al(TBHudParts.tk("bar_0"), 0.98))
+				draw_rect(Rect2(Vector2.ZERO, size), TBHudParts.al(TBHudParts.tk("bar_0"), 0.98))
 				draw_rect(Rect2(0, 0, size.x, 1.0), TBHudParts.tk("rule"))
-				BZ.ruler_h(self, 8.0, size.x - 8.0, 1.0, 8.0, 5, TBHudParts.al(TBHudParts.tk("rule"), 0.8), 3.0)
+				TBBezel.ruler_h(self, 8.0, size.x - 8.0, 1.0, 8.0, 5, TBHudParts.al(TBHudParts.tk("rule"), 0.8), 3.0)
 			_:
-				var col: Color = TBHudParts.al(TBHudParts.tk("rule"), 0.9)
-				var pts := PackedVector2Array()                                   # the ruler follows the same shallow arc as the rail buttons
-				var y: float = 4.0
-				while y <= size.y - 4.0 + 0.1:
-					pts.append(Vector2(3.5 + arc_dx(y, size.y), y)); y += 4.0
-				if pts.size() >= 2: draw_polyline(pts, col, 1.0)
+				var tot: float = size.y
+				var ar: float = ruler_r
+				var pts := PackedVector2Array()
 				var i: int = 0
-				y = 4.0
-				while y <= size.y - 4.0 + 0.1:
-					var dx: float = arc_dx(y, size.y)
-					var l: float = 3.0 * (1.8 if i % 5 == 0 else 1.0)
-					draw_line(Vector2(3.5 + dx - l, y), Vector2(3.5 + dx, y), col, 1.0)
-					y += 8.0; i += 1
+				var n: int = int(floor(tot / 6.0))
+				for q in n + 1:
+					var y: float = minf(tot, q * 6.0)
+					pts.append(Vector2(9.5 + arc_dx(y, tot, ar), y))
+				draw_polyline(pts, TBTokens.BZ_RULER if not TBTokens.is_hc() else TBHudParts.tk("rule_dark"), 1.0, false)
+				var maj := PackedVector2Array(); var mnr := PackedVector2Array()
+				for q in int(floor(tot / 8.0)) + 1:
+					var o: float = 9.5 + arc_dx(q * 8.0, tot, ar)
+					var l: float = 6.5 if q % 5 == 0 else 3.5
+					if q % 5 == 0: maj.append(Vector2(o - l, q * 8.0)); maj.append(Vector2(o, q * 8.0))
+					else: mnr.append(Vector2(o - l, q * 8.0)); mnr.append(Vector2(o, q * 8.0))
+				for i2 in range(0, mnr.size() - 1, 2): draw_line(mnr[i2], mnr[i2 + 1], TBBezel.BRASS_LO, 1.0, false)
+				for i3 in range(0, maj.size() - 1, 2): draw_line(maj[i3], maj[i3 + 1], TBBezel.BRASS, 1.0, false)
 
-	const ARC_R := 560.0
+	var ruler_r: float = 560.0
 	## how far right a rail point `y` (in a rail `h` tall) sits: a shallow circle bulging toward the map, zero at both ends
-	static func arc_dx(y: float, h: float) -> float:
+	static func arc_dx(y: float, h: float, ar: float = 560.0) -> float:
 		var half: float = h * 0.5
 		var t: float = clampf(y - half, -half, half)
-		return sqrt(ARC_R * ARC_R - t * t) - sqrt(ARC_R * ARC_R - half * half)
+		return sqrt(ar * ar - t * t) - sqrt(ar * ar - half * half)
 
 # ---------------------------------------------------------------- End Turn seal
 ## the one wax object (art bible 7.5): an 80 px circle (72 compact / portrait) drawn by TBFrame.seal (wax grain + one brass ring), the
