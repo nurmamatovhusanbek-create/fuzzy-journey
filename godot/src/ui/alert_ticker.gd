@@ -1,7 +1,8 @@
-## Alert ticker (zone C of design/ux/hud.md): a priority-sorted stack of chips for what needs an answer. Chips are state-based:
-## the HUD re-feeds the current entries (TBAdvisor.ticker) after every change; a chip whose condition cleared shows a tick
-## for 600 ms and collapses. Shape code (art bible 7.3): filled triangle = crisis, outlined triangle = warning,
-## diamond = offer, circle = information. Tap a chip = look at its cause; offers answer inline.
+## Alert ticker (zone C of design/ux/hud.md): a priority-sorted stack of notices for what needs an answer. Notices are state-based:
+## the HUD re-feeds the current entries (TBAdvisor.ticker) after every change; a notice whose condition cleared shows a tick
+## for 600 ms and collapses. Look: the Bezel demo's `.tz` notice (b_demo.html `notice()`): an instrument medallion on the left edge of a notched plate,
+## the kind's colour in the medallion's icon (bad red, offer brass, information blue, done green), the text in Alegreya 500 15.5 and a small x.
+## Tap a notice = look at its cause; offers answer inline.
 class_name TBAlertTicker
 extends Control
 
@@ -9,20 +10,24 @@ const K = preload("res://src/ui/ui_kit.gd")
 const P = preload("res://src/ui/hud_parts.gd")
 const BZ = preload("res://src/ui/bezel.gd")
 
-## the instrument medallion that sits on the left edge of every notice: a brass ring with the kind's mark in its face
-static func medallion(ci: CanvasItem, c: Vector2, R: float, hot: bool) -> float:
-	return BZ.ring(ci, c, R, 0, P.tk("bar_2") if hot else P.tk("bar_0"))
+## the notice medallion (the demo's 46 unit svg: shadow disc, brass band, dark face, hairline, 24 ticks), `s` = the svg's scale (1; 0.826 on a phone)
+static func medallion(ci: CanvasItem, c: Vector2, s: float, hot: bool = false) -> void:
+	ci.draw_circle(c, 24.0 * s, TBTokens.with_a(TBTokens.BZ_SHADOW, 0.45))
+	BZ.grad_disc(ci, c, 21.0 * s, [[0.0, TBTokens.BZ_G_A], [0.5, TBTokens.BZ_G_B], [1.0, TBTokens.BZ_G_C]])
+	ci.draw_circle(c, 17.0 * s, TBTokens.c("bar_0"))
+	ci.draw_arc(c, 16.4 * s, 0.0, TAU, 48, P.tk("brass_lt"), 0.6 * s, true)
+	BZ.ticks(ci, c, 16.0 * s, 24, 2.6 * s, 6, BZ.BRASS, 0.9 * s, 0.0, TAU, true)
 
-signal activated(entry: Dictionary)         ## chip tapped: entry.cls / .p / .n / .uid say where to look
-signal answered(uid: int, choice: int)      ## inline Accept (0) / Decline (1) on an offer chip
+signal activated(entry: Dictionary)         ## notice tapped: entry.cls / .p / .n / .uid say where to look
+signal answered(uid: int, choice: int)      ## inline Accept (0) / Decline (1) on an offer notice
 signal overflow_pressed                     ## the "+n" pill: open the full list
-signal report_pressed                       ## the turn-report chip: open the Annals
+signal report_pressed                       ## the turn-report notice: open the Annals
 signal layout_changed                       ## stack height changed (keep-outs)
 signal tip_requested(anchor: Control, pair: Array)
 signal tip_hidden
 
-const GAP := 6.0
-
+var gap: float = 14.0                       ## space between notices (the demo: 14, phone 10)
+var compact: bool = false                   ## phone landscape: 34 high, medallion 38, text 13
 var max_rows: int = 4
 var row_w: float = 280.0
 var inline_pill: bool = false               ## 1-row layouts: the "+n" pill sits beside the row instead of under it
@@ -39,32 +44,36 @@ var _entries: Array = []
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-func row_h() -> float: return maxf(minf(P.touch(), P.R(44.0) + 6.0), P.fs(14.0) + 16.0)
+func row_h() -> float: return 34.0 if compact else 40.0
 
 # ---------------------------------------------------------------- look of an entry
-static func bar_color(e: Dictionary) -> Color:
-	if int(e["sev"]) >= 2: return P.tk("neg_bar")
-	match String(e["cls"]):
-		"offer": return P.tk("brass_lt")
-		"event": return P.tk("info_bar")
-	return P.tk("warn_bar")
+## the demo's notice kind of an entry: bad (red) for crises and warnings, dip (brass) for offers, info (blue) for events
+static func kind_of(e: Dictionary) -> String:
+	if String(e["cls"]) == "offer": return "dip"
+	if String(e["cls"]) == "event": return "info"
+	return "bad"
 
-static func class_glyph(cls: String) -> String:
-	match cls:
-		"war": return "swords"
-		"revolt": return "revolt"
-		"offer": return "scroll"
-		"event": return "book"
-		"supply": return "supply"
-	return "info"
+static func kind_color(kind: String) -> Color:
+	match kind:
+		"bad": return TBTokens.BZ_NOTICE_BAD
+		"dip": return TBTokens.c("brass_lt")
+		"good": return TBTokens.BZ_GOOD
+	return TBTokens.BZ_INFO
 
-## the shape mark: crisis = filled triangle, warning = outlined triangle, offer = diamond, information = circle
-static func draw_shape(ci: CanvasItem, c: Vector2, e: Dictionary, s: float = 14.0) -> void:
-	var col: Color = bar_color(e)
-	if int(e["sev"]) >= 2 and String(e["cls"]) != "offer": P.warn_mark(ci, c, s + 2.0, col, true)
-	elif String(e["cls"]) == "offer": P.diamond(ci, c, s, col, true)
-	elif String(e["cls"]) == "event": ci.draw_circle(c, s * 0.5, col)
-	else: P.warn_mark(ci, c, s + 2.0, col, false)
+static func kind_icon(e: Dictionary) -> String:
+	if String(e["cls"]) == "offer": return "envoys"
+	if String(e["cls"]) == "event": return "info"
+	return "warn"
+
+static func bar_color(e: Dictionary) -> Color: return kind_color(kind_of(e))
+
+## the notice's plate (outer notched hairline plate #7F6A33 / hover #C9A24B, inner #15110d, notch 7 / 6) with its drop shadow; `r` is the plate rect
+static func draw_plate(ci: CanvasItem, r: Rect2, hot: bool, edge_col: Color = Color.TRANSPARENT) -> void:
+	BZ.plate_shadow(ci, r, 7.0, 5.0, 7.0, TBTokens.with_a(Color.BLACK, 0.55))
+	var lo: Color = edge_col if edge_col.a > 0.0 else (BZ.BRASS if hot else BZ.BRASS_LO)
+	if TBTokens.is_hc(): lo = P.tk("brass_lt") if hot else P.tk("rule_dark")
+	ci.draw_colored_polygon(BZ.notch(r, 7.0), lo)
+	ci.draw_colored_polygon(BZ.notch(r.grow(-1.0), 6.0), TBTokens.BZ_NOTICE if not TBTokens.is_hc() else P.tk("bar_0"))
 
 # ---------------------------------------------------------------- rows
 class AlertRow extends P.Hit:
@@ -80,27 +89,35 @@ class AlertRow extends P.Hit:
 	var cycle: int = 0
 	var dismissible: bool = true
 	var drawer: bool = false
+	var compact: bool = false
 	var _buttons: HBoxContainer
-	var lines: int = 1                   # 1 or 2 text lines (a long chip wraps; the full text is also the tooltip)
+	var lines: int = 1                   # 1 or 2 text lines (a long notice wraps; the full text is also the tooltip)
 	var _w: float = 0.0
-	func line_h() -> float: return TBHudParts.body_b().get_height(TBHudParts.fs(14.0))
+	var _nat: float = 0.0                # the plate's natural width
+	func fz() -> int: return P.fu(13.0 if compact else 15.5)
+	func font() -> Font: return P.fal(500)
+	func line_h() -> float: return font().get_height(fz())
+	func plate_h() -> float: return 34.0 if compact else 40.0
 	func base_h() -> float:
-		var one: float = maxf(minf(TBHudParts.touch(), TBHudParts.R(44.0) + 6.0), TBHudParts.fs(14.0) + 16.0)
-		return one if lines <= 1 else maxf(one, lines * line_h() + 16.0)
-	func text_x() -> float: return 2.0 * 21.0 + 8.0
-	func text_right() -> float: return 10.0 + (24.0 if dismissible and not drawer and not done else 0.0)
-	## decide one or two lines for a row width
+		var one: float = plate_h()
+		return one if lines <= 1 else maxf(one, lines * line_h() + 18.0)
+	func pad_l() -> float: return 28.0 if compact else 34.0
+	func lead() -> float: return 18.0 if compact else 22.0                 # the .tz margin-left: room for the medallion's left half
+	func text_right() -> float: return 10.0 + (0.0 if drawer else 28.0)             # the x slot is always there (the demo: every notice has one); it is drawn only when the notice can be dismissed
+	func med_s() -> float: return 38.0 / 46.0 if compact else 1.0
+	## decide one or two lines for a row width, and the plate's natural width
 	func set_width(w: float) -> void:
 		_w = w
-		var avail: float = maxf(40.0, w - text_x() - text_right())
-		var f: Font = TBHudParts.body_b()
-		var need: float = TBHudParts.tw(f, text, TBHudParts.fs(14.0))
+		var avail: float = maxf(40.0, w - lead() - 2.0 - pad_l() - text_right())
+		var need: float = P.tw(font(), text, fz())
 		var n: int = 1 if need <= avail else 2
 		if n != lines: lines = n; queue_redraw()
-	func full_h() -> float: return base_h() + (TBHudParts.touch() + 6.0 if expanded else 0.0)
+		_nat = (w if (drawer or compact) else lead() + 2.0 + pad_l() + (need if n == 1 else avail) + text_right())      # phones: the demo stretches the notice over its column
+	## the width this row takes in the stack
+	func natural_w() -> float: return _nat if _nat > 0.0 else _w
+	func full_h() -> float: return base_h() + ((P.touch() if compact else 32.0) + 6.0 if expanded else 0.0)
 	func _init() -> void:
 		super()
-		clip_contents = true
 	func set_entry(e: Dictionary, t: String) -> void:
 		entry = e; text = t
 		if _w > 0.0: set_width(_w)
@@ -110,11 +127,12 @@ class AlertRow extends P.Hit:
 	func build_buttons(on_answer: Callable) -> void:
 		if _buttons != null: return
 		_buttons = HBoxContainer.new(); _buttons.add_theme_constant_override("separation", 8)
-		_buttons.position = Vector2(12, base_h() + 2.0)
+		_buttons.position = Vector2(lead() + 12.0, base_h() + 2.0)
 		var ult: bool = bool(entry["ult"])
 		var yes: Button = TBHudParts.btn(TBI18n.T("mp_yield") if ult else TBI18n.T("mp_accept"), "primary", func(): on_answer.call(int(entry["uid"]), 0), true, 14)
 		var no: Button = TBHudParts.btn(TBI18n.T("mp_defy") if ult else TBI18n.T("mp_decline"), "secondary", func(): on_answer.call(int(entry["uid"]), 1), true, 14)
-		yes.custom_minimum_size = Vector2(96, TBHudParts.touch()); no.custom_minimum_size = Vector2(96, TBHudParts.touch())
+		var bh: float = TBHudParts.touch() if compact else 32.0
+		yes.custom_minimum_size = Vector2(96, bh); no.custom_minimum_size = Vector2(96, bh)
 		_buttons.add_child(yes); _buttons.add_child(no)
 		add_child(_buttons)
 	func clear_flash() -> void:
@@ -123,96 +141,103 @@ class AlertRow extends P.Hit:
 		expanded = on
 		if _buttons != null: _buttons.visible = on
 	func _has_point(p: Vector2) -> bool:
-		return Rect2(Vector2.ZERO, Vector2(size.x, base_h())).has_point(p) or (expanded and Rect2(Vector2.ZERO, size).has_point(p))
+		var h: float = base_h()
+		return Rect2(lead() - 24.0, 0.0, size.x - lead() + 24.0, h).has_point(p) or (expanded and Rect2(Vector2.ZERO, size).has_point(p))
 	func _gui_input(e: InputEvent) -> void:
 		if e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and not (e as InputEventMouseButton).pressed and dismissible and not drawer:
 			var pos: Vector2 = (e as InputEventMouseButton).position
-			if pos.x > size.x - 48.0 and pos.y < base_h() and down:
+			if pos.x > size.x - 34.0 and pos.y < base_h() and down:
 				down = false; queue_redraw(); dismiss_pressed.emit(); accept_event(); return
 		super(e)
 	func _draw() -> void:
 		var bh: float = base_h()
-		var r := Rect2(0, 0, size.x, bh)
-		var col: Color = TBAlertTicker.bar_color(entry) if not done else TBHudParts.tk("pos_bar")
-		var crit: bool = int(entry["sev"]) >= 2 and not done
-		var R: float = minf(21.0, bh * 0.5)
-		var c := Vector2(R, bh * 0.5)
-		var pr := Rect2(c.x, 3.0, size.x - c.x, bh - 6.0)
-		var edge: Color = col if crit else (TBHudParts.tk("brass_lt") if (hover or down) else TBHudParts.tk("rule"))
-		TBHudParts.plate(self, pr, TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), edge, 6.0)
-		TBAlertTicker.medallion(self, c, R, hover or down)
-		var cy: float = bh * 0.5
-		var x: float = text_x()
-		var cream: Color = TBHudParts.tk("cream") if not done else TBHudParts.tk("smoke")
-		if done: TBHudParts.tick(self, c, 14.0, TBHudParts.tk("pos_bar"), 2.0)
-		else: TBAlertTicker.draw_shape(self, c, entry, 14.0)
-		var f: Font = P.body_b()
-		var fsz: int = TBHudParts.fs(14.0)
+		var lx: float = lead()
+		var pr := Rect2(lx, 0.0, size.x - lx, bh)
+		var hot: bool = hover or down
+		var kind: String = TBAlertTicker.kind_of(entry) if not done else "good"
+		var kc: Color = TBAlertTicker.kind_color(kind)
+		TBAlertTicker.draw_plate(self, pr, hot)
+		var c := Vector2(lx + 1.0, bh * 0.5)
+		TBAlertTicker.medallion(self, c, med_s(), hot)
+		var ic: String = "check" if done else TBAlertTicker.kind_icon(entry)
+		TBBzIcons.draw(self, ic, c, 14.0 if compact else 17.0, kc)
+		var f: Font = font()
+		var z: int = fz()
+		var x: float = lx + 1.0 + pad_l()
+		var cream: Color = TBTokens.c("cream") if not done else TBTokens.c("smoke")
 		var right: float = text_right()
 		if lines <= 1:
-			var s1: String = TBHudParts.fit(f, text, fsz, size.x - x - right)
-			draw_string(f, Vector2(x, TBHudParts.base(f, fsz, cy)), s1, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, cream)
+			var s1: String = TBHudParts.fit(f, text, z, size.x - x - right)
+			draw_string(f, Vector2(x, bh * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5)), s1, HORIZONTAL_ALIGNMENT_LEFT, -1, z, cream)
 		else:
-			var y0: float = (bh - 2.0 * line_h()) * 0.5 + f.get_ascent(fsz)
-			draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, size.x - x - right, fsz, 2, cream, TextServer.BREAK_WORD_BOUND)
+			var y0: float = (bh - 2.0 * line_h()) * 0.5 + f.get_ascent(z)
+			draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, size.x - x - right, z, 2, cream, TextServer.BREAK_WORD_BOUND)
 		if dismissible and not drawer and not done:
-			TBGlyph.draw(self, "close", Vector2(size.x - 16.0, cy), 11.0, TBHudParts.tk("ink_off"), 1.5)
+			TBBzIcons.draw(self, "close", Vector2(size.x - 10.0 - 1.0 - 9.0, bh * 0.5), 10.0, TBTokens.c("cream") if hot else (TBTokens.c("ink_off") if not TBTokens.is_hc() else TBTokens.c("smoke")), 1.7)
 		if flash > 0.0:
-			var line: PackedVector2Array = TBHudParts.chamfer(pr.grow(-1.0), 6.0)
+			var line: PackedVector2Array = BZ.notch(pr.grow(-1.0), 6.0)
 			line.append(line[0])
 			draw_polyline(line, TBHudParts.al(TBHudParts.tk("brass_lt"), flash), 2.0, true)
-		if has_focus(): TBHudParts.focus_ring(self, r)
+		if has_focus(): TBHudParts.focus_box(self, pr.grow(3.0))
 
 ## "+3 v" overflow pill
 class Pill extends P.Hit:
 	var count: int = 0
-	func desired_w() -> float: return ceilf(TBHudParts.tw(K.mono_b(), "+%d" % count, TBHudParts.fs(14.0)) + 12.0 + 12.0 + 12.0)
+	func desired_w() -> float: return ceilf(TBHudParts.tw(K.mono_b(), "+%d" % count, TBHudParts.fu(14.0)) + 12.0 + 12.0 + 12.0)
 	func _draw() -> void:
-		TBHudParts.plate(self, Rect2(0, 3, size.x, size.y - 6), TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), TBHudParts.tk("brass_lt") if (hover or down) else TBHudParts.tk("rule"), 6.0)
+		var hot: bool = hover or down
+		TBAlertTicker.draw_plate(self, Rect2(0, 3, size.x, size.y - 6), hot)
 		var cy: float = size.y * 0.5
 		var f: Font = K.mono_b()
-		var fsz: int = TBHudParts.fs(14.0)
+		var fsz: int = TBHudParts.fu(14.0)
 		var x: float = 12.0 + TBHudParts.txt(self, f, Vector2(12.0, TBHudParts.base(f, fsz, cy)), "+%d" % count, fsz, TBHudParts.tk("cream"))
 		TBHudParts.tri(self, Vector2(x + 10.0, cy), 8.0, TBHudParts.tk("smoke"), false)
 		if has_focus(): TBHudParts.focus_ring(self, Rect2(Vector2.ZERO, size))
 
-## the one toast-style row: a message from an order, or the turn report
+## the toast row: a message from an order, or the turn report
 class InfoRow extends P.Hit:
 	var text: String = ""
 	var kind: String = "info"            # info | warn | report
 	var lines: int = 1
 	var ap: float = 1.0
-	func _init() -> void:
-		super()
-		clip_contents = true
+	var compact: bool = false
+	var _w: float = 0.0
+	func fz() -> int: return P.fu(13.0 if compact else 15.5)
+	func font() -> Font: return P.fal(500)
+	func lead() -> float: return 18.0 if compact else 22.0
+	func pad_l() -> float: return 28.0 if compact else 34.0
+	func med_s() -> float: return 38.0 / 46.0 if compact else 1.0
+	## height for a max row width (also decides the line count and the natural width)
 	func measure(w: float) -> float:
-		var f: Font = P.body()
-		var fsz: int = TBHudParts.fs(14.0)
-		var sz: Vector2 = f.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w - 2.0 * 21.0 - 8.0 - 10.0, fsz, 2)
-		lines = clampi(int(round(sz.y / maxf(1.0, f.get_height(fsz)))), 1, 2)
-		return maxf(40.0, lines * f.get_height(fsz) + 18.0)
+		var f: Font = font()
+		var avail: float = w - lead() - 2.0 - pad_l() - 10.0 - 28.0
+		var need: float = P.tw(f, text, fz())
+		lines = 1 if need <= avail else 2
+		_w = lead() + 2.0 + pad_l() + (need if lines == 1 else avail) + 10.0 + 28.0
+		return maxf(34.0 if compact else 40.0, 0.0 if lines == 1 else lines * f.get_height(fz()) + 18.0)
+	func natural_w() -> float: return _w
+	func _has_point(p: Vector2) -> bool: return Rect2(lead() - 24.0, 0.0, size.x - lead() + 24.0, size.y).has_point(p)
 	func _draw() -> void:
-		var bar: Color = TBHudParts.tk("info_bar")
-		if kind == "warn": bar = TBHudParts.tk("neg_bar")
-		elif kind == "report": bar = TBHudParts.tk("pos_bar")
-		var R: float = minf(21.0, size.y * 0.5)
-		var c := Vector2(R, size.y * 0.5)
-		TBHudParts.plate(self, Rect2(c.x, 3.0, size.x - c.x, size.y - 6.0), TBHudParts.tk("bar_2") if (hover or down) else TBHudParts.al(TBHudParts.tk("bar_0"), 0.96), TBHudParts.tk("brass_lt") if (hover or down) else TBHudParts.tk("rule"), 6.0)
-		TBAlertTicker.medallion(self, c, R, hover or down)
-		match kind:
-			"warn": TBHudParts.warn_mark(self, c, 16.0, bar, false)
-			"report": TBGlyph.draw(self, "scroll", c, 18.0, bar, 1.6)
-			_:
-				draw_circle(c, 8.0, bar)
-				var fi: Font = K.mono_b()
-				draw_string(fi, Vector2(c.x - TBHudParts.tw(fi, "i", 13) * 0.5, TBHudParts.base(fi, 13, c.y)), "i", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TBHudParts.tk("bar_0"))
-		var f: Font = P.body()
-		var fsz: int = TBHudParts.fs(14.0)
-		var x: float = 2.0 * R + 8.0
-		var w: float = size.x - x - 10.0
-		var y0: float = (size.y - lines * f.get_height(fsz)) * 0.5 + f.get_ascent(fsz)
-		draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, 2, TBHudParts.tk("cream"))
-		if has_focus(): TBHudParts.focus_ring(self, Rect2(Vector2.ZERO, size))
+		var kc: Color = TBAlertTicker.kind_color("bad" if kind == "warn" else ("dip" if kind == "report" else "info"))
+		var ic: String = "warn" if kind == "warn" else ("annals" if kind == "report" else "info")
+		var hot: bool = hover or down
+		var lx: float = lead()
+		TBAlertTicker.draw_plate(self, Rect2(lx, 0.0, size.x - lx, size.y), hot)
+		var c := Vector2(lx + 1.0, size.y * 0.5)
+		TBAlertTicker.medallion(self, c, med_s(), hot)
+		TBBzIcons.draw(self, ic, c, 14.0 if compact else 17.0, kc)
+		var f: Font = font()
+		var z: int = fz()
+		var x: float = lx + 1.0 + pad_l()
+		var w: float = size.x - x - 10.0 - 28.0
+		var cream: Color = TBTokens.c("cream")
+		if lines <= 1:
+			draw_string(f, Vector2(x, size.y * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5)), text, HORIZONTAL_ALIGNMENT_LEFT, w, z, cream)
+		else:
+			var y0: float = (size.y - lines * f.get_height(z)) * 0.5 + f.get_ascent(z)
+			draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, w, z, 2, cream)
+		TBBzIcons.draw(self, "close", Vector2(size.x - 10.0 - 1.0 - 9.0, size.y * 0.5), 10.0, TBTokens.c("cream") if hot else (TBTokens.c("ink_off") if not TBTokens.is_hc() else TBTokens.c("smoke")), 1.7)
+		if has_focus(): TBHudParts.focus_box(self, Rect2(lx, 0.0, size.x - lx, size.y).grow(3.0))
 
 # ---------------------------------------------------------------- feeding
 ## entries: TBAdvisor.ticker() output, each with "text" (one line) added by the caller; turn clears "dismissed for this turn"
@@ -245,6 +270,7 @@ func update(entries: Array, turn: int) -> void:
 
 func _add(e: Dictionary) -> void:
 	var rw := AlertRow.new()
+	rw.compact = compact
 	rw.set_entry(e, String(e["text"]))
 	rw.pressed.connect(_on_row.bind(rw))
 	rw.answered.connect(func(uid: int, c: int): answered.emit(uid, c))
@@ -259,7 +285,7 @@ func _add(e: Dictionary) -> void:
 	if not P.reduced_motion():
 		rw.ap = 0.0
 		var tw := rw.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		tw.tween_method(func(v: float): rw.ap = v; _layout(), 0.0, 1.0, 0.16)
+		tw.tween_method(func(v: float): rw.ap = v; _layout(), 0.0, 1.0, 0.3)          # .slide-in: .3 s from 24 to the right
 
 func _resolve(k: String) -> void:
 	var rw: AlertRow = rows[k]
@@ -288,7 +314,7 @@ func _on_row(rw: AlertRow) -> void:
 		return
 	var out: Dictionary = e.duplicate()
 	var ps: Array = e["ps"]
-	if ps.size() > 1:                                # a merged chip cycles through its provinces
+	if ps.size() > 1:                                # a merged notice cycles through its provinces
 		rw.cycle = (rw.cycle + 1) % ps.size()
 		out["p"] = int(ps[rw.cycle])
 	activated.emit(out)
@@ -302,7 +328,7 @@ func expand_offer(key: String) -> void:
 		var rw: AlertRow = rows[key]
 		rw.set_expanded(true); _layout()
 
-## one attention pulse on the chips of a class ("offer", "event"); static ring when motion is reduced
+## one attention pulse on the notices of a class ("offer", "event"); static ring when motion is reduced
 func pulse(cls: String) -> void:
 	for k in rows:
 		var rw: AlertRow = rows[k]
@@ -319,6 +345,7 @@ func pulse(cls: String) -> void:
 func show_info(text: String, kind: String, seconds: float) -> void:
 	if info == null:
 		info = InfoRow.new()
+		info.compact = compact
 		info.pressed.connect(func():
 			var was: String = info.kind
 			hide_info()
@@ -331,7 +358,7 @@ func show_info(text: String, kind: String, seconds: float) -> void:
 	info.ap = 1.0
 	if not P.reduced_motion():
 		info.modulate.a = 0.0
-		create_tween().tween_property(info, "modulate:a", 1.0, 0.16)
+		create_tween().tween_property(info, "modulate:a", 1.0, 0.3)
 	else:
 		info.modulate.a = 1.0
 	info.queue_redraw()
@@ -345,7 +372,7 @@ func hide_info() -> void:
 	_layout()
 
 # ---------------------------------------------------------------- layout
-## stack bounds in ticker-local coordinates (top-left origin)
+## stack bounds in ticker-local coordinates (top-left origin); notices are right-aligned in the row width (the demo: flex-end)
 func _layout() -> void:
 	var rh: float = row_h()
 	var y: float = 0.0
@@ -357,6 +384,7 @@ func _layout() -> void:
 	var pill_y: float = 0.0
 	for k in order:
 		var rw: AlertRow = rows[k]
+		rw.compact = compact
 		var fw: float = row_w if not (inline_pill and live_total > max_rows) else row_w - 60.0
 		rw.set_width(fw)
 		var fh: float = rw.full_h()
@@ -365,13 +393,14 @@ func _layout() -> void:
 		rw.visible = true
 		if not rw.done: shown += 1
 		var h: float = fh * rw.collapse
-		rw.size = Vector2(fw, fh)
-		rw.position = Vector2(-12.0 * (1.0 - rw.ap), y)
+		var nw: float = rw.natural_w()
+		rw.size = Vector2(nw, fh)
+		rw.position = Vector2(fw - nw + 24.0 * (1.0 - rw.ap), y)
 		rw.modulate.a = rw.ap * (1.0 if rw.collapse > 0.999 else rw.collapse)
 		rw.custom_minimum_size = Vector2.ZERO
 		if rw.collapse < 1.0: rw.size.y = maxf(1.0, h)
-		pill_x = rw.position.x + rw.size.x + GAP; pill_y = y
-		y += h + GAP
+		pill_x = rw.position.x + rw.size.x + gap; pill_y = y
+		y += h + gap
 	overflow = maxi(0, live_total - shown)
 	if overflow > 0:
 		if _pill == null:
@@ -382,21 +411,24 @@ func _layout() -> void:
 		if inline_pill and shown > 0:
 			_pill.position = Vector2(pill_x, pill_y); _pill.size = Vector2(pw, rh)
 		else:
-			_pill.position = Vector2(0, y); _pill.size = Vector2(pw, rh)
-			y += rh + GAP
+			_pill.position = Vector2(row_w - pw, y); _pill.size = Vector2(pw, rh)
+			y += rh + gap
 		_pill.queue_redraw()
 	elif _pill != null:
 		_pill.visible = false
 	if info != null:
+		info.compact = compact
 		var ih: float = info.measure(row_w)
-		info.position = Vector2(0, y); info.size = Vector2(row_w, ih)
-		y += ih + GAP
-	var h_total: float = maxf(0.0, y - GAP)
+		var iw: float = info.natural_w()
+		if not order.is_empty(): y += (12.0 if compact else 20.0) - gap                    # the demo's toast stack starts 114 below the notices' top (two notices are 94 high)
+		info.position = Vector2(row_w - iw, y); info.size = Vector2(iw, ih)
+		y += ih + gap
+	var h_total: float = maxf(0.0, y - gap)
 	custom_minimum_size = Vector2(row_w, h_total)
 	size = Vector2(row_w, h_total)
 	layout_changed.emit()
 
-## live chip count (chips that are not ticking off)
+## live notice count (notices that are not ticking off)
 func live_count() -> int:
 	var n: int = 0
 	for k in rows: if not rows[k].done: n += 1
