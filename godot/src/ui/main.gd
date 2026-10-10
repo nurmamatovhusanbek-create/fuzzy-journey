@@ -89,7 +89,7 @@ func _ready() -> void:
 	panel.nation_requested.connect(_open_nation)
 	hud.budget_pressed.connect(func(): _open_budget())
 	hud.save_pressed.connect(func(): _open_menu_hub("saves"))
-	hud.settings_pressed.connect(_open_settings)
+	hud.settings_pressed.connect(_open_game_menu)
 	hud.input_blocked_fn = func() -> bool: return mode != "game" or _overlay.get_child_count() > 0
 	hud.mp_waiting_fn = func() -> bool: return mp.in_game
 	hud.goto_province.connect(_goto_province)
@@ -356,6 +356,29 @@ func _open_menu_hub(tab: String = "") -> void:
 	TBModals.menu_hub(_overlay, ctx)
 
 func _open_settings() -> void: _open_menu_hub("settings")
+
+var _game_menu: TBGameMenu
+## the gear: the demo's popover (resume / save / load / settings / main menu / interface size); the full screens open from it
+func _open_game_menu() -> void:
+	if is_instance_valid(_game_menu):
+		_game_menu.queue_free(); _game_menu = null; return
+	var ver := str(ProjectSettings.get_setting("application/config/version", "")).strip_edges().trim_prefix("v")
+	var vs := get_viewport_rect().size
+	_game_menu = TBGameMenu.new()
+	_overlay.add_child(_game_menu)
+	_game_menu.setup(String(cfg.get("ui", "normal")), "build %s · %s %d×%d" % [ver if ver != "" else "10", "phone" if K.is_phone(self) else "desktop", int(vs.x), int(vs.y)])
+	_game_menu.picked.connect(_on_game_menu_pick)
+	_game_menu.size_picked.connect(func(k: String):
+		cfg["ui"] = k; _save_cfg(); _on_setting_changed("ui")
+		if is_instance_valid(_game_menu): _game_menu.queue_free(); _game_menu = null
+		_open_game_menu.call_deferred())
+
+func _on_game_menu_pick(id: String) -> void:
+	if is_instance_valid(_game_menu): _game_menu.queue_free()
+	_game_menu = null
+	if id == "save" or id == "load": _open_menu_hub("saves")
+	elif id == "settings": _open_menu_hub("settings")
+	elif id == "main": show_menu()
 
 ## kit setting (off | risky | all) -> HUD / card wording (never | smart | always)
 func _confirm_mode() -> String:
@@ -819,7 +842,7 @@ func _on_back() -> void:
 		"mp_lobby": show_menu()
 		"game":
 			if panel.visible: panel.back()
-			else: _open_menu_hub()
+			else: _open_game_menu()
 
 func _unhandled_key_input(e: InputEvent) -> void:
 	if e.is_action_pressed("ui_cancel") and not e.is_echo():

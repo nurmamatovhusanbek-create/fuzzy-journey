@@ -42,7 +42,7 @@ func _init() -> void:
 				main.g.log.append({"turn": 0, "kind": "era", "a": fr, "k": 1})
 				main._open_annals()
 			"goals": main._open_council("goals")
-			"menu": main._open_menu_hub("")
+			"menu": main._open_game_menu()
 			"event":
 				var au: int = main.g.nat_code.find("austria")
 				var pr := -1
