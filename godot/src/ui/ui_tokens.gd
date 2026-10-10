@@ -40,6 +40,12 @@ const GOOD := Color("6CC38F"); const BAD := Color("E06A5E"); const WARN := Color
 
 ## Bezel brass ramp (instrument rings), the gauge track, the map-text halo, hard shadow and the hold-to-confirm bar
 const BZ_HI := Color("F1DB9C"); const BZ_BRASS := Color("C9A24B"); const BZ_LO := Color("7F6A33"); const BZ_TRACK := Color("2A2318")
+## Bezel demo literals used by the HUD chrome (docs/ui_variants/src: bezel_kit.js, b_demo.html), named so src/ui carries no raw colour
+const BZ_TICK := Color("8F7637"); const BZ_SHADOW := Color("050403"); const BZ_FACE := Color("0F0C09"); const BZ_BAD := Color("D2603F"); const BZ_BAD_TXT := Color("EE8A68")
+const BZ_DIM2 := Color("8D826A"); const BZ_RAIL_ICON := Color("CDBF9A"); const BZ_RULER := Color("4D4025"); const BZ_NOTICE := Color("15110D"); const BZ_TUNER := Color("0E0C09")
+const BZ_PL_A := Color("1D1812"); const BZ_PL_B := Color("13100C"); const BZ_G_A := Color("EBCF85"); const BZ_G_B := Color("B38F3E"); const BZ_G_C := Color("6F5A27")
+const BZ_SEA := Color("090C11"); const BZ_OCEAN := Color("0B1522"); const BZ_RIM := Color("5E86C4"); const BZ_GRAT := Color("C9BFA0"); const BZ_HALO := Color("05070A")
+const BZ_GOOD := Color("69B3A2"); const BZ_INFO := Color("7FA8E8"); const BZ_NOTICE_BAD := Color("E0795A"); const BZ_IVORY := Color("EFE6CF"); const BZ_DIM := Color("A89C80")
 const HALO := Color(0.02, 0.03, 0.05, 0.85); const DROP := Color(0.0, 0.0, 0.0, 0.45); const HOLD_BAR := Color(1.0, 1.0, 1.0, 0.85)
 
 static func sig() -> int: return mode * 1000 + ver + (500 if legacy else 0)
