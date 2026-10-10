@@ -1,0 +1,142 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Terra Bellum — Bezel demo (build 11)</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+
+/* ===== buttons: notched plate (B), tight ===== */
+.bt{--lo:#7F6A33;--fill:#1a150f;--tx:#E5C77A;position:relative;isolation:isolate;height:32px;padding:0 14px;gap:7px;font:700 11.5px/1 Cinzel;letter-spacing:.16em;text-transform:uppercase;color:var(--tx);background:var(--lo);box-shadow:none;border-radius:0;
+ clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);transition:color .15s}
+.bt::before{content:'';position:absolute;inset:1px;z-index:-2;background:var(--fill);clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px);transition:background .15s,filter .15s}
+.bt .fill{z-index:-1}
+.bt:hover{box-shadow:none;color:#fff;--lo:#C9A24B}.bt:hover::before{background:#2e2519}
+.bt:active{transform:translateY(1px)}.bt:active::before{filter:brightness(.85)}
+.bt.pri{--tx:#1b1408;--lo:#B38F3E;background:var(--lo)}.bt.pri::before{background:linear-gradient(180deg,#EBCF85,#B38F3E)}
+.bt.pri:hover{color:#1b1408;--lo:#F1DB9C}.bt.pri:hover::before{background:linear-gradient(180deg,#F5DC96,#C49A44)}
+.bt.dng{--tx:#fff0e4;--lo:#a8442b;background:var(--lo)}.bt.dng::before{background:linear-gradient(180deg,#e0724a,#a8442b)}
+.bt.dng:hover{color:#fff;--lo:#ff9a78}.bt.dng:hover::before{background:linear-gradient(180deg,#ec8058,#b44f33)}
+.bt.sm{height:28px;padding:0 11px;font-size:10.5px;gap:6px}
+.bt.off{opacity:.4;filter:saturate(.4)}
+.bt:focus-visible{outline:2px solid #F1DB9C;outline-offset:3px}
+.bt::after{content:'';position:absolute;inset:-5px;z-index:-3}
+.phone .bt{height:34px;padding:0 12px;font-size:11.5px}.phone .bt.sm{height:30px}
+.foot{padding:10px 18px 14px!important;gap:10px!important}
+/* notices: instrument medallion on notched plate (A) */
+.tz{position:relative;cursor:pointer;color:var(--ivory);filter:drop-shadow(0 5px 7px rgba(0,0,0,.55));margin-left:22px;--k:var(--info)}
+.tz.bad{--k:#E0795A}.tz.dip{--k:#E5C77A}.tz.info{--k:#7FA8E8}.tz.good{--k:#69B3A2}
+.tz .pl{clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);background:#7F6A33;padding:1px}
+.tz .in{clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);background:#15110d;display:flex;align-items:center;height:38px;padding:0 10px 0 34px;gap:10px;font:500 15.5px/1.1 Alegreya;white-space:nowrap}
+.tz:hover .pl{background:#C9A24B}
+.tz .x{color:var(--dim2);display:grid;place-items:center;width:18px;height:18px;flex:none}.tz:hover .x{color:#fff}
+.tz .med{position:absolute;left:-22px;top:50%;margin-top:-23px;width:46px;height:46px;z-index:2}
+.tz .mi{position:absolute;left:-22px;top:50%;margin-top:-23px;width:46px;height:46px;display:grid;place-items:center;color:var(--k);z-index:3}
+#toasts,#alerts{gap:14px}.phone #toasts,.phone #alerts{gap:10px!important}
+.phone .tz{margin-left:18px}.phone .tz .in{height:32px;padding-left:28px;font-size:13px}
+.phone .tz .med,.phone .tz .mi{left:-18px;width:38px;height:38px;margin-top:-19px}
+.bt .sb{opacity:.6;font:600 12px Alegreya;letter-spacing:0}
+.negov{position:absolute;inset:0;z-index:30;display:grid;place-items:center;background:rgba(5,4,3,.72);animation:fi .2s}@keyframes fi{from{opacity:0}to{opacity:1}}
+.negc{padding:16px 30px 14px;text-align:center;min-width:250px}.phone .negc{padding:10px 22px 8px;min-width:210px}
+.stamp{font:700 20px Cinzel;letter-spacing:.24em;text-transform:uppercase;margin-top:8px;padding:3px 0}.stamp.hit{animation:stp .38s cubic-bezier(.2,1.5,.4,1)}@keyframes stp{from{transform:scale(2.1) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+.dl{font:700 19px Alegreya;animation:rise 1.4s ease-out forwards;paint-order:stroke;stroke:#06080c;stroke-width:3px}@keyframes rise{from{opacity:0;transform:translateY(10px)}20%{opacity:1}to{opacity:0;transform:translateY(-14px)}}
+.flt{position:fixed;z-index:80;font:700 22px Alegreya;pointer-events:none;text-shadow:0 2px 5px #000;animation:flt 1.3s ease-out forwards}@keyframes flt{from{opacity:0;transform:translate(-50%,6px)}15%{opacity:1}to{opacity:0;transform:translate(-50%,-26px)}}
+.g.pulse{animation:pls .5s}@keyframes pls{40%{transform:scale(1.13)}}
+.rt .pc{stroke-dasharray:1;animation:none}.rt.fresh .pc{animation:drw 1.4s ease-out}@keyframes drw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.rt.fresh .tc{animation:fi 1.2s}
+#stage{touch-action:none}
+.fxl{margin:2px 0}
+.x2{display:flex;align-items:baseline;padding:2px 0}
+.x2 em{font:italic 400 16px Alegreya;color:var(--dim);font-style:normal}
+.x2 s{flex:1;border-bottom:2px dotted #4a3d22;margin:0 8px;transform:translateY(-4px);text-decoration:none;min-width:12px}
+.x2 b{font:700 18px Alegreya;color:var(--c)}
+.good{--c:#69B3A2}.bad{--c:#e0795a}.zero{--c:#7d735c}.info{--c:#7FA8E8}
+.phone .x2 em{font-size:14.5px}.phone .x2 b{font-size:16px}
+.mk{position:relative;display:inline-flex;align-items:baseline;gap:6px;padding-left:15px;font:italic 400 15.5px Alegreya;color:var(--ivory);white-space:nowrap}
+.mk i{position:absolute;left:0;top:50%;width:7px;height:7px;transform:translateY(-50%) rotate(45deg);background:var(--c)}
+.mk.zero i{background:none;box-shadow:inset 0 0 0 1.5px var(--c)}
+.chip{border-radius:0!important;background:none!important;box-shadow:none!important;padding:0 0 0 15px!important;position:relative;color:var(--ivory)!important;font:italic 400 15.5px Alegreya!important;height:auto!important}
+.chip::before{content:'';position:absolute;left:0;top:50%;width:7px;height:7px;transform:translateY(-50%) rotate(45deg);background:var(--bad)}
+.chip.g::before{background:var(--good)}.chip.i::before{background:var(--info)}.chip.n::before{background:none;box-shadow:inset 0 0 0 1.5px var(--dim)}
+
+button{padding:0}button svg{display:block}
+.ctr{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.rail-b{display:flex;align-items:center;gap:14px;cursor:pointer;border-radius:30px;padding:0 16px 0 0;outline:none;white-space:nowrap}
+.rail-b .rb-c{position:relative;flex:none}
+.rail-b .rb-c>svg{position:absolute;inset:0}
+.rail-b:hover,.rail-b:focus-visible{background:linear-gradient(90deg,rgba(201,162,75,.0),rgba(201,162,75,.12))}
+.rail-b:hover .lbl,.rail-b:focus-visible .lbl{color:#fff!important}
+.rail-b:hover .rb-c>svg,.rail-b:focus-visible .rb-c>svg{filter:drop-shadow(0 0 7px rgba(229,199,122,.5))}
+button:focus-visible,.row:focus-visible,.bt:focus-visible{outline:2px solid var(--hi);outline-offset:3px;border-radius:4px}
+
+svg#map{touch-action:none;cursor:grab}svg#map.drag{cursor:grabbing}
+svg#map path[data-id]{transition:filter .15s}svg#map path[data-id]:hover{filter:brightness(1.28)}
+.rot{position:fixed;inset:0;background:#0a0d12;display:none;place-items:center;text-align:center;z-index:99;font:600 15px Cinzel;letter-spacing:.2em;color:var(--brass);text-transform:uppercase}
+.mini{font-size:12.5px}
+.t2{font:500 12px Cinzel;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+table.tbl{border-collapse:collapse;width:100%;margin-top:6px}table.tbl td{padding:2px 0;font:400 14.5px Alegreya;color:var(--dim)}table.tbl td:last-child{text-align:right;font-weight:700;color:var(--ivory);padding-left:18px}table.tbl tr.sum td{border-top:1px solid #4a3f28;color:var(--ivory)}
+.pos{color:var(--good)!important}.neg{color:#ee8a68!important}
+#banner{position:absolute;left:0;right:0;top:34%;text-align:center;pointer-events:none;opacity:0}
+#banner.on{animation:bn 2.2s}@keyframes bn{0%{opacity:0;transform:translateY(10px)}15%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+#banner div{display:inline-block;padding:14px 46px;background:linear-gradient(90deg,transparent,rgba(10,8,5,.9) 20%,rgba(10,8,5,.9) 80%,transparent);font:700 30px Cinzel;letter-spacing:.3em;color:var(--ivory)}#banner small{display:block;font:italic 18px Alegreya;letter-spacing:0;color:var(--dim);margin-top:2px}
+.phone .hd{padding:10px 14px 8px}.phone .ring{width:36px;height:36px}.phone .body{padding:10px 14px 12px}.phone .hd .t{font-size:17px}
+.phone .row{padding:8px 10px}
+/* parity sheet: forced states */
+.bt.hv{color:#fff;--lo:#C9A24B}.bt.hv::before{background:#2e2519}
+.bt.pri.hv{color:#1b1408;--lo:#F1DB9C}.bt.pri.hv::before{background:linear-gradient(180deg,#F5DC96,#C49A44)}
+.bt.dng.hv{color:#fff;--lo:#ff9a78}.bt.dng.hv::before{background:linear-gradient(180deg,#ec8058,#b44f33)}
+.bt.ac{transform:translateY(1px)}.bt.ac::before{filter:brightness(.85)}
+.stp.hv{box-shadow:0 0 0 1.5px var(--hi);color:#fff}
+.slr.hv .thumb{box-shadow:0 0 0 1.5px #F1DB9C,0 0 0 2.5px rgba(5,4,3,.4),0 0 10px rgba(229,199,122,.55),0 3px 6px rgba(0,0,0,.6)}
+.row.hv{background:rgba(201,162,75,.08)}
+.xbtn.hv{color:#fff;box-shadow:0 0 0 1.5px var(--hi)}
+.tz.hv .pl{background:#C9A24B}.tz.hv .x{color:#fff}
+html,body{overflow:hidden;background:#0A0D12}
+#cv{position:absolute;left:0;top:0;width:1280px;height:1180px;background:#0A0D12}
+.sp{position:absolute}
+</style></head><body><div id="cv"></div>
+<script>
+/*MAPDATA*/
+/*KIT*/
+document.body.insertAdjacentHTML('afterbegin',DEFS);
+const cv=document.getElementById('cv');const PH=/phone/.test(location.search);if(PH)cv.classList.add('phone');
+const S_=(x,y,w,html,cls='')=>cv.insertAdjacentHTML('beforeend',`<div class="sp ${cls}" style="left:${x}px;top:${y}px;${w?`width:${w}px`:''}">${html}</div>`);
+const fxRow=([t,n,s])=>`<div class="x2 ${s>0?'good':s<0?'bad':'zero'}"><em>${t}</em><s></s><b>${n||(s>0?'✓':s<0?'✕':'·')}</b></div>`;
+const fxl=(arr,cols)=>`<div class="fxl" style="${cols?`display:grid;grid-template-columns:repeat(${cols},1fr);gap:0 26px`:''}">${arr.map(fxRow).join('')}</div>`;
+const slide=(v,l,ic,eff,zone,hv)=>`<div class="srow"><div style="display:flex;align-items:center;gap:10px"><div class="ring" style="width:${PH?32:38}px;height:${PH?32:38}px">${ico(ic,PH?16:19)}</div><div style="flex:1;min-width:0"><div class="cz" style="font:700 ${PH?11.5:12.5}px Cinzel;letter-spacing:.14em">${l}</div><div class="eff" style="font:italic ${PH?13:15}px Alegreya;color:var(--dim)">${eff}</div></div><div class="val num" style="font:700 ${PH?20:25}px Alegreya;min-width:56px;text-align:right">${v}%</div></div>
+ <div style="display:flex;align-items:center;gap:8px;margin-top:6px"><button class="stp ${hv?'hv':''}">−</button><div class="slr ${hv?'hv':''}"><div class="trk">${zone?'<i class="zone" style="left:50%;right:0"></i>':''}<i class="fill" style="width:${v}%"></i></div><div class="tks"></div><div class="thumb" style="left:${v}%"></div>${PH?'':'<div class="nums"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>'}</div><button class="stp">+</button></div></div>`;
+function panel(w,title,sub,icon,body,foot){return plate(`<div style="display:flex;flex-direction:column"><div class="hd"><div class="ring">${ico(icon,PH?18:22)}</div><div class="grow"><div class="t">${title}</div><div class="s">${sub}</div></div><button class="xbtn">${ico('close',15)}</button></div><div class="rule"><i></i></div><div class="body">${body}</div>${foot?`<div class="foot">${foot}</div>`:''}</div>`,'','',12)}
+// 1 budget-like drawer
+S_(24,24,560,panel(560,'Budget','Net income +629 gold per turn','treasury',
+ `<div style="display:flex;align-items:center;gap:18px;margin-bottom:12px"><div style="width:112px;flex:none">${gaugeSvg({r:40,v:'+629',d:'PER TURN',f:.52,col:'#69B3A2'})}</div><div style="flex:1"><div class="cap">NET INCOME</div><div style="margin-top:6px">${fxl([['Taxes','+640',1],['Trade','+180',1],['Provinces','0',0],['Upkeep','−62',-1],['Spending','−67',-1]])}</div></div></div>
+ <div style="display:grid;gap:14px">${slide(50,'Tax','tax','Tolerable',1)}${slide(20,'Public goods','happy','+6 happiness / turn',0,1)}${slide(15,'Research','research','6.6 research points / turn')}</div>`,
+ '<button class="bt">Revert</button><button class="bt pri">Done</button>'));
+// 2 buttons
+const BTN=(c,l,extra='')=>`<button class="bt ${c}" ${extra}>${l}</button>`;
+S_(640,24,0,`<div style="display:flex;gap:14px;align-items:center">${BTN('','Secondary')}${BTN('pri','Primary')}${BTN('dng','Danger')}${BTN('sm','Small')}${BTN('off','Disabled')}</div>`);
+S_(640,76,0,`<div style="display:flex;gap:14px;align-items:center">${BTN('hv','Hover')}${BTN('pri hv','Hover')}${BTN('dng hv','Hover')}${BTN('ac','Active')}${BTN('pri off','Disabled')}</div>`);
+S_(640,128,0,`<div style="display:flex;gap:14px;align-items:center"><button class="bt">${ico('recruit',16)}With icon<span class="sb">8 g</span></button><button class="bt dng">${ico('attack',16)}Attack<kbd>↵</kbd></button><button class="bt sm">${ico('close',12)}Sm</button></div>`);
+// 3 round things
+S_(640,184,0,`<div style="display:flex;gap:18px;align-items:center"><div class="ring">${ico('annals',22)}</div><button class="xbtn">${ico('close',15)}</button><button class="xbtn hv">${ico('close',15)}</button><button class="stp">−</button><button class="stp hv">+</button><div class="ring" style="width:38px;height:38px">${ico('war',19)}</div><div class="ring" style="width:36px;height:36px">${ico('pact',17)}</div></div>`);
+// 4 marks and leaders
+S_(640,250,260,`<div style="display:flex;flex-direction:column;gap:6px"><span class="chip g">+8% tax</span><span class="chip b">−3 happiness</span><span class="chip i">2 envoys</span><span class="chip n">Neutral</span><div style="display:flex;gap:14px;margin-top:4px"><span class="mk good"><i></i>Good</span><span class="mk bad"><i></i>Bad</span><span class="mk info"><i></i>Info</span><span class="mk zero"><i></i>Zero</span></div></div>`);
+S_(930,250,320,fxl([['Conscription law','+8',1],['Civil code','−3',-1],['Continental system','12%',1],['Truce','ends',0],['Relations','−20',-1]]));
+// 5 rows
+S_(640,404,300,`<div class="row"><div class="ring" style="width:34px;height:34px">${ico('war',17)}</div>Normal row</div><div class="row hv"><div class="ring" style="width:34px;height:34px">${ico('pact',17)}</div>Hover row</div><div class="row on"><div class="ring" style="width:34px;height:34px">${ico('trade',17)}</div>Selected row</div>`);
+// 6 tabs
+S_(960,404,300,`<div class="tabs"><a class="on">All</a><a>War</a><a>Diplomacy</a><a>Economy</a></div>`);
+// 7 table
+S_(960,462,300,`<table class="tbl"><tr><td>Taxes</td><td>+640</td></tr><tr><td>Trade</td><td>+180</td></tr><tr class="sum"><td>Net</td><td>+758</td></tr></table>`);
+// 8 tooltip
+S_(640,572,0,plate(`<div style="padding:12px 15px 11px;min-width:190px"><div class="tt2" style="font:700 12.5px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:var(--hi)">Treasury</div><div style="font:400 15.5px/1.3 Alegreya;margin-top:5px;color:var(--dim)">Gold in the treasury. Next turn <b class="pos">+731</b>.</div><div style="font:400 10.5px 'JetBrains Mono';color:#8d826a;margin-top:7px">B</div></div>`,'','',6));
+// 9 notices
+const notice=(kind,ic,txt,hv)=>`<div class="tz ${kind} ${hv?'hv':''}"><svg class="med" viewBox="0 0 46 46"><circle cx="23" cy="23" r="24" fill="#050403" opacity=".45"/><circle cx="23" cy="23" r="21" fill="url(#gBrass)"/><circle cx="23" cy="23" r="17" fill="#0f0c09"/><circle cx="23" cy="23" r="16.4" fill="none" stroke="#E5C77A" stroke-width=".6"/>${tickMarks(23,23,16,24,2.4,6,'#C9A24B',.7)}</svg><span class="mi">${ico(ic,17)}</span><div class="pl"><div class="in"><span>${txt}</span><span class="x">${ico('close',10)}</span></div></div></div>`;
+S_(940,572,330,`<div style="display:flex;flex-direction:column;gap:14px">${notice('bad','warn','Austria masses troops on your border')}${notice('dip','envoys','Spain proposes a pact',1)}${notice('good','check','Turn 3 ended: +629 gold')}${notice('info','info','Spanish envoys arrive in Paris.')}</div>`);
+// 10 menu list
+S_(640,730,0,plate(`<div style="padding:6px;width:248px">${[['check','Resume','Esc'],['save','Save game','S'],['settings','Settings','']].map(([i,l,k],n)=>`<div class="row ${n==1?'hv':''}" style="padding:10px 12px"><span style="color:var(--hi)">${ico(i,18)}</span><span class="cz" style="font:600 12.5px Cinzel;letter-spacing:.14em;flex:1">${l}</span><span style="font:400 10.5px 'JetBrains Mono';color:var(--dim2)">${k}</span></div>`).join('')}</div>`,'','',8));
+// 11 gauges
+S_(940,800,0,`<div style="display:flex;gap:10px">${gaugeSvg({r:34,v:'172',d:'',f:.62,col:'#C9A24B'})}${gaugeSvg({r:34,v:'87%',d:'',f:.87,col:'#69B3A2'})}</div>`);
+// 12 scrim + modal
+S_(24,700,0,`<div style="position:relative;width:580px;height:420px;background:#2a3a4a;overflow:hidden"><div style="position:absolute;inset:0;background:rgba(3,5,8,.62)"></div><div style="position:absolute;left:60px;top:40px;width:460px">${panel(460,'Declare war?','','war',`<div style="font:400 17px/1.4 Alegreya;color:var(--dim)">Casus belli: border dispute. It costs <b style="color:var(--ivory)">3 envoys</b>, drops your standing with every neutral court and cannot be undone.</div><div style="margin-top:12px">${fxl([['Envoys','−3',-1],['Relations (neutral courts)','−20',-1],['Truce','ends',0]])}</div>`,'<button class="bt">Cancel</button><button class="bt dng">'+ico('war',16)+'Hold to declare war</button>')}</div></div>`);
+const F=(l,v,cls='')=>`<div style="display:flex;align-items:baseline;padding:4px 0;border-bottom:1px dotted #3a2f1d"><span style="font:400 16px Alegreya;color:var(--dim)">${l}</span><span style="flex:1"></span><b class="num ${cls}" style="font:700 17px Alegreya">${v}</b></div>`;
+S_(640,900,300,`${F('Army',35)}${F('Defence',0)}${F('Terrain','Plains')}${F('Garrison upkeep','−4 gold','neg')}`);
+window.ready=true;
+</script></body></html>

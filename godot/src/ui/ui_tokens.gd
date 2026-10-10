@@ -51,6 +51,21 @@ const BZ_SEA := Color("090C11"); const BZ_OCEAN := Color("0B1522"); const BZ_RIM
 const BZ_GOOD := Color("69B3A2"); const BZ_INFO := Color("7FA8E8"); const BZ_NOTICE_BAD := Color("E0795A"); const BZ_IVORY := Color("EFE6CF"); const BZ_DIM := Color("A89C80")
 const HALO := Color(0.02, 0.03, 0.05, 0.85); const DROP := Color(0.0, 0.0, 0.0, 0.45); const HOLD_BAR := Color(1.0, 1.0, 1.0, 0.85)
 
+## ---- Bezel kit literals of the demo (docs/ui_variants/src/bezel.css + b_demo.html): every colour the kit draws that has no semantic token above.
+## plate: 1 px lo hairline, vertical gradient, 3 px dark inset and a faint brass line at 4 px; buttons are notched plates (lo rim + fill)
+const BZ_PLATE_TOP := Color("1D1812"); const BZ_PLATE_BOT := Color("13100C"); const BZ_PLATE_LINE := Color(0.788, 0.635, 0.294, 0.22)
+const BZ_BTN_FILL := Color("1A150F"); const BZ_BTN_FILL_HOT := Color("2E2519")
+const BZ_PRI_A := Color("EBCF85"); const BZ_PRI_B := Color("B38F3E"); const BZ_PRI_HA := Color("F5DC96"); const BZ_PRI_HB := Color("C49A44"); const BZ_PRI_TX := Color("1B1408")
+const BZ_DNG_A := Color("E0724A"); const BZ_DNG_B := Color("A8442B"); const BZ_DNG_HA := Color("EC8058"); const BZ_DNG_HB := Color("B44F33")
+const BZ_DNG_LO_HOT := Color("FF9A78"); const BZ_DNG_TX := Color("FFF0E4"); const BZ_WHITE := Color("FFFFFF")
+## round instruments: face gradient, outer shade; chips and rows: engraved well, row hover / selected washes, ink-wells (sliders)
+const BZ_FACE_A := Color("2A2218"); const BZ_FACE_B := Color("0F0C09"); const BZ_SHADE := Color(0.0196, 0.0157, 0.0118, 0.35)
+const BZ_WELL := Color("100D0A"); const BZ_WELL_LINE := Color("3A2F1D"); const BZ_TRACK_BG := Color("0C0A07"); const BZ_TRACK_LINE := Color("4A3F28")
+const BZ_ROW_HOT := Color(0.788, 0.635, 0.294, 0.08); const BZ_ROW_ON := Color(0.788, 0.635, 0.294, 0.15)
+const BZ_SCRIM := Color(0.0118, 0.0196, 0.0314, 0.62); const BZ_FOOT_LINE := Color("33291A"); const BZ_DOTS := Color("4A3D22")
+const BZ_SLIDER_FILL_A := Color("E5C77A"); const BZ_SLIDER_FILL_B := Color("A8842F"); const BZ_ZONE := Color(0.824, 0.376, 0.247, 0.45)
+const BZ_TIP_DIM := Color("8D826A"); const BZ_BAD := Color("D2603F"); const BZ_SCROLL := Color("5A4A26"); const BZ_NOTICE_FILL := Color("15110D"); const BZ_BRASS_Z := Color("6F5A27"); const BZ_NEG_SOFT := Color("EE8A68"); const BZ_SHADE_40 := Color(0.0196, 0.0157, 0.0118, 0.4)
+
 static func sig() -> int: return mode * 1000 + ver + (500 if legacy else 0)
 
 ## --nation-accent: the player's colour converted to OKLab-HSL, lightness raised until it reaches 4.5:1 against ink-800

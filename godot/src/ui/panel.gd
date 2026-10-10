@@ -38,6 +38,13 @@ class Handle extends RefCounted:
 	var head: Control
 	var back_btn: Control
 	var title_label: Label
+	var sub_label: Label                 # the italic subtitle under the title (bezel header)
+	var bz_w := 0.0                      # bezel: card width in units (the demo's per-screen widths)
+	var bz_h := 0.0                      # bezel: maximum card height in units (0 = the demo's panel height)
+	var bz_pos := Vector2(-1, -1)        # bezel: fixed top-left (tests, specimen sheets); (-1, -1) = docked by `dock`
+	var dock := "left"                   # bezel: left (next to the rail) | right | center
+	var bz := false                      # drawn as the demo's plate
+	var phone := false                   # the demo's phone metrics (a landscape viewport shorter than 560 units)
 	var chip_slot: HBoxContainer
 	var action_slot: HBoxContainer
 	var tabs_slot: PanelContainer
@@ -62,6 +69,8 @@ class Handle extends RefCounted:
 		if is_instance_valid(root) and not root.is_queued_for_deletion(): root.queue_free()
 	func set_title(t: String) -> void:
 		if title_label != null: title_label.text = t; title_label.tooltip_text = t
+	func set_sub(t: String) -> void:
+		if sub_label != null: sub_label.text = t; sub_label.visible = t != ""
 	func set_chip(c: Control) -> void:
 		if narrow and K.text_scale >= 1.4:               # no room for a context chip in the header at large text
 			if c != null: c.queue_free()
@@ -73,7 +82,8 @@ class Handle extends RefCounted:
 		tabs_ctl = c
 		var sc := ScrollContainer.new()               # overflowing tabs scroll sideways (no scrollbar), the active one is kept in view
 		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER; sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		sc.follow_focus = true; sc.custom_minimum_size = Vector2(0, TBKit.touch())
+		sc.follow_focus = true; sc.custom_minimum_size = Vector2(0, 0 if bz else TBKit.touch())
+		if bz and body_wrap != null: body_wrap.add_theme_constant_override("margin_top", 12)
 		sc.add_child(c); c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if short and head_row != null:                 # short screens: the tabs live in the header row (title, tabs, chip, actions)
 			sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -101,6 +111,18 @@ class Handle extends RefCounted:
 		if footer.vertical:                               # narrow + large text: stacked, the primary first (top)
 			for b2 in [primary, secondary]:
 				if b2 != null: (b2 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL; footer.add_child(b2)
+			return
+		if bz:                                            # `.foot{justify-content:space-between}`: buttons keep their own width
+			var room: float = minf(bz_w if bz_w > 0.0 else 460.0, TBPanel._vs(self).x - 32.0) - 36.0 - 10.0
+			var need := 0.0
+			for b0 in [secondary, primary]: need += (b0 as Control).custom_minimum_size.x if b0 != null else 0.0
+			if need > room:                               # a narrow screen: the labels wrap instead of pushing the card off the screen
+				for b1 in [secondary, primary]:
+					if b1 is TBBz.Btn and not (b1 as TBBz.Btn).legacy: (b1 as TBBz.Btn).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; (b1 as TBBz.Btn)._go_native(); (b1 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if secondary != null: footer.add_child(secondary)
+			var sp0 := Control.new(); sp0.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sp0.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			footer.add_child(sp0)
+			if primary != null: footer.add_child(primary)
 			return
 		if secondary != null: footer.add_child(secondary)
 		var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sp.size_flags_stretch_ratio = 0.35; sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -233,12 +255,18 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	h.wide = bool(opts.get("wide", false))
 	match kind:
 		Kind.DIALOG: h.form = "dialog"
-		Kind.DRAWER: h.form = "sheet" if portrait else ("page" if short else "drawer")
-		_: h.form = "page" if (portrait or short) else "panel"
+		Kind.DRAWER: h.form = "sheet" if portrait else ("page" if (short and not TBFrame.bezel) else "drawer")      # the demo keeps floating windows on a phone in landscape
+		_: h.form = "page" if (portrait or (short and not TBFrame.bezel)) else "panel"
 	h.modal = kind != Kind.DRAWER or h.form == "page"
 	h.short = short and h.form in ["page", "dialog"]
 	h.narrow = vp0.x < 480.0
 	h.pad = 16 if portrait else (12 if short else 24)
+	h.bz = TBFrame.bezel
+	h.bz_w = float(opts.get("w", 0.0)); h.bz_h = float(opts.get("h", 0.0))
+	h.dock = String(opts.get("dock", "center" if kind == Kind.DIALOG else "left"))
+	h.bz_pos = opts.get("pos", Vector2(-1, -1))
+	h.phone = h.bz and K.is_phone(parent)
+	if h.bz: h.pad = 14 if h.phone else 22
 	# at most one panel: a new drawer / panel replaces the old one (dialogs may stack above a panel)
 	if kind != Kind.DIALOG:
 		for ch in parent.get_children():
@@ -253,7 +281,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	root.set_meta("tb_modal", true)
 	root.z_index = TBTokens.Z_MODAL                  # above every HUD tooltip / popover (they sit at 60-70)
 	h.root = root
-	if h.modal:
+	if h.modal and bool(opts.get("scrim", true)):
 		var bd := ColorRect.new()
 		bd.set_anchors_preset(Control.PRESET_FULL_RECT)
 		bd.color = TBTokens.c("table") if bool(opts.get("opaque", false)) else TBTokens.ca("table", 0.55 if h.form == "dialog" else 0.40)
@@ -268,7 +296,9 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	holder.add_child(card); h.card = card
 	var pad := h.pad
-	if h.hero:
+	if h.bz and h.form in ["dialog", "drawer", "panel"]:
+		card.add_theme_stylebox_override("panel", TBBz.plate_box(12.0, true))
+	elif h.hero:
 		card.add_theme_stylebox_override("panel", TBFrame.hero(pad + 4, pad))
 	elif h.form == "page":
 		card.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), Color.TRANSPARENT, 0, 0, 0, 0, false, 0))
@@ -278,7 +308,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 		card.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 2 if h.modal else 1, 0, 0))
 	var outer := K.vbox(0)
 	card.add_child(outer)
-	var padded: bool = not h.hero and bool(opts.get("padded", true))
+	var padded: bool = (not h.hero or h.bz) and bool(opts.get("padded", true))
 	# ---- sheet handle
 	if h.form == "sheet":
 		var hd := Control.new(); hd.custom_minimum_size = Vector2(0, 24); hd.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -306,7 +336,9 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 			elif e.is_action_pressed("ui_up"): _snap(h, SNAP_HIGH))
 		outer.add_child(hd); h.handle_ctl = hd
 	# ---- header
-	if title_text != "" and not h.hero:
+	if h.bz and title_text != "" and h.form != "sheet":
+		_bz_header(h, outer, title_text, glyph_id, opts, vp0)
+	elif title_text != "" and not h.hero:
 		var hm := MarginContainer.new()
 		hm.add_theme_constant_override("margin_left", 12 if h.form == "page" else 16); hm.add_theme_constant_override("margin_right", 6)
 		var hb := K.hbox(10 if not h.short else 8); hb.custom_minimum_size = Vector2(0, K.touch() + (4 if not h.short else 0))
@@ -335,7 +367,11 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 		outer.add_child(K.header_rule())
 	# ---- tab row (filled by set_tabs)
 	var tp := PanelContainer.new()
-	tp.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_1"), Color.TRANSPARENT, 0, 0, 8, 0, false, 0))
+	if h.bz:                                               # the demo's `.tabs` sit in the body: no band, the body's own padding above
+		var tsb := StyleBoxEmpty.new(); tsb.content_margin_left = float(pad); tsb.content_margin_right = float(pad); tsb.content_margin_top = 10.0 if h.phone else 16.0; tsb.content_margin_bottom = 0.0
+		tp.add_theme_stylebox_override("panel", tsb)
+	else:
+		tp.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_1"), Color.TRANSPARENT, 0, 0, 8, 0, false, 0))
 	tp.visible = false
 	outer.add_child(tp); h.tabs_slot = tp
 	# ---- body
@@ -343,6 +379,9 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	var side: int = pad if padded else 0
 	wrap.add_theme_constant_override("margin_left", side); wrap.add_theme_constant_override("margin_right", side)
 	wrap.add_theme_constant_override("margin_top", (12 if not h.short else 6) if padded else 0); wrap.add_theme_constant_override("margin_bottom", (12 if not h.short else 6) if padded else 0)
+	if h.bz and padded:                                    # `.body{padding:16px 22px 20px}` (phone 10 14 12)
+		var ph0: bool = h.phone
+		wrap.add_theme_constant_override("margin_top", 10 if ph0 else 16); wrap.add_theme_constant_override("margin_bottom", 12 if ph0 else 20)
 	var body := K.vbox(10 if not h.short else 8)
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrap.add_child(body)
@@ -382,12 +421,17 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	# ---- footer (pinned; hidden while empty)
 	var fw := VBoxContainer.new(); fw.add_theme_constant_override("separation", 0); fw.visible = false
 	var frule := ColorRect.new(); frule.color = TBTokens.c("hair") if not TBTokens.is_hc() else TBTokens.c("rule")
+	if h.bz and not TBTokens.is_hc(): frule.color = TBTokens.BZ_FOOT_LINE
 	frule.custom_minimum_size = Vector2(0, 1); frule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fw.add_child(frule)
 	var fm := MarginContainer.new()
 	fm.add_theme_constant_override("margin_left", side if padded else pad); fm.add_theme_constant_override("margin_right", side if padded else pad)
 	fm.add_theme_constant_override("margin_top", 8 if not h.short else 4); fm.add_theme_constant_override("margin_bottom", 12 if not h.short else 4)
-	var foot := BoxContainer.new(); foot.add_theme_constant_override("separation", 8)
+	if h.bz:                                               # `.foot{padding:10px 18px 14px;gap:10px}` (phone: tighter)
+		var ph1: bool = h.phone
+		fm.add_theme_constant_override("margin_left", 12 if ph1 else 18); fm.add_theme_constant_override("margin_right", 12 if ph1 else 18)
+		fm.add_theme_constant_override("margin_top", 8 if ph1 else 10); fm.add_theme_constant_override("margin_bottom", 10 if ph1 else 14)
+	var foot := BoxContainer.new(); foot.add_theme_constant_override("separation", 10 if h.bz else 8)
 	foot.vertical = K.text_scale >= 1.4 and vp0.x < 700.0               # narrow and large text: the buttons stack instead of overflowing
 	fm.add_child(foot); fw.add_child(fm)
 	outer.add_child(fw); h.footer_wrap = fw; h.footer = foot
@@ -413,13 +457,108 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	if K.motion_ok():
 		root.modulate.a = 0.0
 		var tw := root.create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		tw.tween_property(root, "modulate:a", 1.0, 0.16)
-		match h.form:
-			"drawer": tw.tween_property(holder, "position:x", 0.0, 0.18).from(24.0)
-			"sheet": tw.tween_property(holder, "position:y", 0.0, 0.2).from(40.0)
-			"page": tw.tween_property(holder, "position:x", 0.0, 0.2).from(24.0)
-			_: tw.tween_property(holder, "position:y", 0.0, 0.18).from(8.0)
+		tw.tween_property(root, "modulate:a", 1.0, 0.18 if h.bz else 0.16)
+		if h.bz and h.form in ["drawer", "panel"]: tw.tween_property(holder, "position:x", 0.0, 0.22).from(-16.0)     # `.scr`: opacity .18s, translateX(-16px) -> 0 in .22s
+		elif h.bz and h.form == "dialog":
+			card.scale = Vector2(0.97, 0.97)                                                                          # `.scr.modal`: scale(.97) -> 1
+			tw.tween_property(card, "scale", Vector2.ONE, 0.22)
+		else:
+			match h.form:
+				"drawer": tw.tween_property(holder, "position:x", 0.0, 0.18).from(24.0)
+				"sheet": tw.tween_property(holder, "position:y", 0.0, 0.2).from(40.0)
+				"page": tw.tween_property(holder, "position:x", 0.0, 0.2).from(24.0)
+				_: tw.tween_property(holder, "position:y", 0.0, 0.18).from(8.0)
 	return h
+
+## the demo's header (`.hd`): ring icon 46, title (Cinzel 700 22, .12em) over an italic subtitle, 36 unit close button, then the graduated rule
+static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyph_id: String, opts: Dictionary, vp0: Vector2) -> void:
+	var phone: bool = h.phone
+	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 0)
+	var hm := MarginContainer.new()
+	hm.add_theme_constant_override("margin_left", 14 if phone else 22); hm.add_theme_constant_override("margin_right", 14 if phone else 22)
+	hm.add_theme_constant_override("margin_top", 10 if phone else 18); hm.add_theme_constant_override("margin_bottom", 8 if phone else 12)
+	var hb := K.hbox(12 if phone else 14)
+	hm.add_child(hb); h.head_row = hb
+	if h.form == "page":
+		var bb := K.IconBtn.new("back", func(): pop_handle(h), 36)
+		K.a11y(bb, T.call("back"), "button"); hb.add_child(bb); h.back_btn = bb
+	elif glyph_id != "":
+		hb.add_child(K.ring_icon(glyph_id, 36 if phone else 46))
+	var tb := K.vbox(0)
+	tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var tl := K.title(title_text, 17 if phone else 22, TBTokens.c("ink_0"))
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tl.custom_minimum_size.x = 40; tl.tooltip_text = title_text
+	if h.form == "dialog": (tl as TBBz.TLabel).wrap_ok = true                           # a dialog title wraps when it does not fit (a confirm names the act), page titles ellipsize
+	else: tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	tb.add_child(tl); h.title_label = tl
+	var gap5 := Control.new(); gap5.custom_minimum_size = Vector2(0, 5); gap5.mouse_filter = Control.MOUSE_FILTER_IGNORE; tb.add_child(gap5)            # `.s{margin-top:5px}` is there even when the subtitle is empty
+	var sub := TBBz.TLabel.new(K.alegreya(400, true), 16.0, 0.0)                    # `.hd .s`: italic 16, dim
+	sub.add_theme_color_override("font_color", K.DIM); sub.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; sub.custom_minimum_size.x = 40
+	sub.visible = false; sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tb.add_child(sub); h.sub_label = sub
+	if opts.has("sub"): h.set_sub(String(opts["sub"]))
+	hb.add_child(tb)
+	var chips := K.hbox(6); chips.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(chips); h.chip_slot = chips
+	var acts := K.hbox(4); acts.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(acts); h.action_slot = acts
+	if h.dismissable and h.form != "page" and not bool(opts.get("no_close", false)):
+		var xb := K.IconBtn.new("close", func(): pop_handle(h), 36)
+		K.a11y(xb, T.call("close"), "button"); hb.add_child(xb)
+	box.add_child(hm); box.add_child(K.header_rule(14 if phone else 22))
+	h.head = box
+	outer.add_child(box)
+
+## bezel placement and size of a dialog / drawer / panel: the width of the screen (opts w), as tall as its content up to the demo's panel height,
+## docked next to the rail (x 340, y 190), to the right (x = W - w - 28) or, for modals, at x centred / y = max(100, (H - h) / 2 - 20)
+static func _fit_bz(h: Handle) -> void:
+	if not h.is_open() or not h.bz: return
+	var vs := _vs(h)
+	var phone: bool = h.phone
+	var wdef: float = {"dialog": 460.0, "drawer": 560.0, "panel": 900.0}.get(h.form, 460.0)
+	var w: float = h.bz_w if h.bz_w > 0.0 else (600.0 if (h.wide and h.form == "dialog") else wdef)
+	w = minf(w, vs.x - (12.0 if phone else 32.0))
+	var panel_h: float = (vs.y - 16.0) if phone else maxf(vs.y - 320.0, 240.0)
+	var hmax: float = minf(h.bz_h if h.bz_h > 0.0 else panel_h, panel_h)
+	var c := h.card
+	c.custom_minimum_size = Vector2(w, 0)
+	if h.scroll != null:
+		var chrome: float = 0.0
+		if h.head != null: chrome += h.head.get_combined_minimum_size().y
+		if h.tabs_slot.visible: chrome += h.tabs_slot.get_combined_minimum_size().y
+		if h.footer_wrap.visible: chrome += h.footer_wrap.get_combined_minimum_size().y
+		var body_min: float = h.body_wrap.get_combined_minimum_size().y
+		var avail: float = (hmax - 2.0) - chrome
+		if h.pinned != null:
+			var pm: float = h.pinned.get_combined_minimum_size().y
+			if h.split_wide:
+				h.scroll.custom_minimum_size.y = clampf(maxf(body_min, pm), 40.0, maxf(avail, 40.0))
+				h.pinned_sc.custom_minimum_size.y = 0.0
+			else:
+				var ph: float = minf(pm, avail * 0.6)
+				h.pinned_sc.custom_minimum_size.y = ph
+				h.scroll.custom_minimum_size.y = clampf(body_min, 40.0, maxf(avail - ph - 8.0, 40.0))
+		else:
+			h.scroll.custom_minimum_size.y = maxf(minf(body_min, avail), 40.0)
+	c.size = Vector2(w, 0)
+	c.reset_size()
+	var x: float
+	var y: float
+	if h.form == "dialog":
+		x = floorf((vs.x - w) * 0.5); y = maxf(8.0 if phone else 100.0, (vs.y - hmax) * 0.5 - 20.0)
+		if h.dock == "left":
+			x = 60.0 if phone else 340.0; y = 8.0 if phone else 190.0
+	else:
+		x = 60.0 if phone else 340.0; y = 8.0 if phone else 190.0
+		if h.dock == "right": x = vs.x - w - (8.0 if phone else 28.0)
+		elif h.dock == "center": x = floorf((vs.x - w) * 0.5)
+		elif drawer_rect_fn.is_valid() and not phone:
+			var dr: Rect2 = drawer_rect_fn.call()
+			if dr.size.x > 100.0:
+				x = dr.position.x; y = dr.position.y
+	if x + w > vs.x - 4.0: x = maxf(4.0, vs.x - w - 4.0)
+	if h.bz_pos.x >= 0.0: x = h.bz_pos.x; y = h.bz_pos.y
+	c.position = Vector2(x, y).floor()
+	c.pivot_offset = c.size * 0.5
 
 static func _focus_first(h: Handle) -> void:
 	if not h.is_open() or not h.root.is_inside_tree(): return
@@ -436,6 +575,8 @@ static func _layout(h: Handle) -> void:
 	var vs := _vs(h)
 	var prof := profile(vs)
 	var c := h.card
+	if h.bz and h.form in ["dialog", "drawer", "panel"]:
+		_fit_bz(h); return
 	match h.form:
 		"panel":
 			var w: float = minf(vs.x - 16.0, clampf(vs.x * 0.9, 640.0, 960.0))
@@ -464,13 +605,13 @@ static func _layout(h: Handle) -> void:
 		h.root.mouse_filter = Control.MOUSE_FILTER_STOP if h.snap > 0.6 else Control.MOUSE_FILTER_IGNORE      # above 60 %: the map must not take orders
 
 static func _queue_fit(h: Handle) -> void:
-	if h.fit_pending or not h.is_open() or h.form != "dialog": return
+	if h.fit_pending or not h.is_open() or not (h.form == "dialog" or h.bz): return
 	h.fit_pending = true
 	_deferred_fit.call_deferred(h)
 
 static func _deferred_fit(h: Handle) -> void:
 	h.fit_pending = false
-	if h.is_open(): _fit_dialog(h)
+	if h.is_open(): _fit_bz(h) if (h.bz and h.form in ["dialog", "drawer", "panel"]) else _fit_dialog(h)
 
 ## a dialog is as tall as its content, capped to the viewport (a ScrollContainer reports zero height, so it is sized by hand)
 static func _fit_dialog(h: Handle) -> void:
@@ -768,13 +909,13 @@ class Seg extends PanelContainer:
 	var _btns := {}
 	func setup(items: Array, cur: String) -> Seg:
 		current = cur
-		add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1))
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 1); add_child(row)
+		add_theme_stylebox_override("panel", TBKit._empty if TBFrame.bezel else TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1))
+		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 6 if TBFrame.bezel else 1); add_child(row)
 		var n := items.size()
 		for i in n:
 			var id: String = items[i][0]
 			var b := SegCell.new(); b.text = String(items[i][1]); b.focus_mode = Control.FOCUS_ALL; b.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.custom_minimum_size = Vector2(0, TBKit.touch() - 8)
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.custom_minimum_size = Vector2(0, (TBKit.touch() if TBKit.touch_large else 28) if TBFrame.bezel else TBKit.touch() - 8)
 			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			b.set_meta("mask", (TBFrame.TL | TBFrame.BL if i == 0 else 0) | (TBFrame.TR | TBFrame.BR if i == n - 1 else 0))
 			b.pressed.connect(func(): select(id, true))
@@ -788,6 +929,8 @@ class Seg extends PanelContainer:
 		for k in _btns:
 			var b: SegCell = _btns[k]
 			var on: bool = k == current
+			if TBFrame.bezel:
+				TBBz.style_cell(b, on); b.on = on; continue
 			var m: int = b.get_meta("mask")
 			var fills: Array = ["paper_2", "paper_2", "paper_2"] if on else ["paper_0", "paper_hover", "paper_2"]
 			b.add_theme_stylebox_override("normal", TBKit._pl(fills[0], "", 4, 0, 10.0, 6, false, 1.0, m))
