@@ -18,7 +18,6 @@ func _init() -> void:
 	main._start_game(fr)
 	main.g.pending.clear(); main._clear_overlay(); main._select(-1)
 	main._apply_quality()
-	main.map.lod_motion = lod
 	for i in 20: await process_frame
 	main.map.fly_to(9.5, 46.0, 2.0)
 	for i in 40: await process_frame

@@ -26,13 +26,10 @@ Findings and what was done:
 * End Turn: the AI turn runs on a worker thread; the rest of the hitch is the main-thread tail (repaint, HUD refresh, the autosave).
 
 * **Round 4 (a 2011 Intel HD 2000 laptop read 4 fps in the in-game diagnostics).** Measured with `tests/perf_idle.gd` (frames actually drawn with the screen still, ms per frame
-  while dragging). Findings: (1) the corner ring of the selected province redrew its ~100 arcs and strings **every frame** for as long as anything was selected: now it redraws
-  only when it can look different (anchor, hover, pop-in; the armed medallion's turning dots at 15 fps); a still screen draws no frame at all (low-processor mode),
-  checked by the test. (2) `map_view` re-rendered the whole map shader every frame while a province was selected, for a dash animation the shader never used: removed.
-  (3) Camera moves on the slow tiers (`lod_motion`: low and medium) now render the map at half resolution with the cheapest shader path and the half-size id texture, hide the
-  labels and route lines, skip the hover / selection fades, and draw once in full when the camera has been still for 160 ms: 120 -> 44 ms a frame while dragging (llvmpipe).
-  (4) Tiers 0 and 1 run `globe_lite.gdshader` (generated from `globe.gdshader` by `tools/make_lite_shader.py`; `tests/lite_shader.gd` proves it draws the same pixels): 30 % less
-  code for the Direct3D shader compiler, and the 9-sample close-zoom smoothing (which only the high tier uses) is never compiled. (5) The title globe turns at 15 steps a second on
-  the slow tiers (same speed).
+  while dragging). Kept, because they change nothing you can see: (1) the corner ring of the selected province redrew its ~100 arcs and strings **every frame** for as long as
+  anything was selected: it now redraws only when it can look different (anchor, hover, pop-in; the armed medallion's turning dots at 15 fps); a still screen draws no frame at
+  all (low-processor mode), checked by the test. (2) `map_view` re-rendered the whole map shader every frame while a province was selected, for a dash animation the shader
+  never used: removed. Tried and **reverted** because they cost picture quality: half-resolution / cheaper-shader frames while the camera moves, no highlight fades, a
+  trimmed shader for the low tiers, a slower title globe. The map must look the same at every moment; speed comes from doing less work, not from drawing less.
 
 Ideas not done yet: layout in a worker thread (compute on a snapshot, draw the result), moving the autosave off the main thread, lazy-loading the era flag sets.

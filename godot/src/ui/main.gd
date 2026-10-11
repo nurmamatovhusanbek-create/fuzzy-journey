@@ -20,7 +20,6 @@ var _turn_thread: Thread
 var _busy := false
 var _log_idx := 0
 var _spin := true
-var _spin_acc := 0.0
 var mp: TBMpController
 var sfx: TBAudio
 var _perf_label: Label
@@ -225,7 +224,6 @@ func _apply_quality() -> void:
 	map.quality = q
 	map.map_theme = {"parchment": 1, "hc": 2}.get(cfg.get("theme", "standard"), 0)
 	map.render_scale = [0.6, 0.85, 1.0][q]      # fraction of logical resolution the map shader renders at
-	map.lod_motion = q <= 1                     # slow tiers: the cheap shader path while the camera moves, the full one when it settles
 	map.apply_a11y(cfg)
 
 # ---------------------------------------------------------------- screens
@@ -990,12 +988,9 @@ func _process(delta: float) -> void:
 	_place_tip()
 	if map.labels != null and map.labels.visible != (mode != "menu"): map.labels.visible = mode != "menu"
 	if mode == "menu" and _spin and K.spin_ok():           # Reduce motion: the title globe stays still
-		_spin_acc += delta
-		if _spin_acc >= (0.066 if map.quality <= 1 else 0.0):          # slow tiers turn the globe at 15 steps a second (the same speed): every step re-draws the whole map
-			map.lon0 += _spin_acc * 0.12
-			_spin_acc = 0.0
-			map._push_view()
-			if is_instance_valid(_bezel): _bezel.queue_redraw()
+		map.lon0 += delta * 0.12
+		map._push_view()
+		if is_instance_valid(_bezel): _bezel.queue_redraw()
 
 # ---------------------------------------------------------------- multiplayer hooks (called by TBMpController)
 func enter_mp_game(game: TBGame, nation: int) -> void:
