@@ -360,12 +360,35 @@ func prepare() -> void:
 		"wars":
 			_war_groups()
 
+## Routes lens: the kind of route picked on the map ("war" | "ally" | "nap" | "marry" | "trade", "" none): the countries that have one with you stay lit, the rest recede
+var route_kind := ""
+var _route_set := PackedByteArray()
+func set_route_kind(k: String) -> void:
+	route_kind = k
+	_route_set.resize(g.N1); _route_set.fill(0)
+	if k == "": return
+	var me := g.human_id
+	for o in range(1, g.N1):
+		if g.alive[o] == 0 or o == me: continue
+		var has := false
+		match k:
+			"war": has = g.get_rel(me, o) == 1
+			"nap": has = g.get_rel(me, o) == 2
+			"ally": has = g.get_rel(me, o) == 3
+			"marry": has = g.get_rel(me, o) == 4
+			"trade": has = g.rules >= 1 and TBTrade.has(g, me, o)
+		if has: _route_set[o] = 1
+func route_lit(o: int) -> bool: return route_kind == "" or o == g.human_id or (o < _route_set.size() and _route_set[o] != 0)
+
 func color(p: int) -> int:
 	var o := g.owner[p]
 	if g.discoverable[p] != 0 and o == 0: return DISCOVERABLE
 	var me := g.human_id
 	match mode:
-		"political", "routes": return nat_rgb[o] if o != 0 else neutral()                  # routes: the political map with the treaty and trade lines drawn over it
+		"political": return nat_rgb[o] if o != 0 else neutral()
+		"routes":                                                                           # the political map with the treaty and trade lines drawn over it; a picked kind lights its countries
+			if o == 0: return neutral()
+			return nat_rgb[o] if route_lit(o) else lerp_rgb(nat_rgb[o], DARK_NEUTRAL, 0.72)
 		"diplomatic":
 			if o == 0: return neutral()
 			if o == me: return SELF_COL

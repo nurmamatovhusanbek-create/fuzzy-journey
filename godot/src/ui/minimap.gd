@@ -62,14 +62,10 @@ func want_w(h: float) -> float: return h
 func _globe_geom() -> Array:
 	return [Vector2(size.x * 0.5, 10.0 + round_r), round_r - 12.0]
 
-## flat map: the minimap is a small flat world map (2:1) in the same corner, with a frame for what the main view shows
+## the flat map's minimap is the same round window with the whole world flat in it (lon -180..180 across the diameter, the poles cropped), still, with a frame for what the main view shows
 func _is_flat() -> bool: return map != null and map.mode == 1
-func _flat_rect() -> Rect2:
-	var w: float = 2.0 * round_r + 12.0
-	return Rect2(size.x * 0.5 - w * 0.5, 10.0 + round_r - w * 0.25, w, w * 0.5)
 
 func _has_point(p: Vector2) -> bool:
-	if _is_flat(): return _flat_rect().grow(4.0).has_point(p)
 	return p.distance_to(Vector2(size.x * 0.5, 10.0 + round_r)) <= round_r + 2.0
 
 func refresh() -> void:
@@ -99,44 +95,7 @@ func _recolor() -> void:
 	_tex.update(_img)
 	_dirty = false
 
-func _draw_flat() -> void:
-	var r: Rect2 = _flat_rect()
-	var gm: Array = _globe_geom()
-	var c: Vector2 = gm[0]
-	if g != null and map != null and (_dirty or _w == 0): _recolor()
-	draw_colored_polygon(TBBezel.notch(r, 8.0), TBBezel.BRASS_LO)
-	var inner: Rect2 = r.grow(-2.0)
-	draw_colored_polygon(TBBezel.notch(inner, 7.0), TBTokens.BZ_SEA)
-	if _tex != null:
-		draw_texture_rect(_tex, inner.grow(-3.0), false)
-	var cf: Font = TBHudParts.fcz(false)
-	var cz: int = TBHudParts.fu(10.5)
-	var cap: String = TBI18n.T("tk_minimap").to_upper() if TBI18n.lang != "ru" else TBI18n.T("tk_minimap")
-	TBHudParts.txtl(self, cf, c.x, r.end.y + 19.0, cap, cz, TBTokens.c("smoke") if not TBTokens.is_hc() else TBTokens.c("cream"), 3.5, 1, 2.0, TBTokens.BZ_HALO)
-	_gl.visible = false
-	# the main view's footprint (Mercator): lon0 +- half the width, the latitudes of the top and bottom edges
-	var fit: float = map.flat_fit() if map != null else 1.0
-	if map != null and map.zoom > fit * 1.05:
-		var fs: float = maxf(0.001, map.flat_scale())
-		var hw: float = map.size.x * 0.5 / fs; var hh: float = map.size.y * 0.5 / fs
-		var my0: float = TBMapView.merc(map.lat0)
-		var la0: float = TBMapView.imerc(clampf(my0 + hh, -3.13, 3.13)); var la1: float = TBMapView.imerc(clampf(my0 - hh, -3.13, 3.13))
-		var ar: Rect2 = inner.grow(-3.0)
-		for off in [-1.0, 0.0, 1.0]:
-			var x0: float = ar.position.x + ((map.lon0 - hw) / TAU + 0.5 + off) * ar.size.x
-			var x1: float = ar.position.x + ((map.lon0 + hw) / TAU + 0.5 + off) * ar.size.x
-			var y0: float = ar.position.y + (0.5 - la0 / PI) * ar.size.y
-			var y1: float = ar.position.y + (0.5 - la1 / PI) * ar.size.y
-			var fr := Rect2(maxf(x0, ar.position.x), maxf(y0, ar.position.y), 0.0, 0.0)
-			fr.end = Vector2(minf(x1, ar.end.x), minf(y1, ar.end.y))
-			if fr.size.x <= 0.5 or fr.size.y <= 0.5: continue
-			draw_rect(fr, TBTokens.with_a(TBTokens.BZ_HALO, 0.6), false, 3.0)
-			draw_rect(fr, TBTokens.c("cream"), false, 1.4)
-
 func _draw() -> void:
-	if _is_flat():
-		_fp.visible = false
-		_draw_flat(); return
 	_fp.visible = true
 	var gm: Array = _globe_geom()
 	var c: Vector2 = gm[0]; var R: float = gm[1]
@@ -154,6 +113,8 @@ func _draw() -> void:
 	_mat.set_shader_parameter("tex", _tex)
 	_mat.set_shader_parameter("lon0", map.lon0)
 	_mat.set_shader_parameter("lat0", map.lat0)
+	_mat.set_shader_parameter("flat_map", 1 if _is_flat() else 0)
+	_mat.set_shader_parameter("sea_col", TBTokens.BZ_SEA)
 	_mat.set_shader_parameter("r_units", R)
 	_fp.position = Vector2.ZERO; _fp.size = size
 	_fp.queue_redraw()
@@ -226,7 +187,16 @@ func _draw_frame() -> void:
 	var c: Vector2 = gm[0]; var R: float = gm[1]
 	var fpp: Array = _footprint()
 	if fpp.is_empty(): return
-	var segs: Array = _lines(fpp, map.lon0, map.lat0, c, R)
+	var segs: Array = []
+	if _is_flat():                                                              # the world is flat in the window: the footprint is a plain rectangle (drawn again a turn either side for the date line)
+		var circ := PackedVector2Array()
+		for i in 64: circ.append(c + Vector2.from_angle(TAU * i / 64.0) * (R - 1.0))
+		for off in [-TAU, 0.0, TAU]:
+			var pl := PackedVector2Array()
+			for q in fpp: pl.append(c + Vector2((float((q as Vector2).x) + off) / PI, -float((q as Vector2).y) / PI) * R)
+			for sg in Geometry2D.intersect_polyline_with_polygon(pl, circ): segs.append(sg)
+	else:
+		segs = _lines(fpp, map.lon0, map.lat0, c, R)
 	for s in segs:
 		if (s as PackedVector2Array).size() < 2: continue
 		_fp.draw_polyline(s, TBBezel.ac(TBTokens.with_a(TBTokens.BZ_HALO, 0.6), 3.2), TBBezel.aw(3.2), true)
@@ -236,9 +206,10 @@ func _draw_frame() -> void:
 func _fly(pos: Vector2) -> void:
 	if map == null: return
 	if _is_flat():
-		var ar: Rect2 = _flat_rect().grow(-5.0)
-		var lon: float = (clampf((pos.x - ar.position.x) / maxf(1.0, ar.size.x), 0.0, 1.0) - 0.5) * 360.0
-		var lat: float = (0.5 - clampf((pos.y - ar.position.y) / maxf(1.0, ar.size.y), 0.0, 1.0)) * 180.0
+		var gf: Array = _globe_geom()
+		var df: Vector2 = (pos - (gf[0] as Vector2)) / float(gf[1])
+		var lon: float = clampf(df.x, -1.0, 1.0) * 180.0
+		var lat: float = clampf(-df.y * 180.0, -80.0, 80.0)
 		looked.emit(lon, lat); map.fly_to(lon, lat); return
 	var gm: Array = _globe_geom()
 	var d: Vector2 = (pos - (gm[0] as Vector2)) / float(gm[1])

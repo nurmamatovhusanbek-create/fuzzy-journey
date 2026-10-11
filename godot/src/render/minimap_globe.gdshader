@@ -9,6 +9,8 @@ uniform float lat0 = 0.3;
 uniform float r_units = 62.0;                  // the sphere's radius in layout units (graticule line width is 0.6 unit)
 uniform vec4 grat_col : source_color = vec4(0.788, 0.749, 0.627, 1.0);   // #C9BFA0
 uniform float grat = 0.16;                    // graticule opacity
+uniform int flat_map = 0;                      // 1: the flat map's world map, whole and still, in the same round window (lon -180..180 across the diameter, the poles cropped)
+uniform vec4 sea_col : source_color = vec4(0.035, 0.05, 0.075, 1.0);
 
 void fragment() {
 	vec2 d = (UV - 0.5) * 2.0;
@@ -18,8 +20,10 @@ void fragment() {
 	float s0 = sin(lat0), c0 = cos(lat0);
 	float lat = asin(clamp(z * s0 + d.y * c0, -1.0, 1.0));
 	float lon = lon0 + atan(d.x, z * c0 - d.y * s0);
+	if (flat_map == 1) { lon = d.x * PI; lat = d.y * PI; }
 	vec2 uv = vec2(lon / TAU + 0.5, clamp(0.5 - lat / PI, 0.003, 0.997));
 	vec3 c = texture(tex, uv).rgb;
+	if (flat_map == 1 && abs(lat) > PI * 0.5) c = sea_col.rgb;
 	// graticule every 30 degrees: lines about 0.6 layout units wide (parallels to 60, meridians fade out toward the poles)
 	float ppu = 1.0 / max(fwidth(UV.x) * 2.0 * r_units, 1e-5);          // physical pixels per layout unit
 	float lw = max(0.6 * ppu, 1.0);
@@ -29,6 +33,7 @@ void fragment() {
 	float dl = gl / max(fwidth(gl), 1e-6);                              // distance to the line in physical pixels
 	float dm = gm / max(fwidth(gm), 1e-6);
 	float line = max(clamp(0.5 * lw - dl + 0.5, 0.0, 1.0) * step(abs(lat), 1.1), clamp(0.5 * lw - dm + 0.5, 0.0, 1.0) * step(abs(lat), 1.4));
+	if (flat_map == 1) line *= step(abs(lat), PI * 0.5);
 	c = mix(c, grat_col.rgb, line * grat);
 	// mmsh: radialGradient cx .36 cy .32 r .85 over the sphere's box: white 10 % -> clear at .55 -> #05070a 38 % at .86 -> #5E86C4 42 % at 1
 	float t = length(UV - vec2(0.36, 0.32)) / 0.85;

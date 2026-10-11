@@ -1,0 +1,130 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — Buildings tab variations</title>
+<style>
+/*FONTS_MIN*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto;background:#05070a}
+body{font-feature-settings:'lnum' 1;padding:28px}
+.sheet{display:flex;gap:34px;align-items:flex-start;flex-wrap:nowrap}
+.col{width:432px;flex:none}
+.lab{font:700 12px Cinzel;letter-spacing:.24em;text-transform:uppercase;color:var(--brass);margin:0 0 10px 4px}
+.lab small{display:block;font:italic 400 15px Alegreya;letter-spacing:0;text-transform:none;color:var(--dim);margin-top:3px}
+.card{background:var(--lo);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)}
+.card>.in{margin:1px;background:linear-gradient(180deg,#1d1812,#13100c);clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:16px 16px 18px;position:relative}
+.cap{font:700 11.5px Cinzel;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between}
+.ctx{font:italic 400 15px Alegreya;color:var(--dim);margin:-2px 0 12px}
+.rl{height:9px;margin:0 0 12px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 8px);-webkit-mask:linear-gradient(180deg,#000 0 50%,transparent 50%);border-bottom:1px solid var(--lo)}
+.rg{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 38% 32%,#2a2218,#0f0c09);box-shadow:0 0 0 1.3px rgba(201,162,75,.85),0 0 0 3px rgba(5,4,3,.35);color:var(--hi);flex:none}
+.rg.sm{width:34px;height:34px}.rg.lg{width:76px;height:76px}
+.off{opacity:.5}
+.off .rg{box-shadow:0 0 0 1.3px rgba(127,106,51,.8);color:var(--dim2)}
+.bad{color:var(--bad)}.ok{color:var(--good)}
+.nm{font:700 13.5px Cinzel;letter-spacing:.1em;text-transform:uppercase;color:var(--ivory)}
+.ef{font:italic 400 15px/1.2 Alegreya;color:var(--dim)}
+.chip{display:inline-flex;align-items:center;gap:5px;font:700 16px Alegreya;color:var(--ivory);padding:2px 9px 2px 7px;background:#0c0a07;box-shadow:inset 0 0 0 1px #4a3f28;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+.chip svg{color:var(--brass)}
+.btn{font:700 12.5px Cinzel;letter-spacing:.2em;text-transform:uppercase;padding:11px 20px;background:linear-gradient(180deg,#E5C77A,#A8842f);color:#1a1409;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);display:inline-block;text-align:center}
+.btn.off2{background:#2a2218;color:var(--dim2)}
+.seg{display:flex;gap:2px;margin-bottom:12px}
+.seg a{padding:7px 12px 10px;font:700 11px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:var(--dim2);position:relative;white-space:nowrap}
+.seg a.on{color:var(--ivory)}
+.seg a.on::after{content:'';position:absolute;left:8%;right:8%;bottom:3px;height:5px;background:repeating-linear-gradient(90deg,#C9A24B 0 1px,transparent 1px 6px)}
+.seg a b{font:500 11px 'JetBrains Mono';color:var(--dim2);margin-left:4px}
+/* A */
+.gridA{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cA{position:relative;background:#100d0a;box-shadow:inset 0 0 0 1px #3a2f1c;padding:11px 11px 10px;display:flex;flex-direction:column;gap:7px;min-height:132px}
+.cA.sel{box-shadow:inset 0 0 0 1.5px var(--hi),0 0 18px rgba(229,199,122,.14);background:#171209}
+.cA .top{display:flex;gap:10px;align-items:center}
+.cA .foot{display:flex;gap:6px;margin-top:auto;align-items:center}
+.why{font:italic 400 13.5px Alegreya;color:var(--bad)}
+/* B */
+.rowB{display:flex;align-items:center;gap:12px;padding:9px 10px;background:#100d0a;box-shadow:inset 0 0 0 1px #3a2f1c;margin-bottom:7px;position:relative}
+.rowB .mid{flex:1;min-width:0}
+.rowB .cost{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font:700 17px Alegreya}
+.rowB .cost span{display:flex;gap:5px;align-items:center}.rowB .cost svg{color:var(--brass)}
+.rowB.adv::before{content:'ADVISED';position:absolute;right:10px;top:-8px;font:700 9.5px Cinzel;letter-spacing:.2em;background:var(--brass);color:#1a1409;padding:2px 8px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}
+.rowB.sel{box-shadow:inset 0 0 0 1.5px var(--hi);background:#171209}
+.det{padding:10px 12px;margin:-4px 0 9px;background:#0c0a07;box-shadow:inset 0 0 0 1px #3a2f1c;display:flex;gap:12px;align-items:center;justify-content:space-between}
+/* C */
+.gridC{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.tC{background:#100d0a;box-shadow:inset 0 0 0 1px #3a2f1c;padding:12px 6px 9px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;position:relative}
+.tC.sel{box-shadow:inset 0 0 0 1.5px var(--hi);background:#171209}
+.tC .nm{font-size:11.5px;letter-spacing:.08em}
+.tC .chip{font-size:15px}
+.lock{position:absolute;right:6px;top:6px;color:var(--bad)}
+.strip{margin-top:10px;padding:12px;background:#0c0a07;box-shadow:inset 0 0 0 1px #3a2f1c}
+/* D */
+.splitD{display:flex;gap:12px}
+.rail{display:flex;flex-direction:column;gap:7px;width:62px;flex:none}
+.rail .m{position:relative;display:grid;place-items:center;height:52px;background:#100d0a;box-shadow:inset 0 0 0 1px #3a2f1c;color:var(--hi)}
+.rail .m.sel{box-shadow:inset 0 0 0 1.5px var(--hi);background:#171209}
+.rail .m.off{color:var(--dim2)}
+.rail .m i{position:absolute;bottom:4px;display:flex;gap:2px}.rail .m i b{width:6px;height:2px;background:var(--lo)}.rail .m i b.on{background:var(--hi)}
+.detD{flex:1;display:flex;flex-direction:column;gap:10px}
+.kv{display:flex;justify-content:space-between;font:400 16px Alegreya;color:var(--dim);padding:5px 0;border-bottom:1px solid #2a2218}
+.kv b{font:700 16px Alegreya;color:var(--ivory)}
+.chk{display:flex;gap:7px;align-items:center;font:400 15.5px Alegreya;color:var(--dim)}
+.pips{display:flex;gap:5px}.pips span{width:22px;height:6px;background:#2a2218;clip-path:polygon(2px 0,100% 0,calc(100% - 2px) 100%,0 100%)}.pips span.on{background:var(--hi)}
+</style></head><body>
+<script>
+/*KIT*/
+const B = [
+ ['farm','Farm','More people every turn',50,1,'', true,'farm'],
+ ['watchtower','Watchtower','See armies three provinces out',60,1,'',true,'tower'],
+ ['workshop','Workshop','More goods every turn',80,4,'',true,'hammer'],
+ ['supplycamp','Supply camp','Armies here do not starve',90,3,'',true,'tent'],
+ ['library','Library','More research every turn',90,2,'',true,'book'],
+ ['armory','Armory','Recruits here cost half',100,4,'',true,'shield'],
+ ['market','Market','More gold from taxes',100,1,'',true,'stall'],
+ ['port','Port','Armies may sail from here',120,1,'Needs 120 gold',false,'anchor'],
+ ['fortress','Fortress','Defenders fight harder',150,3,'Needs 150 gold',false,'castle'],
+];
+const GL = {
+ farm:'<path d="M12 21V8M12 8c-3 0-4-2-4-4 3 0 4 2 4 4zM12 8c3 0 4-2 4-4-3 0-4 2-4 4zM12 14c-3 0-4-2-4-4 3 0 4 2 4 4zM12 14c3 0 4-2 4-4-3 0-4 2-4 4z"/>',
+ tower:'<path d="M8 21V9h8v12M7 9l1-4h8l1 4M10 13h4M5 21h14"/>',
+ hammer:'<path d="M14 4l6 6-3 3-6-6zM13 11L4 20"/>',
+ tent:'<path d="M3 20L12 5l9 15zM12 5v15M9 20l3-6 3 6"/>',
+ book:'<path d="M4 5q4-1.5 8 1.5q4-3 8-1.5v13q-4-1.5-8 1.5q-4-3-8-1.5zM12 6.5v13"/>',
+ shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+ stall:'<path d="M3 9l2-5h14l2 5M3 9h18v3H3zM5 12v8h14v-8M10 20v-5h4v5"/>',
+ anchor:'<circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 10h8M5 15q1 5 7 5t7-5M5 15l-2 2M19 15l2 2"/>',
+ castle:'<path d="M4 20V7h3v3h2.5V7h5v3H17V7h3v13zM10 20v-4h4v4"/>',
+ coin:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.500 9.500q0-2 2.500-2t2.500 1.800q0 1.700-2.500 2.200t-2.500 2.200q0 1.800 2.500 1.800t2.500-2"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.500 2"/>',
+ lock:'<rect x="5" y="11" width="14" height="9" rx="1.500"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+ check:'<path d="M4 12.500l5 5L20 6.500"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>',
+};
+const ic = (n,s=22,w=1.7) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${GL[n]||''}</svg>`;
+const hdr = (sub) => `<div class="cap"><span>Build</span><span style="color:var(--hi)">Gold 118</span></div><div class="ctx">${sub}</div><div class="rl"></div>`;
+const chip = (n, t, bad) => `<span class="chip ${bad?'bad':''}">${ic(n,15,1.9)}${t}</span>`;
+const SUB = 'Lower Silesian · a free building slot';
+const wrap = (title, sub, body) => `<div class="col"><div class="lab">${title}<small>${sub}</small></div><div class="card"><div class="in">${hdr(SUB)}${body}</div></div></div>`;
+
+// A: ledger cards
+const A = wrap('A · Ledger cards','Two columns, an icon ring, what it does in a line, cost and time as chips. The chosen card carries the Build bar.',
+ `<div class="gridA">${B.map((b,i)=>`<div class="cA ${i===5?'sel':''} ${b[6]?'':'off'}"><div class="top"><div class="rg sm">${ic(b[7],19)}</div><div class="nm" style="font-size:12.5px">${b[1]}</div></div><div class="ef">${b[2]}</div>${b[6]?'':`<div class="why">${b[5]}</div>`}<div class="foot">${chip('coin',b[3],!b[6])}${chip('clock',b[4]+' t')}</div></div>`).join('')}</div>
+ <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid #2a2218"><div><div class="nm" style="font-size:12px">Armory</div><div class="ef">100 gold · 4 turns · 1 move</div></div><span class="btn">Build</span></div>`);
+
+// B: catalogue rows
+const cats = ['All <b>9</b>','Economy <b>4</b>','Military <b>4</b>','Culture <b>1</b>'];
+const Bv = wrap('B · Catalogue rows','One row each: a large ring, name and effect, the price stacked at the right; a filter by kind; the advised one tagged.',
+ `<div class="seg">${cats.map((c,i)=>`<a class="${i===0?'on':''}">${c}</a>`).join('')}</div>
+ ${B.slice(0,7).map((b,i)=>`<div class="rowB ${i===1?'adv':''} ${i===5?'sel':''}"><div class="rg">${ic(b[7],21)}</div><div class="mid"><div class="nm">${b[1]}</div><div class="ef">${b[2]}</div></div><div class="cost"><span>${ic('coin',14,1.9)}${b[3]}</span><span style="color:var(--dim);font-size:15px">${ic('clock',13,1.9)}${b[4]} t</span></div></div>${i===5?`<div class="det"><div class="ef" style="font-size:15.5px">Costs 1 move · ready in 4 turns</div><span class="btn">Build</span></div>`:''}`).join('')}
+ ${B.slice(7).map(b=>`<div class="rowB off"><div class="rg">${ic(b[7],21)}</div><div class="mid"><div class="nm">${b[1]}</div><div class="why">${b[5]}</div></div><div class="cost"><span class="bad">${ic('coin',14,1.9)}${b[3]}</span><span style="color:var(--dim);font-size:15px">${ic('clock',13,1.9)}${b[4]} t</span></div></div>`).join('')}`);
+
+// C: tiles
+const C = wrap('C · Icon tiles','Three across, the building as a big emblem with its price under it; locked ones show why. A strip under the grid holds the details and the button.',
+ `<div class="gridC">${B.map((b,i)=>`<div class="tC ${i===5?'sel':''} ${b[6]?'':'off'}">${b[6]?'':`<span class="lock">${ic('lock',14,2)}</span>`}<div class="rg lg" style="width:62px;height:62px">${ic(b[7],30,1.6)}</div><div class="nm">${b[1]}</div>${chip('coin',b[3],!b[6])}</div>`).join('')}</div>
+ <div class="strip"><div style="display:flex;gap:12px;align-items:center"><div class="rg">${ic('shield',21)}</div><div style="flex:1"><div class="nm">Armory</div><div class="ef">Recruits here cost half</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div style="display:flex;gap:6px">${chip('coin','100')}${chip('clock','4 turns')}</div><span class="btn">Build</span></div></div>`);
+
+// D: blueprint split
+const D = wrap('D · Blueprint','A narrow rail of the nine, and one large page for the chosen: what it does, the level, the figures, what is still missing, one button.',
+ `<div class="splitD"><div class="rail">${B.map((b,i)=>`<div class="m ${i===5?'sel':''} ${b[6]?'':'off'}">${ic(b[7],21)}<i><b class="on"></b><b></b><b></b></i></div>`).join('')}</div>
+ <div class="detD"><div style="display:flex;gap:12px;align-items:center"><div class="rg lg">${ic('shield',34,1.6)}</div><div><div class="nm" style="font-size:16px">Armory</div><div class="pips" style="margin-top:7px"><span class="on"></span><span></span><span></span></div></div></div>
+ <div class="ef" style="font-size:16.5px">Recruits here cost half. A garrison town's best friend.</div>
+ <div><div class="kv">Cost<b>100 gold</b></div><div class="kv">Time<b>4 turns</b></div><div class="kv">Moves<b>1</b></div><div class="kv">Treasury after<b>18 gold</b></div></div>
+ <div class="chk ok">${ic('check',16,2.2)} A free building slot</div><div class="chk ok">${ic('check',16,2.2)} Technology 0.4 reached</div><div class="chk">${ic('check',16,2.2)} 100 gold in the treasury</div>
+ <span class="btn" style="margin-top:4px">Build · 100 gold</span></div></div>`);
+document.write(`<div class="sheet">${A}${Bv}${C}${D}</div>`);
+</script>
+</body></html>

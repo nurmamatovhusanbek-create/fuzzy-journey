@@ -140,7 +140,7 @@ class AlertRow extends P.Hit:
 	func set_entry(e: Dictionary, t: String) -> void:
 		entry = e; text = t
 		if _w > 0.0: set_width(_w)
-		dismissible = int(e["uid"]) < 0 and String(e["cls"]) != "offer" and String(e["cls"]) != "event"
+		dismissible = (int(e["uid"]) < 0 and String(e["cls"]) != "offer" and String(e["cls"]) != "event") or bool(e.get("soft", false))
 		set_a11y(t)
 		queue_redraw()
 	func build_buttons(on_answer: Callable) -> void:
@@ -192,6 +192,9 @@ class AlertRow extends P.Hit:
 			TBAlertTicker.draw_plate(self, pr, hot, TBAlertTicker.ans_edge(ok, hot))
 			if not TBTokens.is_hc(): TBAlertTicker.inset_glow(self, pr.grow(-1.0), 6.0, TBTokens.with_a(TBTokens.BZ_ANS_YES_HOT, 0.34) if ok else TBTokens.with_a(TBTokens.BZ_ANS_NO_HOT, 0.44))
 			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), (TBTokens.BZ_ANS_YES_HOT if ok else TBTokens.BZ_ANS_NO_HOT) if not TBTokens.is_hc() else TBTokens.c("ink_0"))
+		elif not done and entry.get("tex") != null and (String(entry["cls"]) != "offer" or bool(entry.get("soft", false))):          # a notice about a country: its flag in the medallion, the kind's colour on the rim
+			TBAlertTicker.draw_plate(self, pr, hot)
+			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), kc)
 		else:
 			TBAlertTicker.draw_plate(self, pr, hot)
 			var c := Vector2(lx + 1.0, bh * 0.5)
@@ -279,7 +282,8 @@ class InfoRow extends P.Hit:
 # ---------------------------------------------------------------- feeding
 ## entries: TBAdvisor.ticker() output, each with "text" (one line) added by the caller; turn clears "dismissed for this turn"
 func update(entries: Array, turn: int) -> void:
-	if turn != _turn:
+	var new_turn: bool = turn != _turn
+	if new_turn:
 		dismissed.clear(); _turn = turn
 	_entries = entries
 	var live: Array = []
@@ -297,6 +301,7 @@ func update(entries: Array, turn: int) -> void:
 			var rw2: AlertRow = rows[k]
 			rw2.set_entry(e, String(e["text"]))
 			if rw2.done: rw2.done = false
+			if new_turn: _expire_later(e)                  # a notice that is still true in the new turn shows again, and goes again after its 7 seconds
 		else:
 			_add(e)
 			_expire_later(e)
@@ -327,7 +332,7 @@ func _add(e: Dictionary) -> void:
 	rw.dismiss_pressed.connect(_on_dismiss.bind(rw))
 	rw.tip_on.connect(func(): tip_requested.emit(rw, rw.entry.get("tip", [])))
 	rw.tip_off.connect(func(): tip_hidden.emit())
-	if String(e["cls"]) == "offer":
+	if String(e["cls"]) == "offer" and not bool(e.get("soft", false)):
 		rw.build_buttons(func(uid: int, c: int): answered.emit(uid, c))
 		rw._buttons.visible = false
 	rows[String(e["key"])] = rw
@@ -359,6 +364,8 @@ func _on_row(rw: AlertRow) -> void:
 	var e: Dictionary = rw.entry
 	if String(e["cls"]) == "answer":                 # an answer is read, then gone (the demo: a tap removes the note)
 		_on_dismiss(rw); return
+	if String(e["cls"]) == "offer" and bool(e.get("soft", false)):       # a quiet notice: a tap accepts it
+		answered.emit(int(e["uid"]), 0); return
 	if String(e["cls"]) == "offer":
 		rw.set_expanded(not rw.expanded)
 		_layout()
@@ -372,6 +379,7 @@ func _on_row(rw: AlertRow) -> void:
 	activated.emit(out)
 
 func _on_dismiss(rw: AlertRow) -> void:
+	if String(rw.entry["cls"]) == "offer" and bool(rw.entry.get("soft", false)): answered.emit(int(rw.entry["uid"]), 1); return          # the cross on a quiet notice declines it
 	if String(rw.entry["cls"]) == "answer": answer_dismissed.emit(String(rw.entry["key"]))
 	dismissed[String(rw.entry["key"])] = _turn
 	update(_entries, _turn)

@@ -96,6 +96,7 @@ var own_list := PackedInt32Array()
 var own_dirty: bool = true
 
 # events (rules >= 1)
+var offer_cd := PackedInt32Array()      # per nation: the turn a human last had a proposal that asked for an answer (TBDiplo.ai_offer paces them)
 var marches: Array = []                 # standing march orders {n, at, to, k}: the army in `at` walks on toward `to`, one stride per end of turn (TBMarch)
 var march_fx: Array = []                # [from, to, result, nation] strides made at the last end of turn (view only, not saved)
 var asks: Array = []                    # requests to AI courts waiting for next turn's answer (TBAsks)
@@ -209,7 +210,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		a.resize(N1)
 	capital_of.fill(-1); last_war_turn.fill(-99)
 	budget.resize(N1 * 4); rel.resize(N1 * N1); grudge.resize(N1 * N1)
-	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1); see_until.resize(N1 * N1)
+	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1); see_until.resize(N1 * N1); offer_cd.resize(N1); offer_cd.fill(-99)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1)
@@ -398,12 +399,14 @@ func reassign_capital(n: int) -> void:
 	if own.is_empty():
 		capital_of[n] = -1
 		return
-	var best: int = own[0]
-	var bd := -1
-	for p in own:
-		var d := nb_off[p + 1] - nb_off[p]
-		if d > bd:
-			bd = d; best = p
+	var best: int = TBCapitals.pick(self, n)                       # where the capital historically stood (rules >= 1), else the province with most neighbours
+	if best < 0:
+		best = own[0]
+		var bd := -1
+		for p in own:
+			var d := nb_off[p + 1] - nb_off[p]
+			if d > bd:
+				bd = d; best = p
 	capital[best] = 1; capital_of[n] = best; touch(best)
 
 # ---------------------------------------------------------------- relations

@@ -199,6 +199,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	var pick: bool = bool(opts.get("pick", false))
 	var on_cmd: Callable = opts.get("on_cmd", Callable())
 	var on_goto: Callable = opts.get("on_goto", Callable())
+	var on_fly: Callable = opts.get("on_fly", Callable())                   # a country name pressed: the map turns to that country (the window stays)
 	var on_play: Callable = opts.get("on_play", Callable())
 	var taken: Array = opts.get("taken", [])
 	var seats: Dictionary = opts.get("seats", {})
@@ -357,6 +358,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	# =========================================================================================================================================
 	ui["select"] = func(n: int, push: bool) -> void:
 		S["sel"] = n
+		if push and on_fly.is_valid(): on_fly.call(n)
 		for k in rows: (rows[k] as NationRow).selected = (k == n)
 		var dv: VBoxContainer = ui["detail_box"]
 		for c in dv.get_children(): c.queue_free()
@@ -522,22 +524,8 @@ static func _facts(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dic
 			rows.append([T.call("grudge"), "%d" % g.grudge[n * g.N1 + me], 0])
 	v.add_child(_cap(T.call("facts"), 14.0, 6.0))
 	v.add_child(K.fxl(rows, 2 if bool(ctx["wide"]) else 0))
-	# allies / enemies
-	var allies: Array = []; var enemies: Array = []
-	for o in range(1, g.N1):
-		if g.alive[o] == 0 or o == n or o == g.rebel: continue
-		var r := g.get_rel(n, o)
-		if r == 3: allies.append(o)
-		elif r == 1: enemies.append(o)
-	for grp in [[T.call("allies"), allies], [T.call("at_war_with"), enemies]]:
-		var arr: Array = grp[1]
-		if arr.is_empty(): continue
-		v.add_child(_cap(String(grp[0]), 14.0, 6.0))
-		var fw := TBPanel.flow(6); v.add_child(fw)
-		for i in mini(6, arr.size()):
-			var o: int = arr[i]
-			fw.add_child(TBPanel.nation_button(g, o, func(): (ctx["on_select"] as Callable).call(o)))
-		if arr.size() > 6: fw.add_child(K.chip("+%d" % (arr.size() - 6), "", "neutral"))
+	# who they stand with and against: flag and name, like the list
+	TBRealmScreen.add_relations(v, g, n, func(o: int): (ctx["on_select"] as Callable).call(o), 6)
 
 ## the demo's actBtns(): relations, the court's reasons, then the diplomacy buttons (two columns, war in red across both), then intel
 static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: int) -> void:

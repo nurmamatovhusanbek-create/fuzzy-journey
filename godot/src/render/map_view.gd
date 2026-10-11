@@ -199,7 +199,17 @@ func set_targets(list: PackedInt32Array) -> void:
 	_upload()
 	_push_view()
 
+## a route line was picked in the Routes lens: its kind's countries stay lit, the same line again (or the empty map) lets go
+func set_route_kind(k: String) -> void:
+	if lenses == null: return
+	if lenses.route_kind == k: k = ""
+	lenses.set_route_kind(k)
+	repaint_all()
+	if routes != null: routes.queue_redraw()
+	_lk = []; _push_view()
+
 func set_lens(name: String) -> void:
+	if name != "routes" and lenses.route_kind != "": lenses.set_route_kind("")
 	lenses.mode = name
 	repaint_all()
 
@@ -287,13 +297,16 @@ func _push_view() -> void:
 		_labels_relayout()
 	view_changed.emit()
 
+## zoomed in far enough that other countries' districts are worth telling apart (their names, armies and terrain appear); further out, a country is one thing
+func district_zoom() -> bool: return zoom >= (2.6 if mode == 0 else maxf(3.4, flat_fit() * 2.0))
+
 ## the labels are laid out again only when something that moves them changed: the hover fade and the selection fade (every frame for 0.1 s after each mouse move)
 ## no longer redo the whole layout. While the camera moves, a relayout on a slow CPU waits for ~3x its own cost, so the frame rate holds (labels trail the map by a few frames).
 var _lk := []
 var _lbl_t := 0
 var _lbl_pending := false
 func _labels_relayout() -> void:
-	var k := [lon0, lat0, zoom, size, mode, selected, quality, hover if labels.hover_matters() else -2, labels.hidden_while_dragging, render_scale, TBTokens.is_hc(), TBLenses.cvd, TBKit.text_scale, TBI18n.lang, map_theme, g.human_id if g != null else -1]
+	var k := [lon0, lat0, zoom, size, mode, selected, quality, hover if labels.hover_matters() else -2, labels.hidden_while_dragging, render_scale, TBTokens.is_hc(), TBLenses.cvd, TBKit.text_scale, TBI18n.lang, map_theme, g.human_id if g != null else -1, (lenses.mode + lenses.route_kind) if lenses != null else ""]
 	if k == _lk: return
 	var cam: bool = _lk.size() > 4 and (k[0] != _lk[0] or k[1] != _lk[1] or k[2] != _lk[2] or k[3] != _lk[3])
 	_lk = k
@@ -522,7 +535,11 @@ func _gui_input(event: InputEvent) -> void:
 					if _peeked: province_peeked.emit(-1); _peeked = false
 					elif _pressed and _drag_moved < _tap_slop():
 						last_pick_touch = event.device == InputEvent.DEVICE_ID_EMULATION
-						province_picked.emit(_pick_tap(event.position), false); _vel = Vector2.ZERO
+						var rk: String = routes.pick_route(event.position) if (routes != null and lenses != null and lenses.mode == "routes") else ""
+						if rk != "": set_route_kind(rk); _vel = Vector2.ZERO               # a route line: light its countries (no province is picked)
+						else:
+							if lenses != null and lenses.route_kind != "": set_route_kind(lenses.route_kind)           # the empty map: let the picked route go
+							province_picked.emit(_pick_tap(event.position), false); _vel = Vector2.ZERO
 					elif Time.get_ticks_usec() - _vel_us > 90000 or not TBKit.motion_ok(): _vel = Vector2.ZERO      # finger rested before lifting: no flick
 					_pressed = false
 					_last_drag_us = 0

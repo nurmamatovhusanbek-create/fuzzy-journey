@@ -14,7 +14,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 	elif net < 0 and g.gold[n] < -net * 4: out.append(_a("low_treasury", 1, -1, int(g.gold[n] / -net)))
 	if inc["capLost"]: out.append(_a("capital_lost", 2, g.capital_of[n]))
 	# frontier threat / occupation / unrest / war leverage
-	var threat_p := -1; var threat_ratio := 0.0; var occ := 0; var occ_p := -1
+	var threat_p := -1; var threat_ratio := 0.0; var threat_o := -1; var occ := 0; var occ_p := -1
 	var unrest := 0; var unrest_p := -1; var unrest_min := 101
 	var unrest_ps: Array = []
 	var own := g.owned(n)
@@ -32,9 +32,9 @@ static func alerts(g: TBGame, n: int) -> Array:
 			if g.occupier[q] == n: continue
 			if g.nb_sea[i] != 0 and g.building[q] != D.B_PORT: continue
 			var r := float(g.army[q]) / float(maxi(1, g.army[p]))
-			if g.army[q] >= 6 and r > 1.3 and r > threat_ratio: threat_ratio = r; threat_p = p
-	if threat_p >= 0: out.append(_a("threat", 2, threat_p, int(round(threat_ratio * 10.0))))
-	if occ > 0: out.append(_a("occupied", 1, occ_p, occ))
+			if g.army[q] >= 6 and r > 1.3 and r > threat_ratio: threat_ratio = r; threat_p = p; threat_o = eo
+	if threat_p >= 0: out.append(_a("threat", 2, threat_p, int(round(threat_ratio * 10.0)), threat_o))
+	if occ > 0: out.append(_a("occupied", 1, occ_p, occ, g.occupier[occ_p] if occ_p >= 0 else -1))
 	if unrest > 0:
 		unrest_ps.sort_custom(func(a: int, b: int) -> bool: return g.stab[a] < g.stab[b])
 		var ua := _a("unrest", 1, unrest_p, unrest); ua["ps"] = unrest_ps; out.append(ua)
@@ -51,6 +51,15 @@ static func alerts(g: TBGame, n: int) -> Array:
 	if g.rules >= 1:
 		if g.coalition[n] != 0: out.append(_a("coalition", 2, -1, int(g.infamy[n])))
 		elif g.infamy[n] >= 12.0: out.append(_a("infamy", 1, -1, int(g.infamy[n])))
+	# treaties about to end (a countdown): a truce is the last of the peace before the fighting may start again, a pact the last of its protection
+	if g.rules >= 1:
+		for o in range(1, g.N1):
+			if o == n or g.alive[o] == 0 or o == g.rebel: continue
+			var rel_o: int = g.get_rel(n, o)
+			var tl: int = g.truce[n * g.N1 + o] - g.turn
+			if rel_o != D.REL_WAR and tl >= 1 and tl <= TREATY_WARN: out.append(_a("truce_end", 1, -1, tl, o))
+			var nl: int = int(g.nap_expiry.get(mini(n, o) * g.N1 + maxi(n, o), 0)) - g.turn
+			if rel_o == D.REL_NAP and nl >= 1 and nl <= TREATY_WARN: out.append(_a("nap_end", 1, -1, nl, o))
 	# opportunities
 	var best_ws := 0; var best_o := 0
 	var wars := 0
@@ -113,13 +122,15 @@ static func crisis_ids(al: Array) -> PackedStringArray:
 # ---------------------------------------------------------------- HUD support (read-only helpers; never mutate state)
 
 ## ticker classes, most urgent first (design/ux/hud.md section 8)
-const CLASSES := ["answer", "war", "revolt", "offer", "event", "supply"]
+const CLASSES := ["answer", "war", "revolt", "offer", "event", "treaty", "supply"]
+const TREATY_WARN := 3                     # turns ahead a truce or a pact running out is announced
 
 ## alert id -> ticker class; "" = a tip / opportunity, which never enters the ticker
 static func class_of(id: String) -> String:
 	match id:
 		"threat", "occupied", "capital_lost", "coalition", "war_declared", "bankrupt": return "war"      # a bankrupt treasury is promoted to class 1
 		"unrest": return "revolt"
+		"truce_end", "nap_end": return "treaty"
 		"low_treasury", "attrition": return "supply"
 	return ""
 
@@ -138,7 +149,7 @@ static func ticker(g: TBGame, n: int) -> Array:
 		var uid: int = int(e["uid"])
 		if String(e["kind"]) == "prop":
 			var ult: bool = String(e["id"]) == "ultimatum"
-			out.append({"key": "o:%d" % uid, "cls": "offer", "sev": 2 if ult else 1, "id": String(e["id"]), "p": int(e.get("p", -1)), "n": int(e["from"]), "k": 0, "uid": uid, "ps": [], "ult": ult})
+			out.append({"key": "o:%d" % uid, "cls": "offer", "sev": 2 if ult else 1, "id": String(e["id"]), "p": int(e.get("p", -1)), "n": int(e["from"]), "k": 0, "uid": uid, "ps": [], "ult": ult, "soft": bool(e.get("soft", false))})
 		else:
 			out.append({"key": "e:%d" % uid, "cls": "event", "sev": 1, "id": String(e["id"]), "p": -1, "n": -1, "k": 0, "uid": uid, "ps": [], "ult": false})
 	out.append_array(answers(g, n))

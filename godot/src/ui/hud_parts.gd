@@ -762,6 +762,7 @@ class ModeSwitch extends Hit:
 	var current: String = ""
 	var compact: bool = false           # phone landscape: 380 x 38
 	var _rects: Array = []
+	func _init() -> void: set_meta("no_tip", true)                 # its tabs are lettered: a tooltip would only say the same
 	var _px: float = -1.0                # the pointer's x offset, eased toward the active lens (the demo: .4 s cubic-bezier(.3,1.4,.5,1))
 	var _from: float = 0.0
 	var _to: float = 0.0
@@ -835,7 +836,6 @@ class ModeSwitch extends Hit:
 		if current != "" and _px >= 0.0:
 			var px: float = 14.0 + (w - 28.0) * 0.5 / maxf(1.0, float(n)) + _px
 			draw_colored_polygon(PackedVector2Array([Vector2(px, h - 13.0), Vector2(px - 5.0, h - 22.0), Vector2(px + 5.0, h - 22.0)]), TBTokens.BZ_BAD)
-		if has_focus(): TBHudParts.focus_box(self, Rect2(Vector2.ZERO, size).grow(3.0))
 
 # ---------------------------------------------------------------- dock / lens / menu icon button
 ## round medallion with the demo's icon inside. A rail item (edge 0, `row`): the Cinzel label sits to its right on a pill that lights on hover.

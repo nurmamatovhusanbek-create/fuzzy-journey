@@ -113,9 +113,17 @@ static func accept_offer(g: TBGame, from: int, to: int, what: String) -> void:
 		"marry":
 			g.set_rel(from, to, D.REL_MARRIAGE); g.log.append({"turn": g.turn, "kind": "marriage", "a": from, "b": to})
 
-## an AI nation occasionally proposes something friendly to a human (shown as a prompt; unanswered = declined next turn)
+## How often AI courts write to a human (per AI nation per turn: about one proposal every other turn in a world of ninety), and how: by how friendly they are to you (TBVision.friendliness)
+##   trade deal, above AUTO_FRIEND: the route simply opens (a notice says so); AUTO_FRIEND down to ASK_FRIEND: a proposal to accept or decline; below: a quiet notice with their
+##   flag, which you may tap to accept (and leave to lapse at the turn's end, which declines it). Pacts, alliances and marriages: a proposal from ASK_FRIEND up, a quiet notice below.
+##   A proposal that asks for an answer (not a quiet notice) is held back until PROMPT_GAP turns have passed since the last one.
+const OFFER_P := 0.0075
+const AUTO_FRIEND := 70
+const ASK_FRIEND := 50
+const PROMPT_GAP := 3
+
 static func ai_offer(g: TBGame, n: int) -> void:
-	if g.rules < 1 or g.human[n] != 0 or n == g.rebel or g.rng.next() > 0.015: return
+	if g.rules < 1 or g.human[n] != 0 or n == g.rebel or g.rng.next() > OFFER_P: return
 	var pers: Dictionary = D.PERSONALITIES[g.personality[n]]
 	if float(pers["dipl"]) < 0.4: return
 	for h in g.humans():
@@ -128,8 +136,15 @@ static func ai_offer(g: TBGame, n: int) -> void:
 			if _offer_valid(g, n, h, w): kinds.append(w)
 		if kinds.is_empty(): continue
 		var what: String = kinds[g.rng.randi_n(kinds.size())]
+		var f: int = TBVision.friendliness(g, h, n)                       # how warmly n regards h
+		if what == "trade" and f > AUTO_FRIEND:
+			TBTrade.set_deal(g, n, h, true); g.log.append({"turn": g.turn, "kind": "trade", "a": n, "b": h})
+			return
+		var asks: bool = f >= ASK_FRIEND
+		if asks and g.turn - g.offer_cd[h] < PROMPT_GAP: asks = false      # not another prompt so soon: it comes as a quiet notice instead
+		if asks: g.offer_cd[h] = g.turn
 		g.ev_uid += 1
-		g.pending.append({"uid": g.ev_uid, "n": h, "kind": "prop", "id": what, "from": n, "icon": "🤝", "cat": "", "count": 2})
+		g.pending.append({"uid": g.ev_uid, "n": h, "kind": "prop", "id": what, "from": n, "icon": "🤝", "cat": "", "count": 2, "soft": not asks})
 		return
 
 ## a nation that is losing a war against a human sues for white peace (hash roll: the main RNG stream is untouched)

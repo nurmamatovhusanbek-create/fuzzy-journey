@@ -646,7 +646,8 @@ func _describe(e: Dictionary) -> void:
 	var id: String = String(e["id"])
 	var pn: String = TBI18n.place(g.world.name[int(e["p"])]) if int(e["p"]) >= 0 else ""
 	var on: String = g.dname(int(e["n"])) if int(e["n"]) > 0 else ""
-	var vars := {"k": int(e["k"]), "r": "%.1f" % (int(e["k"]) / 10.0), "p": pn, "a": on}
+	var ratio: float = int(e["k"]) / 10.0
+	var vars := {"k": int(e["k"]), "r": ("%.1f" % ratio) if ratio < 10.0 else "%d" % int(round(ratio)), "p": pn, "a": on}
 	var text: String = ""
 	var long: String = ""
 	match String(e["cls"]):
@@ -657,12 +658,17 @@ func _describe(e: Dictionary) -> void:
 		"offer":
 			text = T.call("tk_offer_" + id, vars)
 			long = T.call("prop_" + id, vars) if TBI18n.has_key("prop_" + id) else text
+			if bool(e.get("soft", false)):                                                     # a quiet notice: their flag, tap to accept, cross to decline
+				e["tex"] = TBFlags.medal_of(g, int(e["n"]))
+				long += "\n" + T.call("tk_soft_hint")
 		"event":
 			text = T.call("tk_event", {"t": _event_title(int(e["uid"]), id)})
 			long = text
 		_:
 			var key: String = "tk_" + id
+			if int(e["n"]) > 0: e["tex"] = TBFlags.medal_of(g, int(e["n"]))            # a notice about a country carries its flag
 			if id == "unrest": key = "tk_unrest_1" if int(e["k"]) <= 1 else "tk_unrest_n"
+			elif int(e["k"]) == 1 and TBI18n.has_key("tk_%s_1" % id): key = "tk_%s_1" % id
 			elif id == "attrition": key = "tk_attrition_1" if int(e["k"]) <= 1 else "tk_attrition_n"
 			text = T.call(key, vars)
 			long = T.call("al_" + id, vars)
@@ -1170,7 +1176,8 @@ func _sync_seal() -> void:
 		var offers: int = 0; var events: int = 0
 		for e in g.pending:
 			if int(e["n"]) != g.human_id: continue
-			if String(e["kind"]) == "prop": offers += 1
+			if String(e["kind"]) == "prop":
+				if not bool(e.get("soft", false)): offers += 1          # a quiet notice does not hold up the turn
 			else: events += 1
 		_seal.caption = T.call("tk_end_anyway") if confirm_mode != "always" or offers + events > 0 else T.call("tk_confirm")
 		if offers + events == 0: _seal.sub = T.call("tk_confirm_sub")

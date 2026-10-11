@@ -46,10 +46,12 @@ func _lab(tok: String, f: Font, size: int = 14) -> Label:
 	var l := CC.label("", size, tok, f)
 	return l
 
-func show_for(g: TBGame, p: int, flow: TBOrderFlow) -> void:
+## `country_level`: zoomed out, another country's land is only a country: its flag, name and relation, no district name, army or terrain (those come when you zoom in)
+func show_for(g: TBGame, p: int, flow: TBOrderFlow, country_level: bool = false) -> void:
 	var o := g.owner[p]
 	var me := g.human_id
-	_name.text = TBKit._cap(TBI18n.place(g.world.name[p]))
+	country_level = country_level and o != 0 and o != me
+	_name.text = TBKit._cap(g.dname(o) if country_level else TBI18n.place(g.world.name[p]))
 	_flag.visible = o != 0
 	if o != 0: _flag.texture = TBFlags.texture(g.nat_code[o], g.color[o])
 	_glyph_id = ""; _glyph_tok = "foreign_bar"
@@ -63,6 +65,18 @@ func show_for(g: TBGame, p: int, flow: TBOrderFlow) -> void:
 		elif r == D.REL_ALLY or r == D.REL_NAP: _glyph_id = "link"; _glyph_tok = "info_bar"
 	_rel_glyph.visible = _glyph_id != ""
 	_rel_glyph.queue_redraw()
+	if country_level:
+		var r2 := g.get_rel(me, o)
+		var words2 := ["rel_peace", "cc_tag_war", "rel_nap", "rel_ally", "rel_marriage"]
+		_rel.text = T.call(words2[clampi(r2, 0, 4)])
+		_army.visible = false; _lens.visible = false; _note.visible = false
+		if not visible and TBKit.motion_ok():
+			modulate.a = 0.0
+			create_tween().tween_property(self, "modulate:a", 1.0, 0.1)
+		visible = true
+		reset_size()
+		return
+	_army.visible = true
 	var seen: bool = TBVision.sees(g, p)                                  # an army out of sight is not shown (fog of war, rules >= 1)
 	_army.text = "%s · %s" % [(T.call("army") + " " + TBKit.fmt(g.army[p])) if seen else T.call("army_unknown"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]
 	var lt: String = flow.map.lenses.describe(p) if (flow != null and flow.map != null and flow.map.lenses != null) else ""

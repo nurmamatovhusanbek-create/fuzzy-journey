@@ -1050,7 +1050,7 @@ class Seg extends PanelContainer:
 			for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]: b.add_theme_color_override(fc, tc)
 			b.on = on
 			b.set_pressed_no_signal(false)
-			b.tooltip_text = b.text if on else ""
+			b.tooltip_text = ""                                              # a tab says its own name: no tooltip repeating it
 			b.queue_redraw()
 
 static func seg(items: Array, current: String, cb: Callable) -> Seg:

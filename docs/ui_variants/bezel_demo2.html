@@ -459,7 +459,7 @@ function layout(){const vw=innerWidth,vh=innerHeight;const phone=vh<560&&vw<1300
  $('#rot').style.display=(phone&&vw<vh)?'grid':'none';
  L={phone,W,H,sc,m:phone?8:28};
  if(phone){Object.assign(L,{med:25,gr:15,gsz:56,railD:40,railStep:49,railY:70,railX:12,chr:38,mmR:0,tunW:380,panelX:60,panelY:8,panelH:H-16,alertW:330,ringS:.66,pw:W-68})}
- else{Object.assign(L,{med:46,gr:30,gsz:84,railD:52,railStep:78,railY:210,railX:28,chr:74,mmR:74,tunW:560,panelX:340,panelY:150,panelH:H-150-36,alertW:400,ringS:1,pw:0})}
+ else{Object.assign(L,{med:46,gr:30,gsz:84,railD:52,railStep:78,railY:210,railX:28,chr:60,mmR:74,tunW:560,panelX:340,panelY:150,panelH:H-150-36,alertW:400,ringS:1,pw:0})}
  L.axis=L.m+Math.max(L.med,L.mmR,L.railD/2);svg.setAttribute('width',W);svg.setAttribute('height',H);svg.style.width=W+'px';svg.style.height=H+'px';
  cam.ms=cam.ms||(phone?.95:H/1080*1.08);cam.fit=phone?.95:H/1080*1.08;applyCam()}
 const cam={cx:880,cy:520,ms:0,fit:1};

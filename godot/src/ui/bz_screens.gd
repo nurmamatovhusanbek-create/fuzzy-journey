@@ -87,7 +87,8 @@ class GoalCard extends PanelContainer:
 		var sb := StyleBoxEmpty.new(); for s in ["left", "right", "top", "bottom"]: sb.set("content_margin_" + s, 12.0)
 		add_theme_stylebox_override("panel", sb)
 		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 12); hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(hb)
-		var m := Medal.new(frac); hb.add_child(m)
+		var m := TBBzParts.Gauge.new(27.0, "%d%%" % int(roundf(frac * 100.0)), "", frac, TBTokens.BZ_GOOD if frac >= 1.0 else TBTokens.c("brass"))       # the HUD's gauge: its figure sits in the middle of the ring
+		hb.add_child(m)
 		var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; v.size_flags_vertical = Control.SIZE_SHRINK_CENTER; v.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_child(v)
 		var t := K.title(title, 13, Color.TRANSPARENT, 0.07, 12.5 * 1.25); (t as TBBz.TLabel).px = 12.5; (t as TBBz.TLabel).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; (t as TBBz.TLabel).refit()
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL; t.custom_minimum_size.x = 40; v.add_child(t)

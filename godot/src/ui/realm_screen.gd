@@ -1,5 +1,5 @@
 ## The Realm page: what the crest (your flag, top left) opens. Your own country as a ledger: standing, treasury and taxes, the court, treaties and wars.
-## A movable window like the others; the rows that name a country open that country's card, the buttons go to Budget / Decrees / Council.
+## A movable window like the others; the rows that name a country open that country's card.
 class_name TBRealmScreen
 extends RefCounted
 
@@ -14,11 +14,41 @@ static func _pad(c: Control, top: float = 0.0, bottom: float = 0.0) -> Control:
 	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", int(top)); m.add_theme_constant_override("margin_bottom", int(bottom))
 	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL; m.add_child(c); return m
 
-## opts: on_nation(n), on_screen(id: "budget" | "decrees" | "council")
+## The countries `n` has dealings with, group by group (allies, marriages, pacts, wars, vassals, trade partners, overlord): a flag-and-name button each, as in the Nations tab.
+## `cap` > 0 shows that many per group and a "+N" chip for the rest. Returns whether any group was added.
+static func add_relations(v: VBoxContainer, g: TBGame, n: int, on_nation: Callable, cap: int = 0) -> bool:
+	var groups: Array = []
+	for grp in [[T.call("allies"), 3], [T.call("rel_marriage"), 4], [T.call("rel_nap"), 2], [T.call("at_war_with"), 1]]:
+		var arr: Array = []
+		for o in range(1, g.N1):
+			if g.alive[o] == 0 or o == n or o == g.rebel: continue
+			if g.get_rel(n, o) == int(grp[1]): arr.append(o)
+		groups.append([String(grp[0]), arr])
+	var vassals: Array = []; var trade_p: Array = []
+	for o in range(1, g.N1):
+		if g.alive[o] == 0 or o == n or o == g.rebel: continue
+		if g.overlord[o] == n: vassals.append(o)
+		if g.rules >= 1 and TBTrade.has(g, n, o): trade_p.append(o)
+	groups.append([T.call("vassals"), vassals]); groups.append([T.call("trade_partners"), trade_p])
+	if g.overlord[n] != 0: groups.append([T.call("overlord"), [g.overlord[n]]])
+	var any := false
+	for grp in groups:
+		var arr2: Array = grp[1]
+		if arr2.is_empty(): continue
+		any = true
+		v.add_child(_cap(String(grp[0]), 14.0, 6.0))
+		var fw := TBPanel.flow(6); v.add_child(fw)
+		var shown: int = arr2.size() if cap <= 0 else mini(cap, arr2.size())
+		for i in shown:
+			var oo: int = arr2[i]
+			fw.add_child(TBPanel.nation_button(g, oo, func(): if on_nation.is_valid(): on_nation.call(oo)))
+		if arr2.size() > shown: fw.add_child(K.chip("+%d" % (arr2.size() - shown), "", "neutral"))
+	return any
+
+## opts: on_nation(n)
 static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.Handle:
 	var me: int = g.human_id
 	var on_nation: Callable = opts.get("on_nation", Callable())
-	var on_screen: Callable = opts.get("on_screen", Callable())
 	var sub: String = (T.call(TBRulers.title_key(g, me)) + " " + TBRulers.display_name(g, me)) if (g.rules >= 1 and g.r_name[me] != "") else T.call("era_name_%d" % g.era[me])
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, g.dname(me), "crown", {"w": 760, "h": 900, "sub": sub, "key": "realm"})
 	var body: VBoxContainer = h.body
@@ -77,50 +107,9 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		court.append([T.call("infamy"), "%.0f%s" % [g.infamy[me], ("  " + T.call("coalition")) if g.coalition[me] != 0 else ""], -1 if g.infamy[me] >= 12.0 else 0])
 	body.add_child(_cap(T.call("realm_court"), 14.0, 6.0))
 	body.add_child(K.fxl(court, 2))
-	# ---- treaties and wars: a country per button, opening its card
-	var groups: Array = [[T.call("allies"), 3], [T.call("rel_marriage"), 4], [T.call("rel_nap"), 2], [T.call("at_war_with"), 1]]
-	var any_rel := false
-	for grp in groups:
-		var arr: Array = []
-		for o in range(1, g.N1):
-			if g.alive[o] == 0 or o == me or o == g.rebel: continue
-			if g.get_rel(me, o) == int(grp[1]): arr.append(o)
-		if arr.is_empty(): continue
-		any_rel = true
-		body.add_child(_cap(String(grp[0]), 14.0, 6.0))
-		var fw := TBPanel.flow(6); body.add_child(fw)
-		for o in arr:
-			var oo: int = o
-			fw.add_child(TBPanel.nation_button(g, oo, func(): if on_nation.is_valid(): on_nation.call(oo)))
-	var vassals: Array = []; var trade_p: Array = []
-	for o in range(1, g.N1):
-		if g.alive[o] == 0 or o == me or o == g.rebel: continue
-		if g.overlord[o] == me: vassals.append(o)
-		if g.rules >= 1 and TBTrade.has(g, me, o): trade_p.append(o)
-	for grp2 in [[T.call("vassals"), vassals], [T.call("trade_partners"), trade_p]]:
-		var arr2: Array = grp2[1]
-		if arr2.is_empty(): continue
-		any_rel = true
-		body.add_child(_cap(String(grp2[0]), 14.0, 6.0))
-		var fw2 := TBPanel.flow(6); body.add_child(fw2)
-		for o2 in arr2:
-			var o3: int = o2
-			fw2.add_child(TBPanel.nation_button(g, o3, func(): if on_nation.is_valid(): on_nation.call(o3)))
-	if g.overlord[me] != 0:
-		any_rel = true
-		body.add_child(_cap(T.call("overlord"), 14.0, 6.0))
-		var fw3 := TBPanel.flow(6); body.add_child(fw3)
-		var ov: int = g.overlord[me]
-		fw3.add_child(TBPanel.nation_button(g, ov, func(): if on_nation.is_valid(): on_nation.call(ov)))
+	# ---- treaties and wars: a country per button (flag and name), opening its card
+	var any_rel := add_relations(body, g, me, on_nation, 0)
 	if not any_rel:
 		body.add_child(_cap(T.call("realm_treaties"), 14.0, 6.0))
 		body.add_child(K.para_bz(T.call("realm_no_treaties"), 16.0, 1.3))
-	# ---- where to go from here
-	var go := K.hbox(8); go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for sc in [["budget", T.call("budget"), "treasury"], ["decrees", T.call("dk_decisions"), "decrees"], ["council", T.call("realm_council"), "council"]]:
-		var sid: String = sc[0]
-		var b: Button = K.button(String(sc[1]), func(): if on_screen.is_valid(): on_screen.call(sid), false, false, String(sc[2]))
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		go.add_child(b)
-	body.add_child(_pad(go, 18.0, 0.0))
 	return h

@@ -133,7 +133,11 @@ static func shake(ctrl: Control, px: float = 4.0) -> void:
 static func a11y(ctrl: Control, accessible_name: String, role: String = "", desc: String = "") -> void:
 	var tip: String = accessible_name if desc == "" else "%s. %s" % [accessible_name, desc]
 	var prev: Variant = ctrl.get_meta("a11y") if ctrl.has_meta("a11y") else null
-	if ctrl.tooltip_text == "" or (prev is Dictionary and String((prev as Dictionary).get("tip", "")) == ctrl.tooltip_text): ctrl.tooltip_text = tip
+	# a tooltip that only repeats what the control already says (a button with its own text, a lens tab) adds nothing: the name is kept for screen readers, not shown
+	var says_so: bool = (ctrl is BaseButton and String(ctrl.get("text")) != "") or ctrl.has_meta("no_tip")
+	if says_so:
+		if prev is Dictionary and String((prev as Dictionary).get("tip", "")) == ctrl.tooltip_text: ctrl.tooltip_text = ""
+	elif ctrl.tooltip_text == "" or (prev is Dictionary and String((prev as Dictionary).get("tip", "")) == ctrl.tooltip_text): ctrl.tooltip_text = tip
 	ctrl.set_meta("a11y", {"name": accessible_name, "role": role, "desc": desc, "tip": tip})
 
 ## what a control says when it receives focus: "Name, role, state"
@@ -1210,7 +1214,7 @@ class Segmented extends Container:
 			var tc: Color = TBTokens.c("ink_0")
 			for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]: b.add_theme_color_override(fc, tc)
 			b.set_pressed_no_signal(false)
-			b.tooltip_text = b.text if on else ""
+			b.tooltip_text = ""                                              # a tab says its own name: no tooltip repeating it
 			TBKit.a11y(b, b.text, "option", TBI18n.T("a11y_selected") if on else "")
 			b.queue_redraw()
 

@@ -24,13 +24,25 @@ func set_game(game: TBGame) -> void:
 
 var _sig := 0
 var _anim := false
+var _hits: Array = []                     # [{kind, runs}] the lines drawn last frame (Routes lens), for picking one with the pointer
+
+## the kind of the route line nearest to `pos` (control-local px) within a few px, or ""
+func pick_route(pos: Vector2) -> String:
+	var best := 9.0; var kind := ""
+	for h in _hits:
+		for r in (h["runs"] as Array):
+			var run: PackedVector2Array = r
+			for i in run.size() - 1:
+				var d: float = Geometry2D.get_closest_point_to_segment(pos, run[i], run[i + 1]).distance_to(pos)
+				if d < best: best = d; kind = String(h["kind"])
+	return kind
 
 func _process(d: float) -> void:
 	if g == null or not is_visible_in_tree() or g.human_id <= 0: return
 	_t += d
 	for k in _seen.keys(): _seen[k] = float(_seen[k]) + d
 	# a new pact, trade deal or war shows up at once (it used to wait for the camera to move), the camera moves the lines, and while a line grows in or a load travels it keeps drawing
-	var sig: int = hash([hash(g.rel), hash(g.trade), g.human_id, map.lon0, map.lat0, map.zoom, map.size, map.mode, g.turn, map.lenses.mode, _march_sig()])
+	var sig: int = hash([hash(g.rel), hash(g.trade), g.human_id, map.lon0, map.lat0, map.zoom, map.size, map.mode, g.turn, map.lenses.mode, map.lenses.route_kind, _march_sig()])
 	if sig != _sig: _sig = sig; queue_redraw()
 	elif _anim and K.motion_ok(): queue_redraw()                     # only a line growing in or a trade load on its way needs frames; a still route is not redrawn
 
@@ -102,8 +114,8 @@ func _draw_marches() -> void:
 	if _mpath.size() > 64: _mpath.clear()
 	var atlas: bool = map.atlas_look()
 	var col: Color = TBTokens.c("brass_lt")
-	var halo: Color = Color(0, 0, 0, 0) if atlas else TBTokens.with_a(TBTokens.HALO, 0.7)
-	if atlas: col.a = 0.9
+	var halo: Color = Color(0, 0, 0, 0)                                             # no dark casing under an army's route: one thin brass line
+	col.a = 0.9
 	for m in g.marches:
 		if int(m["n"]) != g.human_id: continue
 		var way := _march_way(m)
@@ -143,7 +155,7 @@ func _draw() -> void:
 	var a: Array = _cap(me)
 	if a.is_empty(): return
 	var alive_keys: Dictionary = {}
-	_live = 0; _anim = false
+	_live = 0; _anim = false; _hits.clear()
 	for o in range(1, g.N1):
 		if o == me or g.alive[o] == 0 or o == g.rebel: continue
 		var b: Array = _cap(o)
@@ -174,6 +186,8 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 		"nap": w = 1.8
 		"marry": w = 2.2
 	var halo: Color = TBTokens.with_a(TBTokens.HALO, 0.7)
+	var picked: String = map.lenses.route_kind
+	var recede: bool = picked != "" and picked != kind                            # another kind of route is picked: this one fades
 	if atlas:                                                                    # the demo's route group: no casing; pact #E5C77A 2.2 .9, trade #69B3A2 1.8 dashed "3 6" .9, war #D2603F 2 dotted "2 7" .85
 		halo = Color(0, 0, 0, 0)
 		match kind:
@@ -183,6 +197,8 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 			"nap": col.a = 0.9; w = 2.2
 			"marry": col.a = 0.9; w = 2.2
 			_: col.a = 0.9; w = 2.2
+	if recede: col.a *= 0.22; halo.a = 0.0
+	elif picked == kind: w += 1.2
 	var last: int = int(round(SEG * grow))
 	var run: PackedVector2Array = PackedVector2Array()
 	var runs: Array = []
@@ -195,6 +211,7 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 		elif run.size() > 1: runs.append(run); run = PackedVector2Array()
 		else: run = PackedVector2Array()
 	if run.size() > 1: runs.append(run)
+	_hits.append({"kind": kind, "runs": runs})
 	for r in runs:
 		var rr: PackedVector2Array = r
 		match kind:

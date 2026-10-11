@@ -248,6 +248,17 @@ func _two_lines(txt: String) -> PackedStringArray:
 ## nation names (Cinzel 700 cream, 2 px halo, never faded, own realm in the heavier face): bigger nations get bigger text; a name that
 ## collides with a marker, a HUD panel, the order arrow or a higher-priority name slides along the nation's axis, wraps to two lines,
 ## drops to its first word, and is dropped only when none of that fits.
+## armies are drawn in the lenses about armies (the plain political map, Military, Wars); every other lens is about something else and keeps them off the map
+const ARMY_LENSES := ["political", "military", "wars"]
+func armies_shown() -> bool: return map.lenses == null or ARMY_LENSES.has(map.lenses.mode)
+## in the Routes lens only the countries a route leads to carry a name, and nothing else is lettered
+func _routes_lens() -> bool: return map.lenses != null and map.lenses.mode == "routes"
+func _on_a_route(n: int) -> bool:
+	var me := g.human_id
+	if n == me: return true
+	if map.lenses.route_kind != "": return map.lenses.route_lit(n)                  # a picked kind: only its countries
+	return g.get_rel(me, n) != 0 or (g.rules >= 1 and TBTrade.has(g, me, n))
+
 func _draw_nation_names() -> void:
 	_nl_rects.clear()
 	phone = map.size.y < 560.0
@@ -261,8 +272,9 @@ func _draw_nation_names() -> void:
 	_rebuild_cores()
 	var cnt := _core_n
 	var order: Array = []
+	var routes_only := _routes_lens() and g.human_id != 0
 	for n in range(1, N1):
-		if cnt[n] >= 3 and g.alive[n] != 0 and n != g.rebel: order.append(n)
+		if cnt[n] >= 3 and g.alive[n] != 0 and n != g.rebel and (not routes_only or _on_a_route(n)): order.append(n)
 	order.sort_custom(func(a, b): return (a == g.human_id) or (b != g.human_id and cnt[a] > cnt[b]))      # your own realm is placed first
 	var shown := 0
 	var cream := tk("cream"); var halo := tk("table")
@@ -566,11 +578,13 @@ func _draw_layout() -> void:
 		# ---- candidates: (province, x, y, priority, limb factor, army, wants a marker)
 	var vis: Array = []
 	TBVision.sync(g)                                                    # fog of war: a foreign army out of sight gets no marker
+	var army_lens: bool = armies_shown()
+	var routes_lens: bool = _routes_lens()
 	for p in g.P:
 		var o := g.owner[p]
 		if o == 0: continue
 		var a := g.army[p]
-		if a > 0 and o != me and not TBVision.sees_fast(g, p): a = 0
+		if a > 0 and (not army_lens or (o != me and not TBVision.sees_fast(g, p))): a = 0
 		var cap := g.capital[p] != 0
 		var rel := g.get_rel(me, o) if o != me else -1
 		var war := rel == 1
@@ -580,7 +594,8 @@ func _draw_layout() -> void:
 				0: want = false
 				1: want = o == me or war or rel == 3 or p == sel or p == hov
 				_: want = true
-		var ring := cap and (o == me or ztier >= 2 or p == sel)
+		var ring := cap and (o == me or ztier >= 2 or p == sel or routes_lens)
+		if routes_lens and ring: ring = _on_a_route(o)                  # Routes lens: the capitals the lines run between are marked, nothing else
 		if not want and not ring: continue
 		var pr := _screen(p, c0, s0, sl, cl, R, cx, cy)
 		var limb := 1.0
@@ -1046,44 +1061,33 @@ func _draw_order() -> void:
 		draw_string(f, r.position + Vector2(5.0, f.get_ascent(fs) + 3.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tk("table"))
 		_order_box = _order_box.merge(r.grow(6.0))
 
-## the demo's order arrow: a #05070a casing 9 wide at .6, a #E5C77A core 4 wide dotted "1 9" with round caps (the dots crawl 28 px/s) and a notched head
-## (M0 0 L-16 -8 L-12 0 L-16 8 Z, gold with a 1.5 ink edge). A committed (not dashed) order draws the core solid.
+## the order arrow, in the language of the map's routes: one thin brass line (a committed order solid, a preview dashed 3 on / 6 off, the dashes crawling) with an open
+## chevron for a head and no dark casing; an attack marks its target with a thin ring. (It was the demo's 9 wide black casing round a 4 wide dotted core and a solid head.)
 func _draw_arrow_bezel(k: int, tip: Vector2, d1: Vector2, attack: bool, dashed: bool, alpha: float) -> void:
-	var casing := Color(0.0196, 0.0275, 0.0392, 0.6 * alpha)
-	var gold := Color(0.898, 0.78, 0.478, alpha)
+	var col := Color(0.898, 0.78, 0.478, 0.95 * alpha)
 	var side := Vector2(-d1.y, d1.x)
 	if k >= 2:
 		_cut.resize(k)
-		draw_polyline(_cut, casing, 9.0, true)
-		draw_circle(_cut[0], 4.5, casing); draw_circle(_cut[k - 1], 4.5, casing)
 		if not dashed:
-			draw_polyline(_cut, gold, 4.0, true)
-			draw_circle(_cut[0], 2.0, gold); draw_circle(_cut[k - 1], 2.0, gold)
+			draw_polyline(_cut, col, 2.0, true)
 		else:
-			var off := 0.0 if not TBKit.motion_ok() else fmod(Time.get_ticks_msec() / 1000.0 * (40.0 / 1.4), 10.0)
-			var run := -off
+			var run := -(0.0 if not TBKit.motion_ok() else fmod(Time.get_ticks_msec() / 1000.0 * 20.0, 9.0))
 			for i in range(1, k):
 				var a := _cut[i - 1]; var b := _cut[i]
 				var sl := a.distance_to(b)
 				if sl < 0.01: continue
 				var dir := (b - a) / sl
-				var s := fposmod(-run, 10.0)
+				var s := fposmod(-run, 9.0) - 9.0
 				while s < sl:
-					draw_circle(a + dir * s, 2.0, gold)
-					s += 10.0
+					var s0 := maxf(0.0, s); var s1 := minf(sl, s + 3.0)
+					if s1 > s0: draw_line(a + dir * s0, a + dir * s1, col, 2.0, true)
+					s += 9.0
 				run += sl
-	var hp := PackedVector2Array([tip, tip - d1 * 16.0 + side * 8.0, tip - d1 * 12.0, tip - d1 * 16.0 - side * 8.0])
-	draw_colored_polygon(hp, gold)
-	var hl := hp.duplicate(); hl.append(hp[0])
-	draw_polyline(hl, Color(0.0196, 0.0275, 0.0392, alpha), 1.5, true)
-	if attack:                                                          # the target marked: ring r 20 and a dotted ring r 28 (the demo's attack preview)
+	_chev[0] = tip - d1 * 11.0 + side * 6.0; _chev[1] = tip; _chev[2] = tip - d1 * 11.0 - side * 6.0
+	draw_polyline(_chev, col, 2.0, true)
+	if attack:                                                          # the target marked with a thin ring
 		var c := _ring_tgt if _ring_tgt != Vector2.INF else tip + d1 * 22.0
-		draw_arc(c, 20.0, 0.0, TAU, 40, gold, 2.0, true)
-		var r := 28.0
-		var n := int(TAU * r / 6.0)
-		for i in n:
-			var a2 := TAU * float(i) / float(n)
-			draw_arc(c, r, a2, a2 + 2.0 / r, 2, Color(0.898, 0.78, 0.478, alpha), 0.8, true)
+		draw_arc(c, 19.0, 0.0, TAU, 40, col, 1.4, true)
 
 ## arrow body = _cut[0..k) (casing 2 px each side under a 4 px core), then the head at tip pointing along dir
 func _draw_arrow_cut(k: int, tip: Vector2, d1: Vector2, attack: bool, dashed: bool, alpha: float, phase: float) -> void:

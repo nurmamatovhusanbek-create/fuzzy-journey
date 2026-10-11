@@ -81,15 +81,15 @@ func _ready() -> void:
 		if not cfg.get("seal_seen", false): cfg["seal_seen"] = true; _save_cfg(); hud.set_seal_pulse(false))
 	hud.tapped.connect(func(): sfx.play("tap"))
 	hud.lens_selected.connect(func(n): map.set_lens(n); hud.set_lens_legend(n))
-	hud.nations_pressed.connect(func(): _open_nations())
-	hud.goals_pressed.connect(func(): _open_council("goals"))
-	hud.decisions_pressed.connect(func(): _open_decisions())
-	hud.chronicle_pressed.connect(func(): _open_annals())
-	hud.advisor_pressed.connect(func(): _open_council("advice"))
+	hud.nations_pressed.connect(func(): if not _toggle_window("nations"): _open_nations())
+	hud.goals_pressed.connect(func(): if not _toggle_window("council"): _open_council("goals"))
+	hud.decisions_pressed.connect(func(): if not _toggle_window("decrees"): _open_decisions())
+	hud.chronicle_pressed.connect(func(): if not _toggle_window("annals"): _open_annals())
+	hud.advisor_pressed.connect(func(): if not _toggle_window("council"): _open_council("advice"))
 	hud.wars_pressed.connect(func(): _open_nations(-1, "war"))
 	panel.nation_requested.connect(_open_nation)
 	panel.terms_requested.connect(func(e: int): TBTermsScreen.open(_overlay, g, e, {"on_cmd": func(c: Dictionary): _on_command(c, false)}))
-	hud.budget_pressed.connect(func(): _open_budget())
+	hud.budget_pressed.connect(func(): if not _toggle_window("treasury"): _open_budget())
 	hud.save_pressed.connect(func(): _open_menu_hub("saves"))
 	hud.settings_pressed.connect(func(): _open_menu_hub("settings"))
 	hud.exit_pressed.connect(show_menu)
@@ -97,7 +97,7 @@ func _ready() -> void:
 	hud.mp_waiting_fn = func() -> bool: return mp.in_game
 	hud.goto_province.connect(_goto_province)
 	hud.nation_pressed.connect(_open_nation)
-	hud.realm_pressed.connect(_open_realm_page)
+	hud.realm_pressed.connect(func(): if not _toggle_window("realm"): _open_realm_page())
 	hud.offer_answered.connect(func(uid: int, i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}))
 	hud.event_requested.connect(func(uid: int): _shown_events.erase(uid); show_events())
 	panel.band_fn = hud.card_band; panel.reserve_fn = hud.bottom_reserve; panel.confirm_fn = func() -> String: return _confirm_mode()
@@ -166,6 +166,15 @@ func _modal_open() -> bool:
 	return false
 
 ## the open Nations window (a non-modal window whose screen key is "nations"), or null
+## a rail tab pressed while its window is open closes it (the same press opens and closes); true when it closed one
+func _toggle_window(key: String) -> bool:
+	for c in _overlay.get_children():
+		if c.is_queued_for_deletion() or not c.has_meta("tb_handle"): continue
+		var h: TBPanel.Handle = c.get_meta("tb_handle")
+		if h.mem_key == key and h.is_open():
+			h.close(); return true
+	return false
+
 func _nations_window() -> TBPanel.Handle:
 	for c in _overlay.get_children():
 		if c.is_queued_for_deletion() or not c.has_meta("tb_handle"): continue
@@ -356,13 +365,23 @@ func _title_restore() -> void:
 # ================================================================================================================================
 func _open_nations(select: int = -1, filter: String = "", tab: String = "") -> void:
 	if g == null: return
-	var o := {"on_cmd": _on_command, "on_goto": _goto_nation}
+	var o := {"on_cmd": _on_command, "on_goto": _goto_nation, "on_fly": _fly_to_nation}
 	if select > 0: o["select"] = select
 	if filter != "": o["filter"] = filter
 	if tab != "": o["tab"] = tab
 	TBModals.nations_screen(_overlay, g, o)
 
-func _open_nation(n: int) -> void: _open_nations(n)
+func _open_nation(n: int) -> void:
+	_open_nations(n)
+	_fly_to_nation(n)
+
+## a country's name was pressed (a list, a card, a notice): the map turns to it and lights its border, without picking a district
+func _fly_to_nation(n: int) -> void:
+	if g == null or n <= 0 or n >= g.N1 or mode != "game": return
+	var cp: int = g.capital_of[n]
+	if cp < 0: return
+	map.outline_nation(n)
+	map.fly_to(world.lon[cp], world.lat[cp])
 
 func _open_council(tab: String = "") -> void:
 	if g != null: TBModals.council(_overlay, g, _goto_province, tab, _open_screen)
@@ -379,7 +398,7 @@ func _open_dossier(p: int) -> void:
 
 ## the crest: your own country's page (standing, treasury, court, treaties)
 func _open_realm_page() -> void:
-	if g != null: TBRealmScreen.open(_overlay, g, {"on_nation": _open_nation, "on_screen": func(id: String): if id == "council": _open_council() else: _open_screen(id)})
+	if g != null: TBRealmScreen.open(_overlay, g, {"on_nation": _open_nation})
 
 func _open_budget() -> void:
 	if g != null: TBModals.budget(_overlay, g, func(): hud.refresh())
@@ -595,7 +614,7 @@ func _on_peek(p: int) -> void:
 		if tip != null: tip.visible = false
 		return
 	flow.g = g
-	tip.show_for(g, p, flow)
+	tip.show_for(g, p, flow, flow.mode == TBOrderFlow.Mode.IDLE and not map.district_zoom())
 	tip.position = (get_local_mouse_position() + Vector2(-tip.size.x * 0.5, -tip.size.y - 40.0)).clamp(Vector2.ZERO, size - tip.size)
 
 ## desktop-only hover card (dark plate): flag + place, owner and relation, army and terrain, and in an armed state the attack outcome
@@ -606,7 +625,7 @@ func _on_hover(p: int) -> void:
 		return
 	flow.g = g
 	flow.hover(p)
-	tip.show_for(g, p, flow)
+	tip.show_for(g, p, flow, flow.mode == TBOrderFlow.Mode.IDLE and not map.district_zoom())
 	_place_tip()
 
 func _place_tip() -> void:
@@ -656,7 +675,13 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		else:
 			var key := "err_" + String(res["err"])
 			hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
-	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop", "hire", "recruit"]:
+	elif String(cmd.get("cmd", "")) in ["hire", "recruit"]:                          # the men stand in the district where they were raised: say which, ready to be marched where you need them
+		sfx.play("coin")
+		var rp: int = int(cmd.get("p", -1))
+		if rp >= 0 and rp < g.P:
+			hud.toast(T.call("recruit_done", {"k": int(cmd.get("amount", 15)), "p": TBI18n.place(g.world.name[rp])}))
+			map.labels.add_fx("cap", rp, rp, TBTokens.c("pos_bar"))
+	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop"]:
 		sfx.play("coin")
 	elif String(cmd.get("cmd", "")) == "ask":
 		hud.toast(T.call("ask_sent", {"a": g.dname(int(cmd["t"]))}))
