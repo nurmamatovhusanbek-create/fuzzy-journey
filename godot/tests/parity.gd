@@ -36,6 +36,7 @@ func _init() -> void:
 				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": au5, "what": "nap", "op": "", "ok": false})
 				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": sp3, "what": "ally", "op": "", "ok": true})
 				main.hud.refresh()
+			"realm": main._open_realm_page()
 			"budget": main._open_budget()
 			"decrees": main._open_decisions()
 			"council":

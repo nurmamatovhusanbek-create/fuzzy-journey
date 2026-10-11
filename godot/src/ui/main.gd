@@ -94,6 +94,7 @@ func _ready() -> void:
 	hud.mp_waiting_fn = func() -> bool: return mp.in_game
 	hud.goto_province.connect(_goto_province)
 	hud.nation_pressed.connect(_open_nation)
+	hud.realm_pressed.connect(_open_realm_page)
 	hud.offer_answered.connect(func(uid: int, i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}))
 	hud.event_requested.connect(func(uid: int): _shown_events.erase(uid); show_events())
 	panel.band_fn = hud.card_band; panel.reserve_fn = hud.bottom_reserve; panel.confirm_fn = func() -> String: return _confirm_mode()
@@ -356,6 +357,10 @@ func _open_screen(k: String) -> void:
 
 func _open_dossier(p: int) -> void:
 	if g != null: TBDossier.open(_overlay, g, p, func(c: Dictionary): _on_command(c, false))
+
+## the crest: your own country's page (standing, treasury, court, treaties)
+func _open_realm_page() -> void:
+	if g != null: TBRealmScreen.open(_overlay, g, {"on_nation": _open_nation, "on_screen": func(id: String): if id == "council": _open_council() else: _open_screen(id)})
 
 func _open_budget() -> void:
 	if g != null: TBModals.budget(_overlay, g, func(): hud.refresh())

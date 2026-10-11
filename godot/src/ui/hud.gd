@@ -19,6 +19,7 @@ signal tapped
 signal goto_province(p: int)
 ## open the nation card of n
 signal nation_pressed(n: int)
+signal realm_pressed                       ## the crest (your flag): your own country's page
 ## inline answer on an offer chip: choice 0 = accept / yield, 1 = decline / defy (send as an eventChoice command)
 signal offer_answered(uid: int, choice: int)
 ## a deferred event chip was tapped: show its prompt again
@@ -1029,7 +1030,7 @@ func _open_menu(anchor: Control, only_more: bool) -> void:
 func _open_realm() -> void:
 	if g == null: return
 	tapped.emit()
-	nation_pressed.emit(g.human_id)
+	realm_pressed.emit()
 
 ## kept API: nothing to close any more (the realm panel is gone)
 func close_realm() -> bool: return false
