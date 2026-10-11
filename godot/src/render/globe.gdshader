@@ -529,6 +529,7 @@ void fragment() {
 		}
 		if (atlas == 1) {
 			if (!atlas_done) {                                                                         // low tiers: plain ink lines
+				col = mix(col, vec3(0.0), clamp(1.1 - e_prov, 0.0, 1.0) * 0.55 * clamp((1.6 - tpp) / 0.8, 0.0, 1.0));   // province lines (medium): rgba(0,0,0,.55) like the high tier
 				col = mix(col, vec3(0.039, 0.051, 0.071), clamp(1.3 - e_nat, 0.0, 1.0));
 				col = mix(col, vec3(0.039, 0.051, 0.071), clamp(1.3 - e_coast, 0.0, 1.0));
 				col = mix(col, vec3(0.824, 0.376, 0.247), clamp(1.3 - e_war, 0.0, 1.0));
