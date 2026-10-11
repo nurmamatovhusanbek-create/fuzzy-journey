@@ -98,6 +98,7 @@ var _busy_turn: int = 0
 var _hint_gen: int = 0
 var _entries: Array = []
 var _announced: Dictionary = {}
+var _ans_gone: Dictionary = {}                        ## courts' answers the player tapped away (they stay until then)
 var _rep: Array = []
 var _rep_gen: int = 0
 
@@ -163,6 +164,7 @@ func build() -> void:
 	_ticker.activated.connect(_on_alert); _ticker.answered.connect(func(uid: int, c: int): tapped.emit(); offer_answered.emit(uid, c))
 	_ticker.overflow_pressed.connect(_open_drawer); _ticker.report_pressed.connect(func(): tapped.emit(); chronicle_pressed.emit())
 	_ticker.tip_requested.connect(_tip_show); _ticker.tip_hidden.connect(_tip_hide)
+	_ticker.answer_dismissed.connect(func(k: String): _ans_gone[k] = true; refresh())
 	add_child(_ticker)
 	_legend = P.Legend.new(); add_child(_legend)
 	_strip = P.SeatStrip.new(); _strip.visible = false; add_child(_strip)
@@ -610,7 +612,7 @@ func refresh() -> void:
 	_date.turn_no = g.turn; _date.phase = float(g.month_idx + 6) / 12.0
 	_date.turn_cap = T.call("aoc_turn", {"k": g.turn}).replace(":", "")
 	# alerts
-	_entries = TBAdvisor.ticker(g, n)
+	_entries = TBAdvisor.ticker(g, n).filter(func(e: Dictionary) -> bool: return not _ans_gone.has(String(e["key"])))
 	for e in _entries: _describe(e)
 	_ticker.update(_entries, g.turn)
 	_announce_new()
@@ -642,6 +644,10 @@ func _describe(e: Dictionary) -> void:
 	var text: String = ""
 	var long: String = ""
 	match String(e["cls"]):
+		"answer":
+			text = TBChron.ans_text(g, id, "", bool(e["ok"]), int(e["n"]))
+			long = text
+			e["tex"] = TBFlags.medal_of(g, int(e["n"]))
 		"offer":
 			text = T.call("tk_offer_" + id, vars)
 			long = T.call("prop_" + id, vars) if TBI18n.has_key("prop_" + id) else text
@@ -655,6 +661,7 @@ func _describe(e: Dictionary) -> void:
 			text = T.call(key, vars)
 			long = T.call("al_" + id, vars)
 	e["text"] = text
+	if String(e["cls"]) == "answer": e["tip"] = []; return
 	e["tip"] = [T.call("cls_" + String(e["cls"])) + (" · " + T.call("tk_critical") if int(e["sev"]) >= 2 else ""), long + "\n" + T.call("tk_tap_look") if String(e["cls"]) != "offer" else long + "\n" + T.call("tk_tap_answer")]
 
 func _event_title(uid: int, id: String) -> String:

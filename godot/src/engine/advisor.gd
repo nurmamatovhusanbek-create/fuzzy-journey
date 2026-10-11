@@ -113,7 +113,7 @@ static func crisis_ids(al: Array) -> PackedStringArray:
 # ---------------------------------------------------------------- HUD support (read-only helpers; never mutate state)
 
 ## ticker classes, most urgent first (design/ux/hud.md section 8)
-const CLASSES := ["war", "revolt", "offer", "event", "supply"]
+const CLASSES := ["answer", "war", "revolt", "offer", "event", "supply"]
 
 ## alert id -> ticker class; "" = a tip / opportunity, which never enters the ticker
 static func class_of(id: String) -> String:
@@ -141,7 +141,10 @@ static func ticker(g: TBGame, n: int) -> Array:
 			out.append({"key": "o:%d" % uid, "cls": "offer", "sev": 2 if ult else 1, "id": String(e["id"]), "p": int(e.get("p", -1)), "n": int(e["from"]), "k": 0, "uid": uid, "ps": [], "ult": ult})
 		else:
 			out.append({"key": "e:%d" % uid, "cls": "event", "sev": 1, "id": String(e["id"]), "p": -1, "n": -1, "k": 0, "uid": uid, "ps": [], "ult": false})
+	out.append_array(answers(g, n))
 	var order := func(a: Dictionary, b: Dictionary) -> bool:
+		if (String(a["cls"]) == "answer") != (String(b["cls"]) == "answer"): return String(a["cls"]) == "answer"
+		if String(a["cls"]) == "answer": return int(a["k"]) > int(b["k"])                    # newest answer first (the demo: notes.unshift)
 		var ca: int = 0 if int(a["sev"]) >= 2 else 1
 		var cb: int = 0 if int(b["sev"]) >= 2 else 1
 		if ca != cb: return ca < cb
@@ -149,6 +152,21 @@ static func ticker(g: TBGame, n: int) -> Array:
 		if ia != ib: return ia < ib
 		return int(a["sev"]) > int(b["sev"])
 	out.sort_custom(order)
+	return out
+
+## the courts' answers to our requests (rules >= 1): the last three of the past three turns, newest first; the interface keeps one until it is tapped away
+## Entry: an ordinary ticker entry with cls "answer", n = the court, id = what was asked ("nap" ... "spy", peace terms by their name), ok = accepted, k = log index
+static func answers(g: TBGame, n: int) -> Array:
+	var out: Array = []
+	var i: int = g.log.size() - 1
+	while i >= 0 and out.size() < 3:
+		var e: Dictionary = g.log[i]
+		if int(e["turn"]) < g.turn - 2: break
+		if String(e["kind"]) == "ans" and int(e["a"]) == n:
+			var what: String = String(e["what"])
+			if what == "peace" and String(e["op"]) in ["cede", "vassal"]: what = String(e["op"])
+			out.append({"key": "ans:%d:%d:%s" % [int(e["turn"]), int(e["b"]), what], "cls": "answer", "sev": 1, "id": what, "p": -1, "n": int(e["b"]), "k": i, "uid": -1, "ps": [], "ult": false, "ok": bool(e["ok"])})
+		i -= 1
 	return out
 
 ## action-point cap and per-turn refill, diplomacy cap and gain (mirror of TBTurn._tick; used for chip tooltips)

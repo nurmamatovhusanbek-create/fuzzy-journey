@@ -94,6 +94,7 @@ var own_list := PackedInt32Array()
 var own_dirty: bool = true
 
 # events (rules >= 1)
+var asks: Array = []                    # requests to AI courts waiting for next turn's answer (TBAsks)
 var pending: Array = []                 # prompts awaiting a human choice: {uid, n, kind, id, ...}
 var ev_fired: Dictionary = {}           # scheduled event id -> true
 var ev_last: Dictionary = {}            # "nation:event" -> turn last fired

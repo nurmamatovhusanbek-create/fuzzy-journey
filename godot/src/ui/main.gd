@@ -602,8 +602,8 @@ func _goto_nation(n: int) -> void:
 # ---------------------------------------------------------------- commands
 func _on_command(c: Dictionary, from_card: bool = false) -> void:
 	if mp.in_game:
-		mp.send_command(c); return
-	var cmd := c.duplicate(); cmd["n"] = g.human_id
+		mp.send_command(TBAsks.wrap(g, c)); return
+	var cmd := TBAsks.wrap(g, c.duplicate()); cmd["n"] = g.human_id
 	var res := g.apply(cmd)
 	if not res["ok"]:
 		if from_card and panel.visible: panel.reject(String(res["err"]))      # the card's reason line replaces the toast
@@ -612,6 +612,8 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 			hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
 	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop", "hire", "recruit"]:
 		sfx.play("coin")
+	elif String(cmd.get("cmd", "")) == "ask":
+		hud.toast(T.call("ask_sent", {"a": g.dname(int(cmd["t"]))}))
 	elif res.has("success"):
 		hud.toast(T.call("spy_ok") if res["success"] else T.call("spy_fail"), not res["success"])
 	_after_change()

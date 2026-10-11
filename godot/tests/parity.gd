@@ -24,6 +24,18 @@ func _init() -> void:
 		main._clear_overlay(); main._select(-1)
 		match s:
 			"nations": main._open_nations()
+			"asks":                                      # a trade charter on its way to Spain: its button reads Proposed / next turn, the others wait
+				var sp4: int = main.g.nat_code.find("spain")
+				main.g.dp[fr] = 9.0
+				main.g.asks.clear()
+				main.g.apply({"cmd": "ask", "n": fr, "kind": "trade", "t": sp4})
+				main._open_nations(sp4)
+			"ans":                                       # a court accepted, another declined: flag notices stay until tapped
+				var sp3: int = main.g.nat_code.find("spain")
+				var au5: int = main.g.nat_code.find("austrian_empire")
+				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": au5, "what": "nap", "op": "", "ok": false})
+				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": sp3, "what": "ally", "op": "", "ok": true})
+				main.hud.refresh()
 			"budget": main._open_budget()
 			"decrees": main._open_decisions()
 			"council":

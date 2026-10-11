@@ -23,6 +23,7 @@ signal answered(uid: int, choice: int)      ## inline Accept (0) / Decline (1) o
 signal overflow_pressed                     ## the "+n" pill: open the full list
 signal report_pressed                       ## the turn-report notice: open the Annals
 signal layout_changed                       ## stack height changed (keep-outs)
+signal answer_dismissed(key: String)        ## a court's answer was tapped away (it stays until then)
 signal tip_requested(anchor: Control, pair: Array)
 signal tip_hidden
 
@@ -74,6 +75,28 @@ static func draw_plate(ci: CanvasItem, r: Rect2, hot: bool, edge_col: Color = Co
 	if TBTokens.is_hc(): lo = P.tk("brass_lt") if hot else P.tk("rule_dark")
 	ci.draw_colored_polygon(BZ.notch(r, 7.0), lo)
 	ci.draw_colored_polygon(BZ.notch(r.grow(-1.0), 6.0), TBTokens.BZ_NOTICE if not TBTokens.is_hc() else P.tk("bar_0"))
+
+## the answer notice's plate colours: accepted = inner light blue, declined = the red (.tz.acc / .tz.dec): edge, hover edge, inner glow
+const ANS_YES := Color("#5a82bd")
+const ANS_YES_HOT := Color("#7FA8E8")
+const ANS_NO := Color("#8a2a2a")
+const ANS_NO_HOT := Color("#B31B1B")
+static func ans_edge(ok: bool, hot: bool) -> Color: return (ANS_YES_HOT if hot else ANS_YES) if ok else (ANS_NO_HOT if hot else ANS_NO)
+
+## CSS `box-shadow: inset 0 0 <blur>px <spread>px col` of the rectangle `r`, clipped by its notched plate (cut): the shadow follows the rectangle, so it is
+## strongest along the straight edges and the chamfers only cut it. Intensity at distance d from the edge: a * (1 - normal cdf((d - spread) / (blur / 2))).
+static func inset_glow(ci: CanvasItem, r: Rect2, cut: float, col: Color, blur: float = 16.0, spread: float = 3.0) -> void:
+	var clip: PackedVector2Array = BZ.notch(r, cut)
+	var reach: int = int(ceilf(spread + blur * 1.4))
+	for d in reach:
+		var x: float = (float(d) + 0.5 - spread) / (blur * 0.5)
+		var a: float = col.a * (1.0 - 1.0 / (1.0 + exp(-1.702 * x)))
+		if a < 0.004: continue
+		var q: Rect2 = r.grow(-(float(d) + 0.5))
+		if q.size.x <= 0.0 or q.size.y <= 0.0: break
+		var ring := PackedVector2Array([q.position, Vector2(q.end.x, q.position.y), q.end, Vector2(q.position.x, q.end.y), q.position])
+		for seg in Geometry2D.clip_polyline_with_polygon(ring, clip):
+			ci.draw_polyline(seg, Color(col.r, col.g, col.b, a), 1.0, false)
 
 # ---------------------------------------------------------------- rows
 class AlertRow extends P.Hit:
@@ -149,18 +172,36 @@ class AlertRow extends P.Hit:
 			if pos.x > size.x - 34.0 and pos.y < base_h() and down:
 				down = false; queue_redraw(); dismiss_pressed.emit(); accept_event(); return
 		super(e)
+	## noticeFlag(): the notice medallion with the answer's colour as its hairline and the court's flag (30, phone 24) in the face
+	func _flag_medallion(c: Vector2, col: Color) -> void:
+		var s: float = med_s()
+		draw_circle(c, 24.0 * s, TBTokens.with_a(TBTokens.BZ_SHADOW, 0.45))
+		BZ.grad_disc(self, c, 21.0 * s, [[0.0, TBTokens.BZ_G_A], [0.5, TBTokens.BZ_G_B], [1.0, TBTokens.BZ_G_C]])
+		draw_circle(c, 17.0 * s, TBTokens.c("bar_0"))
+		draw_arc(c, 16.4 * s, 0.0, TAU, 48, col, 1.2 * s, true)
+		BZ.ticks(self, c, 16.0 * s, 24, 2.4 * s, 6, BZ.BRASS, 0.7 * s, 0.0, TAU, true)
+		var tex: Texture2D = entry.get("tex") as Texture2D
+		if tex != null: TBFlags.draw_flag_medal(self, tex, c, 24.0 if compact else 30.0)
+
 	func _draw() -> void:
 		var bh: float = base_h()
 		var lx: float = lead()
 		var pr := Rect2(lx, 0.0, size.x - lx, bh)
 		var hot: bool = hover or down
+		var answer: bool = String(entry["cls"]) == "answer" and not done
 		var kind: String = TBAlertTicker.kind_of(entry) if not done else "good"
 		var kc: Color = TBAlertTicker.kind_color(kind)
-		TBAlertTicker.draw_plate(self, pr, hot)
-		var c := Vector2(lx + 1.0, bh * 0.5)
-		TBAlertTicker.medallion(self, c, med_s(), hot)
-		var ic: String = "check" if done else TBAlertTicker.kind_icon(entry)
-		TBBzIcons.draw(self, ic, c, 14.0 if compact else 17.0, kc)
+		if answer:
+			var ok: bool = bool(entry["ok"])
+			TBAlertTicker.draw_plate(self, pr, hot, TBAlertTicker.ans_edge(ok, hot))
+			if not TBTokens.is_hc(): TBAlertTicker.inset_glow(self, pr.grow(-1.0), 6.0, Color(0.498, 0.659, 0.910, 0.34) if ok else Color(0.702, 0.106, 0.106, 0.44))
+			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), (Color("#7FA8E8") if ok else TBTokens.BZ_NOTICE_BAD) if not TBTokens.is_hc() else TBTokens.c("ink_0"))
+		else:
+			TBAlertTicker.draw_plate(self, pr, hot)
+			var c := Vector2(lx + 1.0, bh * 0.5)
+			TBAlertTicker.medallion(self, c, med_s(), hot)
+			var ic: String = "check" if done else TBAlertTicker.kind_icon(entry)
+			TBBzIcons.draw(self, ic, c, 14.0 if compact else 17.0, kc)
 		var f: Font = font()
 		var z: int = fz()
 		var x: float = lx + 1.0 + pad_l()
@@ -307,6 +348,8 @@ func _drop(k: String) -> void:
 
 func _on_row(rw: AlertRow) -> void:
 	var e: Dictionary = rw.entry
+	if String(e["cls"]) == "answer":                 # an answer is read, then gone (the demo: a tap removes the note)
+		_on_dismiss(rw); return
 	if String(e["cls"]) == "offer":
 		rw.set_expanded(not rw.expanded)
 		_layout()
@@ -320,6 +363,7 @@ func _on_row(rw: AlertRow) -> void:
 	activated.emit(out)
 
 func _on_dismiss(rw: AlertRow) -> void:
+	if String(rw.entry["cls"]) == "answer": answer_dismissed.emit(String(rw.entry["key"]))
 	dismissed[String(rw.entry["key"])] = _turn
 	update(_entries, _turn)
 

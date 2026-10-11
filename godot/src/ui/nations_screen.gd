@@ -551,15 +551,10 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 	if ai:
 		vw = {"nap": TBDipView.pact(g, n, me, D.REL_NAP), "ally": TBDipView.pact(g, n, me, D.REL_ALLY), "trade": TBDipView.trade(g, n, me),
 			"white": TBDipView.peace(g, n, me, "white"), "cede": TBDipView.peace(g, n, me, "cede"), "vassal": TBDipView.peace(g, n, me, "vassal")}
-	var sub_of := func(k: String, cost: int) -> String:
-		var s := "%d ✉" % cost if cost > 0 else ""
-		if ai and vw.has(k): s += (" " if s != "" else "") + ("✓" if bool(vw[k]["ok"]) else "✕")
-		return s
-	var ask := func(k: String, what_key: String, cmd: Dictionary) -> void:
-		if not ai or not vw.has(k): done.call(cmd); return
-		var pre: Dictionary = g.can({"cmd": String(cmd["cmd"]), "n": me, "t": n, "kind": String(cmd.get("kind", ""))})
-		if not bool(pre["ok"]) and String(pre["reason"]) != "refused": done.call(cmd); return
-		TBNegotiate.run(parent, what_key, g.dname(n), vw[k], func(): done.call(cmd))
+	# a request to an AI court (rules >= 1): one press sends it, the likelihood is on the button, the answer comes with the next turn (TBAsks)
+	var asking: bool = ai and g.rules >= 1
+	var pend: Dictionary = TBAsks.find(g, me, n) if asking else {}
+	var pend_spy: bool = not TBAsks.find(g, me, n, true).is_empty() if asking else false
 	# why they feel this way: the terms of the court's sum for the request that matters most right now
 	if ai and rel in [0, 1, 2]:
 		var lead: String = "white" if rel == 1 else ("nap" if rel == 0 else "ally")
@@ -578,25 +573,43 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 	var acts := GridContainer.new(); acts.columns = 2
 	acts.add_theme_constant_override("h_separation", 8); acts.add_theme_constant_override("v_separation", 8); acts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(acts)
-	var add_btn := func(label: String, icon: String, sub: String, cb: Callable, reason: String = "") -> void:
+	var add_btn := func(label: String, icon: String, sub: String, cb: Callable, reason: String = "", tip: String = "") -> void:
 		var b: Button = K.button(label, cb, false, false, icon, sub)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if tip != "": b.tooltip_text = tip
 		if reason != "": K.disable(b, reason)
 		acts.add_child(b)
+	## a diplomatic request: `cmd` is the plain command (human courts, rules 0); an AI court gets an "ask" with its likelihood on the button
+	var req := func(label: String, icon: String, kind: String, op: String, cost: int, off: String, cmd: Dictionary) -> void:
+		if not asking:
+			add_btn.call(label, icon, "%d ✉" % cost if cost > 0 else "", func(): done.call(cmd), off); return
+		var mine: bool = not pend.is_empty() and String(pend["kind"]) == kind and String(pend["op"]) == op
+		var reason: String = off
+		if mine: reason = T.call("ask_wait")
+		elif not pend.is_empty(): reason = T.call("ask_other")
+		elif reason == "":
+			var chk: Dictionary = TBAsks.check(g, me, kind, n, op)
+			if not bool(chk["ok"]) and String(chk["reason"]) != "":
+				var ek: String = "err_" + String(chk["reason"])
+				reason = T.call(ek) if TBI18n.has_key(ek) else String(chk["reason"])
+		var pc: int = TBAsks.chance(g, me, kind, n, op)
+		if reason == "" and pc == 0: reason = T.call("dvb_" + String(TBAsks.view(g, me, kind, n, op).get("blocked", "grudge")))
+		add_btn.call(T.call("ask_proposed") if mine else label, icon, T.call("ask_next") if mine else "%d%%" % pc,
+			func(): done.call({"cmd": "ask", "kind": kind, "t": n, "op": op}), reason, "" if reason != "" else T.call("ask_tip", {"c": cost}))
 	if rel == 1:
 		var ws: int = g.war_score[me * g.N1 + n]
-		add_btn.call(T.call("dip_peace"), "flag", sub_of.call("white", D.DP_PEACE), func(): ask.call("white", "dv_peace_white", {"cmd": "peace", "t": n, "kind": "white"}), dpw.call(D.DP_PEACE))
-		add_btn.call(T.call("dip_land"), "flag", sub_of.call("cede", 0), func(): ask.call("cede", "dv_peace_cede", {"cmd": "peace", "t": n, "kind": "cede"}), "" if ws >= 25 else T.call("err_warscore") + " (25%)")
-		if g.rules >= 1: add_btn.call(T.call("dip_vassal"), "crown", sub_of.call("vassal", 0), func(): ask.call("vassal", "dv_peace_vassal", {"cmd": "peace", "t": n, "kind": "vassal"}), "" if ws >= 50 else T.call("err_warscore") + " (50%)")
+		req.call(T.call("dip_peace"), "flag", "peace", "white", D.DP_PEACE, dpw.call(D.DP_PEACE), {"cmd": "peace", "t": n, "kind": "white"})
+		req.call(T.call("dip_land"), "flag", "peace", "cede", 0, "" if ws >= 25 else T.call("err_warscore") + " (25%)", {"cmd": "peace", "t": n, "kind": "cede"})
+		if g.rules >= 1: req.call(T.call("dip_vassal"), "crown", "peace", "vassal", 0, "" if ws >= 50 else T.call("err_warscore") + " (50%)", {"cmd": "peace", "t": n, "kind": "vassal"})
 	else:
 		if rel == 0:
-			add_btn.call(T.call("dip_nap"), "pact", sub_of.call("nap", D.DP_NAP), func(): ask.call("nap", "dv_pact_nap", {"cmd": "nap", "t": n}), dpw.call(D.DP_NAP))
-			add_btn.call(T.call("dip_ally"), "star", sub_of.call("ally", D.DP_ALLY), func(): ask.call("ally", "dv_pact_ally", {"cmd": "ally", "t": n}), dpw.call(D.DP_ALLY))
+			req.call(T.call("dip_nap"), "pact", "nap", "", D.DP_NAP, dpw.call(D.DP_NAP), {"cmd": "nap", "t": n})
+			req.call(T.call("dip_ally"), "star", "ally", "", D.DP_ALLY, dpw.call(D.DP_ALLY), {"cmd": "ally", "t": n})
 		if TBDiplo.can_marry(g, me, n):
-			add_btn.call(T.call("dip_marry"), "heart", sub_of.call("ally", TBDiplo.DP_MARRY), func(): ask.call("ally", "dv_marry", {"cmd": "marry", "t": n}), dpw.call(TBDiplo.DP_MARRY))
+			req.call(T.call("dip_marry"), "heart", "marry", "", TBDiplo.DP_MARRY, dpw.call(TBDiplo.DP_MARRY), {"cmd": "marry", "t": n})
 		if g.rules >= 1:
 			if TBTrade.has(g, me, n): add_btn.call(T.call("dip_close"), "trade", "", func(): done.call({"cmd": "cancelTrade", "t": n}))
-			else: add_btn.call(T.call("dip_trade"), "trade", sub_of.call("trade", TBTrade.DP_COST), func(): ask.call("trade", "dv_trade", {"cmd": "trade", "t": n}), dpw.call(TBTrade.DP_COST))
+			else: req.call(T.call("dip_trade"), "trade", "trade", "", TBTrade.DP_COST, dpw.call(TBTrade.DP_COST), {"cmd": "trade", "t": n})
 		if rel == 2 or rel == 3:
 			add_btn.call(T.call("dip_break"), "close", "", func():
 				TBPanel.confirm(parent, T.call("confirm_break_t", {"a": g.dname(n)}), T.call("confirm_break_b"), T.call("break_pact"), func(): done.call({"cmd": "breakPact", "t": n})))
@@ -622,7 +635,11 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 			if g.friendly(me, n): reason = T.call("err_ally")
 			elif g.intel[me] < cost: reason = T.call("err_intel")
 			var o: String = op
-			var sb: Button = K.button(T.call("spy_" + op), func(): done.call({"cmd": "spy", "t": n, "op": o}), false, false, "spy", "%d" % int(cost))
+			var sub: String = "%d" % int(cost)
+			if asking:
+				sub += " · %d%%" % TBAsks.chance(g, me, "spy", n, o)
+				if pend_spy: reason = T.call("ask_spy_wait")
+			var sb: Button = K.button(T.call("spy_" + op), func(): done.call({"cmd": "ask", "kind": "spy", "t": n, "op": o} if asking else {"cmd": "spy", "t": n, "op": o}), false, false, "spy", sub)
 			sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			if reason != "": K.disable(sb, reason)
 			sp.add_child(sb)

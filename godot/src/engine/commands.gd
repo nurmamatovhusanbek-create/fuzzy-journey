@@ -25,13 +25,14 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 		"regime": return _c_regime(g, c)
 		"develop": return _c_develop(g, c)
 		"decide": return TBDecisions.apply(g, n, String(c.get("id", "")))
-		"trade": return TBTrade.propose(g, n, int(c.get("t", 0)))
+		"trade": return TBTrade.propose(g, n, int(c.get("t", 0)), bool(c.get("_force", false)))
 		"ultimatum": return TBDiplo.ultimatum(g, n, int(c.get("t", 0)), int(c.get("p", -1)))
-		"marry": return TBDiplo.marry(g, n, int(c.get("t", 0)))
+		"marry": return TBDiplo.marry(g, n, int(c.get("t", 0)), bool(c.get("_force", false)))
 		"cancelTrade":
 			TBTrade.set_deal(g, n, int(c.get("t", 0)), false)
 			return {"ok": true}
 		"hire": return _c_hire(g, c)
+		"ask": return TBAsks.send(g, c)
 		"appoint": return TBGenerals.appoint(g, n, int(c.get("p", -1)))
 		"doctrine": return TBDoctrine.adopt(g, n, String(c.get("id", "")))
 		"spy": return _c_spy(g, c)
@@ -134,7 +135,7 @@ static func _c_ally(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var t: int = c["t"]
 	if g.get_rel(n, t) == D.REL_WAR: return _err("war")
 	if g.dp[n] < D.DP_ALLY: return _err("dp")
-	if g.human[t] == 0 and not TBAI.accepts_pact(g, t, n, D.REL_ALLY): return _err("refused")
+	if g.human[t] == 0 and not c.get("_force", false) and not TBAI.accepts_pact(g, t, n, D.REL_ALLY): return _err("refused")
 	g.dp[n] -= D.DP_ALLY; g.set_rel(n, t, D.REL_ALLY)
 	g.log.append({"turn": g.turn, "kind": "ally", "a": n, "b": t})
 	return {"ok": true}
@@ -143,7 +144,7 @@ static func _c_nap(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var t: int = c["t"]
 	if g.get_rel(n, t) != D.REL_PEACE: return _err("state")
 	if g.dp[n] < D.DP_NAP: return _err("dp")
-	if g.human[t] == 0 and not TBAI.accepts_pact(g, t, n, D.REL_NAP): return _err("refused")
+	if g.human[t] == 0 and not c.get("_force", false) and not TBAI.accepts_pact(g, t, n, D.REL_NAP): return _err("refused")
 	g.dp[n] -= D.DP_NAP; g.set_rel(n, t, D.REL_NAP)
 	g.nap_expiry[mini(n, t) * g.N1 + maxi(n, t)] = g.turn + 20
 	return {"ok": true}

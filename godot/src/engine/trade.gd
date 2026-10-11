@@ -43,14 +43,14 @@ static func accepts(g: TBGame, t: int, p: int) -> bool:
 	if g.trade_cnt[t] >= max_deals(g, t): return false
 	return float(D.PERSONALITIES[g.personality[t]]["dipl"]) + float(D.PERSONALITIES[g.personality[t]]["econ"]) * 0.6 > 0.55
 
-static func propose(g: TBGame, n: int, t: int) -> Dictionary:
+static func propose(g: TBGame, n: int, t: int, force: bool = false) -> Dictionary:
 	if g.rules < 1: return {"ok": false, "err": "rules"}
 	if t <= 0 or t >= g.N1 or t == n or g.alive[t] == 0 or t == g.rebel: return {"ok": false, "err": "target"}
 	if g.get_rel(n, t) == D.REL_WAR: return {"ok": false, "err": "war"}
 	if has(g, n, t): return {"ok": false, "err": "active"}
 	if g.trade_cnt[n] >= max_deals(g, n): return {"ok": false, "err": "tradefull"}
 	if g.dp[n] < DP_COST: return {"ok": false, "err": "dp"}
-	if g.human[t] == 0 and not accepts(g, t, n): return {"ok": false, "err": "refused"}
+	if g.human[t] == 0 and not force and not accepts(g, t, n): return {"ok": false, "err": "refused"}
 	g.dp[n] -= DP_COST
 	set_deal(g, n, t, true)
 	g.log.append({"turn": g.turn, "kind": "trade", "a": n, "b": t})

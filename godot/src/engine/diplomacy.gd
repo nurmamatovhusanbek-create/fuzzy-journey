@@ -57,12 +57,12 @@ static func can_marry(g: TBGame, a: int, b: int) -> bool:
 	var r := g.get_rel(a, b)
 	return (r == D.REL_PEACE or r == D.REL_NAP) and TBRulers.is_hereditary(g, a) and TBRulers.is_hereditary(g, b) and g.overlord[a] == 0 and g.overlord[b] == 0
 
-static func marry(g: TBGame, n: int, t: int) -> Dictionary:
+static func marry(g: TBGame, n: int, t: int, force: bool = false) -> Dictionary:
 	if g.rules < 1: return {"ok": false, "err": "rules"}
 	if not can_marry(g, n, t): return {"ok": false, "err": "state"}
 	if g.dp[n] < DP_MARRY: return {"ok": false, "err": "dp"}
 	if g.has_truce(n, t) and g.human[t] == 0: return {"ok": false, "err": "truce"}
-	if g.human[t] == 0 and not TBAI.accepts_pact(g, t, n, D.REL_ALLY): return {"ok": false, "err": "refused"}
+	if g.human[t] == 0 and not force and not TBAI.accepts_pact(g, t, n, D.REL_ALLY): return {"ok": false, "err": "refused"}
 	g.dp[n] -= DP_MARRY
 	g.set_rel(n, t, D.REL_MARRIAGE)
 	g.grudge[n * g.N1 + t] = maxi(0, g.grudge[n * g.N1 + t] - 40); g.grudge[t * g.N1 + n] = maxi(0, g.grudge[t * g.N1 + n] - 40)

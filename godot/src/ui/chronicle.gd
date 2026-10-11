@@ -10,7 +10,7 @@ static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
 		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "reconciled", "rebels_end", "independence", "ultimatum": return "war"
 		"coalition", "coalition_end": return "diplo"
-		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union": return "diplo"
+		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union", "ans": return "diplo"
 		"realm": return "events"
 		"event", "event_choice", "era", "bankrupt", "ruler", "decision", "doctrine", "general_up", "general_fell": return "events"
 	return "events"
@@ -26,6 +26,12 @@ static func date(g: TBGame, turn: int) -> String:
 	var m := g.start_month + turn * 6
 	var y := g.start_year + m / 12
 	return "%d BC" % -y if y < 0 else "%d AD" % y
+
+## a court's answer to a request (the notice's line): what = ask kind, op = peace terms, court = the nation that answered
+static func ans_text(g: TBGame, what: String, op: String, ok: bool, court: int) -> String:
+	var key: String = op if what == "peace" and op in ["cede", "vassal"] else what
+	var cp: int = g.capital_of[court]
+	return T.call("ans_%s_%s" % [key, "y" if ok else "n"], {"a": g.dname(court), "c": TBI18n.place(g.world.name[cp]) if cp >= 0 else g.dname(court)})
 
 ## one-line description; empty string = not worth showing
 static func text(g: TBGame, e: Dictionary) -> String:
@@ -73,6 +79,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"era": return T.call("e_era", {"a": a, "e": T.call("era_name_%d" % int(e["k"]))})
 		"victory": return T.call("e_victory", {"a": a})
 		"defeat": return T.call("e_defeat")
+		"ans": return ans_text(g, String(e["what"]), String(e.get("op", "")), bool(e["ok"]), int(e["b"])) if involves(e, g.human_id) else ""
 		"spy":
 			if not involves(e, g.human_id): return ""
 			var op: String = T.call("spy_" + String(e["op"]))

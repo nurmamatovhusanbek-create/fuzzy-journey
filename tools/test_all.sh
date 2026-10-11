@@ -15,6 +15,7 @@ run "trade deals" tests/trade.gd
 run "royal marriages" tests/marriage.gd
 run "generals" tests/generals.gd
 run "ultimatums" tests/ultimatum.gd
+run "court requests answered next turn" tests/asks.gd
 run "honours" tests/honours.gd
 run "supply / attrition" tests/supply.gd
 run "doctrine" tests/doctrine.gd
