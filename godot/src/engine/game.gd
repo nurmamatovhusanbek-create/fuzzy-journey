@@ -96,6 +96,8 @@ var own_list := PackedInt32Array()
 var own_dirty: bool = true
 
 # events (rules >= 1)
+var marches: Array = []                 # standing march orders {n, at, to, k}: the army in `at` walks on toward `to`, one stride per end of turn (TBMarch)
+var march_fx: Array = []                # [from, to, result, nation] strides made at the last end of turn (view only, not saved)
 var asks: Array = []                    # requests to AI courts waiting for next turn's answer (TBAsks)
 var pending: Array = []                 # prompts awaiting a human choice: {uid, n, kind, id, ...}
 var ev_fired: Dictionary = {}           # scheduled event id -> true

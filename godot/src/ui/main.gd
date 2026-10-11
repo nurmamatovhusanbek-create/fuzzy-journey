@@ -90,7 +90,8 @@ func _ready() -> void:
 	panel.terms_requested.connect(func(e: int): TBTermsScreen.open(_overlay, g, e, {"on_cmd": func(c: Dictionary): _on_command(c, false)}))
 	hud.budget_pressed.connect(func(): _open_budget())
 	hud.save_pressed.connect(func(): _open_menu_hub("saves"))
-	hud.settings_pressed.connect(_open_game_menu)
+	hud.settings_pressed.connect(func(): _open_menu_hub("settings"))
+	hud.exit_pressed.connect(show_menu)
 	hud.input_blocked_fn = func() -> bool: return mode != "game" or _modal_open()
 	hud.mp_waiting_fn = func() -> bool: return mp.in_game
 	hud.goto_province.connect(_goto_province)
@@ -235,6 +236,19 @@ func _enter_game_visuals() -> void:
 	if g != null and g.human_id > 0: TBTokens.set_accent(g.color[g.human_id])
 	theme = K.theme()
 
+## the title's globe: whole inside its ring, sized so the ring clears the tools row (and fits the width in portrait). Also after the view setting changes on the title,
+## which must not blow the globe up past the ring
+func _fit_title_globe() -> void:
+	var vs: Vector2 = size if size.x > 2.0 else get_viewport_rect().size
+	var portrait := vs.y > vs.x
+	var short: bool = vs.y < 480.0 and not portrait
+	var tools_h: float = float(K.touch())
+	map.set_mode(0)
+	var base: float = minf(vs.x, vs.y) * 0.44
+	var r_max: float = ((vs.y * 0.5 - tools_h - 10.0) / 1.103) if not portrait else minf((vs.x - 28.0) * 0.5 / 1.103, (vs.y - tools_h * 2.0 - 30.0) * 0.5 / 1.103)
+	if short: r_max = maxf(r_max, 120.0)
+	map.zoom = clampf(r_max / base, 0.55, 1.0); map._push_view()
+
 func show_menu() -> void:
 	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; TBTokens.legacy = true; TBFrame.rounded = false; TBFrame.bezel = false; theme = K.theme()
 	map.outline_nation(-1)
@@ -246,12 +260,7 @@ func show_menu() -> void:
 	var portrait := vs.y > vs.x
 	var short: bool = vs.y < 480.0 and not portrait
 	var tools_h: float = float(K.touch())
-	if map.mode == 0:                                       # whole globe inside the ring, sized so the ring clears the tools row (and fits the width in portrait)
-		map.set_mode(0)
-		var base: float = minf(vs.x, vs.y) * 0.44
-		var r_max: float = ((vs.y * 0.5 - tools_h - 10.0) / 1.103) if not portrait else minf((vs.x - 28.0) * 0.5 / 1.103, (vs.y - tools_h * 2.0 - 30.0) * 0.5 / 1.103)
-		if short: r_max = maxf(r_max, 120.0)
-		map.zoom = clampf(r_max / base, 0.55, 1.0); map._push_view()
+	_fit_title_globe()
 	hud.visible = false; panel.visible = false; _clear_overlay(); map.labels.visible = false
 	var bez := MP_.Bezel.new(); bez.map = map; _overlay.add_child(bez); _bezel = bez
 	# layout: [ scrolling centre column (wordmark + text rows) ] over [ tools row ]; the column scrolls instead of covering anything
@@ -431,7 +440,9 @@ func _on_setting_changed(key: String) -> void:
 		"lang":
 			TBI18n.load_lang(cfg["lang"]); _rebuild_screens()
 		"quality", "view", "theme", "ui":
-			_apply_quality(); _update_ui_scale(); map.set_mode(0 if cfg["view"] == "globe" else 1)
+			_apply_quality(); _update_ui_scale()
+			if mode == "menu": _fit_title_globe()                      # the title is always the globe in its ring: the view setting only counts in a game
+			else: map.set_mode(0 if cfg["view"] == "globe" else 1)
 		"sound": sfx.enabled = cfg.get("sound", true); _apply_a11y()
 		"vol_master", "vol_music", "vol_sfx", "vol_ui": TBAudio.apply_volumes(cfg)
 		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "tts", "confirm", "mirror", "vis_alerts", "navpad":
@@ -682,6 +693,13 @@ func _do_move(from: int, to: int) -> void:
 		if g.controller(from) == g.human_id: _select(from)
 	else:
 		var rs: String = res.get("result", "")
+		var at: int = int(res.get("at", -1))
+		if rs == "march":                                                     # a long march: the army has taken its first stride, the rest is a standing order
+			var step_to: int = at if at >= 0 else to
+			map.labels.add_fx("march", from, step_to, TBTokens.c("brass_lt"))
+			_select(step_to)
+			_after_change()
+			return
 		if rs == "move":
 			map.labels.add_fx("march", from, to, TBTokens.c("brass_lt"))
 		else:
@@ -800,6 +818,19 @@ func _replay_battles() -> void:
 		i += 1
 		if i >= 8: break
 	g.battle_fx.clear()
+	# the strides of your own standing march orders: a march arrow for each, and the fight where one reached an enemy
+	var si := 0
+	for m in g.march_fx:
+		if int(m[3]) != me or si >= 10: continue
+		var rs2: String = m[2]
+		if rs2 == "march" or rs2 == "move":
+			map.labels.add_fx("march", int(m[0]), int(m[1]), TBTokens.c("brass_lt"), si * 120)
+		elif not rs2.begins_with("!"):
+			var won: bool = rs2 == "win"
+			map.labels.add_fx("atk", int(m[0]), int(m[1]), TBTokens.c("pos_bar") if won else TBTokens.c("neg_bar"), si * 220)
+			map.labels.add_fx("cap", int(m[0]), int(m[1]), TBTokens.c("pos_bar") if won else TBTokens.c("neg_bar"), si * 220 + 250)
+		si += 1
+	g.march_fx.clear()
 	# the marches of other nations that are in sight (fog of war): a faint arrow for each, so you see an army coming before it arrives
 	var k := 0
 	TBVision.sync(g)

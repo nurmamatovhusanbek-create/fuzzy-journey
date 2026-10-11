@@ -1,13 +1,15 @@
-## Marching (rules >= 1): an army may be ordered to ANY province it can reach in one turn, not only a neighbour.
+## Marching (rules >= 1): an army may be ordered to ANY province it can reach, not only a neighbour, and walks there one province per turn.
 ## The route runs over provinces you hold (and allies' land, which an army may cross but not stop in); a sea crossing needs a Port on the shore it leaves from,
-## and between two of your own Ports a fleet crosses any distance (cost grows with it). Every step costs a move point; the last step costs more when it is an attack.
-## The whole march happens in the order: the men arrive (or fight) at once. The cost is the brake: a long march uses up the turn.
+## and between two of your own Ports a fleet crosses any distance (a longer voyage weighs more in the choice of route, but is still one stage).
+## The order costs one move (an attack, when the target is next door) and is a standing order (g.marches): the army steps at once, then once more at every end of turn,
+## until it stands in the target (or a battle there is fought), or the way is closed (the land lost, a pact broken), when the order lapses and a notice says so.
 class_name TBMarch
 extends RefCounted
 
 const D = preload("res://src/engine/data.gd")
 const VOYAGE_BASE := 2
 const VOYAGE_DEG := 25.0            # one extra move point per 25 degrees of voyage
+const REACH := 80                   # the longest march worth planning, in weighted stages (a whole continent)
 
 ## move points of a voyage between two of your ports
 static func voyage_cost(g: TBGame, a: int, b: int) -> int:
@@ -58,13 +60,13 @@ static func _relax(g: TBGame, n: int, best: Dictionary, buckets: Array, q: int, 
 		buckets[cost].append(q)
 
 ## the order from -> to: {ok, err, path (provinces from `from` to `to`), mp, kind ("move" | "attack"), last (the province the attack leaves from)}
-static func plan(g: TBGame, n: int, from: int, to: int, budget: float = -1.0) -> Dictionary:
+static func plan(g: TBGame, n: int, from: int, to: int, r_in: Dictionary = {}) -> Dictionary:
 	var out := {"ok": false, "err": "notadjacent", "path": PackedInt32Array(), "mp": 0.0, "kind": "", "last": from}
 	if g.rules < 1: return out
 	if g.controller(from) != n: out["err"] = "notyours"; return out
 	if g.army[from] <= 1: out["err"] = "noarmy"; return out
 	if to == from or to < 0 or to >= g.P: out["err"] = "target"; return out
-	var r := reach(g, n, from, budget if budget >= 0.0 else maxf(12.0, g.mp[n] + 6.0))         # a little beyond what the turn allows, so the answer can say how many points it would take
+	var r: Dictionary = r_in if not r_in.is_empty() else reach(g, n, from, float(REACH))          # a caller that asks about many targets from one province passes its own reach
 	if not r.has(to): return out
 	# the final province's own rules are the move / attack rules of the engine
 	var ct: int = g.controller(to)
@@ -80,16 +82,25 @@ static func plan(g: TBGame, n: int, from: int, to: int, budget: float = -1.0) ->
 	var cur: int = to
 	while int(r[cur][1]) >= 0:
 		cur = int(r[cur][1]); path.push_front(cur)
-	var cost: float = float(r[to][0])
-	out["ok"] = true; out["err"] = ""; out["path"] = PackedInt32Array(path); out["mp"] = cost; out["kind"] = kind
+	out["ok"] = true; out["err"] = ""; out["path"] = PackedInt32Array(path); out["kind"] = kind
+	out["mp"] = float(D.MP_ATTACK if (kind == "attack" and path.size() == 2) else D.MP_MOVE)    # what the order costs now; the walking after that is free
 	out["last"] = path[path.size() - 2] if path.size() >= 2 else from
+	out["turns"] = turns(g, n, PackedInt32Array(path), kind)
 	return out
 
-## every province the army of `from` can be ordered to within `budget` move points: {to: plan-lite {mp, kind}}
-static func targets(g: TBGame, n: int, from: int, budget: float) -> Dictionary:
+## turns the walk takes: one per province you hold on the way (an ally's land is crossed in the same stride), and the last stride is the battle for an attack
+static func turns(g: TBGame, n: int, path: PackedInt32Array, kind: String) -> int:
+	var t := 0
+	var limit: int = path.size() - 1 if kind == "move" else path.size() - 2
+	for i in range(1, limit + 1):
+		if g.controller(path[i]) == n or i == limit: t += 1
+	return t + (1 if kind == "attack" else 0)
+
+## every province the army of `from` can be ordered to: {to: plan-lite {mp, kind}}
+static func targets(g: TBGame, n: int, from: int, r_in: Dictionary = {}) -> Dictionary:
 	var out := {}
 	if g.rules < 1 or g.controller(from) != n or g.army[from] <= 1: return out
-	var r := reach(g, n, from, budget)
+	var r: Dictionary = r_in if not r_in.is_empty() else reach(g, n, from, float(REACH))
 	for q in r:
 		if q == from: continue
 		var ct: int = g.controller(q)
@@ -102,20 +113,70 @@ static func targets(g: TBGame, n: int, from: int, budget: float) -> Dictionary:
 		out[q] = {"mp": float(r[q][0]), "kind": kind}
 	return out
 
-## carry out the march (the caller has checked the move points). A move goes straight to the destination; an attack first brings the men to the province it leaves from
-static func execute(g: TBGame, n: int, from: int, to: int, troops: int) -> String:
+## give the march order: the army steps at once, and the rest of the way is a standing order. Returns what happened at the first stride ("march" on the way, "move" arrived, or a battle's result)
+static func order(g: TBGame, n: int, from: int, to: int, troops: int) -> String:
 	var pl := plan(g, n, from, to)
 	if not bool(pl["ok"]): return "!" + String(pl["err"])
 	var k: int = mini(troops if troops != 0 else g.army[from] - 1, g.army[from] - 1)
 	if k <= 0: return "!noarmy"
-	var last: int = int(pl["last"])
-	if String(pl["kind"]) == "move":
-		var left: int = g.army[from] - k
-		g.army[from] = left; g.army[to] = mini(65000, g.army[to] + k); g.touch(from); g.touch(to)
-		if g.rules >= 1 and TBGenerals.follows(g, from, left): TBGenerals.transfer(g, from, to)
-		return "move"
-	if last != from:
-		var left2: int = g.army[from] - k
-		g.army[from] = left2; g.army[last] = mini(65000, g.army[last] + k); g.touch(from); g.touch(last)
-		if g.rules >= 1 and TBGenerals.follows(g, from, left2): TBGenerals.transfer(g, from, last)
-	return g.move_or_attack(n, last, to, k)
+	cancel_at(g, n, from)
+	var m := {"n": n, "at": from, "to": to, "k": k}
+	var res := _stride(g, m, pl)
+	if not bool(m.get("done", false)): g.marches.append(m)
+	return res
+
+## drop the standing order of the army standing in `p`
+static func cancel_at(g: TBGame, n: int, p: int) -> void:
+	var i := g.marches.size() - 1
+	while i >= 0:
+		var m: Dictionary = g.marches[i]
+		if int(m["n"]) == n and int(m["at"]) == p: g.marches.remove_at(i)
+		i -= 1
+
+## the standing order of the army standing in `p`, or {}
+static func order_at(g: TBGame, n: int, p: int) -> Dictionary:
+	for m in g.marches:
+		if int(m["n"]) == n and int(m["at"]) == p: return m
+	return {}
+
+## one stride of a standing order along `pl` (its plan): over the provinces you hold up to the next one you hold (allies' land is crossed), or the attack when it is next door
+static func _stride(g: TBGame, m: Dictionary, pl: Dictionary) -> String:
+	var n: int = int(m["n"]); var at: int = int(m["at"]); var to: int = int(m["to"])
+	var path: PackedInt32Array = pl["path"]
+	var k: int = mini(int(m["k"]), g.army[at] - 1)
+	if k <= 0: m["done"] = true; return "!noarmy"
+	if String(pl["kind"]) == "attack" and path.size() == 2:
+		m["done"] = true
+		return g.move_or_attack(n, at, to, k)
+	var limit: int = path.size() - 1 if String(pl["kind"]) == "move" else path.size() - 2
+	var idx := 1
+	while idx < limit and g.controller(path[idx]) != n: idx += 1
+	var nxt: int = path[idx]
+	var left: int = g.army[at] - k
+	g.army[at] = left; g.army[nxt] = mini(65000, g.army[nxt] + k); g.touch(at); g.touch(nxt)
+	if g.rules >= 1 and TBGenerals.follows(g, at, left): TBGenerals.transfer(g, at, nxt)
+	m["at"] = nxt
+	if nxt == to: m["done"] = true; return "move"
+	return "march"
+
+## the end of the turn: every standing order takes its next stride. A lapsed order (the army or the way is gone) says so in the log
+static func advance(g: TBGame) -> void:
+	if g.marches.is_empty(): return
+	var keep: Array = []
+	var work: Array = g.marches.duplicate()
+	g.marches = keep
+	for m in work:
+		var n: int = int(m["n"])
+		if g.alive[n] == 0: continue
+		var at: int = int(m["at"])
+		var from_at := at
+		if g.controller(at) != n or g.army[at] <= 1:
+			g.log.append({"turn": g.turn, "kind": "march_stop", "a": n, "p": at, "why": "noarmy"}); continue
+		var pl := plan(g, n, at, int(m["to"]))
+		if not bool(pl["ok"]):
+			g.log.append({"turn": g.turn, "kind": "march_stop", "a": n, "p": at, "why": String(pl["err"])}); continue
+		var res := _stride(g, m, pl)
+		if g.human[n] != 0 and g.march_fx.size() < 40: g.march_fx.append([from_at, int(m["at"]) if (res == "march" or res == "move") else int(m["to"]), res, n])
+		if res.begins_with("!"):
+			g.log.append({"turn": g.turn, "kind": "march_stop", "a": n, "p": at, "why": res.substr(1)}); continue
+		if not bool(m.get("done", false)): keep.append(m)

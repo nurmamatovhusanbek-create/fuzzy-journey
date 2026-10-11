@@ -36,7 +36,13 @@ func _init() -> void:
 				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": au5, "what": "nap", "op": "", "ok": false})
 				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": sp3, "what": "ally", "op": "", "ok": true})
 				main.hud.refresh()
-			"realm": main._open_realm_page()
+			"realm", "realm2":
+				if s == "realm2":
+					var gg2: TBGame = main.g
+					for nm in ["spain", "prussia", "united_kingdom", "ottoman_empire", "austrian_empire", "sweden", "russian_empire"]:
+						var q2: int = gg2.nat_code.find(nm)
+						if q2 > 0 and q2 != fr: gg2.set_rel(fr, q2, [3, 2, 2, 1, 1, 4, 2][["spain", "prussia", "united_kingdom", "ottoman_empire", "austrian_empire", "sweden", "russian_empire"].find(nm)])
+				main._open_realm_page()
 			"march":                                      # Move pressed on a French army: every province in reach is lit, the route to the far one shows
 				for p in main.g.P:
 					if main.world.name[p] == "Bas-Rhin":
@@ -45,8 +51,9 @@ func _init() -> void:
 						main._on_move_requested(p)
 						for i in 6: await process_frame
 						var far := -1; var best := 0.0
-						var r := TBMarch.targets(main.g, fr, p, main.g.mp[fr])
-						for q in r: if float(r[q]["mp"]) > best and String(r[q]["kind"]) == "move": best = float(r[q]["mp"]); far = int(q)
+						var r := TBMarch.targets(main.g, fr, p)
+						var rch := TBMarch.reach(main.g, fr, p, 80.0)
+						for q in r: if float(rch[q][0]) > best and String(r[q]["kind"]) == "move" and float(rch[q][0]) < 6.0: best = float(rch[q][0]); far = int(q)
 						print("lit ", main.flow.targets.size(), " far ", far, " mp ", best)
 						main.flow.hover(far)
 			"routes":                                     # a pact, an alliance, a trade deal, a marriage and a war: the lines between the capitals
@@ -55,8 +62,29 @@ func _init() -> void:
 				var ot7: int = gg.nat_code.find("ottoman_empire"); var au7: int = gg.nat_code.find("austrian_empire")
 				gg.set_rel(fr, sp7, 3); gg.set_rel(fr, pr7, 2); gg.set_rel(fr, ot7, 4); gg.set_rel(fr, au7, 1)
 				TBTrade.set_deal(gg, fr, uk7, true)
+				main.map.set_lens("routes")
 				main.map.fly_to(9.5, 46.0, 1.6)
 				for i in 120: await process_frame
+			"marches":                                    # two long marches under way: a thin dashed line each, held across turns
+				var gm2: TBGame = main.g
+				gm2.mp[fr] = 12.0
+				var started := 0
+				for p in gm2.owned(fr):
+					if gm2.army[p] < 8 or started >= 2: continue
+					var rr := TBMarch.reach(gm2, fr, p, 80.0)
+					var far2 := -1; var bc := 0.0
+					for q in rr:
+						if gm2.controller(q) == fr and float(rr[q][0]) > bc and float(rr[q][0]) < 7.0: bc = float(rr[q][0]); far2 = int(q)
+					if far2 < 0: continue
+					gm2.apply({"cmd": "move", "n": fr, "from": p, "to": far2, "troops": 0})
+					started += 1
+				print("marches ", gm2.marches.size())
+				main.map.fly_to(9.5, 46.0, 3.0)
+				for i in 90: await process_frame
+			"globe":                                      # the globe view: the round mini-globe in the corner (the flat map has a flat mini-map)
+				main.cfg["view"] = "globe"; main.map.set_mode(0)
+				main.map.fly_to(9.5, 46.0, 1.6)
+				for i in 60: await process_frame
 			"terms":                                      # peace terms against Austria after some fighting
 				var au6: int = main.g.nat_code.find("austrian_empire")
 				main.g.set_rel(fr, au6, 1); main.g.war_score[fr * main.g.N1 + au6] = 62; main.g.war_score[au6 * main.g.N1 + fr] = 18; main.g.dp[fr] = 9.0

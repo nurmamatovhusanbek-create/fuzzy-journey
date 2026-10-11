@@ -173,7 +173,7 @@ func _write(p: int) -> void:
 	_pal[r1] = ow & 255; _pal[r1 + 1] = (ow >> 8) & 255; _pal[r1 + 2] = fl; _pal[r1 + 3] = 255
 	var r2 := (2 * PAL_W + id) * 4
 	var oc := g.occupier[p]
-	if oc != 0 and ow != 0 and (lenses.mode == "political" or lenses.mode == "military" or lenses.mode == "wars"):
+	if oc != 0 and ow != 0 and (lenses.mode == "political" or lenses.mode == "routes" or lenses.mode == "military" or lenses.mode == "wars"):
 		var rc: int = lenses.nat_rgb[oc]
 		_pal[r2] = (rc >> 16) & 255; _pal[r2 + 1] = (rc >> 8) & 255; _pal[r2 + 2] = rc & 255; _pal[r2 + 3] = 255
 	else:

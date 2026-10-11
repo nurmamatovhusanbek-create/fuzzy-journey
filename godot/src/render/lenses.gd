@@ -7,7 +7,7 @@ class_name TBLenses
 extends RefCounted
 
 const D = preload("res://src/engine/data.gd")
-const NAMES := ["political", "diplomatic", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]
+const NAMES := ["political", "diplomatic", "routes", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]
 const MODES := ["off", "deuter", "protan", "tritan"]
 
 ## in game the political colours are a little darker (Age-of-Civilizations muted palette); the title globe keeps the lifted colours
@@ -365,7 +365,7 @@ func color(p: int) -> int:
 	if g.discoverable[p] != 0 and o == 0: return DISCOVERABLE
 	var me := g.human_id
 	match mode:
-		"political": return nat_rgb[o] if o != 0 else neutral()
+		"political", "routes": return nat_rgb[o] if o != 0 else neutral()                  # routes: the political map with the treaty and trade lines drawn over it
 		"diplomatic":
 			if o == 0: return neutral()
 			if o == me: return SELF_COL

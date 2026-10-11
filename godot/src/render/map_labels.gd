@@ -577,7 +577,7 @@ func _draw_layout() -> void:
 		var want := false
 		if a > 0:
 			match ztier:
-				0: want = o == me or war or p == sel
+				0: want = false
 				1: want = o == me or war or rel == 3 or p == sel or p == hov
 				_: want = true
 		var ring := cap and (o == me or ztier >= 2 or p == sel)
@@ -732,10 +732,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var nat := _nat_col(o)
 	var ink := tk("ink_0")
 	var lift := -4.0 if (hot and ztier == 2) else 0.0
-	if ztier == 0:
-		_draw_dot(pos, al, own, war, hot, nat)
-		_floater(p, pos, st, o, me, nfont)
-		return
+	if ztier == 0: return                                                   # zoomed out: no army dots at all, the army appears by itself when you close in
 	# AoC-style army marker: a dark rounded pill with the nation's flag and the strength; own gold, war red, ally blue, others cream
 	var txt := TBKit.fmt(int(round(st["shown"])))
 	var near: bool = ztier == 2

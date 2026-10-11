@@ -97,9 +97,12 @@ are *sent* now (the cost, diplomacy points or intel, is spent at once) and *answ
 likelihood the button showed (`TBAsks.chance`: the same sums as `TBDipView`, spy chance, ultimatum strength ratio, 3..97 %); an accepted request runs the real command
 (`_force`), a refused one adds 5 grudge. The answer lands in the log as `ans`; the interface shows it as a flag notice until it is tapped away. One court request per
 court at a time, one spy party per court.
-**Marching** (`engine/march.gd`): an army may be ordered to any province it can reach with the move points it has. Route: land you hold, allies' land (crossed, never stopped
-in), a sea hop from a Port, and between your own Ports any distance (2 + 1 per 25 degrees). One move point per step; the last step into an enemy province costs the attack
-price. The men arrive (or fight) at once. Rules 0 and neighbour moves keep the old behaviour.
+**Marching** (`engine/march.gd`): an army may be ordered to any province it can reach, near or far, and walks there ONE province per turn. Route: land you hold, allies' land
+(crossed in the same stride, never stopped in), a sea hop from a Port, and between your own Ports any distance (a longer voyage weighs more in the route's choice, but is one stride).
+The order costs one move (the attack price when the target is an enemy next door) and is kept as a standing order in `g.marches` (`{n, at, to, k}`, saved): the army takes its
+first stride at once, then one more at every end of turn (`TBMarch.advance`, before the AI plays) until it stands in the target or fights there. A hand-given move from the same
+province replaces the order; an order whose army or way is gone lapses with a `march_stop` log entry. The map keeps a thin dashed line for each of your standing orders until it arrives.
+Rules 0 and neighbour moves keep the old behaviour (they happen at once).
 **Fog of war** (`engine/vision.gd`, view only): your armies always; another nation's armies when it is an ally / marriage / vassal / overlord, friendliness above 80
 (50 at peace, +25 pact, +15 trade deal, +10 no grudge, minus the grudge), a spy report (6 turns after a successful operation), or when they stand next to a province you hold
 (3 provinces round a Watchtower). Hidden armies get no marker, no figure on the cards and no outcome in a preview; the AI plays without fog.

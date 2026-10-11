@@ -69,6 +69,7 @@ static func catchup(g: TBGame, n: int) -> float:
 	return 1.0 + CATCHUP_MAX * clampf((g.tech_top - tl) / 2.0, 0.0, 1.0) - LEADER_DRAG * clampf((tl - g.tech_avg) / 1.5, 0.0, 1.0)
 
 static func end_turn(g: TBGame) -> PackedInt32Array:
+	if g.rules >= 1: TBMarch.advance(g)
 	TBAI.run(g)
 	_tick(g)
 	rebel_turn(g)

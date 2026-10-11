@@ -241,6 +241,7 @@ static func lens_glyph(lens: String) -> String:
 	match lens:
 		"political": return "flag"
 		"diplomatic": return "dove"
+		"routes": return "link"
 		"economic": return "coins"
 		"military": return "swords"
 		"wars": return "skull"
@@ -685,6 +686,7 @@ class NationChip extends Hit:
 		var m: float = med()
 		var c := Vector2(m + 4.0, m + 4.0)
 		TBBezel.ring(self, c, m - 2.0, 48, TBTokens.c("bar_0"))
+		draw_arc(c, m - 3.4, 0.0, TAU, 64, TBTokens.with_a(TBBezel.BRASS, 0.95), 2.8, true)             # the player's flag: a bolder brass band round the medallion
 		var pr: float = m - 14.0
 		if flag != null:                                                    # the flag fills its circle (an era flag is pre-cropped on its main element: tools/flags/focus.json)
 			var pts := PackedVector2Array(); var uvs := PackedVector2Array()

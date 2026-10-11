@@ -664,9 +664,12 @@ static func _forget_window(h: Handle) -> void:
 
 static func _focus_first(h: Handle) -> void:
 	if not h.is_open() or not h.root.is_inside_tree(): return
+	if h.scroll != null and is_instance_valid(h.scroll): h.scroll.follow_focus = false                 # the first focus must not scroll the page to the first control (a window opens at its top)
 	if h.focus_target != null and is_instance_valid(h.focus_target) and h.focus_target.is_visible_in_tree(): h.focus_target.grab_focus()
 	else: K._focus_first(h.root)
-	if h.scroll != null and is_instance_valid(h.scroll): h.scroll.set_deferred("scroll_vertical", 0)         # a panel opens at its top: the first focus must not scroll the content under the header ruler
+	if h.scroll != null and is_instance_valid(h.scroll):
+		h.scroll.set_deferred("scroll_vertical", 0)
+		h.root.get_tree().create_timer(0.25).timeout.connect(func(): if is_instance_valid(h.scroll): h.scroll.follow_focus = true)
 
 # ---- layout ------------------------------------------------------------------------------------------------------------------------------
 static func _vs(h: Handle) -> Vector2:
@@ -1063,7 +1066,7 @@ static func nation_button(g: TBGame, n: int, cb: Callable) -> Button:
 	var b := K.button(g.dname(n), cb)
 	b.icon = TBFlags.texture(g.nat_code[n], g.color[n]); b.expand_icon = true
 	b.add_theme_constant_override("icon_max_width", 24)
-	b.custom_minimum_size = Vector2(0, K.touch() - 8)
+	b.custom_minimum_size = Vector2(b.custom_minimum_size.x, K.touch() - 8)         # keep the plate's own width (it was reset to 0: the labels piled up on each other)
 	b.clip_text = false
 	return b
 

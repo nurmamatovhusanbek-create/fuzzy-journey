@@ -79,6 +79,10 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"era": return T.call("e_era", {"a": a, "e": T.call("era_name_%d" % int(e["k"]))})
 		"victory": return T.call("e_victory", {"a": a})
 		"defeat": return T.call("e_defeat")
+		"march_stop":
+			if int(e.get("a", 0)) != g.human_id: return ""
+			var wk: String = "err_" + String(e.get("why", "noarmy"))
+			return T.call("e_march_stop", {"p": pn, "why": T.call(wk) if TBI18n.has_key(wk) else String(e.get("why", ""))})
 		"ans": return ans_text(g, String(e["what"]), String(e.get("op", "")), bool(e["ok"]), int(e["b"])) if involves(e, g.human_id) else ""
 		"spy":
 			if not involves(e, g.human_id): return ""
@@ -123,4 +127,5 @@ static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 		"eliminated": return true
 		"event": return e.get("a", 0) == me or e.get("a", 0) == 0
 		"spy": return e.get("b", -1) == me
+		"march_stop": return e.get("a", -1) == me
 	return false

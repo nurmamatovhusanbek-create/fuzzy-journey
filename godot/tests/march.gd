@@ -25,21 +25,46 @@ func _init() -> void:
 	_ck(adj < 0, "the far province is not a neighbour")
 	var pl := TBMarch.plan(g, n, src, far)
 	print("plan ", pl)
-	_ck(bool(pl["ok"]) and String(pl["kind"]) == "move" and float(pl["mp"]) >= 3.0 and (pl["path"] as PackedInt32Array).size() >= 4, "a march over our own land is planned (mp %.0f, %d steps)" % [float(pl["mp"]), (pl["path"] as PackedInt32Array).size()])
-	# the real command moves the men at once and charges the points
+	_ck(bool(pl["ok"]) and String(pl["kind"]) == "move" and float(pl["mp"]) == float(D.MP_MOVE) and (pl["path"] as PackedInt32Array).size() >= 4, "a march over our own land is planned (%d steps, %d turns)" % [(pl["path"] as PackedInt32Array).size(), int(pl["turns"])])
+	_ck(int(pl["turns"]) >= 3, "…and takes as many turns as provinces held on the way")
+	# the order moves the army ONE province, costs one move, and stands as an order
 	var a0 := g.army[src]; var f0 := g.army[far]; var mp0 := g.mp[n]
 	var rr := g.apply({"cmd": "move", "n": n, "from": src, "to": far, "troops": a0 - 1})
 	print("apply ", rr)
-	_ck(bool(rr["ok"]) and g.army[far] == f0 + a0 - 1 and g.army[src] == 1, "the whole army arrives (%d -> %d)" % [f0, g.army[far]])
-	_ck(absf((mp0 - g.mp[n]) - float(pl["mp"])) < 0.01, "the cost is the path's move points")
-	# a march costing more than the turn allows is refused
-	g.mp[n] = 1.0
+	var way: PackedInt32Array = pl["path"]
+	_ck(bool(rr["ok"]) and String(rr["result"]) == "march", "the army sets out (%s)" % str(rr))
+	_ck(g.army[far] == f0 and g.army[way[1]] >= a0 - 1 and g.army[src] == 1, "…one province only: not at the far end yet")
+	_ck(absf((mp0 - g.mp[n]) - float(D.MP_MOVE)) < 0.01, "the order costs one move")
+	_ck(g.marches.size() == 1 and int(g.marches[0]["to"]) == far and int(g.marches[0]["at"]) == way[1], "a standing order is kept")
+	# one stride at every end of turn until it arrives
+	var steps := 0
+	var prev := way[1]
+	while not g.marches.is_empty() and steps < 12:
+		TBTurn.end_turn(g)
+		steps += 1
+		if not g.marches.is_empty():
+			var now := int(g.marches[0]["at"])
+			_ck(now != prev, "each turn the army stands in a new province")
+			prev = now
+	_ck(g.marches.is_empty() and g.army[far] >= f0 + a0 - 1 - 2, "the army arrives and the order ends (%d turns, %d men there)" % [steps, g.army[far]])
+	_ck(steps <= int(pl["turns"]), "…in no more turns than planned")
+	# a new hand-given move replaces the standing order
+	g.mp[n] = 12.0
+	g.apply({"cmd": "move", "n": n, "from": far, "to": src, "troops": 0})
+	_ck(g.marches.size() == 1, "a second order stands")
+	var nb0: int = g.nb[g.nb_off[int(g.marches[0]["at"])]]
+	g.army[int(g.marches[0]["at"])] = 5
+	g.apply({"cmd": "move", "n": n, "from": int(g.marches[0]["at"]), "to": nb0, "troops": 1})
+	_ck(g.marches.is_empty() or int(g.marches[0]["at"]) != nb0, "a hand-given move cancels the order of that army")
+	g.marches.clear()
+	# a march needs a move point to be ordered
+	g.mp[n] = 0.0
 	var back := g.apply({"cmd": "move", "n": n, "from": far, "to": src, "troops": 0})
-	_ck(not bool(back["ok"]) and String(back["err"]) == "mp", "too few move points: refused (%s)" % str(back))
+	_ck(not bool(back["ok"]) and String(back["err"]) == "mp", "no move point: refused (%s)" % str(back))
 	# can() agrees with apply()
 	g.mp[n] = 12.0
 	var cn := g.can({"cmd": "move", "n": n, "from": far, "to": src, "troops": 0})
-	_ck(bool(cn["ok"]) and int(cn["moves"]) == int(ceil(float(TBMarch.plan(g, n, far, src)["mp"]))), "can() reports the march's points")
+	_ck(bool(cn["ok"]) and int(cn["moves"]) == D.MP_MOVE, "can() reports the order's points")
 	# an enemy province two steps beyond our border: a march ends in an attack, costing one point more at the end
 	var foe := -1; var from2 := -1
 	for p in g.owned(n):

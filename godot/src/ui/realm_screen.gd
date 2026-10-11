@@ -44,6 +44,15 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		[T.call("happiness"), "%d%%" % (int(round(float(happy_sum) / maxf(1.0, float(n_own))))), 0]]
 	body.add_child(_cap(T.call("realm_standing"), 10.0, 6.0))
 	body.add_child(K.fxl(standing, 2))
+	# ---- progress toward the victories (the three nearest)
+	if g.rules >= 1:
+		var prog: Dictionary = TBTurn.victory_progress(g, me)
+		var ids: Array = TBTurn.VICTORY_IDS.duplicate()
+		ids.sort_custom(func(a: String, b: String) -> bool: return float(prog[a]) > float(prog[b]))
+		var pr_rows: Array = []
+		for i in mini(4, ids.size()): pr_rows.append([T.call("vc_" + String(ids[i])), "%d%%" % int(roundf(float(prog[ids[i]]) * 100.0)), 0])
+		body.add_child(_cap(T.call("realm_progress"), 14.0, 6.0))
+		body.add_child(K.fxl(pr_rows, 2))
 	# ---- treasury: taxes and the rest, then how the budget is split
 	var money: Array = [[T.call("bud_taxes"), K.signed(float(inc["tax"])), 1]]
 	if g.rules >= 1 and TBTrade.income(g, me) > 0: money.append([T.call("trade"), K.signed(float(TBTrade.income(g, me))), 1])

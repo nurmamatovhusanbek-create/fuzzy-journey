@@ -30,7 +30,7 @@ func _process(d: float) -> void:
 	_t += d
 	for k in _seen.keys(): _seen[k] = float(_seen[k]) + d
 	# a new pact, trade deal or war shows up at once (it used to wait for the camera to move), the camera moves the lines, and while a line grows in or a load travels it keeps drawing
-	var sig: int = hash([hash(g.rel), hash(g.trade), g.human_id, map.lon0, map.lat0, map.zoom, map.size, map.mode, g.turn])
+	var sig: int = hash([hash(g.rel), hash(g.trade), g.human_id, map.lon0, map.lat0, map.zoom, map.size, map.mode, g.turn, map.lenses.mode, _march_sig()])
 	if sig != _sig: _sig = sig; queue_redraw()
 	elif _anim and K.motion_ok(): queue_redraw()                     # only a line growing in or a trade load on its way needs frames; a still route is not redrawn
 
@@ -79,8 +79,65 @@ static func _unit(ll: Array) -> Vector3:
 	var cl: float = cos(lat)
 	return Vector3(cl * sin(lon), sin(lat), cl * cos(lon))
 
+## the standing march orders as a number (where each army stands and where it is bound), so the lines are redrawn when one steps, is given or lapses
+func _march_sig() -> int:
+	var h := g.marches.size()
+	for m in g.marches: h = h * 31 + int(m["at"]) * 7 + int(m["to"])
+	return h
+
+var _mpath: Dictionary = {}              # at * 100000 + to -> [stamp, PackedInt32Array]: the way an order runs (worked out once per turn, not per frame)
+
+func _march_way(m: Dictionary) -> PackedInt32Array:
+	var key: int = int(m["at"]) * 100000 + int(m["to"])
+	var stamp: int = g.turn * 100003 + g.occ_rev
+	if _mpath.has(key) and int(_mpath[key][0]) == stamp: return _mpath[key][1]
+	var pl := TBMarch.plan(g, int(m["n"]), int(m["at"]), int(m["to"]))
+	var way: PackedInt32Array = pl["path"] if bool(pl["ok"]) else PackedInt32Array([int(m["at"]), int(m["to"])])
+	_mpath[key] = [stamp, way]
+	return way
+
+## your armies' standing orders: a thin dashed line from where each army stands to where it is bound, held from turn to turn until it arrives (the trade route's weight, in brass)
+func _draw_marches() -> void:
+	if g.marches.is_empty() or map.size.x < 8.0: return
+	if _mpath.size() > 64: _mpath.clear()
+	var atlas: bool = map.atlas_look()
+	var col: Color = TBTokens.c("brass_lt")
+	var halo: Color = Color(0, 0, 0, 0) if atlas else TBTokens.with_a(TBTokens.HALO, 0.7)
+	if atlas: col.a = 0.9
+	for m in g.marches:
+		if int(m["n"]) != g.human_id: continue
+		var way := _march_way(m)
+		var run := PackedVector2Array()
+		var runs: Array = []
+		for i in way.size() - 1:
+			var a: int = way[i]; var b: int = way[i + 1]
+			var u := _unit([g.world.lon[a], g.world.lat[a]]); var v := _unit([g.world.lon[b], g.world.lat[b]])
+			var steps := 6
+			for k in steps + 1:
+				if k == 0 and i > 0: continue
+				var w: Vector3 = _slerp(u, v, float(k) / steps) if u.dot(v) < 0.999 else u
+				var pr: Vector3 = map.project(rad_to_deg(atan2(w.x, w.z)), rad_to_deg(asin(clampf(w.y, -1.0, 1.0))))
+				if pr.z > 0.02:
+					var q := Vector2(pr.x, pr.y)
+					if run.size() > 0 and absf(run[run.size() - 1].x - q.x) > map.size.x * 0.5:             # flat map: across the date line
+						if run.size() > 1: runs.append(run)
+						run = PackedVector2Array()
+					run.append(q)
+				else:
+					if run.size() > 1: runs.append(run)
+					run = PackedVector2Array()
+		if run.size() > 1: runs.append(run)
+		for r in runs: _dashed(r, halo, col, 1.8 if atlas else 2.0, 3.0 if atlas else 8.0, 6.0 if atlas else 7.0)
+		var td: Vector3 = map.project(g.world.lon[int(m["to"])], g.world.lat[int(m["to"])])
+		if td.z > 0.02:                                                                                # the end of the way: a small diamond, like a route's seal
+			var c := Vector2(td.x, td.y); var sz := 4.5
+			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -sz), c + Vector2(sz, 0), c + Vector2(0, sz), c + Vector2(-sz, 0)]), TBTokens.c("bar_0"))
+			draw_polyline(PackedVector2Array([c + Vector2(0, -sz), c + Vector2(sz, 0), c + Vector2(0, sz), c + Vector2(-sz, 0), c + Vector2(0, -sz)]), col, 1.4, true)
+
 func _draw() -> void:
 	if g == null or map == null or g.human_id <= 0 or not map.is_inside_tree(): return
+	_draw_marches()
+	if map.lenses.mode != "routes": return                                      # treaty and trade lines are a lens, not the default map
 	if map.size.x < 8.0: return
 	var me: int = g.human_id
 	var a: Array = _cap(me)

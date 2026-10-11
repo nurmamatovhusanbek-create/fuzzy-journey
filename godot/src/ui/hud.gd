@@ -19,6 +19,7 @@ signal tapped
 signal goto_province(p: int)
 ## open the nation card of n
 signal nation_pressed(n: int)
+signal exit_pressed                          ## the gear menu's Exit: back to the title screen
 signal realm_pressed                       ## the crest (your flag): your own country's page
 ## inline answer on an offer chip: choice 0 = accept / yield, 1 = decline / defy (send as an eventChoice command)
 signal offer_answered(uid: int, choice: int)
@@ -40,7 +41,7 @@ const SCREENS := [
 	["chronicle", "book", "dk_chronicle", "F5"], ["goals", "trophy", "dk_goals", "F6"], ["save", "save", "dk_save", ""], ["settings", "gear", "dk_settings", ""],
 ]
 const PRIMARY := 6
-const LENS_PINNED := ["political", "diplomatic", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]   # every lens sits on the tuner below the map (Alt+1..9 order); the phone keeps four and the "more" pop-up
+const LENS_PINNED := ["political", "diplomatic", "routes", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]   # every lens sits on the tuner below the map (Alt+1..9 order); the phone keeps four and the "more" pop-up
 const LENS_PHONE := ["political", "diplomatic", "military", "terrain"]
 
 var g: TBGame
@@ -203,7 +204,7 @@ func _chip_h() -> float: return 60.0
 static func demo_layout(vp: Vector2, phone: bool) -> Dictionary:
 	var d := {"phone": phone, "W": vp.x, "H": vp.y, "m": 8.0 if phone else 28.0}
 	if phone: d.merge({"med": 25.0, "gr": 15.0, "gsz": 56.0, "railD": 40.0, "railStep": 49.0, "railX": 12.0, "chr": 38.0, "mmR": 0.0, "tunW": 380.0, "panelX": 60.0, "panelY": 8.0, "panelH": vp.y - 16.0, "alertW": 330.0, "ar": 360.0})
-	else: d.merge({"med": 46.0, "gr": 30.0, "gsz": 84.0, "railD": 52.0, "railStep": 78.0, "railX": 28.0, "chr": 74.0, "mmR": 74.0, "tunW": 560.0, "panelX": 340.0, "panelY": 190.0, "panelH": vp.y - 190.0 - 130.0, "alertW": 400.0, "ar": 560.0})
+	else: d.merge({"med": 46.0, "gr": 30.0, "gsz": 84.0, "railD": 52.0, "railStep": 78.0, "railX": 28.0, "chr": 60.0, "mmR": 74.0, "tunW": 560.0, "panelX": 340.0, "panelY": 190.0, "panelH": vp.y - 190.0 - 130.0, "alertW": 400.0, "ar": 560.0})
 	d["axis"] = float(d["m"]) + maxf(float(d["med"]), maxf(float(d["mmR"]), float(d["railD"]) * 0.5))
 	return d
 
@@ -1010,6 +1011,17 @@ func _open_menu(anchor: Control, only_more: bool) -> void:
 	pc.add_theme_stylebox_override("panel", P.bar_box(8, 8, 4, true))
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4); pc.add_child(v)
 	var rw: float = minf(240.0, _vp.x - 32.0)
+	if _prof == Prof.DESKTOP and not only_more:                      # the rail already has Nations, Budget, Decrees...: the gear holds only Save, Settings and Exit
+		for it in [["save", "save", "dk_save"], ["settings", "gear", "dk_settings"], ["exit", "back", "gm_main"]]:
+			var r0 := RowBtn.new(); r0.glyph = it[1]; r0.label = T.call(it[2]); r0.custom_minimum_size = Vector2(rw, P.touch()); r0.set_a11y(r0.label)
+			var sid0: String = it[0]
+			r0.pressed.connect(func():
+				_close_pop()
+				if sid0 == "exit": tapped.emit(); exit_pressed.emit()
+				else: _screen(sid0))
+			v.add_child(r0)
+		_open_pop("menu", pc, anchor)
+		return
 	for i in SCREENS.size():
 		if only_more and i < PRIMARY: continue
 		var sc: Array = SCREENS[i]

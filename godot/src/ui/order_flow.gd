@@ -29,6 +29,15 @@ var _hover := -1
 
 func _me() -> int: return g.human_id
 
+## the stages of the army of `s` over the whole land it can march through, worked out once for as long as nothing changed (every hover asks the same question)
+var _reach_src := -1
+var _reach_cache: Dictionary = {}
+func _reach_of(s: int) -> Dictionary:
+	if s != _reach_src or _reach_cache.is_empty():
+		_reach_src = s; _reach_cache = TBMarch.reach(g, _me(), s, float(TBMarch.REACH))
+	return _reach_cache
+func _drop_reach() -> void: _reach_src = -1; _reach_cache = {}
+
 func share() -> float: return panel.send_frac if panel != null else 1.0
 
 ## men a move from `from` sends, following the 25 / 50 / 75 / 100 % choice
@@ -54,12 +63,13 @@ func check(q: int, from: int = -2) -> Dictionary:
 	if s < 0 or q < 0 or q == s: return out
 	var chk := g.move_check(_me(), s, q)
 	if chk == "!notadjacent" and g.rules >= 1:                          # not a neighbour: a march over our land, allies' land and ports (TBMarch)
-		var pl := TBMarch.plan(g, _me(), s, q)
+		var pl := TBMarch.plan(g, _me(), s, q, _reach_of(s))
 		if not bool(pl["ok"]):
 			out["reason"] = String(pl["err"]); return out
 		out["valid"] = true; out["kind"] = String(pl["kind"]); out["reason"] = ""; out["far"] = true
 		var way: PackedInt32Array = pl["path"]
 		out["via"] = way.slice(1, way.size() - 1)
+		out["turns"] = int(pl["turns"])
 		out["preview"] = pl["kind"] == "attack" and (g.army[q] > 0 or g.controller(q) != 0)
 		out["explicit_only"] = true                                     # a march is ordered with Move (or a right click), never by a stray tap
 		return out
@@ -82,7 +92,7 @@ func compute_targets() -> PackedInt32Array:
 	var t := PackedInt32Array()
 	if src < 0: return t
 	if explicit and g.rules >= 1:                                       # Move pressed: every province the army can reach with the move points it has
-		var far: Dictionary = TBMarch.targets(g, _me(), src, g.mp[_me()])
+		var far: Dictionary = TBMarch.targets(g, _me(), src, _reach_of(src))
 		for q in far: t.append(int(q))
 		return t
 	for q in _candidates(src):
@@ -115,12 +125,14 @@ func best_source(target: int) -> int:
 
 # ---------------------------------------------------------------- state changes
 func clear() -> void:
+	_drop_reach()
 	mode = Mode.IDLE; src = -1; tgt = -1; explicit = false; targets = PackedInt32Array(); focus_p = -1
 	_sync_map()
 	_hide_chip()
 
 ## the selection changed (or the state under it): derive the armed source and light the targets
 func on_select(p: int) -> void:
+	_drop_reach()
 	tgt = -1; explicit = false; focus_p = -1
 	src = -1
 	if g != null and p >= 0 and g.controller(p) == _me() and g.army[p] > 1: src = p
@@ -131,6 +143,7 @@ func on_select(p: int) -> void:
 ## the world changed under an open order (after a command, an AI event): recompute, keep what is still valid
 func refresh() -> void:
 	if g == null: return
+	_drop_reach()
 	if src >= 0 and (g.controller(src) != _me() or g.army[src] <= 1):
 		var keep := panel.p if panel != null else -1
 		clear()
@@ -259,13 +272,19 @@ func hover(q: int) -> void:
 	var c := check(q)
 	map.mouse_default_cursor_shape = Control.CURSOR_CROSS if (q >= 0 and c["valid"] and c["kind"] == "attack") else Control.CURSOR_ARROW
 	if q >= 0 and c["valid"]:
-		var lab := ""
-		if c["kind"] == "attack":
-			var pv := _pv(q)
-			lab = "%s : %s" % [TBKit.fmt(int(pv["send"])), _def_text(pv)]
-		map.labels.set_order(src, q, c["kind"] == "attack", true, lab, true, c.get("via", PackedInt32Array()))
+		map.labels.set_order(src, q, c["kind"] == "attack", true, _order_label(c, q), true, c.get("via", PackedInt32Array()))
 	else:
 		map.labels.clear_order()
+
+## the chip on the dashed arrow: the men and the defenders for an attack next door; for a march of several strides how many turns it takes
+func _order_label(c: Dictionary, q: int) -> String:
+	var lab := ""
+	if c["kind"] == "attack" and not c.has("far"):
+		var pv := _pv(q)
+		lab = "%s : %s" % [TBKit.fmt(int(pv["send"])), _def_text(pv)]
+	elif c.has("far"):
+		lab = TBI18n.T.call("march_eta", {"n": int(c.get("turns", 1))})
+	return lab
 
 ## the one-line outcome of attacking q from the current source, for the tooltip
 func hover_result(q: int) -> Dictionary:
@@ -284,11 +303,7 @@ func _sync_map() -> void:
 	map.dim_others = (mode == Mode.PREVIEW) or (src >= 0 and not targets.is_empty()) or explicit
 	if mode == Mode.PREVIEW and tgt >= 0:
 		var c := check(tgt)
-		var lab := ""
-		if c["kind"] == "attack":
-			var pv := _pv(tgt)
-			lab = "%s : %s" % [TBKit.fmt(int(pv["send"])), _def_text(pv)]
-		map.labels.set_order(src, tgt, c["kind"] == "attack", true, lab, false, c.get("via", PackedInt32Array()))
+		map.labels.set_order(src, tgt, c["kind"] == "attack", true, _order_label(c, tgt), false, c.get("via", PackedInt32Array()))
 	elif _hover < 0 or mode != Mode.ARMED:
 		map.labels.clear_order()
 	map.focus_province = focus_p

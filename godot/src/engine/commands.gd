@@ -48,13 +48,17 @@ static func _c_move(g: TBGame, c: Dictionary) -> Dictionary:
 		var pl := TBMarch.plan(g, n, int(c["from"]), to)
 		if not bool(pl["ok"]): return _err(String(pl["err"]))
 		if g.mp[n] < float(pl["mp"]): return _err("mp")
-		var rm := TBMarch.execute(g, n, int(c["from"]), to, int(c.get("troops", 0)))
+		var rm := TBMarch.order(g, n, int(c["from"]), to, int(c.get("troops", 0)))
 		if rm.begins_with("!"): return _err(rm.substr(1))
 		g.mp[n] -= float(pl["mp"])
-		return {"ok": true, "result": rm}
+		var at := -1                                                          # where the army stands now (still on the way: the march order says)
+		for m in g.marches:
+			if int(m["n"]) == n and int(m["to"]) == to and g.controller(int(m["at"])) == n: at = int(m["at"])
+		return {"ok": true, "result": rm, "at": at}
 	var att := g.controller(to) != n
 	var need: float = D.MP_ATTACK if att else D.MP_MOVE
 	if g.mp[n] < need: return _err("mp")
+	if g.rules >= 1: TBMarch.cancel_at(g, n, int(c["from"]))                  # a hand-given move replaces the standing order of that army
 	var r := g.move_or_attack(n, int(c["from"]), to, int(c.get("troops", 0)))
 	if r.begins_with("!"): return _err(r.substr(1))
 	g.mp[n] -= need
