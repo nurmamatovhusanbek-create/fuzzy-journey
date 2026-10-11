@@ -95,7 +95,7 @@ static func inset_glow(ci: CanvasItem, r: Rect2, cut: float, col: Color, blur: f
 		var q: Rect2 = r.grow(-(float(d) + 0.5))
 		if q.size.x <= 0.0 or q.size.y <= 0.0: break
 		var ring := PackedVector2Array([q.position, Vector2(q.end.x, q.position.y), q.end, Vector2(q.position.x, q.end.y), q.position])
-		for seg in Geometry2D.clip_polyline_with_polygon(ring, clip):
+		for seg in Geometry2D.intersect_polyline_with_polygon(ring, clip):
 			ci.draw_polyline(seg, Color(col.r, col.g, col.b, a), 1.0, false)
 
 # ---------------------------------------------------------------- rows
@@ -178,7 +178,7 @@ class AlertRow extends P.Hit:
 		draw_circle(c, 24.0 * s, TBTokens.with_a(TBTokens.BZ_SHADOW, 0.45))
 		BZ.grad_disc(self, c, 21.0 * s, [[0.0, TBTokens.BZ_G_A], [0.5, TBTokens.BZ_G_B], [1.0, TBTokens.BZ_G_C]])
 		draw_circle(c, 17.0 * s, TBTokens.c("bar_0"))
-		draw_arc(c, 16.4 * s, 0.0, TAU, 48, col, 1.2 * s, true)
+		draw_arc(c, 16.4 * s, 0.0, TAU, 48, col, 0.8 * s, true)
 		BZ.ticks(self, c, 16.0 * s, 24, 2.4 * s, 6, BZ.BRASS, 0.7 * s, 0.0, TAU, true)
 		var tex: Texture2D = entry.get("tex") as Texture2D
 		if tex != null: TBFlags.draw_flag_medal(self, tex, c, 24.0 if compact else 30.0)
@@ -195,7 +195,7 @@ class AlertRow extends P.Hit:
 			var ok: bool = bool(entry["ok"])
 			TBAlertTicker.draw_plate(self, pr, hot, TBAlertTicker.ans_edge(ok, hot))
 			if not TBTokens.is_hc(): TBAlertTicker.inset_glow(self, pr.grow(-1.0), 6.0, Color(0.498, 0.659, 0.910, 0.34) if ok else Color(0.702, 0.106, 0.106, 0.44))
-			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), (Color("#7FA8E8") if ok else TBTokens.BZ_NOTICE_BAD) if not TBTokens.is_hc() else TBTokens.c("ink_0"))
+			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), (Color("#7FA8E8") if ok else Color("#B31B1B")) if not TBTokens.is_hc() else TBTokens.c("ink_0"))
 		else:
 			TBAlertTicker.draw_plate(self, pr, hot)
 			var c := Vector2(lx + 1.0, bh * 0.5)
