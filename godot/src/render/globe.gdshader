@@ -6,6 +6,7 @@ render_mode unshaded;
 
 uniform sampler2D ids : filter_nearest, repeat_disable;
 uniform sampler2D pal : filter_nearest, repeat_disable;
+uniform sampler2D coast : filter_linear, repeat_enable;      // R16F, half the id texture's size: distance in id texels (at 4096 wide) from a sea texel to the nearest land texel (data/coast.bin.gz)
 uniform vec2 rect_size = vec2(1280.0, 720.0);
 uniform vec2 id_size = vec2(2048.0, 1024.0);
 uniform float lon0 = 0.0;
@@ -62,6 +63,31 @@ vec2 tex_coord(float lon, float lat) {
 	float u = lon / TAU + 0.5;
 	u = u - floor(u);
 	return vec2(u * id_size.x, (0.5 - lat / PI) * id_size.y);
+}
+
+// texels per screen pixel along x and y (the Jacobian of unproject() followed by tex_coord(), worked out in closed form instead of two more unprojections)
+void tex_deriv(float lat, vec3 n, out vec2 dtx, out vec2 dty) {
+	if (mode == 0) {
+		float z = max(n.z, 0.02);
+		float s0 = sin(lat0), c0 = cos(lat0);
+		float w = clamp(z * s0 + n.y * c0, -1.0, 1.0);
+		float ilat = 1.0 / sqrt(max(1.0 - w * w, 1e-6));
+		float Y = z * c0 - n.y * s0;
+		float ir = 1.0 / max(n.x * n.x + Y * Y, 1e-6);
+		float k = 1.0 / radius;
+		// a step of one pixel right: d = (k, 0); down: d = (0, -k)
+		float dz_x = -n.x * k / z;
+		float dz_y = n.y * k / z;
+		float dw_x = s0 * dz_x, dw_y = s0 * dz_y - c0 * k;
+		float dY_x = c0 * dz_x, dY_y = c0 * dz_y + s0 * k;
+		float dlon_x = (Y * k - n.x * dY_x) * ir, dlon_y = (-n.x * dY_y) * ir;
+		dtx = vec2(dlon_x / TAU * id_size.x, -dw_x * ilat / PI * id_size.y);
+		dty = vec2(dlon_y / TAU * id_size.x, -dw_y * ilat / PI * id_size.y);
+	} else {
+		float k = 1.0 / flat_scale;
+		dtx = vec2(k / TAU * id_size.x, 0.0);
+		dty = vec2(0.0, cos(lat) * k / PI * id_size.y);
+	}
 }
 
 int id_at(ivec2 t) {
@@ -265,10 +291,8 @@ void fragment() {
 		ivec2 ti = ivec2(floor(t));
 		vec2 f = t - floor(t);
 		// texels per screen pixel (finite differences; robust at the lon seam)
-		float lon1, lat1; vec3 n1;
-		vec2 dtx = vec2(0.0), dty = vec2(0.0);
-		if (unproject(p + vec2(1.0, 0.0), lon1, lat1, n1)) dtx = wrap_dt(tex_coord(lon1, lat1) - t);
-		if (unproject(p + vec2(0.0, 1.0), lon1, lat1, n1)) dty = wrap_dt(tex_coord(lon1, lat1) - t);
+		vec2 dtx, dty;
+		tex_deriv(lat, n, dtx, dty);
 		float tpp = max(max(length(dtx), length(dty)), 0.0001);
 		bool hq = quality >= 2 && tpp < 0.5;                 // a texel spans two or more pixels
 		int id = hq ? hq_id(t) : ((quality >= 2) ? smooth_id(t) : id_at(ti));
@@ -300,21 +324,12 @@ void fragment() {
 				float gcov = max(clamp(1.5 - dla, 0.0, 1.0), clamp(1.5 - dlo, 0.0, 1.0)) * 0.4 * ms * clamp(gk * 2.0, 0.0, 1.0);
 				col = mix(col, vec3(0.788, 0.635, 0.294), gcov);
 				if (quality >= 1) {
-					bool any_far = false;
-					for (int i = 0; i < 8; i++) {
-						if (id_at(ivec2(floor(t + (ex * D8[i].x + ey * D8[i].y) * 5.6 * ms))) != 0) any_far = true;
-					}
-					if (any_far) {
-						float dmin = 99.0;
-						for (int k = 1; k <= 5; k++) {
-							for (int i = 0; i < 8; i++) {
-								if (id_at(ivec2(floor(t + (ex * D8[i].x + ey * D8[i].y) * float(k) * ms))) != 0) { dmin = min(dmin, float(k)); }
-							}
-							if (dmin < 99.0) break;
-						}
-						if (dmin <= 5.0) col = mix(col, vec3(0.431, 0.561, 0.639), 0.06);       // 10 wide #6e8fa3 at .06
-						if (dmin <= 2.0) col = mix(col, vec3(0.561, 0.690, 0.761), 0.09);       // 4 wide #8fb0c2 at .09
-					}
+					// the coastal glow from the distance field (one read) instead of 8 + up to 40 probes of the id texture: land within 5 px of a sea pixel lights it (#6e8fa3 at .06),
+					// within 2 px more (#8fb0c2 at .09), both a pixel wide at their edge
+					float dtex = texture(coast, vec2(t.x / id_size.x, clamp(t.y / id_size.y, 0.0, 1.0))).r * (id_size.x / 4096.0);
+					float dpx = dtex / max(0.5 * (length(ex) + length(ey)), 1e-5);
+					col = mix(col, vec3(0.431, 0.561, 0.639), 0.06 * (1.0 - smoothstep(5.0 * ms - 0.5, 5.0 * ms + 0.5, dpx)));
+					col = mix(col, vec3(0.561, 0.690, 0.761), 0.09 * (1.0 - smoothstep(2.0 * ms - 0.5, 2.0 * ms + 0.5, dpx)));
 				}
 			}
 			else if (mode == 1 && hc == 0) col = theme == 1 ? col : vec3(0.055, 0.12, 0.24);        // flat map: one flat sea, no graticule (it smears into bands towards the poles)

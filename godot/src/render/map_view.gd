@@ -89,7 +89,13 @@ func setup(game: TBGame) -> void:
 		_mat = ShaderMaterial.new()
 		_mat.shader = SHADER
 		_rect.material = _mat
-		_vp.add_child(_rect)
+		_clip = Control.new()                                          # the scissor of a partial redraw (the whole viewport for a full one)
+		_clip.clip_contents = true; _clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_vp.add_child(_clip)
+		_clip.add_child(_rect)
+		var bbraw := FileAccess.get_file_as_bytes("res://data/prov_bbox.bin.gz").decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
+		for bi in range(0, bbraw.size() - 1, 2): _pbb.append(bbraw.decode_s16(bi))
+		RenderingServer.frame_post_draw.connect(_on_drawn)
 		_view_tex = TextureRect.new()
 		_view_tex.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_view_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -102,6 +108,8 @@ func setup(game: TBGame) -> void:
 		_ids_tex = ImageTexture.create_from_image(img)
 		_mat.set_shader_parameter("ids", _ids_tex)
 		_mat.set_shader_parameter("id_size", Vector2(world.W, world.H))
+		var cz := FileAccess.get_file_as_bytes("res://data/coast.bin.gz").decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)       # the coastal glow's distance field (tools/gen_coast.sh)
+		_mat.set_shader_parameter("coast", ImageTexture.create_from_image(Image.create_from_data(world.W / 2, world.H / 2, false, Image.FORMAT_RH, cz)))
 		_pal.resize(PAL_W * 4 * 4)
 		_pal_img = Image.create_from_data(PAL_W, 4, false, Image.FORMAT_RGBA8, _pal)
 		_pal_tex = ImageTexture.create_from_image(_pal_img)
@@ -180,7 +188,8 @@ func _write(p: int) -> void:
 		_pal[r2 + 3] = 0
 
 func _upload() -> void:
-	if _vp != null: _vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	_pal_gen += 1
+	_request_render()
 	if labels != null: labels.queue_redraw()
 	_pal_img.set_data(PAL_W, 4, false, Image.FORMAT_RGBA8, _pal)
 	_pal_tex.update(_pal_img)
@@ -237,12 +246,12 @@ func flat_local() -> float: return flat_scale() / maxf(0.2, cos(lat0))
 
 func _push_view() -> void:
 	if _mat == null: return
-	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	var rs: float = render_scale
 	var vs := Vector2i(maxi(64, int(size.x * rs)), maxi(64, int(size.y * rs)))
 	if _vp.size != vs:
 		_vp.size = vs
 		_rect.size = Vector2(vs)
+		_clip.size = Vector2(vs)
 	_mat.set_shader_parameter("rect_size", Vector2(vs))
 	_mat.set_shader_parameter("lon0", lon0)
 	_mat.set_shader_parameter("lat0", lat0)
@@ -270,6 +279,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("tgt_any", 1 if not _targets.is_empty() else 0)
 	if _vig != null: _vig.visible = atlas_look()
 	_select_ids_texture()
+	_request_render()
 	if labels != null:
 		labels.max_labels = [30, 70, 110][quality]
 		labels.hidden_while_dragging = quality == 0 and _pressed and _drag_moved >= 6.0
@@ -278,6 +288,123 @@ func _push_view() -> void:
 
 ## zoomed in far enough that other countries' districts are worth telling apart (their names, armies and terrain appear); further out, a country is one thing
 func district_zoom() -> bool: return zoom >= (2.6 if mode == 0 else maxf(3.4, flat_fit() * 2.0))
+
+# ---------------------------------------------------------------- redraws: all of the map, or only the part a hover / selection changed
+## A hover brightens a nation, a selection washes a province: nothing else on the map changes, so the shader is run again only over their screen area (a scissor on the
+## viewport, the rest of the picture kept). Anything else (the camera, the palette, a lens, targets, the quality) draws it all. The same shader and uniforms, so the pixels are
+## the pixels a full redraw would give (tests/map_partial.gd draws random hovers both ways and compares).
+var _clip: Control
+var _pbb := PackedInt32Array()            # per province: x0 y0 x1 y1 in id texels (data/prov_bbox.bin.gz)
+var _pal_gen := 0                         # counts palette uploads
+var _rend_sig: Array = []                 # what the last redraw was made of (everything but the highlights)
+var _rend_hl: Array = []                  # ... and the highlights it drew
+var _pend_full := true                    # a full redraw is queued, not drawn yet
+var _pend_part := Rect2()                 # highlight changes queued, not drawn yet (logical px)
+var _pend_part_ok := false
+var _rect_cache := {}                     # nation (n) / province (-1 - p) -> its screen rect in this view, or Rect2(0, 0, -1, -1) when it cannot be bounded
+var partial_ok := true                    # false: every redraw is a full one (the tests compare the two)
+var full_redraws := 0                     # counters for the tests and the diagnostics
+var partial_redraws := 0
+
+func _on_drawn() -> void:
+	_pend_full = false; _pend_part_ok = false; _pend_part = Rect2()
+
+func _request_render() -> void:
+	if _vp == null or _mat == null: return
+	var sig: Array = [_vp.size, lon0, lat0, radius_px(), flat_scale(), mode, quality, map_theme, TBTokens.is_hc(), TBLenses.cvd, atlas_look(), g.human_id if g != null else -1, TBTokens.accent,
+		not _targets.is_empty(), dim_others, _hi_owner, _outline_owner, render_scale, _pal_gen, _ids_is_half]
+	var hl: Array = [hover, _hover_t, _hover_prev, _hover_prev_t, selected, _sel_t]
+	if _pend_full or _rend_hl.is_empty() or sig != _rend_sig or not partial_ok:
+		_full_redraw(sig, hl); return
+	if hl == _rend_hl: return                                          # nothing the picture shows has changed
+	var r := _dirty_rect(_rend_hl, hl)
+	_rend_hl = hl
+	if r.size.x < 0.0:
+		_full_redraw(sig, hl); return
+	if r.size.x == 0.0 or r.size.y == 0.0: return                      # the changed places are off the screen
+	_partial_redraw(r)
+
+func _full_redraw(sig: Array, hl: Array) -> void:
+	_rend_sig = sig; _rend_hl = hl; _pend_full = true; _pend_part_ok = false
+	_rect_cache.clear()
+	_clip.position = Vector2.ZERO; _clip.size = Vector2(_vp.size); _rect.position = Vector2.ZERO
+	_vp.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
+	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	full_redraws += 1
+
+func _partial_redraw(r: Rect2) -> void:
+	if _pend_full: return                                              # the queued full redraw will draw the newest state
+	_pend_part = r if not _pend_part_ok else _pend_part.merge(r)
+	_pend_part_ok = true
+	var k: float = render_scale
+	var x0: float = floorf(_pend_part.position.x * k); var y0: float = floorf(_pend_part.position.y * k)
+	var x1: float = ceilf(_pend_part.end.x * k); var y1: float = ceilf(_pend_part.end.y * k)
+	_clip.position = Vector2(x0, y0); _clip.size = Vector2(x1 - x0, y1 - y0); _rect.position = -_clip.position
+	_vp.render_target_clear_mode = SubViewport.CLEAR_MODE_NEVER
+	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	partial_redraws += 1
+
+## the screen area the change from highlights `a` to `b` touches; Rect2(0, 0, -1, -1) = cannot say (draw it all); a zero-size rect = off screen
+func _dirty_rect(a: Array, b: Array) -> Rect2:
+	var out := Rect2(); var have := false
+	var parts: Array = []
+	if a[0] != b[0] or a[1] != b[1]: parts.append([a[0], true]); parts.append([b[0], true])
+	if a[2] != b[2] or a[3] != b[3]: parts.append([a[2], true]); parts.append([b[2], true])
+	if a[4] != b[4] or a[5] != b[5]: parts.append([a[4], false]); parts.append([b[4], false])
+	for pt in parts:
+		var id: int = int(pt[0])
+		if id < 0: continue
+		var r: Rect2 = _hover_rect(id) if bool(pt[1]) else _prov_rect(id)
+		if r.size.x < 0.0: return Rect2(0, 0, -1, -1)
+		if r.size.x == 0.0: continue
+		out = r if not have else out.merge(r); have = true
+	if not have: return Rect2()
+	if out.get_area() > size.x * size.y * 0.6: return Rect2(0, 0, -1, -1)      # most of the screen anyway
+	return out
+
+## what a hover on province h lights: its nation (your own land: the province alone, as the shader decides)
+func _hover_rect(h: int) -> Rect2:
+	var o: int = g.owner[h]
+	var me: int = g.human_id if (g != null and atlas_look()) else -1
+	if o == 0 or o == me: return _prov_rect(h)
+	var key: int = o
+	if _rect_cache.has(key): return _rect_cache[key]
+	var out := Rect2(); var have := false
+	for p in g.owned(o):
+		var r := _prov_rect(p)
+		if r.size.x < 0.0: out = r; break
+		if r.size.x == 0.0: continue
+		out = r if not have else out.merge(r); have = true
+	_rect_cache[key] = out
+	return out
+
+func _prov_rect(p: int) -> Rect2:
+	var key: int = -1 - p
+	if _rect_cache.has(key): return _rect_cache[key]
+	var bad := Rect2(0, 0, -1, -1)
+	var r: Rect2 = bad
+	var i: int = p * 4
+	if i + 3 < _pbb.size() and _pbb[i + 2] >= 0:
+		var x0: float = _pbb[i]; var y0: float = _pbb[i + 1]; var x1: float = _pbb[i + 2] + 1.0; var y1: float = _pbb[i + 3] + 1.0
+		if x1 - x0 <= float(world.W) * 0.5:
+			var mn := Vector2(1e9, 1e9); var mx := Vector2(-1e9, -1e9)
+			var seen := 0; var total := 0
+			for iy in 5:
+				for ix in 5:
+					var lon: float = ((x0 + (x1 - x0) * float(ix) / 4.0) / float(world.W) - 0.5) * 360.0
+					var lat: float = (0.5 - (y0 + (y1 - y0) * float(iy) / 4.0) / float(world.H)) * 180.0
+					var pr: Vector3 = project(lon, lat)
+					total += 1
+					if pr.z > 0.02:
+						seen += 1
+						mn = Vector2(minf(mn.x, pr.x), minf(mn.y, pr.y)); mx = Vector2(maxf(mx.x, pr.x), maxf(mx.y, pr.y))
+			if seen == total:
+				var m: float = 24.0 + 0.08 * maxf(mx.x - mn.x, mx.y - mn.y)
+				r = Rect2(mn - Vector2(m, m), (mx - mn) + Vector2(m, m) * 2.0).intersection(Rect2(Vector2.ZERO, size))
+				if r.size.x <= 0.0 or r.size.y <= 0.0: r = Rect2()
+			elif seen == 0: r = Rect2()
+	_rect_cache[key] = r
+	return r
 
 ## the labels are laid out again only when something that moves them changed: the hover fade and the selection fade (every frame for 0.1 s after each mouse move)
 ## no longer redo the whole layout. While the camera moves, a relayout on a slow CPU waits for ~3x its own cost, so the frame rate holds (labels trail the map by a few frames).

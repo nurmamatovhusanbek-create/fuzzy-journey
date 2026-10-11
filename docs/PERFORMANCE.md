@@ -32,4 +32,20 @@ Findings and what was done:
   never used: removed. Tried and **reverted** because they cost picture quality: half-resolution / cheaper-shader frames while the camera moves, no highlight fades, a
   trimmed shader for the low tiers, a slower title globe. The map must look the same at every moment; speed comes from doing less work, not from drawing less.
 
+* **Round 5: speeding the map up without touching what it looks like.** Method: `tests/shader_bench.gd` times the map shader with one part removed at a time (median of 24 renders),
+  `tests/shader_compare.gd` draws a view with two versions of the shader and counts the pixels that differ, `tests/hover_bench.gd` counts partial / full redraws. What the research
+  found (software GL stands in for a weak GPU; relative sizes only): the sea is ~70 % of the pixels and the coastal glow was the biggest single piece (8 + up to 40 id-texture reads
+  per sea pixel); the two extra `unproject()` calls per pixel (to learn how many texels a pixel covers) came second; borders, palette reads, the graticule and the sea gradient are
+  3-8 % each. What was done, all pixel-equivalent: (1) the glow reads a **distance field** (data/coast.bin.gz, exact Euclidean distance to the nearest land at half the id
+  resolution, float16, built by `tools/gen_coast.sh` with an EDT in C) instead of probing the id texture: one read; the glow edge is now anti-aliased instead of stair-stepped
+  (the one visible difference: smoother). The approach is the one grand-strategy map makers describe (a distance field built from the province id map, rebuilt only when the
+  ids change). (2) `tex_deriv()` gives the texels-per-pixel vectors in closed form (the Jacobian of the sphere / Mercator projection): 0.005 % of pixels differ from the
+  finite-difference version, and only at the globe's rim. Together ~20 % less shader time per render. (3) **Partial redraws:** a hover brightens one nation and a selection washes
+  one province, so those redraw only the screen rectangle they touch (a scissor on the map viewport; the rest of the picture is kept); the camera, palette, lens, targets,
+  quality or size still redraw everything, and a change that shows nothing now redraws nothing. The rectangle comes from province bounding boxes (data/prov_bbox.bin.gz), with
+  a generous margin and a fallback to a full redraw whenever it cannot be bounded (a province half behind the globe's rim, a nation filling most of the screen).
+  `tests/map_partial.gd` checks random hovers and selections both ways and demands identical pixels. About half of the hovers at the usual zoom qualify.
+  Not done, and why: a pre-rendered world texture mapped onto the sphere (borders would no longer be a constant screen width, the look would change); half-resolution frames
+  while the camera moves (tried and reverted: visibly softer).
+
 Ideas not done yet: layout in a worker thread (compute on a snapshot, draw the result), moving the autosave off the main thread, lazy-loading the era flag sets.
