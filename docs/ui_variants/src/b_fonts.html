@@ -1,8 +1,8 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bezel — type options</title>
+<title>Bezel — type options (1/2)</title>
 <style>
-/*FONTS*/
-/*XFONTS*/
+/*FONTS_MIN*/
+/*XFONTSA*/
 /*BEZELCSS*/
 html,body{overflow:auto;height:auto;background:#05070a}
 body{font-feature-settings:'lnum' 1;color:var(--ivory)}
@@ -55,9 +55,9 @@ const SETS=[
  {n:'Playfair SC + Source Serif',note:'High-contrast display (newspaper masthead) over a neutral reading serif. More dramatic, a little less "map room".',fd:"'Playfair Display SC',serif",fb:"'Source Serif 4',serif",fdw:700,ft:'.05em'},
  {n:'Marcellus + Alegreya',note:'Marcellus is a flared, Trajan-like capital with softer feel than Cinzel; reading stays Alegreya. Latin only: Russian titles fall back.',fd:"Marcellus,'Alegreya SC',serif",fb:"Alegreya,serif",fdw:400},
  {n:'Roboto Condensed + Inter',note:'The modern war-room option (sans, condensed caps). Highest legibility at tiny sizes and in every script, least period flavour.',fd:"'Roboto Condensed',sans-serif",fb:"Inter,sans-serif",fdw:700,ft:'.1em'}];
-let L='en',SC=1;
+const KEEP=[0, 1, 2, 5];let L='en',SC=1;
 function draw(){const vg=document.getElementById('vg');vg.innerHTML='';const t=T[L];
- SETS.forEach((c,i)=>{const d=document.createElement('div');d.innerHTML=`<span class="badge">${i+1} · ${c.n}</span><div class="nt">${c.note}</div>`;const card=document.createElement('div');
+ SETS.forEach((c,i)=>{if(!KEEP.includes(i))return;const d=document.createElement('div');d.innerHTML=`<span class="badge">${i+1} · ${c.n}</span><div class="nt">${c.note}</div>`;const card=document.createElement('div');
   card.innerHTML=plate(`<div class="card sp" style="--fd:${c.fd};--fb:${c.fb};--fdw:${c.fdw};--ft:${c.ft||'.07em'};--sc:${SC}">
    <div class="hd"><div class="ring">${ico('nations',22)}</div><div><div class="t">${t.t}</div><div class="s">${t.s}</div></div></div><div class="rule"></div>
    <div class="tabs2"><span class="on">${t.tabs[0]}</span><span>${t.tabs[1]}</span><span>${t.tabs[2]}</span></div>
