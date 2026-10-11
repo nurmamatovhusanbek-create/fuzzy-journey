@@ -19,3 +19,9 @@ The game port of each follows `docs/BEZEL_PARITY.md`: copy the demo's numbers, n
 * Desktop panels start at y 150 and are 994 tall (was 190 / 860): Nations, Dossier, Budget, Decrees, Council, Goals, Settings fit without scrolling at 1920x1180. Phone keeps its own sizes.
 * Pressing a province opens the Dossier = **District**: gauges, INVESTMENT (Development 1-5, Economy 1-5, direct purchase, 2 turns, 1 move, projects 1/2), the BUILDING slot (nine buildings as tiles with level pips, a detail strip with effect / cost / turns / the reason when blocked, Upgrade, Demolish), ledger, command (general) and supply.
 * Math (to be ported to the engine): development step gain = DEV_INCOME[d+1] - DEV_INCOME[d] (2,3,4,5 -> 1,3,6,10,15); cost = round(24 x gain x 0.93) (about 30-turn payback with 2%/turn inflation); economy step gain = 0.4 x development x 0.93, cost = 24 x gain; development capped by floor(tech)+1; at most 2 simultaneous projects; one building slot per province, replacing = demolish first.
+
+## Proposals are answered next turn (alliance, royal marriage)
+Pressing Alliance or Marriage opens a small card with the **likelihood only** (a seamless decline-to-accept colour bar, the percentage and a word), and **Send proposal**.
+The envoys are spent at once; the button then reads "Proposed · next turn"; the court answers at the start of the next turn (accepted or declined, with a notice and an Annals entry).
+Pact, peace, trade, ultimatum and spy operations still resolve at once. Engine work to port it: a `proposals` list (from, to, kind, turn sent), resolved in turn start with the same acceptance function that
+the AI already uses (`TBAI.accepts_pact`), then a chronicle event. The odds shown are the acceptance score now; the answer uses the state next turn.
