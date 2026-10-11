@@ -22,6 +22,10 @@ for t in map_arrows map_a11y; do
   out=$(TB_NOANIM=1 timeout 500 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/$t.gd -- /tmp/tb_map 2>&1)
   if echo "$out" | grep -qE "^(ARROWS|MAPA11Y) OK" && ! echo "$out" | grep -qE "SCRIPT ERROR|^FAIL"; then echo "ok: tests/$t.gd"; else echo "FAIL: tests/$t.gd"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; fi
 done
+# performance gates: a selected province leaves the screen still (low-processor mode draws no frame); the lite map shader draws exactly what the full one does at tiers 0 and 1
+out=$(TB_NOANIM=0 timeout 280 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/perf_idle.gd -- 1280 720 1 globe 2>&1); echo "$out" | grep -q "IDLE OK" && echo "ok: tests/perf_idle.gd" || { echo "FAIL: tests/perf_idle.gd"; echo "$out" | grep -E "IDLE|SCRIPT" | head -3; fail=1; }
+out=$(TB_NOANIM=1 timeout 500 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/lite_shader.gd -- 1280 720 2>&1); echo "$out" | grep -q "LITE OK" && echo "ok: tests/lite_shader.gd" || { echo "FAIL: tests/lite_shader.gd"; echo "$out" | grep -E "LITE|differing|SCRIPT" | head -5; fail=1; }
+python3 "$(dirname "$0")/make_lite_shader.py" --check && echo "ok: globe_lite.gdshader is current" || { echo "FAIL: globe_lite.gdshader is stale (run tools/make_lite_shader.py)"; fail=1; }
 mkdir -p /tmp/tb_cc; run tests/mm_globe.gd -- /tmp/tb_cc
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960

@@ -26,6 +26,8 @@ var _hover := -1
 var _tip: Control                                  # the verb tooltip (the demo's showTip: 220 ms after the pointer rests on a verb)
 var _tip_wait := 0.0
 var _t := 0.0
+var _draw_key: Array = []
+var _draw_ms := 0
 var _c := Vector2.ZERO                           # ring centre, local
 var _spots: Array = []                           # [{p: Vector2, r: float}] per verb, local
 
@@ -110,7 +112,13 @@ func _process(d: float) -> void:
 		if _tip_wait <= 0.0 and _hover >= 0: _tip_show(_hover)
 	if _hover < 0 or not visible: _tip_hide()
 	_sync_tag()
-	queue_redraw()
+	# redrawn only when it can look different: the pop-in, a hover, the camera moving it, a changed order; the armed medallion's dots turn, at 15 frames a second
+	var key: Array = [_anchor(), _hover, visible, size, armed, subject, sel, verbs.size(), has_focus(), TBKit.text_scale]
+	var still: bool = key == _draw_key and _t > 0.8
+	if still and _is_armed() and K.motion_ok() and Time.get_ticks_msec() - _draw_ms >= 66: still = false
+	if not still:
+		_draw_key = key; _draw_ms = Time.get_ticks_msec()
+		queue_redraw()
 
 ## the demo's ring metrics (desktop stage: R 88; phone stage: rs .66, no verb labels)
 func _rs() -> float: return 0.66 if size.y < 560.0 else 1.0

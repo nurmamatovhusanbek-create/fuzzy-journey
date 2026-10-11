@@ -9,6 +9,7 @@ signal view_changed
 signal performance_low        # sustained slow frames while interacting -> UI may lower the quality tier
 
 const SHADER := preload("res://src/render/globe.gdshader")
+const SHADER_LITE := preload("res://src/render/globe_lite.gdshader")        # tiers 0 and 1 (tools/make_lite_shader.py): less to compile, fewer reads per pixel
 const VIGNETTE := preload("res://src/render/vignette.gdshader")
 const PAL_W := 2048
 var _vig: ColorRect
@@ -48,6 +49,9 @@ var map_theme := 0               # 0 standard, 1 parchment
 var _outline_owner := -1        # nation whose border is outlined (the selected province's owner)
 var _hi_owner := -1              # nation highlighted on the pick screen (others dim)
 var render_scale := 1.0        # SubViewport resolution relative to the control's logical size
+var lod_motion := false        # slow machines (low / medium tier): while the camera moves the shader runs its cheapest path, and the full one once it settles; no highlight fades
+var _lite := false
+var _moving_until := 0         # msec: the camera moved until about now (see lod_motion)
 var _vp: SubViewport
 var _view_tex: TextureRect
 var labels: TBMapLabels
@@ -87,7 +91,8 @@ func setup(game: TBGame) -> void:
 		_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_rect.size = Vector2(_vp.size)
 		_mat = ShaderMaterial.new()
-		_mat.shader = SHADER
+		_mat.shader = SHADER_LITE if quality <= 1 else SHADER
+		_lite = quality <= 1
 		_rect.material = _mat
 		_vp.add_child(_rect)
 		_view_tex = TextureRect.new()
@@ -200,7 +205,7 @@ func set_lens(name: String) -> void:
 
 ## low tier samples a half-resolution ID texture (built once, nearest) to save VRAM and fill-rate
 func _select_ids_texture() -> void:
-	var want_half := quality == 0
+	var want_half := quality == 0 or _moving()
 	if want_half == _ids_is_half: return
 	_ids_is_half = want_half
 	if want_half:
@@ -225,18 +230,34 @@ static func imerc(y: float) -> float: return 2.0 * atan(exp(y)) - PI * 0.5
 func flat_local() -> float: return flat_scale() / maxf(0.2, cos(lat0))
 ## screen px per radian of longitude / of Mercator y at the view centre is flat_scale(); px per radian of latitude at lat is flat_scale() / cos(lat)
 
+## while the camera moves on a slow machine the map is drawn at half resolution and half the detail, then once in full when it settles
+func _moving() -> bool: return lod_motion and _moving_until != 0
+func _eff_scale() -> float: return minf(render_scale, 0.5) if _moving() else render_scale
+
+func _pal_dirty_swap() -> void:
+	_mat.set_shader_parameter("pal", _pal_tex)
+	_ids_is_half = false                                         # the full id texture is set; _select_ids_texture() swaps to the half one when the tier wants it
+	_mat.set_shader_parameter("ids", _ids_tex)
+	_mat.set_shader_parameter("id_size", Vector2(world.W, world.H))
+
 func _push_view() -> void:
 	if _mat == null: return
 	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
-	var vs := Vector2i(maxi(64, int(size.x * render_scale)), maxi(64, int(size.y * render_scale)))
+	var lite: bool = quality <= 1
+	if lite != _lite:                                           # the tier changed: the other shader (the high one is only ever compiled when it is used)
+		_lite = lite
+		_mat.shader = SHADER_LITE if lite else SHADER
+		_pal_dirty_swap()
+	var rs: float = _eff_scale()
+	var vs := Vector2i(maxi(64, int(size.x * rs)), maxi(64, int(size.y * rs)))
 	if _vp.size != vs:
 		_vp.size = vs
 		_rect.size = Vector2(vs)
 	_mat.set_shader_parameter("rect_size", Vector2(vs))
 	_mat.set_shader_parameter("lon0", lon0)
 	_mat.set_shader_parameter("lat0", lat0)
-	_mat.set_shader_parameter("radius", radius_px() * render_scale)
-	_mat.set_shader_parameter("flat_scale", flat_scale() * render_scale)
+	_mat.set_shader_parameter("radius", radius_px() * rs)
+	_mat.set_shader_parameter("flat_scale", flat_scale() * rs)
 	_mat.set_shader_parameter("mode", mode)
 	_mat.set_shader_parameter("sel_id", selected + 1 if selected >= 0 else -1)
 	_mat.set_shader_parameter("hover_id", hover + 1 if hover >= 0 else -1)
@@ -245,11 +266,11 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("hover_prev", _hover_prev + 1 if _hover_prev >= 0 else -1)
 	_mat.set_shader_parameter("hover_prev_t", _hover_prev_t)
 	_mat.set_shader_parameter("dim_others", 1.0 if dim_others else 0.0)
-	_mat.set_shader_parameter("quality", quality)
+	_mat.set_shader_parameter("quality", 0 if _moving() else quality)
 	_mat.set_shader_parameter("theme", map_theme)
 	_mat.set_shader_parameter("hc", 1 if TBTokens.is_hc() else 0)
 	_mat.set_shader_parameter("strong", 1 if (TBTokens.is_hc() or TBLenses.cvd != "off") else 0)
-	_mat.set_shader_parameter("px_scale", render_scale)
+	_mat.set_shader_parameter("px_scale", rs)
 	_mat.set_shader_parameter("hi_owner", _hi_owner)
 	_mat.set_shader_parameter("outline_owner", _outline_owner)
 	_mat.set_shader_parameter("atlas", 1 if atlas_look() else 0)
@@ -258,10 +279,11 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("marching", 1 if TBKit.motion_ok() else 0)
 	_mat.set_shader_parameter("tgt_any", 1 if not _targets.is_empty() else 0)
 	if _vig != null: _vig.visible = atlas_look()
+	if routes != null: routes.visible = not _moving()
 	_select_ids_texture()
 	if labels != null:
 		labels.max_labels = [30, 70, 110][quality]
-		labels.hidden_while_dragging = quality == 0 and _pressed and _drag_moved >= 6.0
+		labels.hidden_while_dragging = (quality == 0 and _pressed and _drag_moved >= 6.0) or _moving()
 		_labels_relayout()
 	view_changed.emit()
 
@@ -294,7 +316,7 @@ func set_mode(m: int) -> void:
 	_push_view()
 
 func select(p: int) -> void:
-	if p != selected and TBKit.motion_ok(): _sel_t = 0.0
+	if p != selected and TBKit.motion_ok() and not lod_motion: _sel_t = 0.0
 	selected = p
 	_push_view()
 
@@ -305,7 +327,7 @@ func _notification(what: int) -> void:
 
 func _set_hover(h: int) -> void:
 	if h == hover: return
-	if TBKit.motion_ok():
+	if TBKit.motion_ok() and not lod_motion:
 		_hover_prev = hover; _hover_prev_t = _hover_t
 		_hover_t = 0.0
 	hover = h
@@ -343,6 +365,7 @@ func _process(delta: float) -> void:
 	if _mat == null: return
 	var busy := false
 	var motion := TBKit.motion_ok()
+	var cam_moved := false
 	# flight
 	if not _fly.is_empty():
 		_fly["t"] += delta
@@ -353,24 +376,24 @@ func _process(delta: float) -> void:
 		zoom = _fly["z0"] * pow(_fly["z1"] / _fly["z0"], e)
 		_clamp_flat()
 		if k >= 1.0: _fly = {}
-		busy = true
+		busy = true; cam_moved = true
 	# eased wheel zoom
 	if _zoom_target > 0.0:
 		var ratio := _zoom_target / zoom
 		if absf(ratio - 1.0) < 0.002: zoom = _zoom_target; _zoom_target = -1.0
 		else: zoom *= pow(ratio, 1.0 - exp(-14.0 * delta))
 		_clamp_flat()
-		busy = true
+		busy = true; cam_moved = true
 	# flick inertia
 	if motion and not _pressed and _vel.length() > 12.0:
 		drag_by(_vel * delta)
 		_vel *= exp(-4.2 * delta)
-		busy = true
+		busy = true; cam_moved = true
 	elif not _pressed:
 		_vel = Vector2.ZERO
 	# highlight fades and the breathing pulse
 	var was := _hover_t + _hover_prev_t + _sel_t
-	if motion:
+	if motion and not lod_motion:
 		_hover_t = move_toward(_hover_t, 1.0 if hover >= 0 else 0.0, delta * 9.0)
 		_hover_prev_t = move_toward(_hover_prev_t, 0.0, delta * 7.0)
 		_sel_t = move_toward(_sel_t, 1.0, delta * 8.0)
@@ -379,14 +402,14 @@ func _process(delta: float) -> void:
 	if absf(_hover_t + _hover_prev_t + _sel_t - was) > 0.0001: busy = true
 	if _lbl_pending and float(Time.get_ticks_msec() - _lbl_t) >= minf(140.0, labels.last_cost_ms * 3.0):
 		_lbl_pending = false; _lbl_t = Time.get_ticks_msec(); labels.queue_redraw()
+	if cam_moved and lod_motion: _moving_until = maxi(1, Time.get_ticks_msec() + 160)
+	if _moving_until != 0 and Time.get_ticks_msec() >= _moving_until:       # the camera settled: one full-quality render
+		_moving_until = 0; busy = true
 	if busy:
 		_push_view()
-	elif motion and selected >= 0 and atlas_look() and quality >= 1:
-		_anim_t = fmod(_anim_t + delta, 1.2)                    # marching dashes of the selection: shader time only, no label work
-		_mat.set_shader_parameter("anim_t", _anim_t)
-		_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func drag_by(d: Vector2) -> void:
+	if lod_motion: _moving_until = maxi(1, Time.get_ticks_msec() + 160)
 	if mode == 0:
 		var k := 1.0 / radius_px()
 		lon0 = wrapf(lon0 - d.x * k, -PI, PI)
