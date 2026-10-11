@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto"}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "win": {}}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -52,7 +52,7 @@ func _ready() -> void:
 	flow.is_busy = func() -> bool: return _busy
 	panel.flow = flow
 	panel.busy_fn = func() -> bool: return _busy
-	panel.blocked_fn = func() -> bool: return mode != "game" or _overlay.get_child_count() > 0
+	panel.blocked_fn = func() -> bool: return mode != "game" or _modal_open()
 	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
 	panel.insp_fn = hud.inspector_rect; panel.sheet_fn = hud.sheet_mode; TBPanel.drawer_rect_fn = hud.drawer_rect
 	TBPanel.drawer_opened_fn = func() -> void:
@@ -90,7 +90,7 @@ func _ready() -> void:
 	hud.budget_pressed.connect(func(): _open_budget())
 	hud.save_pressed.connect(func(): _open_menu_hub("saves"))
 	hud.settings_pressed.connect(_open_game_menu)
-	hud.input_blocked_fn = func() -> bool: return mode != "game" or _overlay.get_child_count() > 0
+	hud.input_blocked_fn = func() -> bool: return mode != "game" or _modal_open()
 	hud.mp_waiting_fn = func() -> bool: return mp.in_game
 	hud.goto_province.connect(_goto_province)
 	hud.nation_pressed.connect(_open_nation)
@@ -153,17 +153,35 @@ func _apply_safe_area() -> void:
 	offset_left = safe.position.x / k; offset_top = safe.position.y / k
 	offset_right = -(scr.x - safe.end.x) / k; offset_bottom = -(scr.y - safe.end.y) / k
 
+## a modal (dialog, menu, pick screen...) is up: the map, the rail and the hotkeys wait. The movable windows (Nations, Budget...) are not modal.
+func _modal_open() -> bool:
+	for c in _overlay.get_children():
+		if c.is_queued_for_deletion(): continue
+		if c.has_meta("tb_handle") and not (c.get_meta("tb_handle") as TBPanel.Handle).modal: continue
+		return true
+	return false
+
+## the open Nations window (a non-modal window whose screen key is "nations"), or null
+func _nations_window() -> TBPanel.Handle:
+	for c in _overlay.get_children():
+		if c.is_queued_for_deletion() or not c.has_meta("tb_handle"): continue
+		var h: TBPanel.Handle = c.get_meta("tb_handle")
+		if h.mem_key == "nations" and h.is_open(): return h
+	return null
+
 func _load_cfg() -> void:
 	var f := ConfigFile.new()
 	if f.load("user://settings.cfg") == OK:
 		for k in cfg: cfg[k] = f.get_value("tb", k, cfg[k])
 		if bool(f.get_value("tb", "contrast", false)) and cfg["hc"] == "off": cfg["hc"] = "light"          # the old boolean became hc off / light / dark
 		if not f.has_section_key("tb", "reduce_motion"): cfg["reduce_motion"] = K.os_prefers_reduced_motion()
+		if cfg["win"] is Dictionary: TBPanel.win_mem = cfg["win"]
 	else:
 		cfg["quality"] = _guess_quality()
 		cfg["reduce_motion"] = K.os_prefers_reduced_motion()
 
 func _save_cfg() -> void:
+	cfg["win"] = TBPanel.win_mem
 	var f := ConfigFile.new()
 	for k in cfg: f.set_value("tb", k, cfg[k])
 	f.save("user://settings.cfg")
@@ -536,6 +554,8 @@ func _on_pick(p: int, secondary: bool) -> void:
 		return
 	if mode != "game" or _busy: return
 	flow.g = g
+	if p >= 0 and not secondary and flow.mode == TBOrderFlow.Mode.IDLE and _nations_window() != null and g.owner[p] > 0:   # the Nations window is open: a country on the map shows its card
+		_open_nations(g.owner[p]); return
 	if p < 0:
 		if flow.mode == TBOrderFlow.Mode.PREVIEW: flow.cancel()
 		else: _select(-1)

@@ -377,6 +377,8 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			(ui["master"] as Control).visible = false; (ui["detail_scroll"] as Control).visible = true
 			h.set_title(g.dname(n))
 		_footer(h, g, n, pick, taken, on_goto, on_play, opts)
+		h.on_forced = func(forced: bool) -> void:               # the player set the height: the card scrolls inside it instead of keeping the height of its whole content
+			if is_instance_valid(ui["detail_scroll"]): (ui["detail_scroll"] as ScrollContainer).custom_minimum_size.y = 470.0 if forced else maxf(470.0, float(ui.get("full_h", 470.0)))
 		if not ph0:                                             # the panel is as tall as the demo's card (min 470); the extras below it scroll
 			var dsc: ScrollContainer = ui["detail_scroll"]
 			var dv2: VBoxContainer = ui["detail_box"]
@@ -385,7 +387,8 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 				var de: int = dv2.get_child_count() if not ph0 else int(dv2.get_meta("demo_end", dv2.get_child_count()))       # desktop: the whole card (intel, facts, allies too) is in the room, nothing scrolls
 				var hh := 0.0
 				for i in mini(de, dv2.get_child_count()): hh += (dv2.get_child(i) as Control).size.y
-				dsc.custom_minimum_size.y = maxf(470.0, hh)
+				ui["full_h"] = hh
+				dsc.custom_minimum_size.y = 470.0 if h.user_size.y > 0.0 else maxf(470.0, hh)
 				TBPanel._fit_bz(h), CONNECT_ONE_SHOT)
 		if rows.has(n) and not portrait: (ui["list_scroll"] as ScrollContainer).ensure_control_visible.call_deferred(rows[n])
 	# ---- rankings tab

@@ -97,8 +97,7 @@ var _ax_ext := PackedFloat32Array()      # angular half extent (radians) along t
 ## centroid), so overseas colonies do not drag the name into the ocean. Also its long axis and extent: a colliding label slides along
 ## the axis. Rebuilt only when ownership changed.
 func _rebuild_cores() -> void:
-	var sig := 0
-	for p in g.P: sig = (sig * 31 + g.owner[p] + p) & 0x3fffffff
+	var sig: int = hash(g.owner)                         # native: one pass over the owner array, not a GDScript loop over every province
 	if sig == _core_sig and _core_v.size() == g.N1: return
 	_core_sig = sig
 	var n1 := g.N1
@@ -175,6 +174,26 @@ static func label_font() -> Font:
 
 var phone := false
 var ring_c := Vector2(-999.0, -999.0)      # the command ring's centre (screen px) while a province is selected, else far away
+
+## text widths are shaped once per (font, text, size): get_string_size is called dozens of times per name per layout
+var _wcache := {}
+func _sw(font: Font, s: String, fs: int) -> float:
+	var k := "%d|%d|%s" % [font.get_instance_id(), fs, s]
+	var v: Variant = _wcache.get(k)
+	if v == null:
+		if _wcache.size() > 4000: _wcache.clear()
+		v = font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		_wcache[k] = v
+	return v
+
+## cost of the last full layout (EMA, ms): the map throttles relayouts while the camera moves on a slow CPU
+var last_cost_ms := 0.0
+
+## true when the hovered province changes what is laid out (only the middle zoom tier adds a marker for it)
+func hover_matters() -> bool:
+	if map == null or g == null: return false
+	var psz := prov_px()
+	return psz >= 14.0 and psz < 40.0
 
 ## on-screen length (logical px) of a nation along its long axis; falls back to a count-based guess for round nations
 func _nation_px(n: int, cnt: int) -> float:
@@ -300,7 +319,7 @@ func _draw_nation_names() -> void:
 				var lines: Array = vr
 				var lh := font.get_height(fs)
 				var w := 0.0
-				for ln in lines: w = maxf(w, font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+				for ln in lines: w = maxf(w, _sw(font, ln, fs))
 				var gw := float(fs) + 4.0 if (strong_on and (mine or rel >= 1)) else 0.0
 				var rect := Rect2(pos - Vector2((w + gw) * 0.5, lh * lines.size() * 0.5), Vector2(w + gw, lh * lines.size())).grow(3.0)
 				if rect.position.x < mnx or rect.position.y < 56.0 or rect.end.x > map.size.x - mnx or rect.end.y > map.size.y - mnx: continue
@@ -314,7 +333,7 @@ func _draw_nation_names() -> void:
 				var tx := rect.position.x + 3.0 + gw
 				for li in lines.size():
 					var ln: String = lines[li]
-					var lw := font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+					var lw := _sw(font, ln, fs)
 					var bp := Vector2(tx + (w - lw) * 0.5, rect.position.y + 3.0 + lh * li + font.get_ascent(fs))
 					if atlas:
 						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.0235, 0.0314, 0.0471, 0.92))
@@ -325,9 +344,25 @@ func _draw_nation_names() -> void:
 				if gw > 0.0: _rel_glyph(Vector2(rect.position.x + 3.0 + float(fs) * 0.5, rect.get_center().y), rel, mine, fs, ha)
 				break
 
+## this frame's marker rectangles in a coarse grid: a name's try meets only the few markers near it (it was every marker, for every try of every name)
+var _mgrid := {}
+var _mgrid_n := -1
 func _hits_marker(r: Rect2) -> bool:
-	for fr in _frame_rects:
-		if (fr as Rect2).intersects(r): return true
+	if _mgrid_n != _frame_rects.size():
+		_mgrid.clear(); _mgrid_n = _frame_rects.size()
+		for fr in _frame_rects:
+			var q: Rect2 = fr
+			for gx in range(int(floor(q.position.x / 48.0)), int(floor(q.end.x / 48.0)) + 1):
+				for gy in range(int(floor(q.position.y / 48.0)), int(floor(q.end.y / 48.0)) + 1):
+					var key := Vector2i(gx, gy)
+					if not _mgrid.has(key): _mgrid[key] = []
+					_mgrid[key].append(q)
+	for gx in range(int(floor(r.position.x / 48.0)), int(floor(r.end.x / 48.0)) + 1):
+		for gy in range(int(floor(r.position.y / 48.0)), int(floor(r.end.y / 48.0)) + 1):
+			var cell: Variant = _mgrid.get(Vector2i(gx, gy))
+			if cell == null: continue
+			for q in cell:
+				if (q as Rect2).intersects(r): return true
 	return false
 
 func _hits_order(r: Rect2) -> bool:
@@ -371,7 +406,7 @@ func _draw_province_names() -> void:
 		var txt: String = TBI18n.place(g.world.name[p])
 		var cap := g.capital[p] != 0
 		var ff: Font = fb if cap else f
-		var tw := ff.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+		var tw := Vector2(_sw(ff, txt, fs), ff.get_height(fs))
 		var rect := Rect2(pos + Vector2(-tw.x * 0.5, 8), tw).grow(2.0)
 		var clash := _blocked(rect) or _hits_order(rect)
 		for r in placed:
@@ -493,6 +528,11 @@ func _marker_rect(pos: Vector2, ztier: int, army: int, gen: bool, gw: float) -> 
 	return Rect2(pos.x - (gw * 0.5 + 4.0) * m, pos.y - ((_badge_h(true) * 0.5 + 16.0) if gen else (_badge_h(true) * 0.5 + 5.0)) * m, (gw + 8.0) * m, ((_badge_h(true) + 21.0) if gen else (_badge_h(true) + 10.0)) * m)
 
 func _draw() -> void:
+	var t0 := Time.get_ticks_usec()
+	_draw_layout()
+	last_cost_ms = lerpf(last_cost_ms, float(Time.get_ticks_usec() - t0) / 1000.0, 0.4)
+
+func _draw_layout() -> void:
 	if map == null or g == null or hidden_while_dragging: return
 	_refresh_keepout()
 	_nl_rects.clear()

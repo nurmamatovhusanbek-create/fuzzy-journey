@@ -171,6 +171,7 @@ func build() -> void:
 	_strip = P.SeatStrip.new(); _strip.visible = false; add_child(_strip)
 	_note = P.SealNote.new(); _note.visible = false; add_child(_note)
 	_seal = P.Seal.new(); _seal.set_a11y(T.call("end_turn")); _seal.pressed.connect(_seal_pressed); add_child(_seal)
+	_seal.z_index = 40                        # End Turn stays above the movable windows (20), below the modals (80)
 	_wire(_seal, _tip_seal)
 	_lens_changed()
 	layout_for(size if size.x > 1.0 else get_viewport_rect().size)

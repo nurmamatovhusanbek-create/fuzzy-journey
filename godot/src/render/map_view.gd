@@ -260,8 +260,24 @@ func _push_view() -> void:
 	if labels != null:
 		labels.max_labels = [30, 70, 110][quality]
 		labels.hidden_while_dragging = quality == 0 and _pressed and _drag_moved >= 6.0
-		labels.queue_redraw()
+		_labels_relayout()
 	view_changed.emit()
+
+## the labels are laid out again only when something that moves them changed: the hover fade and the selection fade (every frame for 0.1 s after each mouse move)
+## no longer redo the whole layout. While the camera moves, a relayout on a slow CPU waits for ~3x its own cost, so the frame rate holds (labels trail the map by a few frames).
+var _lk := []
+var _lbl_t := 0
+var _lbl_pending := false
+func _labels_relayout() -> void:
+	var k := [lon0, lat0, zoom, size, mode, selected, quality, hover if labels.hover_matters() else -2, labels.hidden_while_dragging, render_scale, TBTokens.is_hc(), TBLenses.cvd, TBKit.text_scale, TBI18n.lang, map_theme, g.human_id if g != null else -1]
+	if k == _lk: return
+	var cam: bool = _lk.size() > 4 and (k[0] != _lk[0] or k[1] != _lk[1] or k[2] != _lk[2] or k[3] != _lk[3])
+	_lk = k
+	var now := Time.get_ticks_msec()
+	if cam and float(now - _lbl_t) < minf(140.0, labels.last_cost_ms * 3.0):
+		_lbl_pending = true; return
+	_lbl_t = now; _lbl_pending = false
+	labels.queue_redraw()
 
 ## the Atlas Ledger map look (in game, standard theme, not high contrast)
 func atlas_look() -> bool:
@@ -359,6 +375,8 @@ func _process(delta: float) -> void:
 	else:
 		_hover_t = 1.0 if hover >= 0 else 0.0; _hover_prev_t = 0.0; _sel_t = 1.0
 	if absf(_hover_t + _hover_prev_t + _sel_t - was) > 0.0001: busy = true
+	if _lbl_pending and float(Time.get_ticks_msec() - _lbl_t) >= minf(140.0, labels.last_cost_ms * 3.0):
+		_lbl_pending = false; _lbl_t = Time.get_ticks_msec(); labels.queue_redraw()
 	if busy:
 		_push_view()
 	elif motion and selected >= 0 and atlas_look() and quality >= 1:

@@ -15,6 +15,10 @@ const DRAWER_TOP := 56            ## drawer top = bottom edge of the top bar (HU
 const DRAWER_BOTTOM := 108        ## drawer ends above End Turn (80 seal + 16 margin + 12 gap)
 const SHEET_BOTTOM := 88          ## portrait sheet rises above the dock rail and End Turn
 const DRAWER_W := 400
+## windows the player moved or resized, by screen key: {key: {x, y, w, h}} (kept in the settings file by the interface)
+static var win_mem: Dictionary = {}
+static var win_changed: Callable = Callable()
+const Z_WINDOW := 20             ## draw layer of a non-modal window: above the map and its labels, below the End Turn dial (40) and every modal (80)
 static var drawer_opened_fn: Callable           ## called when a side drawer opens (the HUD hides the inspector when the two cannot share the width)
 static var drawer_rect_fn: Callable             ## () -> Rect2 : the HUD's drawer slot (right of the rail), null rect = use the legacy right-hand slot
 const SNAP_LOW := 0.56
@@ -42,6 +46,12 @@ class Handle extends RefCounted:
 	var bz_w := 0.0                      # bezel: card width in units (the demo's per-screen widths)
 	var bz_h := 0.0                      # bezel: maximum card height in units (0 = the demo's panel height)
 	var bz_pos := Vector2(-1, -1)        # bezel: fixed top-left (tests, specimen sheets); (-1, -1) = docked by `dock`
+	var movable := false                 # a non-modal window: dragged by its header, resized from its right / bottom edge and corner, remembered per screen
+	var mem_key := ""
+	var user_pos := Vector2(-1, -1)      # where the player put the window (-1 = docked by `dock`)
+	var user_size := Vector2(-1, -1)     # the size the player gave it (-1 = as tall / wide as its content)
+	var resizers: Array = []
+	var on_forced: Callable = Callable()  # (forced: bool): a screen that sizes a part to its whole content lets go of it while the player sets the height
 	var dock := "left"                   # bezel: left (next to the rail) | right | center
 	var bz := false                      # drawn as the demo's plate
 	var phone := false                   # the demo's phone metrics (a landscape viewport shorter than 560 units)
@@ -258,6 +268,8 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 		Kind.DRAWER: h.form = "sheet" if portrait else ("page" if (short and not TBFrame.bezel) else "drawer")      # the demo keeps floating windows on a phone in landscape
 		_: h.form = "page" if (portrait or (short and not TBFrame.bezel)) else "panel"
 	h.modal = kind != Kind.DRAWER or h.form == "page"
+	h.movable = TBFrame.bezel and kind != Kind.DIALOG and h.form in ["panel", "drawer"]
+	if h.movable: h.modal = false                    # the windows (Nations, Budget, Decrees...) leave the map and the HUD usable: End Turn, the rail, other countries on the map
 	h.short = short and h.form in ["page", "dialog"]
 	h.narrow = vp0.x < 480.0
 	h.pad = 16 if portrait else (12 if short else 24)
@@ -279,7 +291,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	root.mouse_filter = Control.MOUSE_FILTER_STOP if h.modal else Control.MOUSE_FILTER_IGNORE
 	root.set_meta("tb_handle", h)
 	root.set_meta("tb_modal", true)
-	root.z_index = TBTokens.Z_MODAL                  # above every HUD tooltip / popover (they sit at 60-70)
+	root.z_index = Z_WINDOW if h.movable else TBTokens.Z_MODAL                  # a modal sits above every HUD tooltip / popover (60-70); a window below the End Turn dial
 	h.root = root
 	if h.modal and bool(opts.get("scrim", true)):
 		var bd := ColorRect.new()
@@ -452,6 +464,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	body.minimum_size_changed.connect(func(): _queue_fit(h))
 	if h.pinned != null: h.pinned.minimum_size_changed.connect(func(): _queue_fit(h))
 	foot.minimum_size_changed.connect(func(): _queue_fit(h))
+	if h.movable: _setup_window(h, title_text, glyph_id, opts)
 	_layout(h)
 	_queue_fit(h)
 	if K.motion_ok():
@@ -519,14 +532,19 @@ static func _fit_bz(h: Handle) -> void:
 	w = minf(w, vs.x - (12.0 if phone else 32.0))
 	var panel_h: float = (vs.y - 16.0) if phone else maxf(vs.y - 186.0, 240.0)               # desktop: y 150 to 36 above the bottom, so whole cards fit without scrolling
 	var hmax: float = minf(h.bz_h if h.bz_h > 0.0 else panel_h, panel_h) if (phone or h.form == "dialog") else panel_h      # a desktop panel is as tall as its content, up to the whole room
+	var forced_h: bool = false
+	if h.movable and h.user_size.x > 0.0: w = clampf(h.user_size.x, WIN_MIN.x, maxf(WIN_MIN.x, vs.x - 8.0))                 # the player's size wins over the demo's width / content height
+	if h.movable and h.user_size.y > 0.0: hmax = clampf(h.user_size.y, WIN_MIN.y, maxf(WIN_MIN.y, vs.y - 8.0)); forced_h = true
 	var c := h.card
 	c.custom_minimum_size = Vector2(w, 0)
+	if h.on_forced.is_valid(): h.on_forced.call(forced_h)
 	if h.scroll != null:
 		var chrome: float = 0.0
 		if h.head != null: chrome += h.head.get_combined_minimum_size().y
 		if h.tabs_slot.visible: chrome += h.tabs_slot.get_combined_minimum_size().y
 		if h.footer_wrap.visible: chrome += h.footer_wrap.get_combined_minimum_size().y
 		var body_min: float = h.body_wrap.get_combined_minimum_size().y
+		if forced_h: body_min = 100000.0                                      # a window of a set height is exactly that tall: the body scrolls or leaves room
 		var avail: float = (hmax - 2.0) - chrome
 		if h.pinned != null:
 			var pm: float = h.pinned.get_combined_minimum_size().y
@@ -557,8 +575,92 @@ static func _fit_bz(h: Handle) -> void:
 				x = dr.position.x; y = dr.position.y
 	if x + w > vs.x - 4.0: x = maxf(4.0, vs.x - w - 4.0)
 	if h.bz_pos.x >= 0.0: x = h.bz_pos.x; y = h.bz_pos.y
+	if h.movable and h.user_pos.x > -1.0:                                      # where the player left it, kept so that the header stays reachable
+		x = clampf(h.user_pos.x, 120.0 - c.size.x, vs.x - 120.0); y = clampf(h.user_pos.y, 0.0, maxf(0.0, vs.y - 56.0))
 	c.position = Vector2(x, y).floor()
 	c.pivot_offset = c.size * 0.5
+	if h.movable: _place_resizers(h)
+
+# ---- movable / resizable windows ------------------------------------------------------------------------------------------------------------
+const WIN_MIN := Vector2(360.0, 260.0)
+const RZ_EDGE := 10.0
+
+## remember / restore this screen's place and size, make the header a drag handle and add the right / bottom / corner resize handles
+static func _setup_window(h: Handle, title_text: String, glyph_id: String, opts: Dictionary) -> void:
+	h.mem_key = String(opts.get("key", glyph_id if glyph_id != "" else title_text))
+	var m: Variant = win_mem.get(h.mem_key)
+	if m is Dictionary:
+		var md: Dictionary = m
+		if md.has("x"): h.user_pos = Vector2(float(md["x"]), float(md["y"]))
+		if md.has("w"): h.user_size = Vector2(float(md["w"]), float(md["h"]))
+	if h.head != null:
+		h.head.mouse_filter = Control.MOUSE_FILTER_PASS
+		h.head.mouse_default_cursor_shape = Control.CURSOR_MOVE
+		var st := {"down": false, "off": Vector2.ZERO}
+		h.head.gui_input.connect(func(e: InputEvent):
+			if not h.is_open(): return
+			if e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+				var mb := e as InputEventMouseButton
+				if mb.double_click: _forget_window(h); return                    # a double click puts the window back where it was docked
+				st["down"] = mb.pressed
+				st["off"] = h.card.position - _local(h, mb) if mb.pressed else Vector2.ZERO
+				if not mb.pressed: _save_window(h)
+			elif e is InputEventMouseMotion and bool(st["down"]):
+				var pos: Vector2 = _local(h, e) + (st["off"] as Vector2)
+				h.user_pos = pos.floor()
+				_fit_bz(h))
+	for side in ["r", "b", "br"]:
+		var rz := Control.new()
+		rz.mouse_filter = Control.MOUSE_FILTER_STOP
+		rz.mouse_default_cursor_shape = {"r": Control.CURSOR_HSIZE, "b": Control.CURSOR_VSIZE, "br": Control.CURSOR_FDIAGSIZE}[side]
+		rz.set_meta("side", side)
+		var rs := {"down": false, "from": Vector2.ZERO, "size0": Vector2.ZERO}
+		rz.gui_input.connect(func(e: InputEvent):
+			if not h.is_open(): return
+			if e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+				var mb := e as InputEventMouseButton
+				rs["down"] = mb.pressed
+				if mb.pressed:
+					rs["from"] = _local(h, mb); rs["size0"] = h.card.size
+				else: _save_window(h)
+			elif e is InputEventMouseMotion and bool(rs["down"]):
+				var d: Vector2 = _local(h, e) - (rs["from"] as Vector2)
+				var s0: Vector2 = rs["size0"]
+				var nw: float = s0.x + (d.x if side != "b" else 0.0)
+				var nh: float = s0.y + (d.y if side != "r" else 0.0)
+				h.user_size = Vector2(nw if side != "b" else (h.user_size.x if h.user_size.x > 0.0 else s0.x), nh if side != "r" else (h.user_size.y if h.user_size.y > 0.0 else s0.y))
+				if h.user_pos.x < -0.5: h.user_pos = h.card.position
+				_fit_bz(h))
+		h.holder.add_child(rz); h.resizers.append(rz)
+
+## a mouse event's position in the window layer's own coordinates
+static func _local(h: Handle, e: InputEvent) -> Vector2:
+	return h.holder.get_global_transform().affine_inverse() * (e as InputEventMouse).global_position
+
+static func _place_resizers(h: Handle) -> void:
+	var c := h.card
+	var r := Rect2(c.position, c.size)
+	for rz in h.resizers:
+		var ctl: Control = rz
+		match String(ctl.get_meta("side")):
+			"r": ctl.position = Vector2(r.end.x - RZ_EDGE * 0.5, r.position.y + 16.0); ctl.size = Vector2(RZ_EDGE, maxf(8.0, r.size.y - 32.0))
+			"b": ctl.position = Vector2(r.position.x + 16.0, r.end.y - RZ_EDGE * 0.5); ctl.size = Vector2(maxf(8.0, r.size.x - 32.0), RZ_EDGE)
+			"br": ctl.position = r.end - Vector2(14.0, 14.0); ctl.size = Vector2(20.0, 20.0)
+
+static func _save_window(h: Handle) -> void:
+	if h.mem_key == "": return
+	var d := {}
+	if h.user_pos.x > -1.0: d["x"] = h.user_pos.x; d["y"] = h.user_pos.y
+	if h.user_size.x > 0.0: d["w"] = h.user_size.x; d["h"] = h.user_size.y
+	win_mem[h.mem_key] = d
+	if win_changed.is_valid(): win_changed.call()
+
+## double click on the header: back to the docked place and the content size
+static func _forget_window(h: Handle) -> void:
+	h.user_pos = Vector2(-1, -1); h.user_size = Vector2(-1, -1)
+	win_mem.erase(h.mem_key)
+	if win_changed.is_valid(): win_changed.call()
+	_fit_bz(h)
 
 static func _focus_first(h: Handle) -> void:
 	if not h.is_open() or not h.root.is_inside_tree(): return
