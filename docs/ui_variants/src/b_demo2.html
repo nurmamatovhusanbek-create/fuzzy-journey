@@ -181,7 +181,7 @@ function negotiate(n,title,pfn,done,o={}){const cost=o.cost||0,spy=(o.kind||'').
  if(spy?n.spyPend:n.pend){toast('bad',spy?'Your agents are already on the way.':'A proposal is already with their court.');return}
  if(S.envoys<cost){toast('bad','You need '+cost+' envoys.');return}if(o.spend&&!o.spend())return;
  S.envoys-=cost;if(spy)n.spyPend=1;else n.pend={k:o.kind};S.queue.push({n,title,pfn,done,kind:o.kind,t:S.turn});renderTop();if(cost)floatTop('env','−'+cost);refresh('nations');
- toast('info','Sent to '+n.name+': the answer comes next turn');logDip(title+' sent','The answer arrives next turn.')}
+ toast('info',n.name+': answer next turn');logDip(title+' sent','The answer arrives next turn.')}
 // ---- actions
 function dipAct(k){const n=nat();if(!n||S.busy)return;const A=acts(n).find(a=>a.k===k);if(!A)return;if(A.off){toast('bad',A.off);return}const before=n.rel,cn=CAPN[n.id];
  if(k==='envoy'){const g=Math.min(gain(n,8),24-modv(n,'Envoy gifts'));S.envoys--;mod(n,'Envoy gifts',g,{cap:24,decay:2});dipDone(n,before,'Envoy reaches '+cn,{fl:[['env','−1']],log:['Envoy to '+n.name,'Goodwill rises by '+g+'.']})}
@@ -266,7 +266,7 @@ function tipHTML(k){const n=net();const T={
  host:['Host',`<b style="color:var(--ivory);font:700 20px Alegreya">${hostN()}</b> armies · supply limit 12${rows([['Men under arms','187'],['Veterans','2 armies'],['Upkeep','−62 gold'],['Morale','High']])}`,'Click for the army list'],
  env:['Envoys',`<b style="color:var(--ivory);font:700 20px Alegreya">${S.envoys}</b> diplomacy points, +2 per turn${rows([['Pact proposals','1 each'],['Open trade','free'],['Declare war','3'],['Pending offers','1 (Spain)']])}`,'Click to open nations · N'],
  date:['Date',`${MONTHS[(S.turn-1)%12]} 1804 · turn ${S.turn}${rows([['Season','Winter · −10% march speed'],['Next scheduled event','~2 turns'],['Truces expiring','none']])}`,'Enter ends the turn'],
- nation:['France',`Emperor Napoleon · ${S.own.size} nations' worth of core provinces${rows([['Provinces held',41+(S.own.size-1)*3],['Prestige','+12'],['Infamy','0']])}`,'Click for the nation card'],
+ nation:['France',`Emperor Napoleon · ${S.own.size} nations' worth of core provinces${rows([['Provinces held',41+(S.own.size-1)*3],['Prestige','+12'],['Infamy','0']])}`,'Click for your realm page'],
  mm:['Minimap','Tap or drag the globe to turn it; the map follows. The frame shows what you see.',''],
  chrono:['End turn',`Ends turn ${S.turn}. Income is paid (${net()>=0?'+':''}${net()}), armies march, rivals act.`,'Enter'],
  zin:['Zoom in','','+'],zout:['Zoom out','','−']};
