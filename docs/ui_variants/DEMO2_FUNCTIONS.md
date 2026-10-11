@@ -29,3 +29,5 @@ the AI already uses (`TBAI.accepts_pact`), then a chronicle event. The odds show
 ## Decisions so far
 * Status palettes 1 (Navy & brass) and 2 (Ink & ivory) are kept for now (`bezel_palette.html`); the rest are dropped.
 * Type options page: `bezel_fonts.html` (seven display + reading pairs, EN / RU / UZ, size slider). Extra faces live in `src/fonts_extra.css`.
+* Fonts: pair 2 chosen (Cormorant SC for titles / captions / buttons, EB Garamond for reading). `docs/ui_variants/theme.py` re-skins a built demo with it (and with palette p1 or p2):
+  `python3 theme.py bezel_demo2.html out.html p1`. Palette p1 = Navy & brass, p2 = Ink & ivory (colour tables inside theme.py).
