@@ -1,0 +1,49 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — diagonal line spacing</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto;background:#05070a}
+body{font-feature-settings:'lnum' 1;color:var(--ivory)}
+.tool{position:sticky;top:0;z-index:60;display:flex;gap:22px;align-items:center;flex-wrap:wrap;padding:10px 22px;background:rgba(8,10,14,.95);border-bottom:1px solid #33291a}
+.tool h1{font:700 16px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--hi)}
+.tool label{font:600 11px Cinzel;letter-spacing:.16em;color:var(--dim)}.tool input{accent-color:#C9A24B;width:220px}
+main{max-width:1380px;margin:0 auto;padding:22px 22px 90px}
+.lead{font:italic 17px/1.4 Alegreya;color:var(--dim);margin:2px 0 26px;max-width:940px}
+.vg{display:grid;gap:34px 26px;grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+.badge{display:inline-block;font:700 12px Cinzel;letter-spacing:.2em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:4px 14px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);margin-bottom:6px}
+.nt{font:italic 15px/1.35 Alegreya;color:var(--dim);margin:0 0 10px;min-height:42px}
+.card{padding:16px 18px 16px}
+.cap2{font:700 11px Cinzel;letter-spacing:.2em;color:var(--brass);text-transform:uppercase;text-align:center}
+.lkh{display:flex;align-items:flex-end;justify-content:space-between;margin-top:10px}.lkh span{font:700 10px Cinzel;letter-spacing:.2em}
+.lkh .n{text-align:center}.lkh b{font:700 32px/1 Alegreya;color:#EFE6CF}.lkh em{display:block;font:italic 15px Alegreya;color:#A89C80}
+.bar{position:relative;height:26px;margin-top:20px;border-radius:13px;box-shadow:inset 0 0 0 1px rgba(5,4,3,.55),0 0 0 1px #4a3f28}
+.bar b{position:absolute;top:0;bottom:0;display:grid;place-items:center;font:700 17px Alegreya;text-shadow:0 1px 0 rgba(5,4,3,.5)}
+.bar .mk{position:absolute;top:-5px;width:2px;height:36px;margin-left:-1px;background:#EFE6CF;box-shadow:0 0 0 1px rgba(5,4,3,.6)}
+.mini{margin-top:16px;display:grid;gap:14px}
+</style></head><body>
+<script>/*KIT*/</script>
+<div class="tool"><h1>Diagonal lines: thinner, more space</h1><label>ODDS <input id="pr" type="range" min="5" max="95" value="58"> <b id="pv" style="font:700 15px Alegreya;color:var(--ivory)">58%</b></label></div>
+<main><p class="lead">The diagonal red lines on the dark track, from the current version (card 1) to thinner lines with wider gaps. Accept stays solid gold; red is #B31B1B. The slider changes the odds; the two small bars under each card show 12% and 88% so you can judge the extremes.</p>
+<div class="vg" id="vg"></div></main>
+<script>
+const ROY='#011F5B',ROY2='#0B2E78',RED='#B31B1B',RED2='#8F1515',GOLD='#E5C77A',GOLD2='#C9A24B',IV='#EFE6CF',MID='#1B3A8A';
+const H=(ang,w,gap,col,bg)=>`repeating-linear-gradient(${ang}deg,${col} 0 ${w}px,${bg} ${w}px ${w+gap}px)`;
+const GOLDG=`linear-gradient(180deg,#EBCF85,#C9A24B)`;
+const V=[
+ {n:'Line 3 · gap 4',note:'Reference: the current #1 (line 3, gap 4).',dec:()=>H(135,3,4,RED,'#0c0a07'),dl:'#E57373',tl:'#FFE9EA'},
+ {n:'Line 2.5 · gap 6',note:'Line 2.5, gap 6: a little thinner, clearly airier.',dec:()=>H(135,2.5,6,RED,'#0c0a07'),dl:'#E57373',tl:'#FFE9EA'},
+ {n:'Line 2 · gap 6',note:'Line 2, gap 6: thin lines, the gap three times the line.',dec:()=>H(135,2,6,RED,'#0c0a07'),dl:'#E57373',tl:'#FFE9EA'},
+ {n:'Line 2 · gap 8',note:'Line 2, gap 8: thin and open; the red reads as a texture over dark.',dec:()=>H(135,2,8,RED,'#0c0a07'),dl:'#E57373',tl:'#FFE9EA'},
+ {n:'Line 1.5 · gap 8',note:'Line 1.5, gap 8: very fine; like a hairline engraving.',dec:()=>H(135,1.5,8,RED,'#0c0a07'),dl:'#E57373',tl:'#FFE9EA'},
+ {n:'Line 1.5 · gap 10',note:'Line 1.5, gap 10: the sparsest. The red nearly becomes a tint; check it at 12%.',dec:()=>H(135,1.5,10,RED,'#0c0a07'),dl:'#E57373',tl:'#FFE9EA'}];
+const vg=document.getElementById('vg');
+function bar(v,q){const x=100-q,w=n=>n>=14;
+ const num=(val,left,width,col,on)=>w(width)?`<b style="left:${left}%;width:${width}%;color:${col}${on?';background:rgba(5,4,3,.55);width:auto;padding:0 8px;border-radius:9px;top:4px;bottom:4px;left:calc('+(left+width/2)+'% - 22px)':''}">${val}%</b>`:`<b style="left:${left}%;width:${width}%;top:-22px;color:#EFE6CF;text-shadow:none;font-size:14px">${val}%</b>`;
+ return `<div class="bar" style="background:linear-gradient(90deg,transparent 0,transparent ${x}%,transparent 100%)"><div style="position:absolute;left:0;top:0;bottom:0;width:${x}%;border-radius:13px 0 0 13px;background:${v.dec()}"></div><div style="position:absolute;left:${x}%;top:0;bottom:0;right:0;border-radius:0 13px 13px 0;background:${GOLDG}"></div>${num(x,0,x,'#FFE9EA',1)}${num(q,x,q,'#1b1408',0)}<span class="mk" style="left:${x}%"></span></div>`}
+function draw(){const q=+document.getElementById('pr').value;vg.innerHTML='';
+ V.forEach((v,i)=>{const d=document.createElement('div');d.innerHTML=`<span class="badge">${i+1} · ${v.n}</span><div class="nt">${v.note}</div>`;const c=document.createElement('div');
+ c.innerHTML=plate(`<div class="card"><div class="cap2">Alliance with Prussia</div><div class="lkh"><span style="color:${v.dl}">DECLINE</span><span class="n"><b>${q}%</b><em>${q<25?'Unlikely':q<45?'Doubtful':q<60?'An even chance':q<80?'Likely':'Very likely'}</em></span><span style="color:#E5C77A">ACCEPT</span></div>${bar(v,q)}<div class="mini">${bar(v,12)}${bar(v,88)}</div></div>`,'','',10);d.appendChild(c);vg.appendChild(d)})}
+document.getElementById('pr').oninput=e=>{document.getElementById('pv').textContent=e.target.value+'%';draw()};
+document.body.insertAdjacentHTML('afterbegin',DEFS);draw();
+</script></body></html>
