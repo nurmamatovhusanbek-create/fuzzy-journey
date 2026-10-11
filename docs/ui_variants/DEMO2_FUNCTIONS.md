@@ -25,3 +25,7 @@ Pressing Alliance or Marriage opens a small card with the **likelihood only** (a
 The envoys are spent at once; the button then reads "Proposed · next turn"; the court answers at the start of the next turn (accepted or declined, with a notice and an Annals entry).
 Pact, peace, trade, ultimatum and spy operations still resolve at once. Engine work to port it: a `proposals` list (from, to, kind, turn sent), resolved in turn start with the same acceptance function that
 the AI already uses (`TBAI.accepts_pact`), then a chronicle event. The odds shown are the acceptance score now; the answer uses the state next turn.
+
+## Decisions so far
+* Status palettes 1 (Navy & brass) and 2 (Ink & ivory) are kept for now (`bezel_palette.html`); the rest are dropped.
+* Type options page: `bezel_fonts.html` (seven display + reading pairs, EN / RU / UZ, size slider). Extra faces live in `src/fonts_extra.css`.
