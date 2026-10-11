@@ -1,0 +1,83 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — likelihood variations</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto;background:#05070a}
+body{font-feature-settings:'lnum' 1;color:var(--ivory)}
+.tool{position:sticky;top:0;z-index:60;display:flex;gap:22px;align-items:center;flex-wrap:wrap;padding:10px 22px;background:rgba(8,10,14,.95);border-bottom:1px solid #33291a}
+.tool h1{font:700 16px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--hi)}
+.tool label{font:600 11px Cinzel;letter-spacing:.16em;color:var(--dim)}
+.tool input[type=range]{accent-color:#C9A24B;width:220px}
+main{max-width:1320px;margin:0 auto;padding:22px 22px 90px}
+.lead{font:italic 17px/1.4 Alegreya;color:var(--dim);margin:2px 0 26px;max-width:900px}
+.vg{display:grid;gap:36px 28px;grid-template-columns:repeat(auto-fill,minmax(380px,1fr))}
+.badge{display:inline-block;font:700 12px Cinzel;letter-spacing:.2em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:4px 14px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);margin-bottom:6px}
+.nt{font:italic 15px/1.35 Alegreya;color:var(--dim);margin:0 0 10px;min-height:42px}
+.card{padding:14px 16px 14px}
+.cap2{font:700 11px Cinzel;letter-spacing:.2em;color:var(--brass);text-align:center;text-transform:uppercase}
+.stage{display:flex;flex-direction:column;align-items:center;margin:8px 0 6px}
+.led{width:100%;margin-top:8px}
+.led div{display:flex;align-items:baseline;padding:3px 0;font:400 15px Alegreya;color:var(--dim)}
+.led div i{flex:1;border-bottom:1px dotted #3a2f1d;margin:0 8px;transform:translateY(-4px)}
+.led b{font:700 15px Alegreya;color:var(--ivory)}.led b.pos{color:var(--good)}.led b.neg{color:#ee8a68}
+.led .sum{border-top:1px solid #4a3f28;margin-top:3px;padding-top:5px;color:var(--ivory)}
+.res{font:700 19px Cinzel;letter-spacing:.24em;text-transform:uppercase;height:30px;display:grid;place-items:center;visibility:hidden}
+.res.hit{visibility:visible;animation:stp .38s cubic-bezier(.2,1.5,.4,1)}
+@keyframes stp{from{transform:scale(1.7);opacity:0}to{transform:none;opacity:1}}
+.roll{display:flex;justify-content:center;margin-top:8px}
+.pct{font:700 30px Alegreya;color:var(--ivory)}.pcap{font:600 9px Cinzel;letter-spacing:.28em;color:var(--dim)}
+</style></head><body>
+<script>/*KIT*/</script>
+<div class="tool"><h1>Likelihood — variations</h1><label>ODDS <input id="pr" type="range" min="5" max="95" value="58"> <b id="pv" style="font:700 15px Alegreya;color:var(--ivory)">58%</b></label><button class="bt pri sm" id="all" style="height:34px">Roll all</button><label><input type="checkbox" id="force"> force the roll to land just inside / outside</label></div>
+<main><p class="lead">Six ways to show "how likely is this?" in the Bezel language: thin brass instruments, hatched refusal zones, engraved diamonds. Every card plays the same roll (the dice are cast once for all six). Move the odds slider to see low and high chances. Tell me which ones you like and I will build it into the game.</p>
+<div class="vg" id="vg"></div></main>
+<script>
+document.body.insertAdjacentHTML('afterbegin',DEFS);
+const $=s=>document.querySelector(s),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let Q=.58,R=.31;
+const TERMS=()=>{const p=Math.round(Q*100),base=25,st=Math.round((p-base)*.35),rel=p-base-st;return [['Base','25%'],['Relations',(rel>=0?'+':'−')+Math.abs(rel)+'%'],['Relative strength',(st>=0?'+':'−')+Math.abs(st)+'%'],['Odds',p+'%','sum']]};
+const ledger=()=>`<div class="led">${TERMS().map(([a,b,c])=>`<div class="${c||''}"><span>${a}</span><i></i><b class="${String(b).startsWith('+')?'pos':String(b).startsWith('−')?'neg':''}">${b}</b></div>`).join('')}</div>`;
+const run=(dur,fn,done)=>{const t0=performance.now();const f=()=>{const k=clamp((performance.now()-t0)/dur,0,1);fn(k);if(k<1)requestAnimationFrame(f);else done&&done()};requestAnimationFrame(f)};
+const settle=(a0,a1,k)=>a0+(a1-a0)*(1-Math.exp(-5*k)*Math.cos(14*k));
+const V=[];
+const stamp=(el,ok)=>{const s=el.querySelector('.res');s.textContent=ok?'Accepted':'Refused';s.style.color=ok?'#69B3A2':'#ee8a68';s.classList.remove('hit');void s.offsetWidth;s.classList.add('hit')};
+const reset=el=>{const s=el.querySelector('.res');s.classList.remove('hit')};
+const HATCH='<pattern id="ht" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="rgba(210,96,63,.5)"/></pattern>';
+// 1 slider
+V.push({n:'Slider',note:'The budget slider, reused: gold fill up to the odds, the refusal zone hatched in rust, the same thumb travelling to where the dice land.',
+ html:()=>`<svg width="340" height="92" viewBox="0 0 340 92"><defs>${HATCH}</defs><rect x="10" y="34" width="320" height="10" rx="5" fill="#0c0a07" stroke="#4a3f28"/><rect x="10" y="34" width="${320*Q}" height="10" rx="5" fill="url(#gBrass)"/><rect x="${10+320*Q}" y="34" width="${320*(1-Q)}" height="10" rx="0" fill="url(#ht)" stroke="#D2603F" stroke-opacity=".5"/>${Array.from({length:21},(_,i)=>`<path d="M${10+i*16} 52v${i%5===0?9:4}" stroke="${i%5===0?'#C9A24B':'#7F6A33'}"/>`).join('')}${[0,25,50,75,100].map(v=>`<text x="${10+3.2*v}" y="76" text-anchor="middle" font-family="Cinzel" font-size="9" fill="#7d735c">${v}</text>`).join('')}<g id="th" transform="translate(10 39)"><circle r="12" fill="#0f0c09" stroke="#C9A24B" stroke-width="1.5"/><path d="M0 -8v8" stroke="#EFE6CF" stroke-width="2" stroke-linecap="round"/></g></svg>`,
+ play(el,done){const th=el.querySelector('#th'),x1=10+320*R;run(1700,k=>th.setAttribute('transform',`translate(${settle(10,x1,k)} 39)`),done)},center:()=>''});
+// 2 ring
+V.push({n:'Thin ring',note:'Like the HUD gauges: a thin brass bezel with ticks, a teal arc for the odds, a bright bead orbiting and stopping on the roll. No needle.',
+ html:()=>{const r=54;return `<svg width="190" height="190" viewBox="0 0 150 150"><defs>${HATCH}</defs>${bezelSvg(75,75,70,60,'#0f0c09')}<path d="${arcD(75,75,r,0,359.9)}" stroke="#2a2318" stroke-width="5" fill="none"/><path d="${arcD(75,75,r,0,Math.max(1,359*Q))}" stroke="#69B3A2" stroke-width="5" fill="none" stroke-linecap="round"/><path d="${arcD(75,75,r,359*Q,359.9)}" stroke="#D2603F" stroke-opacity=".55" stroke-width="5" fill="none" stroke-dasharray="2 3"/><circle id="bd" cx="75" cy="${75-r}" r="5" fill="#E5C77A" stroke="#05070a" stroke-width="1.5"/><text x="75" y="80" text-anchor="middle" font-family="Alegreya" font-weight="700" font-size="30" fill="#EFE6CF">${Math.round(Q*100)}%</text><text x="75" y="98" text-anchor="middle" font-family="Cinzel" font-size="8" letter-spacing="3" fill="#A89C80">ODDS</text></svg>`},
+ play(el,done){const bd=el.querySelector('#bd'),r=54,tot=360*2+R*359;run(2000,k=>{const a=(1-Math.pow(1-k,3))*tot,[x,y]=P2(75,75,r,a);bd.setAttribute('cx',x);bd.setAttribute('cy',y)},done)}});
+const P2=(cx,cy,r,a)=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
+// 3 pips
+V.push({n:'Diamond pips',note:'Twenty engraved diamonds (the chip mark): lit up to the odds, a brass caret hops across them like a ratchet and stops on the roll.',
+ html:()=>{const n=20,lit=Math.round(Q*n);return `<svg width="360" height="96" viewBox="0 0 360 96"><g>${Array.from({length:n},(_,i)=>{const x=14+i*17.2;const on=i<lit;return `<path id="pp${i}" d="M${x} 38l6 6-6 6-6-6z" fill="${on?'#69B3A2':'none'}" stroke="${on?'#69B3A2':'#6b5a30'}" stroke-width="1.4"/>`}).join('')}</g><path id="cr" d="M14 20l-6 -9h12z" fill="#D2603F"/><path d="M14 60h332" stroke="#33291a"/><text x="14" y="78" font-family="Cinzel" font-size="9" fill="#7d735c">0</text><text x="180" y="78" text-anchor="middle" font-family="Cinzel" font-size="9" fill="#7d735c">50</text><text x="346" y="78" text-anchor="end" font-family="Cinzel" font-size="9" fill="#7d735c">100</text><text x="${14+lit*17.2-8}" y="92" text-anchor="middle" font-family="Cinzel" font-size="9" fill="#69B3A2" opacity="0">.</text></svg>`},
+ play(el,done){const cr=el.querySelector('#cr'),idx=Math.floor(R*20),steps=idx+20;let last=-1;run(2100,k=>{const s=Math.floor((1-Math.pow(1-k,2.2))*steps);const i=s>=20?s-20:s;if(s!==last){last=s;cr.setAttribute('transform',`translate(${(i)*17.2} 0)`)}},()=>{const p=el.querySelector('#pp'+idx);p&&p.setAttribute('stroke-width','3');done()})}});
+// 4 scales
+const scalesSvg=(a,wy,wside)=>{const pv=[170,38],L=100,rad=a*Math.PI/180,dx=Math.cos(rad)*L,dy=Math.sin(rad)*L,el=[pv[0]-dx,pv[1]-dy],er=[pv[0]+dx,pv[1]+dy];const pan=(e,lab,col)=>`<path d="M${e[0]} ${e[1]}L${e[0]-22} ${e[1]+46}M${e[0]} ${e[1]}L${e[0]+22} ${e[1]+46}" stroke="#7F6A33" stroke-width="1.2"/><path d="M${e[0]-30} ${e[1]+46}h60a0 0 0 0 1 0 0q-4 14 -30 14t-30 -14z" fill="#17130F" stroke="#C9A24B" stroke-width="1.4"/><text x="${e[0]}" y="${e[1]+78}" text-anchor="middle" font-family="Cinzel" font-size="8" letter-spacing="1.5" fill="${col}">${lab}</text>`;
+ const wx=wside==='l'?el[0]:wside==='r'?er[0]:0;return `<path d="M170 150V44M138 150h64" stroke="#C9A24B" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M${el[0]} ${el[1]}L${er[0]} ${er[1]}" stroke="#E5C77A" stroke-width="2.5" stroke-linecap="round"/><circle cx="170" cy="38" r="6" fill="#0f0c09" stroke="#C9A24B" stroke-width="1.5"/>${pan(el,'REFUSE','#ee8a68')}${pan(er,'ACCEPT','#69B3A2')}${wside?`<circle cx="${wx}" cy="${wy}" r="7" fill="#E5C77A" stroke="#05070a"/>`:''}`};
+V.push({n:'Scales',note:'A balance beam: their reluctance against your offer. The beam leans toward the odds; a weight drops into the pan the dice choose and the beam settles.',
+ html:()=>{const tilt=clamp((Q-.5)*28,-14,14);return `<svg width="340" height="190" viewBox="0 0 340 190"><g id="sc">${scalesSvg(tilt,0,'')}</g><text x="170" y="178" text-anchor="middle" font-family="Alegreya" font-weight="700" font-size="22" fill="#EFE6CF">${Math.round(Q*100)}%</text></svg>`},
+ play(el,done){const g=el.querySelector('#sc'),ok=R<Q,t0=clamp((Q-.5)*28,-14,14),t1=ok?14:-14,side=ok?'r':'l';run(2000,k=>{if(k<.5){const a=t0+Math.sin(k*26)*2.5*(1-k*1.6);const rad=a*Math.PI/180;g.innerHTML=scalesSvg(a,38+110*(k/.5),'')}else{const kk=(k-.5)/.5;const a=settle(t0,t1,kk);const rad=a*Math.PI/180,ex=170+(side==='r'?1:-1)*Math.cos(rad)*100,ey=38+(side==='r'?1:-1)*Math.sin(rad)*100;g.innerHTML=scalesSvg(a,ey+46,side)}},done)}});
+// 5 coin
+V.push({n:'Coin',note:'A brass coin with a thin ring showing the odds. It spins on its edge and lands showing the crown (yes) or the skull (no).',
+ html:()=>{const r=58;return `<svg width="190" height="200" viewBox="0 0 150 158"><path d="${arcD(75,75,r+6,0,359.9)}" stroke="#2a2318" stroke-width="3" fill="none"/><path d="${arcD(75,75,r+6,0,Math.max(1,359*Q))}" stroke="#69B3A2" stroke-width="3" fill="none" stroke-linecap="round"/><g id="cn" style="transform-origin:75px 75px"><circle cx="75" cy="75" r="${r-6}" fill="url(#gBrass)" stroke="#05070a" stroke-width="1.5"/><circle cx="75" cy="75" r="${r-14}" fill="none" stroke="#7a5f21" stroke-width="1.2"/><g id="fc" style="color:#2a2008"></g></g><text x="75" y="155" text-anchor="middle" font-family="Alegreya" font-weight="700" font-size="14" fill="#EFE6CF">${Math.round(Q*100)}% odds</text></svg>`},
+ play(el,done){const cn=el.querySelector('#cn'),fc=el.querySelector('#fc'),ok=R<Q;fc.innerHTML=`<g transform="translate(55 55) scale(1.7)" style="color:#2a2008">${ico(ok?'crown':'skull',24,1.7).replace('<svg class="ic" width="24" height="24"','<svg x="0" y="0" width="24" height="24"')}</g>`;run(1900,k=>{const a=k*Math.PI*8*(1-.15*k);const sx=Math.abs(Math.cos(a));cn.style.transform=`scale(${Math.max(.04,sx)},1)`;},()=>{cn.style.transform='none';done()})}});
+// 6 breakdown bar
+V.push({n:'Breakdown bar',note:'Shows why: the odds are built from stacked pieces (base, relations, strength). A thin needle sweeps the bar; it lands inside the pieces for a yes and in the hatched rest for a no.',
+ html:()=>{const t=TERMS(),p=Math.round(Q*100),vals=t.slice(0,3).map(x=>Math.abs(parseInt(x[1].replace('−','-')))),sum=vals.reduce((a,b)=>a+b,0)||1,sc=vals.map(v=>v/sum*p);let x=10;const cols=['#7F6A33','#C9A24B','#E5C77A'];const segs=sc.map((w,i)=>{const s=`<rect x="${x}" y="30" width="${3.2*w}" height="16" fill="${cols[i]}"/>`;x+=3.2*w;return s}).join('');return `<svg width="340" height="104" viewBox="0 0 340 104"><defs>${HATCH}</defs><rect x="10" y="30" width="320" height="16" fill="#0c0a07" stroke="#4a3f28"/>${segs}<rect x="${10+3.2*p}" y="30" width="${320-3.2*p}" height="16" fill="url(#ht)"/><rect x="10" y="30" width="320" height="16" fill="none" stroke="#6b5a30"/>${Array.from({length:11},(_,i)=>`<path d="M${10+i*32} 48v${i%5===0?8:4}" stroke="#7F6A33"/>`).join('')}<g id="nd" transform="translate(10 0)"><path d="M0 20V52" stroke="#EFE6CF" stroke-width="2"/><path d="M-6 14h12l-6 8z" fill="#EFE6CF"/></g><g font-family="Cinzel" font-size="8" letter-spacing="1.5" fill="#A89C80"><text x="10" y="76">BASE</text><text x="${10+3.2*sc[0]}" y="88">RELATIONS</text><text x="${10+3.2*(sc[0]+sc[1])}" y="76">STRENGTH</text></g></svg>`},
+ play(el,done){const nd=el.querySelector('#nd'),x1=10+320*R;run(1700,k=>nd.setAttribute('transform',`translate(${settle(10,x1,k)} 0)`),done)}});
+const vg=$('#vg');
+V.forEach((v,i)=>{const d=document.createElement('div');d.innerHTML=`<span class="badge">${i+1} · ${v.n}</span><div class="nt">${v.note}</div>`;const c=document.createElement('div');c.className='card';c.dataset.i=i;d.appendChild(c);vg.appendChild(d)});
+function paint(){V.forEach((v,i)=>{const c=vg.children[i].querySelector('.card');c.innerHTML=plate(`<div class="card"><div class="cap2">Pact with Prussia</div><div class="stage">${v.html()}</div><div class="res">—</div>${ledger()}<div class="roll"><button class="bt sm" data-r="${i}">Roll</button></div></div>`,'','',10)})}
+function roll(i){const c=vg.children[i].querySelector('.card');reset(c);R=window.__R;V[i].play(c,()=>stamp(c,R<Q))}
+function newR(){const f=$('#force').checked;R=f?(Math.random()<.5?Math.max(.02,Q-.04):Math.min(.98,Q+.04)):Math.random();window.__R=R}
+$('#pr').oninput=e=>{Q=e.target.value/100;$('#pv').textContent=e.target.value+'%';paint()};
+$('#all').onclick=()=>{newR();paint();V.forEach((_,i)=>roll(i))};
+vg.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;newR();roll(+b.dataset.r)});
+paint();window.__R=R;
+</script></body></html>
