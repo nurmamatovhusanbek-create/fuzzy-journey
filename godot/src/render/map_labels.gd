@@ -33,8 +33,8 @@ var _ring_tgt := Vector2.INF    # the order target's centre while the order arro
 var _order_box := Rect2()    # screen bounds of the arrow + label + source marker (the preview chip keeps out of it)
 const SHAFT_MIN := 30.0      # visible shaft between the two marker rims (px)
 
-func set_order(from: int, to: int, attack: bool, dashed: bool, label: String = "", hover: bool = false) -> void:
-	_order = {"from": from, "to": to, "attack": attack, "dashed": dashed, "label": label, "hover": hover}
+func set_order(from: int, to: int, attack: bool, dashed: bool, label: String = "", hover: bool = false, via: PackedInt32Array = PackedInt32Array()) -> void:
+	_order = {"from": from, "to": to, "attack": attack, "dashed": dashed, "label": label, "hover": hover, "via": via}
 	_path_key = ""
 	queue_redraw()
 
@@ -68,7 +68,7 @@ func set_game(game: TBGame) -> void:
 	queue_redraw()
 
 func add_fx(kind: String, from: int, to: int, col: Color, delay_ms: int = 0) -> void:
-	_fx.append({"kind": kind, "from": from, "to": to, "col": col, "t0": Time.get_ticks_msec() + delay_ms, "dur": 700 if kind == "atk" else 900})
+	_fx.append({"kind": kind, "from": from, "to": to, "col": col, "t0": Time.get_ticks_msec() + delay_ms, "dur": 700 if kind == "atk" else (2600 if kind == "march" else 900)})
 	queue_redraw()
 
 static func tk(name: String) -> Color: return TBTokens.c(name)
@@ -565,10 +565,12 @@ func _draw_layout() -> void:
 					_push_p = ot; _push_v = dn * share; _push_sp = of; _push_sv = -dn * share
 		# ---- candidates: (province, x, y, priority, limb factor, army, wants a marker)
 	var vis: Array = []
+	TBVision.sync(g)                                                    # fog of war: a foreign army out of sight gets no marker
 	for p in g.P:
 		var o := g.owner[p]
 		if o == 0: continue
 		var a := g.army[p]
+		if a > 0 and o != me and not TBVision.sees_fast(g, p): a = 0
 		var cap := g.capital[p] != 0
 		var rel := g.get_rel(me, o) if o != me else -1
 		var war := rel == 1
@@ -904,12 +906,37 @@ func _draw_focus() -> void:
 
 # ---------------------------------------------------------------- order arrows (4 px core + 2 px casing, double chevron for attacks, dashed preview)
 func _order_path(from: int, to: int) -> int:
-	var key := "%d>%d|%.4f|%.4f|%.3f|%d|%d,%d|%d,%d" % [from, to, map.lon0, map.lat0, map.zoom, map.mode, int(_push_v.x * 4.0), int(_push_v.y * 4.0), int(_push_sv.x * 4.0), int(_push_sv.y * 4.0)]
+	var via: PackedInt32Array = _order.get("via", PackedInt32Array())
+	var key := "%d>%d|%.4f|%.4f|%.3f|%d|%d,%d|%d,%d|%d" % [from, to, map.lon0, map.lat0, map.zoom, map.mode, int(_push_v.x * 4.0), int(_push_v.y * 4.0), int(_push_sv.x * 4.0), int(_push_sv.y * 4.0), hash(via)]
 	if key == _path_key: return _path.size()
 	_path_key = key
-	var n := 20
+	var n := 20 if via.is_empty() else 32
 	_path.resize(n)
 	var ok := true
+	if not via.is_empty():                                                  # a march: the route runs through the provinces on the way
+		var way: Array = [from]
+		for v in via: way.append(v)
+		way.append(to)
+		var poly := PackedVector2Array()
+		for wp in way:
+			var pq: Vector3 = _screen(wp, cos(map.lat0), sin(map.lat0), sin(map.lon0), cos(map.lon0), map.radius_px(), map.size.x * 0.5, map.size.y * 0.5)
+			if map.mode == 0 and pq.z < 0.05: ok = false
+			poly.append(Vector2(pq.x, pq.y))
+		var total := 0.0
+		for i in poly.size() - 1: total += poly[i].distance_to(poly[i + 1])
+		if total < 1.0: ok = false
+		else:
+			for i in n:
+				var want: float = total * float(i) / float(n - 1)
+				var acc := 0.0
+				var pt: Vector2 = poly[poly.size() - 1]
+				for j in poly.size() - 1:
+					var sl: float = poly[j].distance_to(poly[j + 1])
+					if acc + sl >= want: pt = poly[j].lerp(poly[j + 1], (want - acc) / maxf(0.001, sl)); break
+					acc += sl
+				_path[i] = pt
+		if not ok: _path.resize(0)
+		return _path.size()
 	if map.mode == 0:
 		var a := _unit[from]; var b := _unit[to]
 		var om := acos(clampf(a.dot(b), -1.0, 1.0))

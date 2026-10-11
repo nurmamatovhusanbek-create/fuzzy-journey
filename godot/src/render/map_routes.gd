@@ -22,11 +22,17 @@ func attach(view: TBMapView) -> void: map = view
 func set_game(game: TBGame) -> void:
 	g = game; _seen.clear(); queue_redraw()
 
+var _sig := 0
+var _anim := false
+
 func _process(d: float) -> void:
 	if g == null or not is_visible_in_tree() or g.human_id <= 0: return
 	_t += d
 	for k in _seen.keys(): _seen[k] = float(_seen[k]) + d
-	if _live > 0 or not _seen.is_empty(): queue_redraw()
+	# a new pact, trade deal or war shows up at once (it used to wait for the camera to move), the camera moves the lines, and while a line grows in or a load travels it keeps drawing
+	var sig: int = hash([hash(g.rel), hash(g.trade), g.human_id, map.lon0, map.lat0, map.zoom, map.size, map.mode, g.turn])
+	if sig != _sig: _sig = sig; queue_redraw()
+	elif _anim and K.motion_ok(): queue_redraw()                     # only a line growing in or a trade load on its way needs frames; a still route is not redrawn
 
 ## capital of n as a unit vector and lon/lat degrees
 func _cap(n: int) -> Array:
@@ -80,7 +86,7 @@ func _draw() -> void:
 	var a: Array = _cap(me)
 	if a.is_empty(): return
 	var alive_keys: Dictionary = {}
-	_live = 0
+	_live = 0; _anim = false
 	for o in range(1, g.N1):
 		if o == me or g.alive[o] == 0 or o == g.rebel: continue
 		var b: Array = _cap(o)
@@ -98,6 +104,7 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 	alive[key] = true; _live += 1
 	if not _seen.has(key): _seen[key] = 0.0 if K.motion_ok() else 99.0
 	var grow: float = clampf(float(_seen[key]) / 1.3, 0.0, 1.0)
+	if grow < 1.0 or kind == "trade": _anim = true
 	grow = 1.0 - pow(1.0 - grow, 3.0)
 	var pts: Array = _arc(a, b, bend)
 	var atlas: bool = map.atlas_look()

@@ -102,7 +102,8 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 		grid.add_child(tile)
 	# ledger
 	var lm := MarginContainer.new(); lm.add_theme_constant_override("margin_top", 12); lm.add_theme_constant_override("margin_bottom", 2); lm.add_child(_cap(T.call("dossier_ledger"), 11.0)); body.add_child(lm)
-	var rows: Array = [[T.call("army"), str(g.army[p])], [T.call("ins_defense"), str(g.defense[p])], [T.call("dev"), str(g.dev[p])], [T.call("econ"), str(g.econ[p])],
+	var seen: bool = TBVision.sees(g, p)
+	var rows: Array = [[T.call("army"), str(g.army[p]) if seen else "?"], [T.call("ins_defense"), str(g.defense[p]) if seen else "?"], [T.call("dev"), str(g.dev[p])], [T.call("econ"), str(g.econ[p])],
 		[T.call("terrain"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]]
 	if g.rules >= 1:
 		rows.append([T.call("supply"), str(g.supply_limit(p))])

@@ -59,7 +59,14 @@ func setup(place: String, kind: String, info: Dictionary, moves: int, send: int)
 	for c in _cells.get_children(): c.queue_free()
 	var win := true
 	var share := 1.0
-	if _is_attack:
+	if _is_attack and bool(info.get("unknown", false)):             # the defenders are out of sight: no odds, no outcome
+		var dial0 := K.gauge(40.0, "?", T.call("pv_odds").to_upper() if TBI18n.lang != "ru" else T.call("pv_odds"), 0.5, TBTokens.c("warn"))
+		dial0.position = Vector2(-8.0, -4.0); _dial_slot.add_child(dial0)
+		sm.add_child(K.para_bz("[i]%s[/i]" % T.call("pv_unknown_line"), 14.0, 1.2))
+		_cells.add_child(_cell(K.fmt(float(info["send"])), T.call("pv_your_army")))
+		_cells.add_child(_cell("?", T.call("pv_defenders")))
+		_cells.add_child(_cell(str(moves), T.call("pv_moves")))
+	elif _is_attack:
 		win = bool(info["win"])
 		share = clampf(float(info["atk"]) / maxf(0.01, float(info["atk"]) + float(info["dfn"])), 0.0, 1.0)
 		var col: Color = TBTokens.BZ_GOOD if share > 0.6 else (TBTokens.c("warn") if share > 0.45 else TBTokens.BZ_BAD)

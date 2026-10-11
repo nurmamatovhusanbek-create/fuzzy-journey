@@ -63,7 +63,8 @@ func show_for(g: TBGame, p: int, flow: TBOrderFlow) -> void:
 		elif r == D.REL_ALLY or r == D.REL_NAP: _glyph_id = "link"; _glyph_tok = "info_bar"
 	_rel_glyph.visible = _glyph_id != ""
 	_rel_glyph.queue_redraw()
-	_army.text = "%s %s · %s" % [T.call("army"), TBKit.fmt(g.army[p]), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]
+	var seen: bool = TBVision.sees(g, p)                                  # an army out of sight is not shown (fog of war, rules >= 1)
+	_army.text = "%s · %s" % [(T.call("army") + " " + TBKit.fmt(g.army[p])) if seen else T.call("army_unknown"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]
 	var lt: String = flow.map.lenses.describe(p) if (flow != null and flow.map != null and flow.map.lenses != null) else ""
 	_lens.visible = lt != ""; _lens.text = lt                     # the active lens value in words (colour is never the only carrier)
 	_note.visible = false

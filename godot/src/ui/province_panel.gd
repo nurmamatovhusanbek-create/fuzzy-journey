@@ -315,14 +315,15 @@ func _details_row() -> Control:
 ## the 2-column stat grid of the selected province
 func _build_stats(s: int, cs: Dictionary) -> Control:
 	var gr := TBInspector.Grid.new()
-	var armyc := TBKit.fmt(g.army[s])
+	var seen: bool = TBVision.sees(g, s)
+	var armyc := TBKit.fmt(g.army[s]) if seen else "?"
 	var stab: int = g.stab[s]
 	var scol: Color = TBTokens.c("neg_bar") if stab < 30 else (TBTokens.c("warn_bar") if stab < 50 else TBTokens.c("pos_bar"))
 	var hap: int = g.happy[s]
 	var hcol: Color = TBTokens.c("neg_bar") if hap < 30 else (TBTokens.c("warn_bar") if hap < 50 else TBTokens.c("pos_bar"))
 	var cells: Array = [
-		{"label": T.call("army"), "value": armyc, "tip": "%s: %d" % [T.call("army"), g.army[s]]},
-		{"label": T.call("ins_defense"), "value": str(g.defense[s]), "tip": T.call("ins_defense")},
+		{"label": T.call("army"), "value": armyc, "tip": ("%s: %d" % [T.call("army"), g.army[s]]) if seen else T.call("army_unknown")},
+		{"label": T.call("ins_defense"), "value": str(g.defense[s]) if seen else "?", "tip": T.call("ins_defense")},
 		{"label": T.call("pop"), "value": TBKit.fmt(g.pop[s]), "tip": "%s: %d" % [T.call("pop"), g.pop[s]]},
 		{"label": T.call("dev"), "value": str(g.dev[s]), "tip": T.call("dev")},
 		{"label": T.call("stability"), "value": "%d%%" % stab, "col": scol, "bar": stab / 100.0, "tip": T.call("stability")},

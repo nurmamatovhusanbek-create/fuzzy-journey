@@ -57,6 +57,7 @@ var color := PackedInt32Array()
 var budget := PackedByteArray()     # N1*4 : tax, goods, research, invest (%)
 var rel := PackedByteArray()        # N1*N1
 var truce := PackedInt32Array()     # N1*N1 expiry turn
+var see_until := PackedInt32Array() # N1*N1: the turn until which nation a sees the armies of nation b (a spy report; rules >= 1, see TBVision)
 var war_score := PackedInt32Array() # N1*N1
 var war_turns := PackedInt32Array() # N1*N1
 var grudge := PackedByteArray()     # N1*N1
@@ -73,6 +74,7 @@ var econ := PackedByteArray()
 var stab := PackedByteArray()
 var happy := PackedByteArray()
 var defense := PackedByteArray()
+var move_fx: Array = []                       # [from, to, nation] marches the AI made this turn (view only, not saved): the interface shows those in sight
 var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
 var gen := PackedInt32Array()                 # generals (rules >= 1): see TBGenerals
 var terrain := PackedByteArray()
@@ -205,7 +207,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		a.resize(N1)
 	capital_of.fill(-1); last_war_turn.fill(-99)
 	budget.resize(N1 * 4); rel.resize(N1 * N1); grudge.resize(N1 * N1)
-	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1)
+	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1); see_until.resize(N1 * N1)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1)
@@ -587,10 +589,12 @@ func move_or_attack(n: int, from: int, to: int, troops: int) -> String:
 		var left := army[from] - k
 		army[from] = left; army[to] = mini(65000, army[to] + k); touch(from); touch(to)
 		if rules >= 1 and TBGenerals.follows(self, from, left): TBGenerals.transfer(self, from, to)
+		if rules >= 1 and human[n] == 0 and move_fx.size() < 160: move_fx.append([from, to, n])
 		return "move"
 	if ctrl_to != 0 and friendly(n, ctrl_to): return "!friendly"
 	if ctrl_to != 0 and get_rel(n, ctrl_to) != D.REL_WAR: return "!nowar"
 	if discoverable[to] != 0 and tech_level[n] < 2 and owner[to] == 0: return "!undiscovered"
+	if rules >= 1 and human[n] == 0 and move_fx.size() < 160: move_fx.append([from, to, n])
 	return resolve_combat(n, from, to, troops)
 
 func resolve_combat(n: int, from: int, to: int, troops: int) -> String:

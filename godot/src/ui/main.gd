@@ -197,8 +197,15 @@ func _on_perf_low() -> void:
 	_apply_quality()
 	if hud != null and hud.visible: hud.toast(T.call("q_auto_down"))
 
+## the map's first quality tier by what the machine is: software renderers start low; integrated GPUs and CPUs with four threads or fewer start medium (the auto tier steps
+## down further on its own when frames stay slow); phones medium; everything else high
 func _guess_quality() -> String:
 	if OS.has_feature("mobile") or OS.get_name() == "Android" or OS.get_name() == "iOS": return "medium"
+	var gpu: String = (RenderingServer.get_video_adapter_name() + " " + RenderingServer.get_video_adapter_vendor()).to_lower()
+	for soft in ["llvmpipe", "swiftshader", "software", "basic render", "microsoft basic", "softpipe", "vmware", "virtualbox"]:
+		if gpu.contains(soft): return "low"
+	var integrated: bool = (gpu.contains("intel") and not gpu.contains("arc")) or gpu.contains("uhd") or gpu.contains("iris") or gpu.contains("vega 3") or gpu.contains("vega 6") or gpu.contains("vega 8") or gpu.contains("radeon graphics")
+	if integrated or OS.get_processor_count() <= 4: return "medium"
 	return "high"
 
 func _apply_quality() -> void:
@@ -793,6 +800,16 @@ func _replay_battles() -> void:
 		i += 1
 		if i >= 8: break
 	g.battle_fx.clear()
+	# the marches of other nations that are in sight (fog of war): a faint arrow for each, so you see an army coming before it arrives
+	var k := 0
+	TBVision.sync(g)
+	for m in g.move_fx:
+		if int(m[2]) == me or k >= 14: continue
+		if not (TBVision.sees_fast(g, int(m[0])) or TBVision.sees_fast(g, int(m[1]))): continue
+		var c := Color.hex((g.color[int(m[2])] << 8) | 0xFF).lightened(0.25)
+		map.labels.add_fx("march", int(m[0]), int(m[1]), c, k * 90)
+		k += 1
+	g.move_fx.clear()
 
 var _crisis := PackedStringArray()
 

@@ -123,6 +123,7 @@ func setup(game: TBGame) -> void:
 
 # ---------------------------------------------------------------- palette
 func repaint_all() -> void:
+	TBVision.sync(g)
 	_rel_changed()
 	lenses.refresh_nations()
 	lenses.prepare()
@@ -132,7 +133,8 @@ func repaint_all() -> void:
 
 ## repaint only changed provinces (engine dirty list); lenses that depend on global stats repaint everything
 func repaint(dirty: PackedInt32Array, full: bool = false) -> void:
-	if full or dirty.size() > g.P / 3 or _rel_changed():
+	TBVision.sync(g)
+	if full or dirty.size() > g.P / 3 or _rel_changed() or (lenses.mode == "military" and g.rules >= 1 and not dirty.is_empty()):
 		repaint_all(); return
 	if lenses.cvd_active() and lenses.refresh_nations():     # an owner change re-solved the adjacency colouring
 		repaint_all(); return

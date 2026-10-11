@@ -37,6 +37,14 @@ func _init() -> void:
 				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": sp3, "what": "ally", "op": "", "ok": true})
 				main.hud.refresh()
 			"realm": main._open_realm_page()
+			"routes":                                     # a pact, an alliance, a trade deal, a marriage and a war: the lines between the capitals
+				var gg: TBGame = main.g
+				var sp7: int = gg.nat_code.find("spain"); var uk7: int = gg.nat_code.find("united_kingdom"); var pr7: int = gg.nat_code.find("prussia")
+				var ot7: int = gg.nat_code.find("ottoman_empire"); var au7: int = gg.nat_code.find("austrian_empire")
+				gg.set_rel(fr, sp7, 3); gg.set_rel(fr, pr7, 2); gg.set_rel(fr, ot7, 4); gg.set_rel(fr, au7, 1)
+				TBTrade.set_deal(gg, fr, uk7, true)
+				main.map.fly_to(9.5, 46.0, 1.6)
+				for i in 120: await process_frame
 			"terms":                                      # peace terms against Austria after some fighting
 				var au6: int = main.g.nat_code.find("austrian_empire")
 				main.g.set_rel(fr, au6, 1); main.g.war_score[fr * main.g.N1 + au6] = 62; main.g.war_score[au6 * main.g.N1 + fr] = 18; main.g.dp[fr] = 9.0

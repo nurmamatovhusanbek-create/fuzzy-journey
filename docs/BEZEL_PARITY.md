@@ -52,3 +52,10 @@ Annals tabs use the game's categories.
 Still to port exactly: hover tooltips (`tip`, `tip2`), lens popover/tuner, settings and save/load hub screens, game over, tutorial/briefing, hot-seat hand-over,
 nation pick. The demo now has all of these (docs/ui_variants/src/b_demo2.html, list in docs/ui_variants/DEMO2_FUNCTIONS.md); port from there.
 Tests: tools/test_all.sh passes; tools/test_ui.sh passes (map_arrows shaft threshold lowered to 18 px for the Mercator tier change).
+
+## Status, later (windows, dial, notices)
+End Turn dial: now the demo's exactly (`renderChrono`: heavy brass band 5 units, 60 ticks, red arc 220 / 300 degrees, Cinzel 700 number, TURN above in brass, END TURN 13 / 4).
+Answer notices: flag medallion, inner glow (`inset 0 0 16px 3px`) clipped to the notched plate, accepted blue / declined red. Windows are non-modal, dragged by the header,
+resized from the right edge / bottom edge / corner (the demo's `.rz`), remembered in the settings; a double click on the header docks them again.
+Added in the game on request, to be mirrored in the demo: all ten lenses on the tuner (no legends), the Realm page (crest), the Terms window, the Build list plates, marches
+to any reachable province and the fog of war.

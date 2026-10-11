@@ -44,6 +44,14 @@ static func _err(e: String) -> Dictionary: return {"ok": false, "err": e}
 
 static func _c_move(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var to: int = c["to"]
+	if g.rules >= 1 and g.sea_edge(int(c["from"]), to) < 0:                    # not a neighbour: a march (TBMarch) over land you hold, allies' land and your ports
+		var pl := TBMarch.plan(g, n, int(c["from"]), to)
+		if not bool(pl["ok"]): return _err(String(pl["err"]))
+		if g.mp[n] < float(pl["mp"]): return _err("mp")
+		var rm := TBMarch.execute(g, n, int(c["from"]), to, int(c.get("troops", 0)))
+		if rm.begins_with("!"): return _err(rm.substr(1))
+		g.mp[n] -= float(pl["mp"])
+		return {"ok": true, "result": rm}
 	var att := g.controller(to) != n
 	var need: float = D.MP_ATTACK if att else D.MP_MOVE
 	if g.mp[n] < need: return _err("mp")
@@ -250,6 +258,7 @@ static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 	var tech_gap := g.tech_level[n] - g.tech_level[t]
 	var chance := clampf(0.60 + tech_gap * 0.08, 0.25, 0.9)
 	var ok := g.rng.next() < chance
+	if ok and g.rules >= 1: g.see_until[n * g.N1 + t] = g.turn + TBVision.SPY_TURNS                # a report from their court: their armies stay in view for a while
 	var own := g.owned(t)
 	if ok and not own.is_empty():
 		match op:

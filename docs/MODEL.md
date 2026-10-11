@@ -91,7 +91,20 @@ at most 2 provinces per government per turn, never a capital. Quiet above 45; ra
 **Measured** (300-turn AI-only games): ~75–100 uprisings per game in later eras, ~380 in the Ancient world; standing rebel provinces mostly 0–5
 at any time. The old model gave 2 056 in 300 turns, concentrated on giant empires at tax 60 with the regime chance applied blindly.
 
-## 6. Where to look
+## 6. Requests to a court, marches and fog of war (rules ≥ 1)
+**Requests** (`engine/asks.gd`, command `ask`): a pact, alliance, marriage, trade deal, peace terms (white / cede / vassal), an ultimatum and a spy operation sent to an AI court
+are *sent* now (the cost, diplomacy points or intel, is spent at once) and *answered at the start of the next turn*. The answer is rolled on the game's rng with the
+likelihood the button showed (`TBAsks.chance`: the same sums as `TBDipView`, spy chance, ultimatum strength ratio, 3..97 %); an accepted request runs the real command
+(`_force`), a refused one adds 5 grudge. The answer lands in the log as `ans`; the interface shows it as a flag notice until it is tapped away. One court request per
+court at a time, one spy party per court.
+**Marching** (`engine/march.gd`): an army may be ordered to any province it can reach with the move points it has. Route: land you hold, allies' land (crossed, never stopped
+in), a sea hop from a Port, and between your own Ports any distance (2 + 1 per 25 degrees). One move point per step; the last step into an enemy province costs the attack
+price. The men arrive (or fight) at once. Rules 0 and neighbour moves keep the old behaviour.
+**Fog of war** (`engine/vision.gd`, view only): your armies always; another nation's armies when it is an ally / marriage / vassal / overlord, friendliness above 80
+(50 at peace, +25 pact, +15 trade deal, +10 no grudge, minus the grudge), a spy report (6 turns after a successful operation), or when they stand next to a province you hold
+(3 provinces round a Watchtower). Hidden armies get no marker, no figure on the cards and no outcome in a preview; the AI plays without fog.
+
+## 7. Where to look
 
 | thing | code |
 |---|---|

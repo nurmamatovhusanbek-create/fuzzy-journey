@@ -32,6 +32,15 @@ func _me() -> int: return g.human_id
 func share() -> float: return panel.send_frac if panel != null else 1.0
 
 ## men a move from `from` sends, following the 25 / 50 / 75 / 100 % choice
+## the fight a march would start, as far as the player may know it: an enemy province out of sight shows no defenders and no outcome (TBVision)
+func _pv(q: int) -> Dictionary:
+	var pv := g.combat_preview(_me(), src, q, troops_for(src))
+	if g.rules >= 1 and not TBVision.sees(g, q):
+		return {"unknown": true, "send": pv["send"], "defenders": -1, "win": false, "atk": 1.0, "dfn": 1.0, "hold": 0, "lost": 0, "enemy_lost": 0, "mp": pv.get("mp", 2)}
+	return pv
+
+static func _def_text(pv: Dictionary) -> String: return "?" if int(pv["defenders"]) < 0 else TBKit.fmt(int(pv["defenders"]))
+
 func troops_for(from: int) -> int:
 	var frac := share()
 	if frac >= 0.999: return g.army[from] - 1
@@ -44,6 +53,16 @@ func check(q: int, from: int = -2) -> Dictionary:
 	var out := {"valid": false, "kind": "", "reason": "notadjacent", "preview": false, "explicit_only": false}
 	if s < 0 or q < 0 or q == s: return out
 	var chk := g.move_check(_me(), s, q)
+	if chk == "!notadjacent" and g.rules >= 1:                          # not a neighbour: a march over our land, allies' land and ports (TBMarch)
+		var pl := TBMarch.plan(g, _me(), s, q)
+		if not bool(pl["ok"]):
+			out["reason"] = String(pl["err"]); return out
+		out["valid"] = true; out["kind"] = String(pl["kind"]); out["reason"] = ""; out["far"] = true
+		var way: PackedInt32Array = pl["path"]
+		out["via"] = way.slice(1, way.size() - 1)
+		out["preview"] = pl["kind"] == "attack" and (g.army[q] > 0 or g.controller(q) != 0)
+		out["explicit_only"] = true                                     # a march is ordered with Move (or a right click), never by a stray tap
+		return out
 	if chk.begins_with("!"):
 		out["reason"] = chk.substr(1); return out
 	out["valid"] = true; out["kind"] = chk; out["reason"] = ""
@@ -62,6 +81,10 @@ func _candidates(s: int) -> PackedInt32Array:
 func compute_targets() -> PackedInt32Array:
 	var t := PackedInt32Array()
 	if src < 0: return t
+	if explicit and g.rules >= 1:                                       # Move pressed: every province the army can reach with the move points it has
+		var far: Dictionary = TBMarch.targets(g, _me(), src, g.mp[_me()])
+		for q in far: t.append(int(q))
+		return t
 	for q in _candidates(src):
 		var c := check(q)
 		if not c["valid"]: continue
@@ -238,9 +261,9 @@ func hover(q: int) -> void:
 	if q >= 0 and c["valid"]:
 		var lab := ""
 		if c["kind"] == "attack":
-			var pv := g.combat_preview(_me(), src, q, troops_for(src))
-			lab = "%s : %s" % [TBKit.fmt(int(pv["send"])), TBKit.fmt(int(pv["defenders"]))]
-		map.labels.set_order(src, q, c["kind"] == "attack", true, lab, true)
+			var pv := _pv(q)
+			lab = "%s : %s" % [TBKit.fmt(int(pv["send"])), _def_text(pv)]
+		map.labels.set_order(src, q, c["kind"] == "attack", true, lab, true, c.get("via", PackedInt32Array()))
 	else:
 		map.labels.clear_order()
 
@@ -249,7 +272,7 @@ func hover_result(q: int) -> Dictionary:
 	if src < 0 or g == null: return {}
 	var c := check(q)
 	if not c["valid"] or c["kind"] != "attack": return {}
-	return g.combat_preview(_me(), src, q, troops_for(src))
+	return _pv(q)
 
 # ---------------------------------------------------------------- map + chip plumbing
 func _sync_map() -> void:
@@ -263,9 +286,9 @@ func _sync_map() -> void:
 		var c := check(tgt)
 		var lab := ""
 		if c["kind"] == "attack":
-			var pv := g.combat_preview(_me(), src, tgt, troops_for(src))
-			lab = "%s : %s" % [TBKit.fmt(int(pv["send"])), TBKit.fmt(int(pv["defenders"]))]
-		map.labels.set_order(src, tgt, c["kind"] == "attack", true, lab)
+			var pv := _pv(tgt)
+			lab = "%s : %s" % [TBKit.fmt(int(pv["send"])), _def_text(pv)]
+		map.labels.set_order(src, tgt, c["kind"] == "attack", true, lab, false, c.get("via", PackedInt32Array()))
 	elif _hover < 0 or mode != Mode.ARMED:
 		map.labels.clear_order()
 	map.focus_province = focus_p
@@ -282,7 +305,7 @@ func _show_preview() -> void:
 		_chip.minimum_size_changed.connect(_place_chip)
 		if map != null and not map.view_changed.is_connected(_place_chip): map.view_changed.connect(_place_chip)
 	var info := {}
-	if c["kind"] == "attack": info = g.combat_preview(_me(), src, tgt, troops_for(src))
+	if c["kind"] == "attack": info = _pv(tgt)
 	var cost := g.can({"cmd": "move", "from": src, "to": tgt, "troops": troops_for(src)})
 	_chip.setup(TBI18n.place(g.world.name[tgt]), c["kind"], info, int(cost["moves"]), troops_for(src))
 	_chip.visible = true
@@ -314,7 +337,7 @@ func summary() -> Dictionary:
 	out["kind"] = c["kind"]; out["send"] = troops_for(src)
 	out["moves"] = int(g.can({"cmd": "move", "from": src, "to": tgt, "troops": troops_for(src)})["moves"])
 	if c["kind"] == "attack":
-		var pv := g.combat_preview(_me(), src, tgt, troops_for(src))
+		var pv := _pv(tgt)
 		for k in ["win", "hold", "lost", "atk", "dfn", "defenders"]: out[k] = pv.get(k, out[k])
 	return out
 

@@ -372,7 +372,9 @@ func color(p: int) -> int:
 			return REL_COL.get(g.get_rel(me, o), 0x8a93a3)
 		"economic":
 			return ramp(ECON_RAMP, sqrt((g.pop[p] / 80.0 + g.dev[p] * 2.0 + g.econ[p]) / max_econ)) if o != 0 else neutral()
-		"military": return ramp(ARMY_RAMP, sqrt(g.army[p] / max_army)) if o != 0 else neutral()
+		"military":
+			if o == 0 or (o != me and not TBVision.sees_fast(g, p)): return neutral()          # armies out of sight are not on the map
+			return ramp(ARMY_RAMP, sqrt(g.army[p] / max_army))
 		"wars":
 			if o == 0: return neutral()
 			return war_col[o] if war_col[o] != 0 else lerp_rgb(nat_rgb[o], 0x000000, 0.35)
@@ -456,7 +458,7 @@ func describe(p: int) -> String:
 			var words := ["rel_peace", "rel_war", "rel_nap", "rel_ally", "rel_marriage"]
 			return "%s: %s" % [T.call("lens_diplomatic"), T.call("leg_self") if o == me else T.call(words[clampi(g.get_rel(me, o), 0, 4)])]
 		"economic": return "%s: %s" % [T.call("lens_economic"), TBKit.fmt(int(g.pop[p] / 80.0 + g.dev[p] * 2.0 + g.econ[p]))] if o != 0 else ""
-		"military": return "%s: %s" % [T.call("lens_military"), TBKit.fmt(g.army[p])] if o != 0 else ""
+		"military": return ("%s: %s" % [T.call("lens_military"), TBKit.fmt(g.army[p]) if (o == me or TBVision.sees_fast(g, p)) else "?"]) if o != 0 else ""
 		"stability": return "%s: %d" % [T.call("lens_stability"), int(g.stab[p])] if o != 0 else ""
 		"population": return "%s: %s" % [T.call("lens_population"), TBKit.fmt(g.pop[p])] if o != 0 else ""
 		"buildings": return "%s: %s %s" % [T.call("lens_buildings"), swatch_letter("buildings", g.building[p] - 1), T.call("b_" + D.BUILDINGS[g.building[p] - 1]["id"])] if g.building[p] != 0 else ""
