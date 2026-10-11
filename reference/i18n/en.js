@@ -333,6 +333,7 @@ export default {
   tk_report: 'Turn {t} report: {s}',
   tkr_taxes: 'Taxes ({p}%)', tkr_trade_routes: 'Trade routes', tkr_provinces: 'Provinces', tk_last8: 'last 8 turns', tk_hint_budget: 'Click to open the budget · B', tk_hint_nations: 'Click to open nations · N', tk_hint_army: 'Click for the army list', tk_g_per_turn: 'per turn', tk_g_gold: 'gold', tk_g_men: 'men', tk_g_moves: 'moves', tk_g_points: 'diplomacy points',
   vt_move: 'Orders the army to march. Lit regions are legal targets.', vt_attack: 'Orders the army to march. Lit regions are legal targets.', vt_recruit: 'Raises men here. Costs gold and people.', vt_build: 'Barracks, fort, market or farm. Takes a few turns.', vt_hire: 'Hires mercenaries for gold.', vt_general: 'Appoints a commander: +6% strength per star.', vt_colonize: 'Claims neutral land next to your border.', vt_diplo: 'Opens the nation card.',
+  doc_adopt: 'Adopt', doc_in_force: 'In force',
   tk_gold_1: 'Treasury {v}',
   tk_gold_2: 'Income +{g} · upkeep −{u} · administration −{a}',
   tk_gold_3: 'Net {n} per turn',

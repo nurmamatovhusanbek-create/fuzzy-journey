@@ -237,7 +237,7 @@ class DecisionRow extends PanelContainer:
 
 static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.Handle:
 	var me := g.human_id
-	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_decisions"), "decrees", {"w": 740 if K.is_phone(parent) else 680, "h": 540, "sub": T.call("dec_sub", {"n": int(g.dp[me])})})
+	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_decisions"), "decrees", {"w": 740 if K.is_phone(parent) else 900, "h": 540, "sub": T.call("dec_sub", {"n": int(g.dp[me])})})
 	var body: VBoxContainer = h.body
 	# ---- doctrine (game rules >= 1)
 	if g.rules >= 1:
@@ -250,20 +250,34 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 		var say := func(txt: String, col: Color) -> void:
 			for c in fx_slot.get_children(): c.queue_free()
 			fx_slot.add_child(K.para_bz(txt, 16.0, 1.3, col))
+		var DS := {"sel": cur_id}
+		var adopt_slot := K.hbox(0); adopt_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var refresh_adopt := func() -> void:                                        # choosing a doctrine only selects it: the player adopts it with the button
+			for c in adopt_slot.get_children(): c.queue_free()
+			var sid: String = DS["sel"]
+			if sid == "": return
+			var cost: int = TBDoctrine.cost(g, me)
+			var same: bool = sid == cur_id
+			var ab := K.button(T.call("doc_in_force") if same else T.call("doc_adopt"), func():
+				if same or g.dp[me] < cost: return
+				on_cmd.call({"cmd": "doctrine", "id": sid})
+				h.close(), true, true, "", "" if same else "%d ✉" % cost)
+			if same: K.disable(ab, "")
+			elif g.dp[me] < cost: K.disable(ab, T.call("err_dp"))
+			var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			adopt_slot.add_child(sp); adopt_slot.add_child(ab)
 		var seg := TBPanel.seg(items, cur_id, func(id: String):
-			if id == cur_id: return
-			if g.dp[me] < TBDoctrine.cost(g, me):
-				say.call(T.call("err_dp"), TBTokens.BZ_BAD_TXT)
-				return
-			on_cmd.call({"cmd": "doctrine", "id": id})
-			h.close())
+			DS["sel"] = id
+			say.call(T.call("doc_%s_d" % id), TBTokens.c("brass_lt"))
+			refresh_adopt.call())
 		var sm := MarginContainer.new(); sm.add_theme_constant_override("margin_top", 8); sm.add_theme_constant_override("margin_bottom", 8); sm.add_child(seg)
 		body.add_child(sm)
 		say.call(T.call("doc_%s_d" % cur_id) if cur_id != "" else T.call("doc_none"), TBTokens.c("brass_lt"))
 		body.add_child(fx_slot)
+		body.add_child(adopt_slot); refresh_adopt.call()
 		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 16); gap.mouse_filter = Control.MOUSE_FILTER_IGNORE; body.add_child(gap)
 	# ---- the decrees, in the game's order (the card carries the state: teal rule = in force, rust mark = why not)
-	var grid := GridContainer.new(); grid.columns = 3 if h.phone else 2
+	var grid := GridContainer.new(); grid.columns = 3                                  # three columns on desktop too (a 900 wide panel): the whole list fits without scrolling
 	grid.add_theme_constant_override("h_separation", 10); grid.add_theme_constant_override("v_separation", 10)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(grid)
@@ -273,7 +287,7 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 	var vsd: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size            # fewer columns when the rows do not fit side by side
 	var cell_w := 0.0
 	for k in grid.get_children(): cell_w = maxf(cell_w, (k as Control).get_combined_minimum_size().x)
-	grid.columns = clampi(int((minf(740.0, vsd.x - 12.0) - 40.0 + 10.0) / (cell_w + 10.0)), 1, grid.columns)
+	grid.columns = clampi(int((minf(740.0 if h.phone else 900.0, vsd.x - 12.0) - 40.0 + 10.0) / (cell_w + 10.0)), 1, grid.columns)
 	return h
 
 # =====================================================================================================================================================
