@@ -4,6 +4,15 @@ class_name TBBzIcons
 extends RefCounted
 
 const IC := {
+	"b_farm": '<path d="M12 21V8M12 8c-3 0-4-2-4-4 3 0 4 2 4 4zM12 8c3 0 4-2 4-4-3 0-4 2-4 4zM12 14c-3 0-4-2-4-4 3 0 4 2 4 4zM12 14c3 0 4-2 4-4-3 0-4 2-4 4z"/>',
+	"b_watchtower": '<path d="M8 21V9h8v12M7 9l1-4h8l1 4M10 13h4M5 21h14"/>',
+	"b_workshop": '<path d="M14 4l6 6-3 3-6-6zM13 11L4 20"/>',
+	"b_supplycamp": '<path d="M3 20L12 5l9 15zM12 5v15M9 20l3-6 3 6"/>',
+	"b_library": '<path d="M4 5q4-1.5 8 1.5q4-3 8-1.5v13q-4-1.5-8 1.5q-4-3-8-1.5zM12 6.5v13"/>',
+	"b_armory": '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+	"b_market": '<path d="M3 9l2-5h14l2 5M3 9h18v3H3zM5 12v8h14v-8M10 20v-5h4v5"/>',
+	"b_port": '<circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 10h8M5 15q1 5 7 5t7-5M5 15l-2 2M19 15l2 2"/>',
+	"b_fortress": '<path d="M4 20V7h3v3h2.500V7h5v3H17V7h3v13zM10 20v-4h4v4"/>',
 	"nations": '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v18M6.5 6q5.500 6 11 0M6.500 18q5.500-6 11 0"/>',
 	"treasury": '<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5q0 3 7 3t7-3V7M5 12v5q0 3 7 3t7-3v-5"/>',
 	"decrees": '<path d="M12 3v18M6 21h12M4 7h16M4 7l-2.500 7h5zM20 7l-2.500 7h5z"/>',

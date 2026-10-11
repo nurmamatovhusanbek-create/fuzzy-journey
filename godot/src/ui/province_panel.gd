@@ -1023,7 +1023,7 @@ func _press(i: int) -> void:
 	match String(v["id"]):
 		"move": move_requested.emit(s)
 		"attack": if flow != null: flow.preview_to(s, _source_for(_case))
-		"build": _open_list(v["btn"], _build_rows(v["items"]), s, T.call("build"))
+		"build": _open_build(v["btn"], v["items"], s)
 		"diplo": _open_list(v["btn"], _diplo_rows(v["items"]), s, T.call("cc_diplomacy"))
 		"war":
 			if _confirm_mode() == "never": command.emit({"cmd": "declareWar", "t": int(_case["o"])})
@@ -1072,9 +1072,22 @@ func _open_list(anchor: Control, rows: Array, _s: int, title_text: String = "") 
 		command.emit(r["cmd"]))
 	_popover.closed.connect(func(): _popover = null)
 
+## the Build verb: the Blueprint picker (a rail of the buildings, one page for the chosen), not a plain list
+var _bpicker: TBBuildPicker
+func _open_build(anchor: Control, items: Array, s: int) -> void:
+	_close_popover()
+	if items.is_empty(): return
+	_bpicker = TBBuildPicker.new()
+	add_child(_bpicker)
+	_bpicker.setup(g, s, items, anchor.get_global_rect(), _vp)
+	_bpicker.picked.connect(func(cmd: Dictionary): command.emit(cmd))
+	_bpicker.closed.connect(func(): _bpicker = null)
+
 func _close_popover() -> void:
 	if _popover != null and is_instance_valid(_popover): _popover.queue_free()
 	_popover = null
+	if _bpicker != null and is_instance_valid(_bpicker): _bpicker.queue_free()
+	_bpicker = null
 
 ## pop-up list for the Build picker and the Diplomacy list: a header, then one plate per choice: its name at the left, its costs (icon + figure) at the right,
 ## and, when it cannot be done, the reason inside the plate under the name. Every name is the same size; the plates are one width.
