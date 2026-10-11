@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — likelihood bar shapes</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto;background:#05070a}
+body{font-feature-settings:'lnum' 1;color:var(--ivory)}
+.tool{position:sticky;top:0;z-index:60;display:flex;gap:22px;align-items:center;flex-wrap:wrap;padding:10px 22px;background:rgba(8,10,14,.95);border-bottom:1px solid #33291a}
+.tool h1{font:700 16px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--hi)}
+.tool label{font:600 11px Cinzel;letter-spacing:.16em;color:var(--dim)}.tool input{accent-color:#C9A24B;width:220px}
+main{max-width:1380px;margin:0 auto;padding:22px 22px 90px}
+.lead{font:italic 17px/1.4 Alegreya;color:var(--dim);margin:2px 0 26px;max-width:940px}
+.vg{display:grid;gap:34px 26px;grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+.badge{display:inline-block;font:700 12px Cinzel;letter-spacing:.2em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:4px 14px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);margin-bottom:6px}
+.nt{font:italic 15px/1.35 Alegreya;color:var(--dim);margin:0 0 10px;min-height:42px}
+.card{padding:16px 18px 16px}
+.cap2{font:700 11px Cinzel;letter-spacing:.2em;color:var(--brass);text-transform:uppercase;text-align:center}
+.lkh{display:flex;align-items:flex-end;justify-content:space-between;margin-top:10px}.lkh span{font:700 10px Cinzel;letter-spacing:.2em}
+.lkh .n{text-align:center}.lkh b{font:700 32px/1 Alegreya;color:#EFE6CF}.lkh em{display:block;font:italic 15px Alegreya;color:#A89C80}
+.bar{position:relative;height:26px;margin-top:20px;border-radius:13px;box-shadow:inset 0 0 0 1px rgba(5,4,3,.55),0 0 0 1px #4a3f28}
+.bar b{position:absolute;top:0;bottom:0;display:grid;place-items:center;font:700 17px Alegreya;text-shadow:0 1px 0 rgba(5,4,3,.5)}
+.bar .mk{position:absolute;top:-5px;width:2px;height:36px;margin-left:-1px;background:#EFE6CF;box-shadow:0 0 0 1px rgba(5,4,3,.6)}
+.mini{margin-top:16px;display:grid;gap:14px}
+</style></head><body>
+<script>/*KIT*/</script>
+<div class="tool"><h1>Bar shape</h1><label>ODDS <input id="pr" type="range" min="5" max="95" value="58"> <b id="pv" style="font:700 15px Alegreya;color:var(--ivory)">58%</b></label></div>
+<main><p class="lead">Lines 1.5 / gap 8 kept, red #B31B1B, solid gold for accept. Now the shape: no pills. Six shapes built from the game's own vocabulary (chamfered plates, brass hairlines, rulers, diamonds). Each is shown big (a proposal card), small (a row inside the country card, 16 tall) and at the 12% / 88% extremes. The slider sets the odds.</p>
+<div class="vg" id="vg"></div></main>
+<script>
+const ROY='#011F5B',ROY2='#0B2E78',RED='#B31B1B',RED2='#8F1515',GOLD='#E5C77A',GOLD2='#C9A24B',IV='#EFE6CF',MID='#1B3A8A';
+const H=(ang,w,gap,col,bg)=>`repeating-linear-gradient(${ang}deg,${col} 0 ${w}px,${bg} ${w}px ${w+gap}px)`;
+const GOLDG=`linear-gradient(180deg,#EBCF85,#C9A24B)`,DEC=H(135,1.5,8,RED,'#0c0a07'),BR='#7F6A33';
+const lab=(val,left,width,col,h)=>width>=14?`<b style="position:absolute;left:${left}%;width:${width}%;top:0;bottom:0;display:grid;place-items:center;font:700 ${h>20?17:14}px Alegreya;color:${col}"><span style="${col==='#FFE9EA'?'background:rgba(5,4,3,.6);padding:0 7px;border-radius:2px':''}">${val}%</span></b>`:`<b style="position:absolute;left:${left}%;width:${width}%;top:-20px;display:grid;place-items:center;font:700 13px Alegreya;color:#EFE6CF">${val}%</b>`;
+const mark=(x,h)=>`<span style="position:absolute;left:${x}%;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#EFE6CF;box-shadow:0 0 0 1px rgba(5,4,3,.6)"></span>`;
+const SH=[
+ {n:'Notched plate',note:'The game\'s plate shape: chamfered corners (6) and a brass hairline, like the buttons and cards. No circles anywhere.',
+  f:(q,h)=>{const x=100-q,c=Math.round(h/3.2);return `<div style="position:relative;height:${h}px;background:${BR};clip-path:${cham(c)}"><div style="position:absolute;inset:1px;clip-path:${cham(c)};background:#0c0a07"><div style="position:absolute;left:0;top:0;bottom:0;width:${x}%;background:${DEC}"></div><div style="position:absolute;left:${x}%;right:0;top:0;bottom:0;background:${GOLDG}"></div></div><div style="position:absolute;inset:0">${lab(x,0,x,'#FFE9EA',h)}${lab(q,x,q,'#1b1408',h)}${mark(x,h)}</div></div>`}},
+ {n:'Square with ruler',note:'A plain engraved rectangle with a brass frame and the HUD\'s tick ruler underneath at every 10%. The most instrument-like.',
+  f:(q,h)=>{const x=100-q;return `<div style="position:relative"><div style="position:relative;height:${h}px;box-shadow:0 0 0 1px ${BR};background:#0c0a07"><div style="position:absolute;left:0;top:0;bottom:0;width:${x}%;background:${DEC}"></div><div style="position:absolute;left:${x}%;right:0;top:0;bottom:0;background:${GOLDG}"></div>${lab(x,0,x,'#FFE9EA',h)}${lab(q,x,q,'#1b1408',h)}${mark(x,h)}</div><div style="height:8px;margin-top:3px;background:repeating-linear-gradient(90deg,${BR} 0 1px,transparent 1px 10%);background-size:100% 4px;background-repeat:no-repeat;position:relative"><i style="position:absolute;right:0;top:0;width:1px;height:4px;background:${BR}"></i></div></div>`}},
+ {n:'Brackets',note:'No frame: two brass bracket ends hold the bar, like a gauge on a map legend. Light and airy.',
+  f:(q,h)=>{const x=100-q;return `<div style="position:relative;height:${h}px;margin:0 10px"><div style="position:absolute;left:-10px;top:-3px;bottom:-3px;width:8px;border:2px solid ${GOLD2};border-right:0"></div><div style="position:absolute;right:-10px;top:-3px;bottom:-3px;width:8px;border:2px solid ${GOLD2};border-left:0"></div><div style="position:absolute;left:0;top:0;bottom:0;width:${x}%;background:${DEC}"></div><div style="position:absolute;left:${x}%;right:0;top:0;bottom:0;background:${GOLDG}"></div>${lab(x,0,x,'#FFE9EA',h)}${lab(q,x,q,'#1b1408',h)}${mark(x,h)}</div>`}},
+ {n:'Slim rail',note:'A thin rail (a third of the height) with chamfered ends and a diamond at the split; numbers stand above the two parts. Fits tight rows.',
+  f:(q,h)=>{const x=100-q,r=Math.max(6,Math.round(h/2.6));return `<div style="position:relative;height:${h}px;margin-top:18px"><div style="position:absolute;left:0;right:0;top:50%;height:${r}px;margin-top:-${r/2}px;clip-path:${cham(Math.round(r/2.2))};background:${BR}"><div style="position:absolute;inset:1px;clip-path:${cham(Math.round(r/2.2))};background:#0c0a07"><div style="position:absolute;left:0;top:0;bottom:0;width:${x}%;background:${DEC}"></div><div style="position:absolute;left:${x}%;right:0;top:0;bottom:0;background:${GOLDG}"></div></div></div><b style="position:absolute;left:0;width:${x}%;top:-20px;text-align:center;font:700 14px Alegreya;color:#E57373">${x}%</b><b style="position:absolute;left:${x}%;width:${q}%;top:-20px;text-align:center;font:700 14px Alegreya;color:${GOLD}">${q}%</b><span style="position:absolute;left:${x}%;top:50%;width:11px;height:11px;margin:-5px 0 0 -5px;transform:rotate(45deg);background:#EFE6CF;box-shadow:0 0 0 1px #05070a"></span></div>`}},
+ {n:'Segmented',note:'Twenty blocks like a charge meter: red-lined blocks for decline, solid gold for accept, the split block is half and half. Reads as a count.',
+  f:(q,h)=>{const x=100-q;let o='';for(let i=0;i<20;i++){const lo=i*5,hi=lo+5,gfrac=Math.max(0,Math.min(1,(hi-x)/5));const bg=gfrac>=1?GOLDG:gfrac<=0?DEC:`linear-gradient(90deg,transparent ${(1-gfrac)*100}%,#0c0a07 ${(1-gfrac)*100}%)`;const split=gfrac>0&&gfrac<1;o+=`<span style="flex:1;position:relative;background:${split?`linear-gradient(90deg,#0c0a07 0 ${(1-gfrac)*100}%,#C9A24B ${(1-gfrac)*100}%)`:bg};clip-path:polygon(2px 0,100% 0,calc(100% - 2px) 100%,0 100%);box-shadow:inset 0 0 0 1px ${BR}"></span>`}return `<div style="position:relative;margin-top:18px"><div style="display:flex;gap:2px;height:${h}px;background:transparent">${o}</div><b style="position:absolute;left:0;width:${x}%;top:-20px;text-align:center;font:700 14px Alegreya;color:#E57373">${x}%</b><b style="position:absolute;left:${x}%;width:${q}%;top:-20px;text-align:center;font:700 14px Alegreya;color:${GOLD}">${q}%</b></div>`}},
+ {n:'Slanted split',note:'The seam between decline and accept is a slanted cut, so the two halves point at each other like a shield split; chamfered ends. The most dynamic.',
+  f:(q,h)=>{const x=100-q,sk=Math.round(h*.45);return `<div style="position:relative;height:${h}px;background:${BR};clip-path:${cham(Math.round(h/3.2))}"><div style="position:absolute;inset:1px;clip-path:${cham(Math.round(h/3.2))};background:#0c0a07"><div style="position:absolute;left:0;top:0;bottom:0;width:calc(${x}% + ${sk/2}px);background:${DEC};clip-path:polygon(0 0,100% 0,calc(100% - ${sk}px) 100%,0 100%)"></div><div style="position:absolute;left:calc(${x}% + 3px - ${sk/2}px);right:0;top:0;bottom:0;background:${GOLDG};clip-path:polygon(${sk}px 0,100% 0,100% 100%,0 100%)"></div></div><div style="position:absolute;inset:0">${lab(x,0,Math.max(0,x-4),'#FFE9EA',h)}${lab(q,x+3,q-3,'#1b1408',h)}</div></div>`}}];
+const vg=document.getElementById('vg');
+function draw(){const q=+document.getElementById('pr').value;vg.innerHTML='';const word=q<25?'Unlikely':q<45?'Doubtful':q<60?'An even chance':q<80?'Likely':'Very likely';
+ SH.forEach((v,i)=>{const d=document.createElement('div');d.innerHTML=`<span class="badge">${i+1} · ${v.n}</span><div class="nt">${v.note}</div>`;const c=document.createElement('div');
+ c.innerHTML=plate(`<div class="card"><div class="cap2">Alliance with Prussia</div><div class="lkh"><span style="color:#E57373">DECLINE</span><span class="n"><b>${q}%</b><em>${word}</em></span><span style="color:#E5C77A">ACCEPT</span></div><div style="margin-top:20px">${v.f(q,28)}</div>
+ <div class="cap2" style="text-align:left;margin-top:20px">In the country card</div>
+ <div style="background:#100d0a;box-shadow:inset 0 0 0 1px #3a2f1d;padding:9px 12px;margin-top:6px"><div style="display:flex;justify-content:space-between;font:700 11px Cinzel;letter-spacing:.14em;color:#A89C80"><span>ALLIANCE · SPAIN</span><span style="color:#EFE6CF">${q}% · ${word}</span></div><div style="margin-top:${q<14||q>86?'22px':'8px'}">${v.f(q,16)}</div></div>
+ <div class="mini" style="margin-top:16px">${v.f(12,26)}${v.f(88,26)}</div></div>`,'','',10);d.appendChild(c);vg.appendChild(d)})}
+document.getElementById('pr').oninput=e=>{document.getElementById('pv').textContent=e.target.value+'%';draw()};
+document.body.insertAdjacentHTML('afterbegin',DEFS);draw();
+</script></body></html>
