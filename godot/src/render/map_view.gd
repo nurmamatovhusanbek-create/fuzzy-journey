@@ -280,6 +280,11 @@ func select(p: int) -> void:
 	selected = p
 	_push_view()
 
+## the pointer left the map (onto a HUD control, a window, or out of the game): no district stays hovered, so its card goes away
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT and hover != -1:
+		_set_hover(-1); province_hovered.emit(-1)
+
 func _set_hover(h: int) -> void:
 	if h == hover: return
 	if TBKit.motion_ok():

@@ -49,6 +49,8 @@ const BZ_DIM2 := Color("8D826A"); const BZ_RAIL_ICON := Color("CDBF9A"); const B
 const BZ_PL_A := Color("1D1812"); const BZ_PL_B := Color("13100C"); const BZ_G_A := Color("EBCF85"); const BZ_G_B := Color("B38F3E"); const BZ_G_C := Color("6F5A27")
 const BZ_SEA := Color("090C11"); const BZ_OCEAN := Color("0B1522"); const BZ_RIM := Color("5E86C4"); const BZ_GRAT := Color("C9BFA0"); const BZ_HALO := Color("05070A")
 const BZ_GOOD := Color("69B3A2"); const BZ_INFO := Color("7FA8E8"); const BZ_NOTICE_BAD := Color("E0795A"); const BZ_IVORY := Color("EFE6CF"); const BZ_DIM := Color("A89C80")
+## the End Turn dial (renderChrono): inner ring #E5C77A, specular arc #FFF4D2, inner ticks #8A7338
+const BZ_DIAL_RING := Color("E5C77A"); const BZ_DIAL_SPEC := Color("FFF4D2"); const BZ_DIAL_TICK := Color("8A7338")
 ## a court's answer notice (.tz.acc / .tz.dec): edge, hover edge; the decline red is the palette's #B31B1B
 const BZ_ANS_YES := Color("5A82BD"); const BZ_ANS_YES_HOT := Color("7FA8E8"); const BZ_ANS_NO := Color("8A2A2A"); const BZ_ANS_NO_HOT := Color("B31B1B")
 const HALO := Color(0.02, 0.03, 0.05, 0.85); const DROP := Color(0.0, 0.0, 0.0, 0.45); const HOLD_BAR := Color(1.0, 1.0, 1.0, 0.85)

@@ -39,7 +39,8 @@ const SCREENS := [
 	["chronicle", "book", "dk_chronicle", "F5"], ["goals", "trophy", "dk_goals", "F6"], ["save", "save", "dk_save", ""], ["settings", "gear", "dk_settings", ""],
 ]
 const PRIMARY := 6
-const LENS_PINNED := ["political", "diplomatic", "military", "terrain"]
+const LENS_PINNED := ["political", "diplomatic", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]   # every lens sits on the tuner below the map (Alt+1..9 order); the phone keeps four and the "more" pop-up
+const LENS_PHONE := ["political", "diplomatic", "military", "terrain"]
 
 var g: TBGame
 var seat_tag: String = ""                   # hot-seat seat label ("P2"); derived from the game when left empty
@@ -340,11 +341,13 @@ func _layout_demo(vp: Vector2) -> void:
 	_zout.position = _zin.position + Vector2(0, 42.0)
 	_mm_btn.visible = false
 	# ---- lens tuner (bottom centre)
-	var tw_: float = L["tunW"]; var th_: float = 38.0 if ph else 60.0
+	var th_: float = 38.0 if ph else 50.0
+	_set_tuner_items(ph)
+	var tw_: float = L["tunW"] if ph else clampf(float(_mode.items.size()) * 100.0 + 28.0, 380.0, maxf(380.0, vp.x - 600.0))
 	_mode.compact = ph
 	_mode.size = Vector2(tw_, th_); _mode.position = Vector2(roundf((vp.x - tw_) * 0.5), vp.y - m - th_); _mode.visible = true
 	_lens_btn.framed = true; _lens_btn.ticks_n = 0; _lens_btn.size = Vector2(34.0, 34.0); _lens_btn.icon_px = 34.0 * 0.46
-	_lens_btn.position = Vector2(_mode.position.x + tw_ + 12.0, _mode.position.y + (th_ - 34.0) * 0.5); _lens_btn.visible = true
+	_lens_btn.position = Vector2(_mode.position.x + tw_ + 12.0, _mode.position.y + (th_ - 34.0) * 0.5); _lens_btn.visible = ph
 	_lens_btn.glyph = "dots"
 	# ---- End Turn (bottom right): the dial's centre is the demo's (W - m - r, H - m - r - 29)
 	var rc: float = L["chr"]
@@ -471,7 +474,7 @@ func bottom_reserve() -> float:
 
 func _place_legend() -> void:
 	if _legend == null: return
-	var show: bool = _prof == Prof.DESKTOP and _legend.has_key() and not _vp.x < 700.0
+	var show: bool = false                                  # the lens legend boxes are gone: the lens tabs name what the map shows
 	_legend.visible = show
 	if not show: return
 	_legend.width = 220.0
@@ -747,7 +750,7 @@ func toast(msg: String, bad: bool = false) -> void:
 	_feed_add(msg, bad)
 	announce(msg, bad)
 	if _ticker == null: return
-	_ticker.show_info(msg, "warn" if bad else "info", clampf(5.0 + maxf(0.0, msg.length() - 40.0) * 0.05, 5.0, 10.0))
+	_ticker.show_info(msg, "warn" if bad else "info", clampf(5.0 + maxf(0.0, msg.length() - 40.0) * 0.05, 5.0, 7.0))
 
 ## collect one end-of-turn log line (category from TBChron.category); report_flush() shows one summary chip
 func report_line(text: String, bad: bool, cat: String) -> void:
@@ -773,9 +776,9 @@ func report_flush(battles: int = 0) -> void:
 	var gen: int = _rep_gen
 	var delay: float = 0.0 if reduce_motion_now() else minf(8.0, float(battles)) * 0.22 + 0.2
 	if delay <= 0.0 or not is_inside_tree():
-		_ticker.show_info(full, "report", 6.0)
+		_ticker.show_info(full, "report", 7.0)
 	else:
-		get_tree().create_timer(delay).timeout.connect(func(): if gen == _rep_gen and _ticker != null: _ticker.show_info(full, "report", 6.0))
+		get_tree().create_timer(delay).timeout.connect(func(): if gen == _rep_gen and _ticker != null: _ticker.show_info(full, "report", 7.0))
 
 func reduce_motion_now() -> bool: return P.reduced_motion()
 
@@ -845,7 +848,7 @@ func is_popover_open() -> bool: return _pop != null
 
 # ---- tooltip content
 func _tip_text(title: String, key_hint: String) -> Array:
-	return [title, (T.call("tk_key", {"k": key_hint}) if key_hint != "" else "")]
+	return [title, ""]                                   # no key letters in the tooltips either (the shortcuts keep working)
 
 func _tip_lens(lens: String) -> Array:
 	var i: int = TBLenses.NAMES.find(lens)
@@ -955,12 +958,21 @@ func set_lens_legend(lens: String) -> void:
 	_place_legend()
 	_layout_bar()
 
+## the tuner lists every lens on a desktop, four on a phone (the rest behind the dots button)
+func _set_tuner_items(ph: bool) -> void:
+	var names: Array = LENS_PHONE if ph else LENS_PINNED
+	if _mode.items.size() == names.size() and (_mode.items.is_empty() or String(_mode.items[0][0]) == String(names[0])): return
+	_mode.items = []
+	for l in names: _mode.items.append([l, T.call("lens_" + l)])
+	_mode.current = "~"; _lens_changed()
+
 func _lens_changed() -> void:
+	var pinned: Array = LENS_PINNED if _prof == Prof.DESKTOP else LENS_PHONE
 	if _mode != null:
-		_mode.set_current(_lens if LENS_PINNED.has(_lens) else "")
+		_mode.set_current(_lens if pinned.has(_lens) else "")
 		_mode.queue_redraw()
 	if _lens_btn != null:
-		_lens_btn.active = not LENS_PINNED.has(_lens); _lens_btn.queue_redraw()
+		_lens_btn.active = not pinned.has(_lens); _lens_btn.queue_redraw()
 
 ## "L" / chip: 4 pinned lenses, the rest behind "More", the legend of the active lens underneath
 func _open_lens_pop(anchor: Control) -> void:

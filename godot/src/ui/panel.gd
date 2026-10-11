@@ -562,8 +562,9 @@ static func _fit_bz(h: Handle) -> void:
 
 static func _focus_first(h: Handle) -> void:
 	if not h.is_open() or not h.root.is_inside_tree(): return
-	if h.focus_target != null and is_instance_valid(h.focus_target) and h.focus_target.is_visible_in_tree(): h.focus_target.grab_focus(); return
-	K._focus_first(h.root)
+	if h.focus_target != null and is_instance_valid(h.focus_target) and h.focus_target.is_visible_in_tree(): h.focus_target.grab_focus()
+	else: K._focus_first(h.root)
+	if h.scroll != null and is_instance_valid(h.scroll): h.scroll.set_deferred("scroll_vertical", 0)         # a panel opens at its top: the first focus must not scroll the content under the header ruler
 
 # ---- layout ------------------------------------------------------------------------------------------------------------------------------
 static func _vs(h: Handle) -> Vector2:

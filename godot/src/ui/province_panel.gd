@@ -89,7 +89,7 @@ func layout_for(vp: Vector2) -> void:
 	var prev := profile
 	var sheet: bool = (bool(sheet_fn.call()) if sheet_fn.is_valid() else vp.y > vp.x)
 	profile = "P" if sheet else "D"
-	CC.show_hotkeys = profile != "P" and not (OS.get_name() in ["Android", "iOS"])
+	CC.show_hotkeys = false                       # no letter badges on the verb rows: they widened the rows and wrapped them (the shortcut keys still work)
 	reserve = 12.0
 	if profile == "P" and reserve_fn.is_valid(): reserve = float(reserve_fn.call())
 	var pw := _card_w

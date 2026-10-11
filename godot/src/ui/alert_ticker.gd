@@ -299,11 +299,24 @@ func update(entries: Array, turn: int) -> void:
 			if rw2.done: rw2.done = false
 		else:
 			_add(e)
+			_expire_later(e)
 		new_order.append(k)
 	for k in order:                                    # lingering (ticked) rows keep their slot until they collapse
 		if rows.has(k) and rows[k].done and not new_order.has(k): new_order.insert(mini(order.find(k), new_order.size()), k)
 	order = new_order
 	_layout()
+
+const FADE_AFTER := 7.0                       ## a situation notice (war, revolt, supply) leaves the stack after 7 seconds; it stays in the advisor and the alert chip
+
+## situation notices go away on their own; offers, events and the courts' answers wait for the player
+func _expire_later(e: Dictionary) -> void:
+	if String(e["cls"]) in ["offer", "event", "answer"] or not is_inside_tree(): return
+	var key: String = String(e["key"])
+	var turn: int = _turn
+	get_tree().create_timer(FADE_AFTER).timeout.connect(func():
+		if turn != _turn or not rows.has(key): return
+		dismissed[key] = _turn
+		update(_entries, _turn))
 
 func _add(e: Dictionary) -> void:
 	var rw := AlertRow.new()

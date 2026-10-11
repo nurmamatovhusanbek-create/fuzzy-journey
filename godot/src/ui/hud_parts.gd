@@ -84,7 +84,13 @@ static func glow_text(ci: CanvasItem, font: Font, x: float, base: float, s: Stri
 			hx += font.get_char_size(s.unicode_at(i), size).x + ls
 	txtl(ci, font, x, base, s, size, col, ls)
 ## keyboard focus on a rectangular demo control: `outline: 2px solid var(--hi)` (the caller grows the rect by the 3 unit offset)
+## focus frame of a round control: a circle, never a square round it
+static func focus_circle(ci: CanvasItem, c: Vector2, rad: float) -> void:
+	if not TBFrame.kbd_nav: return
+	ci.draw_arc(c, rad, 0.0, TAU, 48, tk("bar_0"), 4.0, true)
+	ci.draw_arc(c, rad, 0.0, TAU, 48, tk("brass_lt"), 2.0, true)
 static func focus_box(ci: CanvasItem, r: Rect2) -> void:
+	if not TBFrame.kbd_nav: return
 	ci.draw_rect(r, tk("brass_lt"), false, 2.0)
 ## a kit setting read defensively (the kit may not define it yet): TBKit.get-style access on the script
 static func kit(setting: String, fallback: Variant) -> Variant:
@@ -226,6 +232,7 @@ static func icon(ci: CanvasItem, glyph: String, c: Vector2, px: float, col: Colo
 		_: TBGlyph.draw(ci, glyph, c, px, col, w)
 
 static func focus_ring(ci: CanvasItem, r: Rect2) -> void:
+	if not TBFrame.kbd_nav: return                   # a mouse click leaves no focus frame behind (the demo has none); keyboard / pad navigation shows it
 	ci.draw_rect(r.grow(1.0), tk("bar_0"), false, 1.0)
 	ci.draw_rect(r.grow(-1.0), tk("cream"), false, 2.0)
 
@@ -708,7 +715,7 @@ class NationChip extends Hit:
 			var zs: int = TBHudParts.fu(12.0)
 			draw_string(fs2, Vector2(sx - TBHudParts.tw(fs2, seat_text, zs) * 0.5, c.y + 14.0), seat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, zs, TBHudParts.tk("brass_lt"))
 		if badge > 0: draw_circle(Vector2(c.x + m * 0.7, c.y - m * 0.7), 4.0, TBHudParts.tk("warn_bar"))
-		if has_focus(): TBHudParts.focus_box(self, Rect2(2.0, 2.0, 2.0 * m, 2.0 * m + 4.0))
+		if has_focus(): TBHudParts.focus_circle(self, Vector2(m + 4.0, m + 4.0), m + 2.0)
 
 # ---------------------------------------------------------------- date medallion
 ## the calendar (renderTop, 84 box scaled): the year over the turn caption in a graduated brass ring with the year's progress as a brass arc
@@ -735,10 +742,15 @@ class DateText extends Control:
 			var fb2: Font = TBHudParts.fcz(true)
 			var z2: int = TBHudParts.fu(16.0 * s)
 			var ys: String = year.replace(" AD", "")
+			var yw: float = TBHudParts.twl(fb2, ys, z2, 0.0)                                  # "1000 BC", "-3000": the year fits the inner ring too
+			if yw > 54.0 * s: z2 = maxi(8, int(floorf(float(z2) * 54.0 * s / yw)))
 			TBHudParts.txtl(self, fb2, o.x + 42.0 * s, o.y + 43.0 * s, ys, z2, TBTokens.c("cream"), 0.0, 1)
 			var cf: Font = TBHudParts.fcz(false)
 			var tz: int = TBHudParts.fu(10.0 * s)
-			TBHudParts.txtl(self, cf, o.x + 42.0 * s, o.y + 57.0 * s, turn_cap.to_upper() if TBI18n.lang != "ru" else turn_cap, tz, TBBezel.BRASS, 1.5 * s, 1)
+			var tc: String = turn_cap.to_upper() if TBI18n.lang != "ru" else turn_cap
+			var tw0: float = TBHudParts.twl(cf, tc, tz, 1.5 * s)                               # inside the inner ring: a long caption ("TURN 10", a Russian one) shrinks to fit, never spills over it
+			if tw0 > 48.0 * s: tz = maxi(6, int(floorf(float(tz) * 48.0 * s / tw0)))
+			TBHudParts.txtl(self, cf, o.x + 42.0 * s, o.y + 57.0 * s, tc, tz, TBBezel.BRASS, 1.5 * s, 1)
 
 # ---------------------------------------------------------------- lens tuner
 ## renderTuner: a notched-less plate (hairline rect) with a graduated scale, the lens names over it and a red pointer under the active one
@@ -752,10 +764,10 @@ class ModeSwitch extends Hit:
 	var _from: float = 0.0
 	var _to: float = 0.0
 	var _t: float = 1.0
-	func plate_w() -> float: return 380.0 if compact else 560.0
-	func plate_h() -> float: return 38.0 if compact else 60.0
-	func fz() -> int: return TBHudParts.fu(9.5 if compact else 12.5)
-	func ls() -> float: return 0.8 if compact else 2.4
+	func plate_w() -> float: return size.x if size.x > 40.0 else (380.0 if compact else 560.0)       # the plate takes the width the HUD gives it (ten lenses on a desktop)
+	func plate_h() -> float: return size.y if size.y > 20.0 else (38.0 if compact else 50.0)
+	func fz() -> int: return TBHudParts.fu(9.5 if compact else 12.0)
+	func ls() -> float: return 0.8 if compact else 1.6
 	func _font(on: bool) -> Font: return TBHudParts.fcz(on)
 	func _lab(i: int) -> String: return String(items[i][1]).to_upper() if TBI18n.lang != "ru" else String(items[i][1])
 	func desired_w() -> float: return plate_w()
@@ -800,19 +812,24 @@ class ModeSwitch extends Hit:
 		var pts := PackedVector2Array()
 		for i in 61:
 			var x: float = 14.0 + (w - 28.0) * i / 60.0
-			pts.append(Vector2(x, h - 12.0)); pts.append(Vector2(x, h - 12.0 + (10.0 if i % 15 == 0 else (7.0 if i % 5 == 0 else 4.0))))
+			pts.append(Vector2(x, h - 11.0)); pts.append(Vector2(x, h - 11.0 + (9.0 if i % 15 == 0 else (6.0 if i % 5 == 0 else 4.0))))
 		var tcol: Color = TBTokens.with_a(TBBezel.BRASS, 0.7 if compact else 1.0)
 		var tcol2: Color = TBBezel.ac(tcol, 0.8)
 		for i4 in range(0, pts.size() - 1, 2): draw_line(pts[i4], pts[i4 + 1], tcol2, TBBezel.aw(0.8), true)
 		_rects.clear()
 		var n: int = items.size()
+		var zz0: int = fz()                                                           # one label size for the whole tuner: the widest label has to fit its slot (down to 8)
+		var slot: float = (w - 28.0) / maxf(1.0, float(n)) - 8.0
+		for i0 in n:
+			var lw: float = TBHudParts.tw(_font(true), _lab(i0), zz0) + ls() * float(_lab(i0).length())
+			if lw > slot: zz0 = maxi(8, int(floorf(float(zz0) * slot / lw)))
 		for i in n:
 			var cx: float = 14.0 + (w - 28.0) * (i + 0.5) / maxf(1.0, float(n))
 			var on: bool = String(items[i][0]) == current
 			var f: Font = _font(on)
 			var cw: float = (w - 28.0) / maxf(1.0, float(n))
 			_rects.append(Rect2(cx - cw * 0.5, 0.0, cw, h))
-			TBHudParts.txtl(self, f, cx, (15.0 if compact else 24.0), _lab(i), fz(), TBTokens.c("cream") if on else (TBTokens.BZ_DIM2 if not TBTokens.is_hc() else TBHudParts.tk("smoke")), ls(), 1)
+			TBHudParts.txtl(self, f, cx, (15.0 if compact else 20.0), _lab(i), zz0, TBTokens.c("cream") if on else (TBTokens.BZ_DIM2 if not TBTokens.is_hc() else TBHudParts.tk("smoke")), ls(), 1)
 		if current != "" and _px >= 0.0:
 			var px: float = 14.0 + (w - 28.0) * 0.5 / maxf(1.0, float(n)) + _px
 			draw_colored_polygon(PackedVector2Array([Vector2(px, h - 13.0), Vector2(px - 5.0, h - 22.0), Vector2(px + 5.0, h - 22.0)]), TBTokens.BZ_BAD)
@@ -875,7 +892,7 @@ class IconBtn extends Hit:
 					draw_circle(o + Vector2(6, 1) * u, 0.9 * u, col); draw_circle(o + Vector2(6, 11) * u, 0.9 * u, col)
 			else:
 				TBBzIcons.draw(self, ic, c, icon_px, col)
-			if has_focus(): TBHudParts.focus_box(self, r.grow(3.0))
+			if has_focus(): TBHudParts.focus_circle(self, r.get_center(), minf(r.size.x, r.size.y) * 0.5 + 3.0)
 			return
 		# rail row
 		var D: float = dia
@@ -913,7 +930,7 @@ class IconBtn extends Hit:
 			var fbm: Font = K.mono_b()
 			var s4: String = str(mini(badge, 99))
 			draw_string(fbm, Vector2(bc.x - TBHudParts.tw(fbm, s4, 12) * 0.5, TBHudParts.base(fbm, 12, bc.y)), s4, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TBHudParts.tk("table"))
-		if has_focus(): TBHudParts.focus_box(self, r.grow(3.0))
+		if has_focus(): TBHudParts.focus_circle(self, c2, 33.0 * k2 + 3.0)
 	## the portrait tab bar item: medallion with the label beneath (the layout the phone had before the demo's landscape one)
 	func _draw_tab(r: Rect2, ic: String) -> void:
 		var oy: float = 1.0 if down else 0.0
@@ -1041,54 +1058,62 @@ class Seal extends Hit:
 			var k: float = 0.5 + 0.5 * sin(_t * TAU / 2.0) if _animated() else 0.6
 			draw_arc(c, rad + 4.0 + 4.0 * k, 0.0, TAU, 48, TBHudParts.al(brass, 0.25 + 0.25 * k), 3.0, true)
 		var cc: Vector2 = c + Vector2(0, oy)
-		var fr: float = BZ.ring(self, cc, rad, 60, face, true, true)          # the End Turn dial keeps the heavy band
-		var arc_r: float = fr - 5.0
-		var phase: float = clampf(year_phase, 0.0, 1.0)
-		draw_arc(cc, arc_r, 0.0, TAU, 48, TBHudParts.al(BZ.TRACK, 0.9), 2.6, true)
+		# the demo's dial (renderChrono): drawn in screen units from its radius R = rad * u, so the band, ticks, arc and text keep the demo's sizes at any scale
+		var R: float = rad * u
+		var cs: Vector2 = cc * u
+		var ph: bool = compact or narrow
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		draw_circle(cs, R + 3.0, TBTokens.with_a(TBTokens.BZ_SHADOW, 0.5))
+		BZ.grad_disc(self, cs, R, [[0.0, TBTokens.BZ_G_A], [0.5, TBTokens.BZ_G_B], [1.0, TBTokens.BZ_G_C]], 64)
+		draw_circle(cs, R - 5.0, face)
+		draw_arc(cs, R - 6.0, 0.0, TAU, 96, TBTokens.BZ_DIAL_RING, 0.6, true)
+		BZ.ticks(self, cs, R - 6.0, 60, 5.0, 5, BZ.BRASS, 0.8, 0.0, TAU, true)
+		draw_arc(cs, R - 1.5, deg_to_rad(-70.0 - 90.0), deg_to_rad(25.0 - 90.0), 24, TBTokens.with_a(TBTokens.BZ_DIAL_SPEC, 0.55), 1.4, true)
+		draw_arc(cs, R - 1.5, deg_to_rad(110.0 - 90.0), deg_to_rad(205.0 - 90.0), 24, TBTokens.with_a(Color.BLACK, 0.35), 1.6, true)
+		var fc: float = R - 11.0
+		TBBz.disc(get_canvas_item(), cs, fc, cs + Vector2(-0.2 * fc, -0.3 * fc), TBTokens.BZ_FACE_A, TBTokens.BZ_FACE_B, 1.6 * fc, 64)
+		BZ.ticks(self, cs, R - 13.0, 60, 5.0, 5, TBTokens.BZ_DIAL_TICK, 0.8, 0.0, TAU, true)
+		var arc_r: float = R - 19.0
+		var aw_: float = 3.0 if ph else 4.0
 		if state == S.HINT:
 			var left: float = hint_left if _animated() else 1.0
-			draw_arc(cc, arc_r, -PI * 0.5, -PI * 0.5 + TAU * left, 40, brass, 3.0, true)
+			draw_arc(cs, arc_r, -PI * 0.5, -PI * 0.5 + TAU * left, 48, brass, aw_, true)
 		elif state == S.BUSY or state == S.WAIT:
 			var a0: float = _t * TAU / 1.1 if _animated() else 0.0
-			draw_arc(cc, arc_r, a0, a0 + deg_to_rad(250.0 if not _animated() else 110.0), 28, brass, 3.0, true)
+			draw_arc(cs, arc_r, a0, a0 + deg_to_rad(250.0 if not _animated() else 110.0), 32, brass, aw_, true)
 		elif state != S.OVER:
-			draw_arc(cc, arc_r, -PI * 0.5, -PI * 0.5 + TAU * maxf(phase, 0.04), 40, rust, 2.8, true)
-		# the hand: the calendar position, or a full turn while the turn resolves
-		var ha: float = (_t * TAU / 1.6 if (state == S.BUSY and _animated()) else TAU * phase) - PI * 0.5
-		var hd := Vector2(cos(ha), sin(ha))
-		draw_line(cc + hd * (fr * 0.52), cc + hd * (fr - 3.0), rust, 2.0, true)
-		draw_colored_polygon(PackedVector2Array([cc + Vector2(-4.5, -rad + 3.0), cc + Vector2(4.5, -rad + 3.0), cc + Vector2(0, -rad + 10.0)]), rust)
-		# content: the turn number, chevrons while seats pass (text is drawn unscaled at u times its size so it stays sharp)
-		var fb: Font = K.body_b()
-		var z: int = TBHudParts.fs((24.0 if not (compact or narrow) else 20.0) * u)
-		var cs: Vector2 = cc * u
+			draw_arc(cs, arc_r, -PI * 0.5, -PI * 0.5 + deg_to_rad(300.0 if attention > 0 else 220.0), 48, TBTokens.BZ_BAD, aw_, true)
+		# the hand: the demo's red pointer at 12 o'clock (it turns a full circle while the turn resolves)
+		var ha: float = (_t * TAU / 1.6) if (state == S.BUSY and _animated()) else 0.0
+		var rot := Transform2D(ha, cs)
+		var tri := PackedVector2Array([rot * Vector2(0.0, -R + 14.0), rot * Vector2(-6.0, -R + 2.0), rot * Vector2(6.0, -R + 2.0)])
+		draw_colored_polygon(tri, TBTokens.BZ_BAD)
+		draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), TBTokens.BZ_FACE, 1.0, true)
+		# content: the turn number (Cinzel 700, r .52; .62 on a phone), TURN above it (Cinzel 9.5, tracking 3.5, brass); chevrons / seat while seats pass
+		var fb: Font = K.cinzel(700)
+		var z: int = TBHudParts.fs(R * (0.62 if ph else 0.52))
 		if state == S.HINT:
-			TBHudParts.chev(self, Vector2(cc.x - 3.0, cc.y), 16.0, on, 2.2); TBHudParts.chev(self, Vector2(cc.x + 6.0, cc.y), 16.0, on, 2.2)
+			TBHudParts.chev(self, Vector2(cs.x - 3.0, cs.y), 16.0, on, 2.2); TBHudParts.chev(self, Vector2(cs.x + 6.0, cs.y), 16.0, on, 2.2)
 		elif state == S.SEAT:
 			var tt: String = seat_text if seat_text != "" else "›"
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-			draw_string(fb, Vector2(cs.x - TBHudParts.tw(fb, tt, z) * 0.5, TBHudParts.base(fb, z, cs.y)), tt, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
+			TBHudParts.txtl(self, fb, cs.x, TBHudParts.base(fb, z, cs.y + R * 0.17 - float(z) * 0.3), tt, z, on, 0.0, 1)
 		else:
 			var tt2: String = str(turn_no) if turn_no > 0 else ""
 			if tt2 != "":
-				var cf: Font = K.tracked(K.display(), 1)
-				var tz: int = TBHudParts.fs(12.0 * u)
-				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-				if not (compact or narrow):
-					draw_string(cf, Vector2(cs.x - TBHudParts.tw(cf, "TURN", tz) * 0.5, TBHudParts.base(cf, tz, (cc.y - fr * 0.42) * u)), "TURN", HORIZONTAL_ALIGNMENT_LEFT, -1, tz, TBHudParts.tk("smoke"))
-				draw_string(fb, Vector2(cs.x - TBHudParts.tw(fb, tt2, z) * 0.5, TBHudParts.base(fb, z, (cc.y + (fr * 0.12 if not (compact or narrow) else 0.0)) * u)), tt2, HORIZONTAL_ALIGNMENT_LEFT, -1, z, on)
-				draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
+				if not ph:
+					var cf: Font = K.cinzel(500)
+					TBHudParts.txtl(self, cf, cs.x, cs.y - R * 0.24, "TURN", TBHudParts.fs(9.5), TBTokens.c("brass_lt"), 3.5, 1)
+				var nw: float = TBHudParts.tw(fb, tt2, z)                                    # a long number (turn 1000+) shrinks to stay inside the red arc
+				if nw > (R - 24.0) * 1.5: z = maxi(10, int(floorf(float(z) * (R - 24.0) * 1.5 / nw)))
+				TBHudParts.txtl(self, fb, cs.x, cs.y + R * 0.17, tt2, z, on, 0.0, 1)
 			else:
-				TBHudParts.chev(self, Vector2(cc.x - 3.0, cc.y), 18.0, on, 2.4); TBHudParts.chev(self, Vector2(cc.x + 7.0, cc.y), 18.0, on, 2.4)
-		# label under the circle
-		var f: Font = K.tracked(K.display(), 1)
-		var fz: int = TBHudParts.fs(12.0 * u)
+				TBHudParts.chev(self, Vector2(cs.x - 3.0, cs.y), 18.0, on, 2.4); TBHudParts.chev(self, Vector2(cs.x + 7.0, cs.y), 18.0, on, 2.4)
+		# END TURN under the circle: Cinzel 700 13 (phone 10), tracking 4, ivory on a dark halo
 		var cap: String = (caption.to_upper() if TBI18n.lang != "ru" else caption) if caption_inside else ""
 		if cap != "":
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-			TBHudParts.txt_o(self, f, Vector2((size.x - TBHudParts.tw(f, cap, fz)) * 0.5, (diameter() + 16.0) * u), cap, fz, TBHudParts.tk("cream") if state != S.OVER else TBHudParts.tk("ink_off"))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
+			var f: Font = K.cinzel(700)
+			TBHudParts.txtl(self, f, cs.x, cs.y + R + (14.0 if ph else 22.0), cap, TBHudParts.fs(10.0 if ph else 13.0), TBTokens.c("cream") if state != S.OVER else TBHudParts.tk("ink_off"), 4.0, 1, 2.0, TBTokens.BZ_SHADOW)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(u, u))
 		if attention > 0 and state == S.IDLE:
 			var bc := Vector2(c.x + rad * 0.72, c.y - rad * 0.72)
 			draw_circle(bc, 10.0, TBHudParts.tk("neg_bar"))
