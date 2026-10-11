@@ -501,10 +501,41 @@ func _copy_diagnostics() -> void:
 	if g != null:
 		lines.append("game: era=%s turn=%d seed=%d rules=%d provinces=%d nations_alive=%d" % [g.era_id, g.turn, g.seed_value, g.rules, g.P, _alive_count()])
 	lines.append("lang=%s view=%s theme=%s ui=%s" % [cfg.get("lang", ""), cfg.get("view", ""), cfg.get("theme", ""), cfg.get("ui", "")])
+	_store_diagnostics(lines)
+	if mode == "game" and map != null and map.is_visible_in_tree(): _diag_bench(lines)       # a few seconds later the same text is copied again with the measurements
+
+func _store_diagnostics(lines: PackedStringArray) -> void:
 	var text := "\n".join(lines)
 	DisplayServer.clipboard_set(text)
 	var f := FileAccess.open("user://diagnostics.txt", FileAccess.WRITE)
 	if f != null: f.store_string(text); f.close()
+
+## what this machine does with the map: the time of a frame that redraws nothing new, of one that redraws the whole map, and of one that redraws a hover-sized part of it
+func _diag_bench(lines: PackedStringArray) -> void:
+	lines.append("bench: measuring (about 3 seconds, the map flickers once)")
+	_store_diagnostics(lines)
+	lines.remove_at(lines.size() - 1)
+	await get_tree().process_frame
+	var base: Array = []; var full: Array = []; var part: Array = []
+	for round_i in 3:
+		for kind in 3:
+			for i in 8:
+				if kind == 1:
+					map._rend_sig = []; map._push_view()
+				elif kind == 2:
+					map._pend_full = false
+					map._partial_redraw(Rect2(map.size * 0.4, map.size * 0.2))
+				else:
+					queue_redraw()
+				var t0 := Time.get_ticks_usec()
+				await RenderingServer.frame_post_draw
+				RenderingServer.force_sync()
+				var ms := float(Time.get_ticks_usec() - t0) / 1000.0
+				if i >= 2: [base, full, part][kind].append(ms)
+	for a in [base, full, part]: (a as Array).sort()
+	lines.append("bench (ms, median of %d): frame with no map change %.1f | whole map redrawn %.1f | a hover-sized part redrawn %.1f | map redraws so far: %d whole, %d partial" % [base.size(), base[base.size() / 2], full[full.size() / 2], part[part.size() / 2], map.full_redraws, map.partial_redraws])
+	map._rend_sig = []; map._push_view()
+	_store_diagnostics(lines)
 
 func _alive_count() -> int:
 	var c := 0
