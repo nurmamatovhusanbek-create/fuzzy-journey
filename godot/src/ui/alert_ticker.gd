@@ -77,11 +77,7 @@ static func draw_plate(ci: CanvasItem, r: Rect2, hot: bool, edge_col: Color = Co
 	ci.draw_colored_polygon(BZ.notch(r.grow(-1.0), 6.0), TBTokens.BZ_NOTICE if not TBTokens.is_hc() else P.tk("bar_0"))
 
 ## the answer notice's plate colours: accepted = inner light blue, declined = the red (.tz.acc / .tz.dec): edge, hover edge, inner glow
-const ANS_YES := Color("#5a82bd")
-const ANS_YES_HOT := Color("#7FA8E8")
-const ANS_NO := Color("#8a2a2a")
-const ANS_NO_HOT := Color("#B31B1B")
-static func ans_edge(ok: bool, hot: bool) -> Color: return (ANS_YES_HOT if hot else ANS_YES) if ok else (ANS_NO_HOT if hot else ANS_NO)
+static func ans_edge(ok: bool, hot: bool) -> Color: return (TBTokens.BZ_ANS_YES_HOT if hot else TBTokens.BZ_ANS_YES) if ok else (TBTokens.BZ_ANS_NO_HOT if hot else TBTokens.BZ_ANS_NO)
 
 ## CSS `box-shadow: inset 0 0 <blur>px <spread>px col` of the rectangle `r`, clipped by its notched plate (cut): the shadow follows the rectangle, so it is
 ## strongest along the straight edges and the chamfers only cut it. Intensity at distance d from the edge: a * (1 - normal cdf((d - spread) / (blur / 2))).
@@ -96,7 +92,7 @@ static func inset_glow(ci: CanvasItem, r: Rect2, cut: float, col: Color, blur: f
 		if q.size.x <= 0.0 or q.size.y <= 0.0: break
 		var ring := PackedVector2Array([q.position, Vector2(q.end.x, q.position.y), q.end, Vector2(q.position.x, q.end.y), q.position])
 		for seg in Geometry2D.intersect_polyline_with_polygon(ring, clip):
-			ci.draw_polyline(seg, Color(col.r, col.g, col.b, a), 1.0, false)
+			ci.draw_polyline(seg, TBTokens.with_a(col, a), 1.0, false)
 
 # ---------------------------------------------------------------- rows
 class AlertRow extends P.Hit:
@@ -194,8 +190,8 @@ class AlertRow extends P.Hit:
 		if answer:
 			var ok: bool = bool(entry["ok"])
 			TBAlertTicker.draw_plate(self, pr, hot, TBAlertTicker.ans_edge(ok, hot))
-			if not TBTokens.is_hc(): TBAlertTicker.inset_glow(self, pr.grow(-1.0), 6.0, Color(0.498, 0.659, 0.910, 0.34) if ok else Color(0.702, 0.106, 0.106, 0.44))
-			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), (Color("#7FA8E8") if ok else Color("#B31B1B")) if not TBTokens.is_hc() else TBTokens.c("ink_0"))
+			if not TBTokens.is_hc(): TBAlertTicker.inset_glow(self, pr.grow(-1.0), 6.0, TBTokens.with_a(TBTokens.BZ_ANS_YES_HOT, 0.34) if ok else TBTokens.with_a(TBTokens.BZ_ANS_NO_HOT, 0.44))
+			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), (TBTokens.BZ_ANS_YES_HOT if ok else TBTokens.BZ_ANS_NO_HOT) if not TBTokens.is_hc() else TBTokens.c("ink_0"))
 		else:
 			TBAlertTicker.draw_plate(self, pr, hot)
 			var c := Vector2(lx + 1.0, bh * 0.5)
