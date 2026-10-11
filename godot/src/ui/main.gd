@@ -784,7 +784,7 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	else: show_events()
 	if g.over: sfx.play("win" if g.winner == g.human_id else "alert")
 	if g.over: TBModals.game_over(_overlay, g, show_menu)
-	else: _autosave()
+	else: _autosave_soon()
 
 ## replay this turn's battles that involved the player, so AI attacks on (or defences by) the realm are visible
 func _replay_battles() -> void:
@@ -837,6 +837,11 @@ func _flush_log() -> void:
 # ---------------------------------------------------------------- persistence
 func _save_slot(slot: String) -> void:
 	if TBSave.save(g, slot): hud.toast(T.call("saved"))
+
+## the autosave (serialising the whole game and writing the file) waits a few frames so the new turn appears first; skipped when another turn already started
+func _autosave_soon() -> void:
+	var t := g.turn
+	get_tree().create_timer(0.35).timeout.connect(func(): if g != null and not _busy and mode == "game" and g.turn == t: _autosave())
 
 func _autosave() -> void:
 	TBSave.save(g, "auto")
