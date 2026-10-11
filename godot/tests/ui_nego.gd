@@ -9,6 +9,10 @@ func _cards(n: Node, out: Array) -> void:
 	if n is TBBz.Btn and (n as TBBz.Btn).sub != "" and not (n as Button).disabled and (n as Control).is_visible_in_tree(): out.append(n)       # the diplomacy plates carry their envoy cost as a sub line
 	for k in n.get_children(): _cards(k, out)
 
+func _all_btns(n: Node, out: Array) -> void:
+	if n is TBBz.Btn and (n as TBBz.Btn).sub != "" and (n as Control).is_visible_in_tree(): out.append(n)
+	for k in n.get_children(): _all_btns(k, out)
+
 func _init() -> void:
 	DisplayServer.window_set_size(Vector2i(1280, 720)); root.size = Vector2i(1280, 720)
 	var main: Control = load("res://src/ui/main.tscn").instantiate()
@@ -38,7 +42,7 @@ func _init() -> void:
 	_ck(g.asks.size() == 1 and g.dp[fr] < dp0 and g.get_rel(fr, sp) == rel0, "the request is on its way, points spent, relation unchanged")
 	_ck(not TBNegotiate.active, "no dial")
 	var after: Array = []
-	_cards(main, after)
+	_all_btns(main, after)
 	var wait := 0
 	for c in after: if (c as TBBz.Btn).sub == TBI18n.T("ask_next"): wait += 1
 	_ck(wait == 1, "exactly one button reads next turn (%d)" % wait)
