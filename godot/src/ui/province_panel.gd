@@ -12,6 +12,7 @@ signal command(cmd: Dictionary)
 signal move_requested(p: int)
 signal closed
 signal nation_requested(n: int)
+signal terms_requested(enemy: int)         ## the Terms verb: the peace-terms window for this enemy
 signal share_changed(frac: float)
 signal select_requested(p: int)
 ## the selected province belongs to another nation: its Actions list for the left panel (o = -1 when none)
@@ -385,6 +386,7 @@ func run_foreign(row: Dictionary) -> void:
 		"cmd:breakPact":
 			if _confirm_mode() == "never": command.emit(cmd)
 			else: _brk_target = int(cmd["t"]); rebuild()
+		"terms": terms_requested.emit(int(cmd["t"]))
 		_: command.emit(cmd)
 
 func _order_mode() -> String:
@@ -1020,8 +1022,8 @@ func _press(i: int) -> void:
 	match String(v["id"]):
 		"move": move_requested.emit(s)
 		"attack": if flow != null: flow.preview_to(s, _source_for(_case))
-		"build": _open_list(v["btn"], _build_rows(v["items"]), s)
-		"diplo": _open_list(v["btn"], _diplo_rows(v["items"]), s)
+		"build": _open_list(v["btn"], _build_rows(v["items"]), s, T.call("build"))
+		"diplo": _open_list(v["btn"], _diplo_rows(v["items"]), s, T.call("cc_diplomacy"))
 		"war":
 			if _confirm_mode() == "never": command.emit({"cmd": "declareWar", "t": int(_case["o"])})
 			else: _war_target = int(_case["o"]); rebuild()
@@ -1031,7 +1033,7 @@ func _press(i: int) -> void:
 		"general": command.emit({"cmd": "appoint", "p": s})
 		"colonize": command.emit({"cmd": "colonize", "p": s})
 		"peace": command.emit({"cmd": "peace", "t": int(_case["enemy"]), "kind": "white"})
-		"terms": command.emit({"cmd": "peace", "t": int(_case["enemy"]), "kind": "cede"})
+		"terms": terms_requested.emit(int(_case["enemy"]))
 
 ## the player's confirm setting for destructive orders (declare war, break pact): smart / always ask, never does not
 func _confirm_mode() -> String:
@@ -1041,8 +1043,9 @@ func _build_rows(items: Array) -> Array:
 	var rows: Array = []
 	for it in items:
 		var cn: Dictionary = it["can"]
+		var costs: Array = [["gold", str(int(cn["gold"]))], ["move", str(int(cn["moves"]))], ["clock", str(int(it["turns"]))]]
 		var det := "%s · %s · %s" % [CC.gold(int(cn["gold"])), CC.unit(int(cn["moves"]), "u_move"), CC.unit(int(it["turns"]), "u_turn")]
-		rows.append({"label": String(it["label"]).strip_edges(), "detail": det, "ok": cn["ok"], "why": reason_text(cn) if not cn["ok"] else "", "cmd": {"cmd": "build", "p": _subject(), "b": it["b"]}, "danger": false})
+		rows.append({"label": String(it["label"]).strip_edges(), "detail": det, "costs": costs, "ok": cn["ok"], "why": reason_text(cn) if not cn["ok"] else "", "cmd": {"cmd": "build", "p": _subject(), "b": it["b"]}, "danger": false})
 	return rows
 
 func _diplo_rows(items: Array) -> Array:
@@ -1050,15 +1053,15 @@ func _diplo_rows(items: Array) -> Array:
 	for it in items:
 		var cn: Dictionary = it["can"]
 		var det := ("%d %s" % [int(cn["dp"]), T.call("u_dp")]) if int(cn["dp"]) > 0 else ""
-		rows.append({"label": it["label"], "detail": det, "ok": cn["ok"], "why": reason_text(cn) if not cn["ok"] else "", "cmd": it["cmd"], "danger": bool(it.get("danger", false))})
+		rows.append({"label": it["label"], "detail": det, "costs": [["envoys", str(int(cn["dp"]))]] if int(cn["dp"]) > 0 else [], "ok": cn["ok"], "why": reason_text(cn) if not cn["ok"] else "", "cmd": it["cmd"], "danger": bool(it.get("danger", false))})
 	return rows
 
-func _open_list(anchor: Control, rows: Array, _s: int) -> void:
+func _open_list(anchor: Control, rows: Array, _s: int, title_text: String = "") -> void:
 	_close_popover()
 	if rows.is_empty(): return
 	_popover = Popover.new()
 	add_child(_popover)
-	_popover.setup(rows, anchor.get_global_rect(), _vp)
+	_popover.setup(rows, anchor.get_global_rect(), _vp, title_text)
 	_popover.picked.connect(func(i: int):
 		var r: Dictionary = rows[i]
 		if not r["ok"]: flash(String(r["why"])); return
@@ -1072,33 +1075,78 @@ func _close_popover() -> void:
 	if _popover != null and is_instance_valid(_popover): _popover.queue_free()
 	_popover = null
 
-## pop-up list for the Build picker and the Diplomacy list: rows with a label, a cost detail and the reason when blocked
+## pop-up list for the Build picker and the Diplomacy list: a header, then one plate per choice: its name at the left, its costs (icon + figure) at the right,
+## and, when it cannot be done, the reason inside the plate under the name. Every name is the same size; the plates are one width.
+class PopRow extends Button:
+	var name_text := ""
+	var costs: Array = []
+	var why := ""
+	var ok_row := true
+	var danger_row := false
+	var _hov := false
+	const W := 380.0
+	func setup(label: String, cost_items: Array, reason: String, ok: bool, danger: bool) -> PopRow:
+		name_text = label; costs = cost_items; why = reason; ok_row = ok; danger_row = danger
+		flat = true; focus_mode = Control.FOCUS_ALL; mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		custom_minimum_size = Vector2(W, 62.0 if (not ok and reason != "") else 46.0)
+		mouse_entered.connect(func(): _hov = true; queue_redraw())
+		mouse_exited.connect(func(): _hov = false; queue_redraw())
+		TBKit.a11y(self, "%s. %s" % [label, reason], "button")
+		return self
+	func _draw() -> void:
+		var ci := get_canvas_item()
+		var w := size.x; var h := size.y
+		var hot: bool = (_hov or has_focus()) and ok_row
+		TBBz.poly(ci, TBBz.notch(0, 0, w, h, 6.0), TBTokens.BZ_BTN_FILL_HOT if hot else TBTokens.BZ_BTN_FILL)
+		var edge: Color = TBTokens.BZ_BAD if danger_row else (TBTokens.c("brass_lt") if hot else TBTokens.c("brass"))
+		draw_polyline(_outline(w, h, 6.0), TBTokens.with_a(edge, 0.9 if ok_row else 0.35), 1.0, true)
+		var ink: Color = TBTokens.BZ_IVORY if ok_row else TBTokens.BZ_DIM
+		var f: Font = TBKit.cinzel(700)
+		var top: float = 23.0 if why == "" or ok_row else 21.0
+		TBBz.text(ci, f, Vector2(14.0, top + 5.0), name_text.to_upper() if TBI18n.lang != "ru" else name_text, 13.5, ink, 13.5 * 0.06)
+		# costs, right to left: figure then its icon
+		var x: float = w - 14.0
+		var fb: Font = TBKit.alegreya(700)
+		for i in range(costs.size() - 1, -1, -1):
+			var c: Array = costs[i]
+			var tw: float = fb.get_string_size(String(c[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+			TBBz.text(ci, fb, Vector2(x - tw, top + 5.5), String(c[1]), 15.0, ink)
+			TBBzIcons.draw(self, String(c[0]), Vector2(x - tw - 10.0, top), 14.0, TBTokens.with_a(TBTokens.c("brass"), 1.0 if ok_row else 0.5))
+			x -= tw + 10.0 + 7.0 + 12.0
+		if not ok_row and why != "":
+			TBBz.text(ci, TBKit.alegreya(400, true), Vector2(14.0, h - 13.0), why, 13.5, TBTokens.BZ_BAD_TXT)
+		if has_focus() and TBFrame.kbd_nav: TBBz.draw_notch_focus_at(ci, Rect2(0, 0, w, h), 6.0)
+	static func _outline(w: float, h: float, c: float) -> PackedVector2Array:
+		var p := TBBz.notch(0.5, 0.5, w - 0.5, h - 0.5, c)
+		p.append(p[0])
+		return p
+
 class Popover extends PanelContainer:
 	signal picked(i: int)
 	signal closed
 	var _rows: Array = []
 	var _btns: Array = []
-	func setup(rows: Array, anchor: Rect2, vp: Vector2) -> void:
+	func setup(rows: Array, anchor: Rect2, vp: Vector2, title_text: String = "") -> void:
 		_rows = rows
 		top_level = true
 		z_index = 60
-		var box := TBCmdCard.plate("paper_0", "rule", TBTokens.CUT, 1)
-		box.set_content_margin_all(6)
-		add_theme_stylebox_override("panel", box)
-		var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4)
-		add_child(v)
+		add_theme_stylebox_override("panel", TBBz.plate_box(12.0, true))
+		var m := MarginContainer.new()
+		for side in ["left", "right"]: m.add_theme_constant_override("margin_" + side, 14)
+		m.add_theme_constant_override("margin_top", 14); m.add_theme_constant_override("margin_bottom", 14)
+		add_child(m)
+		var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 8)
+		m.add_child(v)
+		if title_text != "":
+			v.add_child(TBKit.caps(title_text))
+			v.add_child(TBKit.header_rule(0))
 		for i in rows.size():
 			var r: Dictionary = rows[i]
-			var b := TBCmdCard.VerbBtn.new().setup("row", "", "%s   %s" % [r["label"], r["detail"]], str(i + 1) if i < 9 else "", false, bool(r["danger"]))
-			b.set_blocked(not bool(r["ok"]))
-			b.custom_minimum_size = Vector2(300, TBCmdCard.touch())
+			var b := PopRow.new().setup(String(r["label"]), r.get("costs", []), String(r["why"]), bool(r["ok"]), bool(r["danger"]))
 			b.tooltip_text = String(r["why"]) if not bool(r["ok"]) else String(r["detail"])
 			var idx := i
 			b.pressed.connect(func(): picked.emit(idx))
 			v.add_child(b); _btns.append(b)
-			if not bool(r["ok"]):
-				var why := TBCmdCard.label(String(r["why"]), 12, "neg"); why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; why.custom_minimum_size = Vector2(300, 0)
-				v.add_child(why)
 		reset_size()
 		var sz := get_combined_minimum_size()
 		size = sz

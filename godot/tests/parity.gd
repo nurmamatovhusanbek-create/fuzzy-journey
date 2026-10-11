@@ -37,6 +37,19 @@ func _init() -> void:
 				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": sp3, "what": "ally", "op": "", "ok": true})
 				main.hud.refresh()
 			"realm": main._open_realm_page()
+			"terms":                                      # peace terms against Austria after some fighting
+				var au6: int = main.g.nat_code.find("austrian_empire")
+				main.g.set_rel(fr, au6, 1); main.g.war_score[fr * main.g.N1 + au6] = 62; main.g.war_score[au6 * main.g.N1 + fr] = 18; main.g.dp[fr] = 9.0
+				TBTermsScreen.open(main._overlay, main.g, au6, {"on_cmd": func(_c): pass})
+			"build":                                      # the Build list over a province of France, with a few choices out of reach
+				for p in main.g.P:
+					if main.world.name[p] == "Bas-Rhin":
+						main._select(p)
+						main.g.gold[fr] = 85.0
+						for i in 6: await process_frame
+						var pp: TBProvincePanel = main.panel
+						var bi: Dictionary = pp._build_items(p)
+						pp._open_list(pp, pp._build_rows(bi["items"]), p, TBI18n.T("build"))
 			"budget": main._open_budget()
 			"decrees": main._open_decisions()
 			"council":

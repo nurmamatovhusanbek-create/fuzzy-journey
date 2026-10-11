@@ -87,6 +87,7 @@ func _ready() -> void:
 	hud.advisor_pressed.connect(func(): _open_council("advice"))
 	hud.wars_pressed.connect(func(): _open_nations(-1, "war"))
 	panel.nation_requested.connect(_open_nation)
+	panel.terms_requested.connect(func(e: int): TBTermsScreen.open(_overlay, g, e, {"on_cmd": func(c: Dictionary): _on_command(c, false)}))
 	hud.budget_pressed.connect(func(): _open_budget())
 	hud.save_pressed.connect(func(): _open_menu_hub("saves"))
 	hud.settings_pressed.connect(_open_game_menu)
