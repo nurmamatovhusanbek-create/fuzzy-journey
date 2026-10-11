@@ -563,7 +563,10 @@ class SRow extends MarginContainer:
 		TBKit.a11y(minus, TBI18n.T("step_down", {"s": caption}), "button"); TBKit.a11y(plus, TBI18n.T("step_up", {"s": caption}), "button")
 		slider = BzSlider.new(); slider.min_value = min_v; slider.max_value = max_v; slider.step = step_v; slider.value = value; slider.zone_from = zone_from
 		TBKit.a11y(slider, caption, "slider")
-		row.add_child(minus); row.add_child(slider); row.add_child(plus)
+		var sm := MarginContainer.new(); sm.size_flags_horizontal = Control.SIZE_EXPAND_FILL                       # the thumb at 100 keeps clear of the + plate (demo .slr margin)
+		sm.add_theme_constant_override("margin_left", 2); sm.add_theme_constant_override("margin_right", 2)
+		sm.add_child(slider)
+		row.add_child(minus); row.add_child(sm); row.add_child(plus)
 		inner.add_child(row)
 		slider.value_changed.connect(func(v: float):
 			_sync(v); changed.emit(v))

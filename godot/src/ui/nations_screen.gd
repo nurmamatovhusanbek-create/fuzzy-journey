@@ -382,7 +382,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			var dv2: VBoxContainer = ui["detail_box"]
 			dv2.get_tree().process_frame.connect(func() -> void:
 				if not is_instance_valid(dv2) or not h.is_open(): return
-				var de: int = int(dv2.get_meta("demo_end", dv2.get_child_count()))
+				var de: int = dv2.get_child_count() if not ph0 else int(dv2.get_meta("demo_end", dv2.get_child_count()))       # desktop: the whole card (intel, facts, allies too) is in the room, nothing scrolls
 				var hh := 0.0
 				for i in mini(de, dv2.get_child_count()): hh += (dv2.get_child(i) as Control).size.y
 				dsc.custom_minimum_size.y = maxf(470.0, hh)

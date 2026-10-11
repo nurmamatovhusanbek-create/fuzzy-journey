@@ -517,8 +517,8 @@ static func _fit_bz(h: Handle) -> void:
 	var wdef: float = {"dialog": 460.0, "drawer": 560.0, "panel": 900.0}.get(h.form, 460.0)
 	var w: float = h.bz_w if h.bz_w > 0.0 else (600.0 if (h.wide and h.form == "dialog") else wdef)
 	w = minf(w, vs.x - (12.0 if phone else 32.0))
-	var panel_h: float = (vs.y - 16.0) if phone else maxf(vs.y - 320.0, 240.0)
-	var hmax: float = minf(h.bz_h if h.bz_h > 0.0 else panel_h, panel_h)
+	var panel_h: float = (vs.y - 16.0) if phone else maxf(vs.y - 186.0, 240.0)               # desktop: y 150 to 36 above the bottom, so whole cards fit without scrolling
+	var hmax: float = minf(h.bz_h if h.bz_h > 0.0 else panel_h, panel_h) if (phone or h.form == "dialog") else panel_h      # a desktop panel is as tall as its content, up to the whole room
 	var c := h.card
 	c.custom_minimum_size = Vector2(w, 0)
 	if h.scroll != null:
@@ -546,9 +546,9 @@ static func _fit_bz(h: Handle) -> void:
 	if h.form == "dialog":
 		x = floorf((vs.x - w) * 0.5); y = maxf(8.0 if phone else 100.0, (vs.y - hmax) * 0.5 - 20.0)
 		if h.dock == "left":
-			x = 60.0 if phone else 340.0; y = 8.0 if phone else 190.0
+			x = 60.0 if phone else 340.0; y = 8.0 if phone else 150.0
 	else:
-		x = 60.0 if phone else 340.0; y = 8.0 if phone else 190.0
+		x = 60.0 if phone else 340.0; y = 8.0 if phone else 150.0
 		if h.dock == "right": x = vs.x - w - (8.0 if phone else 28.0)
 		elif h.dock == "center": x = floorf((vs.x - w) * 0.5)
 		elif drawer_rect_fn.is_valid() and not phone:

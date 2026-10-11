@@ -74,7 +74,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .srow{padding:2px 0}
 .stp{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;background:#0f0c09;box-shadow:0 0 0 1.5px var(--lo);color:var(--hi);font:700 19px/1 Alegreya;cursor:pointer}
 .stp:hover{box-shadow:0 0 0 1.5px var(--hi);color:#fff}.stp:active{transform:scale(.94)}
-.slr{position:relative;flex:1;height:44px;cursor:pointer;touch-action:none;outline:none}
+.slr{position:relative;flex:1;margin:0 14px;height:44px;cursor:pointer;touch-action:none;outline:none}
 .slr .trk{position:absolute;left:0;right:0;top:12px;height:10px;background:#0c0a07;box-shadow:inset 0 0 0 1px #4a3f28;border-radius:5px;overflow:hidden}
 .slr .trk .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(180deg,#E5C77A,#A8842f);border-radius:5px 0 0 5px}
 .slr .trk .zone{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(210,96,63,.45) 0 3px,transparent 3px 6px)}
