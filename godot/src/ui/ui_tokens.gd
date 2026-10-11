@@ -53,6 +53,8 @@ const BZ_GOOD := Color("69B3A2"); const BZ_INFO := Color("7FA8E8"); const BZ_NOT
 const BZ_DIAL_RING := Color("E5C77A"); const BZ_DIAL_SPEC := Color("FFF4D2"); const BZ_DIAL_TICK := Color("8A7338")
 ## a court's answer notice (.tz.acc / .tz.dec): edge, hover edge; the decline red is the palette's #B31B1B
 const BZ_ANS_YES := Color("5A82BD"); const BZ_ANS_YES_HOT := Color("7FA8E8"); const BZ_ANS_NO := Color("8A2A2A"); const BZ_ANS_NO_HOT := Color("B31B1B")
+## the likelihood bar (lkBar): decline red, the pink and the dark figure colours
+const BZ_LK_RED := Color("B31B1B"); const BZ_LK_NO_TXT := Color("FFE9EA"); const BZ_LK_YES_TXT := Color("1B1408")
 const HALO := Color(0.02, 0.03, 0.05, 0.85); const DROP := Color(0.0, 0.0, 0.0, 0.45); const HOLD_BAR := Color(1.0, 1.0, 1.0, 0.85)
 
 ## ---- Bezel kit literals of the demo (docs/ui_variants/src/bezel.css + b_demo.html): every colour the kit draws that has no semantic token above.

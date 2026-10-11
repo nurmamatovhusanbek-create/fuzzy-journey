@@ -6,29 +6,56 @@ extends RefCounted
 const K = preload("res://src/ui/ui_kit.gd")
 static var T: Callable = TBI18n.T
 
-## the likelihood as one notched bar: accepted share in brass, the declined share as thin red diagonals
+## lkBar(q, 28): the likelihood as one notched bar. The decline share at the left in thin red diagonals (135 degrees, 1.5 on 8), the accept share at the right in brass; each
+## figure sits in its own part (a part under 14 % puts its figure above the bar). Hairline #7F6A33, notch 9, track #0C0A07.
 class ChanceBar extends Control:
 	var pct := 0
+	const H := 28.0
 	func _init(p: int) -> void:
-		pct = p; custom_minimum_size = Vector2(0, 22); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pct = p; mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		custom_minimum_size = Vector2(0, H + (22.0 if (p < 14 or p > 86) else 6.0))
 	func _draw() -> void:
-		var w := size.x; var h := size.y
-		var r := Rect2(0.5, 8.5, w - 1.0, 10.0)
-		draw_rect(r, TBTokens.BZ_TRACK_BG)
-		var fw: float = (r.size.x - 2.0) * float(pct) / 100.0
-		if fw > 0.0: draw_rect(Rect2(r.position.x + 1.0, r.position.y + 1.0, fw, r.size.y - 2.0), TBTokens.c("brass_lt"))
-		var x0: float = r.position.x + 1.0 + fw
-		var x1: float = r.end.x - 1.0
-		var y0: float = r.position.y + 1.0; var y1: float = r.end.y - 1.0
-		var red: Color = TBTokens.with_a(TBTokens.BZ_BAD, 0.9)
-		var k: float = x0 - (y1 - y0)
-		while k < x1:
-			var a := Vector2(k, y1); var b := Vector2(k + (y1 - y0), y0)
-			if a.x < x0: a = Vector2(x0, y1 - (x0 - a.x))
-			if b.x > x1: b = Vector2(x1, y0 + (b.x - x1))
-			if a.x <= x1 and b.x >= x0 and a.y >= y0 and b.y <= y1: draw_line(a, b, red, 1.0)
-			k += 8.0
-		draw_rect(r, TBTokens.BZ_TRACK_LINE, false, 1.0)
+		var top: float = size.y - H
+		var w := size.x
+		var c := roundf(H / 3.2)
+		var ci := get_canvas_item()
+		TBBz.poly(ci, TBBz.notch(0.0, top, w, top + H, c), TBTokens.BZ_LO)
+		var inner := TBBz.notch(1.0, top + 1.0, w - 1.0, top + H - 1.0, c)
+		TBBz.poly(ci, inner, TBTokens.BZ_TRACK_BG)
+		var iw: float = w - 2.0
+		var xs: float = 1.0 + iw * float(100 - pct) / 100.0                       # where the decline part ends
+		var red_rect := PackedVector2Array([Vector2(1.0, top + 1.0), Vector2(xs, top + 1.0), Vector2(xs, top + H - 1.0), Vector2(1.0, top + H - 1.0)])
+		var gold_rect := PackedVector2Array([Vector2(xs, top + 1.0), Vector2(w - 1.0, top + 1.0), Vector2(w - 1.0, top + H - 1.0), Vector2(xs, top + H - 1.0)])
+		for piece in Geometry2D.intersect_polygons(gold_rect, inner):
+			var pts: PackedVector2Array = piece
+			var cols := PackedColorArray()
+			for q in pts: cols.append(TBTokens.BZ_G_A.lerp(TBTokens.BZ_BRASS, clampf((q.y - (top + 1.0)) / (H - 2.0), 0.0, 1.0)))
+			draw_polygon(pts, cols)
+		var clip: Array = Geometry2D.intersect_polygons(red_rect, inner)
+		var step: float = 9.5 * sqrt(2.0)                                         # 9.5 along the 135 degree gradient line = 13.4 across
+		var k: float = 1.0 - H
+		while k < xs:
+			var line := PackedVector2Array([Vector2(k, top + H), Vector2(k + H, top)])
+			for piece in clip:
+				for seg in Geometry2D.intersect_polyline_with_polygon(line, piece):
+					draw_polyline(seg, TBTokens.BZ_LK_RED, 1.2, true)
+			k += step
+		var fb: Font = TBKit.alegreya(700)
+		var no_pct: int = 100 - pct
+		_label(fb, no_pct, 1.0, xs, top, TBTokens.BZ_LK_NO_TXT, true)
+		_label(fb, pct, xs, w - 1.0, top, TBTokens.BZ_LK_YES_TXT, false)
+	## a part of 14 % or more carries its figure inside (the decline figure on a dark pill); a smaller one above the bar
+	func _label(f: Font, v: int, x0: float, x1: float, top: float, col: Color, pill: bool) -> void:
+		var txt := "%d%%" % v
+		var mid: float = (x0 + x1) * 0.5
+		if v >= 14:
+			var tw: float = f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+			var base: float = top + H * 0.5 + (f.get_ascent(17) - f.get_height(17) * 0.5)
+			if pill: draw_rect(Rect2(mid - tw * 0.5 - 7.0, top + H * 0.5 - f.get_height(17) * 0.5, tw + 14.0, f.get_height(17)), TBTokens.with_a(TBTokens.BZ_SHADOW, 0.6))
+			draw_string(f, Vector2(mid - tw * 0.5, base), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, col)
+		else:
+			var tw2: float = f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			draw_string(f, Vector2(mid - tw2 * 0.5, top - 6.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TBTokens.BZ_IVORY)
 
 static func _card(title_text: String, body_text: String, pct: int, off: String, label: String, on_send: Callable) -> Control:
 	var pc := PanelContainer.new()
@@ -39,7 +66,7 @@ static func _card(title_text: String, body_text: String, pct: int, off: String, 
 	var hd := K.hbox(8)
 	var t := K.title(title_text, 16, TBTokens.c("ink_0")); t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hd.add_child(t)
-	var pl := K.label("%d%%" % pct, 18, TBTokens.c("brass_lt")); hd.add_child(pl)
+	hd.add_child(K.label("%d%%" % pct, 18, TBTokens.BZ_IVORY))
 	v.add_child(hd)
 	v.add_child(K.para_bz(body_text, 15.0, 1.3))
 	v.add_child(ChanceBar.new(pct))

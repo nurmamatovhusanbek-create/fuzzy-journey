@@ -37,6 +37,18 @@ func _init() -> void:
 				main.g.log.append({"turn": main.g.turn, "kind": "ans", "a": fr, "b": sp3, "what": "ally", "op": "", "ok": true})
 				main.hud.refresh()
 			"realm": main._open_realm_page()
+			"march":                                      # Move pressed on a French army: every province in reach is lit, the route to the far one shows
+				for p in main.g.P:
+					if main.world.name[p] == "Bas-Rhin":
+						main.g.mp[fr] = 9.0
+						main._select(p)
+						main._on_move_requested(p)
+						for i in 6: await process_frame
+						var far := -1; var best := 0.0
+						var r := TBMarch.targets(main.g, fr, p, main.g.mp[fr])
+						for q in r: if float(r[q]["mp"]) > best and String(r[q]["kind"]) == "move": best = float(r[q]["mp"]); far = int(q)
+						print("lit ", main.flow.targets.size(), " far ", far, " mp ", best)
+						main.flow.hover(far)
 			"routes":                                     # a pact, an alliance, a trade deal, a marriage and a war: the lines between the capitals
 				var gg: TBGame = main.g
 				var sp7: int = gg.nat_code.find("spain"); var uk7: int = gg.nat_code.find("united_kingdom"); var pr7: int = gg.nat_code.find("prussia")
