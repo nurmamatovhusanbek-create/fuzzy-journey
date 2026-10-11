@@ -1,0 +1,68 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel — navy and brass with red</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:auto;height:auto;background:#05070a}
+body{font-feature-settings:'lnum' 1;color:var(--ivory)}
+.tool{position:sticky;top:0;z-index:60;padding:10px 22px;background:rgba(8,10,14,.95);border-bottom:1px solid #33291a}
+.tool h1{font:700 16px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--hi)}
+main{max-width:1380px;margin:0 auto;padding:22px 22px 90px}
+.lead{font:italic 17px/1.4 Alegreya;color:var(--dim);margin:2px 0 26px;max-width:940px}
+.vg{display:grid;gap:34px 26px;grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+.badge{display:inline-block;font:700 12px Cinzel;letter-spacing:.2em;color:#1b1408;background:linear-gradient(180deg,#E5C77A,#B38F3E);padding:4px 14px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);margin-bottom:6px}
+.nt{font:italic 15px/1.35 Alegreya;color:var(--dim);margin:0 0 10px;min-height:42px}
+.card{padding:16px 18px 16px}
+.cap2{font:700 11px Cinzel;letter-spacing:.2em;color:var(--brass);text-transform:uppercase;margin:12px 0 6px}
+.cap2:first-child{margin-top:0}
+.sw{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.sw div{height:46px;border-radius:3px;display:flex;flex-direction:column;justify-content:flex-end;padding:3px 5px;font:600 9px 'JetBrains Mono';box-shadow:inset 0 0 0 1px rgba(5,4,3,.5)}
+.sw small{font:600 8px Cinzel;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+.fx{display:flex;align-items:baseline;padding:3px 0;font:400 16px Alegreya;color:var(--dim)}.fx i{flex:1;border-bottom:1px dotted #3a2f1d;margin:0 8px;transform:translateY(-4px)}.fx b{font:700 16px Alegreya}
+.lkh{display:flex;align-items:flex-end;justify-content:space-between}
+.lkh span{font:700 10px Cinzel;letter-spacing:.2em}
+.lkh .n{text-align:center}.lkh b{font:700 32px/1 Alegreya;color:var(--ivory)}.lkh em{display:block;font:italic 15px Alegreya;color:var(--dim)}
+.bar{position:relative;height:26px;margin-top:20px;border-radius:13px;box-shadow:inset 0 0 0 1px rgba(5,4,3,.55),0 0 0 1px #4a3f28}
+.bar b{position:absolute;top:0;bottom:0;display:grid;place-items:center;font:700 17px Alegreya}
+.bar .mk{position:absolute;top:-5px;width:2px;height:36px;margin-left:-1px;background:#EFE6CF;box-shadow:0 0 0 1px rgba(5,4,3,.6)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chp{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;font:600 14px Alegreya;background:#100d09;box-shadow:inset 0 0 0 1px #3a2f1d}
+.chp i{width:7px;height:7px;transform:rotate(45deg)}
+.note{display:flex;align-items:center;gap:10px;height:36px;padding:0 12px 0 6px;background:#17130F;border-radius:18px;box-shadow:inset 0 0 0 1px #4a3f28;font:500 15px Alegreya;margin-bottom:6px}
+.note u{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;text-decoration:none;font:700 14px Alegreya;color:#0f0c09}
+.rel{position:relative;height:9px;border-radius:5px;background:#33291a;margin:10px 0 4px}.rel span{position:absolute;top:0;bottom:0;border-radius:5px}
+</style></head><body>
+<script>/*KIT*/</script>
+<div class="tool"><h1>Navy and brass, red added</h1></div>
+<main><p class="lead">Exactly the palette you picked (gold = good, navy = bad, ember warn, blue info, stone neutral) with one new colour: a deep red. Navy keeps its job; red is added for the things that are worse than "no": war, hostile, danger, the War button. Four reds on the unchanged bar, then two cards where red also enters the decline end of the likelihood bar.</p>
+<div class="vg" id="vg"></div></main>
+<script>
+document.body.insertAdjacentHTML('afterbegin',DEFS);
+const BASE={good:['#E5C77A','#C9A24B'],navy:['#2C4A7A','#1F3659'],warn:'#D98A4A',info:'#7FA8E8',neu:'#A89C80',gt:'#0f0c09',nt:'#EFE6CF',pos:'#E5C77A',cool:'#8FB0E0'};
+const PAL=[
+ {n:'Oxblood',note:'The palette exactly as you showed it, plus a dark oxblood red. Quietest of the reds.',red:['#8C2430','#6F1A25'],rt:'#D9787A',bar:'navy'},
+ {n:'Garnet',note:'Same palette plus a garnet red, a step brighter and clearer at a glance.',red:['#A02A38','#7F1F2B'],rt:'#E8808A',bar:'navy'},
+ {n:'Brick red',note:'Same palette plus a warm brick red, close to the map\'s war tint.',red:['#A33A28','#822C1D'],rt:'#E8896E',bar:'navy'},
+ {n:'Deep crimson',note:'Same palette plus the strongest red: urgent, the most visible on dark plates.',red:['#B02A3A','#8B1F2D'],rt:'#F0808A',bar:'navy'},
+ {n:'Garnet in the bar',note:'Garnet again, but the decline end of the likelihood bar becomes red fading into navy and then gold, so red also means "no".',red:['#A02A38','#7F1F2B'],rt:'#E8808A',bar:'red'},
+ {n:'Oxblood in the bar',note:'Oxblood version of the same idea: red, navy, gold across the bar; the quietest way to bring red into the likelihood.',red:['#8C2430','#6F1A25'],rt:'#D9787A',bar:'red'}];
+const vg=document.getElementById('vg');
+PAL.forEach((c,i)=>{const q=58,x=42;const d=document.createElement('div');d.innerHTML=`<span class="badge">${i+1} · ${c.n}</span><div class="nt">${c.note}</div>`;
+ const card=document.createElement('div');
+ card.innerHTML=plate(`<div class="card">
+  <div class="cap2">Palette</div><div class="sw" style="grid-template-columns:repeat(6,1fr)"><div style="background:linear-gradient(90deg,${BASE.good[0]},${BASE.good[1]});color:${BASE.gt}"><small>Good</small>${BASE.good[0]}</div><div style="background:linear-gradient(90deg,${BASE.navy[0]},${BASE.navy[1]});color:${BASE.nt}"><small>Bad</small>${BASE.navy[0]}</div><div style="background:linear-gradient(90deg,${c.red[0]},${c.red[1]});color:#FFE9EA;box-shadow:0 0 0 1.5px #C9A24B"><small>Red (new)</small>${c.red[0]}</div><div style="background:${BASE.warn};color:#1b1408"><small>Warn</small>${BASE.warn}</div><div style="background:${BASE.info};color:#0c1220"><small>Info</small>${BASE.info}</div><div style="background:${BASE.neu};color:#1b1408"><small>Neutral</small>${BASE.neu}</div></div>
+  <div class="cap2">Likelihood</div>
+  <div class="lkh"><span style="color:${c.bar==='red'?c.rt:BASE.info}">DECLINE</span><span class="n"><b>58%</b><em>An even chance</em></span><span style="color:${BASE.pos}">ACCEPT</span></div>
+  <div class="bar" style="background:${c.bar==='red'?`linear-gradient(90deg,${c.red[0]} 0%,${c.red[1]} 10%,${BASE.navy[0]} 34%,${BASE.navy[1]} 42%,${BASE.good[1]} 62%,${BASE.good[0]} 100%)`:`linear-gradient(90deg,${BASE.navy[0]} 0%,${BASE.navy[1]} 30%,${BASE.good[1]} 52%,${BASE.good[0]} 100%)`}"><b style="left:0;width:42%;color:#EFE6CF">42%</b><b style="left:42%;width:58%;color:${BASE.gt}">58%</b><span class="mk" style="left:42%"></span></div>
+  <div class="cap2">Effects</div>
+  <div class="fx"><span>Army / turn</span><i></i><b style="color:${BASE.pos}">+8</b></div><div class="fx"><span>Happiness</span><i></i><b style="color:${c.rt}">−3</b></div><div class="fx"><span>Gold</span><i></i><b style="color:${BASE.warn}">−40</b></div>
+  <div class="cap2">Relations</div>
+  <div class="rel"><span style="left:50%;width:30%;background:${BASE.good[0]}"></span></div><div class="rel"><span style="left:30%;width:20%;background:${BASE.navy[0]}"></span></div><div class="rel"><span style="left:14%;width:36%;background:${c.red[0]}"></span></div>
+  <div class="cap2">Chips and notices</div>
+  <div class="chips"><span class="chp"><i style="background:${BASE.pos}"></i>Friendly +46</span><span class="chp"><i style="background:${c.rt}"></i>Hostile −42</span><span class="chp"><i style="background:${BASE.warn}"></i>Truce 3</span><span class="chp"><i style="background:${BASE.info}"></i>Intel 9</span></div>
+  <div style="margin-top:10px"><div class="note"><u style="background:${BASE.good[0]}">✓</u>Spain accepts your alliance</div><div class="note"><u style="background:${c.red[0]};color:#FFE9EA">!</u>Austria declares war on you</div><div class="note"><u style="background:${BASE.navy[0]};color:#EFE6CF">!</u>Austria masses troops on your border</div></div>
+  <div class="cap2">On the map</div><div style="display:flex;height:34px;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1px #4a3f28"><span style="flex:3;background:#2D4C78;box-shadow:inset 0 0 0 2px #C9A24B"></span><span style="flex:2;background:#3a3f3a;box-shadow:inset 0 0 0 2px ${BASE.warn}"></span><span style="flex:2;background:#4a3a3a;box-shadow:inset 0 0 0 2px ${c.red[0]}"></span><span style="flex:2;background:#2f3a52;box-shadow:inset 0 0 0 2px ${BASE.good[0]}"></span><span style="flex:1;background:#101922"></span></div><div style="font:600 9px Cinzel;letter-spacing:.16em;color:#7d735c;margin-top:4px">YOU · TRUCE · AT WAR · ALLY · SEA</div>
+  <div style="display:flex;gap:8px;margin-top:12px"><span class="bt sm" style="height:34px">Cancel</span><span class="bt sm" style="height:34px;background:linear-gradient(180deg,${c.red[0]},${c.red[1]});color:#FFE9EA;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 0 #3a0f14">War</span></div>
+ </div>`,'','',10);
+ d.appendChild(card);vg.appendChild(d)});
+</script></body></html>
