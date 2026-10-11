@@ -31,3 +31,4 @@ the AI already uses (`TBAI.accepts_pact`), then a chronicle event. The odds show
 * Type options page: `bezel_fonts.html` (seven display + reading pairs, EN / RU / UZ, size slider). Extra faces live in `src/fonts_extra.css`.
 * Fonts: pair 2 chosen (Cormorant SC for titles / captions / buttons, EB Garamond for reading). `docs/ui_variants/theme.py` re-skins a built demo with it (and with palette p1 or p2):
   `python3 theme.py bezel_demo2.html out.html p1`. Palette p1 = Navy & brass, p2 = Ink & ivory (colour tables inside theme.py).
+* Likelihood bar decided: notched plate (chamfered, brass hairline), decline = diagonal red lines `#B31B1B` (1.5 line / 8 gap) on the dark track, accept = solid brass gold, numbers on their parts (a share under 14% puts its number above), no marker line. Palette: navy deep royal `#011F5B`, brass, red `#B31B1B`.
