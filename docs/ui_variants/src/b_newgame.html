@@ -1,0 +1,191 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terra Bellum — title screen mock-ups</title>
+<style>
+/*FONTS*/
+:root{--bg:#0A0D12;--panel:#17130F;--brass:#C9A24B;--hi:#E5C77A;--lo:#7F6A33;--ivory:#EFE6CF;--dim:#A89C80;--dim2:#7d735c;--good:#69B3A2;--bad:#D2603F;--info:#7FA8E8}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000;color:var(--ivory);font-family:Alegreya,serif}
+.stage{position:relative;width:1280px;height:720px;overflow:hidden;background:radial-gradient(ellipse 70% 80% at 50% 48%,#10203a 0%,#08101e 45%,#03060c 100%)}
+.stage canvas.stars{position:absolute;inset:0}
+.abs{position:absolute}
+/* notched plates (the game's button kit) */
+.plate{position:absolute;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--ivory);font:600 14px Cinzel;letter-spacing:.2em;text-transform:uppercase;
+  --c:9px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--lo)}
+.plate::before{content:'';position:absolute;inset:1px;clip-path:inherit;background:linear-gradient(#1d1711,#120e0a);z-index:0}
+.plate>*{position:relative;z-index:1}
+.plate.hot{background:var(--hi);color:#fff6dc}
+.plate.hot::before{background:linear-gradient(#3a2d18,#1f170c)}
+.plate.hot::after{content:'';position:absolute;inset:0;background:radial-gradient(60% 120% at 50% 0,rgba(229,199,122,.28),transparent 70%);z-index:1}
+.plate small{font:italic 400 13px Alegreya;letter-spacing:0;text-transform:none;color:var(--dim)}
+.ico{width:18px;height:18px;stroke:var(--hi);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+/* wordmark: engraved brass */
+.wm{position:absolute;font:700 64px Cinzel;letter-spacing:.26em;text-transform:uppercase;white-space:nowrap;
+  background:linear-gradient(100deg,transparent 41%,rgba(255,255,255,.55) 47%,transparent 53%),linear-gradient(180deg,#fff0bf 0%,#e5c77a 38%,#b8903f 62%,#e0c071 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 0 #3a2a0c) drop-shadow(0 0 18px rgba(229,199,122,.25))}
+.tag{position:absolute;font:600 12px Cinzel;letter-spacing:.34em;text-transform:uppercase;color:var(--dim)}
+.rule{position:absolute;height:1px;background:linear-gradient(90deg,transparent,var(--lo) 20%,var(--hi) 50%,var(--lo) 80%,transparent)}
+.rule i{position:absolute;left:50%;top:-4px;width:8px;height:8px;margin-left:-4px;background:var(--hi);transform:rotate(45deg)}
+.globe{position:absolute;border-radius:50%;overflow:hidden}
+.globe img{width:100%;height:100%;display:block}
+.globe::after{content:'';position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 30% 26%,rgba(255,236,190,.10) 0,transparent 38%),radial-gradient(circle at 34% 30%,transparent 42%,rgba(2,4,10,.55) 78%,rgba(1,2,6,.88) 100%);
+  box-shadow:inset 0 0 38px rgba(120,170,230,.28),inset 0 0 6px rgba(160,200,255,.4)}
+.halo{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(70,120,190,.22) 55%,rgba(70,120,190,0) 72%)}
+.tools{position:absolute;display:flex;gap:26px;align-items:center;font:600 11px Cinzel;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.tools b{color:var(--ivory);font-weight:600}
+.tools .sep{width:1px;height:12px;background:var(--lo)}
+.ver{position:absolute;right:14px;top:10px;font:400 10px 'JetBrains Mono';color:var(--dim2)}
+.card{position:absolute;display:flex;gap:14px;align-items:center;padding:12px 16px;--c:10px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--lo)}
+.card::before{content:'';position:absolute;inset:1px;clip-path:inherit;background:linear-gradient(#1b150f,#110d09)}
+.card>*{position:relative}
+.flag{width:46px;height:46px;border-radius:50%;border:1.3px solid var(--brass);padding:3px;background:#0c0a07;box-shadow:0 0 0 3px rgba(0,0,0,.4)}
+.flag img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.card .t{font:600 11px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--hi)}
+.card .n{font:700 20px Cinzel;letter-spacing:.08em;color:var(--ivory);margin-top:2px}
+.card .s{font:italic 400 14px Alegreya;color:var(--dim)}
+.lab{position:absolute;font:600 10.5px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.med{position:absolute;display:flex;flex-direction:column;align-items:center;gap:8px;width:120px}
+.med .c{width:64px;height:64px;border-radius:50%;border:1.3px solid var(--brass);background:radial-gradient(circle at 40% 30%,#2a2013,#0f0b07);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px rgba(0,0,0,.35),inset 0 0 14px rgba(0,0,0,.6)}
+.med .c .ico{width:26px;height:26px}
+.med.big .c{width:84px;height:84px;border-color:var(--hi);box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 26px rgba(229,199,122,.35),inset 0 0 18px rgba(229,199,122,.18)}
+.med .l{font:600 12px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--ivory)}
+.med .d{font:italic 400 13px Alegreya;color:var(--dim);margin-top:-5px}
+.cap{position:absolute;left:14px;top:10px;max-width:1000px;white-space:nowrap;font:600 11px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+
+/* ---- button styles for the menu column (B) ---- */
+.bt{position:absolute;color:var(--ivory);font:600 14px Cinzel;letter-spacing:.2em;text-transform:uppercase;display:flex;align-items:center}
+/* S2 ledger bar */
+.s2{width:270px;height:44px;background:linear-gradient(180deg,#1a140e,#110d09);border:1px solid #4a3d22;border-left:3px solid var(--lo);padding:0 14px 0 0}
+.s2 .n{width:44px;text-align:center;font:600 12px Cinzel;color:var(--dim2);border-right:1px solid #33291a;margin-right:16px;height:100%;display:flex;align-items:center;justify-content:center}
+.s2 .ch{margin-left:auto;color:var(--lo);font-size:18px;letter-spacing:0}
+.s2 .tk{position:absolute;left:3px;right:0;bottom:0;height:5px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 8px);opacity:.55}
+.s2.hot{border-color:var(--lo);border-left-color:var(--hi);background:linear-gradient(90deg,#3a2c15,#1c150c 70%);box-shadow:0 0 22px rgba(229,199,122,.14)}
+.s2.hot .n{color:var(--hi)}.s2.hot .ch{color:var(--hi)}.s2.hot .tk{opacity:.9}
+/* S3 rail medallion */
+.s3{width:270px;height:50px;gap:16px}
+.s3 .m{width:46px;height:46px;border-radius:50%;border:1.2px solid var(--lo);background:radial-gradient(circle at 40% 30%,#241b10,#0e0a06);display:flex;align-items:center;justify-content:center;flex:none}
+.s3 .m .ico{width:20px;height:20px;stroke:var(--brass)}
+.s3 .ld{flex:1;border-bottom:1px dotted #5a4a26;height:1px;margin-top:10px;opacity:.7}
+.s3 span.t{color:var(--dim)}
+.s3.hot .m{border-color:var(--hi);box-shadow:0 0 0 3px rgba(0,0,0,.4),0 0 20px rgba(229,199,122,.35);background:radial-gradient(circle at 40% 30%,#4a3817,#18110a)}
+.s3.hot .m .ico{stroke:var(--hi)}.s3.hot span.t{color:var(--ivory)}.s3.hot .ld{border-bottom-color:var(--hi);opacity:1}
+/* S4 hierarchy: one big card, quiet text rows */
+.s4c{width:270px;height:78px;padding:0 16px;gap:14px;--c:12px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--hi)}
+.s4c::before{content:'';position:absolute;inset:1px;clip-path:inherit;background:linear-gradient(135deg,#3a2c15,#17110a 70%)}
+.s4c>*{position:relative}
+.s4c .flag{width:44px;height:44px}
+.s4c .t1{font:700 16px Cinzel;letter-spacing:.2em}.s4c .t2{font:italic 400 13.5px Alegreya;letter-spacing:0;text-transform:none;color:var(--dim);margin-top:3px}
+.s4c .go{margin-left:auto;color:var(--hi);font-size:22px;letter-spacing:0}
+.s4r{width:270px;height:40px;padding-left:22px;border-bottom:1px solid #2a2114;color:var(--dim);font-size:13.5px}
+.s4r::before{content:'';width:6px;height:6px;background:var(--lo);transform:rotate(45deg);margin-right:14px;margin-left:-12px}
+.s4r.hot{color:var(--ivory);border-bottom-color:var(--lo)}.s4r.hot::before{background:var(--hi);box-shadow:0 0 8px var(--hi)}
+/* S5 instrument bar (the lens bar's language) */
+.s5{width:270px;height:46px;border:1px solid var(--lo);background:linear-gradient(180deg,#171109,#0f0b07);padding:0 16px;justify-content:space-between}
+.s5 .rl{position:absolute;left:10px;right:10px;bottom:5px;height:6px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 6px);opacity:.6}
+.s5 span.t{margin-top:-6px;color:var(--dim)}
+.s5.hot span.t{color:var(--ivory)}.s5.hot{border-color:var(--hi);box-shadow:0 0 18px rgba(229,199,122,.16)}
+.s5 .pt{position:absolute;left:50%;bottom:-1px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top:8px solid var(--bad);display:none}
+.s5.hot .pt{display:block}.s5.hot .rl{opacity:1}
+
+.sel{position:absolute;pointer-events:none;--b:#E5C77A;
+ background:linear-gradient(var(--b),var(--b)) 0 0/12px 1.5px no-repeat,linear-gradient(var(--b),var(--b)) 0 0/1.5px 12px no-repeat,
+ linear-gradient(var(--b),var(--b)) 100% 0/12px 1.5px no-repeat,linear-gradient(var(--b),var(--b)) 100% 0/1.5px 12px no-repeat,
+ linear-gradient(var(--b),var(--b)) 0 100%/12px 1.5px no-repeat,linear-gradient(var(--b),var(--b)) 0 100%/1.5px 12px no-repeat,
+ linear-gradient(var(--b),var(--b)) 100% 100%/12px 1.5px no-repeat,linear-gradient(var(--b),var(--b)) 100% 100%/1.5px 12px no-repeat;filter:drop-shadow(0 0 5px rgba(229,199,122,.55))}
+.s4c{background:var(--lo)}
+.s4c.foc{background:var(--hi)}
+.s4c.press::before{background:linear-gradient(135deg,#120d07,#0b0805);box-shadow:inset 0 3px 10px #000}
+.s4c.press{transform:translateY(1px)}
+.s4c.press .t1{color:var(--hi)}
+.stp{position:absolute;display:flex;gap:26px;font:600 11px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--dim2)}
+.stp b{color:var(--hi);font-weight:600}.stp span::before{content:'';display:inline-block;width:7px;height:7px;background:var(--lo);transform:rotate(45deg);margin-right:10px}.stp b::before{content:'';display:inline-block;width:7px;height:7px;background:var(--hi);transform:rotate(45deg);margin-right:10px}
+.fchip{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 5px;border-radius:15px;background:#100d09;box-shadow:inset 0 0 0 1px #3a2f1d;font:600 14px Alegreya}
+.fchip img{width:22px;height:22px;border-radius:50%}.fchip small{color:var(--dim);font:500 13px Alegreya}
+.seg{position:absolute;display:flex;--c:8px}
+.seg i{font-style:normal;display:flex;align-items:center;justify-content:center;height:34px;min-width:84px;padding:0 14px;font:700 11.5px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);box-shadow:inset 0 0 0 1px #4a3d22;background:#120e0a;margin-left:-1px}
+.seg i.on{color:var(--ivory);background:linear-gradient(180deg,#3a2c15,#1c150c);box-shadow:inset 0 0 0 1px var(--hi)}
+.h1{position:absolute;font:700 38px/1.05 Cinzel;letter-spacing:.14em;text-transform:uppercase;color:var(--hi);text-shadow:0 2px 0 #3a2a0c,0 0 24px rgba(229,199,122,.25)}
+.yr{position:absolute;font:600 13px 'JetBrains Mono';letter-spacing:.2em;color:var(--dim)}
+.blurb{position:absolute;font:italic 17px/1.45 Alegreya;color:#cfc5aa}
+.sm{position:absolute;display:flex;gap:10px;flex-wrap:wrap}
+.ecard{position:absolute;width:104px;height:150px;--c:9px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--lo)}
+.ecard::before{content:'';position:absolute;inset:1px;clip-path:inherit;background:linear-gradient(#1b150f,#100c08)}
+.ecard>*{position:relative}
+.ecard.on{background:var(--hi)}.ecard.on::before{background:linear-gradient(#3a2c15,#17110a)}
+.ecard .y{font:600 12px 'JetBrains Mono';letter-spacing:.1em;color:var(--dim);text-align:center;margin-top:10px}.ecard.on .y{color:var(--hi)}
+.ecard .n{font:700 10px/1.2 Cinzel;letter-spacing:.06em;text-transform:uppercase;text-align:center;margin:6px 8px 0;color:var(--ivory)}
+.ecard .fl{display:flex;justify-content:center;gap:3px;margin-top:10px}.ecard .fl img{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 1px #0007}
+.ecard .g{margin:10px auto 0;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 36% 30%,var(--tint),#0b0e14 70%);box-shadow:0 0 0 1px var(--lo)}
+.slip{position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:10px 26px 12px;text-align:center;--c:9px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--lo)}
+.slip::before{content:'';position:absolute;inset:1px;clip-path:inherit;background:linear-gradient(#1d1711,#120e0a)}
+.slip>*{position:relative}
+.slip .t{font:700 14px Cinzel;letter-spacing:.18em;text-transform:uppercase}
+.pn{position:absolute;display:flex;align-items:center;gap:10px;height:56px;padding:0 14px;--c:9px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--lo)}
+.pn::before{content:'';position:absolute;inset:1px;clip-path:inherit;background:linear-gradient(#1d1711,#120e0a)}
+.pn>*{position:relative}.pn.on{background:var(--hi)}
+.pn img{width:28px;height:28px;border-radius:50%;box-shadow:0 0 0 1.3px var(--brass)}
+.pn .a{font:700 12.5px Cinzel;letter-spacing:.12em;text-transform:uppercase}.pn .b{font:500 12.5px 'JetBrains Mono';color:var(--dim)}
+.hov{position:absolute;width:300px;--c:11px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--lo);filter:drop-shadow(0 12px 24px rgba(0,0,0,.6))}
+.hov::before{content:'';position:absolute;inset:1px;clip-path:inherit;background:linear-gradient(#1d1812,#13100c)}
+.hov>*{position:relative}
+.hov .row{display:flex;justify-content:space-between;font:500 15px Alegreya;padding:5px 0;border-bottom:1px dotted #5a4a26}
+.hov .row b{font-family:'JetBrains Mono';font-weight:700;font-size:13.5px}
+.pos{color:var(--good)}.neg{color:#ee8a68}
+</style></head><body>
+<div id="out"></div>
+<script>
+const FL=c=>`../../godot/assets/flags/napoleonic/${c}_c.png`;
+const FLAG='../../godot/assets/flags/napoleonic/france.png';
+const ICON={play:'<path d="M7 5l11 7-11 7z"/>',globe:'<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16"/>'};
+const ic=(k,c='ico')=>`<svg class="${c}" viewBox="0 0 24 24">${ICON[k]}</svg>`;
+function rnd(seed){let s=seed;return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296}}
+function stars(w,h,n,seed){const r=rnd(seed);let o='';for(let i=0;i<n;i++){const x=r()*w,y=r()*h;const rad=r()<.04?1.6:r()<.2?1.1:.7;o+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad}" fill="#cfe0ff" opacity="${(.25+r()*.6).toFixed(2)}"/>`}return`<svg class="abs" style="left:0;top:0" width="${w}" height="${h}">${o}</svg>`}
+const ERAS=[['218 BC','Ancient World'],['117','Roman Empire'],['1096','High Middle Ages'],['1388','Mongol Conquests'],['1405','Timurid Age'],['1492','Age of Discovery'],['1700','Gunpowder Empires'],['1804','Napoleonic Era'],['1858','Victorian Age'],['1914','The Great War'],['1939','World War II'],['1947','Cold War'],['2024','Modern World']];
+function ring(cx,cy,R,cur,hoverI){let o='';
+ o+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#C9A24B" stroke-width="1.4"/><circle cx="${cx}" cy="${cy}" r="${R-9}" fill="none" stroke="#7F6A33" stroke-width="1" opacity=".8"/>`;
+ for(let i=0;i<120;i++){const a=i/120*Math.PI*2-Math.PI/2;const big=i%10==0;const l=big?14:i%2?4:7;o+=`<line x1="${cx+Math.cos(a)*(R-9)}" y1="${cy+Math.sin(a)*(R-9)}" x2="${cx+Math.cos(a)*(R-9-l)}" y2="${cy+Math.sin(a)*(R-9-l)}" stroke="${big?'#E5C77A':'#C9A24B'}" stroke-width="${big?1.6:1}" opacity=".85"/>`}
+ ERAS.forEach((e,i)=>{const a=(i-cur)/ERAS.length*Math.PI*2-Math.PI/2;const on=i==cur,hv=i==hoverI;const x=cx+Math.cos(a)*(R+44),y=cy+Math.sin(a)*(R+44);
+  o+=`<path d="M${cx+Math.cos(a)*R} ${cy+Math.sin(a)*R} m0 -6 l5 6 l-5 6 l-5 -6z" transform="rotate(${a*180/Math.PI+90} ${cx+Math.cos(a)*R} ${cy+Math.sin(a)*R})" fill="${on?'#E5C77A':hv?'#C9A24B':'#7F6A33'}"/>`;
+  o+=`<text x="${x}" y="${y+4}" text-anchor="middle" font-family="JetBrains Mono" font-size="${on?15:12.5}" font-weight="${on||hv?700:400}" fill="${on?'#E5C77A':hv?'#EFE6CF':'#8d826a'}">${e[0]}</text>`;
+  if(on||hv)o+=`<text x="${x}" y="${y+22}" text-anchor="middle" font-family="Cinzel" font-size="10" letter-spacing="2" fill="${on?'#E5C77A':'#A89C80'}">${e[1].toUpperCase()}</text>`});
+ return`<svg class="abs" style="left:0;top:0" width="1280" height="720">${o}</svg>`}
+const globe=(cx,cy,d)=>`<div class="halo" style="left:${cx-d*.62}px;top:${cy-d*.62}px;width:${d*1.24}px;height:${d*1.24}px"></div><div class="globe" style="left:${cx-d/2}px;top:${cy-d/2}px;width:${d}px;height:${d}px"><img src="mock_assets/gfaint_eu.png"></div>`;
+const frame=(id,cap,inner)=>`<div class="stage" id="${id}">${stars(1280,720,260,id.length*77+5)}${inner}<div class="ver">v0.dev</div><div class="cap">${cap}</div></div>`;
+const plate=(x,y,w,h,txt,o={})=>`<div class="plate ${o.hot?'hot':''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">${o.ic?ic(o.ic):''}<span>${txt}</span></div>`;
+const steps=(n,x,y)=>`<div class="stp" style="left:${x}px;top:${y}px">${['Era','Nation','Play'].map((t,i)=>i==n?`<b>${t}</b>`:`<span>${t}</span>`).join('')}</div>`;
+const powers=`<div class="sm">${[['france','France','88'],['uk','United Kingdom','74'],['russian_empire','Russia','71'],['austrian_empire','Austria','49'],['ottoman_empire','Ottoman Empire','44']].map(([c,n,v])=>`<span class="fchip"><img src="${FL(c)}">${n} <small>${v}</small></span>`).join('')}<span class="fchip" style="padding-left:12px"><small>250 nations</small></span></div>`;
+const detail=(x,y,w)=>
+ steps(0,x,y)+
+ `<div class="yr" style="left:${x}px;top:${y+46}px">1804 AD</div><div class="h1" style="left:${x}px;top:${y+68}px;width:${w}px">Napoleonic<br>Era</div>`+
+ `<div class="blurb" style="left:${x}px;top:${y+170}px;width:${w}px">An emperor crowns himself in Paris; every throne in Europe is suddenly up for grabs.</div>`+
+ `<div class="lab" style="left:${x}px;top:${y+244}px">Great powers</div><div style="position:absolute;left:${x}px;top:${y+266}px;width:${w}px">${powers}</div>`+
+ `<div class="lab" style="left:${x}px;top:${y+356}px">Difficulty</div><div class="seg" style="left:${x}px;top:${y+378}px"><i>Easy</i><i class="on">Normal</i><i>Hard</i></div>`+
+ `<div class="lab" style="left:${x}px;top:${y+430}px">Players</div><div class="seg" style="left:${x}px;top:${y+450}px"><i class="on" style="min-width:56px">1</i><i style="min-width:56px">2</i><i style="min-width:56px">3</i><i style="min-width:56px">4</i></div>`+
+ plate(x,y+510,w-20,50,'Pick a nation  ›',{hot:1});
+const a3a=()=>frame('a3a','A3 · A — the ring is the era picker: click an era on the ring (or ←/→), the globe turns to a place typical of it',
+ globe(800,372,360)+ring(800,372,236,7,9)+detail(60,64,380)+
+ `<div class="abs" style="left:860px;top:640px;font:italic 14px Alegreya;color:var(--dim)">← → or click an era · Enter to pick a nation</div>`+
+ `<div class="abs" style="left:60px;top:664px;font:600 11px Cinzel;letter-spacing:.2em;color:var(--dim2)">‹ BACK TO TITLE</div>`);
+const strip=(cur)=>{let o='';ERAS.forEach((e,i)=>{const x=24+i*96.6;const on=i==cur;const fl=['france','uk','russian_empire'].slice(0,3).map(c=>`<img src="${FL(c)}">`).join('');
+ o+=`<div class="ecard ${on?'on':''}" style="left:${x}px;top:${on?548:566}px;width:92px;height:${on?150:132}px;--tint:${['#6a5a2a','#7a3a2a','#4a5a3a','#3a4a6a','#5a3a6a','#2a5a6a','#6a4a2a','#3a5a8a','#5a5a5a','#6a2a2a','#4a4a2a','#2a4a6a','#2a6a5a'][i]}"><div class="y">${e[0]}</div><div class="n">${e[1]}</div>${on?`<div class="fl">${fl}</div>`:`<div class="g"></div>`}</div>`});return o};
+const a3b=()=>frame('a3b','A3 · B — a strip of thirteen era cards under the globe; the chosen card lifts, the detail sits above it',
+ globe(640,250,330)+steps(0,60,36)+
+ `<div class="yr" style="left:880px;top:112px">1804 AD</div><div class="h1" style="left:880px;top:136px;width:340px">Napoleonic<br>Era</div>`+
+ `<div class="blurb" style="left:880px;top:236px;width:340px">An emperor crowns himself in Paris; every throne in Europe is suddenly up for grabs.</div>`+
+ `<div class="sm" style="left:880px;top:310px;width:340px"><span class="fchip"><img src="${FL('france')}">France <small>88</small></span><span class="fchip"><img src="${FL('uk')}">UK <small>74</small></span><span class="fchip"><img src="${FL('russian_empire')}">Russia <small>71</small></span></div>`+
+ `<div class="seg" style="left:880px;top:372px"><i>Easy</i><i class="on">Normal</i><i>Hard</i></div><div class="seg" style="left:880px;top:416px"><i class="on" style="min-width:56px">1</i><i style="min-width:56px">2</i><i style="min-width:56px">3</i><i style="min-width:56px">4</i></div>`+
+ plate(880,468,300,46,'Pick a nation  ›',{hot:1})+strip(7));
+const MAPFL=['france','uk','russian_empire','austrian_empire','ottoman_empire','prussia','spain','qing_empire'];
+const a4=()=>`<div class="stage" id="a4" style="background:#0A0D12 url(mock_assets/game_bg.jpg) center/1280px 720px no-repeat"><div class="abs" style="inset:0;background:rgba(3,5,8,.28)"></div>`+
+ `<div class="abs" style="left:14px;top:14px">${plate(0,0,88,36,'Back')}</div><div class="abs" style="right:14px;top:14px">${plate(0,0,96,36,'Nations')}</div>`.replace('left:14px;top:14px">'+plate(0,0,88,36,'Back'),'left:14px;top:14px;width:88px;height:36px">'+plate(0,0,88,36,'Back'))+
+ `<div class="slip"><div class="t">Tap a province to claim its nation</div><div style="margin-top:6px">${steps(1,0,0).replace('position:absolute;','position:static;justify-content:center;')}</div></div>`+
+ `<div class="abs" style="left:690px;top:300px;width:44px;height:44px;border-radius:50%;box-shadow:0 0 0 2px var(--hi),0 0 30px rgba(229,199,122,.6)"></div>`+
+ `<div class="hov" style="left:742px;top:238px"><div style="padding:16px 18px"><div style="display:flex;gap:12px;align-items:center"><img src="${FL('austrian_empire')}" style="width:46px;height:46px;border-radius:50%;box-shadow:0 0 0 1.5px var(--brass),0 0 0 4px #0006"><div><div class="cap" style="font:600 10px Cinzel;letter-spacing:.2em;color:var(--hi)">Hovering</div><div style="font:700 17px Cinzel;letter-spacing:.1em;text-transform:uppercase">Austrian Empire</div><div style="font:italic 14px Alegreya;color:var(--dim)">Emperor Francis II</div></div></div><div style="margin-top:10px"><div class="row"><span>Size rank</span><b>#7 · 49 provinces</b></div><div class="row"><span>Army</span><b>12,400</b></div><div class="row"><span>Technology</span><b>3.2</b></div><div class="row" style="border:0"><span>Start</span><b class="neg">Hard</b></div></div></div></div>`+
+ `<div class="abs" style="left:12px;bottom:12px;width:1090px;height:72px;display:flex;gap:6px">`+
+ [['Random',''],['spain','1 · 208'],['ottoman_empire','2 · 158'],['russian_empire','3 · 116'],['france','4 · 62'],['qing_empire','5 · 57'],['austrian_empire','7 · 49']].map(([c,v],i)=>c=='Random'?`<div class="pn" style="position:relative;width:110px"><span class="a">Random</span></div>`:`<div class="pn ${c=='austrian_empire'?'on':''}" style="position:relative;width:150px"><img src="${FL(c)}"><div><div class="a">${c.replace('_',' ').replace('uk','UK')}</div><div class="b">#${v}</div></div></div>`).join('')+`</div>`+
+ `<div class="cap">A4 · nation pick: the same plates as the game, the nation under the pointer lit with the game's outline and a small card (ruler, rank, army, technology, difficulty)</div></div>`;
+const sets={a3a,a3b,a4};
+const q=new URLSearchParams(location.search).get('m');
+const out=document.getElementById('out');
+if(q&&sets[q]) out.innerHTML=sets[q](); else for(const k in sets) out.insertAdjacentHTML('beforeend',sets[k]());
+</script></body></html>

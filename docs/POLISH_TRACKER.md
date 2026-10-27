@@ -79,10 +79,10 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | B5 | Treaty signed | **DROP as a dialog** (see section 4) | | | |
 | B6 | Turn summary sheet | **deferred: needs the owner's answer (section 6 Q3)** | | | |
 | B8 | Tooltips / toasts consistency | queued | | | |
-| C2 | Conquest dissolve on the map (province colour crossfades 0.5 s, staggered) | done | @C123 | Full + medium/high tier only; Light / Off: instant | conquest_fade.gd |
+| C2 | Conquest dissolve on the map (province colour crossfades 0.5 s, staggered) | done | fb13eb4 | Full + medium/high tier only; Light / Off: instant | conquest_fade.gd |
 | C4 | Turn passing: terminator sweep, date flip, gauge count-up | queued (mock first) | | | |
-| C1 | Army pill glides from the old province to the new one | done | @C123 | Light + Full; Off: none | map_fx.gd |
-| C3 | Clash marker (swords + losses) on the map; the report follows 0.7 s later on Full | done | @C123 | Light + Full; Off: none, report at once | map_fx.gd |
+| C1 | Army pill glides from the old province to the new one | done | fb13eb4 | Light + Full; Off: none | map_fx.gd |
+| C3 | Clash marker (swords + losses) on the map; the report follows 0.7 s later on Full | done | fb13eb4 | Light + Full; Off: none, report at once | map_fx.gd |
 | C6 | Selection pulse / nation outline breath | queued | | | |
 | C5 | Ambient sea / clouds / city glints (Full only) | queued (mock first) | | | |
 | A3 | Era picker as a timeline | queued (mock first) | | | |
