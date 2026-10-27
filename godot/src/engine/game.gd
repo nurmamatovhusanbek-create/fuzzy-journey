@@ -574,6 +574,16 @@ func job_income(p: int, dv: int) -> float:
 func job_fill(p: int, dv: int) -> float:
 	return minf(1.0, pop[p] / float(POP_NEED[clampi(dv, 1, 5)]))
 
+## rules >= 2: roughly what the next development level earns each turn after the multipliers (shown on the Develop verb); 0 at the top
+func develop_gain(p: int, n: int) -> int:
+	var d := clampi(dev[p], 1, 5)
+	if d >= 5: return 0
+	var reg: Dictionary = D.REGIMES[regime[n]]
+	var stab_mod := 0.5 + stab[p] / 200.0
+	var step: float = job_income(p, d + 1) - job_income(p, d)
+	var extra: float = clampi(econ[p], 1, 5) * 0.4 * stab_mod
+	return int(roundf((step * stab_mod * float(reg["incProd"]) + extra) * float(reg["incMul"]) * (1.0 + tech_level[n] * 0.03)))
+
 ## price of the next development step (rules >= 2): about 30 turns to pay itself back
 func develop_cost(p: int) -> int:
 	if rules < 2: return 80 + dev[p] * 80

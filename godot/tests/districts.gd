@@ -54,6 +54,16 @@ func _init() -> void:
 	g.pop[p] = 400
 	var high := g.job_income(p, 3)
 	ok(low < high and absf(high - float(TBData.DEV_INCOME[3])) < 0.001, "short of people the top level pays less (%.1f < %.1f)" % [low, high])
+	g.pop[p] = 30; var gain_low := g.develop_gain(p, n)
+	g.pop[p] = 400; var gain_high := g.develop_gain(p, n)
+	ok(gain_high > gain_low and gain_high > 0, "the Develop verb's gain is smaller where the people are few (%d vs %d a turn)" % [gain_low, gain_high])
+	var al := TBAdvisor.alerts(g, n)
+	g.gold[n] = 900.0
+	al = TBAdvisor.alerts(g, n)
+	var ig := -1
+	for a in al:
+		if String(a["id"]) == "idle_gold": ig = int(a["p"])
+	ok(ig >= 0 and g.owner[ig] == n, "idle gold points at one of your districts")
 	ok(g.develop_cost(p) == int(ceil(28.0 * float(TBData.DEV_INCOME[4] - TBData.DEV_INCOME[3]))), "development step cost follows the income step")
 	# save / load
 	TBSave.save(g, "dist_test")

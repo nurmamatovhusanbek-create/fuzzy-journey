@@ -68,7 +68,17 @@ static func alerts(g: TBGame, n: int) -> Array:
 		wars += 1
 		if g.war_score[n * g.N1 + o] > best_ws: best_ws = g.war_score[n * g.N1 + o]; best_o = o
 	if best_ws >= 25: out.append(_a("war_winning", 0, g.capital_of[best_o], best_ws))
-	if g.gold[n] > 250.0 and net >= 0: out.append(_a("idle_gold", 0, -1, int(g.gold[n])))
+	if g.gold[n] > 250.0 and net >= 0:
+		var ig := -1                                                  # districts: point at the province where gold buys most (development the people can staff, else an empty slot)
+		if g.rules >= 2:
+			var igs := 0.0
+			for p in own:
+				if g.occupier[p] != 0 or g.b_building[p] != 0: continue
+				var sc := 0.0
+				if g.dev[p] < clampi(int(floor(g.tech_level[n])) + 1, 1, 5): sc = g.job_fill(p, g.dev[p] + 1) * 2.0 + (1.0 if g.capital[p] != 0 else 0.0)
+				if g.b_used(p) < g.b_slots(p): sc += 0.5 + g.pop[p] / 600.0
+				if sc > igs: igs = sc; ig = p
+		out.append(_a("idle_gold", 0, ig, int(g.gold[n])))
 	var cap_mp := 6.0 + g.era[n] * 2.0
 	if g.rules >= 1 and g.trade_cnt[n] == 0 and g.dp[n] >= 2.0 and g.turn > 4: out.append(_a("no_trade", 0, -1))
 	if g.rules >= 1 and g.turn > 2:

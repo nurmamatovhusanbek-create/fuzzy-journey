@@ -47,3 +47,18 @@ The engine test suite (`tests/run_all.gd`) passes, including the bit-exact oracl
 3. **Late-era technology** is capped at 5.0, so from WWII on the tech race is a clock, not a contest. Suggest a "technology lead" path (first to 5.0 by a margin) or a higher cap in late eras.
 4. **The world is calm:** in 300 turns 94 nations lose 1 (743 wars, 889 peaces, 347 occupations, 57 cessions, 42 annexations); large powers barely change size. Suggest more decisive AI war goals if a livelier map is wanted.
 5. **Rebels:** about 7 rebel events a turn, with 3-5% of the map rebel-held in the long run (more in the Napoleonic era). Check whether that is intended.
+
+## Re-run with districts (rules 2, docs/MODEL.md section 7)
+26 games x 300 turns (13 eras x seeds 1 and 2), `tools/sim.sh 300 "1 2"`. No invariant broke. The AIs now spend on buildings (several per province) and on development,
+which answers open item 2 (gold hoarding): the largest treasuries seen fell in most eras.
+
+| era | max treasury before | after | top nation start -> end |
+|---|---|---|---|
+| napoleonic | 29,563 | 2,873 | 204 -> 178 |
+| ww1 | 9,706 | 5,988 | 218 -> 106 |
+| ww2 | 13,797 | 2,175 | 220 -> 92 |
+| coldwar | 14,568 | 3,206 | 200 -> 104 |
+| victorian | 7,765 | 10,572 | 172 -> 156 |
+| roman | 150,419 | 79,570 | 266 -> 419 (still the one runaway world) |
+
+Diplomatic hegemony is still the AI's only reachable path (2 of 2 runs in five eras); the economic path stays out of reach.

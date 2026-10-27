@@ -786,6 +786,7 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				var dparts: Array = _cost_parts("%s %d→%d" % [T.call("cc_develop"), g.dev[s], g.dev[s] + 1], dc)
 				if g.rules >= 2:
 					var fill := int(roundf(g.job_fill(s, g.dev[s] + 1) * 100.0))
+					dparts.append({"t": " · " + T.call("cc_gain_turn", {"n": g.develop_gain(s, me)}), "short": false})
 					dparts.append({"t": " · " + T.call("cc_staffed", {"p": fill}), "short": fill < 70})
 				out.append(_mk("develop", "build", "cc_develop", dc, dparts))
 		3:
