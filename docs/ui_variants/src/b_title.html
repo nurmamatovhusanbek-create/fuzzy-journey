@@ -86,6 +86,17 @@ html,body{background:#000;color:var(--ivory);font-family:Alegreya,serif}
 .s5.hot span.t{color:var(--ivory)}.s5.hot{border-color:var(--hi);box-shadow:0 0 18px rgba(229,199,122,.16)}
 .s5 .pt{position:absolute;left:50%;bottom:-1px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top:8px solid var(--bad);display:none}
 .s5.hot .pt{display:block}.s5.hot .rl{opacity:1}
+
+.sel{position:absolute;pointer-events:none;--b:#E5C77A;
+ background:linear-gradient(var(--b),var(--b)) 0 0/12px 1.5px no-repeat,linear-gradient(var(--b),var(--b)) 0 0/1.5px 12px no-repeat,
+ linear-gradient(var(--b),var(--b)) 100% 0/12px 1.5px no-repeat,linear-gradient(var(--b),var(--b)) 100% 0/1.5px 12px no-repeat,
+ linear-gradient(var(--b),var(--b)) 0 100%/12px 1.5px no-repeat,linear-gradient(var(--b),var(--b)) 0 100%/1.5px 12px no-repeat,
+ linear-gradient(var(--b),var(--b)) 100% 100%/12px 1.5px no-repeat,linear-gradient(var(--b),var(--b)) 100% 100%/1.5px 12px no-repeat;filter:drop-shadow(0 0 5px rgba(229,199,122,.55))}
+.s4c{background:var(--lo)}
+.s4c.foc{background:var(--hi)}
+.s4c.press::before{background:linear-gradient(135deg,#120d07,#0b0805);box-shadow:inset 0 3px 10px #000}
+.s4c.press{transform:translateY(1px)}
+.s4c.press .t1{color:var(--hi)}
 </style></head><body>
 <div id="out"></div>
 <script>
@@ -118,12 +129,21 @@ const frame=(id,cap,inner)=>`<div class="stage" id="${id}">${stars(1280,720,260,
 const plate=(x,y,w,h,txt,o={})=>`<div class="plate ${o.hot?'hot':''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">${o.ic?ic(o.ic):''}<span>${txt}</span></div>`;
 
 const ITEMS=[['Continue','play','I'],['New game','globe','II'],['Load','load','III'],['Multiplayer','link','IV']];
-function menuStyle(n,x,y){let o='';
+function menuStyle(n,x,y,st,nosave){let o='';
  const gap={1:56,2:52,3:58,4:50,5:54}[n];
  if(n==1){return plate(x,y,250,46,'Continue',{hot:1,ic:'play'})+plate(x,y+56,250,42,'New game',{ic:'globe'})+plate(x,y+106,250,42,'Load',{ic:'load'})+plate(x,y+156,250,42,'Multiplayer',{ic:'link'})}
  if(n==2)ITEMS.forEach((it,i)=>{o+=`<div class="bt s2 ${i==0?'hot':''}" style="left:${x}px;top:${y+i*gap}px"><div class="n">${it[2]}</div><span>${it[0]}</span><span class="ch">›</span><div class="tk"></div></div>`});
  if(n==3)ITEMS.forEach((it,i)=>{o+=`<div class="bt s3 ${i==0?'hot':''}" style="left:${x}px;top:${y+i*gap}px"><div class="m">${ic(it[1])}</div><span class="t">${it[0]}</span><div class="ld"></div></div>`});
- if(n==4){o+=`<div class="bt s4c" style="left:${x}px;top:${y}px"><div class="flag"><img src="${FLAG}"></div><div><div class="t1">Continue</div><div class="t2">France · turn 23 · 1806 AD</div></div><span class="go">›</span></div>`;['New game','Load','Multiplayer'].forEach((t,i)=>{o+=`<div class="bt s4r" style="left:${x}px;top:${y+92+i*42}px">${t}</div>`})}
+ if(n==4){const f=st||'continue';const hot=k=>f==k||(f=='press'&&k=='continue');
+  const sel=(yy,hh)=>`<div class="sel" style="left:${x-10}px;top:${yy-6}px;width:290px;height:${hh+12}px"></div>`;
+  if(nosave){ // no saved game: the big card becomes "Begin a campaign", Load goes quiet
+    o+=`<div class="bt s4c ${hot('continue')?'foc':''}" style="left:${x}px;top:${y}px"><div class="flag" style="display:flex;align-items:center;justify-content:center;border-color:var(--lo)">${ic('globe')}</div><div><div class="t1">New game</div><div class="t2">Choose an era and a nation</div></div><span class="go">›</span></div>`;
+    ['Load','Multiplayer'].forEach((t,i)=>{o+=`<div class="bt s4r ${f==(i?'mp':'load')?'hot':''}" style="left:${x}px;top:${y+92+i*42}px;${i==0?'opacity:.45':''}">${t}</div>`});
+    return o+sel(y,78)}
+  o+=`<div class="bt s4c ${hot('continue')?'foc':''} ${f=='press'?'press':''}" style="left:${x}px;top:${y}px"><div class="flag"><img src="${FLAG}"></div><div><div class="t1">Continue</div><div class="t2">France · turn 23 · 1806 AD</div></div><span class="go">›</span></div>`;
+  [['New game','new'],['Load','load'],['Multiplayer','mp']].forEach(([t,k],i)=>{o+=`<div class="bt s4r ${f==k?'hot':''}" style="left:${x}px;top:${y+92+i*42}px">${t}</div>`});
+  const pos={continue:[y,78],press:[y,78],new:[y+92,40],load:[y+134,40],mp:[y+176,40]}[f];
+  return o+sel(pos[0],pos[1])}
  if(n==5)ITEMS.forEach((it,i)=>{o+=`<div class="bt s5 ${i==0?'hot':''}" style="left:${x}px;top:${y+i*gap}px"><span class="t">${it[0]}</span>${ic(it[1])}<div class="rl"></div><div class="pt"></div></div>`});
  return o}
 const out=document.getElementById('out');
@@ -139,17 +159,23 @@ const m1=()=>frame('m1','A · Observatory — ring and globe kept, lit from one 
  `<div class="abs" style="left:0;width:1280px;text-align:center;top:346px;font:italic 14px Alegreya;color:var(--dim)">France · Turn 23 · 1806 AD</div>`+
  plate(520,372,240,40,'New game',{ic:'globe'})+plate(520,420,240,40,'Load',{ic:'load'})+plate(520,468,240,40,'Multiplayer',{ic:'link'})+
  tools(0,694,1280));
-// ---- M2 Orrery: the ring becomes a timeline of the 13 worlds; menu left, save card right
-const m2=()=>frame('m2','B · Orrery — the ring is the timeline of the thirteen worlds; menu left, your campaign right',
- globe('gdark_as',640,372,380)+ring(640,372,250,{ticks:130,eras:ERAS,cur:7})+
- `<div class="wm" data-t="TERRA BELLUM" style="left:56px;top:70px;font-size:40px;letter-spacing:.2em;line-height:1.1">Terra<br>Bellum</div>`+
+// ---- M2 Orrery (the chosen layout), parameterised: st = which item is focused / pressed, mid = the moment the title dissolves into the game
+const bscreen=(o={})=>{const st=o.st||'continue',mid=o.mid||0;
+ const gs=mid?1+mid*1.1:1, ui=mid?Math.max(0,1-mid*2.2):1, rg=mid?Math.max(0,1-mid*1.7):1;
+ let h='';
+ h+=`<div style="position:absolute;inset:0;transform-origin:640px 372px;transform:scale(${gs});opacity:${mid?1-mid*.2:1}">`+globe('gfaint_as',640,372,380)+`</div>`;
+ h+=`<div style="position:absolute;inset:0;transform-origin:640px 372px;transform:scale(${1+mid*.55});opacity:${rg}">`+ring(640,372,250,{ticks:130,eras:ERAS,cur:7})+`</div>`;
+ h+=`<div style="position:absolute;inset:0;opacity:${ui}">`;
+ h+=`<div class="wm" data-t="TERRA BELLUM" style="left:56px;top:70px;font-size:40px;letter-spacing:.2em;line-height:1.1">Terra<br>Bellum</div>`+
  `<div class="rule" style="left:56px;width:260px;top:176px"><i></i></div>`+
  `<div class="tag" style="left:56px;top:192px;font-size:10.5px">A turn-based chronicle<br><span style="line-height:2">of the globe</span></div>`+
- menuStyle(BTN,56,300)+
+ menuStyle(4,56,300,st,o.nosave)+
  `<div class="card" style="left:960px;top:290px;width:268px"><div class="flag"><img src="${FLAG}"></div><div><div class="t">Your campaign</div><div class="n">France</div><div class="s">Emperor Napoleon · turn 23</div><div class="s" style="color:var(--hi)">1806 AD · Napoleonic era</div></div></div>`+
  `<div class="lab" style="left:960px;top:268px">Continue where you left off</div>`+
  `<div class="abs" style="left:960px;top:388px;width:268px;font:italic 14px/1.5 Alegreya;color:var(--dim)">“Spain declared war on Austria.”<br>“A plague spreads in the east.”<br><span style="color:var(--dim2)">— the chronicle, last turns</span></div>`+
- tools(0,694,1280));
+ tools(0,694,1280)+`</div>`;
+ return frame(o.id||'m2',o.cap||'B · Orrery — card + quiet rows',h)};
+const m2=()=>bscreen({id:'m2',st:BST});
 // ---- M3 Chart room: huge globe bleeding off the corner, a navigator's grid, the menu on the left
 function grid(){let o='';for(let i=-2;i<16;i++){o+=`<line x1="${i*100}" y1="0" x2="${i*100+140}" y2="720" stroke="#C9A24B" stroke-opacity=".10"/>`}for(let j=0;j<9;j++){o+=`<path d="M0 ${j*90} Q 640 ${j*90-60} 1280 ${j*90+30}" stroke="#C9A24B" stroke-opacity=".10" fill="none"/>`}
  // compass rose, faint
@@ -177,8 +203,12 @@ const m4=()=>frame('m4','D · Medallions — the same round instruments as the g
  tools(0,694,1280));
 // fix the duplicate: arrange as Load, New game, [Continue], Multiplayer, Settings
 const m5=()=>m1().replace('gdark_eu','eu').replace("filter:brightness(1.55) saturate(1.25)",'').replace('A · Observatory — ring and globe kept, lit from one side; wordmark engraved; menu as plates','A · Observatory with TODAY’S title colours (the bright map palette) — for comparing palettes');
-const sets={m1,m2,m3,m4,m5};
+const mk=(o)=>()=>bscreen(o);
+const sets={m1,m2,m3,m4,m5,
+ s_continue:mk({st:'continue',cap:'Continue focused'}),s_new:mk({st:'new',cap:'New game focused (the selector moved)'}),s_mp:mk({st:'mp',cap:'Multiplayer focused'}),s_press:mk({st:'press',cap:'Continue pressed'}),s_nosave:mk({st:'continue',nosave:1,cap:'No saved game yet'}),
+ f1:mk({st:'press',cap:'1 · Continue is pressed'}),f2:mk({st:'press',mid:.34,cap:'2 · the ring opens, the menu dissolves, the globe swells'})};
 const BTN=+(new URLSearchParams(location.search).get('b')||1);
+const BST=new URLSearchParams(location.search).get('st')||'continue';
 const q=new URLSearchParams(location.search).get('m');
 if(q&&sets[q]) out.innerHTML=sets[q](); else for(const k in sets) out.insertAdjacentHTML('beforeend',sets[k]());
 </script></body></html>
