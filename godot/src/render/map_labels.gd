@@ -67,6 +67,18 @@ func set_game(game: TBGame) -> void:
 	_core_sig = -1
 	queue_redraw()
 
+## C3: the clash marker over a province where a battle was just fought: a pill with crossed swords and the losses, a short shake on arrival (Full / Light; nothing with Effects Off)
+func add_clash(to: int, win: bool, text: String) -> void:
+	if not TBFx.on(TBFx.LIGHT): return
+	_fx.append({"kind": "clash", "from": to, "to": to, "col": TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"), "t0": Time.get_ticks_msec(), "dur": 1500, "text": text})
+	queue_redraw()
+
+## C1: an army pill glides from the province it left to the one it reached (0.7 s), landing on the marker that already shows the new count (Full / Light)
+func add_glide(from: int, to: int, nation: int, count: int) -> void:
+	if not TBFx.on(TBFx.LIGHT) or from == to: return
+	_fx.append({"kind": "glide", "from": from, "to": to, "col": TBTokens.c("brass_lt"), "t0": Time.get_ticks_msec(), "dur": 700, "nation": nation, "count": count})
+	queue_redraw()
+
 func add_fx(kind: String, from: int, to: int, col: Color, delay_ms: int = 0) -> void:
 	_fx.append({"kind": kind, "from": from, "to": to, "col": col, "t0": Time.get_ticks_msec() + delay_ms, "dur": 700 if kind == "atk" else (2600 if kind == "march" else 900)})
 	queue_redraw()
@@ -1218,6 +1230,42 @@ func _draw_arrow(pts: PackedVector2Array, n: int, attack: bool, dashed: bool, al
 	var k := _clip(pts, n, trim, s_base)
 	_draw_arrow_cut(k, _pt_at(pts, n, s_tip), d1, attack, dashed, alpha, phase)
 
+func _draw_glide(from2: Vector2, to2: Vector2, k: float, nation: int, count: int) -> void:
+	var e: float = k * k * (3.0 - 2.0 * k)
+	var c: Vector2 = from2.lerp(to2, e) + Vector2(0.0, -sin(e * PI) * 10.0)
+	var a: float = minf(k / 0.12, 1.0) * (1.0 - maxf(0.0, (k - 0.82) / 0.18))
+	for i in 4:                                                                   # a short trail
+		var ek: float = maxf(e - 0.05 * float(i + 1), 0.0)
+		draw_circle(from2.lerp(to2, ek) + Vector2(0.0, -sin(ek * PI) * 10.0), 5.0 - float(i), TBTokens.with_a(TBTokens.c("brass_lt"), 0.25 * a * (1.0 - 0.22 * float(i))))
+	var f := TBKit.mono_b()
+	var fsz := TBKit.fs(14)
+	var txt := TBKit.fmt(float(count))
+	var tw: float = f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	var w: float = tw + 40.0
+	var r := Rect2(c - Vector2(w * 0.5, 14.0), Vector2(w, 28.0))
+	draw_rect(r, TBTokens.with_a(TBTokens.BZ_PLATE_BOT, 0.96 * a))
+	draw_rect(r, TBTokens.with_a(TBTokens.c("brass_lt"), a), false, 1.2)
+	var tex: Texture2D = TBFlags.medal_of(g, nation)
+	if tex != null: TBFlags.draw_medal(self, tex, Vector2(r.position.x + 15.0, c.y), 9.0)
+	draw_string(f, Vector2(r.position.x + 28.0, c.y + f.get_ascent(fsz) * 0.5 - 2.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, TBTokens.with_a(TBTokens.c("cream"), a))
+
+func _draw_clash(at: Vector2, k: float, col: Color, text: String, motion: bool) -> void:
+	var a: float = minf(k / 0.08, 1.0) * (1.0 - maxf(0.0, (k - 0.75) / 0.25))
+	var shake: float = sin(k * 90.0) * 3.0 * maxf(0.0, 1.0 - k * 4.0) if motion else 0.0
+	var f := TBKit.mono_b()
+	var fsz := TBKit.fs(18)
+	var tw: float = f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	var w: float = tw + 56.0
+	var h: float = 40.0
+	var c := at + Vector2(shake, -38.0 - (6.0 * (1.0 - minf(k / 0.15, 1.0)) if motion else 0.0))
+	var r := Rect2(c - Vector2(w * 0.5, h * 0.5), Vector2(w, h))
+	var glow := col; glow.a = 0.22 * a
+	draw_circle(c, h * 1.1, glow)
+	draw_rect(r, TBTokens.with_a(TBTokens.BZ_PLATE_BOT, 0.95 * a))
+	draw_rect(r, TBTokens.with_a(col, a), false, 1.5)
+	TBBzIcons.draw(self, "war", Vector2(r.position.x + 22.0, c.y), 20.0, TBTokens.with_a(col, a), 1.8)
+	draw_string(f, Vector2(r.position.x + 40.0, c.y + f.get_ascent(fsz) * 0.5 - 2.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, TBTokens.with_a(TBTokens.c("cream"), a))
+
 ## battle arrows (same arrow language, solid, fading over 120 ms at the end) and impact rings
 func _draw_fx() -> void:
 	var now := Time.get_ticks_msec()
@@ -1232,6 +1280,13 @@ func _draw_fx() -> void:
 		if pt_to.z <= 0.0: continue
 		var col: Color = f["col"]
 		var to2 := Vector2(pt_to.x, pt_to.y)
+		if f["kind"] == "clash":
+			_draw_clash(to2, k, col, String(f["text"]), motion)
+			continue
+		if f["kind"] == "glide":
+			var pf := map.project(g.world.lon[f["from"]], g.world.lat[f["from"]])
+			if pf.z > 0.0: _draw_glide(Vector2(pf.x, pf.y), to2, k, int(f["nation"]), int(f["count"]))
+			continue
 		if f["kind"] == "atk" or f["kind"] == "march":
 			var pt_from := map.project(g.world.lon[f["from"]], g.world.lat[f["from"]])
 			if pt_from.z <= 0.0: continue

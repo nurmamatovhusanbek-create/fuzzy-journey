@@ -148,6 +148,7 @@ func setup(game: TBGame) -> void:
 
 # ---------------------------------------------------------------- palette
 func repaint_all() -> void:
+	_fade.clear()
 	TBVision.sync(g)
 	_rel_changed()
 	lenses.refresh_nations()
@@ -163,10 +164,20 @@ func repaint(dirty: PackedInt32Array, full: bool = false) -> void:
 		repaint_all(); return
 	if lenses.cvd_active() and lenses.refresh_nations():     # an owner change re-solved the adjacency colouring
 		repaint_all(); return
+	var fade_ok: bool = quality >= 1 and TBFx.on(TBFx.FULL)                 # C2: a province that changes colour (a conquest) dissolves into its new one over 0.5 s
+	var k := 0
 	for p in dirty:
+		var o: int = (p + 1) * 4
+		var r0: int = _pal[o]; var g0: int = _pal[o + 1]; var b0: int = _pal[o + 2]
+		var had: bool = _pal[o + 3] == 255
 		_write(p)
+		if fade_ok and had and (_pal[o] != r0 or _pal[o + 1] != g0 or _pal[o + 2] != b0):
+			_fade[p] = [r0, g0, b0, int(_pal[o]), int(_pal[o + 1]), int(_pal[o + 2]), 0.0, minf(0.04 * float(k), 0.32)]
+			k += 1
+			_pal[o] = r0; _pal[o + 1] = g0; _pal[o + 2] = b0
 	_upload()
 
+var _fade := {}                              # province -> [from rgb, to rgb, elapsed, delay]
 var _rel_sig := -1
 ## true when the player's relations changed since the last full paint (a war or pact recolours every province of that nation)
 func _rel_changed() -> bool:
@@ -545,6 +556,21 @@ func _process(delta: float) -> void:
 	else:
 		_hover_t = 1.0 if hover >= 0 else 0.0; _hover_prev_t = 0.0; _sel_t = 1.0
 	if absf(_hover_t + _hover_prev_t + _sel_t - was) > 0.0001: busy = true
+	if not _fade.is_empty():
+		var done: Array = []
+		for p in _fade:
+			var f: Array = _fade[p]
+			f[6] += delta
+			var kf: float = clampf((float(f[6]) - float(f[7])) / 0.5, 0.0, 1.0)
+			var e: float = kf * kf * (3.0 - 2.0 * kf)
+			var o: int = (int(p) + 1) * 4
+			for c in 3: _pal[o + c] = int(roundf(lerpf(float(f[c]), float(f[3 + c]), e)))
+			if kf >= 1.0: done.append(p)
+		for p in done: _fade.erase(p)
+		_pal_gen += 1
+		_pal_img.set_data(PAL_W, 4, false, Image.FORMAT_RGBA8, _pal)
+		_pal_tex.update(_pal_img)
+		busy = true
 	if _lbl_pending and float(Time.get_ticks_msec() - _lbl_t) >= minf(140.0, labels.last_cost_ms * 3.0):
 		_lbl_pending = false; _lbl_t = Time.get_ticks_msec(); labels.queue_redraw()
 	if busy:

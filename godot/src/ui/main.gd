@@ -948,19 +948,25 @@ func _do_move(from: int, to: int) -> void:
 		if rs == "march":                                                     # a long march: the army has taken its first stride, the rest is a standing order
 			var step_to: int = at if at >= 0 else to
 			map.labels.add_fx("march", from, step_to, TBTokens.c("brass_lt"))
+			map.labels.add_glide(from, step_to, g.human_id, maxi(tr, 1) if tr != 0 else maxi(a0 - 1, 1))
 			_select(step_to)
 			_after_change()
 			return
 		if rs == "move":
 			map.labels.add_fx("march", from, to, TBTokens.c("brass_lt"))
+			map.labels.add_glide(from, to, g.human_id, maxi(tr, 1) if tr != 0 else maxi(a0 - 1, 1))
 		else:
 			var win: bool = rs == "win"
 			map.labels.add_fx("atk", from, to, TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"))
 			map.labels.add_fx("cap", from, to, TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"), 450)
 			var send: int = maxi(1, mini(tr if tr != 0 else a0 - 1, a0 - 1))
-			TBModals.battle_report(_overlay, {"win": win, "name": TBI18n.place(world.name[to]), "claimed": win and g.owner[to] == g.human_id,
+			var rep := {"win": win, "name": TBI18n.place(world.name[to]), "claimed": win and g.owner[to] == g.human_id,
 				"my_loss": (send - g.army[to]) if win else (a0 - g.army[from]), "foe_loss": d0 if win else d0 - g.army[to], "left": g.army[to],
-				"my0": send, "foe0": d0, "me_n": g.human_id, "foe_n": foe_n, "g": g})
+				"my0": send, "foe0": d0, "me_n": g.human_id, "foe_n": foe_n, "g": g}
+			map.labels.add_clash(to, win, "−%s" % K.fmt(float(rep["my_loss"] + rep["foe_loss"])))             # C3: the clash is seen on the map first (0.7 s on Full), then the report
+			if TBFx.on(TBFx.FULL):
+				get_tree().create_timer(0.7).timeout.connect(func(): if mode == "game" and g != null: TBModals.battle_report(_overlay, rep))
+			else: TBModals.battle_report(_overlay, rep)
 		_select(to)
 	_after_change()
 

@@ -79,16 +79,17 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | B5 | Treaty signed | **DROP as a dialog** (see section 4) | | | |
 | B6 | Turn summary sheet | **deferred: needs the owner's answer (section 6 Q3)** | | | |
 | B8 | Tooltips / toasts consistency | queued | | | |
-| C2 | Conquest sweep on the map | queued (mock first) | | | |
+| C2 | Conquest dissolve on the map (province colour crossfades 0.5 s, staggered) | done | @C123 | Full + medium/high tier only; Light / Off: instant | conquest_fade.gd |
 | C4 | Turn passing: terminator sweep, date flip, gauge count-up | queued (mock first) | | | |
-| C1 | Armies travel along their route | queued | | | |
-| C3 | Battle clash marker on the map | queued | | | |
+| C1 | Army pill glides from the old province to the new one | done | @C123 | Light + Full; Off: none | map_fx.gd |
+| C3 | Clash marker (swords + losses) on the map; the report follows 0.7 s later on Full | done | @C123 | Light + Full; Off: none, report at once | map_fx.gd |
 | C6 | Selection pulse / nation outline breath | queued | | | |
 | C5 | Ambient sea / clouds / city glints (Full only) | queued (mock first) | | | |
 | A3 | Era picker as a timeline | queued (mock first) | | | |
 | A4 | Nation pick with Bezel plates and hover card | queued (mock first) | | | |
 | A5b | Begin-game dive (new game) | queued | | | |
-| D1-D5 | HUD micro-interactions | queued | | | |
+| D1 | Gauge count-up, rising delta, pulse | **already existed** (`TBHudParts.Chip.set_num`) | | respects Reduce motion | |
+| D2-D5 | other HUD micro-interactions | queued | | | |
 | E1-E4 | Music, ambience, cue set, mix | queued (samples first) | | | |
 | F1-F5 | Era mood, tips, portraits / flags, event art, codex | queued | | | |
 
@@ -170,6 +171,14 @@ A modal after every accepted pact would interrupt the player for something that 
 
 ### B6 · Turn summary: deferred
 The events it would list already appear as toasts and alert notices; a sheet on top would duplicate them. Needs a decision (section 6 Q3): replace the toast burst after End Turn with one sheet when 3 or more things happened, or leave as is.
+
+### C1 + C2 + C3 · The map reacts
+Pictures: `docs/screens/c/clash_and_glide.png`, `conquest_fade_a.png`, `conquest_fade_b.png` (the before is simply the same moment without them: a recolour in one frame, no marker).
+* **C2 conquest dissolve** (`map_view.gd repaint`, `_fade`, `_process`): a province whose palette colour changes in `repaint(dirty)` (not a full repaint / lens change) fades old -> new over 0.5 s, staggered by 40 ms per province (max 0.32 s). Only on Full and tier medium / high (every fade frame is a full map redraw while it runs; idle stays 0). Palette row 1 (owner id, borders) switches at once.
+* **C3 clash marker** (`map_labels.gd add_clash`, `_draw_clash`): a pill with crossed swords and the total losses over the fought province, short shake on arrival, 1.5 s. `main._do_move` shows it, and on Full waits 0.7 s before opening the battle report so the clash is seen on the map.
+* **C1 glide** (`map_labels.gd add_glide`, `_draw_glide`): a flag + count pill travels from the source province to the target in 0.7 s with a short trail, called for plain moves and the first step of a march.
+* **Test**: `tests/conquest_fade.gd` (fading, first frame old, ends, new colour, Light / Off immediate), `tests/map_fx.gd` (queued, end by themselves, idle map draws no frames, Off queues nothing).
+* **Not done**: a sweep that spreads inside a province from the point of conflict (needs a shader change; the crossfade is the cheap version), battle markers for AI-vs-AI fights, C4 (terminator sweep) and C6 / C5 (see section 5).
 
 *(Add a block per finished step below this line, newest last.)*
 
