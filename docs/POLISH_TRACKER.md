@@ -73,9 +73,9 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | B-mock | Pop-up mock-ups (war, event, battle, treaty, summary, finale, staging) | done | 10f2c85 | | n/a |
 | B1 | Dialog staging in `TBPanel.open` (bezel dialogs) | done | faf696e | Off / Reduce motion: the old fade, no staging | staging.gd (+ suite) |
 | B3 | War declaration: seal button, face-off card, "War" moment | done | faf696e | Off: no moment (card look is permanent) | war_moment.gd (+ suite) |
-| B2 | Event pop-up: illustration band, glyph per class, strength bar | done | @B2B7 | Off: same look (no motion) | event_shots.gd |
-| B7 | Game-over finale (victory / defeat) | done | @B2B7 | Light: fade; Off: complete at once | finale.gd |
-| B4 | Battle report (armies face to face, bars drain, result ribbon) | done | @B2B7 | Off: bars complete at once | battle_ui.gd |
+| B2 | Event pop-up: illustration band, glyph per class, strength bar | done | 99c1895 | Off: same look (no motion) | event_shots.gd |
+| B7 | Game-over finale (victory / defeat) | done | 99c1895 | Light: fade; Off: complete at once | finale.gd |
+| B4 | Battle report (armies face to face, bars drain, result ribbon) | done | 99c1895 | Off: bars complete at once | battle_ui.gd |
 | B5 | Treaty signed | **DROP as a dialog** (see section 4) | | | |
 | B6 | Turn summary sheet | **deferred: needs the owner's answer (section 6 Q3)** | | | |
 | B8 | Tooltips / toasts consistency | queued | | | |
