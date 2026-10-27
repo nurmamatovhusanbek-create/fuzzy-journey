@@ -28,6 +28,10 @@ func _init() -> void:
 	# finish the construction through the real turn path
 	g.end_turn()
 	ok(g.bl(p, TBData.B_MARKET) == 1 and g.building[p] == TBData.B_MARKET, "market stands, single view mirrors it")
+	var built_logged := false
+	for e in g.log:
+		if String(e["kind"]) == "built" and int(e["p"]) == p and int(e["a"]) == n: built_logged = true
+	ok(built_logged, "finishing a building is written to the chronicle for the player")
 	g.gold[n] = 5000.0; g.mp[n] = 20.0
 	var c2 := g.can({"cmd": "build", "p": p, "b": TBData.B_FARM})
 	ok(not bool(c2["ok"]) and String(c2["reason"]) == "slots", "second type is refused while the single slot is used")

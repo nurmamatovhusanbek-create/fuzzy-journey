@@ -129,6 +129,7 @@ static func _tick(g: TBGame) -> void:
 				elif g.building[p] == g.b_building[p]: g.b_level[p] += 1
 				else:
 					g.building[p] = g.b_building[p]; g.b_level[p] = 1
+				if g.rules >= 2 and o != 0 and g.human[o] != 0: g.log.append({"turn": g.turn, "kind": "built", "a": o, "p": p, "b": int(g.b_building[p]), "lv": g.bl(p, g.b_building[p])})
 				g.b_building[p] = 0; g.touch(p)
 	var rebels_to_spawn: Array = []
 	g.infl = inflation(g)

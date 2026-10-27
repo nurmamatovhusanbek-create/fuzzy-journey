@@ -484,7 +484,11 @@ func describe(p: int) -> String:
 		"military": return ("%s: %s" % [T.call("lens_military"), TBKit.fmt(g.army[p]) if (o == me or TBVision.sees_fast(g, p)) else "?"]) if o != 0 else ""
 		"stability": return "%s: %d" % [T.call("lens_stability"), int(g.stab[p])] if o != 0 else ""
 		"population": return "%s: %s" % [T.call("lens_population"), TBKit.fmt(g.pop[p])] if o != 0 else ""
-		"buildings": return "%s: %s %s" % [T.call("lens_buildings"), swatch_letter("buildings", g.building[p] - 1), T.call("b_" + D.BUILDINGS[g.building[p] - 1]["id"])] if g.building[p] != 0 else ""
+		"buildings":
+			if g.building[p] == 0: return ""
+			var names: PackedStringArray = []                                            # districts: every building that stands here, the main one first with its colour letter
+			for e in g.b_list(p): names.append(T.call("b_" + D.BUILDINGS[int(e[0]) - 1]["id"]) + (" %d" % int(e[1]) if int(e[1]) > 1 else ""))
+			return "%s: %s %s" % [T.call("lens_buildings"), swatch_letter("buildings", g.building[p] - 1), " · ".join(names)]
 		"governments": return "%s: %s %s" % [T.call("lens_governments"), swatch_letter("governments", g.regime[o]), T.call("g_" + D.REGIME_ID[g.regime[o]])] if o != 0 else ""
 		"terrain": return "%s: %s %s" % [T.call("lens_terrain"), swatch_letter("terrain", g.terrain[p]), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]
 		"wars":
