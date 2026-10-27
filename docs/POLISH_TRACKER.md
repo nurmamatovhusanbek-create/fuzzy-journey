@@ -85,13 +85,14 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | C3 | Clash marker (swords + losses) on the map; the report follows 0.7 s later on Full | done | fb13eb4 | Light + Full; Off: none, report at once | map_fx.gd |
 | C6 | Selection pulse / nation outline breath | queued | | | |
 | C5 | Ambient sea / clouds / city glints (Full only) | queued (mock first) | | | |
-| A3 | Era picker on the title ring (variant A of the mock) | done, **awaiting owner's pick between ring / strip** | @A3E3 | Setting `era_ui` ring / classic (Settings -> Display); Off: ring jumps | era_ring.gd |
+| A3 | Era picker on the title ring (variant A of the mock) | done, **awaiting owner's pick between ring / strip** | 52eaecd | Setting `era_ui` ring / classic (Settings -> Display); Off: ring jumps | era_ring.gd |
 | A4 | Nation pick with Bezel plates and hover card | queued (mock first) | | | |
 | A5b | Begin-game dive (new game) | queued | | | |
 | D1 | Gauge count-up, rising delta, pulse | **already existed** (`TBHudParts.Chip.set_num`) | | respects Reduce motion | |
-| D2-D5 | other HUD micro-interactions | queued | | | |
-| E3 | Cue set: stamp, clash, gain, loss, defeat, page, bell, low (synthesised); `TBAudio.cue(name)` | partly done (wired: stamp, clash, gain / loss, defeat, page) | @A3E3 | respects the sound setting | audio.gd |
-| E1, E2, E4 | Music, ambience, ducking | queued (owner picks the style from samples first) | | | |
+| D2-D5 | other HUD micro-interactions | **checked, already in the Bezel port**: lens pointer glides (`TBHudParts` tuner `_px` easing), gauges count up, rail / medallion hover and press states follow the demo (parity-tested); the command card is a notched card (no ring to fan out) | | | |
+| E3 | Cue set: stamp, clash, gain, loss, defeat, page, bell, low (synthesised); `TBAudio.cue(name)` | partly done (wired: stamp, clash, gain / loss, defeat, page) | 52eaecd | respects the sound setting | audio.gd |
+| E1 samples | Three generated 32 s music samples to pick a style from: `docs/media/music_samples/A_orrery.ogg` (slow pads + bell arpeggio), `B_pluck.ogg` (plucked strings, D dorian), `C_march.ogg` (drone + hand drums + brass swells); regenerate with `tools/music_samples.py` | done (owner listens and picks) | | | |
+| E1, E2, E4 | Music bus playback, ambience, ducking | queued (starts after the owner picks a sample style, section 6 Q2) | | | |
 | F1-F5 | Era mood, tips, portraits / flags, event art, codex | queued | | | |
 
 ## 4. Change log with before / after

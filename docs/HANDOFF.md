@@ -1,5 +1,7 @@
 # Terra Bellum — hand-off notes
 
+> **Polish work (title, effects, pop-ups, map life, sound): read `docs/POLISH_TRACKER.md` first** - status board, decisions, before / after pictures, the work queue and how to resume. `docs/ROADMAP_POLISH.md` has the long-form plan.
+
 ## Getting builds
 Every push to a `claude/**` branch or `main` runs `.github/workflows/godot.yml`:
 1. **test** — all headless tests (`tools/test_all.sh`: engine, save/load, rulers, diplomacy, decisions, trade, marriage, generals, ultimatums, honours, supply, events, soak, audio, MP server+2 clients; the script now exits non-zero when any test fails) and the JS-oracle check.
