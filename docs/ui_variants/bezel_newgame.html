@@ -125,7 +125,7 @@ html,body{background:#000;color:var(--ivory);font-family:Alegreya,serif}
 .ecard>*{position:relative}
 .ecard.on{background:var(--hi)}.ecard.on::before{background:linear-gradient(#3a2c15,#17110a)}
 .ecard .y{font:600 12px 'JetBrains Mono';letter-spacing:.1em;color:var(--dim);text-align:center;margin-top:10px}.ecard.on .y{color:var(--hi)}
-.ecard .n{font:700 11.5px/1.2 Cinzel;letter-spacing:.1em;text-transform:uppercase;text-align:center;margin:6px 8px 0;color:var(--ivory)}
+.ecard .n{font:700 10px/1.2 Cinzel;letter-spacing:.06em;text-transform:uppercase;text-align:center;margin:6px 8px 0;color:var(--ivory)}
 .ecard .fl{display:flex;justify-content:center;gap:3px;margin-top:10px}.ecard .fl img{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 1px #0007}
 .ecard .g{margin:10px auto 0;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 36% 30%,var(--tint),#0b0e14 70%);box-shadow:0 0 0 1px var(--lo)}
 .slip{position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:10px 26px 12px;text-align:center;--c:9px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--lo)}
@@ -171,9 +171,9 @@ const detail=(x,y,w)=>
  `<div class="yr" style="left:${x}px;top:${y+46}px">1804 AD</div><div class="h1" style="left:${x}px;top:${y+68}px;width:${w}px">Napoleonic<br>Era</div>`+
  `<div class="blurb" style="left:${x}px;top:${y+170}px;width:${w}px">An emperor crowns himself in Paris; every throne in Europe is suddenly up for grabs.</div>`+
  `<div class="lab" style="left:${x}px;top:${y+244}px">Great powers</div><div style="position:absolute;left:${x}px;top:${y+266}px;width:${w}px">${powers}</div>`+
- `<div class="lab" style="left:${x}px;top:${y+342}px">Difficulty</div><div class="seg" style="left:${x}px;top:${y+362}px"><i>Easy</i><i class="on">Normal</i><i>Hard</i></div>`+
- `<div class="lab" style="left:${x}px;top:${y+414}px">Players</div><div class="seg" style="left:${x}px;top:${y+434}px"><i class="on" style="min-width:56px">1</i><i style="min-width:56px">2</i><i style="min-width:56px">3</i><i style="min-width:56px">4</i></div>`+
- plate(x,y+494,w-20,50,'Pick a nation  ›',{hot:1});
+ `<div class="lab" style="left:${x}px;top:${y+356}px">Difficulty</div><div class="seg" style="left:${x}px;top:${y+378}px"><i>Easy</i><i class="on">Normal</i><i>Hard</i></div>`+
+ `<div class="lab" style="left:${x}px;top:${y+430}px">Players</div><div class="seg" style="left:${x}px;top:${y+450}px"><i class="on" style="min-width:56px">1</i><i style="min-width:56px">2</i><i style="min-width:56px">3</i><i style="min-width:56px">4</i></div>`+
+ plate(x,y+510,w-20,50,'Pick a nation  ›',{hot:1});
 const a3a=()=>frame('a3a','A3 · A — the ring is the era picker: click an era on the ring (or ←/→), the globe turns to a place typical of it',
  globe(800,372,360)+ring(800,372,236,7,9)+detail(60,64,380)+
  `<div class="abs" style="left:860px;top:640px;font:italic 14px Alegreya;color:var(--dim)">← → or click an era · Enter to pick a nation</div>`+
@@ -188,8 +188,8 @@ const a3b=()=>frame('a3b','A3 · B — a strip of thirteen era cards under the g
  `<div class="seg" style="left:880px;top:372px"><i>Easy</i><i class="on">Normal</i><i>Hard</i></div><div class="seg" style="left:880px;top:416px"><i class="on" style="min-width:56px">1</i><i style="min-width:56px">2</i><i style="min-width:56px">3</i><i style="min-width:56px">4</i></div>`+
  plate(880,468,300,46,'Pick a nation  ›',{hot:1})+strip(7));
 const MAPFL=['france','uk','russian_empire','austrian_empire','ottoman_empire','prussia','spain','qing_empire'];
-const a4=()=>`<div class="stage" id="a4" style="background:#0A0D12 url(mock_assets/game_bg.jpg) center/1280px 720px no-repeat"><div class="abs" style="inset:0;background:rgba(3,5,8,.28)"></div>`+
- `<div class="abs" style="left:14px;top:14px">${plate(0,0,88,36,'Back')}</div><div class="abs" style="right:14px;top:14px">${plate(0,0,96,36,'Nations')}</div>`.replace('left:14px;top:14px">'+plate(0,0,88,36,'Back'),'left:14px;top:14px;width:88px;height:36px">'+plate(0,0,88,36,'Back'))+
+const a4=()=>`<div class="stage" id="a4" style="background:#0A0D12 url(mock_assets/pick_bg.jpg) center/1280px 720px no-repeat"><div class="abs" style="inset:0;background:rgba(3,5,8,.28)"></div>`+
+ `<div class="abs" style="left:14px;top:14px">${plate(0,0,88,36,'Back')}</div><div class="abs" style="left:1170px;top:14px;width:96px;height:36px">${plate(0,0,96,36,'Nations')}</div>`.replace('left:14px;top:14px">'+plate(0,0,88,36,'Back'),'left:14px;top:14px;width:88px;height:36px">'+plate(0,0,88,36,'Back'))+
  `<div class="slip"><div class="t">Tap a province to claim its nation</div><div style="margin-top:6px">${steps(1,0,0).replace('position:absolute;','position:static;justify-content:center;')}</div></div>`+
  `<div class="abs" style="left:690px;top:300px;width:44px;height:44px;border-radius:50%;box-shadow:0 0 0 2px var(--hi),0 0 30px rgba(229,199,122,.6)"></div>`+
  `<div class="hov" style="left:742px;top:238px"><div style="padding:16px 18px"><div style="display:flex;gap:12px;align-items:center"><img src="${FL('austrian_empire')}" style="width:46px;height:46px;border-radius:50%;box-shadow:0 0 0 1.5px var(--brass),0 0 0 4px #0006"><div><div class="cap" style="font:600 10px Cinzel;letter-spacing:.2em;color:var(--hi)">Hovering</div><div style="font:700 17px Cinzel;letter-spacing:.1em;text-transform:uppercase">Austrian Empire</div><div style="font:italic 14px Alegreya;color:var(--dim)">Emperor Francis II</div></div></div><div style="margin-top:10px"><div class="row"><span>Size rank</span><b>#7 · 49 provinces</b></div><div class="row"><span>Army</span><b>12,400</b></div><div class="row"><span>Technology</span><b>3.2</b></div><div class="row" style="border:0"><span>Start</span><b class="neg">Hard</b></div></div></div></div>`+

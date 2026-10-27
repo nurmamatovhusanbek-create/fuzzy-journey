@@ -180,6 +180,10 @@ Pictures: `docs/screens/c/clash_and_glide.png`, `conquest_fade_a.png`, `conquest
 * **Test**: `tests/conquest_fade.gd` (fading, first frame old, ends, new colour, Light / Off immediate), `tests/map_fx.gd` (queued, end by themselves, idle map draws no frames, Off queues nothing).
 * **Not done**: a sweep that spreads inside a province from the point of conflict (needs a shader change; the crossfade is the cheap version), battle markers for AI-vs-AI fights, C4 (terminator sweep) and C6 / C5 (see section 5).
 
+### A3 / A4 · New-game screens: mock-ups (pictures only) `docs/screens/newgame_mocks/`
+* `a3a.png` **ring as the era picker** (recommended: continues the title's ring; click an era on the ring or use the arrow keys; the left column is today's detail column in the Bezel look), `a3b.png` **strip of 13 era cards** under the globe, `a4.png` **nation pick** (same plates as the game, hovered nation lit with the game's outline, a small card with ruler, rank, army, technology, start difficulty). Source `docs/ui_variants/src/b_newgame.html`, `node shoot_newgame.mjs`.
+* Status: A3 variant A is being built behind the setting `cfg["era_ui"]` ("ring" on a wide landscape window, "classic" = today's dialog elsewhere and when set); A3-B and A4 wait for the owner's pick (section 6).
+
 *(Add a block per finished step below this line, newest last.)*
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
@@ -217,4 +221,5 @@ tune Light / Full from them; lit-space audit; leader portraits; flags for more e
 1. Dive default: keep Full on by default (current) or Light until you have seen it on your machine?
 2. Music taste (2-3 words per mood: title / peace / war / victory / defeat).
 3. Do you want the turn summary (B6) at all, or only the existing toasts?
-4. Prussia and other nations without era flags: generate engraved placeholders (F3) or leave the plain generated flags?
+4. New-game screens: ring picker (A3-A, built) or the card strip (A3-B)? Build the A4 nation-pick redo?
+5. Prussia and other nations without era flags: generate engraved placeholders (F3) or leave the plain generated flags?
