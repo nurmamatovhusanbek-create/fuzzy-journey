@@ -64,4 +64,12 @@ Findings and what was done:
   `merc0`): zero pixels differ (`tests/shader_compare.gd`), and they matter most where transcendental functions are slow (Intel HD 2000). Measured (software GL, camera
   drag, medium tier, 1280 x 720): 143 ms -> 117 ms per frame; the shader is the rest.
 
+  **Label layout** (`TBMapLabels`, the one big piece of script work left in a camera frame: 18-26 ms here at every zoom, throttled to a relayout every ~3x its own cost): measured
+  by section (candidate markers 10-13 ms at close zoom, nation names 8-17 ms, markers 1-10, province names 9). Fixed without changing a pixel
+  (`tests/label_shots.gd` draws 15 views before and after with `TB_SEED=11 TB_NOBAKE=1`, 0 pixels differ): the fog-of-war test is answered once per nation instead of once
+  per province (`TBVision.sees_fast` walked the friendliness and trade tables for each of 1,300 foreign provinces: ~8 us each); the cheap tests (zoom tier, relation) run before
+  the expensive ones; the globe's projection is inline and its sines / cosines are worked out once per layout; the ways a nation's name can be written (whole, two lines, short)
+  are cached, and each variant's width and height are measured once per name instead of once per try (up to 33 tries). Label layout: 18.6 -> 10 ms at zoom 1.2, 26 -> 19 ms at
+  zoom 3.2. `hud.refresh` no longer computes the advisor's alerts twice.
+
 Ideas not done yet: layout in a worker thread (compute on a snapshot, draw the result), moving the autosave off the main thread, lazy-loading the era flag sets.

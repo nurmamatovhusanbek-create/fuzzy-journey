@@ -618,11 +618,11 @@ func refresh() -> void:
 	_date.turn_no = g.turn; _date.phase = float(g.month_idx + 6) / 12.0
 	_date.turn_cap = T.call("aoc_turn", {"k": g.turn}).replace(":", "")
 	# alerts
-	_entries = TBAdvisor.ticker(g, n).filter(func(e: Dictionary) -> bool: return not _ans_gone.has(String(e["key"])))
+	var al: Array = TBAdvisor.alerts(g, n)                              # worked out once for the ticker and the dock badge
+	_entries = TBAdvisor.ticker(g, n, al).filter(func(e: Dictionary) -> bool: return not _ans_gone.has(String(e["key"])))
 	for e in _entries: _describe(e)
 	_ticker.update(_entries, g.turn)
 	_announce_new()
-	var al: Array = TBAdvisor.alerts(g, n)
 	var crit: int = 0
 	for a in al: if int(a["sev"]) == 2: crit += 1
 	var adv: P.IconBtn = _dock[3]

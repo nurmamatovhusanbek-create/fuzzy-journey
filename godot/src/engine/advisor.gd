@@ -147,10 +147,10 @@ static func class_of(id: String) -> String:
 ## everything the alert ticker shows, priority sorted: criticals first, then class order, then severity.
 ## Entry: {key (stable), cls, sev, id, p (subject province or -1), n (other nation or -1), k, uid (pending prompt or -1), ps (all provinces), ult}
 ## Alerts are state-based: re-evaluated on every call, so a chip is gone as soon as its condition is.
-static func ticker(g: TBGame, n: int) -> Array:
+static func ticker(g: TBGame, n: int, computed: Array = []) -> Array:
 	var out: Array = []
 	if n <= 0 or g.alive[n] == 0: return out
-	for a in alerts(g, n):
+	for a in (computed if not computed.is_empty() else alerts(g, n)):
 		var cls := class_of(String(a["id"]))
 		if cls == "": continue
 		out.append({"key": "a:" + String(a["id"]), "cls": cls, "sev": int(a["sev"]), "id": String(a["id"]), "p": int(a["p"]), "n": int(a["n"]), "k": int(a["k"]), "uid": -1, "ps": a["ps"], "ult": false})

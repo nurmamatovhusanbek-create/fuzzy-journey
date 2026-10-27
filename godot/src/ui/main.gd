@@ -556,7 +556,7 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	cfg["difficulty"] = difficulty; _save_cfg()
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	TBFlags.cur_era = String(era.get("id", ""))
-	g = TBGame.new(world, era, {"seed": int(Time.get_unix_time_from_system()) & 0x7fffffff | 1, "difficulty": difficulty, "aggression": int(cfg.get("aggression", 1))})
+	g = TBGame.new(world, era, {"seed": (int(OS.get_environment("TB_SEED")) if OS.get_environment("TB_SEED") != "" else int(Time.get_unix_time_from_system()) & 0x7fffffff | 1), "difficulty": difficulty, "aggression": int(cfg.get("aggression", 1))})
 	TBLenses.dark_land = true
 	map.setup(g)
 	mode = "pick"; _spin = false; _enter_game_visuals()

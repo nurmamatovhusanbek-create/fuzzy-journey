@@ -152,10 +152,13 @@ func _rebuild_cores() -> void:
 var _nl_rects: Array = []     # nation label rects drawn this frame (province names keep out of them)
 
 ## screen position + depth of a unit vector for the current camera
+var _cam_v := PackedFloat64Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+## the camera's sines and cosines and the globe's radius, worked out once per layout (a name tries a dozen places, each one a projection)
+func _cam_update() -> void:
+	if map.mode == 0: _cam_v = PackedFloat64Array([cos(map.lat0), sin(map.lat0), cos(map.lon0), sin(map.lon0), map.radius_px(), map.size.x * 0.5, map.size.y * 0.5])
 func _proj_vec(v: Vector3) -> Vector3:
 	if map.mode == 0:
-		var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
-		return _project_v(v, c0, s0, sl, cl, map.radius_px(), map.size.x * 0.5, map.size.y * 0.5)
+		return _project_v(v, _cam_v[0], _cam_v[1], _cam_v[3], _cam_v[2], _cam_v[4], _cam_v[5], _cam_v[6])
 	var lon := atan2(v.x, v.z); var lat := asin(clampf(v.y, -1.0, 1.0))
 	var pt := map.project(rad_to_deg(lon), rad_to_deg(lat))
 	return Vector3(pt.x, pt.y, 1.0)
@@ -259,7 +262,38 @@ func _on_a_route(n: int) -> bool:
 	if map.lenses.route_kind != "": return map.lenses.route_lit(n)                  # a picked kind: only its countries
 	return g.get_rel(me, n) != 0 or (g.rules >= 1 and TBTrade.has(g, me, n))
 
+var _var_cache := {}
+func _name_variants(txt: String, atlas: bool) -> Array:
+	var key := txt + ("|A" if atlas else "|N")
+	var cached: Variant = _var_cache.get(key)
+	if cached != null: return cached
+	var variants: Array = [[txt]]
+	var two := _two_lines(txt)
+	if not two.is_empty(): variants.append([two[0], two[1]])
+	var core_name := _core_name(txt)
+	if core_name != txt: variants.append([core_name])                      # "Kingdom of the Two Sicilies" -> "Two Sicilies"
+	if txt.contains(" ") and not GENERIC_FIRST.has(txt.split(" ")[0]): variants.append([txt.split(" ")[0]])
+	if atlas:
+		for vi in variants.size(): variants[vi] = (variants[vi] as Array).map(func(t: String) -> String: return t.to_upper())
+	if _var_cache.size() > 800: _var_cache.clear()
+	_var_cache[key] = variants
+	return variants
+
+## TBVision.sees_fast, with the answer for a whole nation (friendly, spied on, an ally...) worked out once per layout instead of once per province
+var _fog_n := PackedByteArray()
+func _sees(p: int, me: int) -> bool:
+	if g.rules < 1 or g.human_id <= 0: return true
+	var c: int = g.occupier[p] if g.occupier[p] != 0 else g.owner[p]
+	if c == me or c == 0: return true
+	var m: int = _fog_n[c]
+	if m == 0:
+		m = 1 if TBVision.nation_seen(g, me, c) else 2
+		_fog_n[c] = m
+	if m == 1: return true
+	return p < TBVision._mask.size() and TBVision._mask[p] != 0
+
 func _draw_nation_names() -> void:
+	_cam_update()
 	_nl_rects.clear()
 	phone = map.size.y < 560.0
 	ring_c = Vector2(-999.0, -999.0)
@@ -295,22 +329,22 @@ func _draw_nation_names() -> void:
 		var font: Font = _tracked_own if mine else _tracked
 		var txt: String = g.dname(n)
 		if lens_wars and map.lenses.war_bloc.size() > n and map.lenses.war_bloc[n] >= 0: txt += " " + char(65 + map.lenses.war_bloc[n] % 26)
-		var variants: Array = [[txt]]
-		var two := _two_lines(txt)
-		if not two.is_empty(): variants.append([two[0], two[1]])
-		var core_name := _core_name(txt)
-		if core_name != txt: variants.append([core_name])                      # "Kingdom of the Two Sicilies" -> "Two Sicilies"
-		if txt.contains(" ") and not GENERIC_FIRST.has(txt.split(" ")[0]): variants.append([txt.split(" ")[0]])
 		var rel := -1 if mine else g.get_rel(g.human_id, n)
 		var atlas: bool = map.atlas_look() and not TBKit.readable_fonts
+		var variants: Array = _name_variants(txt, atlas)                     # the ways a name can be written: whole, on two lines, without its "Kingdom of", its first word (worked out once per name)
 		if atlas:                                                           # Bezel: Cinzel 500, uppercase, +2.4 tracking, #CFC4A6 over a 4 wide #06080c stroke, .92
 			font = label_font()
-			for vi in variants.size(): variants[vi] = (variants[vi] as Array).map(func(t: String) -> String: return t.to_upper())
 			var px_w := _nation_px(n, cnt[n])
 			if px_w < (50.0 if phone else 70.0): continue                   # the demo hides a name once its nation is narrower than 70 units on screen
 			fs = int(clampf(px_w / (txt.length() * 0.7), 10.0, 15.0 if phone else 23.0) * tsc)
 			fs = clampi(maxi(fs, TBKit.min_font()), TBKit.min_font(), 44)
 			if ring_c.x > -900.0 and pos_hidden_by_ring(core): continue
+		var vinfo: Array = []                                               # what does not depend on where the name goes: measured once per name, not once per try
+		for vr in variants:
+			var vlines: Array = vr
+			var vw := 0.0
+			for ln in vlines: vw = maxf(vw, _sw(font, ln, fs))
+			vinfo.append([vlines, font.get_height(fs), vw, float(fs) + 4.0 if (strong_on and (mine or rel >= 1)) else 0.0])
 		var placed_ok := false
 		var ext := _ax_ext[n]
 		var perp := core.cross(_ax_dir[n]).normalized() if _ax_dir[n] != Vector3.ZERO else Vector3.ZERO
@@ -327,12 +361,11 @@ func _draw_nation_names() -> void:
 			var pr := _proj_vec(v)
 			if map.mode == 0 and pr.z < 0.25: continue
 			var pos := Vector2(pr.x, pr.y)
-			for vr in variants:
-				var lines: Array = vr
-				var lh := font.get_height(fs)
-				var w := 0.0
-				for ln in lines: w = maxf(w, _sw(font, ln, fs))
-				var gw := float(fs) + 4.0 if (strong_on and (mine or rel >= 1)) else 0.0
+			for vv in vinfo:
+				var lines: Array = vv[0]
+				var lh: float = vv[1]
+				var w: float = vv[2]
+				var gw: float = vv[3]
 				var rect := Rect2(pos - Vector2((w + gw) * 0.5, lh * lines.size() * 0.5), Vector2(w + gw, lh * lines.size())).grow(3.0)
 				if rect.position.x < mnx or rect.position.y < 56.0 or rect.end.x > map.size.x - mnx or rect.end.y > map.size.y - mnx: continue
 				if _blocked(rect) or _hits_marker(rect) or _hits_order(rect): continue
@@ -404,13 +437,15 @@ func _draw_province_names() -> void:
 	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
 	var cream := tk("cream")
 	var hsz := 5 if TBTokens.is_hc() else 3
+	var unit_a := _unit
 	for p in g.P:
 		if shown >= 70: break
 		var pos: Vector2
-		if map.mode == 0:
-			var pr := _project(p, c0, s0, sl, cl, R, cx, cy)
-			if pr.z < 0.3: continue
-			pos = Vector2(pr.x, pr.y)
+		if map.mode == 0:                                              # the globe's projection inline (the same sums as _project_v)
+			var u: Vector3 = unit_a[p]
+			var z0 := u.x * sl + u.z * cl
+			if u.y * s0 + z0 * c0 < 0.3: continue
+			pos = Vector2(cx + R * (u.x * cl - u.z * sl), cy - R * (u.y * c0 - z0 * s0))
 		else:
 			var pt := map.project(g.world.lon[p], g.world.lat[p])
 			pos = Vector2(pt.x, pt.y)
@@ -547,6 +582,7 @@ func _draw() -> void:
 func _draw_layout() -> void:
 	if map == null or g == null or hidden_while_dragging: return
 	_refresh_keepout()
+	_cam_update()
 	_nl_rects.clear()
 	if g.human_id == 0:                 # nation-pick screen: names only
 		_frame_rects.clear(); _order_box = Rect2()
@@ -580,27 +616,40 @@ func _draw_layout() -> void:
 	TBVision.sync(g)                                                    # fog of war: a foreign army out of sight gets no marker
 	var army_lens: bool = armies_shown()
 	var routes_lens: bool = _routes_lens()
+	var own_a := g.owner; var arm_a := g.army; var cap_a := g.capital; var unit_a := _unit
+	_fog_n = PackedByteArray(); _fog_n.resize(g.N1)
+	var relv := PackedInt32Array(); relv.resize(g.N1)                  # the relation to every nation, once (it was a call per province)
+	for n in range(1, g.N1): relv[n] = g.get_rel(me, n)
 	for p in g.P:
-		var o := g.owner[p]
+		var o := own_a[p]
 		if o == 0: continue
-		var a := g.army[p]
-		if a > 0 and (not army_lens or (o != me and not TBVision.sees_fast(g, p))): a = 0
-		var cap := g.capital[p] != 0
-		var rel := g.get_rel(me, o) if o != me else -1
+		var a := arm_a[p]
+		var rel := relv[o] if o != me else -1
 		var war := rel == 1
 		var want := false
-		if a > 0:
+		if a > 0 and army_lens:                                         # decide on the cheap tests first; fog of war is asked only of a province that could get a marker
 			match ztier:
 				0: want = false
 				1: want = o == me or war or rel == 3 or p == sel or p == hov
 				_: want = true
+		var cap := cap_a[p] != 0
 		var ring := cap and (o == me or ztier >= 2 or p == sel or routes_lens)
 		if routes_lens and ring: ring = _on_a_route(o)                  # Routes lens: the capitals the lines run between are marked, nothing else
 		if not want and not ring: continue
-		var pr := _screen(p, c0, s0, sl, cl, R, cx, cy)
+		if a > 0 and (not army_lens or (o != me and not _sees(p, me))): a = 0
+		if a <= 0: want = false
+		if not want and not ring: continue
+		var pr: Vector3
+		if map.mode == 0:                                              # the globe's projection inline (the same sums as _project_v, without a call and a vector per province)
+			var u: Vector3 = unit_a[p]
+			var z0 := u.x * sl + u.z * cl
+			var zz := u.y * s0 + z0 * c0
+			if zz < 0.2: continue
+			pr = Vector3(cx + R * (u.x * cl - u.z * sl), cy - R * (u.y * c0 - z0 * s0), zz)
+		else:
+			pr = _screen(p, c0, s0, sl, cl, R, cx, cy)
 		var limb := 1.0
 		if map.mode == 0:
-			if pr.z < 0.2: continue
 			limb = smoothstep(0.2, 0.55, pr.z)                         # nothing near the horizon
 		elif pr.x < -24 or pr.y < -24 or pr.x > map.size.x + 24 or pr.y > map.size.y + 24: continue
 		if p == _push_p: pr.x += _push_v.x; pr.y += _push_v.y
