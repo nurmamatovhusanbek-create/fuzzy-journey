@@ -84,7 +84,7 @@ func _candidates(s: int) -> PackedInt32Array:
 	var t := PackedInt32Array()
 	if s < 0: return t
 	for e in range(g.nb_off[s], g.nb_off[s + 1]):
-		if g.nb_sea[e] != 0 and g.building[s] != TBData.B_PORT: continue
+		if g.nb_sea[e] != 0 and g.bl(s, TBData.B_PORT) == 0: continue
 		t.append(g.nb[e])
 	return t
 

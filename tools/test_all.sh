@@ -18,6 +18,7 @@ run "ultimatums" tests/ultimatum.gd
 run "court requests answered next turn" tests/asks.gd
 run "marching to any reachable province + fog of war" tests/march.gd
 run "capitals stand where the historical capitals were" tests/capitals.gd
+run "districts: slots, job fill, demolish, AI builds" tests/districts.gd
 run "honours" tests/honours.gd
 run "supply / attrition" tests/supply.gd
 run "doctrine" tests/doctrine.gd

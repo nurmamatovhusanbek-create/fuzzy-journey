@@ -24,5 +24,6 @@ EU4 ties building slots to a province's development; HOI4 limits buildings per s
 * **Building slots** = `1 + floor(development / 2)` (+1 in the capital). Several different buildings per province, each with its levels. A new building costs
   `+20% per building already there`. One construction per province at a time. Demolish frees the slot (the level is lost).
 * **Movement points** are the per-turn brake (1 per project, +1.5 per turn up to 6) instead of a fixed project cap.
-* Engine work still to do: `building[p]`/`b_level[p]` become per-province lists, direct investment replaces the random roll in `turn.gd`, job fill enters
+* **Done (rules 2, docs/MODEL.md section 7).** Numbers differ from the demo's: game costs and pop scale (see MODEL.md). Notes from the original plan follow.
+* Engine work (was still to do): `building[p]`/`b_level[p]` become per-province lists, direct investment replaces the random roll in `turn.gd`, job fill enters
   `income()`, then re-run `tools/sim.sh`.

@@ -77,6 +77,7 @@ static func glyph_of(id: String) -> String: return "b_" + id
 func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2) -> void:
 	_g = g; _p = p; _items = items
 	top_level = true; z_index = 60
+	custom_minimum_size.x = 410.0                                 # the rail (62) + the page (300) + the margins: the figures below must not wrap
 	add_theme_stylebox_override("panel", TBBz.plate_box(12.0, true))
 	var m := MarginContainer.new()
 	for side in ["left", "right"]: m.add_theme_constant_override("margin_" + side, 16)
@@ -86,6 +87,9 @@ func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2) -> void:
 	m.add_child(v)
 	var hd := HBoxContainer.new()
 	var cap := TBKit.caps(T.call("build")); cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hd.add_child(cap)
+	if g.rules >= 2:
+		var sl := TBKit.caps(T.call("bp_slots", {"u": g.b_used(p), "s": g.b_slots(p)}), 12, TBTokens.BZ_DIM); sl.size_flags_horizontal = Control.SIZE_SHRINK_END; hd.add_child(sl)
+		var sp := Control.new(); sp.custom_minimum_size = Vector2(14, 0); hd.add_child(sp)
 	var gl := TBKit.caps(T.call("bp_gold_head", {"g": int(g.gold[g.human_id])}), 12, TBTokens.BZ_HI); hd.add_child(gl)
 	v.add_child(hd)
 	v.add_child(TBKit.header_rule(0))
@@ -140,7 +144,13 @@ func _pick(i: int) -> void:
 		[T.call("bp_after"), "%d %s" % [after, T.call("gold").to_lower()], -1 if after < 0 else 0]]
 	_detail.add_child(K.fxl(rows, 0))
 	var need: float = float(bd["tech"][clampi(lvl - 1, 0, (bd["tech"] as Array).size() - 1)])
-	var checks: Array = [[true, T.call("bp_slot")],
+	var cur_lv: int = _g.bl(_p, int(it["b"]))
+	var slot_row: Array = [true, T.call("bp_slot")]
+	if _g.rules >= 2:
+		if cur_lv > 0: slot_row = [true, T.call("bp_slot_up")]
+		elif _g.b_used(_p) < _g.b_slots(_p): slot_row = [true, T.call("bp_slot_n", {"u": _g.b_used(_p), "s": _g.b_slots(_p)})]
+		else: slot_row = [false, T.call("err_slots")]
+	var checks: Array = [slot_row,
 		[_g.tech_level[me] >= need, T.call("bp_tech_y" if _g.tech_level[me] >= need else "bp_tech_n", {"t": "%.1f" % need})],
 		[int(_g.gold[me]) >= gold, T.call("bp_gold_y" if int(_g.gold[me]) >= gold else "bp_gold_n", {"g": gold})],
 		[int(_g.mp[me]) >= moves, T.call("bp_mp_y" if int(_g.mp[me]) >= moves else "bp_mp_n", {"m": moves})]]
@@ -159,12 +169,22 @@ func _pick(i: int) -> void:
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not can_ok: K.disable(go, "")
 	_detail.add_child(go)
+	if _g.rules >= 2 and cur_lv > 0:
+		var dm: Button = K.button(T.call("bp_demolish"), func(): _demolish(), false, true)
+		dm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_detail.add_child(dm)
 	reset_size(); size = get_combined_minimum_size()
 
 func _do() -> void:
 	var it: Dictionary = _items[_sel]
 	if not bool(it["can"]["ok"]): return
 	picked.emit({"cmd": "build", "p": _p, "b": it["b"]})
+	closed.emit(); queue_free()
+
+func _demolish() -> void:
+	var it: Dictionary = _items[_sel]
+	if _g.bl(_p, int(it["b"])) == 0: return
+	picked.emit({"cmd": "demolish", "p": _p, "b": it["b"]})
 	closed.emit(); queue_free()
 
 func _input(e: InputEvent) -> void:

@@ -29,6 +29,10 @@ static func make_delta(g: TBGame, dirty: PackedInt32Array, log_from: int, full_m
 		pv.append(g.dev[p] | (g.econ[p] << 8)); pv.append(g.stab[p] | (g.happy[p] << 8)); pv.append(g.defense[p])
 		pv.append(g.building[p] | (g.b_level[p] << 8)); pv.append(g.b_building[p] | (g.b_turns[p] << 8))
 		pv.append(g.capital[p] | (g.discoverable[p] << 8)); pv.append(g.gen[p])
+		var lv := 0                                                      # the nine building levels (rules >= 2), three bits each
+		if g.rules >= 2:
+			for k in g.NB: lv |= int(g.b_lv[p * g.NB + k]) << (3 * k)
+		pv.append(lv)
 	d["prov"] = pv
 	for f in NAT_F: d["n_" + f] = g.get(f)
 	for f in NAT_B: d["n_" + f] = g.get(f)
@@ -74,8 +78,10 @@ static func apply_delta(g: TBGame, b: PackedByteArray) -> PackedInt32Array:
 		g.building[p] = pv[i + 8] & 255; g.b_level[p] = pv[i + 8] >> 8
 		g.b_building[p] = pv[i + 9] & 255; g.b_turns[p] = pv[i + 9] >> 8
 		g.capital[p] = pv[i + 10] & 255; g.discoverable[p] = pv[i + 10] >> 8; g.gen[p] = pv[i + 11]
+		if g.rules >= 2:
+			for k in g.NB: g.b_lv[p * g.NB + k] = (pv[i + 12] >> (3 * k)) & 7
 		dirty.append(p)
-		i += 12
+		i += 13
 	g.own_dirty = true
 	for f in NAT_F: g.set(f, d["n_" + f])
 	for f in NAT_B: g.set(f, d["n_" + f])

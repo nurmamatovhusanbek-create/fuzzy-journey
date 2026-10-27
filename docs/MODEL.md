@@ -107,7 +107,24 @@ Rules 0 and neighbour moves keep the old behaviour (they happen at once).
 (50 at peace, +25 pact, +15 trade deal, +10 no grudge, minus the grudge), a spy report (6 turns after a successful operation), or when they stand next to a province you hold
 (3 provinces round a Watchtower). Hidden armies get no marker, no figure on the cards and no outcome in a preview; the AI plays without fog.
 
-## 7. Where to look
+## 7. Districts (rules ≥ 2, the default for new games)
+Rules 2 turns a province into a *district* with room for several buildings and a development level that has to be staffed. Rules 0 and 1 keep the single building.
+* **Slots** (`TBGame.b_slots`): `1 + floor(development / 2)`, plus one in the capital. A province holds one level per building type (`b_lv`, nine bytes per province;
+  `building` / `b_level` still mirror its highest building for the old single view, the map's Buildings lens and the net protocol's old fields). A new type needs a free slot;
+  upgrading a type already there does not. One construction per province at a time, as before.
+* **Price** (`b_price`): a NEW type costs +20 % for each building already standing (`SLOT_COST_STEP`); upgrades keep the table price.
+* **Demolish** (command `demolish`, free, no refund): frees the slot; the level is lost. The Build picker has a Demolish button on a building that stands.
+* **People to staff it** (`job_income`, `POP_NEED = [0, 40, 80, 130, 200, 300]`): development level `d` pays `DEV_INCOME[d-1] + (DEV_INCOME[d] - DEV_INCOME[d-1]) x min(1, pop / POP_NEED[d])`.
+  Below the need only that share of the top step is earned, so a rich district with too few people is a poor buy: farms (growth) and time fix it. Province cards show
+  "N % staffed" on the Develop verb (red under 70 %).
+* **Development is bought** (`develop`, key E): `develop_cost = 28 x (DEV_INCOME[d+1] - DEV_INCOME[d])` gold (about 30 turns to pay back), 1 move, instant; +20 people and +4 stability as before. The
+  budget's Invest slider still rolls organic growth, now at 15 % of the old chance (was 50 %) and only where the next level would be 90 % staffed.
+* **AI** (`TBAI._districts`): each court may raise one building a turn in its best province (a new type if a slot is free, else a level; weights favour farms where people are short, forts when
+  at war) and buy development where the next level is at least 60 % staffed; courts with over 700 gold do both twice. This is the gold sink the first sim report asked for:
+  300-turn maximum treasuries fell from 29,563 to 2,873 (Napoleonic), 13,797 to 2,175 (WWII), 14,568 to 3,206 (Cold War).
+* Tests: `tests/districts.gd` (slots, price, demolish, job fill, save and net round trips, AI builds several per province).
+
+## 8. Where to look
 
 | thing | code |
 |---|---|
@@ -115,5 +132,6 @@ Rules 0 and neighbour moves keep the old behaviour (they happen at once).
 | era inflation table, aggression table | `engine/data.gd` |
 | AI use of the level | `engine/ai.gd` (`_nation`, `_maybe_declare`, `_fight`, `peace_bar`) |
 | selector | `ui/pick_flow.gd` (card), saved as `cfg.aggression` |
-| tests | `tests/model.gd`, `tests/victory.gd`, `tests/chron_keys.gd`, `tests/dipview.gd` |
+| districts | `engine/game.gd` (`bl`, `b_slots`, `set_bl`, `b_price`, `job_income`), `engine/ai.gd` (`_districts`), `ui/build_picker.gd` |
+| tests | `tests/districts.gd`, `tests/model.gd`, `tests/victory.gd`, `tests/chron_keys.gd`, `tests/dipview.gd` |
 | balance matrix | `tools/sim.sh`, `docs/SIM_REPORT.md` |

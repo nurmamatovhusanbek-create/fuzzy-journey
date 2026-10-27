@@ -32,7 +32,7 @@ static func reach(g: TBGame, n: int, from: int, budget: float = 12.0) -> Diction
 	var done := {}
 	var ports: Array = []
 	for p in g.P:
-		if g.building[p] == D.B_PORT and g.controller(p) == n: ports.append(p)
+		if g.bl(p, D.B_PORT) > 0 and g.controller(p) == n: ports.append(p)
 	for c in maxc + 1:
 		var bucket: Array = buckets[c]
 		var qi := 0
@@ -42,9 +42,9 @@ static func reach(g: TBGame, n: int, from: int, budget: float = 12.0) -> Diction
 			done[u] = true
 			for i in range(g.nb_off[u], g.nb_off[u + 1]):
 				var q: int = g.nb[i]
-				if g.nb_sea[i] != 0 and g.building[u] != D.B_PORT: continue
+				if g.nb_sea[i] != 0 and g.bl(u, D.B_PORT) == 0: continue
 				_relax(g, n, best, buckets, q, u, c + 1, maxc)
-			if g.building[u] == D.B_PORT and g.controller(u) == n:
+			if g.bl(u, D.B_PORT) > 0 and g.controller(u) == n:
 				for q2 in ports:
 					if q2 != u: _relax(g, n, best, buckets, q2, u, c + voyage_cost(g, u, q2), maxc)
 	return best

@@ -710,7 +710,7 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		if rp >= 0 and rp < g.P:
 			hud.toast(T.call("recruit_done", {"k": int(cmd.get("amount", 15)), "p": TBI18n.place(g.world.name[rp])}))
 			map.labels.add_fx("cap", rp, rp, TBTokens.c("pos_bar"))
-	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop"]:
+	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop", "demolish"]:
 		sfx.play("coin")
 	elif String(cmd.get("cmd", "")) == "ask":
 		hud.toast(T.call("ask_sent", {"a": g.dname(int(cmd["t"]))}))

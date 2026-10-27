@@ -36,7 +36,7 @@ static var _sig := -1
 static var _for_game: int = 0
 
 static func _signature(g: TBGame) -> int:
-	return hash([g.turn, g.human_id, hash(g.owner), hash(g.occupier), hash(g.building), g.occ_rev])
+	return hash([g.turn, g.human_id, hash(g.owner), hash(g.occupier), hash(g.building), hash(g.b_lv), g.occ_rev])
 
 ## bring the mask up to date for the game's human player (call once before a loop of `sees_fast`)
 static func sync(g: TBGame) -> void:
@@ -48,7 +48,7 @@ static func sync(g: TBGame) -> void:
 	if n <= 0: _mask.fill(1); return
 	for p in g.P:
 		if g.controller(p) != n: continue
-		var r: int = TOWER_SIGHT if g.building[p] == D.B_WATCHTOWER else SIGHT
+		var r: int = TOWER_SIGHT if g.bl(p, D.B_WATCHTOWER) > 0 else SIGHT
 		_mark(g, p, r)
 
 static func _mark(g: TBGame, src: int, radius: int) -> void:

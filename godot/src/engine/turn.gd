@@ -125,7 +125,8 @@ static func _tick(g: TBGame) -> void:
 		if g.b_building[p] != 0:
 			g.b_turns[p] -= 1
 			if g.b_turns[p] <= 0:
-				if g.building[p] == g.b_building[p]: g.b_level[p] += 1
+				if g.rules >= 2: g.set_bl(p, g.b_building[p], g.bl(p, g.b_building[p]) + 1)
+				elif g.building[p] == g.b_building[p]: g.b_level[p] += 1
 				else:
 					g.building[p] = g.b_building[p]; g.b_level[p] = 1
 				g.b_building[p] = 0; g.touch(p)
@@ -201,11 +202,11 @@ static func _tick(g: TBGame) -> void:
 			var diff := happy_target - h
 			g.happy[p] = int(maxf(0.0, minf(100.0, h + signf(diff) * minf(2.0, absf(diff)))))
 			var stab_mod := 0.5 + g.stab[p] / 200.0
-			var farm := 1.0 + 0.05 * g.b_level[p] if g.building[p] == D.B_FARM else 1.0
+			var farm := 1.0 + 0.05 * g.bl(p, D.B_FARM)
 			var growth := int(floor(g.pop[p] * 0.01 * (g.happy[p] / 100.0) * stab_mod * farm))
 			if growth > 0: g.pop[p] = mini(2000, g.pop[p] + growth)
 			if g.econ[p] < 5 and g.rng.next() < invest_chance: g.econ[p] += 1
-			if g.dev[p] < dev_cap and g.rng.next() < invest_chance * 0.5: g.dev[p] += 1
+			if g.dev[p] < dev_cap and g.rng.next() < invest_chance * (0.5 if g.rules < 2 else 0.15) and (g.rules < 2 or g.job_fill(p, g.dev[p] + 1) >= 0.9): g.dev[p] += 1       # districts: slow organic growth, and only where the people are there to staff it
 			if g.rules >= 1:
 				if rebel_chance > 0.0 and g.capital[p] == 0 and spawned < REB_MAX_PER_TURN and g.stab[p] < REB_THRESHOLD and g.rng.next() < rebel_hazard(g, p, rebel_chance):
 					rebels_to_spawn.append(p); spawned += 1
@@ -277,7 +278,7 @@ static func rebel_turn(g: TBGame) -> void:
 		for i in range(g.nb_off[p], g.nb_off[p + 1]):
 			var q := g.nb[i]
 			if g.owner[q] == r or g.owner[q] == 0: continue
-			if g.nb_sea[i] != 0 and g.building[p] != D.B_PORT: continue
+			if g.nb_sea[i] != 0 and g.bl(p, D.B_PORT) == 0: continue
 			if g.army[q] < weakest:
 				weakest = g.army[q]; tgt = q
 		if tgt < 0: continue

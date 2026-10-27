@@ -16,10 +16,10 @@ static func run(g: TBGame) -> void:
 ## flat [mine0, theirs0, mine1, theirs1, ...] for edges leaving my controlled provinces
 static func _frontier(g: TBGame, n: int) -> PackedInt32Array:
 	var out := PackedInt32Array()
-	var owner := g.owner; var occ := g.occupier; var nbo := g.nb_off; var nbl := g.nb; var sea := g.nb_sea; var bld := g.building
+	var owner := g.owner; var occ := g.occupier; var nbo := g.nb_off; var nbl := g.nb; var sea := g.nb_sea
 	for p in g.owned(n):
 		if (occ[p] if occ[p] != 0 else owner[p]) != n: continue
-		var port: bool = bld[p] == D.B_PORT
+		var port: bool = g.bl(p, D.B_PORT) > 0
 		for e in range(nbo[p], nbo[p + 1]):
 			var q := nbl[e]
 			if (occ[q] if occ[q] != 0 else owner[q]) == n: continue
@@ -43,7 +43,9 @@ static func _nation(g: TBGame, n: int) -> void:
 	if g.rules >= 1 and (g.turn + n) % 4 == 0:
 		_budget(g, n, pers, at_war)
 	# 1. economy
-	if g.gold[n] > 150 and g.mp[n] >= 2 and g.rng.chance(0.3 + float(pers["econ"]) * 0.2):
+	if g.rules >= 2:
+		_districts(g, n, own, pers, at_war)
+	elif g.gold[n] > 150 and g.mp[n] >= 2 and g.rng.chance(0.3 + float(pers["econ"]) * 0.2):
 		var best := -1; var bs := -1
 		var step := 1 + (2 if own.size() > 30 else 0)
 		var i := 0
@@ -61,8 +63,8 @@ static func _nation(g: TBGame, n: int) -> void:
 			elif g.tech_level[n] > 0.8 and g.rng.chance(0.4): choice = D.B_LIBRARY
 			else: choice = D.B_MARKET if g.rng.chance(0.5) else D.B_FARM
 			g.apply({"cmd": "build", "n": n, "p": best, "b": choice})
-	# 1b. rules>=1: rich nations invest in development (gold sink, grows the economy)
-	if g.rules >= 1 and g.gold[n] > 300 and g.mp[n] >= 2 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
+	# 1b. rules 1: rich nations invest in development (gold sink, grows the economy)
+	if g.rules == 1 and g.gold[n] > 300 and g.mp[n] >= 2 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
 		var bp := -1; var bsc := -1.0
 		for p in own:
 			if g.occupier[p] != 0: continue
@@ -287,3 +289,50 @@ static func accepts_pact(g: TBGame, t: int, p: int, rel: int) -> bool:
 	var theirs := g.own_count(p)
 	if theirs > mine * 3: s -= 0.2
 	return s > 0.45
+
+
+## rules >= 2: the AI fills its districts. Each turn it may raise one building (a new type if a slot is free, else a level) in its best province and, when rich,
+## pay for a development step where the people are there to staff it. Rich courts do both twice, which keeps their gold in use.
+static func _districts(g: TBGame, n: int, own: PackedInt32Array, pers: Dictionary, at_war: bool) -> void:
+	var rounds := 1 + (1 if g.gold[n] > 700 else 0)
+	for _r in rounds:
+		if g.gold[n] > 130 and g.mp[n] >= 1 and g.rng.chance(0.35 + float(pers["econ"]) * 0.25):
+			var best := -1; var bs := -1.0
+			var step := 1 + (2 if own.size() > 30 else 0)
+			var i := g.rng.randi_n(step)
+			while i < own.size():
+				var p := own[i]
+				i += step
+				if g.b_building[p] != 0 or g.occupier[p] != 0: continue
+				var sc: float = g.pop[p] + g.dev[p] * 20 + (100 if g.capital[p] != 0 else 0) - 25.0 * g.b_used(p)
+				if sc > bs: bs = sc; best = p
+			if best >= 0:
+				var want_mil: bool = at_war or float(pers["def"]) > 0.7
+				var order: Array = []
+				for b in range(1, g.NB + 1):
+					var w := 0.0
+					match b:
+						D.B_MARKET: w = 1.0
+						D.B_FARM: w = 1.1 if g.pop[best] < g.POP_NEED[mini(5, g.dev[best] + 1)] else 0.5
+						D.B_WORKSHOP: w = 0.9
+						D.B_LIBRARY: w = 0.9 if g.tech_level[n] > 0.6 else 0.0
+						D.B_FORTRESS: w = 1.4 if want_mil else 0.25
+						D.B_ARMORY: w = 0.8 if want_mil else 0.1
+						D.B_SUPPLYCAMP: w = 0.4 if at_war else 0.0
+						D.B_PORT: w = 0.6
+						D.B_WATCHTOWER: w = 0.2
+					if w <= 0.0 or g.bl(best, b) >= int(D.BUILDINGS[b - 1]["maxLevel"]): continue
+					if g.bl(best, b) == 0 and g.b_used(best) >= g.b_slots(best): continue
+					order.append([w + g.rng.next() * 0.6, b])
+				order.sort_custom(func(a, c): return a[0] > c[0])
+				for o in order.slice(0, 3):
+					if bool(g.apply({"cmd": "build", "n": n, "p": best, "b": int(o[1])}).get("ok", false)): break
+		if g.gold[n] > 220 and g.mp[n] >= 1 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
+			var bp := -1; var bsc := 0.0
+			for p in own:
+				if g.occupier[p] != 0 or g.dev[p] >= 5: continue
+				var fill := g.job_fill(p, g.dev[p] + 1)
+				if fill < 0.6: continue
+				var sc2: float = fill * 3.0 + g.stab[p] / 50.0 - g.dev[p] * 0.5
+				if sc2 > bsc: bsc = sc2; bp = p
+			if bp >= 0: g.apply({"cmd": "develop", "n": n, "p": bp})

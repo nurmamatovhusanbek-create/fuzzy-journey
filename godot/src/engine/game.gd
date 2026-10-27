@@ -11,7 +11,7 @@ var N: int
 var N1: int
 var rng: TBRng
 var seed_value: int
-var rules: int = 1                # 0 = legacy behaviour (oracle-exact vs JS reference), 1 = tuned game rules
+var rules: int = 2                # 0 = legacy behaviour (oracle-exact vs JS reference), 1 = tuned game rules, 2 = districts (several buildings per province, development limited by population)
 var difficulty: String
 var diff: Dictionary
 var turn: int = 1
@@ -82,6 +82,7 @@ var building := PackedByteArray()
 var b_level := PackedByteArray()
 var b_building := PackedByteArray()
 var b_turns := PackedByteArray()
+var b_lv := PackedByteArray()          # rules >= 2: building levels, NB per province (index p * NB + type - 1). building / b_level then mirror the province's main building for the old single view
 var capital := PackedByteArray()
 var discoverable := PackedByteArray()
 
@@ -144,7 +145,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	world = w
 	P = w.P
 	seed_value = int(opts.get("seed", 1))
-	rules = int(opts.get("rules", 1))
+	rules = int(opts.get("rules", 2))
 	aggr_level = clampi(int(opts.get("aggression", 1)), 0, D.AGGRESSION.size() - 1)
 	rng = TBRng.new(seed_value)
 	difficulty = String(opts.get("difficulty", "normal"))
@@ -182,6 +183,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	occupier.resize(P); army.resize(P); pop.resize(P); occ_turns.resize(P); gen.resize(P); reb_age.resize(P); reb_from.resize(P); own_since.resize(P)
 	for a in [dev, econ, stab, happy, defense, terrain, building, b_level, b_building, b_turns, capital, discoverable, dirty_flag]:
 		a.resize(P)
+	b_lv.resize(P * NB)
 	if has_era:
 		for p in era_pack.get("discoverable", []):
 			discoverable[int(p)] = 1
@@ -483,18 +485,19 @@ func income(n: int) -> Dictionary:
 		var ec := clampi(econ[p], 1, 5)
 		hs += happy[p]; tp += pop[p]
 		var pop_b := pop[p] / 80
-		var mkt := 2 if building[p] == D.B_MARKET else 0
-		var pp := int(floor((3 + D.DEV_INCOME[dv] + pop_b + era_inc + mkt) * stab_mod * inc_prod))
+		var mkt := 2 if bl(p, D.B_MARKET) > 0 else 0
+		var dinc: float = job_income(p, dv) if rules >= 2 else float(D.DEV_INCOME[dv])
+		var pp := int(floor((3 + dinc + pop_b + era_inc + mkt) * stab_mod * inc_prod))
 		pp += int(floor(ec * dv * 0.4 * stab_mod))
 		if capital[p] != 0: pp += 3
-		if building[p] == D.B_WORKSHOP: pp = int(floor(pp * (1.0 + 0.05 * b_level[p])))
+		if bl(p, D.B_WORKSHOP) > 0: pp = int(floor(pp * (1.0 + 0.05 * bl(p, D.B_WORKSHOP))))
 		prod += pp
 		tax += int(floor(pop[p] / 20.0 * (tax_pct / 100.0) * (happy[p] / 100.0) * inc_tax))
 		if capital[p] == 0 and cap >= 0:
 			admin += int(floor(gc_dist(cap_lon, cap_lat, world.lon[p], world.lat[p]) * D.ADMIN_DIST_FACTOR * adm_cost))
 		man += int(floor((2 + pop[p] / 100 + era_mp) * stab_mod))
-		up_base += army[p] * (0.8 if building[p] == D.B_SUPPLYCAMP else 1.0)
-		if building[p] == D.B_LIBRARY: rb += (pop[p] / 750.0) * b_level[p]
+		up_base += army[p] * (0.8 if bl(p, D.B_SUPPLYCAMP) > 0 else 1.0)
+		if bl(p, D.B_LIBRARY) > 0: rb += (pop[p] / 750.0) * bl(p, D.B_LIBRARY)
 	var gld: int = prod + tax
 	if rules >= 1: gld += TBTrade.income(self, n)
 	if cap_lost_now: gld = int(floor(gld * 0.5))
@@ -510,12 +513,79 @@ func income(n: int) -> Dictionary:
 	out["pop"] = tp; out["happyAvg"] = int(round(hs / float(own.size()))); out["researchBonus"] = rb
 	return out
 
+# ---------------------------------------------------------------- districts: buildings per province (rules >= 2; rules < 2 keeps the single building)
+const NB := 9                                  # building types (data.gd BUILDINGS)
+const POP_NEED := [0, 40, 80, 130, 200, 300]   # people a province needs to staff each development level; below it the level's extra income is only partly earned
+const SLOT_COST_STEP := 0.20                   # every building already in the province makes the next new one this much dearer
+
+## level of building type b (1..NB, data.gd B_*) in province p; 0 = none
+func bl(p: int, b: int) -> int:
+	if rules >= 2: return b_lv[p * NB + b - 1]
+	return b_level[p] if building[p] == b else 0
+
+## how many different buildings stand in p
+func b_used(p: int) -> int:
+	if rules < 2: return 1 if building[p] != 0 else 0
+	var k := 0
+	for i in NB:
+		if b_lv[p * NB + i] != 0: k += 1
+	return k
+
+## building slots of a province: one, one more per two development levels, one more in the capital (rules < 2: a single slot)
+func b_slots(p: int) -> int:
+	if rules < 2: return 1
+	return 1 + int(dev[p] / 2) + (1 if capital[p] != 0 else 0)
+
+## set the level of one building (rules >= 2) and keep the old single view (the highest level, the lowest type on a tie) in step
+func set_bl(p: int, b: int, lv: int) -> void:
+	if rules < 2:
+		building[p] = b if lv > 0 else 0; b_level[p] = lv; touch(p); return
+	b_lv[p * NB + b - 1] = lv
+	var best := 0; var bv := 0
+	for i in NB:
+		var v: int = b_lv[p * NB + i]
+		if v > bv: bv = v; best = i + 1
+	building[p] = best; b_level[p] = bv
+	touch(p)
+
+## the buildings of p as [type, level] pairs
+func b_list(p: int) -> Array:
+	var out: Array = []
+	if rules < 2:
+		if building[p] != 0: out.append([int(building[p]), int(b_level[p])])
+		return out
+	for i in NB:
+		var v: int = b_lv[p * NB + i]
+		if v != 0: out.append([i + 1, v])
+	return out
+
+## gold price of building type b to level lvl in p: a NEW type costs 20% more for each building already there (rules >= 2)
+func b_price(p: int, b: int, lvl: int) -> int:
+	var base: float = float(D.BUILDINGS[b - 1]["cost"][lvl - 1])
+	if rules >= 2 and bl(p, b) == 0: base *= 1.0 + SLOT_COST_STEP * b_used(p)
+	return int(ceil(base))
+
+## rules >= 2: income of development level dv in p when the people to staff it are short: the levels below are earned in full, the top level by the share staffed
+func job_income(p: int, dv: int) -> float:
+	var lo: float = float(D.DEV_INCOME[dv - 1]) if dv > 1 else 0.0
+	var step: float = float(D.DEV_INCOME[dv]) - lo
+	return lo + step * job_fill(p, dv)
+
+func job_fill(p: int, dv: int) -> float:
+	return minf(1.0, pop[p] / float(POP_NEED[clampi(dv, 1, 5)]))
+
+## price of the next development step (rules >= 2): about 30 turns to pay itself back
+func develop_cost(p: int) -> int:
+	if rules < 2: return 80 + dev[p] * 80
+	var d := clampi(dev[p], 1, 4)
+	return int(ceil(28.0 * float(D.DEV_INCOME[d + 1] - D.DEV_INCOME[d]))) if dev[p] < 5 else 0
+
 # ---------------------------------------------------------------- combat / movement
 func def_mul(p: int) -> float:
 	var m: float = 1.0 + D.TERRAIN_DEF[terrain[p]]
-	var b := building[p]
-	if b == D.B_FORTRESS: m += 0.8 if b_level[p] >= 2 else 0.5
-	elif b == D.B_WATCHTOWER: m += 0.03
+	var fl := bl(p, D.B_FORTRESS)
+	if fl > 0: m += 0.8 if fl >= 2 else 0.5
+	if bl(p, D.B_WATCHTOWER) > 0: m += 0.03
 	var c := controller(p)
 	if c != 0: m += float(D.REGIMES[regime[c]]["defenseBonus"])
 	return m + defense[p] / 100.0
@@ -530,8 +600,8 @@ func combat_mul(n: int) -> float:
 ## rules >= 1: how many soldiers a province can feed. Armies above this in foreign land waste away.
 func supply_limit(p: int) -> int:
 	var lim := 18 + 8 * dev[p] + int(pop[p] / 20.0)
-	if building[p] == D.B_SUPPLYCAMP: lim += 40
-	elif building[p] == D.B_FARM: lim += 8 * b_level[p]
+	if bl(p, D.B_SUPPLYCAMP) > 0: lim += 40
+	if bl(p, D.B_FARM) > 0: lim += 8 * bl(p, D.B_FARM)
 	if terrain[p] == 2 or terrain[p] == 4: lim = int(lim * 0.7)       # mountains and marsh
 	return lim
 
@@ -547,7 +617,7 @@ func move_check(n: int, from: int, to: int) -> String:
 	if controller(from) != n: return "!notyours"
 	var se := sea_edge(from, to)
 	if se < 0: return "!notadjacent"
-	if se == 1 and building[from] != D.B_PORT: return "!needport"
+	if se == 1 and bl(from, D.B_PORT) == 0: return "!needport"
 	if army[from] <= 1: return "!noarmy"
 	var ct := controller(to)
 	if ct == n: return "move"
@@ -585,7 +655,7 @@ func move_or_attack(n: int, from: int, to: int, troops: int) -> String:
 	if controller(from) != n: return "!notyours"
 	var se := sea_edge(from, to)
 	if se < 0: return "!notadjacent"
-	if se == 1 and building[from] != D.B_PORT: return "!needport"
+	if se == 1 and bl(from, D.B_PORT) == 0: return "!needport"
 	if army[from] <= 1: return "!noarmy"
 	var ctrl_to := controller(to)
 	if ctrl_to == n:

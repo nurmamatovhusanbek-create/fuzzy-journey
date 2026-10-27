@@ -114,7 +114,7 @@ func _init() -> void:
 		if gv.building[p] == 0 and dd > 3: mine_far = p
 	var seen_before := 0
 	for p in gv.P: seen_before += 1 if TBVision.sees_fast(gv, p) else 0
-	gv.building[mine_far] = D.B_WATCHTOWER
+	gv.set_bl(mine_far, D.B_WATCHTOWER, 1)
 	TBVision.sync(gv)
 	var seen_after := 0
 	for p in gv.P: seen_after += 1 if TBVision.sees_fast(gv, p) else 0

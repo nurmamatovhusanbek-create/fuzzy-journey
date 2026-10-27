@@ -83,7 +83,7 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 	var icons := {"fortress": "fortify", "armory": "build", "port": "ship", "market": "treasury", "watchtower": "terrain", "supplycamp": "recruit", "library": "annals", "farm": "people", "workshop": "gear"}
 	var order: Array = []                                      # the demo shows three tiles: what stands here first, then what can be built next (the Build verb lists them all)
 	for i in D.BUILDINGS.size():
-		if g.building[p] == i + 1 or g.b_building[p] == i + 1: order.append(i)
+		if g.bl(p, i + 1) > 0 or g.b_building[p] == i + 1: order.append(i)
 	for i in D.BUILDINGS.size():
 		if order.size() >= 3: break
 		if not order.has(i) and o == me and bool(g.can({"cmd": "build", "p": p, "b": i + 1})["ok"]): order.append(i)
@@ -92,10 +92,10 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 		if not order.has(i): order.append(i)
 	for i in order.slice(0, 3):
 		var bid: String = String(D.BUILDINGS[i]["id"])
-		var is_built: bool = g.building[p] == i + 1
+		var is_built: bool = g.bl(p, i + 1) > 0
 		var is_busy: bool = g.b_building[p] == i + 1
 		var cn: Dictionary = g.can({"cmd": "build", "p": p, "b": i + 1}) if (o == me and not is_built) else {"ok": false}
-		var sub: String = (T.call("dossier_built") if g.b_level[p] <= 1 else "%s %d" % [T.call("dossier_built"), g.b_level[p]]) if is_built else (("%d" % g.b_turns[p]) if is_busy else T.call("dossier_build"))
+		var sub: String = (T.call("dossier_built") if g.bl(p, i + 1) <= 1 else "%s %d" % [T.call("dossier_built"), g.bl(p, i + 1)]) if is_built else (("%d" % g.b_turns[p]) if is_busy else T.call("dossier_build"))
 		var tile := BuildTile.new(String(icons.get(bid, "build")), T.call("b_" + bid), sub, is_built, is_busy, bool(cn["ok"]))
 		var bi: int = i + 1
 		tile.pressed.connect(func(): h.close(); on_cmd.call({"cmd": "build", "p": p, "b": bi}))

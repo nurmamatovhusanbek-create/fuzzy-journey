@@ -24,6 +24,7 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 		"relocate": return _c_relocate(g, c)
 		"regime": return _c_regime(g, c)
 		"develop": return _c_develop(g, c)
+		"demolish": return _c_demolish(g, c)
 		"decide": return TBDecisions.apply(g, n, String(c.get("id", "")))
 		"trade": return TBTrade.propose(g, n, int(c.get("t", 0)), bool(c.get("_force", false)))
 		"ultimatum": return TBDiplo.ultimatum(g, n, int(c.get("t", 0)), int(c.get("p", -1)))
@@ -69,7 +70,7 @@ static func _c_recruit(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.controller(p) != n or g.owner[p] != n: return _err("notyours")
 	var reg: Dictionary = D.REGIMES[g.regime[n]]
 	var amount := clampi(int(c.get("amount", 15)), 5, 30)
-	var gold_cost := int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.building[p] == D.B_ARMORY else 1.0)))
+	var gold_cost := int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
 	var man_cost: int = D.COST_RECRUIT_MAN + amount
 	if g.gold[n] < gold_cost: return _err("gold")
 	if g.manpower[n] < man_cost: return _err("manpower")
@@ -176,16 +177,17 @@ static func _c_build(g: TBGame, c: Dictionary) -> Dictionary:
 	var bt: Dictionary = D.BUILDINGS[b - 1]
 	if g.owner[p] != n or g.occupier[p] != 0: return _err("notyours")
 	if g.b_building[p] != 0: return _err("busy")
-	var cur: int = g.b_level[p] if g.building[p] == b else 0
-	if g.building[p] != 0 and g.building[p] != b: return _err("occupied")
+	var cur: int = g.bl(p, b)
+	if cur == 0 and g.b_used(p) >= g.b_slots(p): return _err("slots" if g.rules >= 2 else "occupied")
 	var lvl := cur + 1
 	if lvl > int(bt["maxLevel"]): return _err("max")
 	if g.tech_level[n] < float(bt["tech"][lvl - 1]): return _err("tech")
 	var reg: Dictionary = D.REGIMES[g.regime[n]]
 	var mpc := maxi(1, int(round(float(bt["mp"][lvl - 1]) * float(reg["moveCost"]))))
-	if g.gold[n] < float(bt["cost"][lvl - 1]): return _err("gold")
+	var price: int = g.b_price(p, b, lvl)
+	if g.gold[n] < float(price): return _err("gold")
 	if g.mp[n] < mpc: return _err("mp")
-	g.gold[n] -= float(bt["cost"][lvl - 1]); g.mp[n] -= mpc
+	g.gold[n] -= float(price); g.mp[n] -= mpc
 	g.b_building[p] = b; g.b_turns[p] = int(bt["buildTime"][lvl - 1]); g.touch(p)
 	return {"ok": true}
 
@@ -218,7 +220,7 @@ static func _c_colonize(g: TBGame, c: Dictionary) -> Dictionary:
 	var adj := false
 	for i in range(g.nb_off[p], g.nb_off[p + 1]):
 		var q := g.nb[i]
-		if g.owner[q] == n and (g.nb_sea[i] == 0 or g.building[q] == D.B_PORT):
+		if g.owner[q] == n and (g.nb_sea[i] == 0 or g.bl(q, D.B_PORT) > 0):
 			adj = true; break
 	if not adj: return _err("notadjacent")
 	var reg: Dictionary = D.REGIMES[g.regime[n]]
@@ -274,7 +276,8 @@ static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 					var p := own[g.rng.randi_n(own.size())]
 					g.stab[p] = maxi(5, g.stab[p] - 12)
 					if k == 0 and g.building[p] != 0:
-						g.building[p] = 0; g.b_level[p] = 0
+						if g.rules >= 2: g.set_bl(p, g.building[p], 0)
+						else: g.building[p] = 0; g.b_level[p] = 0
 					g.touch(p)
 			"incite":
 				var best := own[0]
@@ -298,15 +301,26 @@ static func _c_hire(g: TBGame, c: Dictionary) -> Dictionary:
 	g.army[p] = mini(65000, g.army[p] + amount); g.touch(p)
 	return {"ok": true}
 
+## rules >= 2: pull down one building to free its slot (no refund; the level is lost)
+static func _c_demolish(g: TBGame, c: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var p: int = c["p"]; var b: int = int(c.get("b", 0))
+	if g.rules < 2 or b < 1 or b > g.NB: return _err("unknown")
+	if g.owner[p] != n or g.occupier[p] != 0: return _err("notyours")
+	if g.bl(p, b) == 0: return _err("none")
+	if g.b_building[p] == b: return _err("busy")
+	g.set_bl(p, b, 0)
+	return {"ok": true}
+
 static func _c_develop(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var p: int = c["p"]
 	if g.owner[p] != n or g.occupier[p] != 0: return _err("notyours")
 	var cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
 	if g.dev[p] >= cap: return _err("max")
-	var cost := 80 + g.dev[p] * 80
+	var cost: int = g.develop_cost(p)
+	var mpc := 2 if g.rules < 2 else 1
 	if g.gold[n] < cost: return _err("gold")
-	if g.mp[n] < 2: return _err("mp")
-	g.gold[n] -= cost; g.mp[n] -= 2
+	if g.mp[n] < mpc: return _err("mp")
+	g.gold[n] -= cost; g.mp[n] -= mpc
 	g.dev[p] += 1; g.stab[p] = mini(100, g.stab[p] + 4); g.pop[p] = mini(2000, g.pop[p] + 20); g.touch(p)
 	return {"ok": true}
 

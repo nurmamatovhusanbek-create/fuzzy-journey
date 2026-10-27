@@ -30,7 +30,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 			var eo: int = g.owner[q]
 			if eo == 0 or eo == n or g.get_rel(n, eo) != D.REL_WAR: continue
 			if g.occupier[q] == n: continue
-			if g.nb_sea[i] != 0 and g.building[q] != D.B_PORT: continue
+			if g.nb_sea[i] != 0 and g.bl(q, D.B_PORT) == 0: continue
 			var r := float(g.army[q]) / float(maxi(1, g.army[p]))
 			if g.army[q] >= 6 and r > 1.3 and r > threat_ratio: threat_ratio = r; threat_p = p; threat_o = eo
 	if threat_p >= 0: out.append(_a("threat", 2, threat_p, int(round(threat_ratio * 10.0)), threat_o))

@@ -30,6 +30,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"build": return _build(g, n, c, out)
 		"colonize": return _colonize(g, n, c, out)
 		"develop": return _develop(g, n, c, out)
+		"demolish": return _demolish(g, n, c, out)
 		"declareWar": return _declare_war(g, n, c, out)
 		"peace": return _peace(g, n, c, out)
 		"ally": return _ally(g, n, c, out)
@@ -84,7 +85,7 @@ static func _recruit(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dicti
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
 	var reg: Dictionary = D.REGIMES[g.regime[n]]
 	var amount := clampi(int(c.get("amount", 15)), 5, 30)
-	var gold_cost := int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.building[p] == D.B_ARMORY else 1.0)))
+	var gold_cost := int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
 	var man_cost: int = D.COST_RECRUIT_MAN + amount
 	out["gold"] = gold_cost; out["men"] = man_cost; out["moves"] = D.MP_RECRUIT; out["gain"] = amount
 	if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")
@@ -121,30 +122,38 @@ static func _build(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	if b < 1 or b > D.BUILDINGS.size(): return _fail(out, "type")
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
 	var bt: Dictionary = D.BUILDINGS[b - 1]
-	var cur: int = g.b_level[p] if g.building[p] == b else 0
+	var cur: int = g.bl(p, b)
 	var lvl := cur + 1
 	if lvl <= int(bt["maxLevel"]):
 		var reg: Dictionary = D.REGIMES[g.regime[n]]
-		out["gold"] = int(bt["cost"][lvl - 1]); out["moves"] = maxi(1, int(round(float(bt["mp"][lvl - 1]) * float(reg["moveCost"]))))
+		out["gold"] = g.b_price(p, b, lvl); out["moves"] = maxi(1, int(round(float(bt["mp"][lvl - 1]) * float(reg["moveCost"]))))
 		out["levels"] = lvl
 	if g.owner[p] != n or g.occupier[p] != 0: return _fail(out, "notyours")
 	if g.b_building[p] != 0: return _fail(out, "busy")
-	if g.building[p] != 0 and g.building[p] != b: return _fail(out, "occupied")
+	if cur == 0 and g.b_used(p) >= g.b_slots(p): return _fail(out, "slots" if g.rules >= 2 else "occupied")
 	if lvl > int(bt["maxLevel"]): return _fail(out, "max")
 	if g.tech_level[n] < float(bt["tech"][lvl - 1]): return _fail(out, "tech")
 	_need(out, "gold", g.gold[n], out["gold"], "gold")
 	_need(out, "moves", g.mp[n], out["moves"], "mp")
 	return out
 
+static func _demolish(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var p: int = int(c.get("p", -1)); var b: int = int(c.get("b", 0))
+	if g.rules < 2 or p < 0 or p >= g.P or b < 1 or b > g.NB: return _fail(out, "unknown")
+	if g.owner[p] != n or g.occupier[p] != 0: return _fail(out, "notyours")
+	if g.bl(p, b) == 0: return _fail(out, "none")
+	if g.b_building[p] == b: return _fail(out, "busy")
+	return out
+
 static func _develop(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
-	out["gold"] = 80 + g.dev[p] * 80; out["moves"] = 2
+	out["gold"] = g.develop_cost(p); out["moves"] = 2 if g.rules < 2 else 1
 	if g.owner[p] != n or g.occupier[p] != 0: return _fail(out, "notyours")
 	var cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
 	if g.dev[p] >= cap: return _fail(out, "max")
 	_need(out, "gold", g.gold[n], out["gold"], "gold")
-	_need(out, "moves", g.mp[n], 2, "mp")
+	_need(out, "moves", g.mp[n], out["moves"], "mp")
 	return out
 
 static func _colonize(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
@@ -158,7 +167,7 @@ static func _colonize(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dict
 	var adj := false
 	for i in range(g.nb_off[p], g.nb_off[p + 1]):
 		var q := g.nb[i]
-		if g.owner[q] == n and (g.nb_sea[i] == 0 or g.building[q] == D.B_PORT):
+		if g.owner[q] == n and (g.nb_sea[i] == 0 or g.bl(q, D.B_PORT) > 0):
 			adj = true; break
 	if not adj: return _fail(out, "notadjacent")
 	_need(out, "gold", g.gold[n], out["gold"], "gold")

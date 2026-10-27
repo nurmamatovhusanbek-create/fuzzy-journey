@@ -23,8 +23,8 @@ const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 static var _title_font: Font
 
-const HOT := {"move": "M", "attack": "M", "recruit": "R", "hire": "H", "general": "G", "build": "B", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
-const HOT_KEY := {KEY_M: "move", KEY_R: "recruit", KEY_H: "hire", KEY_G: "general", KEY_B: "build", KEY_C: "colonize", KEY_D: "diplo", KEY_U: "ult", KEY_W: "war", KEY_P: "peace", KEY_T: "terms"}
+const HOT := {"move": "M", "attack": "M", "recruit": "R", "hire": "H", "general": "G", "build": "B", "develop": "E", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
+const HOT_KEY := {KEY_M: "move", KEY_R: "recruit", KEY_H: "hire", KEY_G: "general", KEY_B: "build", KEY_E: "develop", KEY_C: "colonize", KEY_D: "diplo", KEY_U: "ult", KEY_W: "war", KEY_P: "peace", KEY_T: "terms"}
 
 var g: TBGame
 var p := -1
@@ -331,10 +331,9 @@ func _build_stats(s: int, cs: Dictionary) -> Control:
 		{"label": T.call("econ"), "value": str(g.econ[s]), "tip": T.call("econ")},
 		{"label": T.call("terrain"), "value": T.call("t_" + D.TERRAIN_ID[g.terrain[s]]), "tip": T.call("terrain")},
 	]
-	var bname: String = T.call("ins_none")
-	if g.b_building[s] != 0: bname = "%s · %d" % [T.call("b_" + D.BUILDINGS[g.b_building[s] - 1]["id"]), g.b_turns[s]]
-	elif g.building[s] != 0: bname = "%s %d" % [T.call("b_" + D.BUILDINGS[g.building[s] - 1]["id"]), g.b_level[s]]
-	cells.append({"label": T.call("building"), "value": bname, "span": 2 if g.rules < 1 else 1, "tip": T.call("building")})
+	var bname: String = _bnames(s, T.call("ins_none"), true)
+	var btip: String = T.call("building") if g.rules < 2 else "%s: %s" % [T.call("building"), T.call("bp_slots", {"u": g.b_used(s), "s": g.b_slots(s)})]
+	cells.append({"label": T.call("building"), "value": bname, "span": 2 if g.rules < 1 else 1, "tip": btip})
 	if g.rules >= 1:
 		cells.append({"label": T.call("supply"), "value": str(g.supply_limit(s)), "tip": T.call("supply_hint")})
 	gr.cells = cells
@@ -782,6 +781,13 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				var parts: Array = [{"t": T.call("build"), "short": false}]
 				if not bi["items"].is_empty(): parts.append({"t": " · " + T.call("cc_from_gold", {"n": int(bi["min_gold"])}), "short": false})
 				out.append(_mk("build", "hammer", "build", bcan, parts, false, false, {"items": bi["items"]}))
+			if not held and g.occupier[s] == 0 and g.owner[s] == me and g.dev[s] < 5:
+				var dc := g.can({"cmd": "develop", "p": s})
+				var dparts: Array = _cost_parts("%s %d→%d" % [T.call("cc_develop"), g.dev[s], g.dev[s] + 1], dc)
+				if g.rules >= 2:
+					var fill := int(roundf(g.job_fill(s, g.dev[s] + 1) * 100.0))
+					dparts.append({"t": " · " + T.call("cc_staffed", {"p": fill}), "short": fill < 70})
+				out.append(_mk("develop", "build", "cc_develop", dc, dparts))
 		3:
 			var o3: int = cs["o"]
 			for fr in foreign_actions(o3, s):
@@ -829,6 +835,7 @@ func _build_items(s: int) -> Dictionary:
 			var b: Dictionary = D.BUILDINGS[i]
 			var cn := g.can({"cmd": "build", "p": s, "b": i + 1})
 			if cn["reason"] in ["occupied", "max", "type", "busy", "notyours"]: continue
+			if cn["reason"] == "slots" and g.bl(s, i + 1) > 0: continue
 			var lvl: int = int(cn.get("levels", 1))
 			var cur := lvl - 1
 			items.append({"b": i + 1, "can": cn, "label": "%s %s" % [T.call("b_" + b["id"]), "L%d" % lvl if int(b["maxLevel"]) > 1 else ""], "turns": int(b["buildTime"][cur]), "gold": int(cn["gold"])})
@@ -838,6 +845,17 @@ func _build_items(s: int) -> Dictionary:
 			for it in items: if it["can"]["ok"]: best = it["can"]; break
 			if best == null: best = items[0]["can"]
 	return {"items": items, "busy": busy, "best": best, "min_gold": min_gold}
+
+## the buildings of a province as one line: "Market · Farm 2", what is being built last with its turns (rules < 2: the one building)
+func _bnames(s: int, none: String, turns_n: bool) -> String:
+	var parts: PackedStringArray = []
+	for e in g.b_list(s):
+		var nm: String = T.call("b_" + D.BUILDINGS[int(e[0]) - 1]["id"])
+		parts.append(nm if int(e[1]) <= 1 and int(D.BUILDINGS[int(e[0]) - 1]["maxLevel"]) <= 1 else "%s %d" % [nm, int(e[1])])
+	if g.b_building[s] != 0:
+		var bn: String = T.call("b_" + D.BUILDINGS[g.b_building[s] - 1]["id"])
+		parts.append("%s · %d" % [bn, g.b_turns[s]] if turns_n else "%s · %s" % [bn, CC.unit(g.b_turns[s], "u_turn")])
+	return " · ".join(parts) if not parts.is_empty() else none
 
 func _diplo_items(o: int) -> Array:
 	var me := g.human_id
@@ -1032,6 +1050,7 @@ func _press(i: int) -> void:
 		"recruit": command.emit({"cmd": "recruit", "p": s, "amount": 15})
 		"hire": command.emit({"cmd": "hire", "p": s, "amount": 40})
 		"general": command.emit({"cmd": "appoint", "p": s})
+		"develop": command.emit({"cmd": "develop", "p": s})
 		"colonize": command.emit({"cmd": "colonize", "p": s})
 		"peace": command.emit({"cmd": "peace", "t": int(_case["enemy"]), "kind": "white"})
 		"terms": terms_requested.emit(int(_case["enemy"]))
@@ -1184,9 +1203,7 @@ func _build_drawer(s: int, cs: Dictionary) -> Control:
 	grid.add_theme_constant_override("v_separation", 4)
 	grid.custom_minimum_size = Vector2(0, 8)
 	var dash := "—"
-	var bname := dash
-	if g.building[s] != 0: bname = "%s %d" % [T.call("b_" + D.BUILDINGS[g.building[s] - 1]["id"]), g.b_level[s]]
-	elif g.b_building[s] != 0: bname = "%s · %s" % [T.call("b_" + D.BUILDINGS[g.b_building[s] - 1]["id"]), CC.unit(g.b_turns[s], "u_turn")]
+	var bname := _bnames(s, dash, false)
 	var gen_txt := dash
 	if g.rules >= 1 and g.gen[s] != 0: gen_txt = "%s %s" % ["★".repeat(mini(5, TBGenerals.skill(g, s))), TBGenerals.display_name(g, s)]
 	var occ := dash
