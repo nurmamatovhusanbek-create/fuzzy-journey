@@ -25,6 +25,7 @@ done
 # performance gates: a selected province leaves the screen still (low-processor mode draws no frame); a hover / selection redrawn partially is the picture a full redraw gives
 out=$(TB_NOANIM=0 timeout 280 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/perf_idle.gd -- 1280 720 0 globe 2>&1); echo "$out" | grep -q "IDLE OK" && echo "ok: tests/perf_idle.gd" || { echo "FAIL: tests/perf_idle.gd"; echo "$out" | grep -E "IDLE|SCRIPT" | head -3; fail=1; }
 out=$(TB_NOANIM=1 timeout 500 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/map_partial.gd -- 1280 720 10 2>&1); echo "$out" | grep -q "PARTIAL OK" && echo "ok: tests/map_partial.gd" || { echo "FAIL: tests/map_partial.gd"; echo "$out" | grep -E "PARTIAL|differing pixels|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM= timeout 500 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/bake.gd -- 1280 720 2>&1); echo "$out" | grep -q "^BAKE OK" && echo "ok: tests/bake.gd" || { echo "FAIL: tests/bake.gd"; echo "$out" | grep -E "baked|hover|SCRIPT" | head -6; fail=1; }
 mkdir -p /tmp/tb_cc; run tests/mm_globe.gd -- /tmp/tb_cc
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960

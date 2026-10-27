@@ -117,6 +117,9 @@ func setup(game: TBGame) -> void:
 		resized.connect(_push_view)
 		routes = TBMapRoutes.new(); add_child(routes); routes.attach(self)
 		labels = TBMapLabels.new(); add_child(labels); labels.attach(self)
+		labels.set_meta("bake_rect", func() -> Rect2: return Rect2(Vector2.ZERO, size))
+		TBBake.attach(labels)
+		TBBake.attach(routes)                                         # a still map: one picture of the route lines instead of a few dozen draw calls (src/ui/bake.gd). Not the labels: their text is rasterised at the screen's scale, a bitmap of it would be a touch softer
 		_vig = ColorRect.new()                                        # the demo's vignette, over the map and its markers but under the interface
 		_vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_vig.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -255,6 +258,8 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("rect_size", Vector2(vs))
 	_mat.set_shader_parameter("lon0", lon0)
 	_mat.set_shader_parameter("lat0", lat0)
+	_mat.set_shader_parameter("slat0", sin(lat0)); _mat.set_shader_parameter("clat0", cos(lat0))
+	_mat.set_shader_parameter("merc0", log(tan(PI * 0.25 + clampf(lat0, -1.4844, 1.4844) * 0.5)))
 	_mat.set_shader_parameter("radius", radius_px() * rs)
 	_mat.set_shader_parameter("flat_scale", flat_scale() * rs)
 	_mat.set_shader_parameter("mode", mode)

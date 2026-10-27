@@ -48,4 +48,20 @@ Findings and what was done:
   Not done, and why: a pre-rendered world texture mapped onto the sphere (borders would no longer be a constant screen width, the look would change); half-resolution frames
   while the camera moves (tried and reverted: visibly softer).
 
+* **Round 6: what a frame costs besides the map shader, and a cache that changes no pixel.** `tests/frame_cost.gd` (a camera drag, parts switched off one at a time) and the
+  engine's own counters (`RENDER_TOTAL_DRAW_CALLS_IN_FRAME`, `RENDER_TOTAL_OBJECTS_IN_FRAME`, deterministic, unlike timings) showed that the interface was most of what was
+  left: **12,400 canvas commands and 830 draw calls per redrawn frame, 94 % of them the HUD** (every glyph is a command: the End Turn dial is 2,300 commands, the lens bar 1,200,
+  a rail tab 470, a medallion 390). Godot replays every command of every visible item whenever the screen redraws, so even a hover that touches one province paid for the
+  whole HUD (about 8 ms of CPU on a fast machine here, two to three times that on an old laptop with ANGLE, whose draw calls are dear). `src/ui/bake.gd` (`TBBake`) fixes this:
+  a HUD piece that has not drawn for 18 frames is rendered once into a small transparent viewport (it shares the root's 2D world and renders only that piece's own
+  canvas layer) and shown as ONE textured quad aligned to whole screen pixels with premultiplied blending; the moment the piece draws again (hover, a new figure, a resize)
+  it goes back to drawing itself. The map labels and the route lines are cached the same way while the map is still. Result: **idle redraw 12,400 commands / 830 draw calls ->
+  1,350 / 38** (at zoom 3.2). `tests/bake.gd` renders six states (flat, selected, lens, alerts, globe, globe zoomed in) with the cache on and with every piece drawing
+  itself and compares the screenshots: 1 pixel differs, by 4 levels of 255; it also checks hovering. Gotchas found on the way: Godot culls a branch by its layer, so every
+  ancestor must carry the bake layers; the cached picture must be a sibling, not a child, of a piece on the hidden layer; every bake in flight needs its own layer (a full-screen
+  piece otherwise photographs the small ones); the viewport texture is premultiplied, so it is drawn with the premultiplied blend mode. `TB_NOBAKE=1` switches the cache off.
+  Also: the map shader's per-pixel `sin(lat0)`, `cos(lat0)` and the flat map's `log(tan())` of a uniform are now uniforms worked out once on the CPU (`slat0`, `clat0`,
+  `merc0`): zero pixels differ (`tests/shader_compare.gd`), and they matter most where transcendental functions are slow (Intel HD 2000). Measured (software GL, camera
+  drag, medium tier, 1280 x 720): 143 ms -> 117 ms per frame; the shader is the rest.
+
 Ideas not done yet: layout in a worker thread (compute on a snapshot, draw the result), moving the autosave off the main thread, lazy-loading the era flag sets.

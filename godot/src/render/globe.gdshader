@@ -11,6 +11,9 @@ uniform vec2 rect_size = vec2(1280.0, 720.0);
 uniform vec2 id_size = vec2(2048.0, 1024.0);
 uniform float lon0 = 0.0;
 uniform float lat0 = 0.3;
+uniform float slat0 = 0.29552;      // sin(lat0), cos(lat0) and the Mercator y of lat0: worked out once on the CPU, not per pixel
+uniform float clat0 = 0.95534;
+uniform float merc0 = 0.3;
 uniform float radius = 300.0;
 uniform float flat_scale = 200.0;
 uniform int mode = 0;            // 0 globe, 1 flat
@@ -45,7 +48,7 @@ bool unproject(vec2 p, out float lon, out float lat, out vec3 n) {
 		float r2 = dot(d, d);
 		if (r2 >= 1.0) return false;
 		float z = sqrt(1.0 - r2);
-		float s0 = sin(lat0), c0 = cos(lat0);
+		float s0 = slat0, c0 = clat0;
 		lat = asin(clamp(z * s0 + d.y * c0, -1.0, 1.0));
 		lon = lon0 + atan(d.x, z * c0 - d.y * s0);
 		n = vec3(d, z);
@@ -53,7 +56,7 @@ bool unproject(vec2 p, out float lon, out float lat, out vec3 n) {
 	}
 	lon = lon0 + (p.x - rect_size.x * 0.5) / flat_scale;
 	// Mercator: y = ln tan(pi/4 + lat/2)
-	float my = log(tan(PI * 0.25 + clamp(lat0, -1.4844, 1.4844) * 0.5)) - (p.y - rect_size.y * 0.5) / flat_scale;
+	float my = merc0 - (p.y - rect_size.y * 0.5) / flat_scale;
 	lat = 2.0 * atan(exp(my)) - PI * 0.5;
 	n = vec3(0.0, 0.0, 1.0);
 	return abs(my) <= 3.1316;                            // ln tan(pi/4 + 85.05 deg / 2)
@@ -69,7 +72,7 @@ vec2 tex_coord(float lon, float lat) {
 void tex_deriv(float lat, vec3 n, out vec2 dtx, out vec2 dty) {
 	if (mode == 0) {
 		float z = max(n.z, 0.02);
-		float s0 = sin(lat0), c0 = cos(lat0);
+		float s0 = slat0, c0 = clat0;
 		float w = clamp(z * s0 + n.y * c0, -1.0, 1.0);
 		float ilat = 1.0 / sqrt(max(1.0 - w * w, 1e-6));
 		float Y = z * c0 - n.y * s0;
