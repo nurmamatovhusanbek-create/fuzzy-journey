@@ -8,11 +8,16 @@ const RATE := 22050
 const BUSES := ["Music", "SFX", "UI"]
 const UI_CUES := ["tap", "coin"]
 var enabled := true
+static var inst: TBAudio                      # the game's one sound player; TBAudio.cue("name") plays a cue from anywhere (nothing when sound is off / there is no player)
 var _snd := {}
 var _players: Array[AudioStreamPlayer] = []
 var _next := 0
 
+static func cue(name: String) -> void:
+	if inst != null and is_instance_valid(inst): inst.play(name)
+
 func _ready() -> void:
+	inst = self
 	setup_buses()
 	for i in 4:
 		var p := AudioStreamPlayer.new(); p.volume_db = -8.0; add_child(p); _players.append(p)
@@ -53,6 +58,15 @@ func _build() -> void:
 	_snd["alert"] = _seq([[880.0, 0.1], [660.0, 0.22]], 0.9)
 	_snd["war"] = _growl(0.45)
 	_snd["win"] = _seq([[523.0, 0.12], [659.0, 0.12], [784.0, 0.12], [1046.0, 0.5]], 0.9)
+	# B-path cues: the war stamp, a clash, a province won / lost, a defeat, a page turned, a treaty bell, a low treasury
+	_snd["stamp"] = _mix([_tone([[68.0, 1.0], [136.0, 0.4]], 0.5, 0.002, 12.0, 0.9), _burst(0.12, 30.0, 0.5)])
+	_snd["clash"] = _mix([_tone([[620.0, 1.0], [1480.0, 0.6], [2300.0, 0.35]], 0.4, 0.001, 13.0, 0.6), _burst(0.15, 24.0, 0.4)])
+	_snd["gain"] = _seq([[587.0, 0.08], [880.0, 0.18]], 0.8)
+	_snd["loss"] = _seq([[392.0, 0.12], [262.0, 0.28]], 0.8)
+	_snd["defeat"] = _tone([[196.0, 1.0], [233.0, 0.6], [294.0, 0.4]], 1.5, 0.02, 2.4)
+	_snd["page"] = _burst(0.2, 16.0, 0.22)
+	_snd["bell"] = _tone([[1046.0, 1.0], [1568.0, 0.5], [2093.0, 0.25]], 1.0, 0.003, 4.0)
+	_snd["low"] = _seq([[523.0, 0.1], [440.0, 0.1], [349.0, 0.25]], 0.7)
 
 func play(name: String) -> void:
 	if not enabled or not _snd.has(name) or _players.is_empty(): return
@@ -93,6 +107,29 @@ func _seq(notes: Array, gain: float) -> AudioStreamWAV:
 	var last: float = notes[notes.size() - 1][0]
 	for i in tail: all.append(sin(TAU * last * float(i) / RATE) * exp(-12.0 * float(i) / RATE) * 0.1 * gain)
 	return _wav(all)
+
+## a burst of noise (a deterministic generator), exponential decay
+func _burst(dur: float, decay: float, gain: float) -> AudioStreamWAV:
+	var n := int(dur * RATE); var s := PackedFloat32Array(); s.resize(n)
+	var seed_v := 12345
+	for i in n:
+		seed_v = (seed_v * 1103515245 + 12345) & 0x7fffffff
+		var t := float(i) / RATE
+		s[i] = (float(seed_v) / 1073741823.5 - 1.0) * exp(-decay * t) * gain
+	return _wav(s)
+
+## add several generated sounds into one (the longest sets the length)
+func _mix(list: Array) -> AudioStreamWAV:
+	var n := 0
+	for w in list: n = maxi(n, (w as AudioStreamWAV).data.size() / 2)
+	var out := PackedFloat32Array(); out.resize(n)
+	for w in list:
+		var d: PackedByteArray = (w as AudioStreamWAV).data
+		for i in d.size() / 2:
+			var v: int = d[i * 2] | (d[i * 2 + 1] << 8)
+			if v >= 32768: v -= 65536
+			out[i] += float(v) / 30000.0
+	return _wav(out)
 
 func _growl(dur: float) -> AudioStreamWAV:
 	var n := int(dur * RATE); var s := PackedFloat32Array(); s.resize(n)

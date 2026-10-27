@@ -85,12 +85,13 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | C3 | Clash marker (swords + losses) on the map; the report follows 0.7 s later on Full | done | fb13eb4 | Light + Full; Off: none, report at once | map_fx.gd |
 | C6 | Selection pulse / nation outline breath | queued | | | |
 | C5 | Ambient sea / clouds / city glints (Full only) | queued (mock first) | | | |
-| A3 | Era picker as a timeline | queued (mock first) | | | |
+| A3 | Era picker on the title ring (variant A of the mock) | done, **awaiting owner's pick between ring / strip** | @A3E3 | Setting `era_ui` ring / classic (Settings -> Display); Off: ring jumps | era_ring.gd |
 | A4 | Nation pick with Bezel plates and hover card | queued (mock first) | | | |
 | A5b | Begin-game dive (new game) | queued | | | |
 | D1 | Gauge count-up, rising delta, pulse | **already existed** (`TBHudParts.Chip.set_num`) | | respects Reduce motion | |
 | D2-D5 | other HUD micro-interactions | queued | | | |
-| E1-E4 | Music, ambience, cue set, mix | queued (samples first) | | | |
+| E3 | Cue set: stamp, clash, gain, loss, defeat, page, bell, low (synthesised); `TBAudio.cue(name)` | partly done (wired: stamp, clash, gain / loss, defeat, page) | @A3E3 | respects the sound setting | audio.gd |
+| E1, E2, E4 | Music, ambience, ducking | queued (owner picks the style from samples first) | | | |
 | F1-F5 | Era mood, tips, portraits / flags, event art, codex | queued | | | |
 
 ## 4. Change log with before / after
@@ -183,6 +184,20 @@ Pictures: `docs/screens/c/clash_and_glide.png`, `conquest_fade_a.png`, `conquest
 ### A3 / A4 · New-game screens: mock-ups (pictures only) `docs/screens/newgame_mocks/`
 * `a3a.png` **ring as the era picker** (recommended: continues the title's ring; click an era on the ring or use the arrow keys; the left column is today's detail column in the Bezel look), `a3b.png` **strip of 13 era cards** under the globe, `a4.png` **nation pick** (same plates as the game, hovered nation lit with the game's outline, a small card with ruler, rank, army, technology, start difficulty). Source `docs/ui_variants/src/b_newgame.html`, `node shoot_newgame.mjs`.
 * Status: A3 variant A is being built behind the setting `cfg["era_ui"]` ("ring" on a wide landscape window, "classic" = today's dialog elsewhere and when set); A3-B and A4 wait for the owner's pick (section 6).
+
+### A3 · Era picker on the ring (built, behind `era_ui`)
+| Before | After |
+|---|---|
+| `polish_baseline/era.png` (a dialog with a text list) | `a3/era_ring_napoleonic.png`, `era_ring_turning.png`, `era_ring_coldwar.png` (mock: `newgame_mocks/a3a.png`) |
+
+* **What**: New game on a wide landscape title opens `TBEraRing` (new `src/ui/era_ring.gd`): the title column steps aside, the ring's thirteen years are buttons (click, hover shows the era name; Left / Right arrows step), the ring turns the short way round (0.4 s) and the globe moves 12.5 % to the right and flies to a place typical of the era (`TBEraRing.VIEW`); the left column shows the era (year, name, line, great powers, difficulty, players) and **Pick a nation**; Back / Esc returns to the title. Everything else (portrait, phone, text size >= 150 %, multiplayer) keeps the dialog.
+* **Shared code**: `TBNewGame.fill_settings` (powers, difficulty, players) is used by both the dialog and the ring screen; `TBTitleParts.Orrery` gained `set_era`, `top_f`, `interactive`, hover and click.
+* **Setting**: Settings -> Display -> "New game screen: Ring / List" (`cfg["era_ui"]`, default ring).
+* **Test**: `tests/era_ring.gd` (open, click, arrows, Back restores the title and the globe position, Pick a nation reaches the nation pick, classic dialog with `era_ui` = classic).
+* **Not done**: the era's own world on the globe (the title still shows the demo world); A4 nation pick redo waits for the owner (mock `newgame_mocks/a4.png`).
+
+### E3 · New cues
+`TBAudio` gained `stamp` (war declared), `clash`, `gain` / `loss` (battle report), `defeat` (game lost; before it reused `alert`), `page` (Annals), `bell`, `low` (the last two are defined, not wired yet) and `TBAudio.cue(name)` as a static shortcut; `tests/audio.gd` expects 15 cues.
 
 *(Add a block per finished step below this line, newest last.)*
 

@@ -595,6 +595,7 @@ static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) ->
 	seal.progress.connect(func(f: float):                                                     # holding: the veil warms toward rust, the edge of the screen reddens
 		if h.backdrop != null and TBFx.on(TBFx.LIGHT) and h.is_open(): h.backdrop.color = veil0.lerp(TBTokens.with_a(TBWarParts.rust().darkened(0.55), 0.7), f * 0.55))
 	seal.confirmed.connect(func():
+		TBAudio.cue("stamp")
 		var main_node: Node = parent.get_parent()
 		h.close(); on_yes.call()
 		if TBFx.on(TBFx.LIGHT) and is_instance_valid(parent):
@@ -614,6 +615,7 @@ static func battle_report(parent: Control, r: Dictionary) -> TBPanel.Handle:
 	var box := K.vbox(0); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.body.add_child(box)
 	if r.has("my0") and r.has("g") and not h.short and not h.phone and K.text_scale < 1.5:                      # B4: the armies face to face
 		var gg: TBGame = r["g"]
+		TBAudio.cue("gain" if win else "loss")
 		var bars := TBBattleParts.Bars.new(gg, r)
 		box.add_child(bars); _gap(box, 10)
 		var rib := TBBattleParts.Ribbon.new(gg, win, T.call("br_victory" if win else "br_defeat"))

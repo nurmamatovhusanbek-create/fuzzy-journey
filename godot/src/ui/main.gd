@@ -599,6 +599,7 @@ func _open_decisions() -> void:
 	if g != null: TBModals.decisions(_overlay, g, _on_command)
 
 func _open_annals() -> void:
+	TBAudio.cue("page")
 	if g != null: TBModals.chronicle(_overlay, g, _goto_province, hud.feed_lines(8))
 
 ## Saves / Settings / How to play / Honours in one panel; tab = "saves" | "settings" | "howto" | "honours"
@@ -973,6 +974,7 @@ func _do_move(from: int, to: int) -> void:
 			var rep := {"win": win, "name": TBI18n.place(world.name[to]), "claimed": win and g.owner[to] == g.human_id,
 				"my_loss": (send - g.army[to]) if win else (a0 - g.army[from]), "foe_loss": d0 if win else d0 - g.army[to], "left": g.army[to],
 				"my0": send, "foe0": d0, "me_n": g.human_id, "foe_n": foe_n, "g": g}
+			TBAudio.cue("clash")
 			map.labels.add_clash(to, win, "−%s" % K.fmt(float(rep["my_loss"] + rep["foe_loss"])))             # C3: the clash is seen on the map first (0.7 s on Full), then the report
 			if TBFx.on(TBFx.FULL):
 				get_tree().create_timer(0.7).timeout.connect(func(): if mode == "game" and g != null: TBModals.battle_report(_overlay, rep))
@@ -1068,7 +1070,7 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	if selected >= 0: flow.refresh(); panel.rebuild()
 	if hot and not g.over: _hot_switch(g.human_id, true)
 	else: show_events()
-	if g.over: sfx.play("win" if g.winner == g.human_id else "alert")
+	if g.over: sfx.play("win" if g.winner == g.human_id else "defeat")
 	if g.over: TBModals.game_over(_overlay, g, show_menu)
 	else: _autosave_soon()
 
