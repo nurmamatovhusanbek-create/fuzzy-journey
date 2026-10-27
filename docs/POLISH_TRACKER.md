@@ -65,7 +65,7 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | id | step | status | commit | flag / off behaviour | tests |
 |---|---|---|---|---|---|
 | G1 | `TBFx` helper (`src/ui/fx.gd`) | done | 657d14c | `cfg["fx"]` off / light / full | fx_still |
-| G2 | Effects setting (Settings -> Display), diagnostics line | done | 657d14c | default Full / Light on low tier | fx_still |
+| G2 | Effects setting (Settings -> Display), diagnostics line | done | 657d14c | default Full only on a high map tier, Light otherwise (decision D1) | fx_still |
 | G3 | `tests/fx_still.gd` gate, `tools/title_dive.sh` recorder | done | 657d14c | | fx_still, title_dive.gd |
 | A1 | Title scene: stars, rim, ring with 13 era years, wordmark | done | 657d14c | Off: no drift | fx_still, title_shots |
 | A2 | Title menu: Continue card, quiet rows, gliding bracket, campaign card | done | 657d14c | Off: bracket jumps | fx_still, ui_back, monkey |
