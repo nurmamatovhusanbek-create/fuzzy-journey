@@ -73,11 +73,11 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | B-mock | Pop-up mock-ups (war, event, battle, treaty, summary, finale, staging) | done | 10f2c85 | | n/a |
 | B1 | Dialog staging in `TBPanel.open` (bezel dialogs) | done | faf696e | Off / Reduce motion: the old fade, no staging | staging.gd (+ suite) |
 | B3 | War declaration: seal button, face-off card, "War" moment | done | faf696e | Off: no moment (card look is permanent) | war_moment.gd (+ suite) |
-| B2 | Event pop-up: illustration band, glyph per class, effect chips | queued | | | |
-| B7 | Game-over finale (victory / defeat) | queued | | | |
-| B4 | Battle report | queued | | | |
-| B5 | Treaty signed | queued | | | |
-| B6 | Turn summary sheet | queued | | | |
+| B2 | Event pop-up: illustration band, glyph per class, strength bar | done | @B2B7 | Off: same look (no motion) | event_shots.gd |
+| B7 | Game-over finale (victory / defeat) | done | @B2B7 | Light: fade; Off: complete at once | finale.gd |
+| B4 | Battle report (armies face to face, bars drain, result ribbon) | done | @B2B7 | Off: bars complete at once | battle_ui.gd |
+| B5 | Treaty signed | **DROP as a dialog** (see section 4) | | | |
+| B6 | Turn summary sheet | **deferred: needs the owner's answer (section 6 Q3)** | | | |
 | B8 | Tooltips / toasts consistency | queued | | | |
 | C2 | Conquest sweep on the map | queued (mock first) | | | |
 | C4 | Turn passing: terminator sweep, date flip, gauge count-up | queued (mock first) | | | |
@@ -136,6 +136,41 @@ Pictures are under `docs/screens/`. "Before" = the state at the start of the pol
 * **Behaviour kept**: costs, rows, hold time, the `declareWar` command, the focus on Cancel. The old `K.danger(..."war")` button is no longer used here.
 * **Test**: `tests/war_moment.gd` (fixed-fps): the seal is in the card, confirmed closes the card, the moment plays and ends by itself, a key skips it, Off plays none.
 
+### B2 · Event pop-up
+| Before | After |
+|---|---|
+| `polish_baseline/gd_event.png` (small medallion beside the title) | `b2/event_ultimatum.png`, `event_plague.png`, `event_wedding.png` |
+
+* **What**: `TBModals.event_prompt` shows an **illustration band** (`TBEventBand`: engraved glyph of the event class in a medallion, rays, two rings, a ruler along the edge; rust for bad classes, blue for trade / diplomacy, brass otherwise) above the kicker and title; the ultimatum's strength chips became the **strength bar** (`TBEventBand.Versus`). Choices keep their effect ledgers (already chips with signs). Phones, short windows and text size >= 150 % keep the old medallion header.
+* **Files**: new `src/ui/event_band.gd`; `src/ui/modals.gd` (`event_prompt`). No i18n, no engine change.
+* **Test**: `tests/event_shots.gd` (ultimatum, plague, royal wedding; staged and complete).
+* **Not done yet** (idea for later): per-class art beyond one glyph (F4).
+
+### B7 · Finale
+| Before | After |
+|---|---|
+| a hero dialog with a wax stamp, headline and the top five standings (`TBModals.game_over`, still used on phones / short windows / large text) | `b7/finale_victory.png`, `finale_defeat.png`, `finale_victory_counting.png` |
+
+* **What**: `TBFinale.open` (new `src/ui/finale.gd`): full-screen veil with a gold (victory) or rust (defeat) glow, the nation's medal (laurel / broken ring), headline, the standing counted up (provinces, peak provinces, rank, turn) and up to four milestones from the game log (`TBChron.text`, spread across the game), then **View final map** and **Main menu** (the same two buttons and callbacks as before). Full: 3.4 s sequence (a click completes it); Light: the sheet fades in 0.4 s; Off: complete at once. It is a real `TBPanel.Handle` (modal, not dismissable) so Back / Esc behave as before.
+* **Files**: `src/ui/finale.gd`, `src/ui/modals.gd` (`game_over` hands over when `TBFrame.bezel`, height >= 560, landscape, text < 150 %, not a phone).
+* **Test**: `tests/finale.gd` (victory + defeat shots, top modal, Main menu callback, Off complete).
+
+### B4 · Battle report
+| Before | After |
+|---|---|
+| medallion + four-row ledger (`TBModals.battle_report`, kept for phones / short windows / large text and for callers without the new keys) | `b4/battle_draining.png`, `battle_victory.png`, `battle_defeat.png` |
+
+* **What**: both armies face to face (`TBBattleParts.Bars`: flag medal, name, role, "before -> after" counting down, a bar on a common scale with the lost part hatched), the result ribbon (`TBBattleParts.Ribbon`: Victory in brass / Defeat in rust), the flavour line, chips for the men left and the province claimed, one "Onward" button. Full: bars drain over 1 s after 0.4 s, the ribbon appears at 1.2 s; Light / Off: complete at once.
+* **Data**: `main.gd _do_move` now also passes `my0` (men sent), `foe0`, `me_n`, `foe_n`, `g` in the report dict (no engine change).
+* **Files**: new `src/ui/battle_parts.gd`; `src/ui/modals.gd` (`battle_report`), `src/ui/main.gd`; i18n `br_role_att`, `br_role_def`.
+* **Test**: `tests/battle_ui.gd`.
+
+### B5 · Treaty signed: dropped as a dialog
+A modal after every accepted pact would interrupt the player for something that already arrives as an answer notice the next turn. Replaced by a small queued item "B5b seal flourish on accepted answer notices" (low priority, in section 5). Owner may overrule here.
+
+### B6 · Turn summary: deferred
+The events it would list already appear as toasts and alert notices; a sheet on top would duplicate them. Needs a decision (section 6 Q3): replace the toast burst after End Turn with one sheet when 3 or more things happened, or leave as is.
+
 *(Add a block per finished step below this line, newest last.)*
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
@@ -146,8 +181,8 @@ Acceptance for every step: (a) Effects Off looks and behaves as before the step;
 |---|---|---|---|---|---|
 | 1 | B1 | (done) | | | |
 | 2 | B3 | (done) | | | |
-| 3 | B2 | event pop-up: glyph band per event class, strength bar, effect chips with arrows | `modals.gd` (events), new `event_glyphs.gd` | events_ui, ui_modals, ui_overflow | class from `cat` of the event dict; chips come from the choice effects already computed |
-| 4 | B7 | game-over finale: stats count up, milestones list, buttons | `modals.gd` `game_over` | gameover_ui, ui_overflow | data = existing game-over stats; no save change |
+| 3 | B2 | (done) | | | |
+| 4 | B7 | (done) | | | |
 | 5 | B4 | battle report | `modals.gd`/battle report code | march, ui_modals | numbers already in the report dict |
 | 6 | B5 | treaty signed | treaty accept flow | diplo, ui_modals | refusals stay a quiet notice |
 | 7 | B6 | turn summary sheet (non-blocking) | `hud.gd`, `alert_ticker.gd` | ui_hud_layout x8, ui_monkey | setting to disable; only when something happened |

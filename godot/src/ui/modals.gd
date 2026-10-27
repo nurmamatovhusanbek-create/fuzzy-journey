@@ -612,6 +612,25 @@ static func battle_report(parent: Control, r: Dictionary) -> TBPanel.Handle:
 	var phone: bool = K.is_phone(parent)
 	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("br_title"), "attack", {"w": 480.0 if phone else 460.0})
 	var box := K.vbox(0); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.body.add_child(box)
+	if r.has("my0") and r.has("g") and not h.short and not h.phone and K.text_scale < 1.5:                      # B4: the armies face to face
+		var gg: TBGame = r["g"]
+		var bars := TBBattleParts.Bars.new(gg, r)
+		box.add_child(bars); _gap(box, 10)
+		var rib := TBBattleParts.Ribbon.new(gg, win, T.call("br_victory" if win else "br_defeat"))
+		box.add_child(rib); _gap(box, 10)
+		box.add_child(K.para_bz("[i]%s[/i]" % T.call("br_won" if win else "br_lost"), 16.0, 1.3)); _gap(box, 8)
+		var cf := TBPanel.flow(8)
+		cf.add_child(K.chip("%s %s" % [T.call("br_left"), str(int(r["left"]))], "flag", "neutral"))
+		if r["claimed"]: cf.add_child(K.chip(T.call("br_claimed") + " +1", "check", "pos"))
+		box.add_child(cf)
+		bars.t = 0.0; rib.t = 0.0
+		TBFx.run(bars, 1.0, func(v: float): bars.t = v; bars.queue_redraw(), Callable(), TBFx.FULL, 0.4)
+		TBFx.run(rib, 0.5, func(v: float): rib.t = v; rib.queue_redraw(), Callable(), TBFx.FULL, 1.2)
+		var onward2 := K.button(T.call("br_onward"), func(): h.close(), true)
+		h.actions(onward2, null)
+		h.focus_target = onward2
+		if TBPanel.wants_focus(): onward2.grab_focus.call_deferred()
+		return h
 	var tone: Color = TBTokens.BZ_GOOD if win else TBTokens.BZ_BAD
 	var top := K.hbox(16); top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(EventMedal.new("crown" if win else "skull", tone, 84.0, 36.0))
@@ -662,10 +681,7 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 		if ult and g != null:
 			var mine: int = int(TBDiplo.power(g, g.human_id))
 			var theirs: int = int(TBDiplo.power(g, from_n))
-			var cf := TBPanel.flow(14)
-			cf.add_child(K.chip("%s %s" % [T.call("strength_theirs"), K.fmt(theirs)], "swords", "neg" if theirs > mine else "neutral"))
-			cf.add_child(K.chip("%s %s" % [T.call("strength_yours"), K.fmt(mine)], "shield", "neutral"))
-			after = cf
+			after = TBEventBand.Versus.new(theirs, mine, T.call("strength_theirs"), T.call("strength_yours"))
 		var yes_chips: Array = [[T.call("ev_yield_lost", {"p": place}), "tri_down", "neg"]] if ult and place != "" else []
 		var no_chips: Array = [[T.call("ev_defy_war", {"a": from_name}), "swords", "neg"]] if ult else []
 		choices.append(["flag" if ult else "check", T.call("mp_yield") if ult else T.call("mp_accept"), yes_chips, 0])
@@ -694,9 +710,13 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 			else: ttl = T.call("ev_ack")
 			var raw: String = " ".join(chips.map(func(c): return String(c[0])))
 			choices.append([choice_icon(raw, "check" if chips.is_empty() else "move"), ttl, chips, i])
-	# ---- header block: medallion + kicker + title
+	# ---- header block: the class band (B2) or the medallion, then kicker + title
+	var use_band: bool = not h.short and not h.phone and K.text_scale < 1.5
+	if use_band:
+		var tone_cat: String = "" if e["kind"] == "prop" else String(e.get("cat", ""))
+		box.add_child(TBEventBand.new(icon, TBEventBand.tone_of(tone_cat, bad))); _gap(box, 14)
 	var top := K.hbox(14); top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(EventMedal.new(icon, TBTokens.BZ_BAD if bad else TBTokens.c("brass_lt")))
+	if not use_band: top.add_child(EventMedal.new(icon, TBTokens.BZ_BAD if bad else TBTokens.c("brass_lt")))
 	var tc := K.vbox(3); tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var kk := K.caps(kicker, 11, TBTokens.BZ_BAD if bad else TBTokens.c("brass_lt")); (kk as TBBz.TLabel).wrap_ok = true; kk.custom_minimum_size.x = 40; kk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tc.add_child(kk)
@@ -733,6 +753,7 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> TBPanel.
 	if won and g.victory_kind != "": sub = "%s — %s" % [T.call("vc_" + g.victory_kind), g.dname(g.winner)]
 	elif g.winner != 0 and not won: sub = T.call("e_lost_to", {"a": g.dname(g.winner)})
 	var vs: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
+	if TBFrame.bezel and vs.y >= 560.0 and vs.x >= vs.y and K.text_scale < 1.5 and not K.is_phone(parent): return TBFinale.open(parent, g, on_menu)        # B7: the full-screen finale
 	var wide: bool = not TBPanel.is_portrait(vs) and vs.x >= 720.0 and K.text_scale < 1.4
 	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, "", "", {"hero": true, "wide": true, "dismissable": false})
 	var host: BoxContainer = BoxContainer.new(); host.vertical = not wide

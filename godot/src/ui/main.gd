@@ -937,7 +937,7 @@ func _do_move(from: int, to: int) -> void:
 	flow.clear()
 	if mp.in_game:
 		mp.send_command({"cmd": "move", "from": from, "to": to, "troops": tr}); _select(to); return
-	var a0: int = g.army[from]; var d0: int = g.army[to]
+	var a0: int = g.army[from]; var d0: int = g.army[to]; var foe_n: int = g.controller(to)
 	var res := g.apply({"cmd": "move", "n": g.human_id, "from": from, "to": to, "troops": tr})
 	if not res["ok"]:
 		panel.reject(String(res["err"]))
@@ -959,7 +959,8 @@ func _do_move(from: int, to: int) -> void:
 			map.labels.add_fx("cap", from, to, TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"), 450)
 			var send: int = maxi(1, mini(tr if tr != 0 else a0 - 1, a0 - 1))
 			TBModals.battle_report(_overlay, {"win": win, "name": TBI18n.place(world.name[to]), "claimed": win and g.owner[to] == g.human_id,
-				"my_loss": (send - g.army[to]) if win else (a0 - g.army[from]), "foe_loss": d0 if win else d0 - g.army[to], "left": g.army[to]})
+				"my_loss": (send - g.army[to]) if win else (a0 - g.army[from]), "foe_loss": d0 if win else d0 - g.army[to], "left": g.army[to],
+				"my0": send, "foe0": d0, "me_n": g.human_id, "foe_n": foe_n, "g": g})
 		_select(to)
 	_after_change()
 

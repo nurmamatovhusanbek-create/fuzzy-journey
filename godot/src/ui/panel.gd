@@ -519,6 +519,7 @@ static func _stage_begin(h: Handle) -> void:
 			c.modulate.a = 0.0
 			tws.append(TBFx.tween(c, {"modulate:a": keep}, 0.14, TBFx.FULL, {}, delay)); ends.append([c, "modulate:a", keep])
 	h.stage = tws.filter(func(t): return t != null); h.stage_end = ends
+	h.holder.get_tree().create_timer(0.55).timeout.connect(func(): _stage_finish(h))        # everything has run its course by now: exact end states, nothing left running
 
 ## complete the entrance now (a click, a key, or the dialog is being closed)
 static func _stage_finish(h: Handle) -> void:
