@@ -29,7 +29,9 @@ class Orrery extends Control:
 	var top_f := -1.0                       # which era sits at the top of the ring (a float while the ring turns); -1 = take it from cur_era
 	var interactive := false                # the era picker: the years are buttons (hover, click)
 	var hover_i := -1
+	var rim_col: Color = TBTokens.BZ_RIM       # the atmosphere's colour (the era screen tints it by era, F1)
 	var _turn: Tween
+	var _rim_tw: Tween
 	signal era_clicked(id: String)
 	var stars := PackedVector2Array()       # x, y in 0..1
 	var star_a := PackedFloat32Array()
@@ -56,6 +58,11 @@ class Orrery extends Control:
 			top_f = to_i; queue_redraw(); return
 		_turn = TBFx.run(self, 0.4, func(t: float):
 			top_f = fposmod(from_i + d * (1.0 - pow(1.0 - t, 3.0)), n); queue_redraw(), func(): top_f = to_i; queue_redraw(), TBFx.LIGHT)
+	func set_rim(col: Color, animate: bool = true) -> void:
+		if _rim_tw != null and _rim_tw.is_valid(): _rim_tw.kill()
+		var from := rim_col
+		if not animate or not TBFx.on(TBFx.LIGHT) or not is_inside_tree(): rim_col = col; queue_redraw(); return
+		_rim_tw = TBFx.run(self, 0.5, func(t: float): rim_col = from.lerp(col, t); queue_redraw(), Callable(), TBFx.LIGHT)
 	func _label_pos(i: int, top: float, c: Vector2, R: float, rs: float) -> Vector2:
 		var ang: float = -PI * 0.5 + (float(i) - top) * TAU / float(eras.size())
 		return c + Vector2(cos(ang), sin(ang)) * R * (rs + 0.15)
@@ -95,7 +102,7 @@ class Orrery extends Control:
 			if p.distance_squared_to(c) < clear2: continue
 			draw_rect(Rect2(p, Vector2(sc, sc) * (1.4 if star_a[i] > 0.6 else 1.0)), TBTokens.with_a(TBTokens.BZ_IVORY, star_a[i] * (0.55 + 0.45 * (1.0 - open))))
 		# atmosphere: a soft blue skin just outside the limb
-		var rim := TBTokens.BZ_RIM
+		var rim: Color = rim_col
 		for k in 9:
 			var f: float = float(k) / 8.0
 			draw_arc(c, R * (1.004 + f * 0.075), 0.0, TAU, 96, TBTokens.with_a(rim, 0.20 * pow(1.0 - f, 2.0) * dim), maxf(R * 0.012, 1.0), true)

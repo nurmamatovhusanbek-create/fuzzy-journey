@@ -11,6 +11,23 @@ static var T: Callable = TBI18n.T
 const VIEW := {"ancient": [38.0, 34.0], "roman": [14.0, 41.0], "medieval": [12.0, 48.0], "mongol": [75.0, 44.0], "timurid": [66.0, 38.0], "discovery": [-25.0, 28.0],
 	"gunpowder": [45.0, 40.0], "napoleonic": [10.0, 47.0], "victorian": [5.0, 42.0], "ww1": [18.0, 48.0], "ww2": [24.0, 48.0], "coldwar": [30.0, 50.0], "modern": [10.0, 22.0]}
 
+## the mood of each era: the colour of the title's atmosphere while it is chosen (F1)
+static func tint(id: String) -> Color:
+	match id:
+		"ancient": return TBTokens.c("brass_lt")
+		"roman": return TBTokens.BZ_NOTICE_BAD
+		"medieval": return TBTokens.BZ_GOOD
+		"mongol": return TBTokens.BZ_REL_WARM
+		"timurid": return TBTokens.BZ_TAG_OWN
+		"discovery": return TBTokens.BZ_RIM
+		"gunpowder": return TBTokens.BZ_TAG_OWN
+		"napoleonic": return TBTokens.BZ_INFO
+		"victorian": return TBTokens.BZ_DIM
+		"ww1": return TBTokens.BZ_BAD
+		"ww2": return TBTokens.BZ_NEG_SOFT
+		"coldwar": return TBTokens.BZ_GOOD
+	return TBTokens.BZ_RIM
+
 ## opts: overlay (Control), orrery (TBTitleParts.Orrery), map (TBMapView), world, era, difficulty, players, on_next(era, diff, players), on_back(), hide (Array of nodes to hide while open)
 static func open(opts: Dictionary) -> TBPanel.Handle:
 	var overlay: Control = opts["overlay"]
@@ -58,6 +75,7 @@ static func open(opts: Dictionary) -> TBPanel.Handle:
 		TBNewGame.fill_settings(det, id, S, world, false)
 		var sp := Control.new(); sp.custom_minimum_size = Vector2(0, 10.0 * u); det.add_child(sp)
 		orr.set_era(id, animate)
+		orr.set_rim(tint(id), animate)
 		if VIEW.has(id): map.fly_to(float(VIEW[id][0]), float(VIEW[id][1]))
 	# the ring is the picker
 	orr.interactive = true; orr.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -80,7 +98,7 @@ static func open(opts: Dictionary) -> TBPanel.Handle:
 	map.lon0 = deg_to_rad(float(VIEW[S["era"]][0])) if VIEW.has(S["era"]) else map.lon0
 	map._push_view()
 	root.tree_exiting.connect(func():
-		orr.interactive = false; orr.mouse_filter = Control.MOUSE_FILTER_IGNORE; orr.hover_i = -1
+		orr.interactive = false; orr.mouse_filter = Control.MOUSE_FILTER_IGNORE; orr.hover_i = -1; orr.set_rim(TBTokens.BZ_RIM, false)
 		if is_instance_valid(map): map.offset_left = 0.0; map.offset_right = 0.0
 		for e in was: if is_instance_valid(e[0]): (e[0] as CanvasItem).visible = bool(e[1])
 		orr.queue_redraw())

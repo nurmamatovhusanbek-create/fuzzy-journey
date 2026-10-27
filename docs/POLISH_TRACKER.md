@@ -93,7 +93,8 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | E3 | Cue set: stamp, clash, gain, loss, defeat, page, bell, low (synthesised); `TBAudio.cue(name)` | partly done (wired: stamp, clash, gain / loss, defeat, page) | 52eaecd | respects the sound setting | audio.gd |
 | E1 samples | Three generated 32 s music samples to pick a style from: `docs/media/music_samples/A_orrery.ogg` (slow pads + bell arpeggio), `B_pluck.ogg` (plucked strings, D dorian), `C_march.ogg` (drone + hand drums + brass swells); regenerate with `tools/music_samples.py` | done (owner listens and picks) | | | |
 | E1, E2, E4 | Music bus playback, ambience, ducking | queued (starts after the owner picks a sample style, section 6 Q2) | | | |
-| F1-F5 | Era mood, tips, portraits / flags, event art, codex | queued | | | |
+| F1 | Era mood: the title's atmosphere tints by era on the ring screen (`TBEraRing.tint`) | done (small) | | Off: jumps | era_ring |
+| F2-F5 | Loading tips, portraits / flags for more eras, event art, codex polish | queued | | | |
 
 ## 4. Change log with before / after
 
