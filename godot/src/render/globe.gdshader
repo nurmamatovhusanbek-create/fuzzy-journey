@@ -14,6 +14,7 @@ uniform float lat0 = 0.3;
 uniform float slat0 = 0.29552;      // sin(lat0), cos(lat0) and the Mercator y of lat0: worked out once on the CPU, not per pixel
 uniform float clat0 = 0.95534;
 uniform float merc0 = 0.3;
+uniform float grid_k = 1.0;        // strength of the lat / long graticule (the title shows it faintly)
 uniform float radius = 300.0;
 uniform float flat_scale = 200.0;
 uniform int mode = 0;            // 0 globe, 1 flat
@@ -324,7 +325,7 @@ void fragment() {
 				float gstep = 5.0 / max(dppx, 1e-6) < 34.0 ? (15.0 / max(dppx, 1e-6) < 34.0 ? 30.0 : 15.0) : 5.0;       // zoomed far out the 5 degree mesh turns into a hatch: widen it
 				float dla = abs(fract(lat_d / gstep + 0.5) - 0.5) * gstep / max(dppy, 1e-6);
 				float dlo = abs(fract(lon_d / gstep + 0.5) - 0.5) * gstep * gk / max(dppx, 1e-6);
-				float gcov = max(clamp(1.5 - dla, 0.0, 1.0), clamp(1.5 - dlo, 0.0, 1.0)) * 0.4 * ms * clamp(gk * 2.0, 0.0, 1.0);
+				float gcov = max(clamp(1.5 - dla, 0.0, 1.0), clamp(1.5 - dlo, 0.0, 1.0)) * 0.4 * ms * grid_k * clamp(gk * 2.0, 0.0, 1.0);
 				col = mix(col, vec3(0.788, 0.635, 0.294), gcov);
 				if (quality >= 1) {
 					// the coastal glow from the distance field (one read) instead of 8 + up to 40 probes of the id texture: land within 5 px of a sea pixel lights it (#6e8fa3 at .06),

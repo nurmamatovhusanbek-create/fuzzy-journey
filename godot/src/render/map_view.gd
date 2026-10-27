@@ -33,6 +33,7 @@ var mode := 0                 # 0 globe, 1 flat
 var lon0 := 0.26
 var lat0 := 0.35
 var zoom := 1.0
+var grid_k := 1.0                       # graticule strength (0.35 on the title)
 var selected := -1
 var hover := -1
 ## camera / highlight animation (the GPU view is re-rendered only while something is moving)
@@ -273,7 +274,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("rect_size", Vector2(vs))
 	_mat.set_shader_parameter("lon0", lon0)
 	_mat.set_shader_parameter("lat0", lat0)
-	_mat.set_shader_parameter("slat0", sin(lat0)); _mat.set_shader_parameter("clat0", cos(lat0))
+	_mat.set_shader_parameter("grid_k", grid_k); _mat.set_shader_parameter("slat0", sin(lat0)); _mat.set_shader_parameter("clat0", cos(lat0))
 	_mat.set_shader_parameter("merc0", log(tan(PI * 0.25 + clampf(lat0, -1.4844, 1.4844) * 0.5)))
 	_mat.set_shader_parameter("radius", radius_px() * rs)
 	_mat.set_shader_parameter("flat_scale", flat_scale() * rs)
@@ -471,6 +472,12 @@ func _set_hover(h: int) -> void:
 		_hover_t = 0.0
 	hover = h
 	_push_view()
+
+## put the camera on a place at once (the dive into a game uses it under its dissolve)
+func jump_to(lon_deg: float, lat_deg: float, z: float) -> void:
+	_fly = {}; _vel = Vector2.ZERO; _zoom_target = -1.0
+	lon0 = deg_to_rad(lon_deg); lat0 = clampf(deg_to_rad(lat_deg), -1.45, 1.45); zoom = z
+	_clamp_flat(); _push_view()
 
 ## glide the camera to a place (eased; instant when animations are off or the map is not laid out yet)
 func fly_to(lon_deg: float, lat_deg: float, z: float = -1.0) -> void:

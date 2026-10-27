@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "win": {}}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "fx": "full", "win": {}}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -190,6 +190,7 @@ func _load_cfg() -> void:
 		if cfg["win"] is Dictionary: TBPanel.win_mem = cfg["win"]
 	else:
 		cfg["quality"] = _guess_quality()
+		cfg["fx"] = TBFx.default_for(cfg["quality"])
 		cfg["reduce_motion"] = K.os_prefers_reduced_motion()
 
 func _save_cfg() -> void:
@@ -241,38 +242,64 @@ var ring: TBMapRing
 
 ## everything the game interface needs before it is shown: sans fonts, the Atlas Ledger palette with the player's accent, darker land colours
 func _enter_game_visuals() -> void:
+	map.grid_k = 1.0
 	K.serif = true; TBTokens.legacy = false; TBFrame.rounded = false; TBFrame.bezel = true; TBLenses.dark_land = true
 	if g != null and g.human_id > 0: TBTokens.set_accent(g.color[g.human_id])
 	theme = K.theme()
 
 ## the title's globe: whole inside its ring, sized so the ring clears the tools row (and fits the width in portrait). Also after the view setting changes on the title,
-## which must not blow the globe up past the ring
+## which must not blow the globe up past the ring. Wide layout: a smaller globe in the middle, the menu beside it
 func _fit_title_globe() -> void:
 	var vs: Vector2 = size if size.x > 2.0 else get_viewport_rect().size
 	var portrait := vs.y > vs.x
 	var short: bool = vs.y < 480.0 and not portrait
 	var tools_h: float = float(K.touch())
 	map.set_mode(0)
+	map._fly = {}
 	var base: float = minf(vs.x, vs.y) * 0.44
 	var r_max: float = ((vs.y * 0.5 - tools_h - 10.0) / 1.103) if not portrait else minf((vs.x - 28.0) * 0.5 / 1.103, (vs.y - tools_h * 2.0 - 30.0) * 0.5 / 1.103)
 	if short: r_max = maxf(r_max, 120.0)
-	map.zoom = clampf(r_max / base, 0.55, 1.0); map._push_view()
+	if _title_wide: r_max = vs.y * 0.264
+	map.zoom = clampf(r_max / base, 0.3, 1.0); map._push_view()
 
+const TP_ = preload("res://src/ui/title_parts.gd")
+var _title_wide := false
+var _sel: TP_.SelFrame
+var _title_cur: Control
+
+func _title_layout(vs: Vector2) -> bool:
+	return vs.y <= vs.x and vs.y >= 640.0 and vs.x >= vs.y * 1.5
+
+## the title: layout B "Orrery" (docs/screens/title_mocks): the globe in its instrument ring, the wordmark and menu at the left, your campaign at the right.
+## Portrait and short windows keep the old composition (everything inside the ring) with the same parts.
 func show_menu() -> void:
-	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; TBTokens.legacy = true; TBFrame.rounded = false; TBFrame.bezel = false; theme = K.theme()
+	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; TBTokens.legacy = false; TBFrame.rounded = false; TBFrame.bezel = true; theme = K.theme()
+	TBFx.apply(cfg)
 	map.outline_nation(-1)
 	map.set_mode(0)                                           # the title is always the globe inside its ring, whatever view the game uses
-	if TBLenses.dark_land:
-		TBLenses.dark_land = false
+	if not TBLenses.dark_land:
+		TBLenses.dark_land = true
 		if map.lenses != null: map.lenses.refresh_nations(); map.repaint_all()
 	var vs: Vector2 = size if size.x > 2.0 else get_viewport_rect().size
 	var portrait := vs.y > vs.x
 	var short: bool = vs.y < 480.0 and not portrait
-	var tools_h: float = float(K.touch())
+	var wide: bool = _title_layout(vs)
+	_title_wide = wide
+	var u: float = vs.y / 720.0 if wide else clampf(minf(vs.y / 800.0, (vs.x - 40.0) / 300.0), 0.7, 1.4)
+	map.grid_k = 0.38 if wide else 1.0
 	_fit_title_globe()
 	hud.visible = false; panel.visible = false; _clear_overlay(); map.labels.visible = false
-	var bez := MP_.Bezel.new(); bez.map = map; _overlay.add_child(bez); _bezel = bez
-	# layout: [ scrolling centre column (wordmark + text rows) ] over [ tools row ]; the column scrolls instead of covering anything
+	var am := TBSave.meta("auto")
+	var has_save: bool = not am.is_empty()
+	var orr := TP_.Orrery.new(); orr.map = map; orr.wide = wide
+	var order: Array = TBNewGame.ERAS.duplicate()
+	order.sort_custom(func(a: String, b: String) -> bool: return TBNewGame.ERA_YEAR[a] < TBNewGame.ERA_YEAR[b])
+	for id in order:
+		var yy: int = TBNewGame.ERA_YEAR[id]
+		orr.eras.append([id, ("%d BC" % -yy) if yy < 0 else str(yy)])
+	orr.cur_era = String(am.get("era", cfg.get("era", "modern"))) if has_save else String(cfg.get("era", "modern"))
+	_overlay.add_child(orr); _bezel = orr
+	# layout: [ scrolling column (wordmark + menu) ] over [ tools row ]; the column scrolls instead of covering anything
 	var frame := VBoxContainer.new(); frame.set_anchors_preset(Control.PRESET_FULL_RECT); frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.add_theme_constant_override("separation", 0)
 	frame.offset_left = 12; frame.offset_right = -12; frame.offset_top = 6; frame.offset_bottom = -6
@@ -280,46 +307,99 @@ func show_menu() -> void:
 	var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.follow_focus = true; sc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.add_child(sc)
-	var holder := CenterContainer.new(); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var holder: Container
+	if wide:
+		var mc := MarginContainer.new(); mc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mc.add_theme_constant_override("margin_left", int(44.0 * u)); mc.add_theme_constant_override("margin_top", int(56.0 * u))
+		holder = mc
+	else:
+		holder = CenterContainer.new(); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sc.resized.connect(_sync_title_holder.bind(sc, holder))      # centre vertically while it fits, scroll when it does not
 	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(holder)
-	sc.resized.connect(_sync_title_holder.bind(sc, holder))      # centre vertically while it fits, scroll when it does not
-	var colw: float = clampf(vs.x - 40.0, 240.0, 380.0)
-	var v := K.vbox(2 if short else 8)
+	var colw: float = 270.0 * u
+	var v := K.vbox(int(2 * u) if short else int(8 * u))
+	if wide: v.custom_minimum_size.x = colw; v.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	holder.add_child(v)
+	# wordmark: two lines at the left (wide), one centred line otherwise
 	var wm: String = T.call("title")
-	var wm_max: int = 30 if short else (54 if not portrait else 40)
-	var wm_font: Font = K.tracked(K.wordmark(), 2 if (portrait or short) else 4)
-	var wm_avail: float = minf(vs.x - 32.0, maxf(220.0, map.radius_px() * 1.56))      # the wordmark stays inside the ring's chord
+	var wm_font: Font = K.tracked(K.wordmark(), 6 if wide else (2 if (portrait or short) else 4))
+	var wm_avail: float = colw * 1.25 if wide else minf(vs.x - 32.0, maxf(220.0, map.radius_px() * 1.56))
+	var lines: PackedStringArray = wm.split(" ", false, 1) if wide else PackedStringArray([wm])
+	var wm_max: int = int(46.0 * u) if wide else (30 if short else (54 if not portrait else 40))
 	var wm_size: int = wm_max
-	while wm_size > 14 and wm_font.get_string_size(wm, HORIZONTAL_ALIGNMENT_LEFT, -1, K.fs(wm_size)).x > wm_avail: wm_size -= 1        # fits at every text size
-	var t := K.label(wm, wm_size, TBTokens.c("brass_lt"))
-	t.add_theme_font_override("font", wm_font)
-	t.add_theme_constant_override("outline_size", 4); t.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9))
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	v.add_child(t)
+	for ln in lines:
+		while wm_size > 14 and wm_font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, K.fs(wm_size)).x > wm_avail: wm_size -= 1
+	var wm_box := VBoxContainer.new(); wm_box.add_theme_constant_override("separation", int(-6.0 * u) if wide else 0); wm_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for ln in lines:
+		var t := K.label(ln, wm_size, TBTokens.c("brass_lt"))
+		t.add_theme_font_override("font", wm_font)
+		t.add_theme_constant_override("outline_size", 4); t.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9))
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if wide else HORIZONTAL_ALIGNMENT_CENTER
+		t.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if wide else Control.SIZE_SHRINK_CENTER
+		wm_box.add_child(t)
+	wm_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if wide else Control.SIZE_SHRINK_CENTER
+	v.add_child(wm_box)
 	if not short:
 		var orn := K.ornament(); orn.col = TBTokens.ca("brass_lt", 0.7); v.add_child(orn)
-		var tag := K.caps(T.call("tagline"), 12, TBTokens.c("smoke")); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var tag := K.caps(T.call("tagline"), int(11.0 * u) if wide else 12, TBTokens.c("smoke")); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if wide else HORIZONTAL_ALIGNMENT_CENTER; tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		tag.custom_minimum_size.x = 40; tag.add_theme_constant_override("outline_size", 3); tag.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9)); v.add_child(tag)
-		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 6); v.add_child(gap)
-	var am := TBSave.meta("auto")
-	var plates: Array = []
-	var cmp: bool = short
-	if not am.is_empty():
+	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, (88.0 if wide else 14.0) * u); v.add_child(gap)
+	# the menu: one big card (Continue, or New game when there is no save) and quiet rows
+	var items: Array = []
+	var flash := func(cb: Callable) -> Callable:
+		return func():
+			if _sel != null: _sel.flash()
+			cb.call()
+	var unreadable: bool = not has_save and FileAccess.file_exists(TBSave.path_for("auto"))
+	var card: Control
+	if has_save:
 		var yr: int = int(am.get("year", 0))
+		var era_id: String = String(am.get("era", ""))
 		var sub := "%s · %s %d%s" % [String(am.get("nation", "")), T.call("turn"), int(am.get("turn", 0)), (" · " + (("%d BC" % -yr) if yr < 0 else ("%d AD" % yr))) if yr != 0 else ""]
-		plates.append(MP_.Plate.new(T.call("continue"), sub, true, func(): _load_slot("auto"), "", cmp))
-	elif FileAccess.file_exists(TBSave.path_for("auto")):
-		plates.append(MP_.Plate.new(T.call("continue"), "", false, Callable(), T.call("autosave_unreadable"), cmp))
-	plates.append(MP_.Plate.new(T.call("new_game"), "", am.is_empty() and not FileAccess.file_exists(TBSave.path_for("auto")), func(): _open_era_picker(), "", cmp))
+		var flag_tex: Texture2D = null
+		if am.has("code"): flag_tex = TBFlags.medal(String(am["code"]), era_id) if TBFlags.medal(String(am["code"]), era_id) != null else TBFlags.texture(String(am["code"]), int(am.get("color", 0x808080)), era_id)
+		card = TP_.CardBtn.new(T.call("continue"), sub, flag_tex, "globe", u, flash.call(_title_continue))
+	else:
+		card = TP_.CardBtn.new(T.call("new_game"), T.call("title_new_sub"), null, "globe", u, flash.call(func(): _open_era_picker()))
+	items.append(card)
+	v.add_child(card)
+	var cg := Control.new(); cg.custom_minimum_size = Vector2(0, 14.0 * u); v.add_child(cg)
 	var saves := 0
 	for sl in ["auto", "1", "2", "3", "4", "5"]:
 		if not TBSave.meta(sl).is_empty(): saves += 1
-	plates.append(MP_.Plate.new(T.call("load"), T.call("n_saves", {"n": saves}) if saves > 0 else "", false, func(): _open_menu_hub("saves"), T.call("no_saves_yet") if saves == 0 else "", cmp))
-	plates.append(MP_.Plate.new(T.call("multiplayer"), "", false, func(): mp.open_menu(), "", cmp))
-	for pl in plates: pl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; (pl as Control).custom_minimum_size.x = minf(colw, 340.0); v.add_child(pl)
+	var rows: Array = []
+	if has_save: rows.append(TP_.RowBtn.new(T.call("new_game"), u, flash.call(func(): _open_era_picker())))
+	elif unreadable: rows.append(TP_.RowBtn.new(T.call("continue"), u, Callable(), T.call("autosave_unreadable")))
+	var ld := TP_.RowBtn.new(T.call("load"), u, flash.call(func(): _open_menu_hub("saves")), T.call("no_saves_yet") if saves == 0 else "")
+	if saves > 0: ld.tooltip_text = T.call("n_saves", {"n": saves})
+	rows.append(ld)
+	rows.append(TP_.RowBtn.new(T.call("multiplayer"), u, flash.call(func(): mp.open_menu())))
+	for r in rows: items.append(r); v.add_child(r)
+	for it in items:
+		it.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if wide else Control.SIZE_SHRINK_CENTER
+		(it as Control).custom_minimum_size.x = colw
+	# the selection bracket, above the menu
+	_sel = TP_.SelFrame.new(u); _overlay.add_child(_sel)
+	for it in items:
+		it.chosen.connect(func(b: Control): _title_cur = b; _sel.go_to(Rect2(b.global_position, b.size)))
+	_title_cur = null
+	for it in items:
+		if not (it as Button).disabled: _title_cur = it; break
+	_title_sel_start.call_deferred()
+	# your campaign (wide layout, with a save)
+	if wide and has_save:
+		var era_id2: String = String(am.get("era", ""))
+		var ft: Texture2D = null
+		if am.has("code"): ft = TBFlags.medal(String(am["code"]), era_id2) if TBFlags.medal(String(am["code"]), era_id2) != null else TBFlags.texture(String(am["code"]), int(am.get("color", 0x808080)), era_id2)
+		var yr2: int = int(am.get("year", 0))
+		var rname := ""
+		if am.has("rk") and String(am.get("rn", "")) != "": rname = "%s %s" % [T.call(String(am["rk"])), TBRulers.name_of(String(am["rn"]), int(am.get("rnum", 0)))]
+		var l1: String = ("%s · %s %d" % [rname, T.call("turn"), int(am.get("turn", 0))]) if rname != "" else "%s %d" % [T.call("turn"), int(am.get("turn", 0))]
+		var l2: String = ((("%d BC" % -yr2) if yr2 < 0 else ("%d AD" % yr2)) if yr2 != 0 else "") + ((" · " + T.call("era_" + era_id2)) if era_id2 != "" and TBI18n.has_key("era_" + era_id2) else "")
+		var cp := TP_.Campaign.new(u, ft, String(am.get("nation", "")), l1, l2, T.call("title_cont_cap"), T.call("title_campaign"))
+		cp.position = Vector2(vs.x - 268.0 * u - 52.0 * u, vs.y * 0.40); cp.size = cp.custom_minimum_size
+		_overlay.add_child(cp)
 	# tools row: Honours n/19, Settings, How to play, EN | RU | UZ (small text buttons, wraps in portrait)
 	var tools := HFlowContainer.new(); tools.alignment = FlowContainer.ALIGNMENT_CENTER; tools.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tools.add_theme_constant_override("h_separation", 6); tools.add_theme_constant_override("v_separation", 0)
@@ -338,9 +418,85 @@ func show_menu() -> void:
 	ver.offset_right = -10; ver.offset_top = 6; ver.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ver.add_theme_constant_override("outline_size", 3); ver.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9))
 	_overlay.add_child(ver)
-	if TBPanel.wants_focus():                                # keyboard / gamepad cold start: the first enabled entry has focus (Up / Down / Enter / Space)
-		for pl in plates:
-			if not (pl as Button).disabled: (pl as Control).grab_focus.call_deferred(); break
+	if TBPanel.wants_focus() and _title_cur != null:         # keyboard / gamepad cold start: the first enabled entry has focus (Up / Down / Enter / Space)
+		_title_cur.grab_focus.call_deferred()
+
+## the bracket takes its place once the menu has been laid out (no glide on the first placement)
+func _title_sel_start() -> void:
+	await get_tree().process_frame
+	if mode == "menu" and _title_cur != null and is_instance_valid(_title_cur) and is_instance_valid(_sel):
+		_sel.go_to(Rect2(_title_cur.global_position, _title_cur.size))
+
+## Continue: the autosave opens. With effects on the title dissolves, its ring opens and the globe dives to your capital before the game takes over (any key or click skips);
+## with Effects Off it is a plain load.
+var _dive: Tween
+var _dive_ng: TBGame
+var _dive_block: Control
+
+func _title_continue() -> void:
+	if not TBFx.on(TBFx.LIGHT) or mode != "menu" or _dive != null: _load_slot("auto"); return
+	var ng := TBSave.load_game(world, "auto")
+	if ng == null: return
+	_dive_ng = ng
+	_spin = false
+	_dive_block = Control.new(); _dive_block.set_anchors_preset(Control.PRESET_FULL_RECT); _dive_block.mouse_filter = Control.MOUSE_FILTER_STOP; _dive_block.focus_mode = Control.FOCUS_ALL
+	_dive_block.gui_input.connect(func(e: InputEvent): if (e is InputEventMouseButton and e.pressed) or (e is InputEventKey and e.pressed): _dive_skip())
+	_overlay.add_child(_dive_block); _dive_block.grab_focus()
+	var cap: int = ng.capital_of[ng.human_id]
+	var full: bool = TBFx.on(TBFx.FULL) and cap >= 0
+	var lon_t: float = deg_to_rad(world.lon[cap]) if cap >= 0 else map.lon0
+	var lat_t: float = clampf(deg_to_rad(world.lat[cap]), -1.45, 1.45) if cap >= 0 else map.lat0
+	var lon_0: float = map.lon0; var lat_0: float = map.lat0; var z_0: float = map.zoom; var gk_0: float = map.grid_k
+	var fade_nodes: Array = []
+	for c in _overlay.get_children():
+		if c != _bezel and c != _dive_block: fade_nodes.append(c)
+	var orr: TP_.Orrery = _bezel as TP_.Orrery
+	_dive = TBFx.run(self, 1.25 if full else 0.4, func(t: float):
+		var a: float = 1.0 - TBFx.smooth(t / (0.30 if full else 0.8))
+		for n in fade_nodes: if is_instance_valid(n): (n as CanvasItem).modulate.a = a
+		if is_instance_valid(orr): orr.open = TBFx.smooth((t - (0.08 if full else 0.0)) / (0.55 if full else 0.9)); orr.queue_redraw()
+		if full:
+			var e: float = TBFx.smooth((t - 0.12) / 0.88)
+			map.lon0 = lon_0 + wrapf(lon_t - lon_0, -PI, PI) * e
+			map.lat0 = lerpf(lat_0, lat_t, e)
+			map.zoom = z_0 * pow(1.7 / z_0, e)
+			map.grid_k = lerpf(gk_0, 1.0, e)
+			map._push_view(),
+		_dive_finish, TBFx.LIGHT)
+
+func _dive_skip() -> void:
+	if _dive == null: return
+	_dive.kill(); _dive = null
+	_dive_finish()
+
+## the title's globe has arrived: hold a still of it, switch to the game underneath and let the still dissolve while the interface fades in
+func _dive_finish() -> void:
+	_dive = null
+	var ng := _dive_ng; _dive_ng = null
+	if ng == null: return
+	var still: ImageTexture = null
+	if TBFx.on(TBFx.LIGHT):
+		var img := get_viewport().get_texture().get_image()
+		if img != null: still = ImageTexture.create_from_image(img)
+	var cam := Vector3(map.lon0, map.lat0, map.zoom)
+	_enter_loaded(ng, still == null)
+	if still == null: return
+	if cfg["view"] == "globe":
+		map.lon0 = cam.x; map.lat0 = cam.y; map.zoom = cam.z; map._push_view(); _fly_to_capital(ng)
+	else:
+		var cp: int = ng.capital_of[ng.human_id]
+		if cp >= 0: map.jump_to(world.lon[cp], world.lat[cp], 2.2)
+	var tr := TextureRect.new(); tr.texture = still; tr.set_anchors_preset(Control.PRESET_FULL_RECT); tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; tr.stretch_mode = TextureRect.STRETCH_SCALE; tr.z_index = 50
+	add_child(tr)
+	TBFx.tween(tr, {"modulate:a": 0.0}, 0.55, TBFx.LIGHT, {}, 0.05, Tween.TRANS_SINE, Tween.EASE_IN_OUT)
+	get_tree().create_timer(0.7).timeout.connect(func(): if is_instance_valid(tr): tr.queue_free())
+	if hud != null:
+		TBFx.tween(hud, {"modulate:a": 1.0}, 0.45, TBFx.LIGHT, {"modulate:a": 0.0}, 0.25)
+
+func _fly_to_capital(ng: TBGame) -> void:
+	var cap: int = ng.capital_of[ng.human_id]
+	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2)
 
 func _sync_title_holder(sc: Control, holder: Control) -> void:
 	if is_instance_valid(holder) and is_instance_valid(sc): holder.custom_minimum_size = Vector2(0, sc.size.y)
@@ -445,6 +601,7 @@ func _confirm_mode() -> String:
 
 ## apply the accessibility settings to the kit (text size, fonts, contrast, motion, targets) and refresh the theme
 func _apply_a11y() -> void:
+	TBFx.apply(cfg)
 	theme = K.apply_settings(cfg)         # sets K.text_scale / reduce_motion / touch / hc / cvd / tts / confirm, rebuilds the theme, emits K.settings_changed
 	TBAudio.apply_volumes(cfg)
 	if hud != null:
@@ -464,6 +621,7 @@ func _on_setting_changed(key: String) -> void:
 			else: map.set_mode(0 if cfg["view"] == "globe" else 1)
 		"sound": sfx.enabled = cfg.get("sound", true); _apply_a11y()
 		"vol_master", "vol_music", "vol_sfx", "vol_ui": TBAudio.apply_volumes(cfg)
+		"fx": TBFx.apply(cfg)
 		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "tts", "confirm", "mirror", "vis_alerts", "navpad":
 			_apply_a11y(); _rebuild_screens()
 		"reset_access":
@@ -500,7 +658,7 @@ func _copy_diagnostics() -> void:
 	lines.append("fps=%d frame_ms=%.1f quality=%s tier=%d render_scale=%.2f last_turn_ms=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, cfg.get("quality", "auto"), map.quality, map.render_scale, _turn_ms])
 	if g != null:
 		lines.append("game: era=%s turn=%d seed=%d rules=%d provinces=%d nations_alive=%d" % [g.era_id, g.turn, g.seed_value, g.rules, g.P, _alive_count()])
-	lines.append("lang=%s view=%s theme=%s ui=%s" % [cfg.get("lang", ""), cfg.get("view", ""), cfg.get("theme", ""), cfg.get("ui", "")])
+	lines.append("lang=%s view=%s theme=%s ui=%s fx=%s reduce_motion=%s" % [cfg.get("lang", ""), cfg.get("view", ""), cfg.get("theme", ""), cfg.get("ui", ""), cfg.get("fx", ""), cfg.get("reduce_motion", false)])
 	_store_diagnostics(lines)
 	if mode == "game" and map != null and map.is_visible_in_tree(): _diag_bench(lines)       # a few seconds later the same text is copied again with the measurements
 
@@ -936,6 +1094,12 @@ func _autosave() -> void:
 func _load_slot(slot: String) -> void:
 	var ng := TBSave.load_game(world, slot)
 	if ng == null: return
+	_enter_loaded(ng, true)
+
+## put a loaded game on screen (the title's Continue dive passes fly = false and steers the camera itself)
+func _enter_loaded(ng: TBGame, fly: bool) -> void:
+	if _dive_block != null and is_instance_valid(_dive_block): _dive_block.queue_free()
+	_dive_block = null
 	TBFlags.cur_era = g_era(ng)
 	g = ng; mode = "game"; _enter_game_visuals(); _spin = false; _clear_overlay(); _log_idx = g.log.size()
 	TBLenses.dark_land = true
@@ -944,8 +1108,7 @@ func _load_slot(slot: String) -> void:
 	map.setup(g); map.repaint_all()
 	hud.seat_tag = ""
 	hud.g = g; hud.visible = true; hud.build(); hud.refresh()
-	var cap := g.capital_of[g.human_id]
-	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2)
+	if fly: _fly_to_capital(g)
 	_select(-1)
 	if _is_hotseat(): _hot_switch(g.human_id, false)
 
