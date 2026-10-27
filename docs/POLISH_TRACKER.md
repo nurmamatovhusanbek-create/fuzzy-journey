@@ -28,7 +28,7 @@ User rules (from the conversation, unchanged unless edited here):
 Decisions taken on the owner's behalf while they were away (edit freely):
 | # | decision | why |
 |---|---|---|
-| D1 | Effects default = **Full** (Light on a machine whose map tier starts at low), with the Off / Light / Full switch in Settings -> Display | recommended in the roadmap; Off is pixel-identical to the old behaviour |
+| D1 | Effects default = **Full only where the machine's map tier starts at high; Light on low and medium** (software renderers, integrated GPUs such as the owner's HD 2000, <= 4 cores, phones), also for an older settings file that has no `fx` yet; Off / Light / Full switch in Settings -> Display | weak machines should not pay for the dive, the staging stagger or the conquest dissolve until the owner has measured them; Off is pixel-identical to the old behaviour |
 | D2 | Title globe palette = **dark Bezel** (not the old bright one) | matches layout B mock the owner approved |
 | D3 | Continue save card = **yes** (flag, nation, ruler, turn, year, era) | built |
 | D4 | Music taste unknown -> E1 proposes **three sample cues** the owner picks from; until then no music is shipped | avoids imposing a style |

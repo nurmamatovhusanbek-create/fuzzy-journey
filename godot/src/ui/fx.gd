@@ -15,9 +15,9 @@ static func apply(cfg: Dictionary) -> void:
 	var i: int = NAMES.find(String(cfg.get("fx", "full")))
 	level = FULL if i < 0 else i
 
-## the default for a new install: the cheap set on a machine whose map tier starts at low, everything otherwise
+## the default for an install that has no choice yet: Full only where the map tier starts at high; low and medium (software renderers, integrated GPUs, few cores, phones) get Light
 static func default_for(quality: String) -> String:
-	return "light" if quality == "low" else "full"
+	return "full" if quality == "high" else "light"
 
 ## may an effect of this weight run? (the setting is at least `min_level`, and motion is not reduced)
 static func on(min_level: int = LIGHT) -> bool:
