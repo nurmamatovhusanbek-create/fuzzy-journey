@@ -48,6 +48,25 @@ static func facts(id: String, world: TBWorld) -> Dictionary:
 	return out
 
 ## opts: world, era, difficulty, players, mp (bool: no players selector), on_next(era, diff, players), on_back, next_label
+## the settings part of an era's detail: great powers, difficulty and players (shared by the dialog and the ring screen); S = {era, diff, players}
+static func fill_settings(det: VBoxContainer, id: String, S: Dictionary, world: TBWorld, mp: bool) -> void:
+	var f := facts(id, world)
+	var fw := TBPanel.flow(6); det.add_child(fw)
+	for p in f["powers"]:
+		var code: String = p["code"]
+		fw.add_child(TBPanel.flag_tag(TBFlags.texture(code, TBGame.gen_wash(int(p["n"])), id), TBI18n.nation(String(p["name"])), str(int(p["prov"]))))
+	fw.add_child(K.chip(T.call("n_nations", {"n": f["count"] if int(f["count"]) > 0 else 250}), "globe", "neutral"))
+	det.add_child(K.hair())
+	det.add_child(TBPanel.section(T.call("difficulty")))
+	det.add_child(TBPanel.seg([["easy", T.call("easy")], ["normal", T.call("normal")], ["hard", T.call("hard")]], String(S["diff"]), func(v: String): S["diff"] = v))
+	if not mp:
+		det.add_child(TBPanel.section(T.call("hot_players")))
+		var hint := TBPanel.para(T.call("players_hint_1") if int(S["players"]) <= 1 else T.call("players_hint_n", {"n": S["players"]}), 13, K.DIM)
+		det.add_child(TBPanel.seg([["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]], str(S["players"]), func(v: String):
+			S["players"] = int(v)
+			hint.text = T.call("players_hint_1") if int(S["players"]) <= 1 else T.call("players_hint_n", {"n": S["players"]})))
+		det.add_child(hint)
+
 static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 	var vs: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
 	var portrait := TBPanel.stacked(vs)
@@ -100,22 +119,7 @@ static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 		det.add_child(nl)
 		det.add_child(TBPanel.para(T.call("blurb_" + id), 15, K.TEXT))
 		det.add_child(TBPanel.section(T.call("great_powers")))
-		var f := facts(id, world)
-		var fw := TBPanel.flow(6); det.add_child(fw)
-		for p in f["powers"]:
-			var code: String = p["code"]
-			fw.add_child(TBPanel.flag_tag(TBFlags.texture(code, TBGame.gen_wash(int(p["n"])), id), TBI18n.nation(String(p["name"])), str(int(p["prov"]))))
-		fw.add_child(K.chip(T.call("n_nations", {"n": f["count"] if int(f["count"]) > 0 else 250}), "globe", "neutral"))
-		det.add_child(K.hair())
-		det.add_child(TBPanel.section(T.call("difficulty")))
-		det.add_child(TBPanel.seg([["easy", T.call("easy")], ["normal", T.call("normal")], ["hard", T.call("hard")]], String(S["diff"]), func(v: String): S["diff"] = v))
-		if not mp:
-			det.add_child(TBPanel.section(T.call("hot_players")))
-			var hint := TBPanel.para(T.call("players_hint_1") if int(S["players"]) <= 1 else T.call("players_hint_n", {"n": S["players"]}), 13, K.DIM)
-			det.add_child(TBPanel.seg([["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]], str(S["players"]), func(v: String):
-				S["players"] = int(v)
-				hint.text = T.call("players_hint_1") if int(S["players"]) <= 1 else T.call("players_hint_n", {"n": S["players"]})))
-			det.add_child(hint)
+		fill_settings(det, id, S, world, mp)
 		if portrait and push:
 			S["detail"] = true
 			rail_sc.visible = false; det_sc.visible = true

@@ -24,8 +24,13 @@ class Orrery extends Control:
 	var dim := 1.0                          # 0.35 while a panel is open
 	var wide := true                        # wide layout: ring far from the globe with era years, no dimming disc (the menu is beside the globe, not on it)
 	var open := 0.0
-	var eras: Array = []                    # [[id, "1804"], ...] sorted by year
+	var eras: Array = []                    # [[id, "1804", "Napoleonic Era"], ...] sorted by year
 	var cur_era := ""
+	var top_f := -1.0                       # which era sits at the top of the ring (a float while the ring turns); -1 = take it from cur_era
+	var interactive := false                # the era picker: the years are buttons (hover, click)
+	var hover_i := -1
+	var _turn: Tween
+	signal era_clicked(id: String)
 	var stars := PackedVector2Array()       # x, y in 0..1
 	var star_a := PackedFloat32Array()
 	var _spin0 := INF                       # the globe's turn when the title appeared: stars drift relative to it, so a still title looks the same whatever the effects setting
@@ -35,6 +40,42 @@ class Orrery extends Control:
 		for i in 170:
 			stars.append(Vector2(r.randf(), r.randf())); star_a.append(0.12 + r.randf() * r.randf() * 0.7)
 	func ring_scale() -> float: return 1.34 if wide else 1.052
+	func _era_index(id: String) -> int:
+		for i in eras.size():
+			if eras[i][0] == id: return i
+		return 0
+	## choose the era at the top of the ring; the ring turns the short way round (Light / Full), or jumps
+	func set_era(id: String, animate: bool = true) -> void:
+		cur_era = id
+		var to_i: float = float(_era_index(id))
+		var from_i: float = top_f if top_f >= 0.0 else to_i
+		if _turn != null and _turn.is_valid(): _turn.kill()
+		var n: float = float(eras.size())
+		var d: float = fposmod(to_i - from_i + n * 0.5, n) - n * 0.5          # shortest signed distance
+		if not animate or not TBFx.on(TBFx.LIGHT) or not is_inside_tree() or absf(d) < 0.001:
+			top_f = to_i; queue_redraw(); return
+		_turn = TBFx.run(self, 0.4, func(t: float):
+			top_f = fposmod(from_i + d * (1.0 - pow(1.0 - t, 3.0)), n); queue_redraw(), func(): top_f = to_i; queue_redraw(), TBFx.LIGHT)
+	func _label_pos(i: int, top: float, c: Vector2, R: float, rs: float) -> Vector2:
+		var ang: float = -PI * 0.5 + (float(i) - top) * TAU / float(eras.size())
+		return c + Vector2(cos(ang), sin(ang)) * R * (rs + 0.15)
+	func _gui_input(e: InputEvent) -> void:
+		if not interactive or map == null or eras.is_empty(): return
+		var is_motion: bool = e is InputEventMouseMotion
+		var is_click: bool = e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT
+		if not (is_motion or is_click): return
+		var c := _globe_c(); var R := map.radius_px()
+		var top: float = top_f if top_f >= 0.0 else float(_era_index(cur_era))
+		var best := -1; var bd: float = 1.0e9
+		var reach: float = maxf(R * 0.16, 36.0)
+		for i in eras.size():
+			var d: float = (e as InputEventMouse).position.distance_to(_label_pos(i, top, c, R, ring_scale()))
+			if d < bd and d <= reach: bd = d; best = i
+		if is_motion:
+			if best != hover_i: hover_i = best; queue_redraw()
+			mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if best >= 0 else Control.CURSOR_ARROW
+		elif best >= 0:
+			accept_event(); era_clicked.emit(String(eras[best][0]))
 	func _globe_c() -> Vector2: return map.global_position - global_position + map.size * 0.5
 	func _draw() -> void:
 		if map == null: return
@@ -81,29 +122,34 @@ class Orrery extends Control:
 				var p := c + d2 * R * (rs + 0.043)
 				var t := d2.orthogonal()
 				draw_colored_polygon(PackedVector2Array([p, p + d2 * R * 0.03 + t * R * 0.014, p + d2 * R * 0.03 - t * R * 0.014]), TBTokens.with_a(gold, a))
-	## the thirteen worlds around the ring, the chosen one at the top with a brass diamond
+	## the thirteen worlds around the ring, the chosen one at the top with a brass diamond (and its name under the year; also the hovered one)
 	func _draw_eras(c: Vector2, R: float, rs: float, a: float) -> void:
 		var f := TBKit.mono_b()
 		var fsz := TBKit.fs(11.0 * size.y / 720.0 * 0.9)
+		var nf := TBKit.tracked(TBKit.wordmark(), 2)
+		var nsz := TBKit.fs(8.5 * size.y / 720.0)
 		var n := eras.size()
-		var top := 0
+		var top: float = top_f if top_f >= 0.0 else float(_era_index(cur_era))
 		for i in n:
-			if eras[i][0] == cur_era: top = i
-		for i in n:
-			var ang: float = -PI * 0.5 + float(i - top) * TAU / float(n)
+			var ang: float = -PI * 0.5 + (float(i) - top) * TAU / float(n)
 			var d := Vector2(cos(ang), sin(ang))
-			var is_top := i == top
-			var pn: Vector2 = c + d * R * (rs + 0.02)
-			var col: Color = TBTokens.c("brass_lt") if is_top else TBTokens.BZ_DIM2
-			var pd: Vector2 = c + d * R * (rs + 0.0)
+			var is_top: bool = absf(fposmod(float(i) - top + float(n) * 0.5, float(n)) - float(n) * 0.5) < 0.5
+			var is_hov: bool = i == hover_i and not is_top
+			var pd: Vector2 = c + d * R * rs
+			var col: Color = TBTokens.c("brass_lt") if is_top else (TBTokens.c("cream") if is_hov else TBTokens.BZ_DIM2)
 			var s: float = R * (0.035 if is_top else 0.02)
 			var t := d.orthogonal()
 			var dia := PackedVector2Array([pd + d * s, pd + t * s * 0.7, pd - d * s, pd - t * s * 0.7])
-			draw_colored_polygon(dia, TBTokens.with_a(col, a * (1.0 if is_top else 0.8)))
+			draw_colored_polygon(dia, TBTokens.with_a(TBTokens.c("brass_lt") if is_hov else col, a * (1.0 if (is_top or is_hov) else 0.8)))
 			var txt: String = eras[i][1]
-			var tw: float = f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-			var lp: Vector2 = c + d * R * (rs + 0.15) - Vector2(tw * 0.5, -f.get_ascent(fsz) * 0.35)
-			draw_string(f, lp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz + (2 if is_top else 0), TBTokens.with_a(col, a))
+			var lp0: Vector2 = c + d * R * (rs + 0.15)
+			var fs2: int = fsz + (2 if (is_top or is_hov) else 0)
+			var tw: float = f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs2).x
+			draw_string(f, lp0 - Vector2(tw * 0.5, -f.get_ascent(fs2) * 0.35), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs2, TBTokens.with_a(col, a))
+			if interactive and (is_top or is_hov) and eras[i].size() > 2:
+				var nm: String = String(eras[i][2]).to_upper()
+				var nw: float = nf.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nsz).x
+				draw_string(nf, lp0 + Vector2(-nw * 0.5, f.get_ascent(fs2) * 0.35 + nsz * 1.7), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nsz, TBTokens.with_a(TBTokens.c("brass_lt") if is_top else TBTokens.c("smoke"), a))
 
 # ================================================================================================================================ the Continue card (style 4)
 ## A notched card: flag medal (or a globe glyph), title in tracked caps, an italic line below and a chevron. `kind`: "continue" shows the flag, "new" the globe.

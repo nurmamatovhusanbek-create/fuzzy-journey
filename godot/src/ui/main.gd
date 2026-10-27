@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "fx": "full", "win": {}}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "fx": "full", "era_ui": "ring", "win": {}}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -296,8 +296,9 @@ func show_menu() -> void:
 	order.sort_custom(func(a: String, b: String) -> bool: return TBNewGame.ERA_YEAR[a] < TBNewGame.ERA_YEAR[b])
 	for id in order:
 		var yy: int = TBNewGame.ERA_YEAR[id]
-		orr.eras.append([id, ("%d BC" % -yy) if yy < 0 else str(yy)])
+		orr.eras.append([id, ("%d BC" % -yy) if yy < 0 else str(yy), T.call("era_" + id)])
 	orr.cur_era = String(am.get("era", cfg.get("era", "modern"))) if has_save else String(cfg.get("era", "modern"))
+	orr.top_f = float(orr._era_index(orr.cur_era))
 	_overlay.add_child(orr); _bezel = orr
 	# layout: [ scrolling column (wordmark + menu) ] over [ tools row ]; the column scrolls instead of covering anything
 	var frame := VBoxContainer.new(); frame.set_anchors_preset(Control.PRESET_FULL_RECT); frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -740,11 +741,20 @@ func _alive_count() -> int:
 
 func _open_era_picker() -> void:
 	if mode != "menu": show_menu()
+	var on_next := func(era: String, diff: String, players: int):
+		cfg["era"] = era; cfg["players"] = players; _hot_n = players if players > 1 else 0; _hot_list = PackedInt32Array()
+		_begin_pick(era, diff)
+	if _title_wide and String(cfg.get("era_ui", "ring")) == "ring" and _bezel is TP_.Orrery and K.text_scale < 1.5:            # A3: the title's ring is the era picker
+		var hide: Array = []
+		for c in _overlay.get_children():
+			if c != _bezel: hide.append(c)
+		_spin = false
+		var h := TBEraRing.open({"overlay": _overlay, "orrery": _bezel, "map": map, "world": world, "era": cfg.get("era", "modern"), "difficulty": cfg["difficulty"], "players": int(cfg.get("players", 1)),
+			"on_next": on_next, "on_back": show_menu, "hide": hide})
+		h.root.tree_exited.connect(func(): if mode == "menu" and not TBPanel.any_open(_overlay): _title_restore())
+		return
 	TBModals.new_game(_overlay, {"world": world, "era": cfg.get("era", "modern"), "difficulty": cfg["difficulty"], "players": int(cfg.get("players", 1)),
-		"on_next": func(era: String, diff: String, players: int):
-			cfg["era"] = era; cfg["players"] = players; _hot_n = players if players > 1 else 0; _hot_list = PackedInt32Array()
-			_begin_pick(era, diff),
-		"on_back": show_menu})
+		"on_next": on_next, "on_back": show_menu})
 	_title_panel_opened(TBPanel.top(_overlay))
 
 func _begin_pick(era_id: String, difficulty: String) -> void:
