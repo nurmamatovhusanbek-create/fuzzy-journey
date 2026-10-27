@@ -74,9 +74,14 @@ class Handle extends RefCounted:
 	var snap := 0.56
 	var pad := 24
 	var fit_pending := false
-	func is_open() -> bool: return is_instance_valid(root) and not root.is_queued_for_deletion()
+	var stage: Array = []                # the entrance tweens still running (B1 staging)
+	var stage_end: Array = []            # [node, property path, end value]: what "any click completes it" sets
+	var closing := false                 # fading out (0.15 s); already gone for every other purpose
+	func is_open() -> bool: return is_instance_valid(root) and not root.is_queued_for_deletion() and not closing
 	func close() -> void:
-		if is_instance_valid(root) and not root.is_queued_for_deletion(): root.queue_free()
+		if not is_open(): return
+		if form == "dialog" and bz and modal and TBFx.on(TBFx.LIGHT) and root.is_inside_tree(): TBPanel._fade_close(self)
+		else: root.queue_free()
 	func set_title(t: String) -> void:
 		if title_label != null: title_label.text = t; title_label.tooltip_text = t
 	func set_sub(t: String) -> void:
@@ -209,6 +214,7 @@ class Guard extends Node:
 		if TBNegotiate.active and e is InputEventKey and e.pressed:           # a negotiation dial owns the keyboard: any key skips the needle, nothing reaches the panel
 			if not e.echo and TBNegotiate.skip_fn.is_valid(): TBNegotiate.skip_fn.call()
 			get_viewport().set_input_as_handled(); return
+		if h != null and not h.stage.is_empty() and ((e is InputEventKey and e.pressed) or (e is InputEventMouseButton and e.pressed)): TBPanel._stage_finish(h)       # any click or key completes the entrance
 		if not (e is InputEventKey) or not e.pressed or e.echo or h == null or not h.is_open() or not TBPanel.is_top(h): return
 		var vp := get_viewport()
 		if e.is_action_pressed("ui_cancel"):
@@ -467,7 +473,9 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	if h.movable: _setup_window(h, title_text, glyph_id, opts)
 	_layout(h)
 	_queue_fit(h)
-	if K.motion_ok():
+	if h.bz and h.form == "dialog" and h.modal and TBFx.on(TBFx.LIGHT):
+		_stage_begin.call_deferred(h)                  # B1: after the caller has filled the body (still before the first frame is drawn)
+	elif K.motion_ok():
 		root.modulate.a = 0.0
 		var tw := root.create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_property(root, "modulate:a", 1.0, 0.18 if h.bz else 0.16)
@@ -482,6 +490,58 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 				"page": tw.tween_property(holder, "position:x", 0.0, 0.2).from(24.0)
 				_: tw.tween_property(holder, "position:y", 0.0, 0.18).from(8.0)
 	return h
+
+## B1 staging of a dialog (docs/screens/popup_mocks/sheet_D_staging.png): the veil comes up in 0.2 s, the card fades in and rises 14 px, then (Full) the header, the body blocks and the
+## footer appear one after the other (0.32 s in all). Any click or key completes it at once. Effects Off / Reduce motion: nothing here runs.
+static func _stage_begin(h: Handle) -> void:
+	if not h.is_open() or h.holder == null: return
+	var full := TBFx.on(TBFx.FULL)
+	var tws: Array = []
+	var ends: Array = []
+	if h.backdrop != null:
+		var a: float = h.backdrop.color.a
+		h.backdrop.color.a = 0.0
+		tws.append(TBFx.tween(h.backdrop, {"color:a": a}, 0.2, TBFx.LIGHT)); ends.append([h.backdrop, "color:a", a])
+	h.holder.modulate.a = 0.0; h.holder.position.y = 14.0
+	tws.append(TBFx.tween(h.holder, {"modulate:a": 1.0}, 0.16, TBFx.LIGHT, {}, 0.04)); ends.append([h.holder, "modulate:a", 1.0])
+	tws.append(TBFx.tween(h.holder, {"position:y": 0.0}, 0.24, TBFx.LIGHT)); ends.append([h.holder, "position:y", 0.0])
+	if full:
+		var groups: Array = []
+		if h.head != null: groups.append(h.head)
+		if h.body != null:
+			for c in h.body.get_children(): if c is CanvasItem and (c as CanvasItem).visible: groups.append(c)
+		if h.footer_wrap != null: groups.append(h.footer_wrap)
+		var n: int = mini(groups.size(), 7)
+		for i in groups.size():
+			var c: CanvasItem = groups[i]
+			var keep: float = c.modulate.a
+			var delay: float = 0.08 + 0.24 * float(mini(i, n)) / float(maxi(n, 1))
+			c.modulate.a = 0.0
+			tws.append(TBFx.tween(c, {"modulate:a": keep}, 0.14, TBFx.FULL, {}, delay)); ends.append([c, "modulate:a", keep])
+	h.stage = tws.filter(func(t): return t != null); h.stage_end = ends
+
+## complete the entrance now (a click, a key, or the dialog is being closed)
+static func _stage_finish(h: Handle) -> void:
+	if h.stage.is_empty(): return
+	for t in h.stage: if t != null and (t as Tween).is_valid(): (t as Tween).kill()
+	for e in h.stage_end:
+		if is_instance_valid(e[0]): (e[0] as Node).set_indexed(NodePath(e[1]), e[2])
+	h.stage = []; h.stage_end = []
+
+## the reverse of the entrance, 0.15 s: the dialog is already closed for the rest of the game (no handle, no modal meta) and only fades out
+static func _fade_close(h: Handle) -> void:
+	_stage_finish(h)
+	h.closing = true
+	var root: Control = h.root
+	root.remove_meta("tb_handle"); root.remove_meta("tb_modal"); root.set_meta("tb_closing", true)
+	_ignore_mouse(root)
+	var tw := root.get_tree().create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw.tween_property(root, "modulate:a", 0.0, 0.15)
+	tw.tween_callback(func(): if is_instance_valid(root): root.queue_free())
+
+static func _ignore_mouse(n: Node) -> void:
+	if n is Control: (n as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE; (n as Control).focus_mode = Control.FOCUS_NONE
+	for c in n.get_children(): _ignore_mouse(c)
 
 ## the demo's header (`.hd`): ring icon 46, title (Cinzel 700 22, .12em) over an italic subtitle, 36 unit close button, then the graduated rule
 static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyph_id: String, opts: Dictionary, vp0: Vector2) -> void:

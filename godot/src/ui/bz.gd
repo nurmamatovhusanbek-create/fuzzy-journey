@@ -103,7 +103,7 @@ static func draw_shadow(ci: RID, w: float, h: float, dy: float = SH_DY, k: float
 ## the demo's plate(): `.pw` drop shadow + `.plate` (lo fill, notch c) + `.pin` (margin 1px, notch c - 1, gradient, inset 3 dark, inset 4 faint brass).
 ## The pin's vertical margins collapse through the plate in CSS, so the lo hairline is only the 1 unit strip at the left and right edge (the notch edges
 ## coincide with the pin's): top, bottom and chamfers show the pin. rect is the outer box; c = 12 for panels, 8 / 6 for tags and tooltips
-static func draw_plate(ci: RID, rect: Rect2, c: float = 12.0, shadow: bool = true) -> void:
+static func draw_plate(ci: RID, rect: Rect2, c: float = 12.0, shadow: bool = true, rim: Color = Color.TRANSPARENT) -> void:
 	var w: float = roundf(rect.size.x); var h: float = roundf(rect.size.y)
 	if w < 4.0 or h < 4.0: return
 	shift(ci, rect.position.round())
@@ -115,35 +115,41 @@ static func draw_plate(ci: RID, rect: Rect2, c: float = 12.0, shadow: bool = tru
 		unshift(ci)
 		return
 	if shadow: draw_shadow(ci, w, h)
-	var lo: Color = TBTokens.c("rule")
+	var lo: Color = TBTokens.c("rule") if rim.a <= 0.0 else rim
 	var outer := notch(0, 0, w, h, c)
 	poly(ci, outer, lo)
 	var n: float = c - 1.0                                  # the pin's own notch
 	var pin := notch(1, 0, w - 1, h, n)
 	var top: Color = TBTokens.BZ_PLATE_TOP; var bot: Color = TBTokens.BZ_PLATE_BOT
+	if rim.a > 0.0:                                          # a tinted plate (the war declaration): warmer ground
+		top = top.lerp(rim.darkened(0.55), 0.20); bot = bot.lerp(rim.darkened(0.7), 0.16)
 	var ph: float = h
 	poly(ci, pin, TBTokens.BZ_PLATE_BOT)                    # inset 3 px ring: #13100c
 	# inset rectangles are clipped by the pin's diagonal: a rect inset by a has its corner cut by n - 2a
-	var line := TBTokens.BZ_PLATE_LINE
+	var line := TBTokens.BZ_PLATE_LINE if rim.a <= 0.0 else TBTokens.with_a(rim, 0.45)
 	var p3 := notch(1.0 + 3.0, 3.0, w - 1.0 - 3.0, h - 3.0, maxf(n - 6.0, 0.0))
 	var g3 := vgrad(p3, 0.0, ph, top, bot)
 	for i in g3.size(): g3[i] = g3[i].lerp(Color(line.r, line.g, line.b, 1.0), line.a)
 	poly_g(ci, p3, g3)
 	var p4 := notch(1.0 + 4.0, 4.0, w - 1.0 - 4.0, h - 4.0, maxf(n - 8.0, 0.0))
 	poly_g(ci, p4, vgrad(p4, 0.0, ph, top, bot))
+	if rim.a > 0.0:                                          # the whole edge in the tint, not only the side strips
+		var closed_o := outer.duplicate(); closed_o.append(outer[0])
+		RenderingServer.canvas_item_add_polyline(ci, closed_o, _pc(rim), 1.5, true)
 	unshift(ci)
 
 class Plate extends StyleBox:
 	var cut := 12.0
 	var shadow := true
-	func _init(c: float = 12.0, sh: bool = true) -> void:
-		cut = c; shadow = sh
+	var rim := Color.TRANSPARENT                                           # another edge colour (the war declaration is rust); transparent = the brass rule
+	func _init(c: float = 12.0, sh: bool = true, rim_col: Color = Color.TRANSPARENT) -> void:
+		cut = c; shadow = sh; rim = rim_col
 		content_margin_left = 1.0; content_margin_right = 1.0          # the pin's 1 unit side margin
 	func _draw(ci: RID, rect: Rect2) -> void:
-		TBBz.draw_plate(ci, rect, cut, shadow)
+		TBBz.draw_plate(ci, rect, cut, shadow, rim)
 
-static func plate_box(c: float = 12.0, shadow: bool = true) -> StyleBox:
-	return Plate.new(c, shadow)
+static func plate_box(c: float = 12.0, shadow: bool = true, rim: Color = Color.TRANSPARENT) -> StyleBox:
+	return Plate.new(c, shadow, rim)
 
 # ---- text ------------------------------------------------------------------------------------------------------------------------
 ## Godot font sizes are integers and letter-spacing is an integer, the demo's are fractional (11.5, .16em). So a string is shaped once at K4 times its size

@@ -27,6 +27,11 @@ out=$(TB_NOANIM=0 timeout 280 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --
 out=$(TB_NOANIM=1 timeout 500 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/map_partial.gd -- 1280 720 10 2>&1); echo "$out" | grep -q "PARTIAL OK" && echo "ok: tests/map_partial.gd" || { echo "FAIL: tests/map_partial.gd"; echo "$out" | grep -E "PARTIAL|differing pixels|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM= timeout 500 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/bake.gd -- 1280 720 2>&1); echo "$out" | grep -q "^BAKE OK" && echo "ok: tests/bake.gd" || { echo "FAIL: tests/bake.gd"; echo "$out" | grep -E "baked|hover|SCRIPT" | head -6; fail=1; }
 out=$(TB_NOANIM= timeout 250 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/fx_still.gd 2>&1); echo "$out" | grep -q "FX_STILL OK" && echo "ok: tests/fx_still.gd" || { echo "FAIL: tests/fx_still.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+# B1 / B3: dialog staging (veil, rise, click completes, fade on close, Off instant) and the war declaration (seal, the War moment, skip, Off = none); run with a fixed frame rate
+for t in staging:STAGING war_moment:WAR_MOMENT; do
+  out=$(TB_NOANIM= timeout 250 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/${t%%:*}.gd -- /tmp 2>&1); mark=${t##*:}
+  echo "$out" | grep -q "$mark OK" && echo "ok: tests/${t%%:*}.gd" || { echo "FAIL: tests/${t%%:*}.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+done
 mkdir -p /tmp/tb_cc; run tests/mm_globe.gd -- /tmp/tb_cc
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960

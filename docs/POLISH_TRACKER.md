@@ -71,8 +71,8 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | A2 | Title menu: Continue card, quiet rows, gliding bracket, campaign card | done | 657d14c | Off: bracket jumps | fx_still, ui_back, monkey |
 | A5a | Continue dive (one continuous move) | done | b4368b9 | Light: dissolve only; Off: plain load | title_dive.gd |
 | B-mock | Pop-up mock-ups (war, event, battle, treaty, summary, finale, staging) | done | 10f2c85 | | n/a |
-| B1 | Dialog staging in `TBPanel` / `TBKit.modal` | **in progress** | | Off: instant | see section 5 |
-| B3 | War declaration: seal button, face-off card, "War" moment | queued | | Off: old look | |
+| B1 | Dialog staging in `TBPanel.open` (bezel dialogs) | done | faf696e | Off / Reduce motion: the old fade, no staging | staging.gd (+ suite) |
+| B3 | War declaration: seal button, face-off card, "War" moment | done | faf696e | Off: no moment (card look is permanent) | war_moment.gd (+ suite) |
 | B2 | Event pop-up: illustration band, glyph per class, effect chips | queued | | | |
 | B7 | Game-over finale (victory / defeat) | queued | | | |
 | B4 | Battle report | queued | | | |
@@ -115,9 +115,26 @@ Pictures are under `docs/screens/`. "Before" = the state at the start of the pol
 * Pictures: `popup_mocks/sheet_A_war_event.png`, `sheet_B_battle_treaty_summary_glyphs.png`, `sheet_C_finale.png`, `sheet_D_staging.png` (+ full size). Source `docs/ui_variants/src/b_popups.html`.
 * Before pictures for the same dialogs: `polish_baseline/gd_war.png`, `gd_event.png`.
 
-### B1 · Dialog staging (in progress)
-* **Before**: `TBKit.modal` fades the whole back panel in 0.18 s and slides it 8 px; `TBPanel.open` has its own fade; content appears at once.
-* **After (target)**: veil 0 -> 58 % over 0.2 s, card rises 14 px and fades in; header, text, choices reveal in sequence (80 / 160 / 240 / 320 ms); close is the reverse in 0.15 s; any click or key completes it. `TBFx` gates it (Off = instant).
+### B1 · Dialog staging
+| Before | After |
+|---|---|
+| `polish_baseline/gd_war.png` (card fades in 0.18 s with a 0.97 -> 1 scale) | `b1_b3/staging_frames.png` (frames at 0 / 66 / 133 / 200 / 300 / 400 ms) |
+
+* **What**: `TBPanel.open` for a bezel **dialog** (modal) now runs `_stage_begin` (deferred, so the caller has filled the body): veil 0 -> its alpha over 0.2 s, the card fades in (0.16 s, from 40 ms) and rises 14 px (0.24 s); on **Full** the header, each body block and the footer then appear one after the other (0.14 s each, spread over 0.32 s). Any mouse press or key completes it (`Guard._input` -> `_stage_finish`).
+* **Close**: `Handle.close()` on such a dialog now fades the node out in 0.15 s but it is gone for the game at once (`closing` flag, `tb_handle` / `tb_modal` metas removed, `tb_closing` meta added, mouse and focus ignored; `main._modal_open` skips `tb_closing`). Effects Off / Reduce motion: `root.queue_free()` as before.
+* **Not touched**: windows (movable panels), drawers, pages, sheets and the legacy `TBKit.modal` keep their old fade.
+* **Files**: `src/ui/panel.gd` (Handle fields `stage`, `stage_end`, `closing`; `_stage_begin`, `_stage_finish`, `_fade_close`, `_ignore_mouse`), `src/ui/main.gd` (`_modal_open`).
+* **Test**: `tests/staging.gd` (run with `--fixed-fps 30`): hidden at open, completes by itself, a click completes it, close is immediate for the game and frees after the fade, Off completes in the opening frame.
+
+### B3 · War declaration
+| Before | After |
+|---|---|
+| `polish_baseline/gd_war.png` | `b1_b3/war_1_rest.png`, `war_2_hold.png` (holding 60 %), `war_3_moment_a.png`, `war_3_moment_b.png` |
+
+* **What**: `TBModals.war_confirm` -> rust-edged card (`TBBz.plate_box(12, true, rim)`: new optional `rim` colour tints edge, ground and inner line), the **face-off row** (both flags as medals, rulers from `TBRulers`, a war disc between them), the effect ledger as before, Cancel + the **seal** (`TBWarParts.Seal`: the old hold rule, 0.6 s or Enter twice; ring fills while held; `progress` signal warms the veil toward rust). After the command (`on_yes`) the map turns to the target (`main._fly_to_nation`) and the **War moment** plays (`TBWarParts.Moment`: letterbox bars, rust vignette, both flags + disc pop in, "War", "A declares war on B", date; 2.3 s on Full, 1.2 s banner on Light, none on Off; any click or key ends it; carries `tb_closing` so it never counts as a modal).
+* **Files**: new `src/ui/war_parts.gd` (`TBWarParts`: `FaceOff`, `Seal`, `Moment`), `src/ui/modals.gd` (`war_confirm`), `src/ui/bz.gd` (`draw_plate` rim), i18n `war_moment_t`, `war_moment_sub` (en / ru / uz).
+* **Behaviour kept**: costs, rows, hold time, the `declareWar` command, the focus on Cancel. The old `K.danger(..."war")` button is no longer used here.
+* **Test**: `tests/war_moment.gd` (fixed-fps): the seal is in the card, confirmed closes the card, the moment plays and ends by itself, a key skips it, Off plays none.
 
 *(Add a block per finished step below this line, newest last.)*
 
@@ -127,8 +144,8 @@ Acceptance for every step: (a) Effects Off looks and behaves as before the step;
 
 | order | id | what to build | files likely touched | tests to run (one at a time) | notes for next step |
 |---|---|---|---|---|---|
-| 1 | B1 | staging for `TBPanel.open` dialogs and `TBKit.modal` (veil, rise, staggered reveal, reverse on close, click completes) | `panel.gd`, `ui_kit.gd`, `fx.gd` | ui_modals, ui_back, ui_windows, ui_resize, ui_overflow x4, fx_still, bake | windows (non-modal, movable) get only the fade, not the veil; reveal groups are the direct children of the body VBox |
-| 2 | B3 | war declaration: rust tint, face-off row, seal hold button (existing hold rule), "War" letterbox moment, map pans to the front | `order_flow.gd`, `ui_kit.gd` (hold button), `modals.gd`, new `war_moment.gd` | ui_modals, ui_back, ui_monkey 1-2, fx_still, a new `tests/war_moment.gd` (still + Off) | find the existing "HOLD TO DECLARE WAR" button (`confirm` in `panel.gd` / order flow); keep its signal contract |
+| 1 | B1 | (done) | | | |
+| 2 | B3 | (done) | | | |
 | 3 | B2 | event pop-up: glyph band per event class, strength bar, effect chips with arrows | `modals.gd` (events), new `event_glyphs.gd` | events_ui, ui_modals, ui_overflow | class from `cat` of the event dict; chips come from the choice effects already computed |
 | 4 | B7 | game-over finale: stats count up, milestones list, buttons | `modals.gd` `game_over` | gameover_ui, ui_overflow | data = existing game-over stats; no save change |
 | 5 | B4 | battle report | `modals.gd`/battle report code | march, ui_modals | numbers already in the report dict |

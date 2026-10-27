@@ -570,17 +570,19 @@ static func event_choice(icon: String, title_text: String, chips: Array, cb: Cal
 static func _gap(v: Control, px: float) -> void:
 	var g := Control.new(); g.custom_minimum_size = Vector2(0, px); g.mouse_filter = Control.MOUSE_FILTER_IGNORE; v.add_child(g)
 
-## the demo's "Declare war on X?" modal (`panel('war')`): a 460 wide dialog, a dim paragraph, the effect ledger, Cancel + hold-to-declare
+## the "Declare war on X?" modal (B3): a rust-edged card, the two flags face to face, the effect ledger, Cancel + the hold-to-declare **seal**; after the command the
+## "War" moment plays (Full / Light) and the map turns to the front. The hold rule is the old one: 0.6 s, or Enter twice.
 static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) -> TBPanel.Handle:
 	var me: int = g.human_id
 	var phone: bool = K.is_phone(parent)
-	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("confirm_war_t", {"a": g.dname(n)}), "war", {"w": 480.0 if phone else 460.0})
+	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("confirm_war_t", {"a": g.dname(n)}), "war", {"w": 540.0 if phone else 520.0})
+	if h.bz: h.card.add_theme_stylebox_override("panel", TBBz.plate_box(12.0, true, TBWarParts.rust()))
 	var cbk := TBDiplo.cb(g, me, n)
 	var dp: int = int(D.DP_WAR)
 	var body: String = T.call("war_body_cb", {"cb": T.call("cb_" + cbk), "dp": dp}) if cbk != "" else T.call("war_body_nocb", {"dp": dp})
 	var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.body.add_child(col)
 	col.add_child(K.para_bz(body, 17.0, 1.4))
-	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 12); col.add_child(gap)
+	col.add_child(TBWarParts.FaceOff.new(g, me, n))
 	var rows: Array = [[T.call("war_fx_env"), "−%d" % dp, -1]]
 	var was: int = g.get_rel(me, n)
 	rows.append([T.call("war_fx_grudge"), "+%d" % (80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)), -1])
@@ -588,10 +590,17 @@ static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) ->
 	if TBTrade.has(g, me, n): rows.append([T.call("war_fx_trade"), T.call("war_fx_ends"), 0])
 	col.add_child(K.fxl(rows))
 	var cancel := K.button(T.call("cancel"), func(): h.close())
-	var db := K.danger(T.call("war_hold"), Callable(), "war") as K.DangerBtn
-	db.make_hold()
-	db.confirmed.connect(func(): h.close(); on_yes.call())
-	h.actions(cancel, db)
+	var seal := TBWarParts.Seal.new(T.call("war_hold"))
+	var veil0: Color = h.backdrop.color if h.backdrop != null else Color.TRANSPARENT
+	seal.progress.connect(func(f: float):                                                     # holding: the veil warms toward rust, the edge of the screen reddens
+		if h.backdrop != null and TBFx.on(TBFx.LIGHT) and h.is_open(): h.backdrop.color = veil0.lerp(TBTokens.with_a(TBWarParts.rust().darkened(0.55), 0.7), f * 0.55))
+	seal.confirmed.connect(func():
+		var main_node: Node = parent.get_parent()
+		h.close(); on_yes.call()
+		if TBFx.on(TBFx.LIGHT) and is_instance_valid(parent):
+			if main_node != null and main_node.has_method("_fly_to_nation"): main_node.call("_fly_to_nation", n)
+			var mo := TBWarParts.Moment.new(g, me, n, TBFx.on(TBFx.FULL)); parent.add_child(mo); mo.play())
+	h.actions(cancel, seal)
 	h.focus_target = cancel
 	if TBPanel.wants_focus(): cancel.grab_focus.call_deferred()
 	return h

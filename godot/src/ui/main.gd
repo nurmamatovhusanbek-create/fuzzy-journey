@@ -159,7 +159,7 @@ func _apply_safe_area() -> void:
 ## a modal (dialog, menu, pick screen...) is up: the map, the rail and the hotkeys wait. The movable windows (Nations, Budget...) are not modal.
 func _modal_open() -> bool:
 	for c in _overlay.get_children():
-		if c.is_queued_for_deletion(): continue
+		if c.is_queued_for_deletion() or c.has_meta("tb_closing"): continue
 		if c.has_meta("tb_handle") and not (c.get_meta("tb_handle") as TBPanel.Handle).modal: continue
 		return true
 	return false
