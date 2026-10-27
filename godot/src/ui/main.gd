@@ -431,68 +431,105 @@ func _title_sel_start() -> void:
 ## with Effects Off it is a plain load.
 var _dive: Tween
 var _dive_ng: TBGame
+var _dive_thread: Thread
 var _dive_block: Control
 
+## One continuous move: the menu dissolves while the camera already turns; the ring opens; near the end the game is built underneath a still of the globe, which keeps zooming
+## with the camera while it dissolves and the interface fades in. The save is read on a thread meanwhile. The end framing is the game's own (capital at 2.2, or the matching globe zoom).
 func _title_continue() -> void:
-	if not TBFx.on(TBFx.LIGHT) or mode != "menu" or _dive != null: _load_slot("auto"); return
-	var ng := TBSave.load_game(world, "auto")
-	if ng == null: return
-	_dive_ng = ng
+	var am := TBSave.meta("auto")
+	if not TBFx.on(TBFx.LIGHT) or mode != "menu" or _dive != null or not am.has("cap"): _load_slot("auto"); return
+	var cap: int = int(am["cap"])
+	if cap < 0 or cap >= world.P: _load_slot("auto"); return
 	_spin = false
+	_dive_thread = Thread.new(); _dive_thread.start(func() -> TBGame: return TBSave.load_game(world, "auto"))
 	_dive_block = Control.new(); _dive_block.set_anchors_preset(Control.PRESET_FULL_RECT); _dive_block.mouse_filter = Control.MOUSE_FILTER_STOP; _dive_block.focus_mode = Control.FOCUS_ALL
 	_dive_block.gui_input.connect(func(e: InputEvent): if (e is InputEventMouseButton and e.pressed) or (e is InputEventKey and e.pressed): _dive_skip())
 	_overlay.add_child(_dive_block); _dive_block.grab_focus()
-	var cap: int = ng.capital_of[ng.human_id]
-	var full: bool = TBFx.on(TBFx.FULL) and cap >= 0
-	var lon_t: float = deg_to_rad(world.lon[cap]) if cap >= 0 else map.lon0
-	var lat_t: float = clampf(deg_to_rad(world.lat[cap]), -1.45, 1.45) if cap >= 0 else map.lat0
+	var full: bool = TBFx.on(TBFx.FULL)
+	var lon_t: float = deg_to_rad(world.lon[cap]); var lat_t: float = clampf(deg_to_rad(world.lat[cap]), -1.45, 1.45)
 	var lon_0: float = map.lon0; var lat_0: float = map.lat0; var z_0: float = map.zoom; var gk_0: float = map.grid_k
+	# the globe zoom whose scale at the capital equals the flat game's (Mercator stretches by 1/cos(lat))
+	var flat_z := 2.2
+	var z_end: float = 2.2
+	if cfg["view"] != "globe":
+		z_end = (map.size.x / TAU * flat_z / maxf(cos(lat_t), 0.3)) / (0.44 * minf(map.size.x, map.size.y))
 	var fade_nodes: Array = []
 	for c in _overlay.get_children():
 		if c != _bezel and c != _dive_block: fade_nodes.append(c)
-	var orr: TP_.Orrery = _bezel as TP_.Orrery
-	_dive = TBFx.run(self, 1.25 if full else 0.4, func(t: float):
-		var a: float = 1.0 - TBFx.smooth(t / (0.30 if full else 0.8))
+	var T_SWAP: float = 0.72 if full else 0.55            # fraction of the move at which the game takes over underneath the still
+	var st := {"swapped": false, "still": null, "z_s": 1.0, "full": full}
+	var zoom_at := func(t: float) -> float:
+		var e: float = TBFx.smooth((t - 0.04) / 0.96)
+		return z_0 * pow(z_end / z_0, e)
+	var secs: float = 1.9 if full else 0.8
+	_dive = TBFx.run(self, secs, func(t: float):
+		var a: float = 1.0 - TBFx.smooth(t / (0.26 if full else 0.6))
 		for n in fade_nodes: if is_instance_valid(n): (n as CanvasItem).modulate.a = a
-		if is_instance_valid(orr): orr.open = TBFx.smooth((t - (0.08 if full else 0.0)) / (0.55 if full else 0.9)); orr.queue_redraw()
-		if full:
-			var e: float = TBFx.smooth((t - 0.12) / 0.88)
-			map.lon0 = lon_0 + wrapf(lon_t - lon_0, -PI, PI) * e
-			map.lat0 = lerpf(lat_0, lat_t, e)
-			map.zoom = z_0 * pow(1.7 / z_0, e)
-			map.grid_k = lerpf(gk_0, 1.0, e)
-			map._push_view(),
-		_dive_finish, TBFx.LIGHT)
+		if is_instance_valid(_bezel):
+			(_bezel as TP_.Orrery).open = TBFx.smooth((t - 0.04) / (0.5 if full else 0.7)); _bezel.queue_redraw()
+		var z: float = zoom_at.call(t) if full else 1.0
+		if not st["swapped"]:
+			if full:
+				var e: float = TBFx.smooth((t - 0.04) / 0.96)
+				map.lon0 = lon_0 + wrapf(lon_t - lon_0, -PI, PI) * e
+				map.lat0 = lerpf(lat_0, lat_t, e)
+				map.zoom = z
+				map.grid_k = lerpf(gk_0, 1.0, e)
+				map._push_view()
+			if t >= T_SWAP: st["z_s"] = z; _dive_swap(st)
+		else:
+			var still: TextureRect = st["still"]
+			var k: float = z / float(st["z_s"])
+			if is_instance_valid(still):
+				still.pivot_offset = still.size * 0.5; still.scale = Vector2(k, k)
+				still.modulate.a = 1.0 - TBFx.smooth((t - T_SWAP) / (1.0 - T_SWAP))
+			if full:
+				if cfg["view"] == "globe": map.zoom = z; map._push_view()
+				else: map.jump_to(world.lon[cap], world.lat[cap], flat_z * z / z_end)
+			if hud != null: hud.modulate.a = TBFx.smooth((t - T_SWAP - 0.08) / (1.0 - T_SWAP - 0.08)),
+		_dive_end.bind(st), TBFx.LIGHT)
 
 func _dive_skip() -> void:
 	if _dive == null: return
 	_dive.kill(); _dive = null
-	_dive_finish()
+	_dive_end({"swapped": false})
 
-## the title's globe has arrived: hold a still of it, switch to the game underneath and let the still dissolve while the interface fades in
-func _dive_finish() -> void:
-	_dive = null
-	var ng := _dive_ng; _dive_ng = null
+## the game is built under a still of the title's last frame
+func _dive_swap(st: Dictionary) -> void:
+	st["swapped"] = true
+	var ng: TBGame = _dive_thread.wait_to_finish() if _dive_thread != null else null
+	_dive_thread = null
+	if ng == null: ng = TBSave.load_game(world, "auto")
 	if ng == null: return
-	var still: ImageTexture = null
-	if TBFx.on(TBFx.LIGHT):
-		var img := get_viewport().get_texture().get_image()
-		if img != null: still = ImageTexture.create_from_image(img)
-	var cam := Vector3(map.lon0, map.lat0, map.zoom)
-	_enter_loaded(ng, still == null)
-	if still == null: return
-	if cfg["view"] == "globe":
-		map.lon0 = cam.x; map.lat0 = cam.y; map.zoom = cam.z; map._push_view(); _fly_to_capital(ng)
-	else:
-		var cp: int = ng.capital_of[ng.human_id]
-		if cp >= 0: map.jump_to(world.lon[cp], world.lat[cp], 2.2)
-	var tr := TextureRect.new(); tr.texture = still; tr.set_anchors_preset(Control.PRESET_FULL_RECT); tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dive_ng = ng
+	var img := get_viewport().get_texture().get_image()
+	var tr := TextureRect.new(); tr.texture = ImageTexture.create_from_image(img); tr.set_anchors_preset(Control.PRESET_FULL_RECT); tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; tr.stretch_mode = TextureRect.STRETCH_SCALE; tr.z_index = 50
-	add_child(tr)
-	TBFx.tween(tr, {"modulate:a": 0.0}, 0.55, TBFx.LIGHT, {}, 0.05, Tween.TRANS_SINE, Tween.EASE_IN_OUT)
-	get_tree().create_timer(0.7).timeout.connect(func(): if is_instance_valid(tr): tr.queue_free())
-	if hud != null:
-		TBFx.tween(hud, {"modulate:a": 1.0}, 0.45, TBFx.LIGHT, {"modulate:a": 0.0}, 0.25)
+	var cam := Vector3(map.lon0, map.lat0, map.zoom)
+	_enter_loaded(ng, false)
+	if st.get("full", false):
+		if cfg["view"] == "globe": map.lon0 = cam.x; map.lat0 = cam.y; map.zoom = cam.z; map._push_view()
+	else: _fly_to_capital(ng)
+	add_child(tr); st["still"] = tr
+	if hud != null: hud.modulate.a = 0.0
+
+## the move is over (or skipped): make sure the game is up, the camera final and nothing is left over
+func _dive_end(st: Dictionary) -> void:
+	_dive = null
+	if _dive_ng == null:
+		var ng: TBGame = _dive_thread.wait_to_finish() if _dive_thread != null else null
+		_dive_thread = null
+		if ng == null: ng = TBSave.load_game(world, "auto")
+		if ng == null: return
+		_enter_loaded(ng, true)
+	else:
+		_fly_to_capital(_dive_ng)
+	_dive_ng = null
+	for c in get_children():
+		if c is TextureRect and c.z_index == 50: c.queue_free()
+	if hud != null: hud.modulate.a = 1.0
+	if map.grid_k != 1.0: map.grid_k = 1.0; map._push_view()
 
 func _fly_to_capital(ng: TBGame) -> void:
 	var cap: int = ng.capital_of[ng.human_id]

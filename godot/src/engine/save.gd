@@ -17,7 +17,7 @@ static func to_dict(g: TBGame) -> Dictionary:
 	d["meta"] = {"turn": turn_n, "year": g.year, "nation": g.nat_name[g.human_id] if g.human_id > 0 else "", "era": g.era_id}
 	var hn: int = g.human_id
 	if hn > 0:                                                                  # what the title's Continue card shows: the flag and the ruler (names are composed in the player's language there)
-		d["meta"]["code"] = g.nat_code[hn]; d["meta"]["color"] = g.color[hn]
+		d["meta"]["code"] = g.nat_code[hn]; d["meta"]["color"] = g.color[hn]; d["meta"]["cap"] = g.capital_of[hn]
 		if g.rules >= 1 and g.r_name[hn] != "": d["meta"]["rk"] = TBRulers.title_key(g, hn); d["meta"]["rn"] = g.r_name[hn]; d["meta"]["rnum"] = g.r_num[hn]
 	return d
 
