@@ -9,6 +9,19 @@ signal view_changed
 signal performance_low        # sustained slow frames while interacting -> UI may lower the quality tier
 
 const SHADER := preload("res://src/render/globe.gdshader")
+## One shader per quality tier: the tier is a `const` in each, so the code a tier never runs (the 3x3 B-spline id lookups of the high tier, for one) is not compiled in at all. The GPU
+## then plans its registers for the code that does run, and the driver compiles less (ANGLE / D3D especially). The picture is the same code path as before, just without the
+## branches that were never taken.
+static var _tier_shaders := {}
+static func tier_shader(q: int) -> Shader:
+	if _tier_shaders.has(q): return _tier_shaders[q]
+	var sh := Shader.new()
+	var code: String = SHADER.code
+	assert(code.contains("uniform int quality = 2;"))
+	sh.code = code.replace("uniform int quality = 2;", "const int quality = %d;" % q)
+	_tier_shaders[q] = sh
+	return sh
+var _shader_q := -1
 const VIGNETTE := preload("res://src/render/vignette.gdshader")
 const PAL_W := 2048
 var _vig: ColorRect
@@ -87,7 +100,7 @@ func setup(game: TBGame) -> void:
 		_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_rect.size = Vector2(_vp.size)
 		_mat = ShaderMaterial.new()
-		_mat.shader = SHADER
+		_mat.shader = tier_shader(quality); _shader_q = quality
 		_rect.material = _mat
 		_clip = Control.new()                                          # the scissor of a partial redraw (the whole viewport for a full one)
 		_clip.clip_contents = true; _clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -249,6 +262,8 @@ func flat_local() -> float: return flat_scale() / maxf(0.2, cos(lat0))
 
 func _push_view() -> void:
 	if _mat == null: return
+	if _shader_q != quality and _shader_q >= 0:                       # the quality tier changed: its own shader
+		_shader_q = quality; _mat.shader = tier_shader(quality)
 	var rs: float = render_scale
 	var vs := Vector2i(maxi(64, int(size.x * rs)), maxi(64, int(size.y * rs)))
 	if _vp.size != vs:

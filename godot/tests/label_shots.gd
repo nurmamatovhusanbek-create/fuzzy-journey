@@ -6,7 +6,7 @@ func _init() -> void:
 	var main: Control = load("res://src/ui/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
-	main.cfg["lang"] = "en"; TBI18n.load_lang("en"); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true; main.cfg["quality"] = "high"
+	main.cfg["lang"] = "en"; TBI18n.load_lang("en"); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true; main.cfg["quality"] = (OS.get_environment("TB_Q") if OS.get_environment("TB_Q") != "" else "high")
 	main._begin_pick("napoleonic", "normal")
 	var fr: int = main.g.nat_code.find("france")
 	main._start_game(fr)

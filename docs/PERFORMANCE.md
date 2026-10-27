@@ -72,4 +72,10 @@ Findings and what was done:
   are cached, and each variant's width and height are measured once per name instead of once per try (up to 33 tries). Label layout: 18.6 -> 10 ms at zoom 1.2, 26 -> 19 ms at
   zoom 3.2. `hud.refresh` no longer computes the advisor's alerts twice.
 
+  **One map shader per quality tier.** The tier was a uniform, so the one big fragment shader carried the code of all three tiers (the high tier's 3x3 B-spline id lookups, a
+  dozen per pixel, for one) although a tier runs only its own. A GPU plans its registers for the heaviest path of the whole shader, and ANGLE / D3D compiles all of it. Now
+  `TBMapView.tier_shader(q)` makes the tier a `const` in a per-tier copy of the same source, so the dead branches are not compiled at all (the swap happens when the tier changes).
+  Same code path, same pixels (`label_shots` at low, medium and high, 15 views each: 0 pixels differ); software GL renders a medium frame 14 % faster (124 -> 107 ms), the
+  high tier 5 %. A weak GPU, where register pressure and compile time count, should gain more.
+
 Ideas not done yet: layout in a worker thread (compute on a snapshot, draw the result), moving the autosave off the main thread, lazy-loading the era flag sets.
