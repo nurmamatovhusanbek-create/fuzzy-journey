@@ -12,7 +12,7 @@ func _init() -> void:
 	await process_frame; await process_frame
 	main._update_ui_scale()
 	await process_frame
-	main.cfg["lang"] = lang; TBI18n.load_lang(lang); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true
+	main.cfg["lang"] = lang; TBI18n.load_lang(lang); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true; main.cfg["text_scale"] = float(OS.get_environment("TB_TS")) if OS.get_environment("TB_TS") != "" else 1.0; main._apply_a11y()
 	if a.size() > 5: main.cfg["fx"] = a[5]; main._apply_a11y()
 	if with_save:
 		main._begin_pick("napoleonic", "normal"); main._start_game(main.g.nat_code.find("france"))
@@ -23,6 +23,7 @@ func _init() -> void:
 		DirAccess.remove_absolute(TBSave.path_for("auto"))
 	main._spin = false
 	main.show_menu(); main._spin = false
+	print("stage ", main.size, " scale ", main.scale, " wide ", main._title_wide, " text_scale ", TBKit.text_scale)
 	for i in 10: await process_frame
 	root.get_viewport().get_texture().get_image().save_png("%s/t_%s_%dx%d_%s.png" % [out, "save" if with_save else "nosave", w, h, lang])
 	quit()

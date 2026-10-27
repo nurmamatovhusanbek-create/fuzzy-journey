@@ -11,6 +11,12 @@ static func notch(w: float, h: float, c: float, inset: float = 0.0) -> PackedVec
 	var i := inset
 	return PackedVector2Array([Vector2(i + c, i), Vector2(w - i, i), Vector2(w - i, h - i - c), Vector2(w - i - c, h - i), Vector2(i, h - i), Vector2(i, i + c)])
 
+## the largest size <= `size` at which `text` fits `maxw` in font `f` (large text settings must not cut a line)
+static func fit(f: Font, text: String, size: int, maxw: float, min_size: int = 8) -> int:
+	var s := size
+	while s > min_size and f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, s).x > maxw: s -= 1
+	return s
+
 # ================================================================================================================================ ring, stars, atmosphere
 ## The title's instrument: stars, the soft atmosphere, the brass ring with its 72 ticks and (wide layout) the thirteen era years. `open` 0..1 is the dive: the ring widens and fades.
 class Orrery extends Control:
@@ -113,7 +119,7 @@ class CardBtn extends Button:
 		title = title_text; sub = sub_text; flag = flag_tex; glyph = glyph_name; u = scale_u
 		text = ""; flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
-		custom_minimum_size = Vector2(270.0 * u, maxf(78.0 * u, float(TBKit.touch())))
+		custom_minimum_size = Vector2(270.0 * u, maxf(maxf(78.0 * u, 30.0 * u + float(TBKit.fs(16.0 * u) + TBKit.fs(13.5 * u)) * 1.35), float(TBKit.touch())))
 		if cb.is_valid(): pressed.connect(cb)
 		TBKit.a11y(self, title_text, "button", sub_text if a11y == "" else a11y)
 		mouse_entered.connect(_enter); focus_entered.connect(func(): chosen.emit(self)); button_down.connect(queue_redraw); button_up.connect(queue_redraw)
@@ -153,7 +159,7 @@ class CardBtn extends Button:
 		var tx: float = cx + 22.0 * u + 14.0 * u
 		var maxw: float = w - tx - 38.0 * u
 		var f := TBKit.tracked(TBKit.alegreya(700) if TBKit.readable_fonts else TBKit.wordmark(), 3)
-		var fsz := TBKit.fs(16.0 * u)
+		var fsz := TBTitleParts.fit(f, title, TBKit.fs(16.0 * u), maxw)
 		var ink: Color = TBTokens.c("brass_lt") if (down or hot) else TBTokens.c("cream")
 		var tw: float = minf(f.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, maxw)
 		var two := sub != ""
@@ -161,7 +167,7 @@ class CardBtn extends Button:
 		draw_string(f, Vector2(tx, roundf(ty)), title, HORIZONTAL_ALIGNMENT_LEFT, maxw, fsz, ink)
 		if two:
 			var sf := TBKit.body_i()
-			var ssz := TBKit.fs(13.5 * u)
+			var ssz := TBTitleParts.fit(sf, sub, TBKit.fs(13.5 * u), maxw)
 			draw_string(sf, Vector2(tx, roundf(cy + 14.0 * u + sf.get_ascent(ssz) * 0.5 - 4.0)), sub, HORIZONTAL_ALIGNMENT_LEFT, maxw, ssz, TBTokens.c("smoke"))
 		# chevron
 		var chx: float = w - 22.0 * u
@@ -201,7 +207,7 @@ class RowBtn extends Button:
 		if hot: draw_circle(Vector2(dx, cy), s * 2.2, TBTokens.with_a(TBTokens.BZ_HI, 0.16))
 		draw_colored_polygon(dia, TBTokens.with_a(TBTokens.BZ_HI if hot else TBTokens.BZ_LO, dim))
 		var f := TBKit.tracked(TBKit.alegreya(700) if TBKit.readable_fonts else TBKit.wordmark(), 3)
-		var fsz := TBKit.fs(13.5 * u)
+		var fsz := TBTitleParts.fit(f, title, TBKit.fs(13.5 * u), w - dx - 30.0 * u - 22.0 * u)
 		var ink: Color = TBTokens.c("brass_lt") if down else (TBTokens.c("cream") if hot else TBTokens.c("smoke"))
 		draw_string(f, Vector2(dx + 22.0 * u, roundf(cy + f.get_ascent(fsz) * 0.5 - 2.0)), title, HORIZONTAL_ALIGNMENT_LEFT, w - dx - 30.0 * u, fsz, TBTokens.with_a(ink, dim))
 

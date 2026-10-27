@@ -1,6 +1,6 @@
 # Roadmap: atmosphere, animation and pop-ups
 
-Status: **plan only, nothing in this file is built yet.** Written after looking at the game as it is (screenshots in `docs/screens/polish_baseline/`).
+Status: **Path G and the title screen (A1, A2, A5 in part) are built; see section 6. The rest is still a plan.** Written after looking at the game as it is (screenshots in `docs/screens/polish_baseline/`).
 The rule for every step below: **a step ships only when its tests pass, its picture is checked against the mock-up, and the game still plays exactly as before with the effect switched off.**
 
 ## 1. Where the game stands
@@ -113,3 +113,13 @@ After each phase: full headless suite + UI suite, parity scores unchanged, a sho
 2. Title direction: keep the ring-and-globe composition (my recommendation) or something different (a flat atlas table, a map on a desk)?
 3. Effects default: on for everyone with an off switch (recommended), or off by default?
 4. Music taste: tell me 2-3 words per era mood if you have a preference; otherwise I propose cues and you choose from samples.
+
+## 6. Progress log
+
+### Built: Path G foundation + the new title screen (layout B "Orrery", button style 4)
+* `src/ui/fx.gd` (`TBFx`): one place that decides whether an effect may run. Setting **Effects: Off / Light / Full** (Settings -> Display, saved as `cfg["fx"]`; a new install starts on Light when the map tier starts at low, otherwise Full; shown in the diagnostics line). Reduce motion still wins over everything. Off = the screen is exactly what it was before the effect existed: the selection bracket jumps, Continue is a plain load, stars do not drift.
+* `tests/fx_still.gd` (in `tools/test_ui.sh`): a held title draws **zero** frames and looks identical pixel for pixel with Off, Light and Full; with Off the bracket jumps.
+* Title (`src/ui/title_parts.gd`, `main.gd show_menu`): Bezel palette and dark land; stars, atmosphere rim, the brass ring with the **thirteen era years** (the save's era at the top); wordmark in two lines; the **Continue card** (flag, nation, turn, year) with quiet rows below; **one selection bracket** that glides to the focused entry (hover, arrows, controller) and flashes on press; your **campaign card** on the right (flag, nation, ruler, turn, year and era); the graticule is faint on the title (`grid_k` shader uniform, 1.0 in a game). Portrait, phone and 4:3 windows keep the compact composition (everything inside the ring) with the same parts.
+* New save meta (`code`, `color`, `rk`, `rn`, `rnum`) so the title can show the flag and the ruler; old saves still load and show a globe glyph instead of the flag.
+* **The dive**: Continue dissolves the menu, the ring opens and fades, the globe turns to your capital and swells; at the end a still of that frame is held while the game is built underneath, the still dissolves and the interface fades in. Any key or click skips. Light: the menu and ring dissolve and the still dissolves (no camera dive). Off: a plain load. Recorded by `tools/title_dive.sh [outdir] [flat|globe] [off|light|full]` (movie writer + ffmpeg).
+* Not done yet from section 3: terminator and drifting dust on the globe, the wordmark glint, chronicle quotes under the campaign card, music, the era picker as a timeline (A3), nation pick (A4).
