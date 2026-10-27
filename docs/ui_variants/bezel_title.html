@@ -63,6 +63,41 @@ html,body{background:#000;color:var(--ivory);font-family:Alegreya,serif}
 .med .l{font:600 12px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:var(--ivory)}
 .med .d{font:italic 400 13px Alegreya;color:var(--dim);margin-top:-5px}
 .cap{position:absolute;left:14px;top:10px;max-width:1000px;white-space:nowrap;font:600 11px Cinzel;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+
+/* ---- button styles for the menu column (B) ---- */
+.bt{position:absolute;color:var(--ivory);font:600 14px Cinzel;letter-spacing:.2em;text-transform:uppercase;display:flex;align-items:center}
+/* S2 ledger bar */
+.s2{width:270px;height:44px;background:linear-gradient(180deg,#1a140e,#110d09);border:1px solid #4a3d22;border-left:3px solid var(--lo);padding:0 14px 0 0}
+.s2 .n{width:44px;text-align:center;font:600 12px Cinzel;color:var(--dim2);border-right:1px solid #33291a;margin-right:16px;height:100%;display:flex;align-items:center;justify-content:center}
+.s2 .ch{margin-left:auto;color:var(--lo);font-size:18px;letter-spacing:0}
+.s2 .tk{position:absolute;left:3px;right:0;bottom:0;height:5px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 8px);opacity:.55}
+.s2.hot{border-color:var(--lo);border-left-color:var(--hi);background:linear-gradient(90deg,#3a2c15,#1c150c 70%);box-shadow:0 0 22px rgba(229,199,122,.14)}
+.s2.hot .n{color:var(--hi)}.s2.hot .ch{color:var(--hi)}.s2.hot .tk{opacity:.9}
+/* S3 rail medallion */
+.s3{width:270px;height:50px;gap:16px}
+.s3 .m{width:46px;height:46px;border-radius:50%;border:1.2px solid var(--lo);background:radial-gradient(circle at 40% 30%,#241b10,#0e0a06);display:flex;align-items:center;justify-content:center;flex:none}
+.s3 .m .ico{width:20px;height:20px;stroke:var(--brass)}
+.s3 .ld{flex:1;border-bottom:1px dotted #5a4a26;height:1px;margin-top:10px;opacity:.7}
+.s3 span.t{color:var(--dim)}
+.s3.hot .m{border-color:var(--hi);box-shadow:0 0 0 3px rgba(0,0,0,.4),0 0 20px rgba(229,199,122,.35);background:radial-gradient(circle at 40% 30%,#4a3817,#18110a)}
+.s3.hot .m .ico{stroke:var(--hi)}.s3.hot span.t{color:var(--ivory)}.s3.hot .ld{border-bottom-color:var(--hi);opacity:1}
+/* S4 hierarchy: one big card, quiet text rows */
+.s4c{width:270px;height:78px;padding:0 16px;gap:14px;--c:12px;clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));background:var(--hi)}
+.s4c::before{content:'';position:absolute;inset:1px;clip-path:inherit;background:linear-gradient(135deg,#3a2c15,#17110a 70%)}
+.s4c>*{position:relative}
+.s4c .flag{width:44px;height:44px}
+.s4c .t1{font:700 16px Cinzel;letter-spacing:.2em}.s4c .t2{font:italic 400 13.5px Alegreya;letter-spacing:0;text-transform:none;color:var(--dim);margin-top:3px}
+.s4c .go{margin-left:auto;color:var(--hi);font-size:22px;letter-spacing:0}
+.s4r{width:270px;height:40px;padding-left:22px;border-bottom:1px solid #2a2114;color:var(--dim);font-size:13.5px}
+.s4r::before{content:'';width:6px;height:6px;background:var(--lo);transform:rotate(45deg);margin-right:14px;margin-left:-12px}
+.s4r.hot{color:var(--ivory);border-bottom-color:var(--lo)}.s4r.hot::before{background:var(--hi);box-shadow:0 0 8px var(--hi)}
+/* S5 instrument bar (the lens bar's language) */
+.s5{width:270px;height:46px;border:1px solid var(--lo);background:linear-gradient(180deg,#171109,#0f0b07);padding:0 16px;justify-content:space-between}
+.s5 .rl{position:absolute;left:10px;right:10px;bottom:5px;height:6px;background:repeating-linear-gradient(90deg,#7F6A33 0 1px,transparent 1px 6px);opacity:.6}
+.s5 span.t{margin-top:-6px;color:var(--dim)}
+.s5.hot span.t{color:var(--ivory)}.s5.hot{border-color:var(--hi);box-shadow:0 0 18px rgba(229,199,122,.16)}
+.s5 .pt{position:absolute;left:50%;bottom:-1px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top:8px solid var(--bad);display:none}
+.s5.hot .pt{display:block}.s5.hot .rl{opacity:1}
 </style></head><body>
 <div id="out"></div>
 <script>
@@ -93,6 +128,16 @@ const tools=(x,y,w)=>`<div class="tools" style="left:${x}px;top:${y}px;${w?`widt
 const globe=(v,cx,cy,d)=>`<div class="halo" style="left:${cx-d*.62}px;top:${cy-d*.62}px;width:${d*1.24}px;height:${d*1.24}px"></div><div class="globe" style="left:${cx-d/2}px;top:${cy-d/2}px;width:${d}px;height:${d}px"><img src="mock_assets/${v.startsWith('g')?v:'globe_'+v}.png" style="${v.startsWith('gdark')?'filter:brightness(1.55) saturate(1.25)':''}"></div>`;
 const frame=(id,cap,inner)=>`<div class="stage" id="${id}">${stars(1280,720,260,id.length*77+5)}${inner}<div class="ver">v0.dev</div><div class="cap">${cap}</div></div>`;
 const plate=(x,y,w,h,txt,o={})=>`<div class="plate ${o.hot?'hot':''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">${o.ic?ic(o.ic):''}<span>${txt}</span></div>`;
+
+const ITEMS=[['Continue','play','I'],['New game','globe','II'],['Load','load','III'],['Multiplayer','link','IV']];
+function menuStyle(n,x,y){let o='';
+ const gap={1:56,2:52,3:58,4:50,5:54}[n];
+ if(n==1){return plate(x,y,250,46,'Continue',{hot:1,ic:'play'})+plate(x,y+56,250,42,'New game',{ic:'globe'})+plate(x,y+106,250,42,'Load',{ic:'load'})+plate(x,y+156,250,42,'Multiplayer',{ic:'link'})}
+ if(n==2)ITEMS.forEach((it,i)=>{o+=`<div class="bt s2 ${i==0?'hot':''}" style="left:${x}px;top:${y+i*gap}px"><div class="n">${it[2]}</div><span>${it[0]}</span><span class="ch">›</span><div class="tk"></div></div>`});
+ if(n==3)ITEMS.forEach((it,i)=>{o+=`<div class="bt s3 ${i==0?'hot':''}" style="left:${x}px;top:${y+i*gap}px"><div class="m">${ic(it[1])}</div><span class="t">${it[0]}</span><div class="ld"></div></div>`});
+ if(n==4){o+=`<div class="bt s4c" style="left:${x}px;top:${y}px"><div class="flag"><img src="${FLAG}"></div><div><div class="t1">Continue</div><div class="t2">France · turn 23 · 1806 AD</div></div><span class="go">›</span></div>`;['New game','Load','Multiplayer'].forEach((t,i)=>{o+=`<div class="bt s4r" style="left:${x}px;top:${y+92+i*42}px">${t}</div>`})}
+ if(n==5)ITEMS.forEach((it,i)=>{o+=`<div class="bt s5 ${i==0?'hot':''}" style="left:${x}px;top:${y+i*gap}px"><span class="t">${it[0]}</span>${ic(it[1])}<div class="rl"></div><div class="pt"></div></div>`});
+ return o}
 const out=document.getElementById('out');
 const ERAS=['218 BC','117','1096','1388','1405','1492','1700','1804','1858','1914','1939','1947','2024'];
 // ---- M1 Observatory: the ring and the globe as today, the menu as plates over a dimmed middle
@@ -112,7 +157,7 @@ const m2=()=>frame('m2','B · Orrery — the ring is the timeline of the thirtee
  `<div class="wm" data-t="TERRA BELLUM" style="left:56px;top:70px;font-size:40px;letter-spacing:.2em;line-height:1.1">Terra<br>Bellum</div>`+
  `<div class="rule" style="left:56px;width:260px;top:176px"><i></i></div>`+
  `<div class="tag" style="left:56px;top:192px;font-size:10.5px">A turn-based chronicle<br><span style="line-height:2">of the globe</span></div>`+
- plate(56,300,250,46,'Continue',{hot:1,ic:'play'})+plate(56,356,250,42,'New game',{ic:'globe'})+plate(56,406,250,42,'Load',{ic:'load'})+plate(56,456,250,42,'Multiplayer',{ic:'link'})+
+ menuStyle(BTN,56,300)+
  `<div class="card" style="left:960px;top:290px;width:268px"><div class="flag"><img src="${FLAG}"></div><div><div class="t">Your campaign</div><div class="n">France</div><div class="s">Emperor Napoleon · turn 23</div><div class="s" style="color:var(--hi)">1806 AD · Napoleonic era</div></div></div>`+
  `<div class="lab" style="left:960px;top:268px">Continue where you left off</div>`+
  `<div class="abs" style="left:960px;top:388px;width:268px;font:italic 14px/1.5 Alegreya;color:var(--dim)">“Spain declared war on Austria.”<br>“A plague spreads in the east.”<br><span style="color:var(--dim2)">— the chronicle, last turns</span></div>`+
@@ -145,6 +190,7 @@ const m4=()=>frame('m4','D · Medallions — the same round instruments as the g
 // fix the duplicate: arrange as Load, New game, [Continue], Multiplayer, Settings
 const m5=()=>m1().replace('gdark_eu','eu').replace("filter:brightness(1.55) saturate(1.25)",'').replace('A · Observatory — ring and globe kept, lit from one side; wordmark engraved; menu as plates','A · Observatory with TODAY’S title colours (the bright map palette) — for comparing palettes');
 const sets={m1,m2,m3,m4,m5};
+const BTN=+(new URLSearchParams(location.search).get('b')||1);
 const q=new URLSearchParams(location.search).get('m');
 if(q&&sets[q]) out.innerHTML=sets[q](); else for(const k in sets) out.insertAdjacentHTML('beforeend',sets[k]());
 </script></body></html>
