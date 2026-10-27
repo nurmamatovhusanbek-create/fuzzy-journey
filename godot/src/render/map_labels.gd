@@ -848,41 +848,59 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	_floater(p, pos, st, o, me, nfont)
 
 ## a stadium (pill) polygon filling r: semicircular caps, 14 segments each
+var _arc_r := PackedVector2Array()                 # the unit vectors of the pill's two caps, worked out once (a marker is three pills and a flag: ~120 sines and cosines)
+var _arc_l := PackedVector2Array()
+var _flag_unit := PackedVector2Array()
+var _flag_uv := PackedVector2Array()
+func _unit_tables() -> void:
+	if not _arc_r.is_empty(): return
+	for i in 15: _arc_r.append(Vector2.from_angle(-PI * 0.5 + PI * float(i) / 14.0))
+	for i in 15: _arc_l.append(Vector2.from_angle(PI * 0.5 + PI * float(i) / 14.0))
+	for i in 28:
+		var a := TAU * float(i) / 28.0
+		_flag_unit.append(Vector2(cos(a), sin(a))); _flag_uv.append(Vector2(0.5 + cos(a) * 0.5, 0.5 + sin(a) * 0.5))
 func _pill(r: Rect2, col: Color) -> void:
+	_unit_tables()
 	var rad := r.size.y * 0.5
 	var pts := PackedVector2Array()
 	var cl := Vector2(r.position.x + rad, r.position.y + rad)
 	var cr := Vector2(r.end.x - rad, r.position.y + rad)
-	for i in 15: pts.append(cr + Vector2.from_angle(-PI * 0.5 + PI * float(i) / 14.0) * rad)
-	for i in 15: pts.append(cl + Vector2.from_angle(PI * 0.5 + PI * float(i) / 14.0) * rad)
+	for i in 15: pts.append(cr + _arc_r[i] * rad)
+	for i in 15: pts.append(cl + _arc_l[i] * rad)
 	draw_colored_polygon(pts, col)
 
 ## Bezel map token (the demo's renderDyn army marker): a 28 tall pill #14110d with a 1.6 ring (own brass #C9A24B, hostile #D2603F, else #6b5a30), the flag cropped
 ## to a 9 radius circle at the left, the number in Alegreya 700 15. Width = digits x 9 + 44.
+const C_RING := Color("6b5a30")
+const C_RING_OWN := Color("C9A24B")
+const C_RING_WAR := Color("D2603F")
+const C_RING_ALLY := Color("7FA8E8")
+const C_INK_TXT := Color("EFE6CF")
+const C_PILL := Color("14110d")
 func _draw_token(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, o: int, own: bool, war: bool, ally: bool, hot: bool, txt: String, fsz: int, bw: float, bh: float, sc: float, near: bool) -> void:
-	var ring := Color("6b5a30")
-	if own: ring = Color("C9A24B")
-	elif war: ring = Color("D2603F")
-	elif ally: ring = Color("7FA8E8")
-	if hot: ring = Color("EFE6CF")
+	var ring := C_RING
+	if own: ring = C_RING_OWN
+	elif war: ring = C_RING_WAR
+	elif ally: ring = C_RING_ALLY
+	if hot: ring = C_INK_TXT
 	var w := bw * sc; var h := bh * sc
 	var half := Vector2(w, h) * 0.5
 	var outer := Rect2(pos - half - Vector2(0.8, 0.8) * sc, Vector2(w + 1.6 * sc, h + 1.6 * sc))
 	var inner := Rect2(pos - half + Vector2(0.8, 0.8) * sc, Vector2(w - 1.6 * sc, h - 1.6 * sc))
 	if hot: _pill(outer.grow(3.0), _a(Color(0.02, 0.03, 0.05), 0.4 * al))
 	_pill(outer, _a(ring, al))
-	_pill(inner, _a(Color("14110d"), al))
+	_pill(inner, _a(C_PILL, al))
 	var fx := pos.x + (-bw * 0.5 + 6.0) * sc
 	if o != 0:
 		var c := Vector2(pos.x + (-bw * 0.5 + 15.0) * sc, pos.y)
 		var r := 9.0 * sc
 		var pts := PackedVector2Array(); var uvs := PackedVector2Array()
+		_unit_tables()
 		for i in 28:
-			var a := TAU * float(i) / 28.0
-			pts.append(c + Vector2(cos(a), sin(a)) * r); uvs.append(Vector2(0.5 + cos(a) * 0.5, 0.5 + sin(a) * 0.5))
+			pts.append(c + _flag_unit[i] * r); uvs.append(_flag_uv[i])
 		draw_colored_polygon(pts, _a(Color.WHITE, al), uvs, TBFlags.texture(g.nat_code[o], g.color[o]))
 		fx = pos.x + (-bw * 0.5 + 30.0) * sc
-	draw_string(nfont, Vector2(fx, pos.y + 5.5 * sc), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(Color("EFE6CF"), al))
+	draw_string(nfont, Vector2(fx, pos.y + 5.5 * sc), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, _a(C_INK_TXT, al))
 	st["tx"] = pos.x + bw * 0.5 * sc - 4.0; st["ty"] = pos.y - h * 0.5 - 10.0
 	if near and g.gen[p] != 0:                                       # general: 1-5 stars above the pill
 		_ensure_star()
