@@ -122,6 +122,7 @@ Rules 2 turns a province into a *district* with room for several buildings and a
 * **AI** (`TBAI._districts`): each court may raise one building a turn in its best province (a new type if a slot is free, else a level; weights favour farms where people are short, forts when
   at war) and buy development where the next level is at least 60 % staffed; courts with over 700 gold do both twice. This is the gold sink the first sim report asked for:
   300-turn maximum treasuries fell from 29,563 to 2,873 (Napoleonic), 13,797 to 2,175 (WWII), 14,568 to 3,206 (Cold War).
+* **Overextension** (`OVEREXTEND_FROM = 60`, `OVEREXTEND_STEP = 0.004`): administration costs 0.4 % more for every province beyond 60 (a 200-province empire pays 56 % more for its governors). In the 26-game sim the Roman runaway shrank from 419 to 395 provinces; no other era changed noticeably.
 * Tests: `tests/districts.gd` (slots, price, demolish, job fill, save and net round trips, AI builds several per province).
 
 ## 8. Where to look

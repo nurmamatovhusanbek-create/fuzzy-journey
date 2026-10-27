@@ -504,6 +504,7 @@ func income(n: int) -> Dictionary:
 	gld = int(floor(gld * float(reg["incMul"]) * tech_inc))
 	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n)))
 	admin = int(floor(admin * tech_admin))
+	if rules >= 2: admin = int(floor(admin * (1.0 + OVEREXTEND_STEP * maxf(0.0, float(own.size() - OVEREXTEND_FROM)))))       # the bigger the realm, the dearer every governor
 	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n)))
 	var upkeep := int(floor(up_base * (0.25 + era[n] * 0.05) * tech_up * float(reg["upkeep"])))
 	if rules >= 1: man = int(floor(man * TBRulers.manpower_mul(self, n)))
@@ -516,6 +517,8 @@ func income(n: int) -> Dictionary:
 # ---------------------------------------------------------------- districts: buildings per province (rules >= 2; rules < 2 keeps the single building)
 const NB := 9                                  # building types (data.gd BUILDINGS)
 const POP_NEED := [0, 40, 80, 130, 200, 300]   # people a province needs to staff each development level; below it the level's extra income is only partly earned
+const OVEREXTEND_FROM := 60                    # provinces a court rules without strain; beyond them administration costs 0.4% more for each one
+const OVEREXTEND_STEP := 0.004
 const SLOT_COST_STEP := 0.20                   # every building already in the province makes the next new one this much dearer
 
 ## level of building type b (1..NB, data.gd B_*) in province p; 0 = none
