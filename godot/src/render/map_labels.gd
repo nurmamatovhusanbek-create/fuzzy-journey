@@ -1056,9 +1056,13 @@ func _draw_order() -> void:
 		var bad1 := (4 if _blocked(r) else 0) + (1 if _hits_marker(r) else 0)
 		var bad2 := (4 if _blocked(r2) else 0) + (1 if _hits_marker(r2) else 0)
 		if bad2 < bad1: r = r2
-		draw_rect(r.grow(2.0), _a(tk("table"), 0.85))
-		draw_rect(r, tk("paper_0"))
-		draw_string(f, r.position + Vector2(5.0, f.get_ascent(fs) + 3.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tk("table"))
+		if map.atlas_look():                                       # the Bezel look: an ink chip with a brass hairline and light type (the paper chip came out as dark type on dark)
+			draw_style_box(TBHudParts.sbox(TBTokens.INK_700, TBTokens.c("brass"), ch * 0.5, 1), r)
+			draw_string(f, r.position + Vector2(5.0, f.get_ascent(fs) + 3.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TBTokens.PAPER_100)
+		else:
+			draw_rect(r.grow(2.0), _a(tk("table"), 0.85))
+			draw_rect(r, tk("paper_0"))
+			draw_string(f, r.position + Vector2(5.0, f.get_ascent(fs) + 3.0), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tk("table"))
 		_order_box = _order_box.merge(r.grow(6.0))
 
 ## the order arrow, in the language of the map's routes: one thin brass line (a committed order solid, a preview dashed 3 on / 6 off, the dashes crawling) with an open
