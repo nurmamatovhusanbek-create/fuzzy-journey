@@ -1087,8 +1087,9 @@ class Segmented extends Container:
 	func _pad_x() -> float: return 8.0 if compact else 14.0
 	func _nat(i: int) -> float:
 		if TBFrame.bezel:
-			var zz: float = TBKit.fsf(10.5)
-			return maxf(TBBz.tw(TBKit.cinzel(700), TBKit._cap(String(_items[i][1])), zz, TBKit.trk(zz, 0.16)) + 22.0, 40.0)
+			var cell: Button = _btns[_order[i]]                       # the width of the text as the button really draws it (its own font, tracking and size), plus the plate's margins and a little air
+			var wtxt: float = cell.get_theme_font("font").get_string_size(TBKit._cap(String(_items[i][1])), HORIZONTAL_ALIGNMENT_LEFT, -1, cell.get_theme_font_size("font_size")).x
+			return maxf(wtxt + 22.0 + 4.0, 40.0)
 		var f: Font = TBKit.body_b()
 		return maxf(f.get_string_size(String(_items[i][1]), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13 if compact else 15)).x + 2.0 * _pad_x(), float(TBKit.MIN_TOUCH))
 	## Layout for a width: {"rows": [[cell index, ...], ...], "prop": bool, "h": cell height}. Preferred: one equal-width grid (columns as many as fit);

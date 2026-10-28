@@ -242,6 +242,16 @@ After (`docs/screens/flags/after.png`, big flag + the 192x128 game PNG + the 48x
 * **Picture**: `a4/pick_hover.png` (France selected, Austria hovered). **Test**: `tests/pick_hover.gd` (in `tools/test_ui.sh`).
 * **Not done**: restyling the rail chips (they keep today's look).
 
+### Spacing pass (owner: "fix spacing issues, they remain across the whole game")
+* **How it was found**: `tests/ui_overflow.gd` now also reports a **word broken in the middle** (a wrapping label or button narrower than its longest word) and can save a picture of every screen (5th argument = folder). Run it at several sizes: `-- 1600 900 1.0 en`, `1280 720`, `844 390`, `540 960`, and text scale 1.5.
+* **Fixed**:
+  * **Words squeezed together** ("RussianEmpire", "QingEmpire", "Spa in"): 26 `draw_string` calls that give a width limit now pass `JUSTIFICATION_NONE`, so Godot never shrinks the word spaces to fit; the nation-pick rail chips also got 8 units of air.
+  * **Words broken in the middle** in segmented controls: `TBPanel.Seg` (pick card "World": NOR/MAL, TOTA/L WAR) packs its cells into as many rows as fit, every cell at least as wide as its longest word, longer labels get more of the row; `K.Segmented` (Settings: DEUTERANOPIA) now measures the text the way the button draws it (its own font and tracking), it was about 16 units short.
+  * The pick card's "World" label sits above its control (four cells need the card's whole width); the pick screen's Back / Nations buttons are as wide as their text needs at any text size.
+  * Decrees grid: a card needs at least 270 x text scale units, so at 150 % text there are two columns instead of three and "Administration cost" is not broken.
+* **Result**: 0 findings at 1600x900, 1280x720 and 844x390 at 100 % text; at 150 % on desktop 24 findings -> 1. Tests: pick_hover, begin_dive, era_ring, lint.
+* **Still open (known, small)**: portrait phone (540x960): the nations screen's two-column button grids are 30 units wider than the screen and one event card label too (`nations_foreign`, `nations_war`, `event`); the Goals title "TECHNOLOGICAL MASTERY" at 150 % (5 units); the Budget labels on a phone in landscape at 150 % text ("Administration", "Provinces"). The audit lists them every run.
+
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
 

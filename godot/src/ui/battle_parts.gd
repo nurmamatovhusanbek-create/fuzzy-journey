@@ -20,11 +20,11 @@ class Bars extends Control:
 		TBFlags.draw_flag_medal(self, TBFlags.medal_of(g, n), c, 56.0)
 		var f := TBKit.tracked(TBKit.wordmark(), 2)
 		var nm: String = g.dname(n).to_upper()
-		draw_string(f, Vector2(x0 + 66.0, 26.0), nm, HORIZONTAL_ALIGNMENT_LEFT, cw - 66.0, TBTitleParts.fit(f, nm, TBKit.fs(15), cw - 66.0), TBTokens.c("cream"))
-		draw_string(TBKit.body_i(), Vector2(x0 + 66.0, 46.0), role, HORIZONTAL_ALIGNMENT_LEFT, cw - 66.0, TBKit.fs(14), TBTokens.c("smoke"))
+		draw_string(f, Vector2(x0 + 66.0, 26.0), nm, HORIZONTAL_ALIGNMENT_LEFT, cw - 66.0, TBTitleParts.fit(f, nm, TBKit.fs(15), cw - 66.0), TBTokens.c("cream"), TextServer.JUSTIFICATION_NONE)
+		draw_string(TBKit.body_i(), Vector2(x0 + 66.0, 46.0), role, HORIZONTAL_ALIGNMENT_LEFT, cw - 66.0, TBKit.fs(14), TBTokens.c("smoke"), TextServer.JUSTIFICATION_NONE)
 		var nf := TBKit.mono_b()
 		var num := "%s → %s" % [TBKit.fmt(float(before)), TBKit.fmt(roundf(shown))]
-		draw_string(nf, Vector2(x0, 84.0), num, HORIZONTAL_ALIGNMENT_LEFT, cw, TBKit.fs(17), TBTokens.c("cream"))
+		draw_string(nf, Vector2(x0, 84.0), num, HORIZONTAL_ALIGNMENT_LEFT, cw, TBKit.fs(17), TBTokens.c("cream"), TextServer.JUSTIFICATION_NONE)
 		var by := 96.0
 		draw_rect(Rect2(x0, by, cw, 14.0), TBTokens.BZ_TRACK_BG)
 		draw_rect(Rect2(x0, by, cw, 14.0), TBTokens.BZ_TRACK_LINE, false, 1.0)
@@ -36,7 +36,7 @@ class Bars extends Control:
 		while hx < x0 + 1.0 + wb:                                                  # the lost part, hatched
 			draw_line(Vector2(hx, by + 13.0), Vector2(minf(hx + 8.0, x0 + 1.0 + wb), by + 1.0), TBTokens.with_a(TBTokens.BZ_BAD, 0.8), 2.0)
 			hx += 5.0
-		draw_string(TBKit.body(), Vector2(x0, 132.0), "−%s" % TBKit.fmt(float(lost) * e), HORIZONTAL_ALIGNMENT_LEFT, cw, TBKit.fs(15), TBTokens.BZ_NEG_SOFT)
+		draw_string(TBKit.body(), Vector2(x0, 132.0), "−%s" % TBKit.fmt(float(lost) * e), HORIZONTAL_ALIGNMENT_LEFT, cw, TBKit.fs(15), TBTokens.BZ_NEG_SOFT, TextServer.JUSTIFICATION_NONE)
 	func _draw() -> void:
 		var w := size.x
 		var gap := 56.0

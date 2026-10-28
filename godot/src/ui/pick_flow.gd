@@ -232,7 +232,7 @@ class RailChip extends Button:
 	func _init(nation: int, ttl: String, subline: String, flag: Texture2D, cb: Callable) -> void:
 		n = nation; title_text = ttl; sub = subline; tex = flag
 		text = ""; flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-		custom_minimum_size = Vector2(maxf(132.0, TBKit.body_b().get_string_size(ttl, HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(14)).x + 56.0), 64)
+		custom_minimum_size = Vector2(maxf(132.0, TBKit.body_b().get_string_size(ttl, HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(14)).x + 64.0), 64)
 		for s in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(s, TBKit._empty)
 		pressed.connect(cb)
 		TBKit.a11y(self, "%s, %s" % [ttl, subline], "button")
@@ -248,9 +248,9 @@ class RailChip extends Button:
 		if tex != null: draw_texture_rect(tex, Rect2(x, 10, 30, 20), false); x += 38.0
 		else: TBGlyph.draw(self, "globe", Vector2(x + 12, 20), 22.0, ink); x += 38.0
 		var f := TBKit.body_b()
-		draw_string(f, Vector2(x, 25), title_text, HORIZONTAL_ALIGNMENT_LEFT, size.x - x - 8.0, TBKit.fs(14), ink)
+		draw_string(f, Vector2(x, 25), title_text, HORIZONTAL_ALIGNMENT_LEFT, size.x - x - 8.0, TBKit.fs(14), ink, TextServer.JUSTIFICATION_NONE)
 		var fm := TBKit.mono()
-		draw_string(fm, Vector2(10, 52), sub, HORIZONTAL_ALIGNMENT_LEFT, size.x - 20.0, TBKit.fs(12), dim)
+		draw_string(fm, Vector2(10, 52), sub, HORIZONTAL_ALIGNMENT_LEFT, size.x - 20.0, TBKit.fs(12), dim, TextServer.JUSTIFICATION_NONE)
 		if badge != "":
 			var bw: float = TBKit.mono_b().get_string_size(badge, HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(12)).x
 			draw_rect(Rect2(size.x - bw - 14.0, 4, bw + 8.0, 16), TBTokens.c("warn_bar"))
@@ -308,8 +308,8 @@ func _build_card(n: int) -> void:
 		cf.add_child(TBNationsScreen.rating_chip(rt)); _card_v.add_child(cf)
 	_card_v.add_child(TBPanel.para(TBNationsScreen.rating_reason(rt), 13, K.DIM))
 	if g.rules >= 1:                                              # how warlike the AI world is (chosen once per game, shown with the nation)
-		var ag := K.hbox(8)
-		var al := K.label(T.call("aggr_title"), 13, K.DIM); al.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var ag := K.vbox(4)                                            # the label above the control: four cells need the whole width of the card
+		var al := K.label(T.call("aggr_title"), 13, K.DIM)
 		ag.add_child(al)
 		var items: Array = []
 		for i in TBData.AGGRESSION.size(): items.append([str(i), T.call("aggr_" + String(TBData.AGGRESSION[i]["id"]))])
@@ -336,13 +336,19 @@ func _build_card(n: int) -> void:
 		_card_go.add_child(seat)
 	if TBFrame.kbd_nav: go.grab_focus.call_deferred()
 
+## the width a button's own text needs (its font, tracking and size) plus the plate's margins: the buttons wrap their text, so their minimum width alone can be too small
+func _text_need(b: Button) -> float:
+	var sb: StyleBox = b.get_theme_stylebox("normal")
+	var pad: float = (sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)) if sb != null else 24.0
+	return b.get_theme_font("font").get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, b.get_theme_font_size("font_size")).x + pad + 6.0
+
 func _layout() -> void:
 	if g == null: return
 	var vs := _vp()
 	var portrait := TBPanel.is_portrait(vs)
 	var row_h: float = float(K.touch())
-	_back_btn.position = Vector2(10, 10); _back_btn.size = Vector2(maxf(_back_btn.get_combined_minimum_size().x, 96.0), row_h)
-	var lw: float = maxf(_list_btn.get_combined_minimum_size().x, 120.0)
+	_back_btn.position = Vector2(10, 10); _back_btn.size = Vector2(maxf(maxf(_back_btn.get_combined_minimum_size().x, _text_need(_back_btn)), 96.0), row_h)
+	var lw: float = maxf(maxf(_list_btn.get_combined_minimum_size().x, _text_need(_list_btn)), 120.0)
 	_list_btn.position = Vector2(vs.x - lw - 10.0, 10); _list_btn.size = Vector2(lw, row_h)
 	_slip.reset_size()
 	var sw: float = minf(maxf(_slip.get_combined_minimum_size().x, 300.0), vs.x - 24.0 - (0.0 if portrait else (2.0 * (maxf(96.0, lw) + 20.0))))

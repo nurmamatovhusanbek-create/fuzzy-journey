@@ -287,6 +287,7 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 	var vsd: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size            # fewer columns when the rows do not fit side by side
 	var cell_w := 0.0
 	for k in grid.get_children(): cell_w = maxf(cell_w, (k as Control).get_combined_minimum_size().x)
+	cell_w = maxf(cell_w, 270.0 * TBKit.text_scale)                                   # the cards wrap their text, so their minimum is tiny: a card needs room for its longest words
 	grid.columns = clampi(int((minf(740.0 if h.phone else 900.0, vsd.x - 12.0) - 40.0 + 10.0) / (cell_w + 10.0)), 1, grid.columns)
 	return h
 

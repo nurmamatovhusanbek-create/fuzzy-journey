@@ -272,7 +272,7 @@ class InfoRow extends P.Hit:
 		var w: float = size.x - x - 10.0 - 28.0
 		var cream: Color = TBTokens.c("cream")
 		if lines <= 1:
-			draw_string(f, Vector2(x, size.y * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5)), text, HORIZONTAL_ALIGNMENT_LEFT, w, z, cream)
+			draw_string(f, Vector2(x, size.y * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5)), text, HORIZONTAL_ALIGNMENT_LEFT, w, z, cream, TextServer.JUSTIFICATION_NONE)
 		else:
 			var y0: float = (size.y - lines * f.get_height(z)) * 0.5 + f.get_ascent(z)
 			draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, w, z, 2, cream)

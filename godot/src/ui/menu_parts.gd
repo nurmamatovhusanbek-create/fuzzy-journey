@@ -43,7 +43,7 @@ class Bezel extends Control:
 ## light text with a dark outline so it reads on any part of the globe
 static func glow_text(ci: Control, f: Font, pos: Vector2, t: String, w: float, fsz: int, col: Color) -> void:
 	ci.draw_string_outline(f, pos, t, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, 5, TBTokens.ca("table", 0.9))
-	ci.draw_string(f, pos, t, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, col)
+	ci.draw_string(f, pos, t, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, col, TextServer.JUSTIFICATION_NONE)
 
 ## title entry: a plain text row on the dimmed globe (cream, outlined). Only the primary / focused / hovered entry is brass; the primary also gets a 3 px brass bar.
 class Plate extends Button:
@@ -211,7 +211,7 @@ class EraRow extends Button:
 		if selected: TBGlyph.draw_filled(self, "diamond", Vector2(cx, cy), 14.0, ox)
 		else: TBGlyph.draw(self, "diamond", Vector2(cx, cy), 14.0, ox if hot else rule)
 		var fm := TBKit.mono_b()
-		draw_string(fm, Vector2(38, cy + fm.get_ascent(TBKit.fs(13)) * 0.5 - 1.0), year_text, HORIZONTAL_ALIGNMENT_LEFT, 90, TBKit.fs(13), ox if selected else TBTokens.c("ink_1"))
+		draw_string(fm, Vector2(38, cy + fm.get_ascent(TBKit.fs(13)) * 0.5 - 1.0), year_text, HORIZONTAL_ALIGNMENT_LEFT, 90, TBKit.fs(13), ox if selected else TBTokens.c("ink_1"), TextServer.JUSTIFICATION_NONE)
 		var fb := TBKit.body_b()
-		draw_string(fb, Vector2(134, cy + fb.get_ascent(TBKit.fs(15)) * 0.5 - 1.0), name_text, HORIZONTAL_ALIGNMENT_LEFT, size.x - 138, TBKit.fs(15), ink)
+		draw_string(fb, Vector2(134, cy + fb.get_ascent(TBKit.fs(15)) * 0.5 - 1.0), name_text, HORIZONTAL_ALIGNMENT_LEFT, size.x - 138, TBKit.fs(15), ink, TextServer.JUSTIFICATION_NONE)
 		if has_focus() and TBFrame.kbd_nav: draw_style_box(TBFrame.focus(false, 0, 2), Rect2(0, 0, size.x, size.y))

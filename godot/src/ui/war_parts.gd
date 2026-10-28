@@ -54,11 +54,11 @@ class FaceOff extends Control:
 		for e in [[ca, a], [cb, b]]:
 			var nm: String = g.dname(int(e[1])).to_upper()
 			var tw: float = minf(f.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, w * 0.4)
-			draw_string(f, Vector2(roundf((e[0] as Vector2).x - tw * 0.5), cy + r + 26.0), nm, HORIZONTAL_ALIGNMENT_LEFT, w * 0.4, fsz, TBTokens.c("cream"))
+			draw_string(f, Vector2(roundf((e[0] as Vector2).x - tw * 0.5), cy + r + 26.0), nm, HORIZONTAL_ALIGNMENT_LEFT, w * 0.4, fsz, TBTokens.c("cream"), TextServer.JUSTIFICATION_NONE)
 			var rl: String = TBWarParts.ruler_line(g, int(e[1]))
 			if rl != "":
 				var rw: float = minf(sf.get_string_size(rl, HORIZONTAL_ALIGNMENT_LEFT, -1, ssz).x, w * 0.42)
-				draw_string(sf, Vector2(roundf((e[0] as Vector2).x - rw * 0.5), cy + r + 46.0), rl, HORIZONTAL_ALIGNMENT_LEFT, w * 0.42, ssz, TBTokens.c("smoke"))
+				draw_string(sf, Vector2(roundf((e[0] as Vector2).x - rw * 0.5), cy + r + 46.0), rl, HORIZONTAL_ALIGNMENT_LEFT, w * 0.42, ssz, TBTokens.c("smoke"), TextServer.JUSTIFICATION_NONE)
 
 # ================================================================================================================================ the seal
 ## Hold to declare: a wax seal with a progress ring and its caption to the left. `confirmed` fires after HOLD_T (or Enter twice); `progress(0..1)` while held.
@@ -123,7 +123,7 @@ class Seal extends Button:
 		var fsz := TBKit.fs(13)
 		var txt: String = caption.to_upper()
 		var tw: float = minf(f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, w - 100.0)
-		draw_string(f, Vector2(w - 92.0 - tw, roundf(c.y + f.get_ascent(fsz) * 0.5 - 2.0)), txt, HORIZONTAL_ALIGNMENT_LEFT, w - 100.0, fsz, TBTokens.with_a(TBTokens.BZ_NOTICE_BAD.lerp(TBTokens.c("cream"), 0.25), 1.0))
+		draw_string(f, Vector2(w - 92.0 - tw, roundf(c.y + f.get_ascent(fsz) * 0.5 - 2.0)), txt, HORIZONTAL_ALIGNMENT_LEFT, w - 100.0, fsz, TBTokens.with_a(TBTokens.BZ_NOTICE_BAD.lerp(TBTokens.c("cream"), 0.25), 1.0), TextServer.JUSTIFICATION_NONE)
 		# ring: track, progress
 		draw_arc(c, 39.0, 0.0, TAU, 64, TBTokens.with_a(rustc, 0.35), 3.0, true)
 		if f_hold > 0.0: draw_arc(c, 39.0, -PI * 0.5, -PI * 0.5 + TAU * f_hold, 64, hi, 3.5, true)
@@ -209,7 +209,7 @@ class Moment extends Control:
 		var ssz := TBKit.fs(26.0 * u)
 		var sw: float = minf(sf.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, ssz).x, sz.x * 0.8)
 		var st: float = _ease_out((t - 0.42) / 0.2)
-		draw_string(sf, Vector2(roundf(cx - sw * 0.5), cy + 128.0 * u), sub, HORIZONTAL_ALIGNMENT_LEFT, sz.x * 0.8, ssz, TBTokens.with_a(TBTokens.c("cream").lerp(hi, 0.25), env * st))
+		draw_string(sf, Vector2(roundf(cx - sw * 0.5), cy + 128.0 * u), sub, HORIZONTAL_ALIGNMENT_LEFT, sz.x * 0.8, ssz, TBTokens.with_a(TBTokens.c("cream").lerp(hi, 0.25), env * st), TextServer.JUSTIFICATION_NONE)
 		var date: String = "%s %d · %s" % [TBWarParts.T.call("turn"), g.turn, TBWarParts.year_text(g.year)]
 		var df := TBKit.tracked(TBKit.wordmark(), 3)
 		var dsz := TBKit.fs(14.0 * u)

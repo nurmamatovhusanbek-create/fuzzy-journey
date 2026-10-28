@@ -276,7 +276,7 @@ class VerbBtn extends Button:
 		if sub != "" and not blocked:
 			var sz: int = P.fr(15.0)
 			var sc2: Color = P.tk("brass_lt") if sub_gold > 0 else P.tk("smoke")
-			draw_string(P.body(), Vector2(P.R(11.0), size.y - P.R(9.0)) + shift, sub, HORIZONTAL_ALIGNMENT_LEFT, size.x * 0.55, sz, sc2)
+			draw_string(P.body(), Vector2(P.R(11.0), size.y - P.R(9.0)) + shift, sub, HORIZONTAL_ALIGNMENT_LEFT, size.x * 0.55, sz, sc2, TextServer.JUSTIFICATION_NONE)
 		# corner ornaments: short brass ticks on the four outer corners (AoC's gilded frame)
 		var oc: Color = P.al(P.tk("brass_lt"), 0.0 if blocked else 0.6)
 		var cl: float = P.R(7.0)

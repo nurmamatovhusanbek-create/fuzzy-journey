@@ -911,7 +911,7 @@ class ToggleRow extends Button:
 		var ww: float = f.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 		var ink: Color = TBTokens.c("ink_0")
 		var ty := roundf((h - 1.0 - f.get_height(fsz)) * 0.5 + f.get_ascent(fsz))
-		draw_string(f, Vector2(12, ty), label_text, HORIZONTAL_ALIGNMENT_LEFT, maxf(w - 24.0 - ww - 70.0, 40.0), fsz, ink)
+		draw_string(f, Vector2(12, ty), label_text, HORIZONTAL_ALIGNMENT_LEFT, maxf(w - 24.0 - ww - 70.0, 40.0), fsz, ink, TextServer.JUSTIFICATION_NONE)
 		draw_string(f, Vector2(roundf(w - 12.0 - ww), ty), word, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, ink)
 		# switch: 40 x 22 plate; on = ink fill with a cream square at the right, off = paper with an ink square at the left (position + word, not colour)
 		var sx: float = roundf(w - 12.0 - ww - 12.0 - 40.0); var sy: float = roundf((h - 1.0 - 22.0) * 0.5)
@@ -1074,10 +1074,13 @@ class Seg extends PanelContainer:
 	signal chosen(id: String)
 	var current := ""
 	var _btns := {}
+	var _order: Array = []
+	var _vb: VBoxContainer
+	var _sig := ""
 	func setup(items: Array, cur: String) -> Seg:
 		current = cur
 		add_theme_stylebox_override("panel", TBKit._empty if TBFrame.bezel else TBFrame.plate(TBTokens.c("rule"), TBTokens.c("rule"), 4, 0, 1, 1))
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 6 if TBFrame.bezel else 1); add_child(row)
+		_vb = VBoxContainer.new(); _vb.add_theme_constant_override("separation", 6 if TBFrame.bezel else 1); add_child(_vb)
 		var n := items.size()
 		for i in n:
 			var id: String = items[i][0]
@@ -1086,9 +1089,59 @@ class Seg extends PanelContainer:
 			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			b.set_meta("mask", (TBFrame.TL | TBFrame.BL if i == 0 else 0) | (TBFrame.TR | TBFrame.BR if i == n - 1 else 0))
 			b.pressed.connect(func(): select(id, true))
-			row.add_child(b); _btns[id] = b
+			_btns[id] = b; _order.append(id)
+		_place_rows([_order.duplicate()])
 		_restyle()
+		_fit_cells()
 		return self
+
+	## lay the cells out in the given rows (arrays of ids); each cell is as wide as its longest word at least, the rest of the row's width goes to the longer labels
+	func _place_rows(rows: Array) -> void:
+		for r in _vb.get_children():
+			for c in r.get_children(): r.remove_child(c)
+			_vb.remove_child(r); r.queue_free()
+		for ids in rows:
+			var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 6 if TBFrame.bezel else 1); _vb.add_child(row)
+			for id in ids:
+				var b: SegCell = _btns[id]
+				b.custom_minimum_size.x = float(b.get_meta("wmin", 0.0))
+				row.add_child(b)
+		var sig := ""
+		for ids in rows: sig += str(ids.size()) + ","
+		_sig = sig
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_RESIZED and TBFrame.bezel: _relayout.call_deferred()
+
+	## cells are packed into rows from the width the Seg was given: as many per row as fit with every word whole. A narrow card or a long label ("DEUTERANOPIA")
+	## makes a second row instead of squeezing a cell until a word breaks in the middle. (The cells only get their minimum width here: a container can never be
+	## given less than its minimum, so setting it earlier would just make the Seg wider than its place.)
+	func _relayout() -> void:
+		if not is_inside_tree() or size.x < 8.0 or _order.is_empty(): return
+		var rows: Array = []; var cur: Array = []; var w := 0.0
+		for id in _order:
+			var cw: float = float((_btns[id] as Button).get_meta("wmin", 0.0))
+			if not cur.is_empty() and w + 6.0 + cw > size.x + 0.5: rows.append(cur); cur = []; w = 0.0
+			w += (6.0 if not cur.is_empty() else 0.0) + cw; cur.append(id)
+		if not cur.is_empty(): rows.append(cur)
+		var sig := ""
+		for ids in rows: sig += str(ids.size()) + ","
+		if sig != _sig:
+			_place_rows(rows); _restyle()
+			_fit_cells()
+
+	## the width a cell needs: its longest word (in the cell's own font, tracking included) plus the plate's margins; recorded, applied by _place_rows
+	func _fit_cells() -> void:
+		if not TBFrame.bezel: return
+		for k in _btns:
+			var b: SegCell = _btns[k]
+			var f: Font = b.get_theme_font("font"); var fsz: int = b.get_theme_font_size("font_size")
+			var sb: StyleBox = b.get_theme_stylebox("normal")
+			var pad: float = (sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)) if sb != null else 22.0
+			var longest := 0.0; var whole: float = f.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+			for wd in b.text.split(" ", false): longest = maxf(longest, f.get_string_size(wd, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x)
+			b.set_meta("wmin", ceilf(longest + pad + 2.0))
+			b.size_flags_stretch_ratio = maxf(1.0, whole * 0.5 + longest * 0.5)
 	func select(id: String, emit: bool = false) -> void:
 		current = id; _restyle()
 		if emit: chosen.emit(id)

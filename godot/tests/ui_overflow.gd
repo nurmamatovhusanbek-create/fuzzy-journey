@@ -11,6 +11,19 @@ func _walk(n: Node, tag: String) -> void:
 		elif c is Button and c.size.x > 1.0 and not c.clip_contents and not (c as Button).clip_text:
 			var need2: float = c.get_minimum_size().x
 			if need2 > c.size.x + 1.5: _bad.append("%s button overflows %.0f > %.0f: '%s' (%s)" % [tag, need2, c.size.x, (c as Button).text.left(30), c.get_path()])
+		# a word wider than its wrapping box is broken in the middle (or squeezed): the label / button needs room for its longest word
+		if c is Label and (c as Label).autowrap_mode != TextServer.AUTOWRAP_OFF and c.size.x > 1.0 and (c as Label).text != "":
+			var lf: Font = c.get_theme_font("font"); var ls: int = c.get_theme_font_size("font_size")
+			for wd in (c as Label).text.split(" ", false):
+				var ww: float = lf.get_string_size(wd, HORIZONTAL_ALIGNMENT_LEFT, -1, ls).x
+				if ww > c.size.x + 1.0: _bad.append("%s word broken (%.0f > %.0f): '%s' in '%s' (%s)" % [tag, ww, c.size.x, wd, (c as Label).text.left(30), c.get_path()]); break
+		elif c is Button and (c as Button).autowrap_mode != TextServer.AUTOWRAP_OFF and c.size.x > 1.0 and (c as Button).text != "":
+			var bf: Font = c.get_theme_font("font"); var bs: int = c.get_theme_font_size("font_size")
+			var sbn: StyleBox = c.get_theme_stylebox("normal")
+			var room: float = c.size.x - (sbn.get_margin(SIDE_LEFT) + sbn.get_margin(SIDE_RIGHT) if sbn != null else 0.0)
+			for wd2 in (c as Button).text.split(" ", false):
+				var bw: float = bf.get_string_size(wd2, HORIZONTAL_ALIGNMENT_LEFT, -1, bs).x
+				if room > 8.0 and bw > room + 1.0: _bad.append("%s button word broken (%.0f > %.0f): '%s' in '%s' (%s)" % [tag, bw, room, wd2, (c as Button).text.left(30), c.get_path()]); break
 		var par := c.get_parent()
 		if par is Control and not (par is ScrollContainer) and not (par is Container) and c.size.x > 4.0:
 			var pr := Rect2(Vector2.ZERO, (par as Control).size)
@@ -68,12 +81,14 @@ func _init() -> void:
 		"event": func(): TBModals.event_prompt(main._overlay, {"kind": "rand", "id": "golden_age", "count": 2, "uid": 1, "cat": "culture"}, func(c): pass, g),
 		"prop": func(): TBModals.event_prompt(main._overlay, {"kind": "prop", "id": "nap", "from": sp, "count": 2, "uid": 2, "p": g.capital_of[sp]}, func(c): pass, g),
 	}
+	tests["pick"] = func(): main._clear_overlay(); main._begin_pick("napoleonic", "normal"); main._pick_flow.select_nation(fr, false)
 	for k in tests:
 		main._clear_overlay(); main._select(-1)
 		g.set_rel(fr, au, TBData.REL_PEACE)
 		(tests[k] as Callable).call()
 		for i in 14: await process_frame
 		_walk(main, "%s@%dx%d s%.2f %s" % [k, w, h, sc, lang])
+		if a.size() > 4: root.get_viewport().get_texture().get_image().save_png("%s/%s_%dx%d.png" % [a[4], k, w, h])      # optional 5th argument: a folder for a picture of every screen
 	var seen := {}
 	for b in _bad:
 		var key: String = String(b).substr(String(b).find(" ") + 1)

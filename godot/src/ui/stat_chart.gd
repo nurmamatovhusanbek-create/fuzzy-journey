@@ -57,7 +57,7 @@ func _draw() -> void:
 				if absf(ly - oy) < fsz: ly = oy + fsz
 			label_ys.append(ly)
 			var avail: float = size.x - e.x - 8.0
-			if avail > 24.0: draw_string(K.body_b(), Vector2(e.x + 8.0, ly), nm, HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, s["color"])
+			if avail > 24.0: draw_string(K.body_b(), Vector2(e.x + 8.0, ly), nm, HORIZONTAL_ALIGNMENT_LEFT, avail, fsz, s["color"], TextServer.JUSTIFICATION_NONE)
 
 func _dashed(pts: PackedVector2Array, col: Color, w: float, pat: Array) -> void:
 	var on := true

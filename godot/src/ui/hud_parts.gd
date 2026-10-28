@@ -160,13 +160,13 @@ static func tw(font: Font, s: String, size: int) -> float:
 
 ## draw text at a baseline position, return its width
 static func txt(ci: CanvasItem, font: Font, pos: Vector2, s: String, size: int, col: Color, max_w: float = -1.0) -> float:
-	ci.draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, col)
+	ci.draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, col, TextServer.JUSTIFICATION_NONE)
 	return tw(font, s, size) if max_w < 0.0 else minf(tw(font, s, size), max_w)
 
 ## text with a dark halo so it reads on the map
 static func txt_o(ci: CanvasItem, font: Font, pos: Vector2, s: String, size: int, col: Color, max_w: float = -1.0) -> float:
 	ci.draw_string_outline(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, 4, TBTokens.HALO)
-	ci.draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, col)
+	ci.draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, col, TextServer.JUSTIFICATION_NONE)
 	return tw(font, s, size) if max_w < 0.0 else minf(tw(font, s, size), max_w)
 
 ## one line that fits max_w: trailing "…" when it does not
