@@ -7,6 +7,7 @@ const RATE := 22050
 ## Cues: tap and coin are UI sounds, everything else SFX; Music is created for the score that does not exist yet.
 const BUSES := ["Music", "SFX", "UI"]
 const UI_CUES := ["tap", "coin"]
+const DUCK := {"turn": 0.5, "event": 0.7, "war": 0.5, "win": 1.2, "stamp": 0.6, "clash": 0.4, "gain": 0.2, "loss": 0.3, "defeat": 1.8}      # cues that pull the music down (seconds held): E4
 var enabled := true
 static var inst: TBAudio                      # the game's one sound player; TBAudio.cue("name") plays a cue from anywhere (nothing when sound is off / there is no player)
 var _snd := {}
@@ -73,6 +74,7 @@ func play(name: String) -> void:
 	var p := _players[_next]; _next = (_next + 1) % _players.size()
 	p.bus = "UI" if name in UI_CUES else "SFX"
 	p.stream = _snd[name]; p.play()
+	if DUCK.has(name): TBMusic.duck_for(float(DUCK[name]))
 
 func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var b := PackedByteArray(); b.resize(samples.size() * 2)

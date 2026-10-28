@@ -93,7 +93,7 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | D2-D5 | other HUD micro-interactions | **checked, already in the Bezel port**: lens pointer glides (`TBHudParts` tuner `_px` easing), gauges count up, rail / medallion hover and press states follow the demo (parity-tested); the command card is a notched card (no ring to fan out) | | | |
 | E3 | Cue set: stamp, clash, gain, loss, defeat, page, bell, low (synthesised); `TBAudio.cue(name)` | partly done (wired: stamp, clash, gain / loss, defeat, page) | 52eaecd | respects the sound setting | audio.gd |
 | E1 samples | Three generated 32 s music samples to pick a style from: `docs/media/music_samples/A_orrery.ogg` (slow pads + bell arpeggio), `B_pluck.ogg` (plucked strings, D dorian), `C_march.ogg` (drone + hand drums + brass swells); regenerate with `tools/music_samples.py` | done (owner listens and picks) | | | |
-| E1, E2, E4 | Music bus playback, ambience, ducking | queued (starts after the owner picks a sample style, section 6 Q2) | | | |
+| E1, E2, E4 | Score playback (peace = B pluck, war = C march, crossfade 2.5 s), a very quiet sea bed in a game, ducking under loud cues | done | (this commit) | Music bus + its Settings slider; Sound off silences it; not an effect, so Effects Off does not touch it | music.gd |
 | F1 | Era mood: the title's atmosphere tints by era on the ring screen (`TBEraRing.tint`) | done (small) | | Off: jumps | era_ring |
 | F2-F5 | Loading tips, portraits / flags for more eras, event art, codex polish | queued | | | |
 
@@ -231,6 +231,11 @@ After (`docs/screens/flags/after.png`, big flag + the 192x128 game PNG + the 48x
 * **Changed** (`main.gd` `_start_game`, new `_dissolve_overlay`, `_ft_gen`; `map_view.gd` `fly_to(..., min_dur)`): with Light or Full the pick screen fades 0.25 s (marked `tb_closing`, so it is not a modal and takes no mouse), the camera flies (Full: at least 1.3 s), the HUD fades in from half-way through the flight over 0.6 s, and the tutorial / briefing opens 0.15 s after the camera arrives. Anything that clears the screen meanwhile (`_clear_overlay`) cancels the pending briefing. Off / Reduce motion: the old code path, unchanged.
 * **Picture**: `a5b/begin_mid.png` (0.4 s after Play on Full). **Test**: `tests/begin_dive.gd` (in `tools/test_ui.sh`).
 
+### E1 / E2 / E4 · The score
+* **Files**: `tools/music_score.py` (synthesises seamless loops, no third-party audio; run it to regenerate) -> `godot/assets/music/peace.ogg` (64 s, plucked strings, D dorian, two sections), `war.ogg` (48 s, drone + hand drums that thicken + brass swells), `sea.ogg` (24 s, very quiet noise bed); about 1.1 MB in all. `tools/music_samples.py` is now importable (its generation moved under `main()`). `src/ui/music.gd` = `TBMusic`.
+* **Behaviour**: `main._music_tick` (once a second): title / pick screen = peace; a running game = peace, or war while the human is at war; game over = silence. Moods crossfade over 2.5 s on two players, the position carries over. The sea bed plays in a game only. Loud cues (`TBAudio.DUCK`: turn, event, war, win, stamp, clash, gain, loss, defeat) duck the music by 7 dB for their length and let it back up over 0.9 s. Everything is on the Music bus (Settings -> Sound has its slider), stops with Sound off, and comes back with it.
+* **Not done**: a victory / defeat piece (the finale uses its cue over silence), era-specific variations (the owner has not chosen any), a title-only track (the title uses peace). **Test**: `tests/music.gd`.
+
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
 
@@ -256,7 +261,7 @@ Acceptance for every step: (a) Effects Off looks and behaves as before the step;
 | 16 | A4 | nation pick plates + hover card | `pick_flow.gd`, `preview_card.gd` | ui_monkey, ui_overflow | mock first |
 | 17 | A5b | (done) | | | |
 | 18 | D | HUD micro-interactions (D1-D5) | `hud*.gd`, `bz_parts.gd` | ui_hud_layout x8, parity | never the End Turn dial |
-| 19 | E | sound: 3 sample cues for the owner, then music bus, ambience, ~20 cues, ducking | `audio.gd` | audio, volume test | owner picks the style from samples; generate offline, small ogg |
+| 19 | E | (score done: see section 4). Left: ~20 more cues, era variations, a finale piece | `audio.gd` | audio, music | |
 | 20 | F | era mood tints, loading tips, portraits / flags for more eras, event art, codex polish | content | | open-ended |
 
 Standing background items (do between steps when idle): the owner's real-machine diagnostics ("Copy diagnostics" from the i3-2100 / HD 2000) are **still not received** - when they arrive,

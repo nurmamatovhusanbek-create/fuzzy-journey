@@ -48,36 +48,40 @@ def save(name, x):
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-c:a", "libvorbis", "-q:a", "3", os.path.join(out, name + ".ogg")], check=True)
     os.remove(wav)
 
-# A: Orrery - slow pads over a bell arpeggio (title / peace)
-dur = 32; A = np.zeros(int(dur * SR))
-prog = [(45, 52, 57, 60), (41, 48, 53, 57), (48, 55, 60, 64), (43, 50, 55, 59)]
-for k in range(4):
-    for m in prog[k]: put(A, pad(m, 9.0), k * 8.0)
-for k in range(32):
-    ch = prog[k // 8]; m = ch[1 + (k * 3) % 3] + 12
-    put(A, tone(m, 2.2, 0.004, 3.2, (1, .3, .1)) * 0.35, k * 1.0 + 0.25)
-save("A_orrery", reverb(A))
+def main():
+    # A: Orrery - slow pads over a bell arpeggio (title / peace)
+    dur = 32; A = np.zeros(int(dur * SR))
+    prog = [(45, 52, 57, 60), (41, 48, 53, 57), (48, 55, 60, 64), (43, 50, 55, 59)]
+    for k in range(4):
+        for m in prog[k]: put(A, pad(m, 9.0), k * 8.0)
+    for k in range(32):
+        ch = prog[k // 8]; m = ch[1 + (k * 3) % 3] + 12
+        put(A, tone(m, 2.2, 0.004, 3.2, (1, .3, .1)) * 0.35, k * 1.0 + 0.25)
+    save("A_orrery", reverb(A))
 
-# B: Pluck - a plucked-string arpeggio in D dorian (a chronicle / diplomacy)
-dur = 32; B = np.zeros(int(dur * SR))
-scale = [62, 64, 65, 67, 69, 71, 72, 74]
-pat = [0, 2, 4, 7, 4, 2, 3, 5, 7, 5, 4, 2]
-for k in range(64):
-    m = scale[pat[k % len(pat)]] - (12 if (k // 12) % 2 else 0)
-    put(B, pluck(m, 1.6), k * 0.5)
-for k in range(4): put(B, pad(50 + (0, 3, 5, 0)[k], 9.0) * 0.5, k * 8.0)
-save("B_pluck", reverb(B, 0.4))
+    # B: Pluck - a plucked-string arpeggio in D dorian (a chronicle / diplomacy)
+    dur = 32; B = np.zeros(int(dur * SR))
+    scale = [62, 64, 65, 67, 69, 71, 72, 74]
+    pat = [0, 2, 4, 7, 4, 2, 3, 5, 7, 5, 4, 2]
+    for k in range(64):
+        m = scale[pat[k % len(pat)]] - (12 if (k // 12) % 2 else 0)
+        put(B, pluck(m, 1.6), k * 0.5)
+    for k in range(4): put(B, pad(50 + (0, 3, 5, 0)[k], 9.0) * 0.5, k * 8.0)
+    save("B_pluck", reverb(B, 0.4))
 
-# C: March - a low drone, hand drums and brass-like swells (war / Napoleonic, Mongol)
-dur = 32; C = np.zeros(int(dur * SR))
-put(C, pad(36, 32.0) * 1.2, 0)
-for k in range(64):
-    if k % 4 == 0: put(C, drum(0.5, 70, 10), k * 0.5)
-    elif k % 4 == 2: put(C, drum(0.3, 110, 16) * 0.6, k * 0.5)
-    elif k % 8 == 5: put(C, drum(0.2, 150, 22) * 0.4, k * 0.5)
-for k, (m, at) in enumerate(((48, 4), (51, 10), (55, 16), (53, 22), (48, 27))):
-    n = int(5.0 * SR); t = np.arange(n) / SR
-    saw = sum(((2 * ((hz(m) * j * t) % 1) - 1) / j) for j in (1, 2, 3))
-    put(C, saw * np.minimum(1, t / 1.5) * np.minimum(1, (5 - t) / 1.2) * 0.2, at)
-save("C_march", reverb(C, 0.25))
-print("wrote", os.listdir(out))
+    # C: March - a low drone, hand drums and brass-like swells (war / Napoleonic, Mongol)
+    dur = 32; C = np.zeros(int(dur * SR))
+    put(C, pad(36, 32.0) * 1.2, 0)
+    for k in range(64):
+        if k % 4 == 0: put(C, drum(0.5, 70, 10), k * 0.5)
+        elif k % 4 == 2: put(C, drum(0.3, 110, 16) * 0.6, k * 0.5)
+        elif k % 8 == 5: put(C, drum(0.2, 150, 22) * 0.4, k * 0.5)
+    for k, (m, at) in enumerate(((48, 4), (51, 10), (55, 16), (53, 22), (48, 27))):
+        n = int(5.0 * SR); t = np.arange(n) / SR
+        saw = sum(((2 * ((hz(m) * j * t) % 1) - 1) / j) for j in (1, 2, 3))
+        put(C, saw * np.minimum(1, t / 1.5) * np.minimum(1, (5 - t) / 1.2) * 0.2, at)
+    save("C_march", reverb(C, 0.25))
+    print("wrote", os.listdir(out))
+
+if __name__ == "__main__":
+    main()

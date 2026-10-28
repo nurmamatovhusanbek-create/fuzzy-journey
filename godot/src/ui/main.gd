@@ -41,6 +41,7 @@ func _ready() -> void:
 	map.province_peeked.connect(_on_peek)
 	map.performance_low.connect(_on_perf_low)
 	sfx = TBAudio.new(); add_child(sfx); sfx.enabled = cfg.get("sound", true)
+	music = TBMusic.new(); add_child(music); music.enabled = cfg.get("sound", true)
 	hud = TBHud.new(); hud.map_view = map; add_child(hud); hud.visible = false; TBBake.watch(hud)
 	panel = TBProvincePanel.new(); add_child(panel)
 	map.keepout_fn = func() -> Array:
@@ -672,13 +673,13 @@ func _on_setting_changed(key: String) -> void:
 			_apply_quality(); _update_ui_scale()
 			if mode == "menu": _fit_title_globe()                      # the title is always the globe in its ring: the view setting only counts in a game
 			else: map.set_mode(0 if cfg["view"] == "globe" else 1)
-		"sound": sfx.enabled = cfg.get("sound", true); _apply_a11y()
+		"sound": sfx.enabled = cfg.get("sound", true); music.enabled = cfg.get("sound", true); _apply_a11y()
 		"vol_master", "vol_music", "vol_sfx", "vol_ui": TBAudio.apply_volumes(cfg)
 		"fx": TBFx.apply(cfg)
 		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "tts", "confirm", "mirror", "vis_alerts", "navpad":
 			_apply_a11y(); _rebuild_screens()
 		"reset_access":
-			sfx.enabled = cfg.get("sound", true); _apply_a11y(); _rebuild_screens()
+			sfx.enabled = cfg.get("sound", true); music.enabled = cfg.get("sound", true); _apply_a11y(); _rebuild_screens()
 
 ## re-create the already-built screens after a language / text / contrast change (the open hub rebuilds itself)
 func _rebuild_screens() -> void:
@@ -1262,12 +1263,27 @@ func _update_perf(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_update_perf(delta)
+	_music_t += delta
+	if _music_t >= 1.0: _music_t = 0.0; _music_tick()
 	_place_tip()
 	if map.labels != null and map.labels.visible != (mode != "menu"): map.labels.visible = mode != "menu"
 	if mode == "menu" and _spin and K.spin_ok():           # Reduce motion: the title globe stays still
 		map.lon0 += delta * 0.12
 		map._push_view()
 		if is_instance_valid(_bezel): _bezel.queue_redraw()
+
+var music: TBMusic
+var _music_t := 0.0
+
+## once a second: the score follows the game. Title and pick screen: peace; a running game: peace, or war while the human is at war; the game over: silence. The sea bed plays in a game only.
+func _music_tick() -> void:
+	if music == null: return
+	var m := "peace"; var sea := false
+	if mode == "game" and g != null:
+		sea = true
+		if g.over: m = "none"
+		elif g.human_id > 0 and g.at_war(g.human_id): m = "war"
+	music.set_mood(m); music.set_sea(sea)
 
 # ---------------------------------------------------------------- multiplayer hooks (called by TBMpController)
 func enter_mp_game(game: TBGame, nation: int) -> void:
