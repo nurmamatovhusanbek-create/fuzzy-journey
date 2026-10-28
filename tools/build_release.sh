@@ -11,7 +11,7 @@ targets=${@:-windows android}
 unset XDG_DATA_HOME                                   # the export templates live in the default Godot data folder
 (cd godot && "$GODOT" --headless --path . --import >/dev/null 2>&1) || true
 
-export_one() { (cd godot && "$GODOT" --headless --path . --export-release "$1" "$2" 2>&1 | grep -aE "ERROR|Signed|export: end" | grep -v "status < 0" ) ; }
+export_one() { (cd godot && "$GODOT" --headless --path . --export-release "$1" "$2" 2>&1 | grep -aE "ERROR|Signed|export: end" | grep -v "status < 0" ) || true; }
 
 for t in $targets; do
   case $t in

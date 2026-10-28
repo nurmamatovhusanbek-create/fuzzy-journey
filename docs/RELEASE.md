@@ -64,6 +64,13 @@ Windows 10 or 11, 64-bit; any GPU with OpenGL 3.3 (about 10 years of hardware); 
 | The package itself | the exported Windows package was started with its own data, three eras were played for turns, saved and loaded |
 | Android package | signature, API levels, permissions and icons read from the APK; **not run on a phone or emulator in this environment: install it on a real device before announcing** |
 
+## Result of the final run (commit `97999fa`)
+
+* `tools/test_all.sh`: **ALL PASS** (engine suites, security, fuzz, link audit, oracle against the JS reference on four seeds, 2-client multiplayer lockstep).
+* `tools/test_ui.sh`: **UI PASS** (56 checks). Portrait at 200 % Russian still has overflow items; portrait is not shipped, so it is reported and not counted.
+* Two real defects were found and fixed by this run: the new "no pacts with the rebels" rule had changed the legacy rules-0 mode (the oracle caught it; the rule now starts at rules 1), and `can()` disagreed with `apply()` about self-targeted commands.
+* Packages built from that commit: Windows zip 61 MB, Android APK 82 MB (`SHA256SUMS.txt` beside them).
+
 ## Known limits (honest list)
 
 * Multiplayer: coming soon (see above); when it opens, fog of war is not enforced by the server (`docs/SECURITY.md`).
