@@ -414,7 +414,7 @@ func show_menu() -> void:
 	_title_sel_start.call_deferred()
 	# F2: the Advisor's note under the menu (wide layout only; the era ring hides it with the rest of the column, Settings > Display switches it off)
 	if wide and bool(cfg.get("tips", true)):
-		var tip := TBAdvisorNote.new(); tip.name = "AdvisorNote"
+		var tip := TBAdvisorNote.new()
 		_overlay.add_child(tip)
 		tip.setup(u, colw, true)
 		tip.position.x = 12.0 + 44.0 * u; tip.bottom_y = vs.y - 36.0 * u; tip.position.y = tip.bottom_y - tip.size.y

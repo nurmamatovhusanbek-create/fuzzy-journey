@@ -1,7 +1,7 @@
 extends SceneTree
 ## F2: the Advisor's note. Title: one true line under the menu, rotates, never twice in a bag, hidden by the era ring, switchable off; every language has every line; the plate stays clear of the menu.
 ## Game: shown only when a turn takes over a second, gone when it ends, above the lens bar, off with the setting. Effects Off: no fades.
-## Usage: -s tests/advisor_note.gd -- <w> <h>     (TB_DPR / TB_DPI emulate a phone's density; the window size then decides the stage)
+## Usage: -s tests/advisor_note.gd -- <w> <h>     (run with TB_NOANIM= empty so the Light fade can be seen; TB_DPR / TB_DPI emulate a phone's density)
 var fails := 0
 func _check(cond: bool, what: String) -> void:
 	if not cond: print("FAIL: ", what); fails += 1
@@ -12,7 +12,9 @@ func _buttons(n: Node, acc: Array) -> void:
 		_buttons(c, acc)
 
 func _note(main: Control) -> Node:
-	return main._overlay.get_node_or_null("AdvisorNote")
+	for c in main._overlay.get_children():
+		if c is TBAdvisorNote and not c.is_queued_for_deletion(): return c
+	return null
 
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
