@@ -140,6 +140,7 @@ func _layout_cards() -> void:
 func _drive(fr: int) -> void:
 	var g: TBGame = main.g
 	g.pending.clear()
+	if fr < 248: main.hud.modulate.a = 0.0                              # the game's own begin-game fade-in would show the HUD on the globe: held down until the interface is meant to arrive
 	# ---- S1: the globe in the dark (the camera is set every frame; before 60 it is just dark)
 	if fr < 160:
 		var t := float(fr) / 160.0
