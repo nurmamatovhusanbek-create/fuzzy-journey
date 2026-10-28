@@ -709,7 +709,7 @@ func _copy_diagnostics() -> void:
 	lines.append("cpu=%s x%d  ram_static=%d MB" % [OS.get_processor_name(), OS.get_processor_count(), OS.get_static_memory_usage() / 1048576])
 	lines.append("gpu=%s | %s" % [RenderingServer.get_video_adapter_name(), RenderingServer.get_video_adapter_vendor()])
 	lines.append("screen=%s window=%s scale=%.2f touch=%s" % [DisplayServer.screen_get_size(), DisplayServer.window_get_size(), DisplayServer.screen_get_scale(), DisplayServer.is_touchscreen_available()])
-	lines.append("fps=%d frame_ms=%.1f quality=%s tier=%d render_scale=%.2f last_turn_ms=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, cfg.get("quality", "auto"), map.quality, map.render_scale, _turn_ms])
+	lines.append("fps=%d frame_ms=%.1f quality=%s tier=%d render_scale=%.2f map_scale=%.2f map_buffer=%s last_turn_ms=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, cfg.get("quality", "auto"), map.quality, map.render_scale, map._rs(), str(map._vp.size), _turn_ms])
 	if g != null:
 		lines.append("game: era=%s turn=%d seed=%d rules=%d provinces=%d nations_alive=%d" % [g.era_id, g.turn, g.seed_value, g.rules, g.P, _alive_count()])
 	lines.append("lang=%s view=%s theme=%s ui=%s fx=%s reduce_motion=%s" % [cfg.get("lang", ""), cfg.get("view", ""), cfg.get("theme", ""), cfg.get("ui", ""), cfg.get("fx", ""), cfg.get("reduce_motion", false)])
@@ -1261,7 +1261,7 @@ func _update_perf(delta: float) -> void:
 	if _perf_t < 0.5: return
 	_perf_t = 0.0
 	var ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
-	_perf_label.text = "%d fps · frame %.1f ms · map tier %d @%.0f%% · mem %d MB · turn %d ms" % [Engine.get_frames_per_second(), ms, map.quality, map.render_scale * 100.0, OS.get_static_memory_usage() / 1048576, _turn_ms]
+	_perf_label.text = "%d fps · frame %.1f ms · map tier %d @%.0f%% · mem %d MB · turn %d ms" % [Engine.get_frames_per_second(), ms, map.quality, map._rs() * 100.0, OS.get_static_memory_usage() / 1048576, _turn_ms]
 
 func _process(delta: float) -> void:
 	_update_perf(delta)

@@ -62,7 +62,7 @@ var quality := 2
 var map_theme := 0               # 0 standard, 1 parchment
 var _outline_owner := -1        # nation whose border is outlined (the selected province's owner)
 var _hi_owner := -1              # nation highlighted on the pick screen (others dim)
-var render_scale := 1.0        # SubViewport resolution relative to the control's logical size
+var render_scale := 1.0        # SubViewport resolution relative to the control's logical size (the tier's fraction; see _rs() for what is actually used)
 var _vp: SubViewport
 var _view_tex: TextureRect
 var labels: TBMapLabels
@@ -273,11 +273,24 @@ static func imerc(y: float) -> float: return 2.0 * atan(exp(y)) - PI * 0.5
 func flat_local() -> float: return flat_scale() / maxf(0.2, cos(lat0))
 ## screen px per radian of longitude / of Mercator y at the view centre is flat_scale(); px per radian of latitude at lat is flat_scale() / cos(lat)
 
+## Pixel budget of the map buffer per quality tier (low, medium, high). The buffer is a fraction (render_scale) of the LOGICAL size, which on a desktop is about the window's
+## pixels; on a phone the logical stage is 390 units tall while the screen has ~1000+ pixels, so the same fraction left the map a third of the screen's resolution (blocky, like a
+## picture). There the scale rises with the physical pixels per logical unit, up to the tier's budget. A desktop (logical >= physical) keeps exactly the tier's fraction.
+const PX_BUDGET := [0.7e6, 1.4e6, 2.4e6]
+func _rs() -> float:
+	var rs: float = render_scale
+	var win := get_window()
+	if win == null or size.x < 8.0 or size.y < 8.0: return rs
+	var ppl: float = float(win.size.x) / maxf(1.0, get_viewport().get_visible_rect().size.x)             # physical px per logical unit
+	if ppl <= 1.001: return rs
+	var cap: float = sqrt(float(PX_BUDGET[clampi(quality, 0, 2)]) / (size.x * size.y))
+	return maxf(rs, minf(rs * ppl, cap))
+
 func _push_view() -> void:
 	if _mat == null: return
 	if _shader_q != quality and _shader_q >= 0:                       # the quality tier changed: its own shader
 		_shader_q = quality; _mat.shader = tier_shader(quality)
-	var rs: float = render_scale
+	var rs: float = _rs()
 	var vs := Vector2i(maxi(64, int(size.x * rs)), maxi(64, int(size.y * rs)))
 	if _vp.size != vs:
 		_vp.size = vs
@@ -346,7 +359,7 @@ func _on_drawn() -> void:
 func _request_render() -> void:
 	if _vp == null or _mat == null: return
 	var sig: Array = [_vp.size, lon0, lat0, radius_px(), flat_scale(), mode, quality, map_theme, TBTokens.is_hc(), TBLenses.cvd, atlas_look(), g.human_id if g != null else -1, TBTokens.accent,
-		not _targets.is_empty(), dim_others, _hi_owner, _outline_owner, render_scale, _pal_gen, _ids_is_half]
+		not _targets.is_empty(), dim_others, _hi_owner, _outline_owner, _rs(), _pal_gen, _ids_is_half]
 	var hl: Array = [hover, _hover_t, _hover_prev, _hover_prev_t, selected, _sel_t, _sel_pulse]
 	if _pend_full or _rend_hl.is_empty() or sig != _rend_sig or not partial_ok:
 		_full_redraw(sig, hl); return
@@ -370,7 +383,7 @@ func _partial_redraw(r: Rect2) -> void:
 	if _pend_full: return                                              # the queued full redraw will draw the newest state
 	_pend_part = r if not _pend_part_ok else _pend_part.merge(r)
 	_pend_part_ok = true
-	var k: float = render_scale
+	var k: float = _rs()
 	var x0: float = floorf(_pend_part.position.x * k); var y0: float = floorf(_pend_part.position.y * k)
 	var x1: float = ceilf(_pend_part.end.x * k); var y1: float = ceilf(_pend_part.end.y * k)
 	_clip.position = Vector2(x0, y0); _clip.size = Vector2(x1 - x0, y1 - y0); _rect.position = -_clip.position
@@ -446,7 +459,7 @@ var _lk := []
 var _lbl_t := 0
 var _lbl_pending := false
 func _labels_relayout() -> void:
-	var k := [lon0, lat0, zoom, size, mode, selected, quality, hover if labels.hover_matters() else -2, labels.hidden_while_dragging, render_scale, TBTokens.is_hc(), TBLenses.cvd, TBKit.text_scale, TBI18n.lang, map_theme, g.human_id if g != null else -1, (lenses.mode + lenses.route_kind) if lenses != null else ""]
+	var k := [lon0, lat0, zoom, size, mode, selected, quality, hover if labels.hover_matters() else -2, labels.hidden_while_dragging, _rs(), TBTokens.is_hc(), TBLenses.cvd, TBKit.text_scale, TBI18n.lang, map_theme, g.human_id if g != null else -1, (lenses.mode + lenses.route_kind) if lenses != null else ""]
 	if k == _lk: return
 	var cam: bool = _lk.size() > 4 and (k[0] != _lk[0] or k[1] != _lk[1] or k[2] != _lk[2] or k[3] != _lk[3])
 	_lk = k
