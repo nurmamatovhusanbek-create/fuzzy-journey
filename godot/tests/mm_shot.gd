@@ -1,5 +1,5 @@
 extends SceneTree
-## Minimap screenshots in the flat and globe views: -s tests/mm_shot.gd -- <outdir> <w> <h>
+## Minimap screenshots in the flat and globe views: -s tests/mm_shot.gd -- <outdir> <w> <h> [open]
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	var w: int = int(a[1]); var h: int = int(a[2])
@@ -13,6 +13,8 @@ func _init() -> void:
 	main.g.pending.clear(); main._clear_overlay(); main._select(-1)
 	main.hud.set_seal_pulse(false)
 	for i in 6: await process_frame
+	if a.size() > 3 and a[3] == "open": main.hud._mm_open = true; main.hud.layout_for(main.hud._vp)             # a phone keeps the minimap behind its button
+	for i in 4: await process_frame
 	var mm: TBMinimap = main.hud._minimap
 	for t in ["globe", "flat", "flat_zoom"]:
 		if t == "globe": main.map.set_mode(0)

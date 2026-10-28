@@ -33,5 +33,5 @@ func _init() -> void:
 	var okf: bool = fp.size() > 8 and absf(mx - deg_to_rad(20.0)) < 0.05 and absf(my - TBMapView.merc(deg_to_rad(45.0))) < 0.05
 	print("footprint centre ", Vector2(mx, my), " ", "ok" if okf else "FAIL")
 	if not okf: failed += 1
-	print("MM_FLAT ", "PASS" if failed == 0 else "FAIL %d" % failed)
+	print("MM_FLAT OK" if failed == 0 else "MM_FLAT FAIL %d" % failed)
 	quit(failed)

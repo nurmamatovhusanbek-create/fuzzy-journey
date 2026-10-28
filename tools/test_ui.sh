@@ -29,7 +29,7 @@ out=$(TB_NOANIM= timeout 500 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --p
 out=$(TB_NOANIM= timeout 250 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/fx_still.gd 2>&1); echo "$out" | grep -q "FX_STILL OK" && echo "ok: tests/fx_still.gd" || { echo "FAIL: tests/fx_still.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 out=$(timeout 280 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/music.gd 2>&1); echo "$out" | grep -q "MUSIC OK" && echo "ok: tests/music.gd" || { echo "FAIL: tests/music.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 # B1 / B3 / B2 / B7: dialog staging (veil, rise, click completes, fade on close, Off instant) and the war declaration (seal, the War moment, skip, Off = none); run with a fixed frame rate
-for t in staging:STAGING war_moment:WAR_MOMENT event_shots:EVENT_SHOTS finale:FINALE battle_ui:BATTLE_UI conquest_fade:CONQUEST_FADE map_fx:MAP_FX era_ring:ERA_RING toast_fx:TOAST_FX sel_pulse:SEL_PULSE begin_dive:BEGIN_DIVE pick_hover:PICK_HOVER; do
+for t in staging:STAGING war_moment:WAR_MOMENT event_shots:EVENT_SHOTS finale:FINALE battle_ui:BATTLE_UI conquest_fade:CONQUEST_FADE map_fx:MAP_FX era_ring:ERA_RING toast_fx:TOAST_FX sel_pulse:SEL_PULSE begin_dive:BEGIN_DIVE pick_hover:PICK_HOVER mm_flat:MM_FLAT; do
   out=$(TB_NOANIM= timeout 250 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/${t%%:*}.gd -- /tmp 2>&1); mark=${t##*:}
   echo "$out" | grep -q "$mark OK" && echo "ok: tests/${t%%:*}.gd" || { echo "FAIL: tests/${t%%:*}.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 done

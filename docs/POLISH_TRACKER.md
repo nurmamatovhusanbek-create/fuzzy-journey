@@ -301,3 +301,9 @@ tune Light / Full from them; lit-space audit; leader portraits; flags for more e
 5. (answered) flags: author them ourselves, better - built as F3, see section 4.
 
 * **Correction (clip)**: the first clip was recorded in portrait by mistake; the owner plays the phone sideways. `docs/media/mobile_gameplay.mp4` is now landscape. Recording it found a latent error in `era_ring.gd` (the ring's tree-exit cleanup touched the title orrery after it was freed); guarded with `is_instance_valid`.
+
+### Flat-map minimap (owner request)
+* **What**: on the flat map the minimap's brass ring, ticks, shading and caption are exactly as they were; what changed is the picture inside the circle. It was a thin equirectangular strip with empty sea above and below; it is now the main map's own Mercator world (a square, lon -180..180 by 85 deg N..S) filling the whole round window, so the minimap matches the big map. Only the far polar corners are cut by the circle. Still (it does not turn); the globe view is untouched.
+* **Frame / tap / drag** use the same Mercator coordinates (`TBMapView.merc` / `imerc`): the frame rectangle sits where the main view is, and a tap flies to exactly the spot under the pointer.
+* **Files**: `src/render/minimap_globe.gdshader` (`flat_map` branch), `src/ui/minimap.gd` (`_draw_frame`, `_fly`); test `tests/mm_flat.gd` (taps at four places, footprint centre; in `tools/test_ui.sh`); review aid `tests/mm_shot.gd`; picture `docs/screens/minimap/flat_before_after.png` (top before, bottom after).
+* **Note**: the minimap only exists on desktop-size windows (a phone keeps it hidden), so there is nothing to check on a phone.
