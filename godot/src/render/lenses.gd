@@ -61,14 +61,14 @@ const NAT_HUES := [0xE69F00, 0x009E73, 0xF0E442, 0xD55E00, 0xCC79A7, 0x56B4E9]
 
 ## active palettes (what color() and the legend read)
 static var cvd := "off"
-static var REGIME_COL: Array = REGIME_STD
-static var TERRAIN_COL: Array = TERRAIN_STD
-static var BUILD_COL: Array = BUILD_STD
-static var POP_RAMP: Array = POP_STD
-static var ARMY_RAMP: Array = ARMY_STD
-static var ECON_RAMP: Array = ECON_STD
-static var STAB_RAMP: Array = STAB_STD
-static var REL_COL: Dictionary = REL_STD
+static var REGIME_COL: Array = REGIME_STD.duplicate(true)
+static var TERRAIN_COL: Array = TERRAIN_STD.duplicate(true)
+static var BUILD_COL: Array = BUILD_STD.duplicate(true)
+static var POP_RAMP: Array = POP_STD.duplicate(true)
+static var ARMY_RAMP: Array = ARMY_STD.duplicate(true)
+static var ECON_RAMP: Array = ECON_STD.duplicate(true)
+static var STAB_RAMP: Array = STAB_STD.duplicate(true)
+static var REL_COL: Dictionary = REL_STD.duplicate(true)
 static var SELF_COL := SELF_STD
 
 static func set_cvd(mode: String) -> bool:
@@ -116,7 +116,7 @@ func _init(game: TBGame) -> void:
 
 ## nation colours. Off: the historical colour lifted 18 %. Colour-vision modes: the adjacency-aware assignment. Returns true when any colour changed.
 func refresh_nations() -> bool:
-	var before := nat_rgb.duplicate()
+	var before := nat_rgb.duplicate(true)
 	nat_rgb.resize(g.N1)
 	if cvd == "off":
 		for n in range(1, g.N1):
