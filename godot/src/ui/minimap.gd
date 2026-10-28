@@ -62,8 +62,16 @@ func want_w(h: float) -> float: return h
 func _globe_geom() -> Array:
 	return [Vector2(size.x * 0.5, 10.0 + round_r), round_r - 12.0]
 
-## the flat map's minimap is the same round window with the main map's own Mercator world filling it (a square: lon -180..180 across the diameter, 85 deg N..S top to bottom; only the far polar corners are cropped by the circle), still, with a frame for what the main view shows
+## the flat map's minimap is the same round window, but a close one: the main map's own Mercator world, FLAT_HALF radians (57 deg) from the centre to the rim, centred on what the main view looks at (it follows it), with a frame for what the main view shows
 func _is_flat() -> bool: return map != null and map.mode == 1
+const FLAT_HALF := 1.0
+## the window's centre in Mercator y: kept clear of the map's top and bottom so the circle never shows past the poles
+func _flat_cy() -> float:
+	var lim: float = maxf(0.0, TBMapView.merc(TBMapView.MERC_LIM) - FLAT_HALF)
+	return clampf(TBMapView.merc(map.lat0), -lim, lim)
+## where a lon / lat (radians) falls in the flat window (control coordinates); lon may be a turn either side of the view
+func _flat_pos(lon: float, lat: float, c: Vector2, R: float) -> Vector2:
+	return c + Vector2((lon - map.lon0) / FLAT_HALF, -(TBMapView.merc(lat) - _flat_cy()) / FLAT_HALF) * R
 
 func _has_point(p: Vector2) -> bool:
 	return p.distance_to(Vector2(size.x * 0.5, 10.0 + round_r)) <= round_r + 2.0
@@ -114,6 +122,8 @@ func _draw() -> void:
 	_mat.set_shader_parameter("lon0", map.lon0)
 	_mat.set_shader_parameter("lat0", map.lat0)
 	_mat.set_shader_parameter("flat_map", 1 if _is_flat() else 0)
+	if _is_flat():
+		_mat.set_shader_parameter("flat_half", FLAT_HALF); _mat.set_shader_parameter("flat_cy", _flat_cy())
 	_mat.set_shader_parameter("sea_col", TBTokens.BZ_SEA)
 	_mat.set_shader_parameter("r_units", R)
 	_fp.position = Vector2.ZERO; _fp.size = size
@@ -193,7 +203,7 @@ func _draw_frame() -> void:
 		for i in 64: circ.append(c + Vector2.from_angle(TAU * i / 64.0) * (R - 1.0))
 		for off in [-TAU, 0.0, TAU]:
 			var pl := PackedVector2Array()
-			for q in fpp: pl.append(c + Vector2((float((q as Vector2).x) + off) / PI, -TBMapView.merc(float((q as Vector2).y)) / PI) * R)
+			for q in fpp: pl.append(_flat_pos(float((q as Vector2).x) + off, float((q as Vector2).y), c, R))
 			for sg in Geometry2D.intersect_polyline_with_polygon(pl, circ): segs.append(sg)
 	else:
 		segs = _lines(fpp, map.lon0, map.lat0, c, R)
@@ -208,8 +218,9 @@ func _fly(pos: Vector2) -> void:
 	if _is_flat():
 		var gf: Array = _globe_geom()
 		var df: Vector2 = (pos - (gf[0] as Vector2)) / float(gf[1])
-		var lon: float = clampf(df.x, -1.0, 1.0) * 180.0
-		var lat: float = clampf(rad_to_deg(TBMapView.imerc(-df.y * PI)), -80.0, 80.0)
+		if df.length_squared() > 1.0: df = df.normalized()
+		var lon: float = rad_to_deg(map.lon0 + df.x * FLAT_HALF)
+		var lat: float = clampf(rad_to_deg(TBMapView.imerc(_flat_cy() - df.y * FLAT_HALF)), -80.0, 80.0)
 		looked.emit(lon, lat); map.fly_to(lon, lat); return
 	var gm: Array = _globe_geom()
 	var d: Vector2 = (pos - (gm[0] as Vector2)) / float(gm[1])

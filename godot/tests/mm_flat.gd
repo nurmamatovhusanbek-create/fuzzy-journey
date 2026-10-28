@@ -1,5 +1,5 @@
 extends SceneTree
-## Flat-map minimap: the main map's own Mercator world fills the round window; a tap flies the main view to exactly the spot under the pointer, and the view frame is drawn in the same coordinates.
+## Flat-map minimap: a close window on the main map's Mercator world, centred on the view; a tap flies the main view to exactly the spot under the pointer, and the view frame is drawn in the same coordinates.
 var failed := 0
 func _init() -> void:
 	DisplayServer.window_set_size(Vector2i(1600, 900)); root.size = Vector2i(1600, 900)
@@ -16,16 +16,28 @@ func _init() -> void:
 	for i in 6: await process_frame
 	var gm: Array = mm._globe_geom()
 	var c: Vector2 = gm[0]; var R: float = gm[1]
-	for ll in [Vector2(30.0, 50.0), Vector2(-100.0, 35.0), Vector2(120.0, -25.0), Vector2(0.0, 0.0)]:
-		var pos: Vector2 = c + Vector2(ll.x / 180.0, -TBMapView.merc(deg_to_rad(ll.y)) / PI) * R
+	# the window is centred on the view: the view's own lon / lat sits at the circle's centre
+	var cen: Vector2 = mm._flat_pos(main.map.lon0, main.map.lat0, c, R)
+	var okc: bool = cen.distance_to(c) < 0.5
+	print("view centre at window centre: ", cen, " ", "ok" if okc else "FAIL")
+	if not okc: failed += 1
+	# a tap flies the main view to exactly the spot under the pointer (lon / lat -> pixel -> tap -> view)
+	for off in [Vector2(0.4, -0.3), Vector2(-0.6, 0.2), Vector2(0.0, 0.7), Vector2(0.55, 0.55)]:
+		var ll := Vector2(main.map.lon0 + off.x * TBMinimap.FLAT_HALF, TBMapView.imerc(mm._flat_cy() - off.y * TBMinimap.FLAT_HALF))
+		var pos: Vector2 = mm._flat_pos(ll.x, ll.y, c, R)
 		mm._fly(pos)
 		for i in 120: await process_frame
-		var lon: float = rad_to_deg(main.map.lon0); var lat: float = rad_to_deg(main.map.lat0)
-		var ok: bool = absf(lon - ll.x) < 1.0 and absf(lat - ll.y) < 1.0
-		print("tap ", ll, " -> view ", Vector2(lon, lat), " ", "ok" if ok else "FAIL")
+		var ok: bool = absf(main.map.lon0 - ll.x) < 0.01 and absf(main.map.lat0 - ll.y) < 0.01
+		print("tap ", off, " -> view ", Vector2(rad_to_deg(main.map.lon0), rad_to_deg(main.map.lat0)), " want ", Vector2(rad_to_deg(ll.x), rad_to_deg(ll.y)), " ", "ok" if ok else "FAIL")
 		if not ok: failed += 1
-	# zoomed in: the footprint rectangle's centre is the view centre in the same coordinates
-	main.map.zoom = main.map.flat_fit() * 3.0; main.map.lon0 = deg_to_rad(20.0); main.map.lat0 = deg_to_rad(45.0); main.map._push_view()
+	# near the pole the window stays inside the map (the centre is clamped)
+	main.map.lat0 = deg_to_rad(80.0); main.map._push_view()
+	var cy: float = mm._flat_cy()
+	var okp: bool = cy + TBMinimap.FLAT_HALF <= TBMapView.merc(TBMapView.MERC_LIM) + 1e-4
+	print("pole clamp cy ", cy, " ", "ok" if okp else "FAIL")
+	if not okp: failed += 1
+	# zoomed in: the footprint's centre is the view centre, and it lands at the window centre
+	main.map.zoom = main.map.flat_fit() * 6.0; main.map.lon0 = deg_to_rad(20.0); main.map.lat0 = deg_to_rad(45.0); main.map._push_view()
 	var fp: Array = mm._footprint()
 	var mx := 0.0; var my := 0.0
 	for q in fp: mx += float((q as Vector2).x); my += TBMapView.merc(float((q as Vector2).y))

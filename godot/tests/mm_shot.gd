@@ -19,7 +19,7 @@ func _init() -> void:
 	for t in ["globe", "flat", "flat_zoom"]:
 		if t == "globe": main.map.set_mode(0)
 		else: main.map.set_mode(1)
-		if t == "flat_zoom": main.map.zoom = main.map.flat_fit() * 3.0; main.map.lon0 = 0.2; main.map.lat0 = 0.8; main.map._push_view()
+		if t == "flat_zoom": main.map.zoom = main.map.flat_fit() * 5.0; main.map.lon0 = 0.2; main.map.lat0 = 0.8; main.map._push_view()
 		for i in 8: await process_frame
 		mm.refresh()
 		for i in 4: await process_frame

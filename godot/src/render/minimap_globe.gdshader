@@ -9,7 +9,9 @@ uniform float lat0 = 0.3;
 uniform float r_units = 62.0;                  // the sphere's radius in layout units (graticule line width is 0.6 unit)
 uniform vec4 grat_col : source_color = vec4(0.788, 0.749, 0.627, 1.0);   // #C9BFA0
 uniform float grat = 0.16;                    // graticule opacity
-uniform int flat_map = 0;                      // 1: the flat map's own Mercator world (a square, lon -180..180 by 85 deg N..S) filling the same round window, still; only the far polar corners fall outside the circle
+uniform int flat_map = 0;                      // 1: a close window on the flat map's own Mercator world, centred on the main view (lon0 and Mercator y flat_cy), flat_half radians from the centre to the rim
+uniform float flat_half = 1.0;
+uniform float flat_cy = 0.0;
 uniform vec4 sea_col : source_color = vec4(0.035, 0.05, 0.075, 1.0);
 
 void fragment() {
@@ -20,7 +22,7 @@ void fragment() {
 	float s0 = sin(lat0), c0 = cos(lat0);
 	float lat = asin(clamp(z * s0 + d.y * c0, -1.0, 1.0));
 	float lon = lon0 + atan(d.x, z * c0 - d.y * s0);
-	if (flat_map == 1) { lon = d.x * PI; lat = 2.0 * atan(exp(d.y * PI)) - PI * 0.5; }     // Mercator: y = ln tan(pi/4 + lat/2), the square's top / bottom are +-85.05 deg
+	if (flat_map == 1) { lon = lon0 + d.x * flat_half; lat = 2.0 * atan(exp(flat_cy + d.y * flat_half)) - PI * 0.5; }     // Mercator: y = ln tan(pi/4 + lat/2); x and y share one scale, so shapes are as on the big map
 	vec2 uv = vec2(lon / TAU + 0.5, clamp(0.5 - lat / PI, 0.003, 0.997));
 	vec3 c = texture(tex, uv).rgb;
 	// graticule every 30 degrees: lines about 0.6 layout units wide (parallels to 60, meridians fade out toward the poles)
