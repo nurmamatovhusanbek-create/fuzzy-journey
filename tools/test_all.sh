@@ -3,7 +3,7 @@
 GODOT=${1:-/opt/godot/Godot_v4.4.1-stable_linux.x86_64}
 cd "$(dirname "$0")/.."
 fail=0
-run() { echo "== $1"; local out; out=$(cd godot && "$GODOT" --headless --path . -s "$2" 2>&1); local rc=$?; echo "$out" | grep -vE "ALSA|audio|^$|Godot Engine"; [ $rc -eq 0 ] || { echo "!! FAILED: $1"; fail=1; }; }
+run() { echo "== $1"; local out; out=$(cd godot && timeout ${TB_TEST_TIMEOUT:-900} "$GODOT" --headless --path . -s "$2" 2>&1); local rc=$?; echo "$out" | grep -vE "ALSA|audio|^$|Godot Engine"; [ $rc -eq 0 ] || { echo "!! FAILED: $1"; fail=1; }; }
 (cd godot && "$GODOT" --headless --path . --import >/dev/null 2>&1)
 run "engine: determinism + basics" tests/run_all.gd
 run "save/load round trip (3 scenarios)" tests/saveload.gd

@@ -25,7 +25,7 @@ func _init() -> void:
 	if g.apply({"cmd": "ask", "n": n, "kind": "nap", "t": t})["ok"]: fails += 1           # already asked
 	if not TBAsks.pending(g, n, t, "nap"): fails += 1
 	# save / load keeps the question
-	var g_copy := TBSave.from_dict(w, JSON.parse_string(JSON.stringify(TBSave.to_dict(g))))
+	var g_copy := TBSave.from_dict(w, bytes_to_var(var_to_bytes(TBSave.to_dict(g))))
 	if g_copy.asks.size() != 1 or not TBAsks.pending(g_copy, n, t, "nap"): fails += 1
 	# the answer comes with the next turn, never before
 	print("asks before: ", g.asks, " copy: ", g_copy.asks)
