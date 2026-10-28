@@ -77,7 +77,12 @@ static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("new_game_t"), "hourglass", {"scroll": false, "padded": false, "dismissable": true})
 	if not mp:
 		var steps := TBMenuParts.Steps.new(0, TBPanel.is_portrait(vs))
-		h.set_chip(steps)
+		if TBPanel.is_portrait(vs) and vs.x < 560.0:             # a phone in portrait: the header has no room for the pips beside the title ("NEW GA..."), they sit above the list instead
+			var sm := MarginContainer.new(); sm.add_theme_constant_override("margin_left", h.pad); sm.add_theme_constant_override("margin_top", 8); sm.add_theme_constant_override("margin_bottom", 2)
+			steps.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			sm.add_child(steps); h.body.add_child(sm)
+		else:
+			h.set_chip(steps)
 	var world: TBWorld = opts.get("world", null)
 	# ---- columns
 	var split := BoxContainer.new(); split.vertical = false

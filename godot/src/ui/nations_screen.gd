@@ -561,7 +561,8 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		items.append([T.call("dv_total"), "%s / %s" % [TBNegotiate._fmt(float(view["score"]), float(view["need"])), TBNegotiate._fmt(float(view["need"]))], 1 if bool(view["ok"]) else -1])
 		v.add_child(K.fxl(items))
 	v.add_child(_cap(T.call("diplomacy"), 14.0, 6.0))
-	var acts := GridContainer.new(); acts.columns = 2
+	var narrow: bool = (parent.size.x if parent.size.x > 1.0 else parent.get_viewport_rect().size.x) < 480.0          # a portrait phone: one button per row, two would be wider than the screen
+	var acts := GridContainer.new(); acts.columns = 1 if narrow else 2
 	acts.add_theme_constant_override("h_separation", 8); acts.add_theme_constant_override("v_separation", 8); acts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(acts)
 	var add_btn := func(label: String, icon: String, sub: String, cb: Callable, reason: String = "", tip: String = "") -> void:
@@ -617,7 +618,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 	# intel
 	if g.rules >= 1:
 		v.add_child(_cap("%s  ·  %s %.0f" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]], 14.0, 6.0))
-		var sp := GridContainer.new(); sp.columns = 2
+		var sp := GridContainer.new(); sp.columns = 1 if narrow else 2
 		sp.add_theme_constant_override("h_separation", 8); sp.add_theme_constant_override("v_separation", 8); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		v.add_child(sp)
 		for op in ["steal", "sabotage", "incite"]:

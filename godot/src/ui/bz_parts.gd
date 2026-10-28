@@ -57,9 +57,19 @@ class FxRow extends HBoxContainer:
 		cap.px = 14.5 if ph else 16.0; cap.base_y = by; cap.refit()
 		lead.base_y = by; lead.queue_redraw()
 		if val != null: val.px = 16.0 if ph else 18.0; val.base_y = by; val.refit()
+	var _wrap_on := false
+	## the caption wraps between words (never narrower than its longest word) instead of keeping one line that can be wider than the screen
+	func _enable_wrap() -> void:
+		if _wrap_on or cap == null: return
+		_wrap_on = true
+		cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var lw := 0.0
+		for wd in cap.text.split(" ", false): lw = maxf(lw, TBBz.tw(TBKit.alegreya(400), wd, TBKit.fsf(16.0)))
+		cap.custom_minimum_size.x = maxf(40.0, ceilf(lw) + 2.0)
 	func _enter_tree() -> void:
 		var ph: bool = TBKit.is_phone(self)
 		if ph != _ph and cap != null: _apply(ph)
+		if cap != null and not _wrap_on and get_viewport_rect().size.x < 480.0 and TBBz.tw(TBKit.alegreya(400), cap.text, TBKit.fsf(16.0)) > get_viewport_rect().size.x - 130.0: _enable_wrap()    # a phone in portrait: a long caption wraps
 	func _init(caption: String, value: String, col: Color, extra: Control = null) -> void:
 		add_theme_constant_override("separation", 0)
 		var vf: Font = TBKit.alegreya(700)
@@ -67,8 +77,7 @@ class FxRow extends HBoxContainer:
 		cap = TBBz.TLabel.new(TBKit.alegreya(400), 16.0, 0.0)             # `.x2 em` is italic in its font shorthand but font-style:normal wins
 		cap.base_y = by; cap.text = caption; cap.size_flags_vertical = Control.SIZE_FILL
 		cap.add_theme_color_override("font_color", TBKit.DIM)
-		if TBKit.text_scale >= 1.4:                    # large text in a narrow column: the caption wraps instead of pushing the panel wider
-			cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; cap.custom_minimum_size.x = 40; cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if TBKit.text_scale >= 1.4: _enable_wrap()                   # large text in a narrow column: the caption wraps instead of pushing the panel wider
 		add_child(cap)
 		lead = Leader.new(by); lead.size_flags_vertical = Control.SIZE_FILL
 		var ld := lead
@@ -101,10 +110,35 @@ class Mark extends Control:
 	func _sz() -> float: return TBKit.fsf(15.5)
 	func _lh() -> float: return roundf(TBBz.ascent(_f(), _sz())) + roundf(TBBz.descent(_f(), _sz()))
 	func _ix() -> float: return 15.0 + (13.0 + 6.0 if icon != "" else 0.0)
-	func _msize() -> Vector2: return Vector2(_ix() + TBBz.tw(_f(), txt, _sz()), maxf(_lh(), 13.0) if icon != "" else _lh())
+	var _lines: PackedStringArray = PackedStringArray()
+	## the room a chip's text may take: the window's width less the dialog's margins (a chip is a single line unless the text is longer than that: a phone in portrait)
+	func _avail() -> float:
+		var vw: float = get_viewport_rect().size.x if is_inside_tree() else 100000.0
+		return maxf(140.0, vw - 96.0 - _ix())
+	func _wrap() -> void:
+		_lines = PackedStringArray()
+		var av: float = _avail()
+		if TBBz.tw(_f(), txt, _sz()) <= av: _lines.append(txt); return
+		var cur := ""
+		for wd in txt.split(" ", false):
+			var t: String = wd if cur == "" else cur + " " + wd
+			if cur != "" and TBBz.tw(_f(), t, _sz()) > av: _lines.append(cur); cur = wd
+			else: cur = t
+		if cur != "": _lines.append(cur)
+	func _msize() -> Vector2:
+		_wrap()
+		var w := 0.0
+		for l in _lines: w = maxf(w, TBBz.tw(_f(), l, _sz()))
+		var n: int = maxi(1, _lines.size())
+		return Vector2(_ix() + w, (maxf(_lh(), 13.0) if icon != "" else _lh()) * n + 2.0 * float(n - 1))
+	func _enter_tree() -> void:
+		var m := _msize()
+		if not m.is_equal_approx(custom_minimum_size): custom_minimum_size = m; queue_redraw()
 	func _draw() -> void:
 		var ci := get_canvas_item()
-		var c := Vector2(3.5, size.y * 0.5)
+		var multi: bool = _lines.size() > 1
+		var lh: float = _lh()
+		var c := Vector2(3.5, (lh * 0.5) if multi else size.y * 0.5)
 		var h: float = 4.95
 		var o := PackedVector2Array([c + Vector2(0, -h), c + Vector2(h, 0), c + Vector2(0, h), c + Vector2(-h, 0)])
 		if not hollow: TBBz.poly(ci, o, col)
@@ -113,8 +147,12 @@ class Mark extends Control:
 			var i := PackedVector2Array([c + Vector2(0, -hi), c + Vector2(hi, 0), c + Vector2(0, hi), c + Vector2(-hi, 0)])
 			for s in 4: TBBz.poly(ci, PackedVector2Array([o[s], o[(s + 1) % 4], i[(s + 1) % 4], i[s]]), col)
 		var tc: Color = ink if ink.a > 0.0 else TBTokens.c("ink_0")
-		if icon != "": TBGlyph.draw_ic(self, icon, Vector2(15.0 + 6.5, size.y * 0.5), 13.0, tc)
-		TBBz.text(ci, _f(), Vector2(_ix(), TBBz.baseline(_f(), _sz(), 0.0, size.y, _lh())), txt, _sz(), tc)
+		if icon != "": TBGlyph.draw_ic(self, icon, Vector2(15.0 + 6.5, c.y), 13.0, tc)
+		for li in maxi(1, _lines.size()):
+			var line: String = _lines[li] if li < _lines.size() else txt
+			var top: float = float(li) * (lh + 2.0)
+			var base: float = TBBz.baseline(_f(), _sz(), 0.0, lh, lh) + top if multi else TBBz.baseline(_f(), _sz(), 0.0, size.y, lh)
+			TBBz.text(ci, _f(), Vector2(_ix(), base), line, _sz(), tc)
 
 # =====================================================================================================================================
 ## `.row`: padding 10 12, radius 3; hover wash rgba(brass, .08), selected wash .15 plus a 3 unit brass bar on the left. Free-form content, one signal.

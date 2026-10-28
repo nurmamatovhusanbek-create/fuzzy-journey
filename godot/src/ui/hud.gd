@@ -418,7 +418,7 @@ func _layout_portrait(vp: Vector2) -> void:
 	_seal.compact = false; _seal.narrow = true; _seal.scale = Vector2.ONE; _seal.pivot_offset = Vector2.ZERO; _seal.u = 1.0
 	var sw_: float = _seal.width_px(); var sh_: float = _seal.height_px()
 	_seal.size = Vector2(sw_, sh_)
-	_seal.position = Vector2(vp.x - m - sw_, vp.y - (bh + 12.0) - sh_)
+	_seal.position = Vector2(vp.x - maxf(m, 26.0) - sw_, vp.y - (bh + 12.0) - sh_)       # the label under the dial (~96 wide) is wider than the dial (64): 26 units of room on the right so "END TURN" is not cut off at the screen edge
 	_ticker.max_rows = 1; _ticker.inline_pill = true; _ticker.row_w = vp.x - 2.0 * m; _ticker.gap = 10.0; _ticker.compact = true
 	_ticker.position = Vector2(m, rail_top); _ticker._layout()
 	var tk_bottom: float = rail_top

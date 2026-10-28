@@ -252,6 +252,15 @@ After (`docs/screens/flags/after.png`, big flag + the 192x128 game PNG + the 48x
 * **Result**: 0 findings at 1600x900, 1280x720 and 844x390 at 100 % text; at 150 % on desktop 24 findings -> 1. Tests: pick_hover, begin_dive, era_ring, lint.
 * **Still open (known, small)**: portrait phone (540x960): the nations screen's two-column button grids are 30 units wider than the screen and one event card label too (`nations_foreign`, `nations_war`, `event`); the Goals title "TECHNOLOGICAL MASTERY" at 150 % (5 units); the Budget labels on a phone in landscape at 150 % text ("Administration", "Provinces"). The audit lists them every run.
 
+### Spacing pass 2 and the phone clip
+* **Closed** (audit now 0 findings at 540x960, 844x390 (also at 150 % text), 1280x720, 1600x900, and 1600x900 at 150 % text):
+  * Portrait phone: the nations screen's diplomacy and covert-operations button grids use one column when the panel is narrower than 480 units; event choice chips (`TBBzParts.Mark`) wrap onto several lines when their text is longer than the screen allows; leader-row captions (`FxRow`) wrap between words on a narrow screen.
+  * Goals cards: one column at 150 % text or more. Budget leader rows at 150 % text: a caption is never narrower than its longest word.
+  * New-game dialog on a phone in portrait: the three step pips moved from the header (they cut the title to "NEW GA...") to above the era list.
+  * Phone HUD: the End Turn dial sits 26 units from the right edge so its label ("END TURN", about 96 wide) is not cut off; **the dial itself is unchanged**, only its position on a phone in portrait / narrow layouts moved a few units.
+  * Data: the Maori nation was stored as "M?ori" (a damaged character) in the napoleonic and victorian eras and showed as "M?ORI"; now "Maori" like the other eras. (The ancient era also has one empty-id nation named "?" that owns no province; left alone.)
+* **Clip**: `tools/mobile_clip.sh` records a 10 s portrait-phone playthrough (title -> New game -> era -> pick France -> Play with the begin-game dive -> briefing -> Nations page -> End turn -> an event arrives) with Godot's movie writer, taps drawn as rings, music and cues included: `docs/media/mobile_gameplay.mp4` (`tests/mobile_clip.gd`).
+
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
 

@@ -386,7 +386,7 @@ static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 	grid.add_theme_constant_override("h_separation", 12); grid.add_theme_constant_override("v_separation", 12); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.body.add_child(grid)
 	var vp := parent.get_viewport()
-	if vp != null and vp.get_visible_rect().size.x < 560.0: grid.columns = 1       # two cards need ~330 px: one column on a narrow window
+	if vp != null and (vp.get_visible_rect().size.x < 560.0 * TBKit.text_scale or TBKit.text_scale >= 1.4): grid.columns = 1       # two cards need ~330 px (more at a larger text size): one column on a narrow window
 	var own: int = g.own_count(me)
 	var alive_others := 0; var allies := 0
 	for o in range(1, g.N1):
