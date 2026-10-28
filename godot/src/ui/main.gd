@@ -249,7 +249,7 @@ func _dissolve_overlay() -> void:
 		c.set_meta("tb_closing", true)
 		TBPanel._ignore_mouse(c)
 		TBFx.tween(c, {"modulate:a": 0.0}, 0.25, TBFx.LIGHT)
-		get_tree().create_timer(0.3).timeout.connect(func(): if is_instance_valid(c): c.queue_free())
+		get_tree().create_timer(0.3).timeout.connect(c.queue_free)                    # bound to the node itself: if something frees it sooner the connection goes with it (a lambda capturing it would log "capture was freed")
 
 const MP_ = preload("res://src/ui/menu_parts.gd")
 var _bezel: Control
@@ -1246,7 +1246,7 @@ func _title_toast(text: String) -> void:
 	pc.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); pc.grow_horizontal = Control.GROW_DIRECTION_BOTH; pc.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	pc.offset_bottom = -90
 	_overlay.add_child(pc)
-	get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(pc): pc.queue_free())
+	get_tree().create_timer(2.0).timeout.connect(pc.queue_free)
 
 func _update_perf(delta: float) -> void:
 	if not cfg.get("perf", false):

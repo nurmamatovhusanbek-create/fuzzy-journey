@@ -536,9 +536,9 @@ static func _fade_close(h: Handle) -> void:
 	var root: Control = h.root
 	root.remove_meta("tb_handle"); root.remove_meta("tb_modal"); root.set_meta("tb_closing", true)
 	_ignore_mouse(root)
-	var tw := root.get_tree().create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	var tw := root.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)                 # bound to the node: it dies with it, so the callback never meets a freed node
 	tw.tween_property(root, "modulate:a", 0.0, 0.15)
-	tw.tween_callback(func(): if is_instance_valid(root): root.queue_free())
+	tw.tween_callback(root.queue_free)
 
 static func _ignore_mouse(n: Node) -> void:
 	if n is Control: (n as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE; (n as Control).focus_mode = Control.FOCUS_NONE

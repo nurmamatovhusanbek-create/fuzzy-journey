@@ -1855,7 +1855,10 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 	var guard := ModalGuard.new(); guard.back = back; guard.dismissable = title_text != ""
 	back.add_child(guard)
 	if opener != null: parent.get_viewport().gui_release_focus()
-	back.tree_exiting.connect(func(): if is_instance_valid(opener) and opener.is_inside_tree() and opener.focus_mode != Control.FOCUS_NONE: opener.grab_focus.call_deferred())
+	var opener_w: WeakRef = weakref(opener)                                                           # a weak reference: a lambda capturing a node that was freed meanwhile logs an error
+	back.tree_exiting.connect(func():
+		var o: Control = opener_w.get_ref() as Control
+		if o != null and o.is_inside_tree() and o.focus_mode != Control.FOCUS_NONE: o.grab_focus.call_deferred())
 	if TBFrame.kbd_nav: _focus_first.call_deferred(back)
 	if motion_ok():                       # sheet rises 8 px while the scrim fades in; no scale
 		back.modulate.a = 0.0
