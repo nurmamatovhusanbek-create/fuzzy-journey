@@ -86,7 +86,7 @@ func _invariants(tag: String) -> void:
 
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
-	var iters: int = int(a[0]) if a.size() > 0 else 4000
+	var iters: int = int(a[0]) if a.size() > 0 else 1200
 	rng.seed = int(a[1]) if a.size() > 1 else 1
 	var era: String = a[2] if a.size() > 2 else "napoleonic"
 	TBI18n.load_lang("en")

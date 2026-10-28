@@ -34,6 +34,9 @@ run "synth audio" tests/audio.gd
 run "UI contrast: tokens vs art bible 4.2-4.7 (normal + high contrast)" tests/ui_contrast.gd
 run "soak: random human, 7 eras, invariants" tests/soak.gd
 run "historical events: integrity + firing" tests/hist_events.gd
+run "security: command schema, wire format, saves, settings, server text/rate rules" tests/security.gd
+run "fuzz: random and hostile commands keep the invariants" tests/fuzz_commands.gd
+echo "== links: res paths, translation keys, language parity"; python3 tools/audit_links.py || fail=1
 echo "== oracle: GDScript engine vs JS reference (rules 0)"; tools/oracle.sh "$GODOT" || fail=1
 echo "== multiplayer: server + 2 clients (lockstep of mirrored state)"; tools/test_mp.sh "$GODOT" 2>&1 | tail -3; [ "${PIPESTATUS[0]}" -eq 0 ] || fail=1
 [ $fail -eq 0 ] && echo "ALL PASS" || echo "FAILURES"

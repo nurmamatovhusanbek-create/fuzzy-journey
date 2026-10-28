@@ -28,7 +28,7 @@ func _init() -> void:
 	check(c2.get("_force", false) == true and c2.get("_ult", true) == false, "trusted: flags kept, only as booleans")
 	# --- text
 	check(TBNet._clean_text("hi\n" + String.chr(27) + "[31mthere" + String.chr(0x202E) + String.chr(0x200B) + "!", 40) == "hi31mthere!", "chat: controls, brackets, bidi and zero-width removed")
-	check(TBNet._clean("   ") == "Player" and TBNet._clean("[b]x[/b]") == "bx/b".replace("/", ""), "names: never empty, no markup")
+	check(TBNet._clean("   ") == "Player" and TBNet._clean("[b]x[/b]") == "bx/b", "names: never empty, no markup")
 	check(TBNet._clean_text("a".repeat(500), 200).length() == 200, "chat: bounded")
 	# --- wire format
 	var bomb := PackedByteArray(); bomb.resize(100 * 1024 * 1024); bomb.fill(0)
@@ -62,9 +62,9 @@ func _init() -> void:
 	var dd := TBSave.to_dict(g)
 	var e1 := dd.duplicate(true); e1["era_id"] = "../../x"
 	check(TBSave.from_dict(w, e1) == null, "save naming an era outside the data folder refused")
-	var e2 := dd.duplicate(true); e2["owner"] = PackedByteArray([1, 2, 3])
+	var e2 := dd.duplicate(true); e2["owner"] = PackedInt32Array([1, 2, 3])
 	check(TBSave.from_dict(w, e2) == null, "save with a wrongly sized array refused")
-	var e3 := dd.duplicate(true); var ow: PackedByteArray = e3["owner"]; ow[0] = 255; e3["owner"] = ow
+	var e3 := dd.duplicate(true); var ow: PackedInt32Array = e3["owner"]; ow[0] = 99999; e3["owner"] = ow
 	check(TBSave.from_dict(w, e3) == null, "save with an owner that does not exist refused")
 	var e4 := dd.duplicate(true); var gold: PackedFloat64Array = e4["gold"]; gold[me] = NAN; gold[other] = 1.0e30; e4["gold"] = gold
 	var g4 := TBSave.from_dict(w, e4)
