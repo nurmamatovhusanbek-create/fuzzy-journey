@@ -39,6 +39,11 @@ for cfg in "844 390 1.0" "844 390 2.0" "800 360 1.0" "932 430 1.0"; do
   out=$(TB_NOANIM=1 timeout 120 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/mm_phone.gd -- $cfg 2>&1)
   echo "$out" | grep -q "MM_PHONE OK" && echo "ok: mm_phone $cfg" || { echo "FAIL: mm_phone $cfg"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 done
+# a phone held sideways gets the desktop interface (density emulated with TB_DPR / TB_DPI), the army numbers follow the province borders
+out=$(TB_DPR=1.67 TB_DPI=420 TB_NOANIM=1 timeout 250 xvfb-run -a -s "-screen 0 1700x800x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/phone_desktop.gd 2>&1)
+echo "$out" | grep -q "PHONE_DESKTOP OK" && echo "ok: phone_desktop" || { echo "FAIL: phone_desktop"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 xvfb-run -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/army_rule.gd -- 1280 720 2>&1)
+echo "$out" | grep -q "ARMY_RULE OK" && echo "ok: army_rule" || { echo "FAIL: army_rule"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960
 # HUD / command-card layout: no overlap with End Turn, nothing off screen, 48 u hit areas (stage sizes in design units: desktop 2098x1180, phone 844x390 / 800x360, portrait 540x960; x text scales)
