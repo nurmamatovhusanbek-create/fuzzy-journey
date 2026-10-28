@@ -34,6 +34,9 @@ var _list_btn: Button
 var _shown_at := 0
 var _hint_override := ""
 var _agg_hint: Label
+var _hov: PanelContainer              # A4: the small card of the nation under the pointer (ruler, rank, army, technology, start rating)
+var _hov_v: VBoxContainer
+var _hov_n := -1
 
 func setup(game: TBGame, map_view: TBMapView, hot_count: int, picked: PackedInt32Array) -> TBPickFlow:
 	g = game; map = map_view; hot_n = hot_count; hot_list = picked
@@ -79,6 +82,12 @@ func setup(game: TBGame, map_view: TBMapView, hot_count: int, picked: PackedInt3
 	add_child(_card)
 	_card_v.minimum_size_changed.connect(_card_changed)
 	_card_go.minimum_size_changed.connect(_card_changed)
+	_hov = PanelContainer.new(); _hov.mouse_filter = Control.MOUSE_FILTER_IGNORE; _hov.visible = false; _hov.z_index = 5
+	var hb: StyleBox = TBBz.plate_box(10, true) if TBFrame.bezel else _aoc_box(12, 10)
+	if hb is TBBz.Plate: (hb as TBBz.Plate).content_margin_left = 14; (hb as TBBz.Plate).content_margin_right = 14; (hb as TBBz.Plate).content_margin_top = 11; (hb as TBBz.Plate).content_margin_bottom = 11
+	_hov.add_theme_stylebox_override("panel", hb)
+	_hov_v = K.vbox(5); _hov_v.mouse_filter = Control.MOUSE_FILTER_IGNORE; _hov.add_child(_hov_v)
+	add_child(_hov)
 	refresh_hint()
 	_fill_rail()
 	resized.connect(_layout)
@@ -109,7 +118,52 @@ func on_map_pick(p: int) -> void:
 		return
 	select_nation(g.owner[p], false)
 
+## the pointer is over province p (-1: off the map): light the nation's border in brass and show its small card beside the pointer; the selected nation has its own card
+func on_map_hover(p: int) -> void:
+	var n: int = g.owner[p] if (p >= 0 and g != null) else 0
+	if n <= 0 or n == sel or OS.has_feature("mobile"):
+		_hover_off(); return
+	if n != _hov_n:
+		_hov_n = n
+		_build_hover(n)
+		map.outline_nation(n)
+		_hov.reset_size()
+		TBFx.tween(_hov, {"modulate:a": 1.0}, 0.12, TBFx.LIGHT, {"modulate:a": 0.0})
+	_hov.visible = true
+	_place_hover()
+
+func _hover_off() -> void:
+	if _hov_n < 0 and not _hov.visible: return
+	_hov_n = -1; _hov.visible = false
+	if map != null and is_instance_valid(map): map.outline_nation(-1)
+
+func _place_hover() -> void:
+	var vs := _vp()
+	var sz: Vector2 = _hov.get_combined_minimum_size(); _hov.size = sz
+	var m: Vector2 = get_local_mouse_position()
+	var x: float = m.x + 28.0
+	if x + sz.x > vs.x - 12.0 or (_card.visible and x + sz.x > _card.position.x - 8.0 and m.y - 12.0 < _card.position.y + _card.size.y): x = m.x - sz.x - 28.0       # flip to the other side of the pointer
+	_hov.position = Vector2(clampf(x, 8.0, maxf(8.0, vs.x - sz.x - 8.0)), clampf(m.y - 24.0, 8.0, maxf(8.0, vs.y - sz.y - 8.0)))
+
+func _build_hover(n: int) -> void:
+	for c in _hov_v.get_children(): _hov_v.remove_child(c); c.queue_free()                  # detached at once: queued-free rows would still count towards the card's height
+	var cap := K.label(T.call("pick_hover").to_upper(), 10, K.DIM); _hov_v.add_child(cap)
+	var top := K.hbox(10); top.mouse_filter = Control.MOUSE_FILTER_IGNORE; _hov_v.add_child(top)
+	top.add_child(TBFlags.chip(g, n, 1.0))
+	var tv := K.vbox(1); tv.mouse_filter = Control.MOUSE_FILTER_IGNORE; top.add_child(tv)
+	var nl := K.title(g.dname(n), 17); nl.autowrap_mode = TextServer.AUTOWRAP_OFF; tv.add_child(nl)
+	if g.rules >= 1 and g.r_name[n] != "":
+		tv.add_child(K.label("%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], 13, K.DIM))
+	var rt := TBNationsScreen.start_rating(g, n, st)
+	var rows: Array = [
+		[T.call("lands"), "#%d · %d" % [int(st["rank_p"][n]), int(st["prov"][n])]],
+		[T.call("total_army"), K.fmt(float(st["army"][n]))],
+		[T.call("tech"), "%.1f" % g.tech_level[n]],
+		[T.call("start"), T.call("sr_" + String(rt["id"]))]]
+	_hov_v.add_child(TBPanel.facts_grid(rows, 1))
+
 func select_nation(n: int, fly: bool) -> void:
+	_hover_off()
 	sel = n
 	var cap: int = g.capital_of[n]
 	if cap < 0:
@@ -148,6 +202,7 @@ func _clear_map_highlight() -> void:
 
 func _exit_tree() -> void:
 	_clear_map_highlight()
+	if map != null and is_instance_valid(map): map.outline_nation(-1)
 
 func _unhandled_key_input(e: InputEvent) -> void:
 	if e is InputEventKey and e.pressed and not e.echo and (e as InputEventKey).keycode == KEY_R and not TBPanel.any_open(get_parent()):

@@ -882,6 +882,8 @@ func _on_peek(p: int) -> void:
 
 ## desktop-only hover card (dark plate): flag + place, owner and relation, army and terrain, and in an armed state the attack outcome
 func _on_hover(p: int) -> void:
+	if mode == "pick" and _pick_flow != null and is_instance_valid(_pick_flow):
+		_pick_flow.on_map_hover(p); return                                  # A4: the nation under the pointer is outlined and its small card shown
 	if mode != "game" or p < 0 or OS.has_feature("mobile") or g == null:
 		if tip != null: tip.visible = false
 		if flow != null: flow.hover(-1)

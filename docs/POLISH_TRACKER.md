@@ -85,9 +85,9 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | C1 | Army pill glides from the old province to the new one | done | fb13eb4 | Light + Full; Off: none | map_fx.gd |
 | C3 | Clash marker (swords + losses) on the map; the report follows 0.7 s later on Full | done | fb13eb4 | Light + Full; Off: none, report at once | map_fx.gd |
 | C6 | Selection pulse: a newly selected province flashes cream once (0.55 s, ease-out) on top of the existing 35 % brass wash, then settles; the map is still again afterwards | done (province flash only; no nation-outline breath, it would need a permanent redraw) | (this commit) | Light + Full; Off: no flash, picture identical to before | sel_pulse.gd, map_partial, perf_idle |
-| C5 | Ambient: drifting cloud shadows, sea glints, capital twinkle (Full + high map tier only, own Settings switch) | **mock made, awaiting the owner's go** (`docs/screens/c5/mock_ambient.png`, source `docs/ui_variants/src/b_ambient.html`) | | Off / Light / Reduce motion: a still map as today | perf_idle (new ambient mode) |
+| C5 | Ambient: drifting cloud shadows, sea glints, capital twinkle (Full + high map tier only, own Settings switch) | **SKIPPED by the owner ("we won't be needing that, I think"); mock kept** (`docs/screens/c5/mock_ambient.png`, source `docs/ui_variants/src/b_ambient.html`) | | Off / Light / Reduce motion: a still map as today | perf_idle (new ambient mode) |
 | A3 | Era picker on the title ring (variant A of the mock) | done, **awaiting owner's pick between ring / strip** | 52eaecd | Setting `era_ui` ring / classic (Settings -> Display); Off: ring jumps | era_ring.gd |
-| A4 | Nation pick with Bezel plates and hover card | queued (mock first) | | | |
+| A4 | Nation pick: hover card (flag, name, ruler, size rank, army, technology, start rating) beside the pointer and the hovered nation outlined in brass; the pick screen's plates were already in the Bezel look | done (hover part; the rail and confirm card are unchanged) | (this commit) | Light + Full: card fades in 0.12 s; Off: appears at once; touch devices: none (no hover) | pick_hover.gd, era_ring |
 | A5b | Begin-game dive: Play dissolves the pick screen (0.25 s), the camera flies to the capital (at least 1.3 s on Full), the HUD fades in as it arrives, the tutorial / briefing opens when the camera has arrived | done | (this commit) | Light: pick dissolve, the old fly, HUD fade, delayed briefing; Full: longer flight; Off / Reduce motion: all at once as before | begin_dive.gd |
 | D1 | Gauge count-up, rising delta, pulse | **already existed** (`TBHudParts.Chip.set_num`) | | respects Reduce motion | |
 | D2-D5 | other HUD micro-interactions | **checked, already in the Bezel port**: lens pointer glides (`TBHudParts` tuner `_px` easing), gauges count up, rail / medallion hover and press states follow the demo (parity-tested); the command card is a notched card (no ring to fan out) | | | |
@@ -236,6 +236,12 @@ After (`docs/screens/flags/after.png`, big flag + the 192x128 game PNG + the 48x
 * **Behaviour**: `main._music_tick` (once a second): title / pick screen = peace; a running game = peace, or war while the human is at war; game over = silence. Moods crossfade over 2.5 s on two players, the position carries over. The sea bed plays in a game only. Loud cues (`TBAudio.DUCK`: turn, event, war, win, stamp, clash, gain, loss, defeat) duck the music by 7 dB for their length and let it back up over 0.9 s. Everything is on the Music bus (Settings -> Sound has its slider), stops with Sound off, and comes back with it.
 * **Not done**: a victory / defeat piece (the finale uses its cue over silence), era-specific variations (the owner has not chosen any), a title-only track (the title uses peace). **Test**: `tests/music.gd`.
 
+### A4 · Nation pick: hover card and lit nation
+* **Found**: the pick screen already used the notched plates, but nothing happened on hover: you had to tap to see anything about a nation (mock `newgame_mocks/a4.png`).
+* **Changed** (`pick_flow.gd` `on_map_hover`, `_build_hover`, `_place_hover`; `main.gd` `_on_hover` routes pick-mode hovers to it; i18n `pick_hover` in en / ru / uz): the nation under the pointer gets the game's brass outline (`map.outline_nation`) and a small plate beside the pointer with its flag, name, ruler, size rank, army, technology and start rating. It flips to the other side of the pointer rather than cover the confirm card, never leaves the screen, and goes when the pointer leaves the map or that nation is the selected one. Not shown on touch devices.
+* **Picture**: `a4/pick_hover.png` (France selected, Austria hovered). **Test**: `tests/pick_hover.gd` (in `tools/test_ui.sh`).
+* **Not done**: restyling the rail chips (they keep today's look).
+
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
 
@@ -256,9 +262,9 @@ Acceptance for every step: (a) Effects Off looks and behaves as before the step;
 | 11 | C1 | armies travel | `map_labels.gd` | march, labels_anim, label_shots | pixel-identical with Off |
 | 12 | C3 | clash marker | `map_labels.gd` | label_shots | |
 | 13 | C6 | (done) | | | |
-| 14 | C5 | ambient (Full only, only while the map already redraws) | shader tier | perf_idle (idle frames must stay 0), shader_compare | mock + bench first |
+| 14 | C5 | SKIPPED by the owner (mock kept) | | | |
 | 15 | A3 | era timeline picker | `newgame.gd`, `menu_parts.gd` | ui_modals (newgame), ui_overflow | mock first (horizontal strip of 13 era cards) |
-| 16 | A4 | nation pick plates + hover card | `pick_flow.gd`, `preview_card.gd` | ui_monkey, ui_overflow | mock first |
+| 16 | A4 | (done: hover card) | | | |
 | 17 | A5b | (done) | | | |
 | 18 | D | HUD micro-interactions (D1-D5) | `hud*.gd`, `bz_parts.gd` | ui_hud_layout x8, parity | never the End Turn dial |
 | 19 | E | (score done: see section 4). Left: ~20 more cues, era variations, a finale piece | `audio.gd` | audio, music | |
