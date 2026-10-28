@@ -22,8 +22,11 @@ const PACT_CMDS := ["ally", "nap", "marry", "trade", "ultimatum", "breakPact"]
 const MAX_ID_LEN := 24
 
 ## the aimed-at nation of a command is wrong: oneself, a dead nation (except to cancel a deal or make peace), the rebels in a pact. TBCan uses the same rule, so its preview and apply() agree.
+## Rules 0 is the legacy mode kept bit-identical with the JavaScript reference (tools/oracle.sh); its AI pacts with the rebel pseudo-nation, so the dead / rebel clauses start at rules 1.
 static func bad_target(g: TBGame, cmd: String, n: int, t: int) -> bool:
-	return t == n or (g.alive[t] == 0 and cmd != "cancelTrade" and cmd != "peace") or (t == g.rebel and cmd in PACT_CMDS)
+	if t == n: return true
+	if g.rules < 1: return false
+	return (g.alive[t] == 0 and cmd != "cancelTrade" and cmd != "peace") or (t == g.rebel and cmd in PACT_CMDS)
 
 ## one field value in range, or null
 static func _field(g: TBGame, kind: String, v: Variant) -> Variant:
