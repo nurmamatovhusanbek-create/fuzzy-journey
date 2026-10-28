@@ -66,7 +66,7 @@ func _init() -> void:
 	check(TBSave.from_dict(w, e2) == null, "save with a wrongly sized array refused")
 	var e3 := dd.duplicate(true); var ow: PackedInt32Array = e3["owner"]; ow[0] = 99999; e3["owner"] = ow
 	check(TBSave.from_dict(w, e3) == null, "save with an owner that does not exist refused")
-	var e4 := dd.duplicate(true); var gold: PackedFloat64Array = e4["gold"]; gold[me] = NAN; gold[other] = 1.0e30; e4["gold"] = gold
+	var e4 := dd.duplicate(true); var gold: PackedFloat32Array = e4["gold"]; gold[me] = NAN; gold[other] = 1.0e30; e4["gold"] = gold
 	var g4 := TBSave.from_dict(w, e4)
 	check(g4 != null and is_finite(g4.gold[me]) and g4.gold[other] <= 1.0e9, "non-finite and absurd money repaired on load")
 	var e5 := dd.duplicate(true); e5["turn"] = "five"
