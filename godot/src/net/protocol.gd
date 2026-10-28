@@ -7,11 +7,18 @@ const NAT_B := ["era", "regime", "alive", "tribute", "cap_lost", "human", "perso
 const NAT_I := ["capital_of", "overlord", "last_war_turn", "war_cnt", "color", "r_name", "r_num", "r_born", "r_since", "r_adm", "r_dip", "r_mil", "r_trait"]
 const MATRICES := ["war_score", "war_turns", "truce", "grudge", "dec_until", "trade", "realm_done"]
 
+const MAX_UNPACK := 96 * 1024 * 1024          # a snapshot of the largest map is a few MB; this only stops a decompression bomb
+const BAD := -1                                 # apply_delta returns [BAD] when it applied nothing
+
 static func pack(v: Variant) -> PackedByteArray:
 	return var_to_bytes(v).compress(FileAccess.COMPRESSION_GZIP)
 
+## the decoded value, or null when the bytes are not a valid, bounded GZIP stream (objects are never decoded)
 static func unpack(b: PackedByteArray) -> Variant:
-	return bytes_to_var(b.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP))
+	if b.is_empty() or b.size() > MAX_UNPACK: return null
+	var raw := b.decompress_dynamic(MAX_UNPACK, FileAccess.COMPRESSION_GZIP)
+	if raw.is_empty(): return null
+	return bytes_to_var(raw)
 
 static func snapshot(g: TBGame) -> PackedByteArray:
 	return pack(TBSave.to_dict(g))
@@ -62,10 +69,44 @@ static func make_delta(g: TBGame, dirty: PackedInt32Array, log_from: int, full_m
 	if g.log.size() > log_from: d["log"] = g.log.slice(log_from)
 	return pack(d)
 
-## returns the dirty province list (for repaint)
+## a delta is applied only when every part has the right shape and every index is in range; otherwise nothing changes
+static func _delta_ok(g: TBGame, d: Variant) -> bool:
+	if not (d is Dictionary): return false
+	for k in ["turn", "year", "mi", "over", "winner", "prov", "n_budget", "pending", "rel", "n_trade_bonus", "n_combat_bonus", "n_combat_turns"]:
+		if not d.has(k): return false
+	for k in ["turn", "year", "mi", "winner"]:
+		if not (d[k] is int): return false
+	if not (d["over"] is bool) or not (d["pending"] is Array): return false
+	if not (d["prov"] is PackedInt32Array) or d["prov"].size() % 13 != 0: return false
+	var pv: PackedInt32Array = d["prov"]
+	for i in range(0, pv.size(), 13):
+		if pv[i] < 0 or pv[i] >= g.P: return false
+	for f in NAT_F + NAT_B + NAT_I:
+		var cur = g.get(f)
+		var v = d.get("n_" + f)
+		if typeof(v) != typeof(cur) or v.size() != cur.size(): return false
+	for f in ["n_budget", "n_trade_bonus", "n_combat_bonus", "n_combat_turns"]:
+		var cur = g.get(f.trim_prefix("n_") if f != "n_budget" else "budget")
+		if typeof(d[f]) != typeof(cur) or d[f].size() != cur.size(): return false
+	if not (d["rel"] is PackedInt32Array) or d["rel"].size() % 3 != 0: return false
+	var rp: PackedInt32Array = d["rel"]
+	for i in range(0, rp.size(), 3):
+		if rp[i] < 0 or rp[i] >= g.N1 or rp[i + 1] < 0 or rp[i + 1] >= g.N1: return false
+	for m in MATRICES:
+		if not d.has("m_" + m): continue
+		var diff = d["m_" + m]
+		var arr = g.get(m)
+		if not (diff is PackedInt32Array) or diff.size() % 2 != 0: return false
+		for j in range(0, diff.size(), 2):
+			if diff[j] < 0 or diff[j] >= arr.size(): return false
+	if d.has("log") and not (d["log"] is Array): return false
+	return true
+
+## returns the dirty province list (for repaint), or [BAD] when the update was malformed and nothing was applied
 static func apply_delta(g: TBGame, b: PackedByteArray) -> PackedInt32Array:
-	var d: Dictionary = unpack(b)
-	g.turn = d["turn"]; g.year = d["year"]; g.month_idx = d["mi"]; g.over = d["over"]; g.winner = d["winner"]; g.victory_kind = d.get("vk", "")
+	var d = unpack(b)
+	if not _delta_ok(g, d): return PackedInt32Array([BAD])
+	g.turn = d["turn"]; g.year = d["year"]; g.month_idx = d["mi"]; g.over = d["over"]; g.winner = d["winner"]; g.victory_kind = String(d.get("vk", ""))
 	var dirty := PackedInt32Array()
 	var pv: PackedInt32Array = d["prov"]
 	var i := 0

@@ -195,7 +195,7 @@ func _nations_window() -> TBPanel.Handle:
 func _load_cfg() -> void:
 	var f := ConfigFile.new()
 	if f.load("user://settings.cfg") == OK:
-		for k in cfg: cfg[k] = f.get_value("tb", k, cfg[k])
+		for k in cfg: cfg[k] = TBCfgGuard.accept(k, f.get_value("tb", k, cfg[k]), cfg[k])
 		if not f.has_section_key("tb", "fx"): cfg["fx"] = TBFx.default_for(_guess_quality() if String(cfg["quality"]) == "auto" else String(cfg["quality"]))       # an older settings file: pick by the machine
 		if bool(f.get_value("tb", "contrast", false)) and cfg["hc"] == "off": cfg["hc"] = "light"          # the old boolean became hc off / light / dark
 		if not f.has_section_key("tb", "reduce_motion"): cfg["reduce_motion"] = K.os_prefers_reduced_motion()

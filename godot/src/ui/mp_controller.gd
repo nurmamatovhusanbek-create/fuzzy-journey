@@ -26,7 +26,7 @@ func setup(app: Control) -> void:
 	main = app
 	var f := ConfigFile.new()
 	if f.load("user://settings.cfg") == OK:
-		url = f.get_value("mp", "url", url); player_name = f.get_value("mp", "name", player_name)
+		url = String(TBCfgGuard.accept("mp_url", f.get_value("mp", "url", url), url)); player_name = TBNet._clean(String(TBCfgGuard.accept("mp_name", f.get_value("mp", "name", player_name), player_name)))
 		turn_secs = int(f.get_value("mp", "timer", 0)) if int(f.get_value("mp", "timer", 0)) in TIMER_CHOICES else 0
 
 func _save() -> void:
