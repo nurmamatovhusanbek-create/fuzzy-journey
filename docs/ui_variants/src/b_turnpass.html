@@ -1,0 +1,70 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terra Bellum — turn passing mock-up (C4)</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:hidden;height:auto;background:#0A0D12}
+body{font-feature-settings:'lnum' 1;color:#e8dcc0;font-family:Alegreya,serif}
+#sheet{width:1960px;padding:28px 30px 34px}
+h1{font:700 26px Cinzel;letter-spacing:.14em;text-transform:uppercase;margin:0 0 4px;color:#e5c77a}
+.sub{font:italic 19px Alegreya;color:#a99a78;margin:0 0 22px;max-width:1500px}
+.grid{display:grid;grid-template-columns:repeat(3,620px);gap:26px 34px}
+.cell{display:flex;flex-direction:column;gap:8px}
+.fr{position:relative;width:620px;height:349px;overflow:hidden;box-shadow:0 0 0 1px #33291a,0 12px 28px rgba(0,0,0,.55)}
+.st{position:absolute;left:0;top:0;width:1920px;height:1080px;transform:scale(.3229);transform-origin:0 0;background:#0A0D12 url(mock_assets/game_bg.jpg) 0 0/1920px 1080px no-repeat}
+.cap{font:600 13px Cinzel;letter-spacing:.16em;color:#c9a24b;text-transform:uppercase}
+.txt{font:17px/1.3 Alegreya;color:#cfc2a3;min-height:66px}
+.txt b{color:#e5c77a;font-weight:700}
+/* the terminator: a night band that sweeps west -> east, soft trailing edge, a thin brass line on the dusk side */
+.night{position:absolute;top:-40px;height:1160px;width:640px;background:linear-gradient(90deg,rgba(2,4,10,0) 0,rgba(2,4,10,.5) 50%,rgba(2,4,10,.78) 100%);border-radius:0 50% 50% 0 / 0 50% 50% 0;mix-blend-mode:normal}
+.dusk{position:absolute;top:-40px;height:1160px;width:3px;background:linear-gradient(180deg,transparent,rgba(229,199,122,.55) 18%,rgba(229,199,122,.7) 50%,rgba(229,199,122,.55) 82%,transparent);border-radius:50%/50%;filter:blur(.4px)}
+/* patches over the HUD of the screenshot */
+.chipp{position:absolute;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 40% 34%,#241d14,#0c0a07);box-shadow:0 0 0 2px #c9a24b inset,0 0 0 3px #0c0a07 inset;display:grid;place-items:center;font:700 20px Cinzel;color:#f3e7c6}
+.chipp svg{position:absolute;inset:0}
+.dl{position:absolute;font:700 17px Alegreya;color:#9ddc9a;letter-spacing:.04em;white-space:nowrap;text-shadow:0 0 8px rgba(0,0,0,.9)}
+.datep{position:absolute;left:1818px;top:30px;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 40% 34%,#241d14,#0c0a07);box-shadow:0 0 0 2px #c9a24b inset;overflow:hidden}
+.datep .y{position:absolute;left:0;right:0;text-align:center;font:700 20px Cinzel;color:#f3e7c6}
+.datep .t{position:absolute;left:0;right:0;text-align:center;font:600 10px Cinzel;letter-spacing:.18em;color:#c9a24b;top:46px}
+.lock{position:absolute;left:1780px;top:900px;width:130px;height:150px;border:2px dashed rgba(224,121,90,.0)}
+.note{position:absolute;right:30px;top:896px;font:italic 20px Alegreya;color:#e5c77a;background:rgba(10,8,5,.72);padding:6px 14px;border-radius:6px;white-space:nowrap}
+table{border-collapse:collapse;margin-top:26px;font:17px Alegreya;width:1900px}
+th{font:600 12px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:#c9a24b;text-align:left;padding:8px 12px;border-bottom:1px solid #3a2f1d}
+td{padding:9px 12px;border-bottom:1px solid #261f14;color:#cfc2a3;vertical-align:top}
+td:first-child{color:#e5c77a;font-weight:700;white-space:nowrap}
+</style></head><body><div id="sheet">
+<h1>C4 · Turn passing</h1>
+<p class="sub">Today End Turn changes the date and the numbers in one frame. Proposal: a 1.3 s sweep after the click — a night terminator crosses the map west to east, the date medallion flips its year, and the four gauges count to their new values with the change floating up. <b style="color:#e5c77a">The End Turn dial itself is not touched</b> (it keeps its current look and press behaviour).</p>
+<div class="grid" id="g"></div>
+<table>
+<tr><th>Effects</th><th>What runs</th><th>Cost / rule</th></tr>
+<tr><td>Off · Reduce motion</td><td>Exactly today: everything changes at once; the AI moves are not delayed.</td><td>No new draws.</td></tr>
+<tr><td>Light</td><td>Date flip (0.35 s) and gauge count-up with the floating change (0.6 s). No sweep.</td><td>Two small HUD controls redraw for 0.6 s; the map stays still.</td></tr>
+<tr><td>Full</td><td>Light + the terminator sweep (1.0 s, a gradient overlay and a thin brass line; never a map redraw).</td><td>One full-screen gradient quad for 1 s, only on a high map tier; the turn itself does not wait for it, any click or key ends it.</td></tr>
+<tr><td>Rules</td><td>Game state is final the moment the turn is computed; the animation only reveals it. Battle clash markers (C3) and the report toast keep their own timing (the report follows 0.7 s after the clash as built).</td><td>Idle frames stay 0 once it ends (perf_idle).</td></tr>
+</table></div>
+<script>
+const F=[
+ {t:'0.00 s · click',x:null,dy:0,tre:100,delta:0,yr:'1804',turn:'TURN 1',txt:'<b>End Turn pressed.</b> The dial presses as today. Nothing else has moved yet.'},
+ {t:'0.30 s',x:420,dy:.55,tre:267,delta:1,yr:'1804',turn:'TURN 1',txt:'<b>Dusk enters from the west.</b> The year starts rolling up; Treasury counts and its change <b>+690</b> floats off the gauge.'},
+ {t:'0.65 s',x:1060,dy:1,tre:481,delta:1,yr:'1805',turn:'TURN 2',txt:'<b>Terminator mid-map.</b> Land behind the line is back at full light. The medallion shows the new year, TURN 2.'},
+ {t:'1.00 s',x:1760,dy:1,tre:700,delta:.5,yr:'1805',turn:'TURN 2',txt:'<b>Line leaves the east edge.</b> Gauges are within a few units of the final value.'},
+ {t:'1.30 s · done',x:null,dy:1,tre:790,delta:0,yr:'1805',turn:'TURN 2',txt:'<b>Settled.</b> Final numbers, deltas below the gauges updated; the map is still (zero frames drawn). The turn report toast follows.'},
+ {t:'Effects Light',x:null,dy:1,tre:481,delta:1,yr:'1805',turn:'TURN 2',light:true,txt:'<b>Light.</b> Same year flip and count-up, no terminator.'}
+];
+const g=document.getElementById('g');
+for(const f of F){
+  let h='';
+  if(f.x!=null){h+=`<div class="night" style="left:${f.x-640}px"></div><div class="dusk" style="left:${f.x-1}px"></div>`}
+  // date medallion: old year leaves upward, new year rises from below
+  const old='1804',nw='1805';
+  const oy=f.yr==='1804'?(f.dy>0?-34*f.dy:0):-40, ny=f.yr==='1804'?(f.dy>0?40-40*f.dy:44):0;
+  h+=`<div class="datep"><div class="y" style="top:${f.yr==='1804'?20-34*f.dy:-30}px;opacity:${f.yr==='1804'?1-f.dy*1.1:0}">${old}</div><div class="y" style="top:${f.yr==='1804'?(f.dy>0?20+30*(1-f.dy):60):20}px;opacity:${f.yr==='1804'?(f.dy>0?f.dy:0):1}">${nw}</div><div class="t">${f.turn}</div></div>`;
+  // treasury chip
+  const pct=Math.min(1,f.tre/790);
+  h+=`<div class="chipp" style="left:318px;top:28px"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="30" fill="none" stroke="#c9a24b" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(188*pct*.75).toFixed(0)} 400" transform="rotate(135 38 38)"/></svg>${f.tre}</div>`;
+  if(f.delta>0) h+=`<div class="dl" style="left:332px;top:${f.delta===1?92-f.dy*16:100}px;opacity:${f.delta}">+690</div>`;
+  else h+=`<div class="dl" style="left:332px;top:122px;color:#7fd0c0;font-size:13px;letter-spacing:.1em">${f.t.includes('done')?'+702':'+690'}</div>`;
+  if(f.t.includes('click')) h+=`<div class="note">dial pressed — unchanged</div>`;
+  g.insertAdjacentHTML('beforeend',`<div class="cell"><div class="fr"><div class="st">${h}</div></div><div class="cap">${f.t}</div><div class="txt">${f.txt}</div></div>`);
+}
+</script></body></html>
