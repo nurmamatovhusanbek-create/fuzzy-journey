@@ -21,6 +21,10 @@ const FLAGS := ["_force", "_ult"]                       # engine-internal switch
 const PACT_CMDS := ["ally", "nap", "marry", "trade", "ultimatum", "breakPact"]
 const MAX_ID_LEN := 24
 
+## the aimed-at nation of a command is wrong: oneself, a dead nation (except to cancel a deal or make peace), the rebels in a pact. TBCan uses the same rule, so its preview and apply() agree.
+static func bad_target(g: TBGame, cmd: String, n: int, t: int) -> bool:
+	return t == n or (g.alive[t] == 0 and cmd != "cancelTrade" and cmd != "peace") or (t == g.rebel and cmd in PACT_CMDS)
+
 ## one field value in range, or null
 static func _field(g: TBGame, kind: String, v: Variant) -> Variant:
 	if kind == "s":
@@ -77,7 +81,7 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = int(c.get("n", 0))
 	if c.has("t"):                                                              # whoever the command is aimed at: another living nation, never the actor, never the rebels in a pact
 		var t: int = c["t"]
-		if t == n or (g.alive[t] == 0 and cmd != "cancelTrade" and cmd != "peace") or (t == g.rebel and cmd in PACT_CMDS): return {"ok": false, "err": "target"}
+		if bad_target(g, cmd, n, t): return {"ok": false, "err": "target"}
 	match cmd:
 		"move": return _c_move(g, c)
 		"recruit": return _c_recruit(g, c)

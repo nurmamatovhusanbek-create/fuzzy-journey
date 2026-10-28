@@ -22,6 +22,8 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 	var out := {"ok": true, "reason": "", "gold": 0, "moves": 0, "men": 0, "dp": 0, "short": {}, "gain": 0, "kind": "", "infamy": 0.0}
 	var cmd: String = c.get("cmd", "")
 	if n <= 0 or n >= g.N1 or g.alive[n] == 0: return _fail(out, "dead")
+	var tt: int = int(c.get("t", -1))
+	if tt >= 1 and tt < g.N1 and TBCommands.SCHEMA.has(cmd) and (TBCommands.SCHEMA[cmd] as Dictionary).has("t") and TBCommands.bad_target(g, cmd, n, tt): return _fail(out, "target")      # the same rule as apply()
 	match cmd:
 		"move": return _move(g, n, c, out)
 		"recruit": return _recruit(g, n, c, out)

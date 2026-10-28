@@ -11,7 +11,7 @@ func _init() -> void:
 	root.add_child(main)
 	await process_frame
 	main.cfg["lang"] = "en"; TBI18n.load_lang("en"); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true; main.cfg["quality"] = "medium"; main.cfg["fx"] = "off"
-	main._apply_quality(); main._update_ui_scale()
+	main.cfg["phone_ui"] = "desktop"; main._apply_quality(); main._update_ui_scale()       # explicit: an earlier test may have saved "compact" into the shared settings file
 	main._begin_pick("napoleonic", "normal")
 	main._start_game(main.g.nat_code.find("france"))
 	main.g.pending.clear(); main._clear_overlay(); main._select(-1)
