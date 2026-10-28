@@ -1,5 +1,5 @@
 extends SceneTree
-## The minimap on a phone held sideways: it is shown, inside the screen, and clear of the rail buttons, the lens tuner, End Turn, the zoom buttons, the crest / gauges and the inspector area.
+## The minimap on a phone held sideways in the COMPACT layout (cfg phone_ui = compact; the default desktop layout is tested by phone_desktop.gd): it is shown, inside the screen, and clear of the rail buttons, the lens tuner, End Turn, the zoom buttons, the crest / gauges and the inspector area.
 ## Usage: -s tests/mm_phone.gd -- <w> <h> [text_scale]     (units = 1 px per logical unit; TB_NOANIM=1)
 var fails := 0
 func _check(cond: bool, what: String) -> void:
@@ -15,6 +15,7 @@ func _init() -> void:
 	root.size = Vector2i(w, h)
 	await process_frame; await process_frame
 	main.cfg["lang"] = "en"; TBI18n.load_lang("en"); main.cfg["tutorial"] = true; main.cfg["text_scale"] = ts
+	main.cfg["phone_ui"] = "compact"; main._update_ui_scale()                                  # this test is about the compact 390 unit phone layout (a window this small counts as a phone)
 	main._apply_a11y()
 	main._begin_pick("napoleonic", "normal")
 	main._start_game(main.g.nat_code.find("france"))
