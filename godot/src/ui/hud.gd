@@ -807,6 +807,8 @@ func _tip_show(anchor: Control, pair: Array) -> void:
 	_tip.z_index = 70
 	add_child(_tip)
 	_place_tip(_tip, anchor)
+	var ty: float = _tip.position.y
+	TBFx.tween(_tip, {"modulate:a": 1.0, "position:y": ty}, 0.12, TBFx.LIGHT, {"modulate:a": 0.0, "position:y": ty + 5.0})       # B8: the tooltip fades in and rises 5 px (Off: appears at once)
 
 ## showTip(): centred under the anchor 10 units below it, above it when it does not fit, kept 6 from the stage edges
 func _place_tip(c: Control, anchor: Control) -> void:

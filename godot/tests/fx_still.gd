@@ -22,7 +22,7 @@ func _init() -> void:
 	for fx in ["off", "light", "full"]:
 		main.cfg["fx"] = fx; main._apply_a11y()
 		main.show_menu(); main._spin = false
-		for i in 30: await process_frame
+		for i in 90: await process_frame      # the first menu still settles (textures, fonts) for a while on a slow machine
 		var fd0 := Engine.get_frames_drawn()
 		for i in 40: await process_frame
 		var drawn: int = Engine.get_frames_drawn() - fd0

@@ -79,7 +79,7 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | B4 | Battle report (armies face to face, bars drain, result ribbon) | done | 99c1895 | Off: bars complete at once | battle_ui.gd |
 | B5 | Treaty signed | **DROP as a dialog** (see section 4) | | | |
 | B6 | Turn summary sheet | **deferred: needs the owner's answer (section 6 Q3)** | | | |
-| B8 | Tooltips / toasts consistency | queued | | | |
+| B8 | Tooltips / toasts consistency: toast enters like a notice (slide 24 px + fade, 0.3 s), a replaced or expired toast fades out where it stood (0.22 s) instead of popping, HUD tooltip fades in and rises 5 px (0.12 s) | done | (this commit) | Light + Full; Off: exactly as before (toast fades 0.3 s, row reused, tip appears at once) | toast_fx.gd |
 | C2 | Conquest dissolve on the map (province colour crossfades 0.5 s, staggered) | done | fb13eb4 | Full + medium/high tier only; Light / Off: instant | conquest_fade.gd |
 | C4 | Turn passing: terminator sweep, date flip, gauge count-up | queued (mock first) | | | |
 | C1 | Army pill glides from the old province to the new one | done | fb13eb4 | Light + Full; Off: none | map_fx.gd |
@@ -214,6 +214,13 @@ After (`docs/screens/flags/after.png`, big flag + the 192x128 game PNG + the 48x
 * No game code changed (the PNG paths and `TBFlags` are the same); `ui_lint_tokens` passes, `ui_flags` screens checked (medallions, nation list).
 * To change a flag: edit its row in `special.py`, or add the id to `FORCE` / `ALIAS`; re-run `author.py <id>` and the rasteriser for the era that shows it.
 
+### B8 · Tooltips and toasts
+* **Found**: notices slid in (0.3 s, 24 px) but the toast beside them only faded; a toast was destroyed in one frame when it expired or was replaced; the HUD tooltip appeared with no motion while the map tip faded in 0.1 s.
+* **Changed**: `TBAlertTicker.show_info` / `hide_info` (new `_ghost_info`): on Light and Full a toast arrives like a notice (slide + fade) and leaves by fading 0.22 s and moving 12 px right; a second toast does not reuse the row but crossfades with it. `TBHud._tip_show`: fade 0 -> 1 and rise 5 px in 0.12 s through `TBFx.tween`. Hover delay (0.35 s) and the edge-aware placement were already consistent and are unchanged; the map tip follows the cursor, so it stays instant.
+* **Not done on purpose**: a stack of several toasts (a toast is one line that is replaced; the notices are the stack).
+* **Picture**: `b8/toast_slide_in.png` (the toast part-way in). **Test**: `tests/toast_fx.gd` (in `tools/test_ui.sh`).
+* `tests/fx_still.gd` was flaky in this sandbox (the first menu was still settling after 30 frames); it now waits 90.
+
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
 
@@ -228,7 +235,7 @@ Acceptance for every step: (a) Effects Off looks and behaves as before the step;
 | 5 | B4 | battle report | `modals.gd`/battle report code | march, ui_modals | numbers already in the report dict |
 | 6 | B5 | treaty signed | treaty accept flow | diplo, ui_modals | refusals stay a quiet notice |
 | 7 | B6 | turn summary sheet (non-blocking) | `hud.gd`, `alert_ticker.gd` | ui_hud_layout x8, ui_monkey | setting to disable; only when something happened |
-| 8 | B8 | tooltip and toast consistency | `map_tip.gd`, `hud.gd` | ui_hud_layout | |
+| 8 | B8 | (done) | | | |
 | 9 | C2 | conquest sweep | `map_view.gd`, shader | map_partial, perf_idle, bake, label_shots | **mock first** (before/after pictures + short video) |
 | 10 | C4 | turn passing terminator, date flip, gauge count-up | `hud.gd`, `map_view.gd` | perf_idle, ui_hud_layout | End Turn dial untouched; mock first |
 | 11 | C1 | armies travel | `map_labels.gd` | march, labels_anim, label_shots | pixel-identical with Off |

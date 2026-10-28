@@ -404,6 +404,8 @@ func pulse(cls: String) -> void:
 
 # ---------------------------------------------------------------- the info row (toast / turn report)
 func show_info(text: String, kind: String, seconds: float) -> void:
+	var fx: bool = TBFx.on(TBFx.LIGHT)
+	if info != null and fx: _ghost_info()                        # the old toast leaves while the new one slides in (B8)
 	if info == null:
 		info = InfoRow.new()
 		info.compact = compact
@@ -417,7 +419,13 @@ func show_info(text: String, kind: String, seconds: float) -> void:
 	_info_gen += 1
 	var gen: int = _info_gen
 	info.ap = 1.0
-	if not P.reduced_motion():
+	if fx:                                                       # the same entrance as a notice: .3 s from 24 to the right, fading in
+		info.ap = 0.0; info.modulate.a = 0.0
+		var row: InfoRow = info
+		var tw := row.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT).set_parallel(true)
+		tw.tween_method(func(v: float): row.ap = v; _layout(), 0.0, 1.0, 0.3)
+		tw.tween_property(row, "modulate:a", 1.0, 0.2)
+	elif not P.reduced_motion():
 		info.modulate.a = 0.0
 		create_tween().tween_property(info, "modulate:a", 1.0, 0.3)
 	else:
@@ -429,8 +437,20 @@ func show_info(text: String, kind: String, seconds: float) -> void:
 func hide_info() -> void:
 	if info == null: return
 	_info_gen += 1
-	info.queue_free(); info = null
+	if TBFx.on(TBFx.LIGHT): _ghost_info()
+	else: info.queue_free()
+	info = null
 	_layout()
+
+## the toast row stops belonging to the stack and fades out where it stands (12 px to the right, 0.22 s)
+func _ghost_info() -> void:
+	var row: InfoRow = info
+	info = null
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.focus_mode = Control.FOCUS_NONE
+	var tw := row.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN).set_parallel(true)
+	tw.tween_property(row, "modulate:a", 0.0, 0.22)
+	tw.tween_property(row, "position:x", row.position.x + 12.0, 0.22)
+	tw.chain().tween_callback(row.queue_free)
 
 # ---------------------------------------------------------------- layout
 ## stack bounds in ticker-local coordinates (top-left origin); notices are right-aligned in the row width (the demo: flex-end)
@@ -482,7 +502,7 @@ func _layout() -> void:
 		var ih: float = info.measure(row_w)
 		var iw: float = info.natural_w()
 		if not order.is_empty(): y += (12.0 if compact else 20.0) - gap                    # the demo's toast stack starts 114 below the notices' top (two notices are 94 high)
-		info.position = Vector2(row_w - iw, y); info.size = Vector2(iw, ih)
+		info.position = Vector2(row_w - iw + 24.0 * (1.0 - info.ap), y); info.size = Vector2(iw, ih)
 		y += ih + gap
 	var h_total: float = maxf(0.0, y - gap)
 	custom_minimum_size = Vector2(row_w, h_total)

@@ -28,7 +28,7 @@ out=$(TB_NOANIM=1 timeout 500 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --
 out=$(TB_NOANIM= timeout 500 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/bake.gd -- 1280 720 2>&1); echo "$out" | grep -q "^BAKE OK" && echo "ok: tests/bake.gd" || { echo "FAIL: tests/bake.gd"; echo "$out" | grep -E "baked|hover|SCRIPT" | head -6; fail=1; }
 out=$(TB_NOANIM= timeout 250 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/fx_still.gd 2>&1); echo "$out" | grep -q "FX_STILL OK" && echo "ok: tests/fx_still.gd" || { echo "FAIL: tests/fx_still.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 # B1 / B3 / B2 / B7: dialog staging (veil, rise, click completes, fade on close, Off instant) and the war declaration (seal, the War moment, skip, Off = none); run with a fixed frame rate
-for t in staging:STAGING war_moment:WAR_MOMENT event_shots:EVENT_SHOTS finale:FINALE battle_ui:BATTLE_UI conquest_fade:CONQUEST_FADE map_fx:MAP_FX era_ring:ERA_RING; do
+for t in staging:STAGING war_moment:WAR_MOMENT event_shots:EVENT_SHOTS finale:FINALE battle_ui:BATTLE_UI conquest_fade:CONQUEST_FADE map_fx:MAP_FX era_ring:ERA_RING toast_fx:TOAST_FX; do
   out=$(TB_NOANIM= timeout 250 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/${t%%:*}.gd -- /tmp 2>&1); mark=${t##*:}
   echo "$out" | grep -q "$mark OK" && echo "ok: tests/${t%%:*}.gd" || { echo "FAIL: tests/${t%%:*}.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 done
