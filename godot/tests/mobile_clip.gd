@@ -1,8 +1,8 @@
 extends SceneTree
 ## A short phone playthrough (landscape by default: the game is played sideways; "portrait" is the fallback layout) for the movie writer (tools/mobile_clip.sh): title -> New game -> nation pick -> Play (the begin-game dive) -> briefing -> select a province -> End turn.
 ## Taps are shown as small rings so the clip reads as touch. Usage: -s tests/mobile_clip.gd -- <out dir> [fx: off|light|full] [land|portrait]
-var W := 1280
-var H := 592                                                                 # a 390 unit stage: 844 x 390 logical, a phone held sideways
+var W := 1600
+var H := 720                                                                 # a phone held sideways (2.2:1); the script run sets TB_DPR so it counts as one: the desktop interface on a 1000 unit stage
 var main: Control
 var out := ""
 
