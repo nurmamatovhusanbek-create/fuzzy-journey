@@ -34,6 +34,11 @@ for t in staging:STAGING war_moment:WAR_MOMENT event_shots:EVENT_SHOTS finale:FI
   echo "$out" | grep -q "$mark OK" && echo "ok: tests/${t%%:*}.gd" || { echo "FAIL: tests/${t%%:*}.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 done
 mkdir -p /tmp/tb_cc; run tests/mm_globe.gd -- /tmp/tb_cc
+# the minimap on a phone held sideways: shown, on screen, clear of the rail / tuner / End Turn / zoom / inspector, a tap turns the view
+for cfg in "844 390 1.0" "844 390 2.0" "800 360 1.0" "932 430 1.0"; do
+  out=$(TB_NOANIM=1 timeout 120 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/mm_phone.gd -- $cfg 2>&1)
+  echo "$out" | grep -q "MM_PHONE OK" && echo "ok: mm_phone $cfg" || { echo "FAIL: mm_phone $cfg"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+done
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960
 # HUD / command-card layout: no overlap with End Turn, nothing off screen, 48 u hit areas (stage sizes in design units: desktop 2098x1180, phone 844x390 / 800x360, portrait 540x960; x text scales)

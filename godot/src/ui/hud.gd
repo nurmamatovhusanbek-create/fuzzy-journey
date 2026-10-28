@@ -34,6 +34,7 @@ const AT = preload("res://src/ui/alert_ticker.gd")
 static var T: Callable = TBI18n.T
 
 enum Prof { DESKTOP, PHONE_L, SHORT, PORTRAIT }
+const MM_R_PHONE := 48.0                      # the minimap's bezel radius (layout units) on a phone held sideways (desktop: 74)
 
 ## id, glyph, label key, hotkey hint (the first 4 are the rail, the rest sit behind "More")
 const SCREENS := [
@@ -321,9 +322,10 @@ func _layout_demo(vp: Vector2) -> void:
 		b3.size = Vector2(b3.row_w(), D)
 		b3.position = Vector2(bx + (0.0 if ph else P.Surface.arc_dx(float(i) * st + D * 0.5, tot_h, L["ar"])), y0 + float(i) * st)
 	# ---- bottom left: the round mini-globe and its zoom buttons (desktop), zoom beside End Turn (phone)
-	var r_mm: float = L["mmR"]
-	var cy_mm: float = vp.y - m - r_mm - 26.0
-	var show_mm: bool = not ph and vp.y >= 520.0
+	# the minimap: a desktop shows it bottom left under the rail with its caption; a phone held sideways shows a smaller one just right of the (straight) rail, no caption
+	var r_mm: float = MM_R_PHONE if ph else float(L["mmR"])
+	var cy_mm: float = vp.y - m - r_mm - (8.0 if ph else 26.0)
+	var show_mm: bool = vp.y >= (340.0 if ph else 520.0)
 	_minimap_ok = show_mm
 	_mm_globe = true
 	_minimap.round_r = r_mm
@@ -331,13 +333,13 @@ func _layout_demo(vp: Vector2) -> void:
 	var mm_top: float = vp.y - m
 	if show_mm:
 		var mw: float = 2.0 * r_mm + 20.0
-		_minimap.size = Vector2(mw, 2.0 * r_mm + 20.0 + 14.0)
-		_minimap.position = Vector2(axis - mw * 0.5, cy_mm - r_mm - 10.0)
+		_minimap.size = Vector2(mw, 2.0 * r_mm + 20.0 + (0.0 if ph else 14.0))
+		_minimap.position = Vector2((axis - float(L["railD"]) * 0.5 + float(L["railD"]) + 2.0) if ph else (axis - mw * 0.5), cy_mm - r_mm - 10.0)
 		mm_top = cy_mm - r_mm
 	for z in [_zin, _zout]:
 		var zb: P.IconBtn = z
 		zb.framed = true; zb.ticks_n = 0; zb.size = Vector2(34.0, 34.0); zb.icon_px = 34.0 * 0.46; zb.visible = true
-	if show_mm:
+	if show_mm and not ph:
 		_zin.position = Vector2(axis + r_mm + 26.0, cy_mm - 38.0)
 	else:
 		_zin.position = Vector2(vp.x - m - float(L["chr"]) - 17.0, vp.y - m - 21.0 - 2.0 * float(L["chr"]) - 24.0 - 76.0)

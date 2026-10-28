@@ -8,6 +8,7 @@ signal looked(lon_deg: float, lat_deg: float)
 
 var g: TBGame
 var map: TBMapView
+const CAPTION_MIN_R := 60.0
 var round_r: float = 74.0               # the bezel's outer radius in layout units (the demo's mmR); the globe is 12 smaller
 var _img: Image
 var _tex: ImageTexture
@@ -109,10 +110,11 @@ func _draw() -> void:
 	var c: Vector2 = gm[0]; var R: float = gm[1]
 	TBBezel.ring(self, c, round_r, 72, TBTokens.c("bar_0"))
 	draw_circle(c, R, TBTokens.BZ_SEA)
-	var cf: Font = TBHudParts.fcz(false)
-	var cz: int = TBHudParts.fu(10.5)
-	var cap: String = TBI18n.T("tk_minimap").to_upper() if TBI18n.lang != "ru" else TBI18n.T("tk_minimap")
-	TBHudParts.txtl(self, cf, c.x, c.y + round_r + 19.0, cap, cz, TBTokens.c("smoke") if not TBTokens.is_hc() else TBTokens.c("cream"), 3.5, 1, 2.0, TBTokens.BZ_HALO)
+	if round_r >= CAPTION_MIN_R:                                                 # a phone's smaller minimap has no caption (its tooltip names it)
+		var cf: Font = TBHudParts.fcz(false)
+		var cz: int = TBHudParts.fu(10.5)
+		var cap: String = TBI18n.T("tk_minimap").to_upper() if TBI18n.lang != "ru" else TBI18n.T("tk_minimap")
+		TBHudParts.txtl(self, cf, c.x, c.y + round_r + 19.0, cap, cz, TBTokens.c("smoke") if not TBTokens.is_hc() else TBTokens.c("cream"), 3.5, 1, 2.0, TBTokens.BZ_HALO)
 	if g == null or map == null:
 		_gl.visible = false; return
 	if _dirty or _w == 0: _recolor()
