@@ -98,10 +98,11 @@ static func open(opts: Dictionary) -> TBPanel.Handle:
 	map.lon0 = deg_to_rad(float(VIEW[S["era"]][0])) if VIEW.has(S["era"]) else map.lon0
 	map._push_view()
 	root.tree_exiting.connect(func():
-		orr.interactive = false; orr.mouse_filter = Control.MOUSE_FILTER_IGNORE; orr.hover_i = -1; orr.set_rim(TBTokens.BZ_RIM, false)
+		if is_instance_valid(orr):
+			orr.interactive = false; orr.mouse_filter = Control.MOUSE_FILTER_IGNORE; orr.hover_i = -1; orr.set_rim(TBTokens.BZ_RIM, false)
 		if is_instance_valid(map): map.offset_left = 0.0; map.offset_right = 0.0
 		for e in was: if is_instance_valid(e[0]): (e[0] as CanvasItem).visible = bool(e[1])
-		orr.queue_redraw())
+		if is_instance_valid(orr): orr.queue_redraw())
 	if TBPanel.wants_focus(): go.grab_focus.call_deferred()
 	return h
 

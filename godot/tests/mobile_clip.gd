@@ -1,8 +1,8 @@
 extends SceneTree
-## A short portrait-phone playthrough for the movie writer (tools/mobile_clip.sh): title -> New game -> nation pick -> Play (the begin-game dive) -> briefing -> select a province -> End turn.
-## Taps are shown as small rings so the clip reads as touch. Usage: -s tests/mobile_clip.gd -- <out dir> [fx: off|light|full]
-const W := 720
-const H := 1280
+## A short phone playthrough (landscape by default: the game is played sideways; "portrait" is the fallback layout) for the movie writer (tools/mobile_clip.sh): title -> New game -> nation pick -> Play (the begin-game dive) -> briefing -> select a province -> End turn.
+## Taps are shown as small rings so the clip reads as touch. Usage: -s tests/mobile_clip.gd -- <out dir> [fx: off|light|full] [land|portrait]
+var W := 1280
+var H := 592                                                                 # a 390 unit stage: 844 x 390 logical, a phone held sideways
 var main: Control
 var out := ""
 
@@ -39,6 +39,7 @@ func _find_button(node: Node, word: String) -> Button:
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	out = a[0]
+	if a.size() > 2 and a[2] == "portrait": W = 720; H = 1280
 	DisplayServer.window_set_size(Vector2i(W, H)); root.size = Vector2i(W, H)
 	main = load("res://src/ui/main.tscn").instantiate()
 	root.add_child(main)

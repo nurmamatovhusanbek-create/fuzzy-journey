@@ -259,7 +259,7 @@ After (`docs/screens/flags/after.png`, big flag + the 192x128 game PNG + the 48x
   * New-game dialog on a phone in portrait: the three step pips moved from the header (they cut the title to "NEW GA...") to above the era list.
   * Phone HUD: the End Turn dial sits 26 units from the right edge so its label ("END TURN", about 96 wide) is not cut off; **the dial itself is unchanged**, only its position on a phone in portrait / narrow layouts moved a few units.
   * Data: the Maori nation was stored as "M?ori" (a damaged character) in the napoleonic and victorian eras and showed as "M?ORI"; now "Maori" like the other eras. (The ancient era also has one empty-id nation named "?" that owns no province; left alone.)
-* **Clip**: `tools/mobile_clip.sh` records a 10 s portrait-phone playthrough (title -> New game -> era -> pick France -> Play with the begin-game dive -> briefing -> Nations page -> End turn -> an event arrives) with Godot's movie writer, taps drawn as rings, music and cues included: `docs/media/mobile_gameplay.mp4` (`tests/mobile_clip.gd`).
+* **Clip**: `tools/mobile_clip.sh` records a 10 s phone playthrough (landscape by default, 1280x592 = 844x390 logical, because the game is played sideways and `handheld/orientation` is sensor landscape; `portrait` is only the fallback layout) (title -> New game -> era -> pick France -> Play with the begin-game dive -> briefing -> Nations page -> End turn -> an event arrives) with Godot's movie writer, taps drawn as rings, music and cues included: `docs/media/mobile_gameplay.mp4` (`tests/mobile_clip.gd`).
 
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
@@ -299,3 +299,5 @@ tune Light / Full from them; lit-space audit; leader portraits; flags for more e
 3. Do you want the turn summary (B6) at all, or only the existing toasts?
 4. New-game screens: ring picker (A3-A, built) or the card strip (A3-B)? Build the A4 nation-pick redo?
 5. (answered) flags: author them ourselves, better - built as F3, see section 4.
+
+* **Correction (clip)**: the first clip was recorded in portrait by mistake; the owner plays the phone sideways. `docs/media/mobile_gameplay.mp4` is now landscape. Recording it found a latent error in `era_ring.gd` (the ring's tree-exit cleanup touched the title orrery after it was freed); guarded with `is_instance_valid`.
