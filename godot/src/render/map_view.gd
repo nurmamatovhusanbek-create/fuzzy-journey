@@ -286,6 +286,17 @@ func _rs() -> float:
 	var cap: float = sqrt(float(PX_BUDGET[clampi(quality, 0, 2)]) / (size.x * size.y))
 	return maxf(rs, minf(rs * ppl, cap))
 
+## Province lines fade in as the id map's texels per pixel of the tier's NOMINAL map buffer (render_scale, not the sharper phone buffer) fall below 1.6, full at 0.8 (globe.gdshader
+## multiplies its own tpp by `tpp_k` to the same end). Army markers use this very number, so a phone and a desktop show the borders, and the army numbers with them, at the same zoom.
+func prov_tpp() -> float:
+	if world == null: return 99.0
+	var idw: float = float(world.W / 2 if _ids_is_half else world.W)
+	var ppr: float = radius_px() if mode == 0 else flat_scale()                        # logical px per radian at the view centre
+	return (idw / TAU) / maxf(1.0, ppr * maxf(0.1, render_scale))
+func prov_lines_alpha() -> float: return clampf((1.6 - prov_tpp()) / 0.8, 0.0, 1.0)
+## the rule: army numbers show while the province borders show (a little in, so they never appear on an invisible line), globe and flat, desktop and phone
+func prov_lines_shown() -> bool: return prov_lines_alpha() >= 0.25
+
 func _push_view() -> void:
 	if _mat == null: return
 	if _shader_q != quality and _shader_q >= 0:                       # the quality tier changed: its own shader
@@ -317,6 +328,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("hc", 1 if TBTokens.is_hc() else 0)
 	_mat.set_shader_parameter("strong", 1 if (TBTokens.is_hc() or TBLenses.cvd != "off") else 0)
 	_mat.set_shader_parameter("px_scale", rs)
+	_mat.set_shader_parameter("tpp_k", rs / maxf(0.1, render_scale))
 	_mat.set_shader_parameter("hi_owner", _hi_owner)
 	_mat.set_shader_parameter("outline_owner", _outline_owner)
 	_mat.set_shader_parameter("atlas", 1 if atlas_look() else 0)

@@ -28,6 +28,7 @@ uniform float hover_prev_t = 0.0;
 uniform int theme = 0;           // 0 standard, 1 parchment
 uniform int hc = 0;              // 1 = high-contrast map: 2x borders, lifted land, black sea, no rim light
 uniform int strong = 0;          // 1 = colour-vision / high-contrast: relation patterns at full strength
+uniform float tpp_k = 1.0;       // buffer scale / the tier's nominal scale: the province lines fade by the nominal texels-per-pixel, so a sharper phone buffer does not make them appear earlier
 uniform float px_scale = 1.0;    // render resolution / logical resolution (patterns and strokes are in logical px)
 uniform int outline_owner = -1;   // nation whose outer border is outlined in brass (the selected province's owner), others untouched
 uniform int hi_owner = -1;       // nation lit on the pick screen (others dim), -1 none
@@ -299,6 +300,7 @@ void fragment() {
 		vec2 dtx, dty;
 		tex_deriv(lat, n, dtx, dty);
 		float tpp = max(max(length(dtx), length(dty)), 0.0001);
+		float tpp_s = tpp * tpp_k;                           // the same, in nominal buffer pixels: stroke fades (province lines, ink, line weight)
 		bool hq = quality >= 2 && tpp < 0.5;                 // a texel spans two or more pixels
 		int id = hq ? hq_id(t) : ((quality >= 2) ? smooth_id(t) : id_at(ti));
 		vec2 ex = dtx * px_scale;                            // texel step of one logical px
@@ -444,9 +446,9 @@ void fragment() {
 					if (nid != id && nid != 0 && owner_of(nid) == own) b_prov = true;
 				}
 			}
-			float pa = 0.55 * clamp((1.6 - tpp) / 0.8, 0.0, 1.0);
+			float pa = 0.55 * clamp((1.6 - tpp_s) / 0.8, 0.0, 1.0);
 			if (b_prov) col = mix(col, vec3(0.0), pa);
-			float ink_a = mix(1.0, 0.72, smoothstep(0.8, 2.0, tpp));
+			float ink_a = mix(1.0, 0.72, smoothstep(0.8, 2.0, tpp_s));
 			if (b_nat || b_coast) col = mix(col, vec3(0.039, 0.051, 0.071), ink_a);
 			if (b_war) col = mix(col, vec3(0.824, 0.376, 0.247), 0.9);
 			// rings centred on a boundary: your nation (brass), the outlined / picked nation (cream), the selected province (cream), lit targets (dashed brass)
@@ -495,7 +497,7 @@ void fragment() {
 			if (dim_others > 0.5 && id != 0 && !tself && own != signal_owner && id != sel_id) col = mix(sea_grad(lp, rect_size / px_scale), col, 0.45);
 		} else if (quality >= 2) {
 			// screen-space: compare smoothed ids one pixel to the right / below
-			float lw = (1.0 + 1.3 * smoothstep(0.4, 0.04, tpp)) * hcm;          // line weight grows as you zoom in: 1 px far away, ~2.3 px close; 2x in high contrast
+			float lw = (1.0 + 1.3 * smoothstep(0.4, 0.04, tpp_s)) * hcm;          // line weight grows as you zoom in: 1 px far away, ~2.3 px close; 2x in high contrast
 			vec2 ox = dtx * lw, oy = dty * lw;
 			int nids[2] = hq ? int[2](hq_id(t + ox), hq_id(t + oy)) : int[2](smooth_id(t + ox), smooth_id(t + oy));
 			for (int i = 0; i < 2; i++) {
@@ -536,7 +538,7 @@ void fragment() {
 		}
 		if (atlas == 1) {
 			if (!atlas_done) {                                                                         // low tiers: plain ink lines
-				col = mix(col, vec3(0.0), clamp(1.1 - e_prov, 0.0, 1.0) * 0.55 * clamp((1.6 - tpp) / 0.8, 0.0, 1.0));   // province lines (medium): rgba(0,0,0,.55) like the high tier
+				col = mix(col, vec3(0.0), clamp(1.1 - e_prov, 0.0, 1.0) * 0.55 * clamp((1.6 - tpp_s) / 0.8, 0.0, 1.0));   // province lines (medium): rgba(0,0,0,.55) like the high tier
 				col = mix(col, vec3(0.039, 0.051, 0.071), clamp(1.3 - e_nat, 0.0, 1.0));
 				col = mix(col, vec3(0.039, 0.051, 0.071), clamp(1.3 - e_coast, 0.0, 1.0));
 				col = mix(col, vec3(0.824, 0.376, 0.247), clamp(1.3 - e_war, 0.0, 1.0));
@@ -544,7 +546,7 @@ void fragment() {
 				col = mix(col, vec3(0.898, 0.780, 0.478), clamp(1.3 - e_tgt, 0.0, 1.0));
 			}
 		} else {
-		float prov_alpha = clamp(2.2 - tpp, 0.0, 1.0) * (hc == 1 ? 0.7 : 0.45);
+		float prov_alpha = clamp(2.2 - tpp_s, 0.0, 1.0) * (hc == 1 ? 0.7 : 0.45);
 		col = mix(col, col * 0.55, clamp(0.5 + 0.8 - e_prov, 0.0, 1.0) * prov_alpha);
 		vec3 nat_line = (theme == 1) ? vec3(0.30, 0.18, 0.08) : vec3(0.04, 0.05, 0.07);
 		col = mix(col, nat_line, clamp(1.4 - e_nat + 0.5, 0.0, 1.0) * (hc == 1 ? 1.0 : 0.9));

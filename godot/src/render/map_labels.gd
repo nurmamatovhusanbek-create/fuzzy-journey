@@ -208,7 +208,7 @@ var last_cost_ms := 0.0
 func hover_matters() -> bool:
 	if map == null or g == null: return false
 	var psz := prov_px()
-	return psz >= 14.0 and psz < 40.0
+	return map.prov_lines_shown() and psz >= 14.0 and psz < 40.0
 
 ## on-screen length (logical px) of a nation along its long axis; falls back to a count-based guess for round nations
 func _nation_px(n: int, cnt: int) -> float:
@@ -603,6 +603,7 @@ func _draw_layout() -> void:
 	var me := g.human_id
 	var psz := prov_px()
 	var ztier := 0 if psz < 14.0 else (1 if psz < 40.0 else 2)
+	var atier := maxi(1, ztier) if map.prov_lines_shown() else 0                  # army markers: only while the province borders show (zoomed out to country level the numbers would only be in the way)
 	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
 	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
 	var sel := map.selected; var hov := map.hover
@@ -616,7 +617,7 @@ func _draw_layout() -> void:
 		if dl > 1.0 and (map.mode != 0 or (pa.z > 0.2 and pb.z > 0.2)):
 			var dn := dv / dl
 			var head := 14.0 if bool(_order["attack"]) else 12.0
-			var req := _ext_tier(ztier, g.army[of], dn, of == sel) + (_ext_tier(ztier, g.army[ot], -dn) if g.army[ot] > 0 else 5.0) + SHAFT_MIN + head + 4.0
+			var req := _ext_tier(atier, g.army[of], dn, of == sel) + (_ext_tier(atier, g.army[ot], -dn) if g.army[ot] > 0 else 5.0) + SHAFT_MIN + head + 4.0
 			if dl < req:
 				var need := req - dl
 				if bool(_order.get("hover", false)): _push_p = ot; _push_v = dn * minf(need, 150.0)
@@ -640,7 +641,7 @@ func _draw_layout() -> void:
 		var war := rel == 1
 		var want := false
 		if a > 0 and army_lens:                                         # decide on the cheap tests first; fog of war is asked only of a province that could get a marker
-			match ztier:
+			match atier:
 				0: want = false
 				1: want = o == me or war or rel == 3 or p == sel or p == hov
 				_: want = true
@@ -697,8 +698,8 @@ func _draw_layout() -> void:
 		var a: int = v[5]
 		if a <= 0: continue
 		var st := _state(p)
-		var gw := _badge_w(nfont, maxi(a, int(st["shown"])), ztier >= 2)
-		var prect := _marker_rect(pos, ztier, a, g.gen[p] != 0, gw)
+		var gw := _badge_w(nfont, maxi(a, int(st["shown"])), atier >= 2)
+		var prect := _marker_rect(pos, atier, a, g.gen[p] != 0, gw)
 		if _blocked(prect): continue
 		if not _claim(grid, prect):
 			# collapse into the same nation's marker that already holds this spot
@@ -707,7 +708,7 @@ func _draw_layout() -> void:
 					_pl[chosen[i]]["extra"] = int(_pl[chosen[i]]["extra"]) + 1; break
 			continue
 		_frame_rects.append(prect)
-		st["t"] = 1.0; st["x"] = pos.x; st["y"] = pos.y; st["limb"] = v[4]; st["zt"] = ztier
+		st["t"] = 1.0; st["x"] = pos.x; st["y"] = pos.y; st["limb"] = v[4]; st["zt"] = atier
 		chosen.append(p); chosen_set[p] = true; chosen_rects.append(prect)
 		drawn += 1
 	# ---- draw: fading markers (underneath), then the chosen, own realm on top
@@ -1285,7 +1286,7 @@ func _draw_fx() -> void:
 			continue
 		if f["kind"] == "glide":
 			var pf := map.project(g.world.lon[f["from"]], g.world.lat[f["from"]])
-			if pf.z > 0.0: _draw_glide(Vector2(pf.x, pf.y), to2, k, int(f["nation"]), int(f["count"]))
+			if pf.z > 0.0 and map.prov_lines_shown(): _draw_glide(Vector2(pf.x, pf.y), to2, k, int(f["nation"]), int(f["count"]))
 			continue
 		if f["kind"] == "atk" or f["kind"] == "march":
 			var pt_from := map.project(g.world.lon[f["from"]], g.world.lat[f["from"]])
