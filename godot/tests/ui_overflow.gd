@@ -31,6 +31,57 @@ func _walk(n: Node, tag: String) -> void:
 				_bad.append("%s sticks out of its parent: %s (%.0f..%.0f in %.0f) widest: %s" % [tag, c.get_path(), c.position.x, c.position.x + c.size.x, pr.size.x, _widest(c)])
 	for k in n.get_children(): _walk(k, tag)
 
+
+## the rectangle (global coordinates) that a label's text really occupies: its own width when it does not wrap, placed by the alignment
+func _text_rect(c: Label) -> Rect2:
+	var f: Font = c.get_theme_font("font"); var fs: int = c.get_theme_font_size("font_size")
+	var gr := c.get_global_rect()
+	var w: float; var hgt: float
+	if c.autowrap_mode != TextServer.AUTOWRAP_OFF:
+		w = gr.size.x; hgt = f.get_multiline_string_size(c.text, HORIZONTAL_ALIGNMENT_LEFT, gr.size.x, fs).y
+	else:
+		var sz: Vector2 = f.get_string_size(c.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs); w = minf(sz.x, gr.size.x); hgt = sz.y
+	var x: float = gr.position.x
+	if c.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER: x += (gr.size.x - w) * 0.5
+	elif c.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT: x += gr.size.x - w
+	var y: float = gr.position.y
+	if c.vertical_alignment == VERTICAL_ALIGNMENT_CENTER: y += (gr.size.y - hgt) * 0.5
+	elif c.vertical_alignment == VERTICAL_ALIGNMENT_BOTTOM: y += gr.size.y - hgt
+	return Rect2(x, y, w, hgt)
+
+func _visible_part(c: Control, r: Rect2) -> Rect2:
+	var cur: Node = c.get_parent()
+	while cur != null:
+		if cur is ScrollContainer: r = r.intersection((cur as Control).get_global_rect())
+		elif cur is Control and (cur as Control).clip_contents: r = r.intersection((cur as Control).get_global_rect())
+		cur = cur.get_parent()
+	return r
+
+func _labels(n: Node, acc: Array) -> void:
+	if n is Label and (n as Label).is_visible_in_tree() and (n as Label).text.strip_edges() != "" and (n as Label).modulate.a > 0.2 and (n as Label).self_modulate.a > 0.2:
+		acc.append(n)
+	for k in n.get_children(): _labels(k, acc)
+
+## two labels whose text lies on top of each other (not nested, both on screen): wrong spacing / a misplaced item
+func _overlaps(root_n: Node, tag: String) -> void:
+	var ls: Array = []
+	_labels(root_n, ls)
+	var rects: Array = []
+	for l in ls:
+		var tr: Rect2 = _visible_part(l, _text_rect(l))
+		rects.append(tr)
+	for i in ls.size():
+		var ri: Rect2 = rects[i]
+		if ri.size.x < 4.0 or ri.size.y < 4.0: continue
+		for j in range(i + 1, ls.size()):
+			var rj: Rect2 = rects[j]
+			if rj.size.x < 4.0 or rj.size.y < 4.0: continue
+			if ls[i].is_ancestor_of(ls[j]) or ls[j].is_ancestor_of(ls[i]): continue
+			var ov: Rect2 = ri.intersection(rj)
+			if ov.size.x <= 1.5 or ov.size.y <= 2.0: continue
+			if ov.get_area() > 0.2 * minf(ri.get_area(), rj.get_area()):
+				_bad.append("%s text overlaps text: '%s' x '%s' (%.0f x %.0f px)" % [tag, (ls[i] as Label).text.left(24), (ls[j] as Label).text.left(24), ov.size.x, ov.size.y])
+
 func _widest(c: Control) -> String:
 	var best: Control = c
 	var guard := 0
@@ -88,6 +139,7 @@ func _init() -> void:
 		(tests[k] as Callable).call()
 		for i in 14: await process_frame
 		_walk(main, "%s@%dx%d s%.2f %s" % [k, w, h, sc, lang])
+		_overlaps(main, "%s@%dx%d s%.2f %s" % [k, w, h, sc, lang])
 		if a.size() > 4: root.get_viewport().get_texture().get_image().save_png("%s/%s_%dx%d.png" % [a[4], k, w, h])      # optional 5th argument: a folder for a picture of every screen
 	var seen := {}
 	for b in _bad:

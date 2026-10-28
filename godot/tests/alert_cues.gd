@@ -26,6 +26,7 @@ func _init() -> void:
 	_check(hud.cue_for(_e("o:1", "ally", "offer", 1)) == "offer", "an offer -> offer")
 	_check(hud.cue_for(_e("e:1", "golden_age", "event", 1)) == "", "an event has its own cue elsewhere")
 	# a game starts silent: the first refresh only records
+	hud._announced.clear(); hud._cues_armed = false; got.clear()
 	hud._entries = [_e("a:coalition", "coalition", "alert", 2)]
 	hud._announce_new()
 	_check(got.is_empty(), "the alerts a game starts with are silent")

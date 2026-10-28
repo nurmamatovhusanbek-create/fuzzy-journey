@@ -44,6 +44,9 @@ out=$(TB_DPR=1.67 TB_DPI=420 TB_NOANIM=1 timeout 250 xvfb-run -a -s "-screen 0 1
 echo "$out" | grep -q "PHONE_DESKTOP OK" && echo "ok: phone_desktop" || { echo "FAIL: phone_desktop"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 xvfb-run -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/army_rule.gd -- 1280 720 2>&1)
 echo "$out" | grep -q "ARMY_RULE OK" && echo "ok: army_rule" || { echo "FAIL: army_rule"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+# alert cues: one cue per new alert, a game starts silent
+out=$(TB_NOANIM= timeout 120 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/alert_cues.gd 2>&1)
+echo "$out" | grep -q "ALERT_CUES OK" && echo "ok: alert_cues" || { echo "FAIL: alert_cues"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 # F2 the Advisor's note (title + a long turn; Effects Off and Light; the same at a phone's density)
 out=$(TB_NOANIM= timeout 290 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/advisor_note.gd -- 1920 1080 2>&1)
 echo "$out" | grep -q "ADVISOR_NOTE OK" && echo "ok: advisor_note 1920x1080" || { echo "FAIL: advisor_note 1920x1080"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }

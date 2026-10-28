@@ -10,6 +10,7 @@ func _shot(main: Control) -> Image:
 	return root.get_viewport().get_texture().get_image()
 
 func _init() -> void:
+	TBAdvisorNote.fixed_seed = 7
 	var w := 1280; var h := 720
 	DisplayServer.window_set_size(Vector2i(w, h)); root.size = Vector2i(w, h)
 	var main: Control = load("res://src/ui/main.tscn").instantiate()

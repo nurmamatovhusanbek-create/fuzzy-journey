@@ -16,6 +16,7 @@ var _t := 0.0
 var _tw: Tween
 var _want_w := 270.0
 var shown := false
+static var fixed_seed := -1          # tests: a fixed shuffle, so two runs of the same screen show the same line
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE; focus_mode = Control.FOCUS_NONE; modulate.a = 0.0; visible = false
@@ -33,7 +34,12 @@ func setup(unit: float, width: float, rotate: bool) -> void:
 func _take_next() -> void:
 	_pos += 1
 	if _pos >= _bag.size():
-		_bag = range(KEYS.size()); _bag.shuffle()
+		_bag = range(KEYS.size())
+		if fixed_seed >= 0:
+			var r := RandomNumberGenerator.new(); r.seed = fixed_seed + _pos + _bag.size()
+			for i in range(_bag.size() - 1, 0, -1):
+				var j := r.randi_range(0, i); var tmp = _bag[i]; _bag[i] = _bag[j]; _bag[j] = tmp
+		else: _bag.shuffle()
 		if _key != "" and KEYS[_bag[0]] == _key and _bag.size() > 1: var t = _bag[0]; _bag[0] = _bag[1]; _bag[1] = t
 		_pos = 0
 	_key = KEYS[_bag[_pos]]
