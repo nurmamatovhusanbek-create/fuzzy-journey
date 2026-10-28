@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8">
+<title>F2 advisor's note - mock</title>
+<style>
+@font-face{font-family:Cinzel;font-weight:700;src:url(../../../godot/assets/fonts/cinzel-latin-700-normal.woff2)}
+@font-face{font-family:Alegreya;font-style:italic;src:url(../../../godot/assets/fonts/alegreya-latin-400-italic.woff2)}
+body{margin:0;background:#05070a}
+.fig{position:relative;width:1920px;height:1080px;background-size:cover}
+.title{background-image:url(../../screens/f2/_title_base.png)}
+.game{width:1600px;height:720px;background-image:url(../../screens/f2/_game_base.png)}
+/* the plate: the Bezel card language (ink fill, brass hairline, notched corner), a quiet label and one italic line */
+.note{position:absolute;box-sizing:border-box;background:linear-gradient(180deg,rgba(18,14,10,.82),rgba(12,10,8,.82));border:1px solid #6b5a33;color:#d8cdb0;
+ clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)}
+.note .lab{font:700 13px Cinzel,serif;letter-spacing:.28em;color:#c9a14b;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.note .lab:before{content:"";width:7px;height:7px;background:#c9a14b;transform:rotate(45deg)}
+.note .txt{font:italic 21px/1.38 Alegreya,serif;margin-top:9px;color:#e8dfc6}
+.note .dots{position:absolute;right:16px;bottom:11px;display:flex;gap:5px}
+.note .dots i{width:5px;height:5px;border-radius:50%;background:#4a4030}.note .dots i.on{background:#c9a14b}
+.t1{left:77px;top:905px;width:405px;padding:16px 20px 20px}
+.g1{left:496px;top:575px;width:608px;padding:12px 20px 14px;text-align:center}
+.g1 .lab{justify-content:center}.g1 .txt{font-size:18px}
+.cap{position:absolute;left:24px;top:22px;font:700 14px Cinzel,serif;letter-spacing:.2em;color:#9a8a5a;background:#0b0e13cc;padding:8px 12px;border:1px solid #3a3322}
+.game .cap{left:520px;top:14px}
+</style>
+<div class="fig title"><div class="cap">A  ·  TITLE: ONE LINE FROM THE ADVISOR, CHANGES EVERY 12 S (FADE 0.4 S)</div>
+ <div class="note t1"><div class="lab">Advisor's note</div><div class="txt">War without a reason raises infamy; at 22 the world forms a coalition against you.</div><div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i><i></i></div></div></div>
+<div class="fig game"><div class="cap">B  ·  GAME: THE SAME PLATE WHILE A TURN IS PROCESSING (ONLY IF IT TAKES OVER 1 S), GONE WHEN IT ENDS</div>
+ <div class="note g1"><div class="lab">Advisor's note</div><div class="txt">Each turn is six months. Press the seal to end it.</div></div></div>

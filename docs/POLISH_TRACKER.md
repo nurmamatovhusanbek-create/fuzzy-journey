@@ -95,7 +95,8 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | E1 samples | Three generated 32 s music samples to pick a style from: `docs/media/music_samples/A_orrery.ogg` (slow pads + bell arpeggio), `B_pluck.ogg` (plucked strings, D dorian), `C_march.ogg` (drone + hand drums + brass swells); regenerate with `tools/music_samples.py` | done (owner listens and picks) | | | |
 | E1, E2, E4 | Score playback (peace = B pluck, war = C march, crossfade 2.5 s), a very quiet sea bed in a game, ducking under loud cues | done | (this commit) | Music bus + its Settings slider; Sound off silences it; not an effect, so Effects Off does not touch it | music.gd |
 | F1 | Era mood: the title's atmosphere tints by era on the ring screen (`TBEraRing.tint`) | done (small) | | Off: jumps | era_ring |
-| F2-F5 | Loading tips, portraits / flags for more eras, event art, codex polish | queued | | | |
+| F2 | **Advisor's note** (the loading-tips idea, there is no loading screen): one true line from the game's own advice, as a Bezel plate under the title menu (changes every 12 s) and, in a game, while a turn takes over a second to process. Mock: `docs/screens/f2/mock_tips_title.png`, `mock_tips_game.png` (source `docs/ui_variants/src/f2_tips.html`) | **mock, waiting for the owner's go** | | own Settings switch; Off / Reduce motion: no fade | |
+| F3-F5 | portraits / flags for more eras, event art, codex polish | queued | | | |
 
 ## 4. Change log with before / after
 
