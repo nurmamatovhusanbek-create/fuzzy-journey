@@ -15,6 +15,7 @@ signal budget_pressed
 signal save_pressed
 signal settings_pressed
 signal tapped
+signal cue(name: String)                       # a sound cue for a new alert (main plays it)
 ## an alert chip was tapped: look at this province (fly + select)
 signal goto_province(p: int)
 ## open the nation card of n
@@ -703,18 +704,34 @@ func _event_title(uid: int, id: String) -> String:
 	return id
 
 ## new alert chips are mirrored to the text feed once, and optionally spoken
+## new alert -> sound cue (one per refresh: the most severe new alert; none for the alerts a game starts with or a loaded game brings)
+const ALERT_CUES := {"war_declared": "war", "coalition": "coalition", "capital_lost": "capital", "bankrupt": "low", "low_treasury": "low", "unrest": "unrest", "occupied": "loss", "threat": "alert", "ultimatum": "alert"}
+var _cues_armed := false
+var _cue_game := 0                               # which game the cues are armed for (a new or loaded game starts silent)
+func cue_for(e: Dictionary) -> String:
+	var id: String = String(e["id"])
+	if ALERT_CUES.has(id): return String(ALERT_CUES[id])
+	if String(e["cls"]) == "offer": return "offer"
+	return ""
+
 func _announce_new() -> void:
+	if g != null and g.get_instance_id() != _cue_game: _cue_game = g.get_instance_id(); _cues_armed = false
 	var seen: Dictionary = {}
+	var best_sev := -1; var best_cue := ""
 	for e in _entries:
 		var k: String = String(e["key"])
 		seen[k] = true
 		if _announced.has(k): continue
 		_announced[k] = true
+		var cn: String = cue_for(e)
+		if cn != "" and int(e["sev"]) > best_sev: best_sev = int(e["sev"]); best_cue = cn
 		var tx: String = ("%s: %s" % [T.call("cls_" + String(e["cls"])), String(e["text"])])
 		_feed_add(tx, int(e["sev"]) >= 2)
 		announce(tx, int(e["sev"]) >= 2)
 	for k in _announced.keys():
 		if not seen.has(k): _announced.erase(k)
+	if _cues_armed and best_cue != "": cue.emit(best_cue)
+	_cues_armed = true
 
 func _on_alert(e: Dictionary) -> void:
 	tapped.emit()

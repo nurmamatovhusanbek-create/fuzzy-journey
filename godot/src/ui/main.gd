@@ -80,6 +80,7 @@ func _ready() -> void:
 		sfx.play("turn"); end_turn()
 		if not cfg.get("seal_seen", false): cfg["seal_seen"] = true; _save_cfg(); hud.set_seal_pulse(false))
 	hud.tapped.connect(func(): sfx.play("tap"))
+	hud.cue.connect(func(n: String): sfx.play(n))
 	hud.lens_selected.connect(func(n): map.set_lens(n); hud.set_lens_legend(n))
 	hud.nations_pressed.connect(func(): if not _toggle_window("nations"): _open_nations())
 	hud.goals_pressed.connect(func(): if not _toggle_window("council"): _open_council("goals"))

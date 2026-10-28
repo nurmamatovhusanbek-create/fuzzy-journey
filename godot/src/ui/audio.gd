@@ -7,7 +7,7 @@ const RATE := 22050
 ## Cues: tap and coin are UI sounds, everything else SFX; Music is created for the score that does not exist yet.
 const BUSES := ["Music", "SFX", "UI"]
 const UI_CUES := ["tap", "coin"]
-const DUCK := {"turn": 0.5, "event": 0.7, "war": 0.5, "win": 1.2, "stamp": 0.6, "clash": 0.4, "gain": 0.2, "loss": 0.3, "defeat": 1.8}      # cues that pull the music down (seconds held): E4
+const DUCK := {"coalition": 0.8, "capital": 1.2, "unrest": 0.3, "offer": 0.15, "turn": 0.5, "event": 0.7, "war": 0.5, "win": 1.2, "stamp": 0.6, "clash": 0.4, "gain": 0.2, "loss": 0.3, "defeat": 1.8}      # cues that pull the music down (seconds held): E4
 var enabled := true
 static var inst: TBAudio                      # the game's one sound player; TBAudio.cue("name") plays a cue from anywhere (nothing when sound is off / there is no player)
 var _snd := {}
@@ -68,6 +68,11 @@ func _build() -> void:
 	_snd["page"] = _burst(0.2, 16.0, 0.22)
 	_snd["bell"] = _tone([[1046.0, 1.0], [1568.0, 0.5], [2093.0, 0.25]], 1.0, 0.003, 4.0)
 	_snd["low"] = _seq([[523.0, 0.1], [440.0, 0.1], [349.0, 0.25]], 0.7)
+	# alert cues (played once when a new alert is announced, see TBHud.ALERT_CUES): a coalition forms (a slow low swell), the capital falls (a toll), unrest (a rumble), a new offer (a soft double knock)
+	_snd["coalition"] = _tone([[82.0, 1.0], [123.0, 0.7], [155.0, 0.5]], 1.4, 0.15, 1.6, 0.8)
+	_snd["capital"] = _mix([_tone([[98.0, 1.0], [196.0, 0.5], [294.0, 0.3]], 1.6, 0.003, 2.2, 0.9), _burst(0.08, 40.0, 0.3)])
+	_snd["unrest"] = _mix([_burst(0.35, 7.0, 0.35), _tone([[150.0, 1.0], [160.0, 0.8]], 0.4, 0.005, 6.0, 0.5)])
+	_snd["offer"] = _seq([[698.0, 0.07], [880.0, 0.14]], 0.6)
 
 func play(name: String) -> void:
 	if not enabled or not _snd.has(name) or _players.is_empty(): return
