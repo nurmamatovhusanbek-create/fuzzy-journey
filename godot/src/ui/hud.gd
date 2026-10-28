@@ -47,6 +47,9 @@ const LENS_PHONE := ["political", "diplomatic", "military", "terrain"]
 
 var g: TBGame
 var seat_tag: String = ""                   # hot-seat seat label ("P2"); derived from the game when left empty
+var tips_on: bool = true                      # F2: the Advisor's note while a turn processes (Settings > Display)
+var _advice: TBAdvisorNote
+var _busy_gen: int = 0
 var confirm_mode: String = "smart"           # smart | always | never  (Confirm End Turn)
 var input_blocked_fn: Callable = Callable()  # -> true while a modal / curtain is up or the game is not running (hotkeys pause)
 var mp_waiting_fn: Callable = Callable()     # -> true in a multiplayer game (a busy End Turn then reads "waiting for players")
@@ -170,6 +173,7 @@ func build() -> void:
 	_ticker.tip_requested.connect(_tip_show); _ticker.tip_hidden.connect(_tip_hide)
 	_ticker.answer_dismissed.connect(func(k: String): _ans_gone[k] = true; refresh())
 	add_child(_ticker)
+	_advice = TBAdvisorNote.new(); add_child(_advice)
 	_legend = P.Legend.new(); add_child(_legend)
 	_strip = P.SeatStrip.new(); _strip.visible = false; add_child(_strip)
 	_note = P.SealNote.new(); _note.visible = false; add_child(_note)
@@ -377,6 +381,17 @@ func _layout_demo(vp: Vector2) -> void:
 	_insp = Rect2(vp.x - m - iw, tk_bottom, iw, maxf(130.0, ibottom - tk_bottom))
 	var dw: float = minf(660.0 if not ph else vp.x - float(L["panelX"]) - m, vp.x - float(L["panelX"]) - m)
 	_drawer = Rect2(float(L["panelX"]), float(L["panelY"]), dw, maxf(200.0, float(L["panelH"])))
+
+## F2: the Advisor's note above the lens bar (bottom centre), only where a lens bar exists
+func _show_advice() -> void:
+	if _advice == null or not tips_on or _prof == Prof.PORTRAIT or not _mode.visible or not is_inside_tree(): return
+	var unit: float = 1.0 if _vp.y >= 560.0 else 0.62
+	_advice.setup(unit, minf(600.0 * unit, _vp.x * 0.5), false)
+	_advice._take_next(); _advice._relayout()
+	_advice.position = Vector2(roundf((_vp.x - _advice.size.x) * 0.5), _mode.position.y - _advice.size.y - 16.0)
+	_advice.show_note()
+func _hide_advice() -> void:
+	if _advice != null: _advice.hide_note()
 
 ## place the End Turn dial: unchanged drawing, centred on the demo's dial centre
 func _seal_geom(vp: Vector2, m: float, rc: float, ph: bool) -> void:
@@ -1233,6 +1248,11 @@ func set_seal_pulse(on: bool) -> void:
 ## true while the turn resolves (local worker thread, or "ready" in multiplayer)
 func set_busy(b: bool) -> void:
 	_busy = b
+	_busy_gen += 1
+	if b:                                                                      # F2: a turn that takes more than a second gets one line of advice, gone when it ends
+		var gen: int = _busy_gen
+		get_tree().create_timer(1.0).timeout.connect(func(): if gen == _busy_gen and _busy: _show_advice())
+	else: _hide_advice()
 	if b and g != null: _busy_turn = g.turn
 	if _seal != null:
 		_seal.hint_left = 0.0
