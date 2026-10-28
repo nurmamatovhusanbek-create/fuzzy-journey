@@ -39,6 +39,7 @@ var hover := -1
 ## camera / highlight animation (the GPU view is re-rendered only while something is moving)
 static var animate := OS.get_environment("TB_NOANIM") == ""
 var _sel_t := 1.0
+var _sel_pulse := 0.0                # C6: 1 -> 0 over 0.55 s after a new selection (Light / Full): the province flashes cream once, then settles
 var _hover_t := 0.0
 var _hover_prev := -1
 var _hover_prev_t := 0.0
@@ -293,6 +294,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("sel_id", selected + 1 if selected >= 0 else -1)
 	_mat.set_shader_parameter("hover_id", hover + 1 if hover >= 0 else -1)
 	_mat.set_shader_parameter("sel_t", _sel_t)
+	_mat.set_shader_parameter("sel_pulse", _sel_pulse)
 	_mat.set_shader_parameter("hover_t", _hover_t)
 	_mat.set_shader_parameter("hover_prev", _hover_prev + 1 if _hover_prev >= 0 else -1)
 	_mat.set_shader_parameter("hover_prev_t", _hover_prev_t)
@@ -345,7 +347,7 @@ func _request_render() -> void:
 	if _vp == null or _mat == null: return
 	var sig: Array = [_vp.size, lon0, lat0, radius_px(), flat_scale(), mode, quality, map_theme, TBTokens.is_hc(), TBLenses.cvd, atlas_look(), g.human_id if g != null else -1, TBTokens.accent,
 		not _targets.is_empty(), dim_others, _hi_owner, _outline_owner, render_scale, _pal_gen, _ids_is_half]
-	var hl: Array = [hover, _hover_t, _hover_prev, _hover_prev_t, selected, _sel_t]
+	var hl: Array = [hover, _hover_t, _hover_prev, _hover_prev_t, selected, _sel_t, _sel_pulse]
 	if _pend_full or _rend_hl.is_empty() or sig != _rend_sig or not partial_ok:
 		_full_redraw(sig, hl); return
 	if hl == _rend_hl: return                                          # nothing the picture shows has changed
@@ -382,7 +384,7 @@ func _dirty_rect(a: Array, b: Array) -> Rect2:
 	var parts: Array = []
 	if a[0] != b[0] or a[1] != b[1]: parts.append([a[0], true]); parts.append([b[0], true])
 	if a[2] != b[2] or a[3] != b[3]: parts.append([a[2], true]); parts.append([b[2], true])
-	if a[4] != b[4] or a[5] != b[5]: parts.append([a[4], false]); parts.append([b[4], false])
+	if a[4] != b[4] or a[5] != b[5] or a[6] != b[6]: parts.append([a[4], false]); parts.append([b[4], false])
 	for pt in parts:
 		var id: int = int(pt[0])
 		if id < 0: continue
@@ -468,6 +470,7 @@ func set_mode(m: int) -> void:
 
 func select(p: int) -> void:
 	if p != selected and TBKit.motion_ok(): _sel_t = 0.0
+	if p != selected and p >= 0 and TBFx.on(TBFx.LIGHT): _sel_pulse = 1.0
 	selected = p
 	_push_view()
 
@@ -548,14 +551,15 @@ func _process(delta: float) -> void:
 	elif not _pressed:
 		_vel = Vector2.ZERO
 	# highlight fades and the breathing pulse
-	var was := _hover_t + _hover_prev_t + _sel_t
+	var was := _hover_t + _hover_prev_t + _sel_t + _sel_pulse
 	if motion:
 		_hover_t = move_toward(_hover_t, 1.0 if hover >= 0 else 0.0, delta * 9.0)
 		_hover_prev_t = move_toward(_hover_prev_t, 0.0, delta * 7.0)
 		_sel_t = move_toward(_sel_t, 1.0, delta * 8.0)
+		_sel_pulse = move_toward(_sel_pulse, 0.0, delta * 1.8) if TBFx.on(TBFx.LIGHT) else 0.0
 	else:
-		_hover_t = 1.0 if hover >= 0 else 0.0; _hover_prev_t = 0.0; _sel_t = 1.0
-	if absf(_hover_t + _hover_prev_t + _sel_t - was) > 0.0001: busy = true
+		_hover_t = 1.0 if hover >= 0 else 0.0; _hover_prev_t = 0.0; _sel_t = 1.0; _sel_pulse = 0.0
+	if absf(_hover_t + _hover_prev_t + _sel_t + _sel_pulse - was) > 0.0001: busy = true
 	if not _fade.is_empty():
 		var done: Array = []
 		for p in _fade:

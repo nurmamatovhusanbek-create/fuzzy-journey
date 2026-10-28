@@ -21,6 +21,7 @@ uniform int mode = 0;            // 0 globe, 1 flat
 uniform int sel_id = -1;         // province id (index+1) or -1
 uniform int hover_id = -1;
 uniform float sel_t = 1.0;        // 0..1 fade-in of the selection
+uniform float sel_pulse = 0.0;    // 1 -> 0 right after a new selection: a cream flash on the province (0 = the old picture exactly)
 uniform float hover_t = 0.0;      // 0..1 fade of the hover highlight
 uniform int hover_prev = -1;      // province whose hover highlight is fading out
 uniform float hover_prev_t = 0.0;
@@ -362,6 +363,7 @@ void fragment() {
 				}
 				col *= 1.0 + 0.28 * hv;
 				if (id == sel_id) col = mix(col, vec3(0.788, 0.635, 0.294), 0.35 * sel_t);
+				if (id == sel_id && sel_pulse > 0.0) col = mix(col, vec3(0.937, 0.902, 0.812), 0.45 * sel_pulse * sel_pulse);
 				if (hi_owner >= 0) col = (own == hi_owner) ? min(col * 1.12 + 0.03, vec3(1.0)) : col * 0.32;
 			} else {
 				if (is_tgt) {
@@ -371,6 +373,7 @@ void fragment() {
 				else if (dim_others > 0.5 && id != sel_id) col *= 0.6;
 				if (hi_owner >= 0) col = (own == hi_owner) ? min(col * 1.12 + 0.03, vec3(1.0)) : col * 0.32;   // pick screen: the chosen nation lit, the rest at ~30 %
 				if (id == sel_id) col = mix(col, min(col * 1.08 + 0.02, vec3(1.0)), sel_t);
+				if (id == sel_id && sel_pulse > 0.0) col = mix(col, vec3(0.937, 0.902, 0.812), 0.45 * sel_pulse * sel_pulse);
 			}
 		}
 

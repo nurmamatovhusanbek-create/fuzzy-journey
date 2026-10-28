@@ -84,7 +84,7 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | C4 | Turn passing: terminator sweep, date flip, gauge count-up | queued (mock first) | | | |
 | C1 | Army pill glides from the old province to the new one | done | fb13eb4 | Light + Full; Off: none | map_fx.gd |
 | C3 | Clash marker (swords + losses) on the map; the report follows 0.7 s later on Full | done | fb13eb4 | Light + Full; Off: none, report at once | map_fx.gd |
-| C6 | Selection pulse / nation outline breath | queued | | | |
+| C6 | Selection pulse: a newly selected province flashes cream once (0.55 s, ease-out) on top of the existing 35 % brass wash, then settles; the map is still again afterwards | done (province flash only; no nation-outline breath, it would need a permanent redraw) | (this commit) | Light + Full; Off: no flash, picture identical to before | sel_pulse.gd, map_partial, perf_idle |
 | C5 | Ambient sea / clouds / city glints (Full only) | queued (mock first) | | | |
 | A3 | Era picker on the title ring (variant A of the mock) | done, **awaiting owner's pick between ring / strip** | 52eaecd | Setting `era_ui` ring / classic (Settings -> Display); Off: ring jumps | era_ring.gd |
 | A4 | Nation pick with Bezel plates and hover card | queued (mock first) | | | |
@@ -221,6 +221,11 @@ After (`docs/screens/flags/after.png`, big flag + the 192x128 game PNG + the 48x
 * **Picture**: `b8/toast_slide_in.png` (the toast part-way in). **Test**: `tests/toast_fx.gd` (in `tools/test_ui.sh`).
 * `tests/fx_still.gd` was flaky in this sandbox (the first menu was still settling after 30 frames); it now waits 90.
 
+### C6 · Selection pulse
+* **What**: `globe.gdshader` gets `uniform float sel_pulse` (0 = the old picture exactly); `TBMapView.select` sets `_sel_pulse = 1` for a new province when `TBFx.on(LIGHT)`, `_process` drains it at 1.8 / s (0.55 s), it is part of the highlight state (`hl[6]`) so the partial redraw touches only that province's rectangle, and the map stops drawing once it reaches 0 (the idle gate stays).
+* **Not done on purpose**: a permanent breathing outline on the nation - it would keep the map redrawing while nothing happens (breaks `perf_idle`).
+* **Pictures**: `c6/pulse_start.png` (map render target 2 frames after the click) and `c6/pulse_settled.png` (0.6 s later). **Test**: `tests/sel_pulse.gd` (in `tools/test_ui.sh`).
+
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
 
@@ -240,7 +245,7 @@ Acceptance for every step: (a) Effects Off looks and behaves as before the step;
 | 10 | C4 | turn passing terminator, date flip, gauge count-up | `hud.gd`, `map_view.gd` | perf_idle, ui_hud_layout | End Turn dial untouched; mock first |
 | 11 | C1 | armies travel | `map_labels.gd` | march, labels_anim, label_shots | pixel-identical with Off |
 | 12 | C3 | clash marker | `map_labels.gd` | label_shots | |
-| 13 | C6 | selection pulse | shader | map_partial | |
+| 13 | C6 | (done) | | | |
 | 14 | C5 | ambient (Full only, only while the map already redraws) | shader tier | perf_idle (idle frames must stay 0), shader_compare | mock + bench first |
 | 15 | A3 | era timeline picker | `newgame.gd`, `menu_parts.gd` | ui_modals (newgame), ui_overflow | mock first (horizontal strip of 13 era cards) |
 | 16 | A4 | nation pick plates + hover card | `pick_flow.gd`, `preview_card.gd` | ui_monkey, ui_overflow | mock first |
