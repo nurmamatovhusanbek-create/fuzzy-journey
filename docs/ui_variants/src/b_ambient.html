@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terra Bellum — ambient life mock-up (C5)</title>
+<style>
+/*FONTS*/
+/*BEZELCSS*/
+html,body{overflow:hidden;height:auto;background:#0A0D12}
+body{font-feature-settings:'lnum' 1;color:#e8dcc0;font-family:Alegreya,serif}
+#sheet{width:1960px;padding:28px 30px 34px}
+h1{font:700 26px Cinzel;letter-spacing:.14em;text-transform:uppercase;margin:0 0 4px;color:#e5c77a}
+.sub{font:italic 19px Alegreya;color:#a99a78;margin:0 0 22px;max-width:1500px}
+.grid{display:grid;grid-template-columns:repeat(3,620px);gap:26px 34px}
+.cell{display:flex;flex-direction:column;gap:8px}
+.fr{position:relative;width:620px;height:349px;overflow:hidden;box-shadow:0 0 0 1px #33291a,0 12px 28px rgba(0,0,0,.55)}
+.st{position:absolute;left:0;top:0;width:1920px;height:1080px;transform:scale(.3229);transform-origin:0 0;background:#0A0D12 url(mock_assets/game_bg.jpg) 0 0/1920px 1080px no-repeat}
+.st.z{transform:scale(.78) translate(-620px,-250px)}
+.cap{font:600 13px Cinzel;letter-spacing:.16em;color:#c9a24b;text-transform:uppercase}
+.txt{font:17px/1.3 Alegreya;color:#cfc2a3;min-height:66px}
+.txt b{color:#e5c77a;font-weight:700}
+svg.lay{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none}
+.glint{position:absolute;border-radius:50%;background:radial-gradient(circle,#fff6d8 0,rgba(255,226,150,.75) 35%,rgba(255,226,150,0) 70%);mix-blend-mode:screen}
+.spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#cfe8ff;box-shadow:0 0 6px 2px rgba(160,210,255,.55);mix-blend-mode:screen}
+table{border-collapse:collapse;margin-top:26px;font:17px Alegreya;width:1900px}
+th{font:600 12px Cinzel;letter-spacing:.16em;text-transform:uppercase;color:#c9a24b;text-align:left;padding:8px 12px;border-bottom:1px solid #3a2f1d}
+td{padding:9px 12px;border-bottom:1px solid #261f14;color:#cfc2a3;vertical-align:top}
+td:first-child{color:#e5c77a;font-weight:700;white-space:nowrap}
+</style></head><body><div id="sheet">
+<h1>C5 · Ambient life on the map</h1>
+<p class="sub">Today a still map is perfectly still (and draws zero frames). Proposal for <b style="color:#e5c77a">Full only</b>: soft cloud shadows drift across the land and sea, the sea catches slow glints, and your cities and capitals twinkle at night. It is a thin, low-contrast layer; nothing on it carries information, and it must never cost frames while you are doing something else.</p>
+<div class="grid" id="g"></div>
+<table>
+<tr><th>Effects</th><th>What runs</th><th>Cost / rule</th></tr>
+<tr><td>Off · Light · Reduce motion</td><td>Exactly today: a still map.</td><td>No new draws; idle frames stay 0.</td></tr>
+<tr><td>Full, map tier high</td><td>Cloud shadows (two noise layers, 0.6 and 1.1 px/s drift, alpha 0.10), sea glints (sparse, 6 s blink), capital twinkle (2 s period). Pauses while the map is dragged, zoomed or a dialog is open; stops completely when the window loses focus.</td><td>One extra shader term in the existing map pass at 20 fps (not 60), measured with <code>perf_idle</code> in a new "ambient" mode before it is allowed to ship. If it costs more than 1 ms on the reference machine it stays off.</td></tr>
+<tr><td>Full, tier medium / low</td><td>Not available (the effect needs the high map tier).</td><td>Nothing.</td></tr>
+<tr><td>Owner switch</td><td>Settings -> Display gets "Ambient life" (on by default only where Full is the default).</td><td>Off by one click if it distracts.</td></tr>
+</table></div>
+<script>
+const g=document.getElementById('g');
+function clouds(dx,dy,seed,op){
+  return `<svg class="lay" viewBox="0 0 1920 1080"><defs><filter id="n${seed}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".0042 .0065" numOctaves="3" seed="${seed}"/><feColorMatrix type="matrix" values="0 0 0 0 0.02  0 0 0 0 0.03  0 0 0 0 0.06  0 0 0 3.4 -1.45"/></filter></defs><rect x="${-dx}" y="${-dy}" width="2400" height="1400" filter="url(#n${seed})" opacity="${op}"/></svg>`;}
+function glints(list){return list.map(([x,y,r,a])=>`<div class="glint" style="left:${x-r}px;top:${y-r}px;width:${2*r}px;height:${2*r}px;opacity:${a}"></div>`).join('');}
+function sparks(list){return list.map(([x,y,a])=>`<div class="spark" style="left:${x}px;top:${y}px;opacity:${a}"></div>`).join('');}
+// capitals in the screenshot (white dots): Paris area, London, Berlin, Madrid, Rome, Vienna, Constantinople, Moscow-ish
+const caps=[[851,414],[946,426],[1078,404],[805,685],[1090,668],[1116,510],[1325,670],[1388,187],[1150,206],[1061,312]];
+const seaPts=[[310,420],[420,610],[560,760],[220,860],[600,300],[250,230],[700,900],[520,520],[1480,860],[1250,820],[380,980],[150,600],[1600,560]];
+const F=[
+ {t:'0 s',cl:[0,0],a:.55,cap:[1,.3,.9,.2,.7,.4,1,.5,.2,.8],sp:[.9,0,.6,0,.8,0,.5,0,.9,0,.3,.7,0],txt:'<b>Still frame.</b> Compare with today: only a thin shadow layer, a few glints on the water, capitals faintly lit.'},
+ {t:'+6 s',cl:[220,90],a:.55,cap:[.2,1,.4,.9,.3,1,.2,.8,.9,.3],sp:[0,.8,0,.9,0,.7,0,.6,0,.9,.8,0,.6],txt:'<b>The shadows have drifted</b> east by a few hundred px; glints moved to other places; capitals twinkle out of step.'},
+ {t:'+12 s',cl:[470,170],a:.55,cap:[.8,.4,1,.3,.9,.2,.6,1,.4,.2],sp:[.5,.9,0,.4,.9,0,.9,0,.4,.6,0,.9,.5],txt:'<b>Slow and quiet.</b> Nothing here is bright enough to be mistaken for an alert or a lens colour.'}
+];
+for(const f of F){
+  let h=clouds(f.cl[0],f.cl[1],7,f.a*1.3)+clouds(f.cl[0]*1.7+300,f.cl[1]*1.4,19,f.a*.9)+glints(caps.map((c,i)=>[c[0],c[1],16,f.cap[i]*.65]))+sparks(seaPts.map((p,i)=>[p[0],p[1],f.sp[i]]));
+  g.insertAdjacentHTML('beforeend',`<div class="cell"><div class="fr"><div class="st">${h}</div></div><div class="cap">${f.t}</div><div class="txt">${f.txt}</div></div>`);
+  f.h=h;
+}
+for(const f of F) g.insertAdjacentHTML('beforeend',`<div class="cell"><div class="fr"><div class="st z">${f.h}</div></div><div class="cap">${f.t} · close-up</div></div>`);
+</script></body></html>
