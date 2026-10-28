@@ -1,9 +1,10 @@
 // node tools/flags/rasterize.mjs coldwar : flags/src/*.svg -> godot/assets/flags/<era>/<nation>.png (192x128, aspect kept, transparent letterbox)
+// add --only-authored to redo just the generated flags (tools/flags/author.py)
 // and <nation>_c.png (128x128): the circle crop for the HUD medallion, centred on tools/flags/focus.json[title slug] = [fx, fy, zoom] (default: the middle)
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import fs from 'fs'; import path from 'path';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
-const era = process.argv[2];
+const era = process.argv[2], onlyAuthored = process.argv.includes('--only-authored'); // --only-authored: leave the Commons-based PNGs alone, redo only the generated ones
 const M = JSON.parse(fs.readFileSync(path.join(root, 'tools/flags', era + '_map.json'), 'utf8'));
 const slug = t => t.slice(0, -4).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').toLowerCase();
 const outDir = path.join(root, 'godot/assets/flags', era); fs.mkdirSync(outDir, { recursive: true });
@@ -15,7 +16,7 @@ await p.setContent('<canvas id=c width=192 height=128></canvas><canvas id=m widt
 let ok = 0, miss = [];
 for (const [nat, v] of Object.entries(M)) {
   let svg;
-  if (v.title && fs.existsSync(path.join(root, 'flags/src', slug(v.title) + '.svg'))) { svg = fs.readFileSync(path.join(root, 'flags/src', slug(v.title) + '.svg'), 'utf8'); }
+  if (v.title && fs.existsSync(path.join(root, 'flags/src', slug(v.title) + '.svg'))) { if (onlyAuthored) continue; svg = fs.readFileSync(path.join(root, 'flags/src', slug(v.title) + '.svg'), 'utf8'); }
   else if (v.title) { const f = path.join(root, 'flags/authored', nat + '.svg'); if (!fs.existsSync(f)) { miss.push(nat); continue; } svg = fs.readFileSync(f, 'utf8'); miss.push(nat + '(emblem)'); }
   else { const f = [path.join(root, 'flags/authored', era, nat + '.svg'), path.join(root, 'flags/authored', nat + '.svg')].find(x => fs.existsSync(x)) || ''; if (!f) { miss.push(nat); continue; } svg = fs.readFileSync(f, 'utf8'); }
   const fk = v.title ? slug(v.title) : nat;
