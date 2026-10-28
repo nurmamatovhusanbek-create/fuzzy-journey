@@ -13,11 +13,11 @@ func _init() -> void:
 	main._start_game(main.g.nat_code.find("france"))
 	main.g.pending.clear(); main._clear_overlay(); main._select(-1)
 	main.hud.set_seal_pulse(false)
-	for i in 8: await process_frame
+	for i in 30: await process_frame
 	root.get_viewport().get_texture().get_image().save_png("%s/%s_globe.png" % [a[0], tag])
 	main.map.set_mode(1)
 	main.hud._minimap.refresh()
-	for i in 8: await process_frame
+	for i in 20: await process_frame
 	root.get_viewport().get_texture().get_image().save_png("%s/%s_flat.png" % [a[0], tag])
 	print("map buffer ", main.map._vp.size, " scale ", main.map._rs(), " tier ", main.map.quality)
 	print("logical ", root.get_visible_rect().size, " prof ", main.hud._prof)
