@@ -3,6 +3,7 @@ extends SceneTree
 ## "SCRIPT ERROR" and fails the run) or break the state: sizes, ranges, finiteness, no resource from nothing. Usage: -s tests/fuzz_commands.gd -- [iterations=4000] [seed=1] [era=napoleonic]   (run headless)
 const CMDS := ["move", "recruit", "declareWar", "peace", "ally", "nap", "breakPact", "build", "budget", "colonize", "relocate", "regime", "develop", "demolish", "hire", "spy", "eventChoice", "decide",
 	"trade", "marry", "cancelTrade", "appoint", "doctrine", "ultimatum", "ask", "noop", "nope", "", "__proto__"]
+const HEAVY := ["move", "recruit", "build", "budget", "develop", "hire", "declareWar", "peace"]
 var rng := RandomNumberGenerator.new()
 var fails := 0
 var g: TBGame
@@ -51,10 +52,16 @@ func _cmd() -> Dictionary:
 	var name: String = CMDS[rng.randi() % CMDS.size()]
 	var c := {"cmd": name}
 	var n_roll := rng.randf()
-	c["n"] = g.human_id if n_roll < 0.6 else (1 + rng.randi() % (g.N1 - 1) if n_roll < 0.95 else _junk())
-	var keys := ["p", "from", "to", "t", "amount", "troops", "b", "r", "uid", "i", "val", "key", "kind", "op", "id", "_force", "deal", "x"]
-	for k in keys:
-		if rng.randf() < 0.4: c[k] = _val(k) if k != "_force" and k != "deal" and k != "x" else _junk()
+	c["n"] = g.human_id if n_roll < 0.7 else (1 + rng.randi() % (g.N1 - 1) if n_roll < 0.95 else _junk())
+	if TBCommands.SCHEMA.has(name):                                           # mostly well-formed: fill the listed fields so the handlers themselves get exercised
+		for key in TBCommands.SCHEMA[name]:
+			var k: String = String(key).trim_prefix("?")
+			if String(key).begins_with("?") and rng.randf() < 0.4: continue
+			c[k] = _val(k)
+		if rng.randf() < 0.15: c.erase(c.keys()[rng.randi() % c.size()])
+	var extra := ["_force", "_ult", "deal", "x"]
+	for k in extra:
+		if rng.randf() < 0.15: c[k] = _junk()
 	return c
 
 func _snap() -> void:
@@ -95,11 +102,18 @@ func _init() -> void:
 	var ok_cnt := 0; var bad_cnt := 0
 	for i in iters:
 		var c := _cmd()
-		var before_gold: float = g.gold[fr]
+		var before_gold: float = g.gold[fr]; var before_mp: float = g.mp[fr]; var before_man: float = g.manpower[fr]
 		var r = g.apply(c)
 		_check(r is Dictionary and r.has("ok"), "apply returned %s for %s" % [str(r), str(c)])
 		if r is Dictionary:
-			if bool(r.get("ok", false)): ok_cnt += 1
+			if bool(r.get("ok", false)):
+				ok_cnt += 1
+				var nm: String = String(c.get("cmd", ""))
+				if int(c.get("n", 0)) == fr:
+					if not nm in ["spy", "eventChoice", "decide", "trade", "peace", "cancelTrade", "doctrine", "ask", "ultimatum", "marry"]:
+						_check(g.gold[fr] <= before_gold + 0.01, "%s raised gold %.1f -> %.1f: %s" % [nm, before_gold, g.gold[fr], str(c)])
+					_check(g.mp[fr] <= before_mp + 0.01, "%s raised move points: %s" % [nm, str(c)])
+					if nm != "eventChoice" and nm != "decide": _check(g.manpower[fr] <= before_man + 0.01, "%s raised manpower: %s" % [nm, str(c)])
 			else: bad_cnt += 1
 		if i % 40 == 39:
 			_invariants("after %d commands" % (i + 1))

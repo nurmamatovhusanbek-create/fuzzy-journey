@@ -5,11 +5,79 @@ extends RefCounted
 
 const D = preload("res://src/engine/data.gd")
 
+# ---------------------------------------------------------------- the command schema (one list for the interface, the AI and the server)
+## field kinds: p province | pn province or -1 | t nation | q 0..65000 | b building type | r regime | u event uid | k choice index | v -1000..1000 | s short id string; "?name" is optional.
+## `n` (the acting nation) is always required. Keys that are not listed are dropped, so a hostile client cannot smuggle a flag such as `_force` through; only a trusted caller keeps FLAGS.
+const SCHEMA := {
+	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"},
+	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
+	"build": {"p": "p", "b": "b"}, "demolish": {"p": "p", "?b": "b"}, "budget": {"key": "s", "val": "v"},
+	"colonize": {"p": "p"}, "relocate": {"p": "p"}, "develop": {"p": "p"}, "regime": {"r": "r"},
+	"spy": {"t": "t", "op": "s"}, "eventChoice": {"uid": "u", "i": "k"}, "decide": {"id": "s"}, "doctrine": {"id": "s"},
+	"trade": {"t": "t"}, "marry": {"t": "t"}, "cancelTrade": {"t": "t"}, "ultimatum": {"t": "t", "?p": "pn"}, "appoint": {"?p": "pn"},
+	"ask": {"kind": "s", "t": "t", "?op": "s", "?p": "pn"}, "noop": {},
+}
+const FLAGS := ["_force", "_ult"]                       # engine-internal switches (the AI and the court answers use them); never accepted from a client
+const PACT_CMDS := ["ally", "nap", "marry", "trade", "ultimatum", "breakPact"]
+const MAX_ID_LEN := 24
+
+## one field value in range, or null
+static func _field(g: TBGame, kind: String, v: Variant) -> Variant:
+	if kind == "s":
+		if not (v is String) or String(v).length() > MAX_ID_LEN: return null
+		return String(v)
+	if not (v is int or v is float): return null
+	if v is float and (is_nan(v) or is_inf(v) or absf(v) > 2.0e9): return null
+	var i := int(v)
+	match kind:
+		"p": return i if i >= 0 and i < g.P else null
+		"pn": return i if i >= -1 and i < g.P else null
+		"t": return i if i >= 1 and i < g.N1 else null
+		"q": return clampi(i, 0, 65000)
+		"b": return i if i >= 0 and i <= 64 else null
+		"r": return i if i >= 0 and i <= 32 else null
+		"u": return i if i >= 0 else null
+		"k": return i if i >= 0 and i <= 16 else null
+		"v": return clampi(i, -1000, 1000)
+	return null
+
+## a clean copy of a command (only the listed fields, typed and in range), or {} when it cannot be made valid. `err` (optional) gets the reason.
+static func normalize(g: TBGame, c: Dictionary, trusted: bool = false) -> Dictionary:
+	var cmd = c.get("cmd", "")
+	if not (cmd is String) or not SCHEMA.has(cmd): return {}
+	var out := {"cmd": cmd}
+	if cmd == "noop": return out
+	var n = _field(g, "t", c.get("n", 0))
+	if n == null: return {}
+	out["n"] = n
+	var spec: Dictionary = SCHEMA[cmd]
+	for key in spec:
+		var optional: bool = String(key).begins_with("?")
+		var name: String = String(key).substr(1) if optional else String(key)
+		if not c.has(name):
+			if optional: continue
+			return {}
+		var v = _field(g, String(spec[key]), c[name])
+		if v == null: return {}
+		out[name] = v
+	if trusted:
+		for f in FLAGS:
+			if c.has(f): out[f] = (c[f] is bool) and c[f]
+	return out
+
 # ---------------------------------------------------------------- commands (the ONLY mutation API)
 static func apply(g: TBGame, c: Dictionary) -> Dictionary:
-	var cmd: String = c.get("cmd", "")
+	var raw_cmd = c.get("cmd", "")
+	if not (raw_cmd is String) or not SCHEMA.has(raw_cmd): return {"ok": false, "err": "unknown"}
+	var n0 = _field(g, "t", c.get("n", 0))
+	if raw_cmd != "noop" and (n0 == null or g.alive[n0] == 0): return {"ok": false, "err": "dead"}
+	c = normalize(g, c, true)
+	if c.is_empty(): return {"ok": false, "err": "bad"}
+	var cmd: String = c["cmd"]
 	var n: int = int(c.get("n", 0))
-	if cmd != "noop" and (n <= 0 or n >= g.N1 or g.alive[n] == 0): return {"ok": false, "err": "dead"}
+	if c.has("t"):                                                              # whoever the command is aimed at: another living nation, never the actor, never the rebels in a pact
+		var t: int = c["t"]
+		if t == n or (g.alive[t] == 0 and cmd != "cancelTrade" and cmd != "peace") or (t == g.rebel and cmd in PACT_CMDS): return {"ok": false, "err": "target"}
 	match cmd:
 		"move": return _c_move(g, c)
 		"recruit": return _c_recruit(g, c)
