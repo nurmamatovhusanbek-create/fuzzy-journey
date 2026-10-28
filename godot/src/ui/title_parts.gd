@@ -232,9 +232,10 @@ class CardBtn extends Button:
 class RowBtn extends Button:
 	var title := ""
 	var u := 1.0
+	var tag := ""                          # a small plate at the right edge ("Coming soon")
 	signal chosen(btn: RowBtn)
-	func _init(title_text: String, scale_u: float, cb: Callable, why_disabled: String = "") -> void:
-		title = title_text; u = scale_u
+	func _init(title_text: String, scale_u: float, cb: Callable, why_disabled: String = "", tag_text: String = "") -> void:
+		title = title_text; u = scale_u; tag = tag_text
 		text = ""; flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		custom_minimum_size = Vector2(270.0 * u, maxf(40.0 * u, float(TBKit.touch())))
@@ -260,9 +261,19 @@ class RowBtn extends Button:
 		if hot: draw_circle(Vector2(dx, cy), s * 2.2, TBTokens.with_a(TBTokens.BZ_HI, 0.16))
 		draw_colored_polygon(dia, TBTokens.with_a(TBTokens.BZ_HI if hot else TBTokens.BZ_LO, dim))
 		var f := TBKit.tracked(TBKit.alegreya(700) if TBKit.readable_fonts else TBKit.wordmark(), 3)
-		var fsz := TBTitleParts.fit(f, title, TBKit.fs(13.5 * u), w - dx - 30.0 * u - 22.0 * u)
+		var tf := TBKit.tracked(TBKit.alegreya(700), 0.5)
+		var tsz := TBKit.fs(7.0 * u)
+		var tag_w: float = tf.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, tsz).x + 8.0 * u if tag != "" else 0.0
+		var fsz := TBTitleParts.fit(f, title, TBKit.fs(13.5 * u), w - dx - 30.0 * u - 22.0 * u - (tag_w + 2.0 * u if tag != "" else 0.0))
 		var ink: Color = TBTokens.c("brass_lt") if down else (TBTokens.c("cream") if hot else TBTokens.c("smoke"))
 		draw_string(f, Vector2(dx + 22.0 * u, roundf(cy + f.get_ascent(fsz) * 0.5 - 2.0)), title, HORIZONTAL_ALIGNMENT_LEFT, w - dx - 30.0 * u, fsz, TBTokens.with_a(ink, dim), TextServer.JUSTIFICATION_NONE)
+		if tag != "":
+			var th: float = tsz + 7.0 * u
+			var tr := Rect2(w - 8.0 * u - tag_w, cy - th * 0.5, tag_w, th)
+			var tcol: Color = TBTokens.with_a(TBTokens.BZ_HI if hot else TBTokens.BZ_LO, 0.9)
+			draw_rect(tr, TBTokens.with_a(TBTokens.BZ_LO, 0.10), true)
+			draw_rect(tr, tcol, false, 1.0)
+			draw_string(tf, Vector2(tr.position.x + 4.0 * u, roundf(cy + tf.get_ascent(tsz) * 0.5 - 1.0)), tag, HORIZONTAL_ALIGNMENT_LEFT, tag_w, tsz, tcol, TextServer.JUSTIFICATION_NONE)
 
 # ================================================================================================================================ the one selection bracket
 ## Four corner brackets drawn over the menu; it glides to the focused entry (jumps with Effects Off). `flash()` is the press feedback.
@@ -319,7 +330,7 @@ class Campaign extends Control:
 		var w := size.x; var cap_h: float = 22.0 * u
 		var cf := TBKit.tracked(TBKit.wordmark(), 2)
 		var csz := TBKit.fs(10.5 * u)
-		TBMenuParts.glow_text(self, cf, Vector2(0, roundf(cap_h * 0.7)), caption.to_upper(), w, csz, TBTokens.c("smoke"))
+		TBMenuParts.glow_text(self, cf, Vector2(0, roundf(cap_h * 0.7)), caption.to_upper(), w, TBTitleParts.fit(cf, caption.to_upper(), csz, w), TBTokens.c("smoke"))
 		var y0: float = cap_h
 		var h: float = size.y - cap_h
 		var pts := TBTitleParts.notch(w, h, 10.0 * u, 0.5)
@@ -335,9 +346,9 @@ class Campaign extends Control:
 		var tx: float = cx + 24.0 * u + 14.0 * u
 		var maxw: float = w - tx - 10.0 * u
 		var hf := TBKit.tracked(TBKit.wordmark(), 2)
-		draw_string(hf, Vector2(tx, roundf(y0 + 24.0 * u)), head.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, maxw, TBKit.fs(10.0 * u), TBTokens.c("brass_lt"), TextServer.JUSTIFICATION_NONE)
+		draw_string(hf, Vector2(tx, roundf(y0 + 24.0 * u)), head.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, maxw, TBTitleParts.fit(hf, head.to_upper(), TBKit.fs(10.0 * u), maxw), TBTokens.c("brass_lt"), TextServer.JUSTIFICATION_NONE)
 		var nf := TBKit.wordmark()
-		draw_string(nf, Vector2(tx, roundf(y0 + 50.0 * u)), nation, HORIZONTAL_ALIGNMENT_LEFT, maxw, TBKit.fs(22.0 * u), TBTokens.c("cream"), TextServer.JUSTIFICATION_NONE)
+		draw_string(nf, Vector2(tx, roundf(y0 + 50.0 * u)), nation, HORIZONTAL_ALIGNMENT_LEFT, maxw, TBTitleParts.fit(nf, nation, TBKit.fs(22.0 * u), maxw), TBTokens.c("cream"), TextServer.JUSTIFICATION_NONE)
 		var sf := TBKit.body_i()
-		draw_string(sf, Vector2(tx, roundf(y0 + 70.0 * u)), line1, HORIZONTAL_ALIGNMENT_LEFT, maxw, TBKit.fs(12.5 * u), TBTokens.c("smoke"), TextServer.JUSTIFICATION_NONE)
-		draw_string(sf, Vector2(tx, roundf(y0 + 88.0 * u)), line2, HORIZONTAL_ALIGNMENT_LEFT, maxw, TBKit.fs(12.5 * u), TBTokens.c("brass_lt"), TextServer.JUSTIFICATION_NONE)
+		draw_string(sf, Vector2(tx, roundf(y0 + 70.0 * u)), line1, HORIZONTAL_ALIGNMENT_LEFT, maxw, TBTitleParts.fit(sf, line1, TBKit.fs(12.5 * u), maxw), TBTokens.c("smoke"), TextServer.JUSTIFICATION_NONE)
+		draw_string(sf, Vector2(tx, roundf(y0 + 88.0 * u)), line2, HORIZONTAL_ALIGNMENT_LEFT, maxw, TBTitleParts.fit(sf, line2, TBKit.fs(12.5 * u), maxw), TBTokens.c("brass_lt"), TextServer.JUSTIFICATION_NONE)

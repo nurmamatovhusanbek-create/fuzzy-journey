@@ -400,7 +400,7 @@ func show_menu() -> void:
 	var ld := TP_.RowBtn.new(T.call("load"), u, flash.call(func(): _open_menu_hub("saves")), T.call("no_saves_yet") if saves == 0 else "")
 	if saves > 0: ld.tooltip_text = T.call("n_saves", {"n": saves})
 	rows.append(ld)
-	rows.append(TP_.RowBtn.new(T.call("multiplayer"), u, flash.call(func(): mp.open_menu())))
+	rows.append(TP_.RowBtn.new(T.call("multiplayer"), u, flash.call(_multiplayer_entry), "", "" if TBRelease.multiplayer else T.call("coming_soon")))
 	for r in rows: items.append(r); v.add_child(r)
 	for it in items:
 		it.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if wide else Control.SIZE_SHRINK_CENTER
@@ -420,6 +420,7 @@ func show_menu() -> void:
 		tip.setup(u, colw, true)
 		tip.position.x = 12.0 + 44.0 * u; tip.bottom_y = vs.y - 36.0 * u; tip.position.y = tip.bottom_y - tip.size.y
 		tip.show_note()
+		_place_title_note.call_deferred(tip, items, u)
 	# your campaign (wide layout, with a save)
 	if wide and has_save:
 		var era_id2: String = String(am.get("era", ""))
@@ -635,6 +636,23 @@ func _open_annals() -> void:
 	if g != null: TBModals.chronicle(_overlay, g, _goto_province, hud.feed_lines(8))
 
 ## Saves / Settings / How to play / Honours in one panel; tab = "saves" | "settings" | "howto" | "honours"
+## the note sits under the menu column; when the column (Continue card + four rows) reaches it, the note moves to the free corner at the right, under the campaign card
+func _place_title_note(tip: Control, items: Array, u: float) -> void:
+	if not is_instance_valid(tip) or items.is_empty(): return
+	var rows_bottom := 0.0
+	for it in items:
+		if is_instance_valid(it): rows_bottom = maxf(rows_bottom, (it as Control).get_global_rect().end.y)
+	if tip.position.y < rows_bottom + 10.0 * u:
+		tip.position.x = size.x - 52.0 * u - tip.size.x
+
+## the title's Multiplayer row: the lobby when online play is on, else a plain note that it is coming
+func _multiplayer_entry() -> void:
+	if TBRelease.multiplayer: mp.open_menu(); return
+	var m := K.modal(_overlay, T.call("mp_soon_title"), 440)
+	var body := K.label(T.call("mp_soon_body"), 15, K.DIM); body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	m[1].add_child(body)
+	m[1].add_child(K.button(T.call("close"), func(): m[0].queue_free(), true))
+
 func _open_menu_hub(tab: String = "") -> void:
 	var ctx := {"cfg": cfg, "in_game": mode == "game", "g": g if mode == "game" else null, "on_change": _on_setting_changed, "on_save": _save_slot, "on_load": _load_slot,
 		"on_menu": show_menu, "on_diag": _copy_diagnostics, "on_tutorial": func(): TBModals.tutorial(_overlay, func(): pass), "on_open": _title_panel_opened}
