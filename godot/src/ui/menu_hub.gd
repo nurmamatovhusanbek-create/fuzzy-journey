@@ -196,6 +196,7 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 	_seg(gd, T.call("fx_title"), [["off", T.call("fx_off")], ["light", T.call("fx_light")], ["full", T.call("fx_full")]], String(cfg.get("fx", "full")), func(v): set.call("fx", v))
 	_seg(gd, T.call("era_ui_title"), [["ring", T.call("era_ui_ring")], ["classic", T.call("era_ui_classic")]], String(cfg.get("era_ui", "ring")), func(v): set.call("era_ui", v))
 	_seg(gd, T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], String(cfg.get("ui", "normal")), func(v): set.call("ui", v))
+	_seg(gd, T.call("phone_layout"), [["desktop", T.call("phone_desktop")], ["compact", T.call("phone_compact")]], String(cfg.get("phone_ui", "desktop")), func(v): set.call("phone_ui", v))
 	_seg(gd, T.call("text_size"), [["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): set.call("text_scale", float(v), true))
 	gd.add_child(TBPanel.para(T.call("text_preview"), 15, K.DIM))
 	_seg(gd, T.call("language"), [["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], String(cfg["lang"]), func(v): set.call("lang", v, true))

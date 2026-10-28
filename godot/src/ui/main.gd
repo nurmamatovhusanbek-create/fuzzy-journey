@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "fx": "full", "era_ui": "ring", "win": {}}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "flat", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "fx": "full", "era_ui": "ring", "phone_ui": "desktop", "win": {}}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -119,25 +119,34 @@ func _offer_comfort() -> void:
 
 ## The UI is laid out in the Bezel demo's design units: a stage 1180 units tall on a desktop (390 on a phone held in landscape), scaled to the window.
 ## So a number in the demo (a 46 unit medallion, a 22 unit title) is the same number here. cfg "ui" is the demo's S / M / L (taller stage = smaller UI).
+const PHONE_STAGE := 1000.0
 func _update_ui_scale() -> void:
 	var w := get_window()
 	var s := w.size
 	var k: float = {"small": 1.18, "normal": 1.0, "large": 0.86}.get(cfg.get("ui", "normal"), 1.0)
 	var ppu: float = _px_per_unit(s, k)
 	w.content_scale_size = Vector2i(maxi(320, int(round(s.x / ppu))), maxi(240, int(round(s.y / ppu))))
+	var dpi_env := OS.get_environment("TB_DPI")
+	if dpi_env != "" or DisplayServer.is_touchscreen_available():                       # a touch screen: the invisible hit area is ~7 mm whatever the stage (HUD controls; see TBHudParts.touch_phys)
+		var ppl: float = float(s.x) / float(w.content_scale_size.x)
+		TBHudParts.touch_phys = ceilf(0.276 * (float(dpi_env) if dpi_env != "" else float(DisplayServer.screen_get_dpi())) / maxf(0.3, ppl))
+	else: TBHudParts.touch_phys = 0.0
 	_apply_safe_area()
 
-## the demo's rule: a phone in landscape (css height < 560 and width < 1300) uses a 390 unit stage, everything else 1180.
+## A phone in landscape (css height < 560 and width < 1300) used the demo's compact 390 unit stage. The owner asked for the desktop interface there too: cfg "phone_ui" = "desktop" (default)
+## gives it a PHONE_STAGE unit stage, tall enough that the whole desktop layout fits (every `is_phone()` / HUD profile test reads the logical height, so they all take the desktop paths);
+## "compact" brings the 390 unit layout back.
 ## On Android the css size is the window in dp (dpi / 160). TB_UI_SCALE (px per unit) overrides it for tests that emulate a density.
 func _px_per_unit(s: Vector2i, k: float = 1.0) -> float:
 	var env := OS.get_environment("TB_UI_SCALE")
 	if env != "": return clampf(float(env), 0.3, 4.0) / k
 	var dpr: float = 1.0
 	if OS.get_name() in ["Android", "iOS"]: dpr = clampf(DisplayServer.screen_get_dpi() / 160.0, 1.0, 4.0)
+	if OS.get_environment("TB_DPR") != "": dpr = clampf(float(OS.get_environment("TB_DPR")), 1.0, 4.0)      # tests: emulate a phone's density
 	var vw: float = s.x / dpr; var vh: float = s.y / dpr
 	if s.y > s.x: return clampf(s.x / 360.0, 1.0, 3.0) / k                    # portrait: 360 unit wide column
 	var phone: bool = vh < 560.0 and vw < 1300.0
-	var dh: float = (390.0 if phone else 1180.0) * k
+	var dh: float = ((PHONE_STAGE if String(cfg.get("phone_ui", "desktop")) == "desktop" else 390.0) if phone else 1180.0) * k
 	return s.y / dh
 
 ## keep UI clear of notches / rounded corners / gesture bars on phones
@@ -669,7 +678,7 @@ func _on_setting_changed(key: String) -> void:
 	match key:
 		"lang":
 			TBI18n.load_lang(cfg["lang"]); _rebuild_screens()
-		"quality", "view", "theme", "ui":
+		"quality", "view", "theme", "ui", "phone_ui":
 			_apply_quality(); _update_ui_scale()
 			if mode == "menu": _fit_title_globe()                      # the title is always the globe in its ring: the view setting only counts in a game
 			else: map.set_mode(0 if cfg["view"] == "globe" else 1)

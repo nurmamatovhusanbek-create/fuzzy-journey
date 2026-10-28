@@ -103,6 +103,9 @@ static func sync_settings() -> void:
 ## minimum hit area in logical px: 48 always, 56 with "large targets" (A11Y-TCH-001; never gated on the platform)
 static func touch() -> float:
 	return 56.0 if (bool(kit("large_targets", false)) or bool(kit("touch_large", false))) else 48.0
+## on a phone the desktop layout's units are physically small (a 1000 unit stage on ~1000 px): the invisible hit area grows to ~7 mm (set by main from the screen's dpi and the pixels per unit;
+## 0 = no growth, desktop), but never beyond 1.5 x the visible control so neighbours keep their own taps
+static var touch_phys: float = 0.0
 ## colour with another alpha
 static func al(c: Color, alpha: float) -> Color:
 	c.a = alpha
@@ -460,7 +463,10 @@ class Hit extends Control:
 	## the hit area is at least 48 x 48 (56 with large targets) around the visual, on both axes (A11Y-TCH-001)
 	func hit_rect() -> Rect2:
 		var t: float = TBHudParts.touch()
-		var ex := Vector2(maxf(2.0, (t - size.x) * 0.5), maxf(2.0, (t - size.y) * 0.5))
+		var tx: float = t; var ty: float = t
+		if TBHudParts.touch_phys > t:                                                      # per axis, never beyond 1.5 x the visible control (the rail's buttons are 78 apart)
+			tx = minf(TBHudParts.touch_phys, maxf(t, size.x * 1.5)); ty = minf(TBHudParts.touch_phys, maxf(t, size.y * 1.5))
+		var ex := Vector2(maxf(2.0, (tx - size.x) * 0.5), maxf(2.0, (ty - size.y) * 0.5))
 		return Rect2(-ex, size + ex * 2.0)
 	func _has_point(p: Vector2) -> bool:
 		return hit_rect().has_point(p)
