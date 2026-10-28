@@ -63,7 +63,7 @@ done
 out=$(timeout 200 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_nego.gd 2>&1); echo "$out" | grep -q "UI_NEGO OK" && echo "ok: tests/ui_nego.gd" || { echo "FAIL: tests/ui_nego.gd"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 200 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_windows.gd 2>&1); echo "$out" | grep -q "UI_WINDOWS OK" && echo "ok: tests/ui_windows.gd" || { echo "FAIL: tests/ui_windows.gd"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(timeout 200 xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_resize.gd 2>&1); echo "$out" | grep -q "UI_RESIZE OK" && echo "ok: tests/ui_resize.gd" || { echo "FAIL: tests/ui_resize.gd"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
-for cfg in "1280 720 1.0 en" "540 960 2.0 ru" "800 360 1.0 uz" "1920 1080 1.5 en"; do
+for cfg in "1280 720 1.0 en" "540 960 2.0 ru" "800 360 1.0 uz" "1920 1080 1.5 en" "1920 1080 1.5 ru"; do
   out=$(TB_NOANIM=1 timeout 200 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_overflow.gd -- $cfg 2>&1)
   echo "$out" | grep -q "OVERFLOW_AUDIT 0 findings" && echo "ok: ui_overflow $cfg" || { echo "FAIL: ui_overflow $cfg"; echo "$out" | grep -E "OVERFLOW |SCRIPT" | head -5; fail=1; }
 done

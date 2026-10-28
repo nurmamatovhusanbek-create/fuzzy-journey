@@ -88,7 +88,11 @@ class FxRow extends HBoxContainer:
 			val.base_y = by; val.text = value; val.size_flags_vertical = Control.SIZE_FILL
 			val.add_theme_color_override("font_color", col)
 			val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			if TBKit.text_scale >= 1.4: val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; val.custom_minimum_size.x = clampf(TBBz.tw(vf, value, TBKit.fsf(18.0)) + 2.0, 40.0, 150.0)      # a long figure wraps too, a short one keeps its own width
+			if TBKit.text_scale >= 1.4:                                   # a long figure wraps too (never narrower than its longest word), a short one keeps its own width
+				val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				var lw := 0.0
+				for wd in value.split(" ", false): lw = maxf(lw, TBBz.tw(vf, wd, TBKit.fsf(18.0)))
+				val.custom_minimum_size.x = maxf(ceilf(lw) + 2.0, clampf(TBBz.tw(vf, value, TBKit.fsf(18.0)) + 2.0, 40.0, 150.0))
 			add_child(val)
 		else:
 			ld.visible = false
