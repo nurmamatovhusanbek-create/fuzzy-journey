@@ -62,7 +62,7 @@ func want_w(h: float) -> float: return h
 func _globe_geom() -> Array:
 	return [Vector2(size.x * 0.5, 10.0 + round_r), round_r - 12.0]
 
-## the flat map's minimap is the same round window with the whole world flat in it (lon -180..180 across the diameter, the poles cropped), still, with a frame for what the main view shows
+## the flat map's minimap is the same round window with the main map's own Mercator world filling it (a square: lon -180..180 across the diameter, 85 deg N..S top to bottom; only the far polar corners are cropped by the circle), still, with a frame for what the main view shows
 func _is_flat() -> bool: return map != null and map.mode == 1
 
 func _has_point(p: Vector2) -> bool:
@@ -188,12 +188,12 @@ func _draw_frame() -> void:
 	var fpp: Array = _footprint()
 	if fpp.is_empty(): return
 	var segs: Array = []
-	if _is_flat():                                                              # the world is flat in the window: the footprint is a plain rectangle (drawn again a turn either side for the date line)
+	if _is_flat():                                                              # the world is a flat square in the window: the footprint is a plain rectangle (drawn again a turn either side for the date line)
 		var circ := PackedVector2Array()
 		for i in 64: circ.append(c + Vector2.from_angle(TAU * i / 64.0) * (R - 1.0))
 		for off in [-TAU, 0.0, TAU]:
 			var pl := PackedVector2Array()
-			for q in fpp: pl.append(c + Vector2((float((q as Vector2).x) + off) / PI, -float((q as Vector2).y) / PI) * R)
+			for q in fpp: pl.append(c + Vector2((float((q as Vector2).x) + off) / PI, -TBMapView.merc(float((q as Vector2).y)) / PI) * R)
 			for sg in Geometry2D.intersect_polyline_with_polygon(pl, circ): segs.append(sg)
 	else:
 		segs = _lines(fpp, map.lon0, map.lat0, c, R)
@@ -209,7 +209,7 @@ func _fly(pos: Vector2) -> void:
 		var gf: Array = _globe_geom()
 		var df: Vector2 = (pos - (gf[0] as Vector2)) / float(gf[1])
 		var lon: float = clampf(df.x, -1.0, 1.0) * 180.0
-		var lat: float = clampf(-df.y * 180.0, -80.0, 80.0)
+		var lat: float = clampf(rad_to_deg(TBMapView.imerc(-df.y * PI)), -80.0, 80.0)
 		looked.emit(lon, lat); map.fly_to(lon, lat); return
 	var gm: Array = _globe_geom()
 	var d: Vector2 = (pos - (gm[0] as Vector2)) / float(gm[1])
