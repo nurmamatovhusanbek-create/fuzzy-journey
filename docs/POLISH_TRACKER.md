@@ -81,14 +81,14 @@ Legend: `done` = built, tested, pushed. `mock` = approved mock-up exists, not bu
 | B6 | Turn summary sheet | **deferred: needs the owner's answer (section 6 Q3)** | | | |
 | B8 | Tooltips / toasts consistency: toast enters like a notice (slide 24 px + fade, 0.3 s), a replaced or expired toast fades out where it stood (0.22 s) instead of popping, HUD tooltip fades in and rises 5 px (0.12 s) | done | (this commit) | Light + Full; Off: exactly as before (toast fades 0.3 s, row reused, tip appears at once) | toast_fx.gd |
 | C2 | Conquest dissolve on the map (province colour crossfades 0.5 s, staggered) | done | fb13eb4 | Full + medium/high tier only; Light / Off: instant | conquest_fade.gd |
-| C4 | Turn passing: terminator sweep (Full), date flip + gauge count-up with floating change (Light + Full) | **mock made, awaiting the owner's go** (`docs/screens/c4/mock_turnpass.png`, source `docs/ui_variants/src/b_turnpass.html`) | | Off / Reduce motion: as today; the End Turn dial is not touched | perf_idle, ui_hud_layout, new `turn_pass.gd` |
+| C4 | Turn passing: terminator sweep (Full), date flip + gauge count-up with floating change (Light + Full) | **DEFERRED by the owner ("skip for now, we will see it later"); mock made, revisit when asked** (`docs/screens/c4/mock_turnpass.png`, source `docs/ui_variants/src/b_turnpass.html`) | | Off / Reduce motion: as today; the End Turn dial is not touched | perf_idle, ui_hud_layout, new `turn_pass.gd` |
 | C1 | Army pill glides from the old province to the new one | done | fb13eb4 | Light + Full; Off: none | map_fx.gd |
 | C3 | Clash marker (swords + losses) on the map; the report follows 0.7 s later on Full | done | fb13eb4 | Light + Full; Off: none, report at once | map_fx.gd |
 | C6 | Selection pulse: a newly selected province flashes cream once (0.55 s, ease-out) on top of the existing 35 % brass wash, then settles; the map is still again afterwards | done (province flash only; no nation-outline breath, it would need a permanent redraw) | (this commit) | Light + Full; Off: no flash, picture identical to before | sel_pulse.gd, map_partial, perf_idle |
 | C5 | Ambient sea / clouds / city glints (Full only) | queued (mock first) | | | |
 | A3 | Era picker on the title ring (variant A of the mock) | done, **awaiting owner's pick between ring / strip** | 52eaecd | Setting `era_ui` ring / classic (Settings -> Display); Off: ring jumps | era_ring.gd |
 | A4 | Nation pick with Bezel plates and hover card | queued (mock first) | | | |
-| A5b | Begin-game dive (new game) | queued | | | |
+| A5b | Begin-game dive: Play dissolves the pick screen (0.25 s), the camera flies to the capital (at least 1.3 s on Full), the HUD fades in as it arrives, the tutorial / briefing opens when the camera has arrived | done | (this commit) | Light: pick dissolve, the old fly, HUD fade, delayed briefing; Full: longer flight; Off / Reduce motion: all at once as before | begin_dive.gd |
 | D1 | Gauge count-up, rising delta, pulse | **already existed** (`TBHudParts.Chip.set_num`) | | respects Reduce motion | |
 | D2-D5 | other HUD micro-interactions | **checked, already in the Bezel port**: lens pointer glides (`TBHudParts` tuner `_px` easing), gauges count up, rail / medallion hover and press states follow the demo (parity-tested); the command card is a notched card (no ring to fan out) | | | |
 | E3 | Cue set: stamp, clash, gain, loss, defeat, page, bell, low (synthesised); `TBAudio.cue(name)` | partly done (wired: stamp, clash, gain / loss, defeat, page) | 52eaecd | respects the sound setting | audio.gd |
@@ -226,6 +226,11 @@ After (`docs/screens/flags/after.png`, big flag + the 192x128 game PNG + the 48x
 * **Not done on purpose**: a permanent breathing outline on the nation - it would keep the map redrawing while nothing happens (breaks `perf_idle`).
 * **Pictures**: `c6/pulse_start.png` (map render target 2 frames after the click) and `c6/pulse_settled.png` (0.6 s later). **Test**: `tests/sel_pulse.gd` (in `tools/test_ui.sh`).
 
+### A5b · Begin-game dive
+* **Found**: Play cleared the pick screen in one frame, started the (short) camera flight and put the HUD and the briefing on screen at once, so the briefing covered a map that was still moving.
+* **Changed** (`main.gd` `_start_game`, new `_dissolve_overlay`, `_ft_gen`; `map_view.gd` `fly_to(..., min_dur)`): with Light or Full the pick screen fades 0.25 s (marked `tb_closing`, so it is not a modal and takes no mouse), the camera flies (Full: at least 1.3 s), the HUD fades in from half-way through the flight over 0.6 s, and the tutorial / briefing opens 0.15 s after the camera arrives. Anything that clears the screen meanwhile (`_clear_overlay`) cancels the pending briefing. Off / Reduce motion: the old code path, unchanged.
+* **Picture**: `a5b/begin_mid.png` (0.4 s after Play on Full). **Test**: `tests/begin_dive.gd` (in `tools/test_ui.sh`).
+
 
 ## 5. Work queue (top = next). Every step: build behind `TBFx`, run its tests, update sections 3 and 4, commit + push, then take the next row.
 
@@ -242,14 +247,14 @@ Acceptance for every step: (a) Effects Off looks and behaves as before the step;
 | 7 | B6 | turn summary sheet (non-blocking) | `hud.gd`, `alert_ticker.gd` | ui_hud_layout x8, ui_monkey | setting to disable; only when something happened |
 | 8 | B8 | (done) | | | |
 | 9 | C2 | conquest sweep | `map_view.gd`, shader | map_partial, perf_idle, bake, label_shots | **mock first** (before/after pictures + short video) |
-| 10 | C4 | turn passing terminator, date flip, gauge count-up | `hud.gd`, `map_view.gd` | perf_idle, ui_hud_layout | End Turn dial untouched; mock first |
+| 10 | C4 | DEFERRED (owner: later). Mock: `docs/screens/c4/mock_turnpass.png` | `hud.gd`, `map_view.gd` | perf_idle, ui_hud_layout | End Turn dial untouched |
 | 11 | C1 | armies travel | `map_labels.gd` | march, labels_anim, label_shots | pixel-identical with Off |
 | 12 | C3 | clash marker | `map_labels.gd` | label_shots | |
 | 13 | C6 | (done) | | | |
 | 14 | C5 | ambient (Full only, only while the map already redraws) | shader tier | perf_idle (idle frames must stay 0), shader_compare | mock + bench first |
 | 15 | A3 | era timeline picker | `newgame.gd`, `menu_parts.gd` | ui_modals (newgame), ui_overflow | mock first (horizontal strip of 13 era cards) |
 | 16 | A4 | nation pick plates + hover card | `pick_flow.gd`, `preview_card.gd` | ui_monkey, ui_overflow | mock first |
-| 17 | A5b | begin-game dive | `main.gd` `_start_game` | title_dive style recorder | reuse `_dive_*` |
+| 17 | A5b | (done) | | | |
 | 18 | D | HUD micro-interactions (D1-D5) | `hud*.gd`, `bz_parts.gd` | ui_hud_layout x8, parity | never the End Turn dial |
 | 19 | E | sound: 3 sample cues for the owner, then music bus, ambience, ~20 cues, ducking | `audio.gd` | audio, volume test | owner picks the style from samples; generate offline, small ogg |
 | 20 | F | era mood tints, loading tips, portraits / flags for more eras, event art, codex polish | content | | open-ended |

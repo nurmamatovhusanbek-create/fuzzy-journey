@@ -235,7 +235,20 @@ func _new_demo_game() -> void:
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 
 func _clear_overlay() -> void:
+	_ft_gen += 1                                   # a briefing waiting for the camera (A5b) is cancelled by anything that clears the screen
 	for c in _overlay.get_children(): c.queue_free()
+
+var _ft_gen := 0
+
+## A5b: the nation-pick screen dissolves (0.25 s) instead of vanishing; its controls stop taking the mouse at once and the game ignores it (tb_closing)
+func _dissolve_overlay() -> void:
+	_ft_gen += 1
+	for c in _overlay.get_children():
+		if c.is_queued_for_deletion(): continue
+		c.set_meta("tb_closing", true)
+		TBPanel._ignore_mouse(c)
+		TBFx.tween(c, {"modulate:a": 0.0}, 0.25, TBFx.LIGHT)
+		get_tree().create_timer(0.3).timeout.connect(func(): if is_instance_valid(c): c.queue_free())
 
 const MP_ = preload("res://src/ui/menu_parts.gd")
 var _bezel: Control
@@ -812,19 +825,32 @@ func _start_game(n: int) -> void:
 		_hot_n = 0
 	else:
 		g.set_human(n); g.color[n] = 0xC63A4A
-	mode = "game"; _enter_game_visuals(); _clear_overlay(); _log_idx = g.log.size()
+	var dive: bool = TBFx.on(TBFx.LIGHT)                              # A5b: the begin-game move (Off / Reduce motion: the game appears at once, as before)
+	mode = "game"; _enter_game_visuals(); _log_idx = g.log.size()
+	if dive: _dissolve_overlay()
+	else: _clear_overlay()
 	TBLenses.dark_land = true
 	map.set_mode(0 if cfg["view"] == "globe" else 1)
 	map.lenses.refresh_nations(); map.repaint_all()
 	var cap := g.capital_of[n]
-	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2 if map.mode == 0 else maxf(map.zoom, 3.0))
+	if cap >= 0: map.fly_to(world.lon[cap], world.lat[cap], 2.2 if map.mode == 0 else maxf(map.zoom, 3.0), 1.3 if TBFx.on(TBFx.FULL) else 0.0)
 	hud.g = g; hud.visible = true; hud.build(); hud.refresh()
 	hud.set_seal_pulse(not cfg.get("seal_seen", false))
 	_select(-1)
 	_autosave()
 	var first_run: bool = not cfg.get("tutorial", false)
 	if first_run: cfg["tutorial"] = true; _save_cfg()
-	TBModals.first_turn(_overlay, g, first_run)                  # tutorial (first game) + briefing; Skip on the tutorial skips both in one tap
+	if not dive:
+		TBModals.first_turn(_overlay, g, first_run)                  # tutorial (first game) + briefing; Skip on the tutorial skips both in one tap
+		return
+	# the interface fades in as the camera arrives, then the briefing opens (anything that clears the screen meanwhile cancels the briefing)
+	var fly_s: float = float(map._fly.get("dur", 0.4)) if not map._fly.is_empty() else 0.0
+	hud.modulate.a = 0.0
+	TBFx.tween(hud, {"modulate:a": 1.0}, 0.6, TBFx.LIGHT, {}, fly_s * 0.5)
+	var gen: int = _ft_gen
+	var gg: TBGame = g
+	get_tree().create_timer(fly_s + 0.15).timeout.connect(func():
+		if gen == _ft_gen and mode == "game" and g == gg: TBModals.first_turn(_overlay, g, first_run))
 
 # ---------------------------------------------------------------- input
 func _on_pick(p: int, secondary: bool) -> void:

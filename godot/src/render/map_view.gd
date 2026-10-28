@@ -494,7 +494,7 @@ func jump_to(lon_deg: float, lat_deg: float, z: float) -> void:
 	_clamp_flat(); _push_view()
 
 ## glide the camera to a place (eased; instant when animations are off or the map is not laid out yet)
-func fly_to(lon_deg: float, lat_deg: float, z: float = -1.0) -> void:
+func fly_to(lon_deg: float, lat_deg: float, z: float = -1.0, min_dur: float = 0.0) -> void:
 	var tl := deg_to_rad(lon_deg)
 	var tla := clampf(deg_to_rad(lat_deg), -1.45, 1.45)
 	var tz := z if z > 0.0 else zoom
@@ -504,7 +504,7 @@ func fly_to(lon_deg: float, lat_deg: float, z: float = -1.0) -> void:
 		_clamp_flat(); _push_view(); return
 	var dl := wrapf(tl - lon0, -PI, PI)
 	var span := absf(dl) + absf(tla - lat0) + absf(log(tz / zoom)) * 0.4
-	_fly = {"t": 0.0, "dur": clampf(0.30 + span * 0.55, 0.30, 1.0), "l0": lon0, "dl": dl, "a0": lat0, "da": tla - lat0, "z0": zoom, "z1": tz}
+	_fly = {"t": 0.0, "dur": maxf(min_dur, clampf(0.30 + span * 0.55, 0.30, 1.0)), "l0": lon0, "dl": dl, "a0": lat0, "da": tla - lat0, "z0": zoom, "z1": tz}
 
 ## zoom at which the whole Mercator world is as tall as the view (never less than 1: the world is as wide as the view)
 func flat_fit() -> float: return maxf(1.0, (size.y / (2.0 * merc(MERC_LIM))) / (size.x / TAU))
