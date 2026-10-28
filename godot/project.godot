@@ -6,6 +6,7 @@ config_version=5
 config/quit_on_go_back=false
 config/name="Terra Bellum"
 config/description="Turn-based grand strategy on a globe."
+config/version="1.0.0"
 run/main_scene="res://src/ui/main.tscn"
 run/low_processor_mode=true
 run/low_processor_mode_sleep_usec=12000
