@@ -92,6 +92,9 @@ static func _a(c: Color, al: float) -> Color:
 static func strong() -> bool: return TBLenses.cvd != "off" or TBTokens.is_hc()
 ## marker geometry follows the text size up to 1.5x (labels follow it fully)
 static func mk() -> float: return clampf(TBKit.text_scale, 1.0, 1.5)
+## the army marker's own scale: the text-size scale times the shrink that comes with closing in past province scale (set once per layout from the map)
+var _shrink := 1.0
+func amk() -> float: return mk() * _shrink
 
 var _hex := {}
 func _nat_col(o: int) -> Color:
@@ -570,7 +573,7 @@ func prov_px() -> float:
 
 ## half extent of a marker along direction d (unit) at tier zt, for the arrow trim and the target push
 func _ext_tier(zt: int, army: int, d: Vector2, hot: bool = false) -> float:
-	var m := mk()
+	var m := amk()
 	if hot: return _ext_tier(zt, army, d) + 5.0 * m
 	if zt == 0: return 9.0 * m
 	var near := zt >= 2
@@ -580,7 +583,7 @@ func _ext_tier(zt: int, army: int, d: Vector2, hot: bool = false) -> float:
 
 ## claim rectangle of a marker at pos for the tier: covers everything it draws (outline, pip, tab room), so no two markers overlap
 func _marker_rect(pos: Vector2, ztier: int, army: int, gen: bool, gw: float) -> Rect2:
-	var m := mk()
+	var m := amk()
 	match ztier:
 		0: return Rect2(pos.x - 8.0 * m, pos.y - 8.0 * m, 16.0 * m, 16.0 * m)
 		1: return Rect2(pos.x - (gw * 0.5 + 4.0) * m, pos.y - (_badge_h(false) * 0.5 + 4.0) * m, (gw + 8.0) * m, (_badge_h(false) + 8.0) * m)
@@ -595,6 +598,7 @@ func _draw_layout() -> void:
 	if map == null or g == null or hidden_while_dragging: return
 	_refresh_keepout()
 	_cam_update()
+	_shrink = map.army_scale()
 	_nl_rects.clear()
 	if g.human_id == 0:                 # nation-pick screen: names only
 		_frame_rects.clear(); _order_box = Rect2()
@@ -803,7 +807,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var army: int = g.army[p]
 	if not own and not war and not ally and not hot and p != map.hover and not map.atlas_look(): al *= 0.7        # quiet foreign stacks recede
 	var ease_in: float = float(st["a"])
-	var sc := (0.6 + 0.4 * (1.0 - pow(1.0 - ease_in, 3.0))) * mk()                       # out-cubic appear, no overshoot
+	var sc := (0.6 + 0.4 * (1.0 - pow(1.0 - ease_in, 3.0))) * amk()                      # out-cubic appear, no overshoot (amk: smaller once you are close in)
 	sc *= 1.0 + 0.26 * float(st["pop"]) * float(st["pop"])
 	if map.atlas_look() and own and hot and not order_committed() and ztier > 0: return        # the command ring shows the army instead
 	var nat := _nat_col(o)
@@ -814,7 +818,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var txt := TBKit.fmt(int(round(st["shown"])))
 	var near: bool = ztier == 2
 	var atlas := map.atlas_look()
-	var fsz: int = TBKit.fs(15.0 if atlas else (13.0 if near else 12.0))
+	var fsz: int = maxi(8, int(round(float(TBKit.fs(15.0 if atlas else (13.0 if near else 12.0))) * _shrink)))
 	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var bw := _badge_w(nfont, int(round(st["shown"])), near, o != 0)
 	var bh: float = _badge_h(near)

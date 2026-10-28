@@ -286,16 +286,23 @@ func _rs() -> float:
 	var cap: float = sqrt(float(PX_BUDGET[clampi(quality, 0, 2)]) / (size.x * size.y))
 	return maxf(rs, minf(rs * ppl, cap))
 
-## Province lines fade in as the id map's texels per pixel of the tier's NOMINAL map buffer (render_scale, not the sharper phone buffer) fall below 1.6, full at 0.8 (globe.gdshader
-## multiplies its own tpp by `tpp_k` to the same end). Army markers use this very number, so a phone and a desktop show the borders, and the army numbers with them, at the same zoom.
-func prov_tpp() -> float:
-	if world == null: return 99.0
-	var idw: float = float(world.W / 2 if _ids_is_half else world.W)
+## Province lines (and with them the army numbers) belong to COUNTRY scale: they start to fade in when the globe's radius reaches LINES_R0 logical px (a few provinces of a country
+## fill a quarter of the screen) and are full at LINES_R1; further out only the national borders show. The threshold is in degrees per logical px at the view centre (the same on the
+## globe and the flat map: 57.3 / radius), so it holds in every era and quality tier; globe.gdshader fades its province strokes with the same two numbers (`lines_d1`, `lines_d2`).
+const LINES_R0 := 1210.0
+const LINES_R1 := 1760.0
+const LINES_D1 := 57.29578 / LINES_R0
+const LINES_D2 := 57.29578 / LINES_R1
+func prov_dpp() -> float:
 	var ppr: float = radius_px() if mode == 0 else flat_scale()                        # logical px per radian at the view centre
-	return (idw / TAU) / maxf(1.0, ppr * maxf(0.1, render_scale))
-func prov_lines_alpha() -> float: return clampf((1.6 - prov_tpp()) / 0.8, 0.0, 1.0)
-## the rule: army numbers show while the province borders show (a little in, so they never appear on an invisible line), globe and flat, desktop and phone
+	return 57.29578 / maxf(1.0, ppr)
+func prov_lines_alpha() -> float: return clampf((LINES_D1 - prov_dpp()) / (LINES_D1 - LINES_D2), 0.0, 1.0)
+## the rule: army numbers show while the province lines show (a little in, so they never appear on an invisible line), globe and flat, desktop and phone
 func prov_lines_shown() -> bool: return prov_lines_alpha() >= 0.25
+## the army marker gets smaller as you close in past province scale (full size where the lines are full, 62 % from a radius of 3500 px): in a big province it would cover the province
+func army_scale() -> float:
+	var r: float = 57.29578 / maxf(prov_dpp(), 1e-5)
+	return lerpf(1.0, 0.62, smoothstep(LINES_R1, 3500.0, r))
 
 func _push_view() -> void:
 	if _mat == null: return
@@ -329,6 +336,7 @@ func _push_view() -> void:
 	_mat.set_shader_parameter("strong", 1 if (TBTokens.is_hc() or TBLenses.cvd != "off") else 0)
 	_mat.set_shader_parameter("px_scale", rs)
 	_mat.set_shader_parameter("tpp_k", rs / maxf(0.1, render_scale))
+	_mat.set_shader_parameter("lines_d1", LINES_D1); _mat.set_shader_parameter("lines_d2", LINES_D2)
 	_mat.set_shader_parameter("hi_owner", _hi_owner)
 	_mat.set_shader_parameter("outline_owner", _outline_owner)
 	_mat.set_shader_parameter("atlas", 1 if atlas_look() else 0)

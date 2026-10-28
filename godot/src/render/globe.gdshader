@@ -29,6 +29,8 @@ uniform int theme = 0;           // 0 standard, 1 parchment
 uniform int hc = 0;              // 1 = high-contrast map: 2x borders, lifted land, black sea, no rim light
 uniform int strong = 0;          // 1 = colour-vision / high-contrast: relation patterns at full strength
 uniform float tpp_k = 1.0;       // buffer scale / the tier's nominal scale: the province lines fade by the nominal texels-per-pixel, so a sharper phone buffer does not make them appear earlier
+uniform float lines_d1 = 0.0473;     // province lines start below this many degrees per logical px and are full at lines_d2 (country scale; see TBMapView.LINES_R0)
+uniform float lines_d2 = 0.0326;
 uniform float px_scale = 1.0;    // render resolution / logical resolution (patterns and strokes are in logical px)
 uniform int outline_owner = -1;   // nation whose outer border is outlined in brass (the selected province's owner), others untouched
 uniform int hi_owner = -1;       // nation lit on the pick screen (others dim), -1 none
@@ -305,6 +307,8 @@ void fragment() {
 		int id = hq ? hq_id(t) : ((quality >= 2) ? smooth_id(t) : id_at(ti));
 		vec2 ex = dtx * px_scale;                            // texel step of one logical px
 		vec2 ey = dty * px_scale;
+		float dpp_l = max(length(ex), length(ey)) * 360.0 / id_size.x;      // degrees per logical px
+		float lines_k = clamp((lines_d1 - dpp_l) / (lines_d1 - lines_d2), 0.0, 1.0);   // province lines: 0 far out, 1 at country scale and closer
 
 		vec3 col;
 		vec3 acc = atlas == 1 ? signal_col : vec3(0.95, 0.77, 0.32);
@@ -446,7 +450,7 @@ void fragment() {
 					if (nid != id && nid != 0 && owner_of(nid) == own) b_prov = true;
 				}
 			}
-			float pa = 0.55 * clamp((1.6 - tpp_s) / 0.8, 0.0, 1.0);
+			float pa = 0.55 * lines_k;
 			if (b_prov) col = mix(col, vec3(0.0), pa);
 			float ink_a = mix(1.0, 0.72, smoothstep(0.8, 2.0, tpp_s));
 			if (b_nat || b_coast) col = mix(col, vec3(0.039, 0.051, 0.071), ink_a);
@@ -538,7 +542,7 @@ void fragment() {
 		}
 		if (atlas == 1) {
 			if (!atlas_done) {                                                                         // low tiers: plain ink lines
-				col = mix(col, vec3(0.0), clamp(1.1 - e_prov, 0.0, 1.0) * 0.55 * clamp((1.6 - tpp_s) / 0.8, 0.0, 1.0));   // province lines (medium): rgba(0,0,0,.55) like the high tier
+				col = mix(col, vec3(0.0), clamp(1.1 - e_prov, 0.0, 1.0) * 0.55 * lines_k);   // province lines (medium): rgba(0,0,0,.55) like the high tier
 				col = mix(col, vec3(0.039, 0.051, 0.071), clamp(1.3 - e_nat, 0.0, 1.0));
 				col = mix(col, vec3(0.039, 0.051, 0.071), clamp(1.3 - e_coast, 0.0, 1.0));
 				col = mix(col, vec3(0.824, 0.376, 0.247), clamp(1.3 - e_war, 0.0, 1.0));

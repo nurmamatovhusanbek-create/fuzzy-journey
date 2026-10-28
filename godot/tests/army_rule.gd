@@ -1,6 +1,6 @@
 extends SceneTree
 ## The army-number rule: army pills show while the province borders show and not otherwise, globe and flat, at a desktop and at a phone's pixel density.
-## Usage: -s tests/army_rule.gd -- <w> <h>      (TB_UI_SCALE=2 with a 1688x780 window = a 844x390 phone)
+## Usage: -s tests/army_rule.gd -- <w> <h> [screenshot dir]   (the zoom sweep is saved as pictures when a dir is given)      (TB_UI_SCALE=2 with a 1688x780 window = a 844x390 phone)
 var fails := 0
 func _check(cond: bool, what: String) -> void:
 	if not cond: print("FAIL: ", what); fails += 1
@@ -43,12 +43,28 @@ func _init() -> void:
 			for i in 90: await process_frame
 			var shown: bool = map.prov_lines_shown()
 			var n := _active(main)
-			print("mode ", mode, " zoom ", snappedf(map.zoom, 0.01), " tpp ", snappedf(map.prov_tpp(), 0.01), " lines_shown ", shown, " army pills ", n)
+			print("mode ", mode, " zoom ", snappedf(map.zoom, 0.01), " deg/px ", snappedf(map.prov_dpp(), 0.01), " lines_shown ", shown, " army pills ", n)
 			_check((n > 0) == shown, "mode %d zoom %.2f: pills %d but lines_shown %s" % [mode, map.zoom, n, str(shown)])
 			if zf == 0.0: shown_at_far = shown
 			else: shown_at_near = shown
 		_check(not shown_at_far, "mode %d: the whole-world view shows no army numbers" % mode)
 		_check(shown_at_near, "mode %d: a close view shows them" % mode)
+	# the marker gets smaller as you close in past province scale
+	map.set_mode(0)
+	var base_z := 1.0
+	map.lon0 = deg_to_rad(g.world.lon[p0]); map.lat0 = deg_to_rad(g.world.lat[p0])
+	var prev := 2.0
+	for zf in [1.0, 2.0, 3.0, 4.5, 7.0, 12.0, 24.0]:
+		map.zoom = base_z * zf; map._push_view()
+		var sc: float = map.army_scale()
+		print("globe x", zf, " radius ", snappedf(map.radius_px(), 1.0), " lines ", snappedf(map.prov_lines_alpha(), 0.01), " shown ", map.prov_lines_shown(), " marker scale ", snappedf(sc, 0.01))
+		_check(sc <= prev + 1e-4 and sc >= 0.61 and sc <= 1.0, "the marker scale only shrinks as you zoom in (%.2f)" % sc)
+		prev = sc
+		if a.size() > 2:
+			for i in 40: await process_frame
+			root.get_viewport().get_texture().get_image().save_png("%s/zoom_%02d.png" % [a[2], int(zf * 10.0)])
+	_check(map.army_scale() < 0.7, "much closer in, the marker is about 62 %")
+	map.zoom = 1.0; map._push_view()
 	# where the numbers switch on, per view mode (zoom factor of the whole-world view)
 	for mode in [0, 1]:
 		map.set_mode(mode)
