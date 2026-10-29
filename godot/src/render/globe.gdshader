@@ -280,6 +280,13 @@ vec3 sea_grad(vec2 lp, vec2 sz) {
 	return mix(vec3(0.0627, 0.0980, 0.1333), vec3(0.0235, 0.0314, 0.0471), clamp(t, 0.0, 1.0));
 }
 
+// coverage (0..1) of a graticule line of the given step (degrees) at a point: about 1.5 px wide, dppx / dppy = degrees per logical px along longitude / latitude, gk = cos(lat) on the globe
+float grat_cov(float lat_d, float lon_d, float step, float dppx, float dppy, float gk) {
+	float dla = abs(fract(lat_d / step + 0.5) - 0.5) * step / max(dppy, 1e-6);
+	float dlo = abs(fract(lon_d / step + 0.5) - 0.5) * step * gk / max(dppx, 1e-6);
+	return max(clamp(1.5 - dla, 0.0, 1.0), clamp(1.5 - dlo, 0.0, 1.0));
+}
+
 void fragment() {
 	float ms = rect_size.y / px_scale / 1000.0;           // the demo's map scale on the stage (cam.ms = H / 1080 * 1.08 at H = stage height)
 	vec2 p = UV * rect_size;
@@ -329,10 +336,13 @@ void fragment() {
 				float gk = mode == 0 ? cos(lat) : 1.0;
 				float dppx = mode == 1 ? abs(ex.x) * 360.0 / id_size.x : dpp;          // flat (Mercator): lon and lat degrees per px differ by cos(lat)
 				float dppy = mode == 1 ? abs(ey.y) * 360.0 / id_size.x : dpp;
-				float gstep = 5.0 / max(dppx, 1e-6) < 34.0 ? (15.0 / max(dppx, 1e-6) < 34.0 ? 30.0 : 15.0) : 5.0;       // zoomed far out the 5 degree mesh turns into a hatch: widen it
-				float dla = abs(fract(lat_d / gstep + 0.5) - 0.5) * gstep / max(dppy, 1e-6);
-				float dlo = abs(fract(lon_d / gstep + 0.5) - 0.5) * gstep * gk / max(dppx, 1e-6);
-				float gcov = max(clamp(1.5 - dla, 0.0, 1.0), clamp(1.5 - dlo, 0.0, 1.0)) * 0.4 * ms * grid_k * clamp(gk * 2.0, 0.0, 1.0);
+				// the graticule: a 30 degree mesh always, and the 15 degree lines between its lines fade in as they spread apart (no finer mesh, and no line that stops where a step changes:
+				// the step used to be chosen per pixel, which left short ladders of 5 degree lines wherever the view was most magnified)
+				float px15 = 15.0 / max(dppx, 1e-6);
+				float w15 = smoothstep(28.0, 44.0, px15);
+				float cov30 = grat_cov(lat_d, lon_d, 30.0, dppx, dppy, gk);
+				float cov15 = w15 > 0.0 ? grat_cov(lat_d, lon_d, 15.0, dppx, dppy, gk) * w15 : 0.0;
+				float gcov = max(cov30, cov15) * 0.4 * ms * grid_k * clamp(gk * 2.0, 0.0, 1.0);
 				col = mix(col, vec3(0.788, 0.635, 0.294), gcov);
 				if (quality >= 1) {
 					// the coastal glow from the distance field (one read) instead of 8 + up to 40 probes of the id texture: land within 5 px of a sea pixel lights it (#6e8fa3 at .06),
