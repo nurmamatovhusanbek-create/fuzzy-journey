@@ -582,6 +582,26 @@ static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyp
 	h.head = box
 	outer.add_child(box)
 
+## where a window's top edge sits (the same rule _fit_bz places it by)
+static func _top_y(h: Handle) -> float:
+	var phone: bool = h.phone
+	var y: float = 8.0 if phone else 150.0
+	if h.form == "dialog":
+		if h.dock != "left": return 8.0 if phone else 100.0
+	elif h.dock != "right" and h.dock != "center" and drawer_rect_fn.is_valid() and not phone:
+		var dr: Rect2 = drawer_rect_fn.call()
+		if dr.size.x > 100.0: y = dr.position.y
+	if h.bz_pos.x >= 0.0: y = h.bz_pos.y
+	return y
+
+## the most a window may be tall: down to a small margin above the bottom of the screen, whatever the stage (a phone drawn on a 760 unit stage has less room than a desktop)
+static func avail_h(h: Handle) -> float:
+	var vs := _vs(h)
+	if h.phone: return vs.y - 16.0
+	var top_y: float = _top_y(h)
+	if h.movable and h.user_pos.y > -1.0: top_y = clampf(h.user_pos.y, 0.0, maxf(0.0, vs.y - 56.0))
+	return maxf(minf(vs.y - 186.0, vs.y - top_y - 8.0), 200.0)
+
 ## bezel placement and size of a dialog / drawer / panel: the width of the screen (opts w), as tall as its content up to the demo's panel height,
 ## docked next to the rail (x 340, y 190), to the right (x = W - w - 28) or, for modals, at x centred / y = max(100, (H - h) / 2 - 20)
 static func _fit_bz(h: Handle) -> void:
@@ -591,7 +611,7 @@ static func _fit_bz(h: Handle) -> void:
 	var wdef: float = {"dialog": 460.0, "drawer": 560.0, "panel": 900.0}.get(h.form, 460.0)
 	var w: float = h.bz_w if h.bz_w > 0.0 else (600.0 if (h.wide and h.form == "dialog") else wdef)
 	w = minf(w, vs.x - (12.0 if phone else 32.0))
-	var panel_h: float = (vs.y - 16.0) if phone else maxf(vs.y - 186.0, 240.0)               # desktop: y 150 to 36 above the bottom, so whole cards fit without scrolling
+	var panel_h: float = avail_h(h)                                                            # as tall as the room under the window's top edge (a card that is taller scrolls inside)
 	var hmax: float = minf(h.bz_h if h.bz_h > 0.0 else panel_h, panel_h) if (phone or h.form == "dialog") else panel_h      # a desktop panel is as tall as its content, up to the whole room
 	var forced_h: bool = false
 	if h.movable and h.user_size.x > 0.0: w = clampf(h.user_size.x, WIN_MIN.x, maxf(WIN_MIN.x, vs.x - 8.0))                 # the player's size wins over the demo's width / content height
@@ -618,6 +638,7 @@ static func _fit_bz(h: Handle) -> void:
 				h.scroll.custom_minimum_size.y = clampf(body_min, 40.0, maxf(avail - ph - 8.0, 40.0))
 		else:
 			h.scroll.custom_minimum_size.y = maxf(minf(body_min, avail), 40.0)
+	if h.scroll == null and forced_h: c.custom_minimum_size.y = hmax               # a window without its own body scroll (Nations): a height the player set is exactly that tall, the columns scroll inside
 	c.size = Vector2(w, 0)
 	c.reset_size()
 	var x: float
@@ -646,6 +667,21 @@ static func _fit_bz(h: Handle) -> void:
 const WIN_MIN := Vector2(360.0, 260.0)
 const RZ_EDGE := 10.0
 
+## on a touch screen the resize handles are fat enough for a finger, and the corner shows a grip (a mouse keeps the thin invisible edges of the demo)
+static func _touch() -> bool: return TBHudParts.touch_phys > 0.0
+static func _rz_edge() -> float: return 24.0 if _touch() else RZ_EDGE
+static func _rz_corner() -> float: return 60.0 if _touch() else 20.0
+
+## the corner grip: three diagonal strokes inside the window's bottom right corner (the control is centred on the corner)
+class ResizeGrip extends Control:
+	func _draw() -> void:
+		if not TBPanel._touch(): return
+		var c := size * 0.5
+		var col: Color = TBTokens.with_a(TBTokens.c("brass_lt"), 0.85)
+		for k in 3:
+			var d: float = 9.0 + 8.0 * float(k)
+			draw_line(c + Vector2(-5.0 - d, -5.0), c + Vector2(-5.0, -5.0 - d), col, 1.8, true)
+
 ## remember / restore this screen's place and size, make the header a drag handle and add the right / bottom / corner resize handles
 static func _setup_window(h: Handle, title_text: String, glyph_id: String, opts: Dictionary) -> void:
 	h.mem_key = String(opts.get("key", glyph_id if glyph_id != "" else title_text))
@@ -671,7 +707,7 @@ static func _setup_window(h: Handle, title_text: String, glyph_id: String, opts:
 				h.user_pos = pos.floor()
 				_fit_bz(h))
 	for side in ["r", "b", "br"]:
-		var rz := Control.new()
+		var rz: Control = ResizeGrip.new() if side == "br" else Control.new()
 		rz.mouse_filter = Control.MOUSE_FILTER_STOP
 		rz.mouse_default_cursor_shape = {"r": Control.CURSOR_HSIZE, "b": Control.CURSOR_VSIZE, "br": Control.CURSOR_FDIAGSIZE}[side]
 		rz.set_meta("side", side)
@@ -704,9 +740,11 @@ static func _place_resizers(h: Handle) -> void:
 	for rz in h.resizers:
 		var ctl: Control = rz
 		match String(ctl.get_meta("side")):
-			"r": ctl.position = Vector2(r.end.x - RZ_EDGE * 0.5, r.position.y + 16.0); ctl.size = Vector2(RZ_EDGE, maxf(8.0, r.size.y - 32.0))
-			"b": ctl.position = Vector2(r.position.x + 16.0, r.end.y - RZ_EDGE * 0.5); ctl.size = Vector2(maxf(8.0, r.size.x - 32.0), RZ_EDGE)
-			"br": ctl.position = r.end - Vector2(14.0, 14.0); ctl.size = Vector2(20.0, 20.0)
+			"r": ctl.position = Vector2(r.end.x - _rz_edge() * 0.5, r.position.y + 16.0); ctl.size = Vector2(_rz_edge(), maxf(8.0, r.size.y - 32.0 - (_rz_corner() * 0.5 if _touch() else 0.0)))
+			"b": ctl.position = Vector2(r.position.x + 16.0, r.end.y - _rz_edge() * 0.5); ctl.size = Vector2(maxf(8.0, r.size.x - 32.0 - (_rz_corner() * 0.5 if _touch() else 0.0)), _rz_edge())
+			"br":
+				if _touch(): ctl.position = r.end - Vector2(_rz_corner() * 0.5, _rz_corner() * 0.5); ctl.size = Vector2(_rz_corner(), _rz_corner()); ctl.queue_redraw()
+				else: ctl.position = r.end - Vector2(14.0, 14.0); ctl.size = Vector2(20.0, 20.0)
 
 static func _save_window(h: Handle) -> void:
 	if h.mem_key == "": return

@@ -87,7 +87,10 @@ func _ready() -> void:
 	hud.decisions_pressed.connect(func(): if not _toggle_window("decrees"): _open_decisions())
 	hud.chronicle_pressed.connect(func(): if not _toggle_window("annals"): _open_annals())
 	hud.advisor_pressed.connect(func(): if not _toggle_window("council"): _open_council("advice"))
-	hud.wars_pressed.connect(func(): _open_nations(-1, "war"))
+	hud.wars_pressed.connect(func():                                                   # the Wars chip: the list of wars; pressed again while that list is up, it closes
+		var w: TBPanel.Handle = _nations_window()
+		if w != null and _nations_filter == "war": w.close(); _nations_filter = ""
+		else: _open_nations(-1, "war"))
 	panel.nation_requested.connect(_open_nation)
 	panel.terms_requested.connect(func(e: int): TBTermsScreen.open(_overlay, g, e, {"on_cmd": func(c: Dictionary): _on_command(c, false)}))
 	hud.budget_pressed.connect(func(): if not _toggle_window("treasury"): _open_budget())
@@ -105,6 +108,7 @@ func _ready() -> void:
 	resized.connect(func(): hud.layout_for(size); panel.layout_for(size))        # the HUD first: the card fits the band the End Turn seal leaves
 	hud.layout_changed.connect(func(): panel.layout_for(size))
 	get_window().size_changed.connect(_update_ui_scale); _update_ui_scale()
+	var touch_scroll := TBTouchScroll.new(); touch_scroll.root_ctl = self; add_child(touch_scroll)         # a finger drags every list
 	_apply_quality()
 	_new_demo_game()
 	show_menu()
@@ -591,8 +595,10 @@ func _title_restore() -> void:
 # UI ENTRY POINTS (modals): the HUD dock, ribbon chips and shortcuts call these. Everything below this marker up to the
 # "end of UI entry points" marker belongs to the modal system; keep HUD wiring to one-line calls.
 # ================================================================================================================================
+var _nations_filter := ""                  # what the Nations window was last opened to show ("war" from the Wars chip)
 func _open_nations(select: int = -1, filter: String = "", tab: String = "") -> void:
 	if g == null: return
+	_nations_filter = filter
 	var o := {"on_cmd": _on_command, "on_goto": _goto_nation, "on_fly": _fly_to_nation}
 	if select > 0: o["select"] = select
 	if filter != "": o["filter"] = filter

@@ -379,8 +379,13 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			(ui["master"] as Control).visible = false; (ui["detail_scroll"] as Control).visible = true
 			h.set_title(g.dname(n))
 		_footer(h, g, n, pick, taken, on_goto, on_play, opts)
+		# the room the columns have: the window's most (TBPanel.avail_h) less what surrounds them (header, tabs, footer, padding); a card taller than that scrolls inside it
+		var cap_fn := func() -> float:
+			if not h.is_open(): return 100000.0
+			return maxf(120.0, TBPanel.avail_h(h) - (h.card.get_combined_minimum_size().y - content.get_combined_minimum_size().y))      # from minimum sizes: it must not change when the columns are resized
 		h.on_forced = func(forced: bool) -> void:               # the player set the height: the card scrolls inside it instead of keeping the height of its whole content
-			if is_instance_valid(ui["detail_scroll"]): (ui["detail_scroll"] as ScrollContainer).custom_minimum_size.y = 470.0 if forced else maxf(470.0, float(ui.get("full_h", 470.0)))
+			if is_instance_valid(ui["detail_scroll"]): (ui["detail_scroll"] as ScrollContainer).custom_minimum_size.y = 120.0 if forced else minf(maxf(470.0, float(ui.get("full_h", 470.0))), float(cap_fn.call()))
+			if not portrait: content.custom_minimum_size = Vector2(0, 120.0 if forced else minf(470.0, float(cap_fn.call())))
 		if not ph0:                                             # the panel is as tall as the demo's card (min 470); the extras below it scroll
 			var dsc: ScrollContainer = ui["detail_scroll"]
 			var dv2: VBoxContainer = ui["detail_box"]
@@ -390,7 +395,9 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 				var hh := 0.0
 				for i in mini(de, dv2.get_child_count()): hh += (dv2.get_child(i) as Control).size.y
 				ui["full_h"] = hh
-				dsc.custom_minimum_size.y = 470.0 if h.user_size.y > 0.0 else maxf(470.0, hh)
+				var cap: float = cap_fn.call()
+				dsc.custom_minimum_size.y = 120.0 if h.user_size.y > 0.0 else minf(maxf(470.0, hh), cap)
+				if not portrait: content.custom_minimum_size = Vector2(0, 120.0 if h.user_size.y > 0.0 else minf(470.0, cap))
 				TBPanel._fit_bz(h), CONNECT_ONE_SHOT)
 		if rows.has(n) and not portrait: (ui["list_scroll"] as ScrollContainer).ensure_control_visible.call_deferred(rows[n])
 	# ---- rankings tab

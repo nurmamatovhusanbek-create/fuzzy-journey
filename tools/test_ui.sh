@@ -50,6 +50,14 @@ echo "$out" | grep -q "ALERT_CUES OK" && echo "ok: alert_cues" || { echo "FAIL: 
 # multiplayer is "coming soon" in a release: the tag, the note, no network; the Advisor's note never covers the title rows
 out=$(TB_NOANIM=1 timeout 150 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/mp_soon.gd -- 1920 1080 2>&1)
 echo "$out" | grep -q "MP_SOON OK" && echo "ok: mp_soon" || { echo "FAIL: mp_soon"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+# the Samsung S22 case (2340x1080 at 2.66 density): every HUD button closes what it opened on a second press, windows end on the screen, a finger scrolls lists and resizes windows
+for t in toggle_close:TOGGLE_CLOSE win_fit:WIN_FIT touch_scroll:TOUCH_SCROLL; do
+  name=${t%%:*}; tag=${t##*:}
+  out=$(TB_DPR=2.66 TB_DPI=425 TB_NOANIM=1 timeout 280 xvfb-run -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/$name.gd -- 2340 1080 2>&1)
+  echo "$out" | grep -q "${tag} OK" && echo "ok: $name (phone)" || { echo "FAIL: $name (phone)"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+done
+out=$(TB_NOANIM=1 timeout 280 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/win_fit.gd -- 1920 1080 2>&1)
+echo "$out" | grep -q "WIN_FIT OK" && echo "ok: win_fit (desktop)" || { echo "FAIL: win_fit (desktop)"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 # F2 the Advisor's note (title + a long turn; Effects Off and Light; the same at a phone's density)
 out=$(TB_NOANIM= timeout 290 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/advisor_note.gd -- 1920 1080 2>&1)
 echo "$out" | grep -q "ADVISOR_NOTE OK" && echo "ok: advisor_note 1920x1080" || { echo "FAIL: advisor_note 1920x1080"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
