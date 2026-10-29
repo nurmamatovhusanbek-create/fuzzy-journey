@@ -20,11 +20,11 @@ func _init() -> void:
 	var hud = main.hud
 	var vs: Vector2 = root.get_visible_rect().size
 	print("desktop layout on a phone: logical ", vs, " profile ", hud._prof, " minimap r ", hud._minimap.round_r, " rail ", hud._rail_n, " touch_phys ", TBHudParts.touch_phys)
-	_check(absf(vs.y - 1000.0) < 2.0, "the stage is 1000 units tall (%s)" % str(vs))
+	_check(absf(vs.y - main.phone_stage()) < 2.0, "the stage is %d units tall (%s)" % [int(main.phone_stage()), str(vs)])
 	_check(hud._prof == 0, "the HUD takes the desktop profile")
 	_check(not TBKit.is_phone(main), "no screen takes the compact phone paths")
 	_check(hud._minimap.visible and hud._minimap.round_r >= 70.0, "the full-size minimap with its caption")
-	_check(hud._rail_n >= 5, "the desktop rail (%d buttons)" % hud._rail_n)
+	_check(hud._rail_n >= 4 and (hud._rail_n >= 6 or hud._dock_more.visible), "the desktop rail (%d buttons, the rest behind More)" % hud._rail_n)
 	_check(hud._mode.items.size() >= 9, "the lens bar lists all the lenses (%d)" % hud._mode.items.size())
 	_check(TBHudParts.touch_phys > 48.0, "the hit area grows on a touch screen (%.0f units)" % TBHudParts.touch_phys)
 	var b: Control = hud._dock[0]

@@ -120,7 +120,10 @@ func _offer_comfort() -> void:
 
 ## The UI is laid out in the Bezel demo's design units: a stage 1180 units tall on a desktop (390 on a phone held in landscape), scaled to the window.
 ## So a number in the demo (a 46 unit medallion, a 22 unit title) is the same number here. cfg "ui" is the demo's S / M / L (taller stage = smaller UI).
-const PHONE_STAGE := 1000.0
+const PHONE_STAGE := 760.0
+static func phone_stage() -> float:
+	var env := OS.get_environment("TB_PHONE_STAGE")                                  # tests: try another stage height
+	return clampf(float(env), 400.0, 1400.0) if env != "" else PHONE_STAGE
 func _update_ui_scale() -> void:
 	var w := get_window()
 	var s := w.size
@@ -147,7 +150,7 @@ func _px_per_unit(s: Vector2i, k: float = 1.0) -> float:
 	var vw: float = s.x / dpr; var vh: float = s.y / dpr
 	if s.y > s.x: return clampf(s.x / 360.0, 1.0, 3.0) / k                    # portrait: 360 unit wide column
 	var phone: bool = vh < 560.0 and vw < 1300.0
-	var dh: float = ((PHONE_STAGE if String(cfg.get("phone_ui", "desktop")) == "desktop" else 390.0) if phone else 1180.0) * k
+	var dh: float = ((phone_stage() if String(cfg.get("phone_ui", "desktop")) == "desktop" else 390.0) if phone else 1180.0) * k
 	return s.y / dh
 
 ## keep UI clear of notches / rounded corners / gesture bars on phones

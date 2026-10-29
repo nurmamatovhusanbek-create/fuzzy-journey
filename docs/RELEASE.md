@@ -22,7 +22,7 @@ TB_KEYSTORE=/path/terrabellum-release.keystore TB_KEYSTORE_PASS='...' tools/buil
 | Target API | **34** (Android 14) | Installs and runs on Android 14, 15 and 16. Android only refuses apps targeting below API 23. |
 | Permissions | **none** | Internet and network state are off while multiplayer is off. Nothing to explain on install. |
 | CPUs | arm64-v8a and armeabi-v7a | Every current phone and tablet, including 32-bit-userland budget phones. Not x86 emulators. |
-| Orientation | **landscape only** (`userLandscape`: either way up, never portrait) | The phone shows the desktop-style 1000-unit layout with bigger touch areas. Checked in the APK manifest. Godot's orientation value is `4` (sensor landscape); `6` means any rotation. |
+| Orientation | **landscape only** (`userLandscape`: either way up, never portrait) | The phone shows the desktop-style layout on a **760-unit-tall stage** (`PHONE_STAGE` in `godot/src/ui/main.gd`; it was 1000 and the buttons were too small on a Samsung S22 at about 20 dp, now about 26 dp) with bigger touch areas. On a short stage the left rail squeezes its spacing and puts the last screens (Annals, Goals) behind the **More** button. Checked in the APK manifest. Godot's orientation value is `4` (sensor landscape); `6` means any rotation. |
 | Graphics | OpenGL ES 3.0 (Godot compatibility renderer) | Any phone since about 2015. |
 | Signature | APK Signature Scheme v1 + v2 + v3, RSA-4096, valid to 2056 | One key signs every future update. **Lose the key and players can never update in place.** |
 | Size | about 80 MB | Both CPU families inside. |

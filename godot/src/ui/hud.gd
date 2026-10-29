@@ -308,8 +308,17 @@ func _layout_demo(vp: Vector2) -> void:
 	var bx: float = axis - D * 0.5
 	var top_b: float = m + med * 2.0 + (8.0 if ph else 78.0)
 	var bot_b: float = vp.y - m - (10.0 if ph else (float(L["mmR"]) * 2.0 + 66.0))
+	# the rail ends above the minimap (desktop profile): on a short stage (a phone held sideways, drawn large) the spacing squeezes first, then the last screens fold into "More"
+	var avail: float = (bot_b - top_b) if not ph else (vp.y - 6.0 - top_b)
 	var cnt: int = PRIMARY
-	while cnt > 3 and float(cnt - 1) * st + D > vp.y - 6.0 - top_b: cnt -= 1
+	var step: float = st
+	while true:
+		if float(cnt - 1) * step + D <= avail: break
+		var sq: float = (avail - D) / float(cnt - 1)
+		if sq >= D + 12.0: step = sq; break
+		if cnt <= 3: step = D + 12.0; break
+		cnt -= 1
+	st = step
 	var overflow: bool = cnt < PRIMARY
 	_rail_n = cnt - 1 if overflow else cnt
 	var tot_h: float = float(cnt - 1) * st + D
