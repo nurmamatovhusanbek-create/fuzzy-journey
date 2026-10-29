@@ -162,9 +162,9 @@ func build() -> void:
 	_mm_btn = P.IconBtn.new(); _mm_btn.glyph = "globe"; _mm_btn.show_label = false; _mm_btn.framed = true; _mm_btn.icon_px = 20.0
 	_mm_btn.set_a11y(T.call("tk_minimap")); _mm_btn.pressed.connect(func(): _mm_open = not _mm_open; layout_for(_vp)); add_child(_mm_btn)
 	_zin = P.IconBtn.new(); _zin.glyph = "plus"; _zin.show_label = false; _zin.framed = true; _zin.ticks_n = 0; _zin.icon_px = 16.0
-	_zin.set_a11y(T.call("nav_zoom_in")); _zin.pressed.connect(func(): tapped.emit(); if map_view != null: map_view.zoom_by(1.4, true)); _wire(_zin, _tip_text.bind(T.call("nav_zoom_in"), "+")); add_child(_zin)
+	_zin.set_a11y(T.call("nav_zoom_in")); _zin.pressed.connect(func(): cue.emit("tap"); if map_view != null: map_view.zoom_by(1.4, true)); _wire(_zin, _tip_text.bind(T.call("nav_zoom_in"), "+")); add_child(_zin)
 	_zout = P.IconBtn.new(); _zout.glyph = "minus"; _zout.show_label = false; _zout.framed = true; _zout.ticks_n = 0; _zout.icon_px = 16.0
-	_zout.set_a11y(T.call("nav_zoom_out")); _zout.pressed.connect(func(): tapped.emit(); if map_view != null: map_view.zoom_by(1.0 / 1.4, true)); _wire(_zout, _tip_text.bind(T.call("nav_zoom_out"), "−")); add_child(_zout)
+	_zout.set_a11y(T.call("nav_zoom_out")); _zout.pressed.connect(func(): cue.emit("tap"); if map_view != null: map_view.zoom_by(1.0 / 1.4, true)); _wire(_zout, _tip_text.bind(T.call("nav_zoom_out"), "−")); add_child(_zout)
 	_minimap = TBMinimap.new(); add_child(_minimap)
 	_minimap.tip_requested.connect(func(): _tip_show(_minimap, [T.call("tk_minimap"), T.call("tk_minimap_hint")])); _minimap.tip_hidden.connect(_tip_hide)
 	# ---- toasts, legend, hot-seat strip, turn button

@@ -351,6 +351,7 @@ func _push_view() -> void:
 		labels.max_labels = [30, 70, 110][quality]
 		labels.hidden_while_dragging = quality == 0 and _pressed and _drag_moved >= 6.0
 		_labels_relayout()
+		labels.refresh_names()                                         # the names follow the camera every frame, whatever the layout's own pace
 	view_changed.emit()
 
 ## zoomed in far enough that other countries' districts are worth telling apart (their names, armies and terrain appear); further out, a country is one thing

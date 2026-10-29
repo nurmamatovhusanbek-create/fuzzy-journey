@@ -74,12 +74,14 @@ func _ready() -> void:
 	TBMapCursor.install(self)                       # keyboard map cursor + on-screen nav pad (accessibility)
 	_overlay = Control.new(); _overlay.set_anchors_preset(Control.PRESET_FULL_RECT); _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
-	_overlay.child_entered_tree.connect(func(_c: Node): if hud != null: hud.dismiss_floating())      # a screen or dialog opens: the HUD tooltip / popover goes
+	_overlay.child_entered_tree.connect(func(_c: Node):
+		if hud != null: hud.dismiss_floating()
+		_dismiss_map_info())      # a screen or dialog opens: the HUD tooltip / popover goes
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
 	hud.end_turn_pressed.connect(func():
-		sfx.play("turn"); end_turn()
+		sfx.play("turn"); _dismiss_map_info(); end_turn()
 		if not cfg.get("seal_seen", false): cfg["seal_seen"] = true; _save_cfg(); hud.set_seal_pulse(false))
-	hud.tapped.connect(func(): sfx.play("tap"))
+	hud.tapped.connect(func(): sfx.play("tap"); _dismiss_map_info())       # any button, gauge, menu or alert: what a district showed goes (the zoom buttons play the cue only: same map)
 	hud.cue.connect(func(n: String): sfx.play(n))
 	hud.lens_selected.connect(func(n): map.set_lens(n); hud.set_lens_legend(n))
 	hud.nations_pressed.connect(func(): if not _toggle_window("nations"): _open_nations())
@@ -941,6 +943,12 @@ func _on_hover(p: int) -> void:
 func _place_tip() -> void:
 	if tip == null or not tip.visible: return
 	tip.position = (get_local_mouse_position() + Vector2(18, 20)).clamp(Vector2.ZERO, size - tip.size)
+
+## one thing at a time: whatever a clicked district showed (selection, ring, card, inspector, tip, and the army armed by selecting it) goes when anything else is called.
+func _dismiss_map_info() -> void:
+	if tip != null: tip.visible = false
+	if mode != "game" or g == null or flow == null: return
+	if selected >= 0 or (ring != null and ring.visible): _select(-1)
 
 func _select(p: int) -> void:
 	selected = p

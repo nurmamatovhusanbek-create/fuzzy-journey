@@ -54,6 +54,66 @@ func attach(m: TBMapView) -> void:
 	map = m
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	names = NamesLayer.new(); names.owner_labels = self; names.show_behind_parent = true
+	add_child(names)
+
+## The names (nations and districts) are drawn by their own layer, every frame the camera moves, from anchors worked out by the (throttled) layout: a name follows the map exactly instead of
+## trailing it in steps. The layout decides which names show and where; it keeps what it decided last time while that still fits (a name does not hop between two places as the map turns),
+## and a name that stops fitting fades out instead of blinking.
+class NamesLayer extends Control:
+	var owner_labels: TBMapLabels
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+	func _draw() -> void:
+		if owner_labels != null: owner_labels._draw_names(self)
+	func _process(delta: float) -> void:
+		if owner_labels != null and owner_labels._step_names(delta): queue_redraw()
+
+var names: NamesLayer
+var _nc := {}                      # nation -> a placed name {v: anchor (unit vector), lines, font, fs, lh, w, gw, atlas, ha, mine, rel, a: alpha, t: target alpha}
+var _pc := {}                      # province -> a placed district name {p, txt, ff, fs, tw, ha, a, t}
+var _nstate := {}                  # nation -> {ci, vi, fs}: the place, wording and size chosen last time (tried first next time)
+const FADE_PER_S := 6.0
+
+## redraw the names at the camera's current place (cheap: no layout)
+func refresh_names() -> void:
+	if names != null and (not _nc.is_empty() or not _pc.is_empty()): names.queue_redraw()
+
+const GRACE_FRAMES := 12           # a name whose place is blocked for a moment keeps it this long before it fades (a passing collision is not a reason to blink)
+func _fade_unseen(cache: Dictionary, seen: Dictionary, grace: bool = true) -> void:
+	var now := Engine.get_frames_drawn()
+	for k in cache:
+		if seen.has(k): continue
+		var e: Dictionary = cache[k]
+		if grace and float(e["t"]) > 0.5 and TBKit.motion_ok():
+			if not e.has("miss"): e["miss"] = now
+			if now - int(e["miss"]) < GRACE_FRAMES: continue
+		e["t"] = 0.0
+
+## alphas toward their targets; true while any is still moving (the layer keeps redrawing)
+func _step_names(delta: float) -> bool:
+	var moving := false
+	var motion := TBKit.motion_ok()
+	for cache in [_nc, _pc]:
+		var dead: Array = []
+		for k in cache:
+			var e: Dictionary = cache[k]
+			var t: float = e["t"]
+			var a: float = e["a"]
+			if a != t:
+				a = move_toward(a, t, delta * FADE_PER_S) if motion else t
+				e["a"] = a
+				moving = true
+			if e.has("off"):
+				var o: Vector2 = e["off"]
+				if o != Vector2.ZERO:
+					o *= exp(-delta * 11.0) if motion else 0.0
+					e["off"] = o if o.length() > 0.5 else Vector2.ZERO
+					moving = true
+			if a <= 0.0 and t <= 0.0: dead.append(k)
+		for k in dead: cache.erase(k)
+	return moving
 
 func set_game(game: TBGame) -> void:
 	g = game
@@ -65,6 +125,7 @@ func set_game(game: TBGame) -> void:
 		_unit[p] = Vector3(cl * sin(lon), sin(lat), cl * cos(lon))   # x east, y north, z toward lon=0
 	_order = {}
 	_core_sig = -1
+	_nc.clear(); _pc.clear(); _nstate.clear()
 	queue_redraw()
 
 ## C3: the clash marker over a province where a battle was just fought: a pill with crossed swords and the losses, a short shake on arrival (Full / Light; nothing with Effects Off)
@@ -190,6 +251,10 @@ func _project_v(u: Vector3, c0: float, s0: float, sl: float, cl: float, R: float
 static func label_font() -> Font:
 	return TBKit.tracked(TBKit._font("cinzel-latin-500-normal", ["alegreya-sc-cyrillic-500-normal"]), 2)
 
+## tests: every name drawn is recorded as [frame, kind, key, position, size] so the smoothness of the names while the camera moves can be measured
+static var force_cost_ms := 0.0          # tests: pretend a layout costs this much (a slow phone: the map throttles relayouts while the camera moves)
+static var tracing := false
+static var trace: Array = []
 var phone := false
 var ring_c := Vector2(-999.0, -999.0)      # the command ring's centre (screen px) while a province is selected, else far away
 
@@ -307,7 +372,7 @@ func _sees(p: int, me: int) -> bool:
 	if m == 1: return true
 	return p < TBVision._mask.size() and TBVision._mask[p] != 0
 
-func _draw_nation_names() -> void:
+func _place_nation_names() -> void:
 	_cam_update()
 	_nl_rects.clear()
 	phone = map.size.y < 560.0
@@ -315,7 +380,8 @@ func _draw_nation_names() -> void:
 	if map.selected >= 0 and g.human_id != 0:
 		var rp := map.project(g.world.lon[map.selected], g.world.lat[map.selected])
 		if rp.z > 0.0: ring_c = Vector2(rp.x, rp.y)
-	if map.zoom > (4.0 if map.mode == 0 else 5.5): return
+	var seen := {}
+	if map.zoom > (4.0 if map.mode == 0 else 5.5): _fade_unseen(_nc, seen, false); return
 	_label_fonts()
 	var N1 := g.N1
 	_rebuild_cores()
@@ -326,18 +392,17 @@ func _draw_nation_names() -> void:
 		if cnt[n] >= 3 and g.alive[n] != 0 and n != g.rebel and (not routes_only or _on_a_route(n)): order.append(n)
 	order.sort_custom(func(a, b): return (a == g.human_id) or (b != g.human_id and cnt[a] > cnt[b]))      # your own realm is placed first
 	var shown := 0
-	var cream := tk("cream"); var halo := tk("table")
-	var hc := TBTokens.is_hc()
-	var hsz := 5 if hc else 3
 	var lens_wars: bool = map.lenses.mode == "wars"
 	var tsc := TBKit.text_scale
 	var mnx := 16.0
 	var strong_on := strong()
 	var steps := [0.0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9, 1.2, -1.2, 1.6, -1.6]
+	var all_ci: Array = range(steps.size() * 3)
 	for n in order:
 		if shown >= 70: break
 		var core: Vector3 = _core_v[n]
 		if core == Vector3.ZERO: continue
+		var prev: Dictionary = _nstate.get(n, {})
 		var fs := int(clampf(8.0 + sqrt(float(cnt[n])) * 0.9 * minf(map.zoom, 2.2), 12.0, 20.0) * tsc)
 		fs = clampi(maxi(fs, TBKit.min_font()), TBKit.min_font(), 44)
 		var mine: bool = n == g.human_id
@@ -354,6 +419,7 @@ func _draw_nation_names() -> void:
 			fs = int(clampf(px_w / (txt.length() * 0.7), 10.0, 15.0 if phone else 23.0) * tsc)
 			fs = clampi(maxi(fs, TBKit.min_font()), TBKit.min_font(), 44)
 			if ring_c.x > -900.0 and pos_hidden_by_ring(core): continue
+		if prev.has("fs") and absi(fs - int(prev["fs"])) <= 1: fs = int(prev["fs"])     # the size follows the nation's size on screen, but a point either way is not worth a change
 		var vinfo: Array = []                                               # what does not depend on where the name goes: measured once per name, not once per try
 		for vr in variants:
 			var vlines: Array = vr
@@ -363,11 +429,18 @@ func _draw_nation_names() -> void:
 		var placed_ok := false
 		var ext := _ax_ext[n]
 		var perp := core.cross(_ax_dir[n]).normalized() if _ax_dir[n] != Vector3.ZERO else Vector3.ZERO
-		for ci in steps.size() * 3:
+		var cis: Array = all_ci
+		var pref_ci := int(prev.get("ci", -1))
+		if pref_ci >= 0:                                                    # where it stood and how it was written come first: it stays while it still fits
+			cis = all_ci.duplicate(); cis.erase(pref_ci); cis.push_front(pref_ci)
+		var vorder: Array = range(vinfo.size())
+		var pref_vi := int(prev.get("vi", -1))
+		if pref_vi >= 0 and pref_vi < vinfo.size(): vorder.erase(pref_vi); vorder.push_front(pref_vi)
+		for ci in cis:
 			if placed_ok: break
 			var st: float = steps[ci / 3]
 			var ps: float = [0.0, 0.35, -0.35][ci % 3]
-			if (st != 0.0 or ps != 0.0) and (ext <= 0.001 or _ax_dir[n] == Vector3.ZERO): break
+			if (st != 0.0 or ps != 0.0) and (ext <= 0.001 or _ax_dir[n] == Vector3.ZERO): continue
 			var a: float = clampf(st * ext, -0.22, 0.22)               # never drift far from the body of the nation
 			var v := core
 			if st != 0.0 or ps != 0.0:
@@ -376,7 +449,8 @@ func _draw_nation_names() -> void:
 			var pr := _proj_vec(v)
 			if map.mode == 0 and pr.z < 0.25: continue
 			var pos := Vector2(pr.x, pr.y)
-			for vv in vinfo:
+			for vi in vorder:
+				var vv: Array = vinfo[vi]
 				var lines: Array = vv[0]
 				var lh: float = vv[1]
 				var w: float = vv[2]
@@ -389,20 +463,23 @@ func _draw_nation_names() -> void:
 					if (r as Rect2).intersects(rect): clash = true; break
 				if clash: continue
 				_nl_rects.append(rect); shown += 1; placed_ok = true
-				var ha := _halo_alpha(pos)
-				var tx := rect.position.x + 3.0 + gw
-				for li in lines.size():
-					var ln: String = lines[li]
-					var lw := _sw(font, ln, fs)
-					var bp := Vector2(tx + (w - lw) * 0.5, rect.position.y + 3.0 + lh * li + font.get_ascent(fs))
-					if atlas:
-						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.0235, 0.0314, 0.0471, 0.92))
-						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.812, 0.769, 0.651, 0.92))
-					else:
-						draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(halo, ha))
-						draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
-				if gw > 0.0: _rel_glyph(Vector2(rect.position.x + 3.0 + float(fs) * 0.5, rect.get_center().y), rel, mine, fs, ha)
+				var old: Dictionary = _nc.get(n, {})
+				var off: Vector2 = old.get("off", Vector2.ZERO)                     # a glide still running carries on
+				var a0: float = float(old.get("a", 0.0 if TBKit.motion_ok() else 1.0))
+				if not old.is_empty() and a0 > 0.05 and TBKit.motion_ok() and ((old["v"] as Vector3).distance_to(v) > 0.0005 or int((old["lines"] as Array).size()) != lines.size()):
+					var op := _proj_vec(old["v"])                                   # where the name stood a moment ago
+					var d := Vector2(op.x, op.y) - pos
+					if d.length() > 70.0:                                           # a long way: the old name fades out where it stood while the new one fades in
+						var ghost: Dictionary = old.duplicate(); ghost["t"] = 0.0; ghost.erase("miss")
+						_nc["g%d" % n] = ghost
+						a0 = 0.0; off = Vector2.ZERO
+					else: off = d + off                                             # a short way: it slides there
+				_nc[n] = {"v": v, "lines": lines, "font": font, "fs": fs, "lh": lh, "w": w, "gw": gw, "atlas": atlas, "ha": _halo_alpha(pos), "mine": mine, "rel": rel,
+					"a": a0, "t": 1.0, "off": off}
+				_nstate[n] = {"ci": ci, "vi": vi, "fs": fs}
+				seen[n] = true
 				break
+	_fade_unseen(_nc, seen)
 
 ## this frame's marker rectangles in a coarse grid: a name's try meets only the few markers near it (it was every marker, for every try of every name)
 var _mgrid := {}
@@ -429,19 +506,21 @@ func _hits_order(r: Rect2) -> bool:
 	return not _order_box.size.is_zero_approx() and _order_box.intersects(r)
 
 ## relation glyph beside a nation name in colour-vision / high-contrast modes: swords (war), linked rings (ally), hourglass (truce), ring + square (own)
-func _rel_glyph(c: Vector2, rel: int, mine: bool, fs: int, ha: float) -> void:
+func _rel_glyph(c: Vector2, rel: int, mine: bool, fs: int, ha: float, ci: CanvasItem = null) -> void:
+	var cv: CanvasItem = ci if ci != null else self
 	var sz := float(fs)
-	draw_circle(c, sz * 0.62, _a(tk("table"), ha))
+	cv.draw_circle(c, sz * 0.62, _a(tk("table"), ha))
 	if mine:
-		draw_arc(c, sz * 0.32, 0.0, TAU, 16, tk("brass_lt"), 1.5, true)
-		draw_rect(Rect2(c - Vector2(2, 2), Vector2(4, 4)), tk("brass_lt"))
-	elif rel == 1: TBGlyph.draw(self, "swords", c, sz * 0.9, tk("neg_bar"), 1.6)
-	elif rel == 3 or rel == 4: TBGlyph.draw(self, "link", c, sz * 0.9, tk("info_bar"), 1.6)
-	elif rel == 2: TBGlyph.draw(self, "hourglass", c, sz * 0.9, tk("cream"), 1.5)
+		cv.draw_arc(c, sz * 0.32, 0.0, TAU, 16, tk("brass_lt"), 1.5, true)
+		cv.draw_rect(Rect2(c - Vector2(2, 2), Vector2(4, 4)), tk("brass_lt"))
+	elif rel == 1: TBGlyph.draw(cv, "swords", c, sz * 0.9, tk("neg_bar"), 1.6)
+	elif rel == 3 or rel == 4: TBGlyph.draw(cv, "link", c, sz * 0.9, tk("info_bar"), 1.6)
+	elif rel == 2: TBGlyph.draw(cv, "hourglass", c, sz * 0.9, tk("cream"), 1.5)
 
 ## province names when zoomed in far enough to read them (Alegreya 500 12+, cream, halo; no overlaps, capitals in Alegreya 700)
-func _draw_province_names() -> void:
-	if map.zoom < (4.0 if map.mode == 0 else 5.5): return
+func _place_province_names() -> void:
+	var seen := {}
+	if map.zoom < (4.0 if map.mode == 0 else 5.5): _fade_unseen(_pc, seen, false); return
 	var f: Font = TBKit.body()
 	var fb: Font = TBKit.body_b()
 	var fs := TBKit.fs(12.0)
@@ -450,10 +529,14 @@ func _draw_province_names() -> void:
 	var shown := 0
 	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
 	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
-	var cream := tk("cream")
-	var hsz := 5 if TBTokens.is_hc() else 3
 	var unit_a := _unit
+	var order: Array = []                              # the names shown last time first: they keep their place, new ones take what is left
+	var first := {}
+	for p in _pc:
+		if float((_pc[p] as Dictionary)["t"]) > 0.5: order.append(p); first[p] = true
 	for p in g.P:
+		if not first.has(p): order.append(p)
+	for p in order:
 		if shown >= 70: break
 		var pos: Vector2
 		if map.mode == 0:                                              # the globe's projection inline (the same sums as _project_v)
@@ -476,9 +559,74 @@ func _draw_province_names() -> void:
 			if r.intersects(rect): clash = true
 		if clash: continue
 		placed.append(rect); shown += 1
-		var bp := rect.position + Vector2(2, ff.get_ascent(fs) + 2)
-		draw_string_outline(ff, bp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(tk("table"), _halo_alpha(pos)))
-		draw_string(ff, bp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
+		var old: Dictionary = _pc.get(p, {})
+		_pc[p] = {"p": p, "txt": txt, "ff": ff, "fs": fs, "tw": tw, "ha": float(old["ha"]) if old.has("ha") else _halo_alpha(pos), "a": float(old.get("a", 0.0 if TBKit.motion_ok() else 1.0)), "t": 1.0}
+		seen[p] = true
+	_fade_unseen(_pc, seen)
+
+## every name, at the camera's place right now (called by the names layer each time it redraws)
+static var names_us := 0.0                  # tests: average cost of drawing the names (microseconds)
+static var names_draws := 0
+func _draw_names(c: CanvasItem) -> void:
+	if map == null or g == null: return
+	var t0 := Time.get_ticks_usec()
+	_draw_names_now(c)
+	names_us += float(Time.get_ticks_usec() - t0); names_draws += 1
+
+func _draw_names_now(c: CanvasItem) -> void:
+	_cam_update()
+	var cream := tk("cream"); var halo := tk("table")
+	var hc := TBTokens.is_hc()
+	var hsz := 5 if hc else 3
+	var mnx := 16.0
+	for n in _nc:
+		var e: Dictionary = _nc[n]
+		var al: float = e["a"]
+		if al <= 0.01: continue
+		var pr := _proj_vec(e["v"])
+		if map.mode == 0 and pr.z < 0.2: continue
+		var pos := Vector2(pr.x, pr.y) + (e["off"] as Vector2 if e.has("off") else Vector2.ZERO)
+		var lines: Array = e["lines"]; var font: Font = e["font"]; var fs: int = e["fs"]
+		var lh: float = e["lh"]; var w: float = e["w"]; var gw: float = e["gw"]
+		var rect := Rect2(pos - Vector2((w + gw) * 0.5, lh * lines.size() * 0.5), Vector2(w + gw, lh * lines.size())).grow(3.0)
+		if rect.position.x < mnx - 8.0 or rect.position.y < 48.0 or rect.end.x > map.size.x - mnx + 8.0 or rect.end.y > map.size.y - mnx + 8.0: continue
+		var ha: float = float(e["ha"]) * al
+		var tx := rect.position.x + 3.0 + gw
+		for li in lines.size():
+			var ln: String = lines[li]
+			var lw := _sw(font, ln, fs)
+			var bp := Vector2(roundf(tx + (w - lw) * 0.5), roundf(rect.position.y + 3.0 + lh * li + font.get_ascent(fs)))
+			if tracing: trace.append([Engine.get_frames_drawn(), "n", "%s:%d" % [str(n), li], bp, fs, al])
+			if bool(e["atlas"]):
+				c.draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.0235, 0.0314, 0.0471, 0.92 * al))
+				c.draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.812, 0.769, 0.651, 0.92 * al))
+			else:
+				c.draw_string_outline(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(halo, ha))
+				c.draw_string(font, bp, ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _a(cream, al))
+		if gw > 0.0: _rel_glyph(Vector2(rect.position.x + 3.0 + float(fs) * 0.5, rect.get_center().y), int(e["rel"]), bool(e["mine"]), fs, ha, c)
+	if _pc.is_empty(): return
+	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
+	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
+	var unit_a := _unit
+	for p in _pc:
+		var e: Dictionary = _pc[p]
+		var al: float = e["a"]
+		if al <= 0.01: continue
+		var pos: Vector2
+		if map.mode == 0:
+			var u: Vector3 = unit_a[p]
+			var z0 := u.x * sl + u.z * cl
+			if u.y * s0 + z0 * c0 < 0.25: continue
+			pos = Vector2(cx + R * (u.x * cl - u.z * sl), cy - R * (u.y * c0 - z0 * s0))
+		else:
+			var pt := map.project(g.world.lon[p], g.world.lat[p])
+			pos = Vector2(pt.x, pt.y)
+		if pos.x < 12 or pos.y < 62 or pos.x > map.size.x - 12 or pos.y > map.size.y - 12: continue
+		var ff: Font = e["ff"]; var fs: int = e["fs"]; var tw: Vector2 = e["tw"]
+		var bp := Vector2(roundf(pos.x - tw.x * 0.5), roundf(pos.y + 8.0 + ff.get_ascent(fs)))
+		if tracing: trace.append([Engine.get_frames_drawn(), "p", str(p), bp, fs, al])
+		c.draw_string_outline(ff, bp, String(e["txt"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hsz, _a(tk("table"), float(e["ha"]) * al))
+		c.draw_string(ff, bp, String(e["txt"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _a(cream, al))
 
 ## true when r overlaps nothing placed so far (and records it)
 func _claim(grid: Dictionary, r: Rect2) -> bool:
@@ -592,9 +740,10 @@ func _marker_rect(pos: Vector2, ztier: int, army: int, gen: bool, gw: float) -> 
 func _draw() -> void:
 	var t0 := Time.get_ticks_usec()
 	_draw_layout()
-	last_cost_ms = lerpf(last_cost_ms, float(Time.get_ticks_usec() - t0) / 1000.0, 0.4)
+	last_cost_ms = force_cost_ms if force_cost_ms > 0.0 else lerpf(last_cost_ms, float(Time.get_ticks_usec() - t0) / 1000.0, 0.4)
 
 func _draw_layout() -> void:
+	if names != null: names.visible = not hidden_while_dragging
 	if map == null or g == null or hidden_while_dragging: return
 	_refresh_keepout()
 	_cam_update()
@@ -602,7 +751,8 @@ func _draw_layout() -> void:
 	_nl_rects.clear()
 	if g.human_id == 0:                 # nation-pick screen: names only
 		_frame_rects.clear(); _order_box = Rect2()
-		_draw_nation_names()
+		_place_nation_names()
+		names.queue_redraw()
 		return
 	var me := g.human_id
 	var psz := prov_px()
@@ -738,8 +888,9 @@ func _draw_layout() -> void:
 		if int(st2["extra"]) > 0 and int(st2["zt"]) == 2 and chosen_set.has(p): _draw_tab(st2, float(st2["a"]) * float(st2["limb"]))
 	_draw_order()
 	_draw_focus()
-	_draw_nation_names()
-	_draw_province_names()
+	_place_nation_names()
+	_place_province_names()
+	names.queue_redraw()
 	_draw_fx()
 
 ## screen areas covered by the interface (dock, seal, ribbon, command card): labels keep out of them. Callable -> Array[Rect2] in global coordinates
