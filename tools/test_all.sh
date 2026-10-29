@@ -10,6 +10,7 @@ run "save/load round trip (3 scenarios)" tests/saveload.gd
 run "rulers: historical seeds, succession, determinism" tests/rulers.gd
 run "diplomacy: casus belli, infamy, coalitions" tests/diplo.gd
 run "diplomacy view mirrors the engine (acceptance, peace, trade)" tests/dipview.gd
+run "rules 3: quarrels reach friends, trade routes need means, victories are held" tests/realism.gd
 run "decisions" tests/decisions.gd
 run "trade deals" tests/trade.gd
 run "royal marriages" tests/marriage.gd
