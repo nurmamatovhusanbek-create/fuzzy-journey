@@ -17,12 +17,12 @@ TB_KEYSTORE=/path/terrabellum-release.keystore TB_KEYSTORE_PASS='...' tools/buil
 | Item | This build | What it means |
 |---|---|---|
 | Package | `com.terrabellum.game` | Never change it: it identifies the app for updates. |
-| Version | name `1.0.0`, code `1` | Every upload that replaces an installed app needs a **higher code** (`version/code` in the Android preset). |
+| Version | name `1.0.0`, code `2` (code 1 was the first build, which still rotated to portrait) | Every upload that replaces an installed app needs a **higher code** (`version/code` in the Android preset). |
 | Minimum API | **21** (Android 5.0) | Phones from 2014 on. |
 | Target API | **34** (Android 14) | Installs and runs on Android 14, 15 and 16. Android only refuses apps targeting below API 23. |
 | Permissions | **none** | Internet and network state are off while multiplayer is off. Nothing to explain on install. |
 | CPUs | arm64-v8a and armeabi-v7a | Every current phone and tablet, including 32-bit-userland budget phones. Not x86 emulators. |
-| Orientation | landscape (sensor) | The phone shows the desktop-style 1000-unit layout with bigger touch areas. |
+| Orientation | **landscape only** (`userLandscape`: either way up, never portrait) | The phone shows the desktop-style 1000-unit layout with bigger touch areas. Checked in the APK manifest. Godot's orientation value is `4` (sensor landscape); `6` means any rotation. |
 | Graphics | OpenGL ES 3.0 (Godot compatibility renderer) | Any phone since about 2015. |
 | Signature | APK Signature Scheme v1 + v2 + v3, RSA-4096, valid to 2056 | One key signs every future update. **Lose the key and players can never update in place.** |
 | Size | about 80 MB | Both CPU families inside. |
