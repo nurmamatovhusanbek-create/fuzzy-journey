@@ -25,7 +25,7 @@ func _init() -> void:
 	var w := TBWorld.load_from("res://data")
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	var t0 := Time.get_ticks_msec()
-	var g := TBGame.new(w, era, {"seed": seed_v, "difficulty": diff})
+	var g := TBGame.new(w, era, {"seed": seed_v, "difficulty": diff, "rules": int(OS.get_environment("TB_RULES")) if OS.get_environment("TB_RULES") != "" else 3})
 	var alive0 := 0
 	for n in range(1, g.N1):
 		if g.alive[n] != 0 and n != g.rebel: alive0 += 1
@@ -42,7 +42,7 @@ func _init() -> void:
 			if g.rules >= 1:
 				for n in range(1, g.N1):
 					if g.alive[n] == 0 or n == g.rebel: continue
-					var pr: Dictionary = TBTurn.victory_progress(g, n)
+					var pr: Dictionary = TBTurn.raw_progress(g, n)
 					for id in TBTurn.VICTORY_IDS:
 						var v: float = float(pr[id])
 						if id == "technological" and g.tech_level[n] < 5.0: v = minf(v, 0.99)
@@ -68,7 +68,14 @@ func _init() -> void:
 			"war": wars += 1
 			"peace": peaces += 1
 			"occupied": conq += 1
-	var out := {"era": era_id, "seed": seed_v, "diff": diff, "turns": end_t, "over": g.over, "winner": g.dname(g.winner) if g.winner > 0 else "", "kind": g.victory_kind, "alive0": alive0,
+	var deals := 0; var allies := 0; var big_grudge := 0
+	for n in range(1, g.N1):
+		if g.alive[n] == 0 or n == g.rebel: continue
+		deals += g.trade_cnt[n]
+		for o in range(n + 1, g.N1):
+			if g.alive[o] != 0 and g.get_rel(n, o) == TBData.REL_ALLY: allies += 1
+			if g.grudge[n * g.N1 + o] >= 40 or g.grudge[o * g.N1 + n] >= 40: big_grudge += 1
+	var out := {"deals": deals / 2, "allies": allies, "grudges40": big_grudge, "era": era_id, "seed": seed_v, "diff": diff, "turns": end_t, "over": g.over, "winner": g.dname(g.winner) if g.winner > 0 else "", "kind": g.victory_kind, "alive0": alive0,
 		"series": series, "first_win": first_win, "best": best, "wars": wars, "peaces": peaces, "occupied": conq, "ms": Time.get_ticks_msec() - t0, "bad": bad}
 	print("SIM ", JSON.stringify(out))
 	quit(0)

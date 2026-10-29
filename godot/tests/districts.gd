@@ -9,7 +9,7 @@ func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
 	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 3})
-	ok(g.rules == 2, "new games use rules 2")
+	ok(g.rules >= 2, "new games use district rules")
 	var n := 1
 	for x in range(1, g.N1):
 		if g.alive[x] != 0 and x != g.rebel and g.own_count(x) >= 6: n = x; break
@@ -73,7 +73,7 @@ func _init() -> void:
 	TBSave.save(g, "dist_test")
 	var g2 := TBSave.load_game(w, "dist_test")
 	TBSave.delete("dist_test")
-	ok(g2 != null and g2.rules == 2 and g2.bl(p, TBData.B_FARM) == 2 - 1 and g2.b_lv == g.b_lv, "save round-trips the levels")
+	ok(g2 != null and g2.rules == g.rules and g2.bl(p, TBData.B_FARM) == 2 - 1 and g2.b_lv == g.b_lv, "save round-trips the levels")
 	# net delta
 	var prev := {}
 	g.dirty_list = PackedInt32Array([p])
