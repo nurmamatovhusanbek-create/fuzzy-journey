@@ -13,8 +13,8 @@ const DP_COST := 1
 const K_YIELD := 0.8                    # yield = 2 + K * sqrt(S) * reach, with S = sqrt(market_a * market_b)
 const REACH_RAD := 0.7                  # the distance (radians of arc, about 4,000 km) at which a route earns half of what a neighbour would
 const YIELD_CAP := 45
-const FEE_BASE := 20.0                  # gold to open a route: FEE_BASE + FEE_PER * yield (about six turns of its takings)
-const FEE_PER := 6.0
+const FEE_BASE := 15.0                  # gold to open a route: FEE_BASE + FEE_PER * yield (it pays for itself in about four turns)
+const FEE_PER := 3.5
 const MEN_BASE := 4.0                   # people: MEN_BASE + yield / 2
 const W_INCOME := 0.4                   # weights of the three ingredients in the means (sum 1)
 const W_GOLD := 0.3
@@ -62,7 +62,7 @@ static func avg_net(g: TBGame, n: int) -> float:
 ## what n can bring to a route worth v: {inc, gold, men} each 0..1, and m, their weighted geometric mean
 static func means(g: TBGame, n: int, v: int) -> Dictionary:
 	var fi := clampf(avg_net(g, n) / (2.0 * float(v)), 0.0, 1.0)                   # a surplus twice the route's takings is full marks
-	var fg := clampf(g.gold[n] / (2.0 * float(fee_gold(v))), 0.0, 1.0)             # a treasury of twice the fee
+	var fg := clampf(g.gold[n] / (1.5 * float(fee_gold(v))), 0.0, 1.0)             # a treasury of one and a half times the fee
 	var fm := clampf(g.manpower[n] / (4.0 * float(fee_men(v))), 0.0, 1.0)          # four times the people it takes
 	return {"inc": fi, "gold": fg, "men": fm, "m": pow(fi, W_INCOME) * pow(fg, W_GOLD) * pow(fm, W_MEN)}
 
