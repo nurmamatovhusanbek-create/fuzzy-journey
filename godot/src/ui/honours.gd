@@ -11,7 +11,7 @@ const LIST := [
 	["treasure", "coins"], ["heir", "crown"], ["infamous", "skull"], ["decreed", "scroll"],
 	["merchant", "coins"], ["matchmaker", "crown"], ["suzerain", "flag"], ["ultimatum_win", "scroll"],
 	["never_kneel", "swords"], ["five_star", "swords"], ["modern_age", "flask"], ["unifier", "flag"],
-	["veteran", "book"], ["alliances", "dove"], ["victor", "trophy"],
+	["veteran", "book"], ["alliances", "dove"], ["concert", "dove"], ["victor", "trophy"],
 ]
 
 static func has(cfg: Dictionary, id: String) -> bool:
@@ -59,6 +59,9 @@ static func on_state(g: TBGame) -> PackedStringArray:
 		if g.get_rel(me, o) == D.REL_ALLY: allies += 1
 		if g.overlord[o] == me: vassals += 1
 	if allies >= 3: out.append("alliances")
+	if g.rules >= 3:
+		var hs := TBTurn.hold_status(g, me, "diplomatic")
+		if hs.y > 0 and hs.x >= hs.y: out.append("concert")           # the old "diplomatic hegemony", now an achievement
 	if vassals >= 1: out.append("suzerain")
 	if g.rules >= 1 and TBDecisions.active_count(g, me) >= 1: out.append("decreed")
 	if g.over and g.winner == me: out.append("victor")

@@ -8,6 +8,7 @@ const COALITION_ON := 22.0
 const COALITION_OFF := 12.0
 const NO_CB_INFAMY := 8.0
 const LAND_INFAMY := 1.2
+const LAND_GRUDGE := 3             # rules >= 3: the loser of a province resents the taker (and the loser's friends a share of it)
 const VASSAL_INFAMY := 4.0
 const DECAY := 0.45
 
@@ -34,6 +35,7 @@ static func on_land_taken(g: TBGame, p: int, from: int, to: int) -> void:
 	if g.rules < 1 or from == 0 or to == 0 or from == g.rebel or to == g.rebel: return
 	if g.core[p] == to: return              # taking back your own land is not aggression
 	g.infamy[to] = minf(100.0, g.infamy[to] + LAND_INFAMY)
+	if g.rules >= 3: hurt(g, from, to, LAND_GRUDGE)
 
 ## per turn: decay and coalition hysteresis
 static func tick(g: TBGame) -> void:
@@ -47,6 +49,101 @@ static func tick(g: TBGame) -> void:
 		elif g.coalition[n] != 0 and g.infamy[n] < COALITION_OFF:
 			g.coalition[n] = 0
 			g.log.append({"turn": g.turn, "kind": "coalition_end", "a": n})
+
+
+# ---------------------------------------------------------------- how far a quarrel reaches (rules >= 3)
+## Nations are bound to each other, and a slight to one is felt by those around it, but less than by the injured party itself:
+##   an ally resents it at TIE_ALLY (half), kin by marriage at TIE_KIN, a vassal or its liege at TIE_LIEGE, a trade partner at TIE_TRADE; the offender's own friends are torn and feel less of it;
+##   the injured party's enemies warm to the offender a little (the enemy of my enemy). The same ties carry goodwill: a pact with one nation softens its friends and, when it is
+##   a military bond, angers its enemies, by smaller amounts.
+const TIE_ALLY := 0.5
+const TIE_KIN := 0.4
+const TIE_LIEGE := 0.45
+const TIE_TRADE := 0.12
+const TORN := 0.6                  # how much a tie to the offender cuts the resentment of a friend of the victim
+const FOE_WARMTH := 0.25
+const GOODWILL := 0.8
+const BOND_ENVY := 0.3
+const BREAK_ALLY_INFAMY := 6.0     # an oath broken is remembered by everyone (rules >= 3)
+const BREAK_NAP_INFAMY := 3.0
+
+## how strongly o is bound to t, 0..0.5 (the strongest single tie)
+static func tie(g: TBGame, o: int, t: int) -> float:
+	if o == t: return 1.0
+	var w := 0.0
+	var r := g.get_rel(o, t)
+	if r == D.REL_ALLY: w = TIE_ALLY
+	elif r == D.REL_MARRIAGE: w = TIE_KIN
+	if g.overlord[o] == t or g.overlord[t] == o: w = maxf(w, TIE_LIEGE)
+	if w < TIE_TRADE and g.rules >= 1 and TBTrade.has(g, o, t): w = TIE_TRADE
+	return w
+
+static func _add_grudge(g: TBGame, a: int, b: int, delta: int) -> void:
+	if delta == 0: return
+	var i := a * g.N1 + b
+	g.grudge[i] = clampi(int(g.grudge[i]) + delta, 0, 100)
+
+## `offender` wronged `victim` by `amount` grudge points. The victim takes all of it; those bound to the victim take a share of it (less as they are bound to the offender too)
+## and the victim's enemies take the other side by a quarter. Below rules 3 this is just the victim's grudge, as it always was.
+static func hurt(g: TBGame, victim: int, offender: int, amount: int) -> void:
+	_add_grudge(g, victim, offender, amount)
+	if g.rules < 3 or amount <= 0 or victim == offender: return
+	for o in range(1, g.N1):
+		if o == victim or o == offender or g.alive[o] == 0 or o == g.rebel: continue
+		var w := tie(g, o, victim)
+		var wn := tie(g, o, offender)
+		if w > 0.0:
+			_add_grudge(g, o, offender, int(roundf(float(amount) * w * (1.0 - TORN * wn / TIE_ALLY))))
+		elif g.get_rel(o, victim) == D.REL_WAR and g.get_rel(o, offender) != D.REL_WAR:
+			_add_grudge(g, o, offender, -int(roundf(float(amount) * FOE_WARMTH * (1.0 - wn / TIE_ALLY))))
+
+## `actor` made friends with `partner` (amount = how much of a bond it is): the partner's friends warm to the actor; when the bond is military (an alliance or a marriage), the
+## partner's enemies grow wary of the actor.
+static func befriend(g: TBGame, actor: int, partner: int, amount: int, military: bool) -> void:
+	if g.rules < 3 or amount <= 0 or actor == partner: return
+	for o in range(1, g.N1):
+		if o == actor or o == partner or g.alive[o] == 0 or o == g.rebel: continue
+		var w := tie(g, o, partner)
+		if w > 0.0 and g.get_rel(o, actor) != D.REL_WAR:
+			_add_grudge(g, o, actor, -int(roundf(float(amount) * w * GOODWILL)))
+		elif military and g.get_rel(o, partner) == D.REL_WAR and tie(g, o, actor) == 0.0:
+			_add_grudge(g, o, actor, int(roundf(float(amount) * BOND_ENVY)))
+
+## a broken oath costs standing with everyone (rules >= 3)
+static func oath_broken(g: TBGame, n: int, was: int) -> void:
+	if g.rules < 3: return
+	g.infamy[n] = minf(100.0, g.infamy[n] + (BREAK_ALLY_INFAMY if was == D.REL_ALLY else BREAK_NAP_INFAMY))
+
+## terms a court adds when weighing a request from p (rules >= 3): [[key, value], ...]
+##   dv_loyalty: p is at war with t's friends (an ally, kin, a vassal or liege): -0.5 each, at most -1.0
+##   dv_common (pacts only): friends of both: +0.15 each, at most +0.45
+##   dv_untried (an alliance or marriage only): no track record between them (no pact, no trade, no marriage and no common war): -0.45
+static func loyalty_terms(g: TBGame, t: int, p: int) -> Array:
+	var out: Array = []
+	if g.rules < 3: return out
+	var hit := 0.0
+	for o in range(1, g.N1):
+		if o == t or o == p or g.alive[o] == 0 or o == g.rebel: continue
+		if tie(g, t, o) >= TIE_KIN and g.get_rel(p, o) == D.REL_WAR: hit += 0.5
+	if hit > 0.0: out.append(["dv_loyalty", -minf(1.0, hit)])
+	return out
+
+static func pact_terms(g: TBGame, t: int, p: int, rel: int) -> Array:
+	var out: Array = loyalty_terms(g, t, p)
+	if g.rules < 3: return out
+	var common := 0.0
+	for o in range(1, g.N1):
+		if o == t or o == p or g.alive[o] == 0 or o == g.rebel: continue
+		if tie(g, t, o) >= TIE_KIN and tie(g, p, o) >= TIE_KIN: common += 0.15
+	if common > 0.0: out.append(["dv_common", minf(0.45, common)])
+	if rel == D.REL_ALLY:
+		var r := g.get_rel(t, p)
+		var record: bool = r == D.REL_NAP or r == D.REL_MARRIAGE or TBTrade.has(g, t, p)
+		if not record:
+			for o in range(1, g.N1):
+				if o != t and o != p and g.alive[o] != 0 and g.get_rel(t, o) == D.REL_WAR and g.get_rel(p, o) == D.REL_WAR: record = true; break
+		if not record: out.append(["dv_untried", -0.45])
+	return out
 
 
 # ---------------------------------------------------------------- royal marriages (rules >= 1)
@@ -67,6 +164,7 @@ static func marry(g: TBGame, n: int, t: int, force: bool = false) -> Dictionary:
 	g.set_rel(n, t, D.REL_MARRIAGE)
 	g.grudge[n * g.N1 + t] = maxi(0, g.grudge[n * g.N1 + t] - 40); g.grudge[t * g.N1 + n] = maxi(0, g.grudge[t * g.N1 + n] - 40)
 	g.log.append({"turn": g.turn, "kind": "marriage", "a": n, "b": t})
+	befriend(g, n, t, 20, true)
 	return {"ok": true}
 
 ## called when n's ruler changes: the marriage may lapse, or the match may bring a personal union under the stronger partner
@@ -96,22 +194,35 @@ static func _offer_valid(g: TBGame, from: int, to: int, what: String) -> bool:
 	match what:
 		"nap": return r == D.REL_PEACE
 		"ally": return r == D.REL_NAP or (r == D.REL_PEACE and g.dp[from] >= D.DP_ALLY)
-		"trade": return r != D.REL_WAR and not TBTrade.has(g, from, to) and g.trade_cnt[from] < TBTrade.max_deals(g, from) and g.trade_cnt[to] < TBTrade.max_deals(g, to)
+		"trade":
+			if not (r != D.REL_WAR and not TBTrade.has(g, from, to) and g.trade_cnt[from] < TBTrade.max_deals(g, from) and g.trade_cnt[to] < TBTrade.max_deals(g, to)): return false
+			if g.rules >= 3 and g.human[from] == 0:                                    # the court that offers a route is the one that pays for it, so it must be able to
+				var v := TBTrade.yield_of(g, from, to)
+				return g.gold[from] >= float(TBTrade.fee_gold(v)) and g.manpower[from] >= float(TBTrade.fee_men(v)) and float(TBTrade.means(g, from, v)["m"]) >= 0.4
+			return true
 		"marry": return can_marry(g, from, to)
 		"peace": return r == D.REL_WAR
 	return false
+
+## rules >= 3: the AI court that proposed a route pays for it
+static func _pay_route(g: TBGame, from: int, to: int) -> void:
+	if g.rules < 3 or g.human[from] != 0: return
+	var v := TBTrade.yield_of(g, from, to)
+	g.gold[from] = maxf(0.0, g.gold[from] - float(TBTrade.fee_gold(v))); g.manpower[from] = maxf(0.0, g.manpower[from] - float(TBTrade.fee_men(v)))
 
 static func accept_offer(g: TBGame, from: int, to: int, what: String) -> void:
 	if not _offer_valid(g, from, to, what): return
 	match what:
 		"nap":
 			g.set_rel(from, to, D.REL_NAP); g.nap_expiry[mini(from, to) * g.N1 + maxi(from, to)] = g.turn + 20
-			pass
-		"ally": g.set_rel(from, to, D.REL_ALLY); g.log.append({"turn": g.turn, "kind": "ally", "a": from, "b": to})
+			befriend(g, from, to, 8, false)
+		"ally": g.set_rel(from, to, D.REL_ALLY); g.log.append({"turn": g.turn, "kind": "ally", "a": from, "b": to}); befriend(g, from, to, 16, true)
 		"peace": g.apply({"cmd": "peace", "n": to, "t": from, "kind": "white", "_force": true})
-		"trade": TBTrade.set_deal(g, from, to, true); g.log.append({"turn": g.turn, "kind": "trade", "a": from, "b": to})
+		"trade":
+			_pay_route(g, from, to)
+			TBTrade.set_deal(g, from, to, true); g.log.append({"turn": g.turn, "kind": "trade", "a": from, "b": to}); befriend(g, from, to, 5, false)
 		"marry":
-			g.set_rel(from, to, D.REL_MARRIAGE); g.log.append({"turn": g.turn, "kind": "marriage", "a": from, "b": to})
+			g.set_rel(from, to, D.REL_MARRIAGE); g.log.append({"turn": g.turn, "kind": "marriage", "a": from, "b": to}); befriend(g, from, to, 20, true)
 
 ## How often AI courts write to a human (per AI nation per turn: about one proposal every other turn in a world of ninety), and how: by how friendly they are to you (TBVision.friendliness)
 ##   trade deal, above AUTO_FRIEND: the route simply opens (a notice says so); AUTO_FRIEND down to ASK_FRIEND: a proposal to accept or decline; below: a quiet notice with their
@@ -138,6 +249,7 @@ static func ai_offer(g: TBGame, n: int) -> void:
 		var what: String = kinds[g.rng.randi_n(kinds.size())]
 		var f: int = TBVision.friendliness(g, h, n)                       # how warmly n regards h
 		if what == "trade" and f > AUTO_FRIEND:
+			_pay_route(g, n, h)
 			TBTrade.set_deal(g, n, h, true); g.log.append({"turn": g.turn, "kind": "trade", "a": n, "b": h})
 			return
 		var asks: bool = f >= ASK_FRIEND
@@ -229,7 +341,7 @@ static func resolve_ultimatum(g: TBGame, n: int, t: int, p: int, yielded: bool) 
 	if g.alive[n] == 0 or g.alive[t] == 0 or g.get_rel(n, t) != D.REL_PEACE: return {"ok": false, "err": "gone"}
 	if yielded:
 		if g.owner[p] == t and g.capital[p] == 0: g.cede(p, n)
-		g.grudge[t * g.N1 + n] = mini(100, g.grudge[t * g.N1 + n] + 25)
+		hurt(g, t, n, 25)
 		g.truce[n * g.N1 + t] = g.turn + 8; g.truce[t * g.N1 + n] = g.turn + 8
 		g.log.append({"turn": g.turn, "kind": "ultimatum", "a": n, "b": t, "p": p, "k": "yield"})
 		return {"ok": true, "result": "yield"}

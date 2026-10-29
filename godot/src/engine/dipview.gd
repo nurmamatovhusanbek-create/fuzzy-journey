@@ -28,18 +28,17 @@ static func pact(g: TBGame, t: int, p: int, rel: int) -> Dictionary:
 		if g.get_rel(t, o) == D.REL_WAR and g.get_rel(p, o) == D.REL_WAR: shared += 1
 	if shared > 0: s += 0.3 * shared; terms.append(["dv_shared", 0.3 * shared])
 	if g.own_count(p) > g.own_count(t) * 3: s -= 0.2; terms.append(["dv_size", -0.2])
+	if g.rules >= 3:
+		for tm in TBDiplo.pact_terms(g, t, p, rel):
+			s += float(tm[1]); terms.append(tm)
 	return _res(s, 0.45, terms, blocked)
 
-## t weighing a trade deal with p
+## t weighing a trade deal with p (the sums are TBTrade.weigh: the AI decides with the very same terms)
 static func trade(g: TBGame, t: int, p: int) -> Dictionary:
-	var pers: Dictionary = D.PERSONALITIES[g.personality[t]]
-	var blocked := ""
-	if g.get_rel(t, p) == D.REL_WAR: blocked = "war"
-	elif g.grudge[t * g.N1 + p] > 30: blocked = "grudge"
-	elif g.trade_cnt[t] >= TBTrade.max_deals(g, t): blocked = "full"
-	var temper: float = float(pers["dipl"])
-	var biz: float = float(pers["econ"]) * 0.6
-	return _res(temper + biz, 0.55, [["dv_temper", temper], ["dv_commerce", biz]], blocked)
+	var w := TBTrade.weigh(g, t, p)
+	var score := 0.0
+	for tm in w["terms"]: score += float(tm[1])
+	return _res(score, 0.55, w["terms"], String(w["blocked"]))
 
 ## t (AI) weighing the peace terms p (the proposer) offers: kind = "white" | "cede" | "vassal"
 static func peace(g: TBGame, t: int, p: int, kind: String) -> Dictionary:

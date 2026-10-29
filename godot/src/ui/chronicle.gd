@@ -55,6 +55,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"marriage_end": return T.call("e_marriage_end", {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"union": return T.call("e_union", {"a": a, "b": b})
 		"trade": return T.call("e_trade", {"a": a, "b": b}) if involves(e, g.human_id) else ""
+		"trade_end": return T.call("e_trade_end_" + String(e.get("why", "poor")), {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"vassal": return T.call("e_vassal", {"a": a, "b": b})
 		"ceded": return T.call("e_ceded", {"a": a, "b": b, "k": int(e.get("k", 0))}) if int(e.get("k", 0)) > 0 else ""
 		"independence": return T.call("e_indep", {"a": a, "b": b})

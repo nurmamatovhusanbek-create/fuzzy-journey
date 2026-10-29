@@ -496,7 +496,7 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 	cells.add_child(TBNationParts.StatCell.new("army", K.fmt(float(st["army"][n])), T.call("cap_army")))
 	cells.add_child(TBNationParts.StatCell.new("gold", K.fmt(float(g.income(n)["gold"])), T.call("cap_economy")))
 	var tr_txt := "—"
-	if n != me and me > 0 and g.rules >= 1 and TBTrade.has(g, me, n): tr_txt = "+%d" % TBTrade.value(g, n)
+	if n != me and me > 0 and g.rules >= 1 and TBTrade.has(g, me, n): tr_txt = "+%d" % TBTrade.value(g, n, me)
 	cells.add_child(TBNationParts.StatCell.new("trade", tr_txt, T.call("cap_trade")))
 	v.add_child(_pad(cells, 6.0 if (not pick and n != me) else 14.0, 10.0))
 	# the one-line note

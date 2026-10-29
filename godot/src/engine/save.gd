@@ -3,8 +3,8 @@ class_name TBSave
 extends RefCounted
 
 const VERSION := 1
-const FIELDS_PACKED := ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "era", "regime", "personality", "alive", "human", "cap_lost", "tribute", "capital_of", "overlord", "last_war_turn", "color", "budget", "rel", "truce", "war_score", "war_turns", "grudge", "war_cnt", "ev_last_any", "trade_bonus", "combat_bonus", "combat_turns", "owner", "occupier", "occ_turns", "army", "pop", "dev", "econ", "stab", "happy", "defense", "gen", "terrain", "building", "b_level", "b_lv", "b_building", "b_turns", "capital", "discoverable", "nb_off", "nb", "nb_sea", "r_name", "r_num", "r_born", "r_since", "r_adm", "r_dip", "r_mil", "r_trait", "infamy", "coalition", "core", "dec_until", "trade", "trade_cnt", "realm_done", "doctrine", "reb_age", "reb_from", "own_since", "see_until", "offer_cd"]
-const FIELDS_SCALAR := ["turn", "year", "month_idx", "era_id", "over", "winner", "victory_kind", "human_id", "rebel", "seed_value", "rules", "difficulty", "occ_rev", "nap_expiry", "log", "stats", "pending", "asks", "marches", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month", "infl", "world_y", "econ_goal", "tech_top", "tech_second", "tech_avg", "tech_start_top", "aggr_level"]
+const FIELDS_PACKED := ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "era", "regime", "personality", "alive", "human", "cap_lost", "tribute", "capital_of", "overlord", "last_war_turn", "color", "budget", "rel", "truce", "war_score", "war_turns", "grudge", "war_cnt", "ev_last_any", "trade_bonus", "combat_bonus", "combat_turns", "owner", "occupier", "occ_turns", "army", "pop", "dev", "econ", "stab", "happy", "defense", "gen", "terrain", "building", "b_level", "b_lv", "b_building", "b_turns", "capital", "discoverable", "nb_off", "nb", "nb_sea", "r_name", "r_num", "r_born", "r_since", "r_adm", "r_dip", "r_mil", "r_trait", "infamy", "coalition", "core", "dec_until", "trade", "trade_cnt", "realm_done", "doctrine", "reb_age", "reb_from", "own_since", "see_until", "offer_cd", "net_ema"]
+const FIELDS_SCALAR := ["turn", "year", "month_idx", "era_id", "over", "winner", "victory_kind", "human_id", "rebel", "seed_value", "rules", "difficulty", "occ_rev", "nap_expiry", "log", "stats", "pending", "asks", "marches", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month", "infl", "world_y", "econ_goal", "tech_top", "tech_second", "tech_avg", "tech_start_top", "aggr_level", "vic_hold"]
 
 ## file name safety: a slot is a short id of letters, digits, "_" and "-" (anything else is dropped), never a path
 static func slot_id(slot: String) -> String:
@@ -21,7 +21,7 @@ const MAX_FILE := 48 * 1024 * 1024                  # a save of the largest map 
 const MAX_ITEMS := 200000                           # log / stats / pending lists
 const MAX_COIN := 1.0e9
 ## floats that must stay finite and sane
-const FLOAT_FIELDS := ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "infamy"]
+const FLOAT_FIELDS := ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "infamy", "net_ema"]
 
 ## the checksum stored in a save: it catches a damaged or half-written file and a casual edit. It is not a secret (the game is open), so single-player saves are the player's own
 ## to change; anything that matters between players is decided by the server, which never loads a client's save.
@@ -111,7 +111,7 @@ static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
 	if era_id != "modern" and (era_id.length() > 24 or not _plain_id(era_id) or not FileAccess.file_exists("res://data/eras/%s.json" % era_id)): return null
 	if not TBData.DIFFICULTY.has(d["difficulty"]): return null
 	var rules: int = int(d.get("rules", 0))
-	if rules < 0 or rules > 2: return null
+	if rules < 0 or rules > 3: return null
 	var era_pack := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	var g := TBGame.new(w, era_pack, {"seed": d["seed_value"], "difficulty": d["difficulty"], "rules": rules})
 	for k in FIELDS_PACKED:

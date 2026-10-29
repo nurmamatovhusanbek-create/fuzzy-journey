@@ -166,8 +166,7 @@ static func _c_declare_war(g: TBGame, c: Dictionary) -> Dictionary:
 	if not ult: g.dp[n] -= D.DP_WAR
 	g.set_rel(n, t, D.REL_WAR); g.last_war_turn[n] = g.turn
 	var cb_kind := TBDiplo.on_declare(g, n, t, ult)
-	var gi := t * g.N1 + n
-	g.grudge[gi] = mini(100, g.grudge[gi] + (80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)))
+	TBDiplo.hurt(g, t, n, 80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40))
 	g.log.append({"turn": g.turn, "kind": "war", "a": n, "b": t, "cb": cb_kind})
 	for o in range(1, g.N + 1):
 		if o != n and o != t and g.alive[o] != 0 and g.get_rel(t, o) == D.REL_ALLY and not g.friendly(n, o) and g.get_rel(n, o) != D.REL_WAR and not g.has_truce(n, o):
@@ -226,6 +225,7 @@ static func _c_ally(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.human[t] == 0 and not c.get("_force", false) and not TBAI.accepts_pact(g, t, n, D.REL_ALLY): return _err("refused")
 	g.dp[n] -= D.DP_ALLY; g.set_rel(n, t, D.REL_ALLY)
 	g.log.append({"turn": g.turn, "kind": "ally", "a": n, "b": t})
+	TBDiplo.befriend(g, n, t, 16, true)
 	return {"ok": true}
 
 static func _c_nap(g: TBGame, c: Dictionary) -> Dictionary:
@@ -235,6 +235,7 @@ static func _c_nap(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.human[t] == 0 and not c.get("_force", false) and not TBAI.accepts_pact(g, t, n, D.REL_NAP): return _err("refused")
 	g.dp[n] -= D.DP_NAP; g.set_rel(n, t, D.REL_NAP)
 	g.nap_expiry[mini(n, t) * g.N1 + maxi(n, t)] = g.turn + 20
+	TBDiplo.befriend(g, n, t, 8, false)
 	return {"ok": true}
 
 static func _c_break_pact(g: TBGame, c: Dictionary) -> Dictionary:
@@ -242,8 +243,8 @@ static func _c_break_pact(g: TBGame, c: Dictionary) -> Dictionary:
 	var r := g.get_rel(n, t)
 	if r != D.REL_ALLY and r != D.REL_NAP: return _err("state")
 	g.set_rel(n, t, D.REL_PEACE)
-	var gi := t * g.N1 + n
-	g.grudge[gi] = mini(100, g.grudge[gi] + 25)
+	TBDiplo.hurt(g, t, n, 25)
+	TBDiplo.oath_broken(g, n, r)
 	return {"ok": true}
 
 static func _c_build(g: TBGame, c: Dictionary) -> Dictionary:
@@ -359,8 +360,7 @@ static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 				for p in own: if g.stab[p] < g.stab[best]: best = p
 				g.stab[best] = maxi(5, g.stab[best] - 30); g.touch(best)
 	else:
-		var gi := t * g.N1 + n
-		g.grudge[gi] = mini(100, g.grudge[gi] + 25)
+		TBDiplo.hurt(g, t, n, 25)
 	g.log.append({"turn": g.turn, "kind": "spy", "a": n, "b": t, "op": op, "ok": ok})
 	return {"ok": true, "success": ok}
 

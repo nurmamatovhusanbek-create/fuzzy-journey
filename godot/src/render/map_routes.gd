@@ -165,7 +165,7 @@ func _draw() -> void:
 		elif rel == D.REL_ALLY: _route(a, b, "ally", "a%d" % o, 1.0, alive_keys, 0)
 		elif rel == D.REL_NAP: _route(a, b, "nap", "n%d" % o, 1.0, alive_keys, 0)
 		elif rel == D.REL_MARRIAGE: _route(a, b, "marry", "m%d" % o, 1.0, alive_keys, 0)
-		if g.rules >= 1 and TBTrade.has(g, me, o): _route(a, b, "trade", "t%d" % o, -1.0, alive_keys, TBTrade.value(g, o))
+		if g.rules >= 1 and TBTrade.has(g, me, o): _route(a, b, "trade", "t%d" % o, -1.0, alive_keys, TBTrade.value(g, o, me))
 	for k in _seen.keys():
 		if not alive_keys.has(k): _seen.erase(k)
 

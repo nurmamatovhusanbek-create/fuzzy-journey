@@ -262,4 +262,10 @@ static func _trade(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	if TBTrade.has(g, n, t): return _fail(out, "active")
 	if g.trade_cnt[n] >= TBTrade.max_deals(g, n): return _fail(out, "tradefull")
 	_need(out, "dp", g.dp[n], TBTrade.DP_COST, "dp")
+	if g.rules >= 3:                                                                       # a route is an expedition: gold for the caravans, men for the escorts
+		var v := TBTrade.yield_of(g, n, t)
+		out["gold"] = TBTrade.fee_gold(v); out["men"] = TBTrade.fee_men(v)
+		_need(out, "gold", g.gold[n], float(out["gold"]), "gold")
+		_need(out, "men", g.manpower[n], float(out["men"]), "manpower")
+		if g.trade_cnt[t] >= TBTrade.max_deals(g, t) and g.human[t] != 0 and out["ok"]: return _fail(out, "tradefull")
 	return out

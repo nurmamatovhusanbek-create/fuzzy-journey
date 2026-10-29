@@ -82,6 +82,7 @@ static func end_turn(g: TBGame) -> PackedInt32Array:
 		TBGenerals.tick(g)
 		TBRulers.tick(g)
 		TBDiplo.tick(g)
+		TBTrade.maintain(g)
 		TBAsks.resolve(g)
 		TBStats.record(g)
 		TBRealms.tick(g)
@@ -140,6 +141,9 @@ static func _tick(g: TBGame) -> void:
 		if own.is_empty():
 			g.eliminate(n); continue
 		var inc := g.income(n)
+		if g.rules >= 3:                                                                      # persistent income: the surplus smoothed over ~7 turns (trade routes need it)
+			var e0: float = g.net_ema[n]
+			g.net_ema[n] = float(inc["net"]) if e0 == 0.0 else e0 * TBTrade.EMA_KEEP + float(inc["net"]) * (1.0 - TBTrade.EMA_KEEP)
 		var reg: Dictionary = D.REGIMES[g.regime[n]]
 		var era: int = g.era[n]
 		var gold_before: float = g.gold[n]
@@ -312,8 +316,15 @@ static func _rebel_lifecycle(g: TBGame, own: PackedInt32Array) -> void:
 			g.log.append({"turn": g.turn, "kind": "rebels_end", "a": was, "p": p})
 
 ## victory paths (rules >= 1): id -> progress 0..1 (>= 1 wins). Domination counts the share of the whole map.
+## Rules >= 3 (docs/MODEL.md section 9): a victory is a position HELD, not a moment: the condition must stay true for HOLD turns in a row (the chronicle of a hegemon is written
+## over years); diplomatic hegemony is no longer an ending but an achievement (alliances are made in almost every turn of any game); and domination needs the people as well
+## as the land (an empire of empty provinces rules nothing), counting a vassal's lands and people at half.
 const VICTORY_IDS := ["domination", "economic", "technological", "diplomatic", "conquest"]
+const WIN_IDS_3 := ["domination", "economic", "technological", "conquest"]
+const HOLD := {"domination": 8, "economic": 8, "technological": 6, "diplomatic": 20}          # turns (one turn = half a year); conquest ends the game at once
 const DOMINATION_SHARE := 0.25
+const DOMINATION_POP := 0.25               # rules >= 3: ...and this share of the world's people
+const VASSAL_WEIGHT := 0.5
 const ECONOMIC_GOLD := 5000.0
 const ECONOMIC_MIN_TURN := 30              # a flat 5000 gold fell in the first turns to every large nation, so it also takes a full trade network and some time
 const TECH_MIN_TURN := 40
@@ -322,7 +333,30 @@ const TECH_ROOM := 1.0                     # ...and only in eras where the world
 const DIPLOMATIC_ALLIES := 8
 const DIPLOMATIC_SHARE := 0.05            # in the largest eras (250 nations) 8 allies was reached by turn 50 in every simulated game
 
-static func victory_progress(g: TBGame, n: int) -> Dictionary:
+## the paths that end the game (rules >= 3 leaves out the diplomatic one, which is an achievement)
+static func win_ids(g: TBGame) -> Array:
+	return WIN_IDS_3 if g.rules >= 3 else VICTORY_IDS
+
+static func _hold_key(n: int, id: String) -> String: return "%d:%s" % [n, id]
+
+## how many turns in a row n has held the condition of `id`, and how many it takes (rules >= 3; need 0 = no holding needed)
+static func hold_status(g: TBGame, n: int, id: String) -> Vector2i:
+	if g.rules < 3 or not HOLD.has(id): return Vector2i(0, 0)
+	return Vector2i(int(g.vic_hold.get(_hold_key(n, id), 0)), int(HOLD[id]))
+
+## the share of the world's land and people that n commands (a vassal's counts at VASSAL_WEIGHT)
+static func reach_shares(g: TBGame, n: int) -> Vector2:
+	var land := 0.0; var pop_mine := 0.0; var pop_all := 0.0
+	for p in g.P:
+		var o: int = g.owner[p]
+		if o == 0: continue
+		var w := 1.0 if o == n else (VASSAL_WEIGHT if g.overlord[o] == n else 0.0)
+		pop_all += g.pop[p]
+		if w > 0.0: land += w; pop_mine += w * g.pop[p]
+	return Vector2(land / float(g.P), pop_mine / maxf(1.0, pop_all))
+
+## the conditions as they stand now, 0..1 each (>= 1 = met), whether or not they have been held long enough
+static func raw_progress(g: TBGame, n: int) -> Dictionary:
 	var allies := 0
 	var alive_others := 0
 	for o in range(1, g.N1):
@@ -336,13 +370,33 @@ static func victory_progress(g: TBGame, n: int) -> Dictionary:
 	if 5.0 - g.tech_start_top >= TECH_ROOM:
 		var rival: float = g.tech_second if g.tech_level[n] >= g.tech_top else g.tech_top
 		tech = clampf(minf(g.tech_level[n] / 5.0, (g.tech_level[n] - rival) / TECH_LEAD), 0.0, 1.0)
+	var dom: float = clampf(float(g.own_count(n)) / g.P / DOMINATION_SHARE, 0.0, 1.0)
+	if g.rules >= 3:
+		var sh := reach_shares(g, n)
+		dom = clampf(minf(sh.x / DOMINATION_SHARE, sh.y / DOMINATION_POP), 0.0, 1.0)
 	return {
-		"domination": clampf(float(g.own_count(n)) / g.P / DOMINATION_SHARE, 0.0, 1.0),
+		"domination": dom,
 		"economic": clampf(econ, 0.0, 1.0 if g.turn >= ECONOMIC_MIN_TURN else 0.99),
 		"technological": clampf(tech, 0.0, 1.0 if g.turn >= TECH_MIN_TURN else 0.99),
 		"diplomatic": clampf(float(allies) / maxf(DIPLOMATIC_ALLIES, ceilf(alive_others * DIPLOMATIC_SHARE)), 0.0, 1.0),
 		"conquest": 1.0 if alive_others == 0 else clampf(float(g.own_count(n)) / maxf(1.0, g.P - g.own_count(0)), 0.0, 0.99),
 	}
+
+## what the goals screen shows: the conditions, with a position that has not yet been held long enough kept just short of complete (rules >= 3)
+static func victory_progress(g: TBGame, n: int) -> Dictionary:
+	var pr := raw_progress(g, n)
+	if g.rules >= 3:
+		for id in HOLD.keys():
+			var hs := hold_status(g, n, id)
+			if float(pr[id]) >= 1.0 and hs.x < hs.y: pr[id] = 0.99
+	return pr
+
+## once a turn, after the world has moved: count how long each condition has been held in a row
+static func _count_holds(g: TBGame, h: int, raw: Dictionary) -> void:
+	for id in HOLD.keys():
+		var met: bool = float(raw[id]) >= 1.0 and not (id == "technological" and g.tech_level[h] < 5.0)
+		var k := _hold_key(h, id)
+		g.vic_hold[k] = int(g.vic_hold.get(k, 0)) + 1 if met else 0
 
 static func check_victory(g: TBGame) -> void:
 	if g.over: return
@@ -364,8 +418,11 @@ static func check_victory(g: TBGame) -> void:
 		return
 	for h in hs:
 		if g.alive[h] == 0: continue
-		var prog := victory_progress(g, h)
-		for id in VICTORY_IDS:
-			if prog[id] >= 1.0 and not (id == "technological" and g.tech_level[h] < 5.0):
+		var prog := raw_progress(g, h)
+		if g.rules >= 3: _count_holds(g, h, prog)
+		for id in win_ids(g):
+			var met: bool = prog[id] >= 1.0 and not (id == "technological" and g.tech_level[h] < 5.0)
+			if met and g.rules >= 3 and HOLD.has(id): met = hold_status(g, h, id).x >= int(HOLD[id])
+			if met:
 				g.over = true; g.winner = h; g.victory_kind = id
 				g.log.append({"turn": g.turn, "kind": "victory", "a": h, "id": id}); return

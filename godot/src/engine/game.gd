@@ -11,7 +11,7 @@ var N: int
 var N1: int
 var rng: TBRng
 var seed_value: int
-var rules: int = 2                # 0 = legacy behaviour (oracle-exact vs JS reference), 1 = tuned game rules, 2 = districts (several buildings per province, development limited by population)
+var rules: int = 3                # 0 = legacy behaviour (oracle-exact vs JS reference), 1 = tuned game rules, 2 = districts (several buildings per province, development limited by population)
 var difficulty: String
 var diff: Dictionary
 var turn: int = 1
@@ -60,7 +60,9 @@ var truce := PackedInt32Array()     # N1*N1 expiry turn
 var see_until := PackedInt32Array() # N1*N1: the turn until which nation a sees the armies of nation b (a spy report; rules >= 1, see TBVision)
 var war_score := PackedInt32Array() # N1*N1
 var war_turns := PackedInt32Array() # N1*N1
-var grudge := PackedByteArray()     # N1*N1
+var grudge := PackedByteArray()     # N1*N1: grudge[a*N1+b] is how much a resents b (0..100, cools one point a turn)
+var net_ema := PackedFloat32Array() # rules >= 3: each nation's net income, smoothed over about 7 turns (0 = no history yet): the 'persistent income' that trade routes need
+var vic_hold := {}                  # rules >= 3: consecutive turns a player has held each victory condition ("<nation>:<id>" -> turns)
 var war_cnt := PackedInt32Array()   # per nation: number of ALIVE enemies it is at war with (incremental)
 
 # provinces
@@ -145,7 +147,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	world = w
 	P = w.P
 	seed_value = int(opts.get("seed", 1))
-	rules = int(opts.get("rules", 2))
+	rules = int(opts.get("rules", 3))
 	aggr_level = clampi(int(opts.get("aggression", 1)), 0, D.AGGRESSION.size() - 1)
 	rng = TBRng.new(seed_value)
 	difficulty = String(opts.get("difficulty", "normal"))
@@ -215,7 +217,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	truce.resize(N1 * N1); war_score.resize(N1 * N1); war_turns.resize(N1 * N1); see_until.resize(N1 * N1); offer_cd.resize(N1); offer_cd.fill(-99)
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
-	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1)
+	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1); net_ema.resize(N1)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
 	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:

@@ -256,6 +256,7 @@ static func _diplomacy(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		var r := g.get_rel(n, t)
 		if r == D.REL_PEACE and g.grudge[t * g.N1 + n] < 20:
 			var k: String = "nap" if g.rng.chance(0.5) else "ally"
+			if k == "ally" and g.rules >= 3 and not accepts_pact(g, t, n, D.REL_ALLY): k = "nap"          # no alliance without a record of trust: a pact first
 			if k == "ally" and g.dp[n] >= D.DP_ALLY: g.apply({"cmd": "ally", "n": n, "t": t})
 			else: g.apply({"cmd": "nap", "n": n, "t": t})
 			return
@@ -288,6 +289,8 @@ static func accepts_pact(g: TBGame, t: int, p: int, rel: int) -> bool:
 	var mine := g.own_count(t)
 	var theirs := g.own_count(p)
 	if theirs > mine * 3: s -= 0.2
+	if g.rules >= 3:
+		for tm in TBDiplo.pact_terms(g, t, p, rel): s += float(tm[1])
 	return s > 0.45
 
 

@@ -380,8 +380,9 @@ static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_goals"), "goals", {"w": 660, "h": 400, "sub": T.call("goals_sub")})
 	var me := g.human_id
 	var prog := TBTurn.victory_progress(g, me)
-	var ids: Array = TBTurn.VICTORY_IDS.duplicate()
+	var ids: Array = TBTurn.win_ids(g).duplicate()
 	ids.sort_custom(func(a: String, b: String) -> bool: return float(prog[a]) > float(prog[b]))
+	if g.rules >= 3: ids.append("diplomatic")                                  # an achievement, listed last
 	var grid := GridContainer.new(); grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 12); grid.add_theme_constant_override("v_separation", 12); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.body.add_child(grid)
@@ -401,7 +402,14 @@ static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 			"technological": a = "%.1f" % g.tech_level[me]; b = "%.1f" % (g.tech_second if g.tech_level[me] >= g.tech_top else g.tech_top)
 			"diplomatic": a = allies; b = int(maxf(TBTurn.DIPLOMATIC_ALLIES, ceilf(alive_others * TBTurn.DIPLOMATIC_SHARE)))
 			_: a = own; b = g.P - g.own_count(0)
-		grid.add_child(TBBzScreens.GoalCard.new(T.call("vc_" + String(id)), T.call("vcs_" + String(id), {"a": a, "b": b}), float(prog[id]), T.call("vc_%s_d" % String(id), {"s": int(roundf(g.econ_goal * 100.0))})))
+		var tk: String = "vc_" + String(id)
+		var dk: String = tk + "_d"
+		if g.rules >= 3 and id == "diplomatic": tk += "_a"; dk = "vc_diplomatic_a_d"
+		elif g.rules >= 3 and id != "conquest": dk = tk + "_d3"
+		var sub_t: String = T.call("vcs_" + String(id), {"a": a, "b": b})
+		var hold := TBTurn.hold_status(g, me, String(id))
+		if hold.x > 0 and hold.y > 0: sub_t += " · " + T.call("vc_hold", {"h": hold.x, "n": hold.y})
+		grid.add_child(TBBzScreens.GoalCard.new(T.call(tk), sub_t, float(prog[id]), T.call(dk, {"s": int(roundf(g.econ_goal * 100.0))})))
 	for i in TBRealms.count():
 		if g.realm_done.size() != g.N1 * TBRealms.count() or g.realm_done[me * TBRealms.count() + i] != 0: continue
 		var sh := TBRealms.share(g, me, i)
