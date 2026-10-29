@@ -107,7 +107,7 @@ static func weigh(g: TBGame, t: int, p: int) -> Dictionary:
 		if blocked == "" and float(mt["m"]) < MIN_MEANS: blocked = "poor"
 		terms.append(["dv_means", -1.0 * (1.0 - float(mp["m"]))])                           # you: can you carry it?
 		terms.append(["dv_theirmeans", -0.6 * (1.0 - float(mt["m"]))])                     # they: can they?
-		terms.append(["dv_reach", -0.5 * (1.0 - reach(g, t, p))])                          # the farther away, the less they care
+		terms.append(["dv_reach", -0.4 * (1.0 - reach(g, t, p))])                          # the farther away, the less they care
 		for tm in TBDiplo.loyalty_terms(g, t, p): terms.append(tm)                          # you are at war with their friend
 	return {"blocked": blocked, "terms": terms}
 
@@ -139,19 +139,25 @@ static func propose(g: TBGame, n: int, t: int, force: bool = false) -> Dictionar
 	g.log.append({"turn": g.turn, "kind": "trade", "a": n, "b": t})
 	return {"ok": true}
 
-## AI: occasionally sign a deal with a friendly neighbour
+## AI: occasionally sign a deal with a friendly neighbour. Rules >= 3: a court looks over its prospects and opens the most valuable route it can carry and that the other side will take.
 static func ai_step(g: TBGame, n: int) -> void:
 	if g.rules < 1 or g.trade_cnt[n] >= max_deals(g, n) or g.dp[n] < DP_COST or g.rng.next() > 0.08: return
+	var best := -1; var best_v := -1
 	for o in range(1, g.N1):
 		if o == n or g.alive[o] == 0 or o == g.rebel or has(g, n, o): continue
 		var r := g.get_rel(n, o)
 		if r == D.REL_WAR or g.own_count(o) < 4: continue
-		if r == D.REL_PEACE and g.rng.next() > 0.3: continue
-		if g.rules >= 3:                                                          # a court only opens a route it can carry: a healthy surplus, a reserve and people to spare
-			var v := yield_of(g, n, o)
-			if float(means(g, n, v)["m"]) < 0.5 or g.trade_cnt[o] >= max_deals(g, o): continue
-		if g.human[o] == 0 and accepts(g, o, n) and g.trade_cnt[o] < max_deals(g, o):
-			propose(g, n, o); return
+		if g.rules < 3:
+			if r == D.REL_PEACE and g.rng.next() > 0.3: continue
+			if g.human[o] == 0 and accepts(g, o, n) and g.trade_cnt[o] < max_deals(g, o):
+				propose(g, n, o); return
+			continue
+		if g.human[o] != 0 or g.trade_cnt[o] >= max_deals(g, o): continue
+		var v := yield_of(g, n, o)
+		if v <= best_v: continue
+		if g.gold[n] < float(fee_gold(v)) or g.manpower[n] < float(fee_men(v)) or float(means(g, n, v)["m"]) < 0.5: continue    # a court only opens a route it can carry
+		if accepts(g, o, n): best = o; best_v = v
+	if best > 0: propose(g, n, best)
 
 ## rules >= 3, once a turn: a route is not forever. It lapses when either side is bankrupt (chance per turn) or when the two courts have come to hate each other.
 static func maintain(g: TBGame) -> void:
