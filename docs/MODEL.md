@@ -125,6 +125,30 @@ Rules 2 turns a province into a *district* with room for several buildings and a
 * **Overextension** (`OVEREXTEND_FROM = 60`, `OVEREXTEND_STEP = 0.004`): administration costs 0.4 % more for every province beyond 60 (a 200-province empire pays 56 % more for its governors). In the 26-game sim the Roman runaway shrank from 419 to 395 provinces; no other era changed noticeably.
 * Tests: `tests/districts.gd` (slots, price, demolish, job fill, save and net round trips, AI builds several per province).
 
+## 9. Rules 3: how quarrels spread, what a trade route needs, and endings that must be held
+Rules 3 is the default for new games; games saved under rules 0-2 keep their old behaviour exactly (rules 0 is still oracle-exact). Everything below is gated on `rules >= 3`.
+
+**Quarrels spread, weaker than the quarrel itself** (`TBDiplo.hurt`, `befriend`, `tie`). Every wrong done to a nation (war declared on it, a pact broken, an ultimatum it yielded to,
+a failed spy operation, a province taken) goes through `hurt(victim, offender, amount)`. The victim takes `amount` as grudge; each other nation `o` takes
+`amount x tie(o, victim) x (1 - 0.6 x tie(o, offender) / 0.5)`: an ally of the victim half of it (a war declared on an ally: 80 for the victim, 40 for its friend), kin by marriage 40 %, a vassal or
+its liege 45 %, a trade partner 12 %; a friend of both is torn and feels about 40 % of that. Enemies of the victim who are not at war with the offender warm to it by a quarter of the amount.
+Goodwill travels the same ties: a new alliance (16), marriage (20), pact (8) or trade deal (5) cools the partner's friends toward the actor by `amount x tie x 0.8`; a military bond (alliance, marriage)
+makes the partner's enemies 30 % wary. Breaking an alliance costs 6 infamy (a pact 3): an oath broken is remembered by everyone. Grudges cool one point a turn and a grudge above 20 stops pacts (30 trade, 60 cuts a route).
+When a court weighs a request: being at war with its friends costs -0.5 each (cap -1), friends in common +0.15 each (cap +0.45), and an alliance with no record of trust (no pact, trade deal, marriage or common war) -0.45,
+so friendship climbs a ladder: peace, then a pact, then an alliance. The AI follows the same ladder and asks for a pact when an alliance would be refused. `tests/realism.gd` pins the numbers.
+
+**A trade route is a venture** (`TBTrade`). Its yield, the same for both sides, follows a gravity model: `2 + 0.8 x sqrt(S) x reach`, `S = sqrt(market_a x market_b)`, `market = provinces x (6 + 3.5 x era)`,
+`reach = 1 / (1 + (d / 0.7 rad)^2)` between the capitals (capped at 45). Opening one costs `15 + 3.5 x yield` gold and `4 + yield / 2` people, paid by the one who asks (an AI court that offers one pays too).
+The partner's willingness is the usual temper + appetite plus three terms: your means -(1 - m), their means -0.6 (1 - m) and distance -0.4 (1 - reach), where the means
+`m = inc^0.4 x gold^0.3 x men^0.3` is a weighted geometric mean of: persistent income (`net_ema`, net income smoothed over about 7 turns, 2 x the route's yield is full marks), a treasury of 1.5 x the fee, and people at 4 x the cost. A nation with
+no surplus, no money or no men has no means at all (the geometric mean is zero) and a partner whose own means are under 0.15 cannot take part. A route lapses when either court's grudge reaches 60, or with a 35 % chance a turn
+while either treasury is empty. Measured (300 turns, 13 eras x 2 seeds): AI routes per world fell to 40-55 % of rules 2 (the old rule signed nearly everyone up), no invariant broke, turn cost rose from 51 to 68 ms.
+
+**Endings that must be held** (`TBTurn`). Domination, economic and technological victories need the position to be true for 8, 8 and 6 turns in a row (`HOLD`; `vic_hold`, saved); the goals screen shows the
+card at 99 % and "Holding n of N turns" until then. Domination needs 25 % of the provinces AND 25 % of the world's people (a vassal's land and people count half), so an empire of empty land does not rule.
+Total conquest still ends the game at once. **Diplomatic hegemony is no longer an ending**: it is the achievement "Concert of Nations" (8 alliances or 5 % of all nations, held 20 turns); games of rules 2 and older keep the old ending.
+In the 26-game sim the old ending was reachable by an AI from turn 90 in six eras; the new alliance ladder cut AI alliances to a third and none of the endings is reached by an AI before turn 200.
+
 ## 8. Where to look
 
 | thing | code |
@@ -134,5 +158,6 @@ Rules 2 turns a province into a *district* with room for several buildings and a
 | AI use of the level | `engine/ai.gd` (`_nation`, `_maybe_declare`, `_fight`, `peace_bar`) |
 | selector | `ui/pick_flow.gd` (card), saved as `cfg.aggression` |
 | districts | `engine/game.gd` (`bl`, `b_slots`, `set_bl`, `b_price`, `job_income`), `engine/ai.gd` (`_districts`), `ui/build_picker.gd` |
+| rules 3 | `engine/diplomacy.gd` (hurt, befriend, ties), `engine/trade.gd` (yield, means, maintain), `engine/turn.gd` (holds), `tests/realism.gd` |
 | tests | `tests/districts.gd`, `tests/model.gd`, `tests/victory.gd`, `tests/chron_keys.gd`, `tests/dipview.gd` |
 | balance matrix | `tools/sim.sh`, `docs/SIM_REPORT.md` |

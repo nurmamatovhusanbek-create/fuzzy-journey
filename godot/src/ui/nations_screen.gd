@@ -594,7 +594,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		var pc: int = TBAsks.chance(g, me, kind, n, op)
 		if reason == "" and pc == 0: reason = T.call("dvb_" + String(TBAsks.view(g, me, kind, n, op).get("blocked", "grudge")))
 		add_btn.call(T.call("ask_proposed") if mine else label, icon, T.call("ask_next") if mine else "%d%%" % pc,
-			func(): done.call({"cmd": "ask", "kind": kind, "t": n, "op": op}), reason, "" if reason != "" else T.call("ask_tip", {"c": cost}))
+			func(): done.call({"cmd": "ask", "kind": kind, "t": n, "op": op}), reason, "" if reason != "" else (T.call("ask_tip_trade", {"c": cost, "g": TBTrade.fee_gold(TBTrade.yield_of(g, me, n)), "m": TBTrade.fee_men(TBTrade.yield_of(g, me, n))}) if kind == "trade" and g.rules >= 3 else T.call("ask_tip", {"c": cost})))
 	if rel == 1:
 		var ws: int = g.war_score[me * g.N1 + n]
 		req.call(T.call("dip_peace"), "flag", "peace", "white", D.DP_PEACE, dpw.call(D.DP_PEACE), {"cmd": "peace", "t": n, "kind": "white"})
