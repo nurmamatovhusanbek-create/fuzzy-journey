@@ -31,3 +31,14 @@ Rule for every item: **evidence, then decision, then work, then proof** (engine 
 * A Rust rewrite (no speed problem; the UI is the expensive part). Revisit only with phone measurements.
 * Real current heads of state in the modern era (a legal and taste risk; fictional rulers with fitting names instead).
 * Multiplayer, until the owner turns it on.
+
+## Status (end of this round)
+
+| Item | State |
+|---|---|
+| 1 High contrast on every screen | Done: 18 screens checked by `tests/light_shots.gd` in the UI suite, paper cards turn Bezel colours into inks, HUD words get a dark edge |
+| 2 Ruler names that fit the land | Done: 104 new names in 14 spheres, test in `tests/realism.gd`; also fixed the modern-world capitals (197 ISO entries) |
+| 3 Modern era content | Done: 9 new events (2026 to 2037), 17 scheduled, 24 with the global ones |
+| 4 Godot 4.5 trial | Blocked: the permission system refused to run the downloaded editor |
+| 5 First minutes | Done: tutorial text brought up to date; small desktop windows now get a stage no taller than 0.8 px a unit (1366 x 768 laptops); events no longer open on turn 2 |
+| 6 Notes | Done: `docs/CHANGELOG.md` |
