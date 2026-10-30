@@ -20,6 +20,7 @@ var prov_nat: PackedInt32Array
 var nbx_off: PackedInt32Array
 var nbx: PackedInt32Array
 var nbx_sea: PackedByteArray
+var terr: PackedByteArray         # per province: the terrain a rules 3 game gives it (data/terrain.bin, baked by tools/bake_terrain.py from mountain ranges, forests, steppe and marsh); empty when missing
 var geo: PackedByteArray          # per province: bit 0 coastal, bit 1 arid, bit 2 polar (data/geo.bin, baked by tools/bake_geo.py); empty when the file is missing
 
 static func load_from(dir: String) -> TBWorld:
@@ -38,6 +39,9 @@ static func load_from(dir: String) -> TBWorld:
 	if FileAccess.file_exists(dir + "/geo.bin"):
 		w.geo = FileAccess.get_file_as_bytes(dir + "/geo.bin")
 		if w.geo.size() != w.P: w.geo = PackedByteArray()
+	if FileAccess.file_exists(dir + "/terrain.bin"):
+		w.terr = FileAccess.get_file_as_bytes(dir + "/terrain.bin")
+		if w.terr.size() != w.P: w.terr = PackedByteArray()
 	return w
 
 static func load_era(dir: String, era_id: String) -> Dictionary:

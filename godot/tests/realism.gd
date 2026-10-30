@@ -278,6 +278,34 @@ func _init() -> void:
 		print("  (could not fill the court with this seed; skipped)")
 	var gold3 := TBGame.new(w, era, {"seed": 6, "rules": 2})
 	_ok(TBDiplo.ally_room(gold3, 1, 2) == "", "rules 2 has no cap")
+	print("-- terrain follows the geography (rules 3); older rules keep the hash")
+	var gt := TBGame.new(w, {}, {"seed": 1})
+	var g2t := TBGame.new(w, {}, {"seed": 1, "rules": 2})
+	var swiss := 0; var swiss_mtn := 0; var dutch_bad := 0; var dutch := 0
+	var counts := PackedInt32Array([0, 0, 0, 0, 0, 0])
+	for q2 in gt.P:
+		counts[gt.terrain[q2]] += 1
+		var pid: String = w.id[q2]
+		if pid.begins_with("che_"):
+			swiss += 1
+			if gt.terrain[q2] == 2: swiss_mtn += 1
+		if pid.begins_with("nld_"):
+			dutch += 1
+			if gt.terrain[q2] == 2 or gt.terrain[q2] == 1: dutch_bad += 1
+	_ok(swiss > 0 and swiss_mtn == swiss, "every Swiss province is mountain (%d of %d)" % [swiss_mtn, swiss])
+	_ok(dutch > 0 and dutch_bad == 0, "no Dutch province is hills or mountain (%d of %d)" % [dutch_bad, dutch])
+	var mt_share: float = float(counts[2]) / float(gt.P)
+	_ok(mt_share > 0.12 and mt_share < 0.26 and counts[0] > 0 and counts[3] > 0 and counts[4] > 0 and counts[5] > 0, "every kind of ground occurs and mountains are %d%% of the land" % int(mt_share * 100.0))
+	var hash_ok := true
+	for q3 in g2t.P:
+		var hh: int = TBRng.hash_str(w.id[q3]) % TBData.TERRAIN_TOTAL
+		var tt := 0
+		while tt < TBData.TERRAIN_WEIGHT.size() - 1:
+			hh -= TBData.TERRAIN_WEIGHT[tt]
+			if hh < 0: break
+			tt += 1
+		if g2t.terrain[q3] != tt: hash_ok = false; break
+	_ok(hash_ok, "rules 2 still draws its terrain from the province id hash (the oracle depends on it)")
 	print("-- veteran colonies and embassies: what idle people and envoys are for")
 	var gm := TBGame.new(w, era, {"seed": 7})
 	var pm := _pick(gm, 3)

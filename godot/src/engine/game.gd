@@ -205,7 +205,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 			if h < 0:
 				break
 			t += 1
-		terrain[p] = t
+		terrain[p] = int(w.terr[p]) if (rules >= 3 and w.terr.size() == P) else t           # rules 3: the lie of the land; older rules keep the hash the reference engine uses
 
 	# ---- nation arrays ----
 	for a in [gold, manpower, mp, dp, tech_level, research, liberty]:
