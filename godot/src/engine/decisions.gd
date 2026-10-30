@@ -40,7 +40,7 @@ static func why_not(g: TBGame, n: int, i: int) -> String:
 	if g.era[n] < int(d["era"]): return "era"
 	if is_active(g, n, i): return "active"
 	if g.gold[n] < float(d["gold"]): return "gold"
-	if g.mp[n] < float(d["mp"]): return "mp"
+	if g.mp[n] + (0.0001 if g.rules >= 3 else 0.0) < float(d["mp"]): return "mp"
 	if d["id"] == "amnesty" and g.infamy[n] < 4.0: return "noinfamy"
 	if d["id"] == "amnesty" and g.dec_until[n * LIST.size() + i] > g.turn - 20 and g.dec_until[n * LIST.size() + i] != 0: return "cooldown"
 	return ""

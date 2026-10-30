@@ -153,7 +153,8 @@ static func _tick(g: TBGame) -> void:
 			y_sum += float(inc["gold"])
 		if g.rules >= 1 and g.human[n] != 0 and gold_before > 0.0 and g.gold[n] <= 0.0: g.log.append({"turn": g.turn, "kind": "bankrupt", "a": n})
 		g.manpower[n] = minf(inc["manCap"], g.manpower[n] + inc["manpower"])
-		g.mp[n] = minf(6 + era * 2, g.mp[n] + 1 + era * 0.4)
+		if g.rules >= 3 and g.human[n] != 0: g.mp[n] = minf(TBAdvisor.mp_cap(g, n), g.mp[n] + TBAdvisor.mp_gain(g, n))      # a human ruler's clerks grow with the realm
+		else: g.mp[n] = minf(6 + era * 2, g.mp[n] + 1 + era * 0.4)
 		if g.rules >= 1 and g.human[n] == 0: g.mp[n] = minf(8 + era * 2, g.mp[n] + 1.2)    # AI acts less cleverly: extra action points
 		g.dp[n] = minf(4 + era * 2, g.dp[n] + 1 + era * 0.3 + (TBRulers.dp_add(g, n) if g.rules >= 1 else 0.0))
 		if g.rules >= 1: g.intel[n] = minf(20.0, g.intel[n] + 0.8 + minf(1.5, own.size() / 40.0))

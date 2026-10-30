@@ -118,12 +118,16 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 
 static func _err(e: String) -> Dictionary: return {"ok": false, "err": e}
 
+## move points are stored as float32, so 1 + 1 + 1 can come out a hair under 3: from rules 3 on a command (like can(), which always allowed this) accepts a shortfall below 0.0001
+static func _short_mp(g: TBGame, n: int, need: float) -> bool:
+	return g.mp[n] + (0.0001 if g.rules >= 3 else 0.0) < need
+
 static func _c_move(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var to: int = c["to"]
 	if g.rules >= 1 and g.sea_edge(int(c["from"]), to) < 0:                    # not a neighbour: a march (TBMarch) over land you hold, allies' land and your ports
 		var pl := TBMarch.plan(g, n, int(c["from"]), to)
 		if not bool(pl["ok"]): return _err(String(pl["err"]))
-		if g.mp[n] < float(pl["mp"]): return _err("mp")
+		if _short_mp(g, n, float(pl["mp"])): return _err("mp")
 		var rm := TBMarch.order(g, n, int(c["from"]), to, int(c.get("troops", 0)))
 		if rm.begins_with("!"): return _err(rm.substr(1))
 		g.mp[n] -= float(pl["mp"])
@@ -133,7 +137,7 @@ static func _c_move(g: TBGame, c: Dictionary) -> Dictionary:
 		return {"ok": true, "result": rm, "at": at}
 	var att := g.controller(to) != n
 	var need: float = D.MP_ATTACK if att else D.MP_MOVE
-	if g.mp[n] < need: return _err("mp")
+	if _short_mp(g, n, need): return _err("mp")
 	if g.rules >= 1: TBMarch.cancel_at(g, n, int(c["from"]))                  # a hand-given move replaces the standing order of that army
 	var r := g.move_or_attack(n, int(c["from"]), to, int(c.get("troops", 0)))
 	if r.begins_with("!"): return _err(r.substr(1))
@@ -149,7 +153,7 @@ static func _c_recruit(g: TBGame, c: Dictionary) -> Dictionary:
 	var man_cost: int = D.COST_RECRUIT_MAN + amount
 	if g.gold[n] < gold_cost: return _err("gold")
 	if g.manpower[n] < man_cost: return _err("manpower")
-	if g.mp[n] < D.MP_RECRUIT: return _err("mp")
+	if _short_mp(g, n, D.MP_RECRUIT): return _err("mp")
 	g.gold[n] -= gold_cost; g.manpower[n] -= man_cost; g.mp[n] -= D.MP_RECRUIT
 	g.army[p] = mini(65000, g.army[p] + amount); g.touch(p)
 	return {"ok": true}
@@ -264,7 +268,7 @@ static func _c_build(g: TBGame, c: Dictionary) -> Dictionary:
 	var mpc := maxi(1, int(round(float(bt["mp"][lvl - 1]) * float(reg["moveCost"]))))
 	var price: int = g.b_price(p, b, lvl)
 	if g.gold[n] < float(price): return _err("gold")
-	if g.mp[n] < mpc: return _err("mp")
+	if _short_mp(g, n, mpc): return _err("mp")
 	g.gold[n] -= float(price); g.mp[n] -= mpc
 	g.b_building[p] = b; g.b_turns[p] = int(bt["buildTime"][lvl - 1]); g.touch(p)
 	return {"ok": true}
@@ -304,7 +308,7 @@ static func _c_colonize(g: TBGame, c: Dictionary) -> Dictionary:
 	var reg: Dictionary = D.REGIMES[g.regime[n]]
 	var cost: int = 0 if reg["colonyFree"] else 60 + g.own_count(n) * 2
 	if g.gold[n] < cost: return _err("gold")
-	if g.mp[n] < 2: return _err("mp")
+	if _short_mp(g, n, 2.0): return _err("mp")
 	g.gold[n] -= cost; g.mp[n] -= 2; g.set_owner(p, n); g.army[p] = maxi(g.army[p], 8); g.discoverable[p] = 0
 	return {"ok": true}
 
@@ -373,7 +377,7 @@ static func _c_hire(g: TBGame, c: Dictionary) -> Dictionary:
 	var amount := clampi(int(c.get("amount", 30)), 10, 60)
 	var cost := int(ceil(amount * 5.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))
 	if g.gold[n] < cost: return _err("gold")
-	if g.mp[n] < 1: return _err("mp")
+	if _short_mp(g, n, 1.0): return _err("mp")
 	g.gold[n] -= cost; g.mp[n] -= 1
 	g.army[p] = mini(65000, g.army[p] + amount); g.touch(p)
 	return {"ok": true}
@@ -396,7 +400,7 @@ static func _c_develop(g: TBGame, c: Dictionary) -> Dictionary:
 	var cost: int = g.develop_cost(p)
 	var mpc := 2 if g.rules < 2 else 1
 	if g.gold[n] < cost: return _err("gold")
-	if g.mp[n] < mpc: return _err("mp")
+	if _short_mp(g, n, mpc): return _err("mp")
 	g.gold[n] -= cost; g.mp[n] -= mpc
 	g.dev[p] += 1; g.stab[p] = mini(100, g.stab[p] + 4); g.pop[p] = mini(2000, g.pop[p] + 20); g.touch(p)
 	return {"ok": true}

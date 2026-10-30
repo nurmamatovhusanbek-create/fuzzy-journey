@@ -1077,14 +1077,23 @@ var _hot_list := PackedInt32Array()
 func _is_hotseat() -> bool: return g != null and not mp.in_game and g.humans().size() > 1
 
 ## prompt the human for any pending event choice addressed to them (SP and MP share this)
+var _event_dlg := {}                     # uid -> the open prompt (so one whose event was settled another way, by a notice chip or the end of the turn, is closed and never left standing)
+
 func show_events() -> void:
 	if g == null or g.human_id == 0: return
+	var live := {}
+	for e in g.pending: live[int(e["uid"])] = true
+	for uid in _event_dlg.keys():
+		if not live.has(uid):
+			var oh: TBPanel.Handle = _event_dlg[uid]
+			if oh != null and oh.is_open(): oh.close()
+			_event_dlg.erase(uid)
 	for e in g.pending:
 		if int(e["n"]) != g.human_id or _shown_events.has(e["uid"]): continue
 		_shown_events[e["uid"]] = true
 		sfx.play("event")
 		var uid: int = e["uid"]
-		TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}), g, func(): _defer_event(uid))
+		_event_dlg[uid] = TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}), g, func(): _defer_event(uid))
 		return                      # one at a time; the next shows after this one is answered
 
 ## "Decide later": the prompt closes, the event stays pending and waits as an Event chip in the ticker (HUD API defer_event); without it, a toast and a re-prompt after End Turn

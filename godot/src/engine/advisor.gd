@@ -191,8 +191,13 @@ static func answers(g: TBGame, n: int) -> Array:
 	return out
 
 ## action-point cap and per-turn refill, diplomacy cap and gain (mirror of TBTurn._tick; used for chip tooltips)
-static func mp_cap(g: TBGame, n: int) -> float: return 6.0 + g.era[n] * 2.0
-static func mp_gain(g: TBGame, n: int) -> float: return 1.0 + g.era[n] * 0.4
+## actions (move points): what a turn refills and how many can be held. Rules >= 3: a human ruler, who has to give every order by hand, gets administrators in proportion to the realm
+## (a bigger state has more clerks: +0.32 a turn and +0.8 in the cap for every square root of a province, at most +3.5 a turn); a 62 province realm refills 4.7 instead of 2.2.
+## The AI's allowance is unchanged. This is what the game does at the end of every turn (TBTurn uses these two functions) and what the top bar shows.
+static func mp_cap(g: TBGame, n: int) -> float:
+	return 6.0 + g.era[n] * 2.0 + (sqrt(float(g.own_count(n))) * 0.8 if (g.rules >= 3 and g.human[n] != 0) else 0.0)
+static func mp_gain(g: TBGame, n: int) -> float:
+	return 1.0 + g.era[n] * 0.4 + (minf(3.5, sqrt(float(g.own_count(n))) * 0.32) if (g.rules >= 3 and g.human[n] != 0) else 0.0)
 static func dp_cap(g: TBGame, n: int) -> float: return 4.0 + g.era[n] * 2.0
 static func dp_gain(g: TBGame, n: int) -> float: return 1.0 + g.era[n] * 0.3 + (TBRulers.dp_add(g, n) if g.rules >= 1 else 0.0)
 
