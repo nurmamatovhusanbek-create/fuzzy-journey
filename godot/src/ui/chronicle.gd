@@ -9,7 +9,7 @@ const CATS := ["mine", "all", "war", "diplo", "events"]
 static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
 		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "reconciled", "rebels_end", "independence", "ultimatum": return "war"
-		"coalition", "coalition_end": return "diplo"
+		"coalition", "coalition_end", "resent": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union", "ans": return "diplo"
 		"realm": return "events"
 		"event", "event_choice", "era", "bankrupt", "ruler", "decision", "doctrine", "general_up", "general_fell": return "events"
@@ -55,6 +55,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"marriage_end": return T.call("e_marriage_end", {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"union": return T.call("e_union", {"a": a, "b": b})
 		"trade": return T.call("e_trade", {"a": a, "b": b}) if involves(e, g.human_id) else ""
+		"resent": return T.call("e_resent" if int(e.get("k", 0)) == 0 else "e_resent_more", {"a": a, "b": b, "c": g.dname(int(e.get("c", 0))), "n": int(e.get("n", 0)), "k": int(e.get("k", 0))}) if e.get("a", -1) == g.human_id else ""
 		"trade_end": return T.call("e_trade_end_" + String(e.get("why", "poor")), {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"vassal": return T.call("e_vassal", {"a": a, "b": b})
 		"ceded": return T.call("e_ceded", {"a": a, "b": b, "k": int(e.get("k", 0))}) if int(e.get("k", 0)) > 0 else ""
@@ -116,6 +117,7 @@ static func glyph(e: Dictionary) -> String:
 static func is_bad(e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
 		"war", "rebels", "bankrupt", "independence": return e.get("b", -1) == me or e.get("a", -1) == me
+		"resent": return e.get("a", -1) == me
 		"occupied": return e.get("b", -1) == me
 		"annexed": return e.get("b", -1) == me
 		"ultimatum": return e.get("b", -1) == me
@@ -127,6 +129,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
 		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "ultimatum", "trade", "marriage", "marriage_end", "union": return involves(e, me)
+		"resent": return e.get("a", -1) == me
 		"rebels", "reconciled", "rebels_end", "bankrupt", "era", "ruler", "realm", "general_up", "general_fell": return e.get("a", -1) == me
 		"coalition", "coalition_end": return true
 		"eliminated": return true

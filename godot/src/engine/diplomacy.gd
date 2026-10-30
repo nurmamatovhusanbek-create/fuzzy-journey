@@ -88,14 +88,21 @@ static func _add_grudge(g: TBGame, a: int, b: int, delta: int) -> void:
 static func hurt(g: TBGame, victim: int, offender: int, amount: int) -> void:
 	_add_grudge(g, victim, offender, amount)
 	if g.rules < 3 or amount <= 0 or victim == offender: return
+	var top := 0; var top_n := 0; var count := 0
 	for o in range(1, g.N1):
 		if o == victim or o == offender or g.alive[o] == 0 or o == g.rebel: continue
 		var w := tie(g, o, victim)
 		var wn := tie(g, o, offender)
 		if w > 0.0:
-			_add_grudge(g, o, offender, int(roundf(float(amount) * w * (1.0 - TORN * wn / TIE_ALLY))))
+			var share: int = int(roundf(float(amount) * w * (1.0 - TORN * wn / TIE_ALLY)))
+			_add_grudge(g, o, offender, share)
+			if share > 0 and g.get_rel(o, offender) != D.REL_WAR:                       # a friend of the victim who is not (yet) at war with the offender: the player is told who feels it
+				count += 1
+				if share > top: top = share; top_n = o
 		elif g.get_rel(o, victim) == D.REL_WAR and g.get_rel(o, offender) != D.REL_WAR:
 			_add_grudge(g, o, offender, -int(roundf(float(amount) * FOE_WARMTH * (1.0 - wn / TIE_ALLY))))
+	if count > 0 and g.human[offender] != 0:
+		g.log.append({"turn": g.turn, "kind": "resent", "a": offender, "b": victim, "c": top_n, "n": top, "k": count - 1})
 
 ## `actor` made friends with `partner` (amount = how much of a bond it is): the partner's friends warm to the actor; when the bond is military (an alliance or a marriage), the
 ## partner's enemies grow wary of the actor.

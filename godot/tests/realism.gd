@@ -80,6 +80,18 @@ func _init() -> void:
 	var tried := TBDipView.pact(g, Y, A, TBData.REL_ALLY)
 	_ok(float(tried["score"]) > float(untried["score"]), "...and easier after a pact (%.2f -> %.2f)" % [untried["score"], tried["score"]])
 
+	# the player is told when a quarrel reaches the victim's friends
+	_clear(g)
+	g.set_human(A); g.dp[A] = 20
+	g.set_rel(V, K, TBData.REL_MARRIAGE); g.set_rel(V, S, TBData.REL_MARRIAGE)
+	g.log.clear()
+	g.apply({"cmd": "declareWar", "n": A, "t": V, "_force": true})
+	var note: Dictionary = {}
+	for e in g.log: if String(e["kind"]) == "resent": note = e
+	_ok(not note.is_empty() and int(note["a"]) == A and int(note["b"]) == V and int(note["k"]) == 1, "declaring war on V logs who resents it (kin of V: %s)" % str(note))
+	TBI18n.load_lang("en")
+	var tx := TBChron.text(g, note) if not note.is_empty() else ""
+	_ok(tx != "" and not tx.begins_with("e_") and TBChron.toast_worthy(g, note, A), "...and it reads as a toast: '%s'" % tx)
 	print("-- a trade route needs persistent income, money and people")
 	var g3 := TBGame.new(w, era, {"seed": 4})
 	var q := _pick(g3, 2)
