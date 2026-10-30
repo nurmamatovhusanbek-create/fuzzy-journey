@@ -117,9 +117,8 @@ class AlertRow extends P.Hit:
 	func font() -> Font: return P.fal(500)
 	func line_h() -> float: return font().get_height(fz())
 	func plate_h() -> float: return 34.0 if compact else 40.0
-	func base_h() -> float:
-		var one: float = plate_h()
-		return one if lines <= 1 else maxf(one, lines * line_h() + 18.0)
+	func base_h() -> float:                        # every notice is the same shape: the column's width and the height of two lines, whatever it says
+		return TBAlertTicker.uniform_h(font(), fz(), plate_h())
 	func pad_l() -> float: return 28.0 if compact else 34.0
 	func lead() -> float: return 18.0 if compact else 22.0                 # the .tz margin-left: room for the medallion's left half
 	func text_right() -> float: return 10.0 + (0.0 if drawer else 28.0)             # the x slot is always there (the demo: every notice has one); it is drawn only when the notice can be dismissed
@@ -131,7 +130,7 @@ class AlertRow extends P.Hit:
 		var need: float = P.tw(font(), text, fz())
 		var n: int = 1 if need <= avail else 2
 		if n != lines: lines = n; queue_redraw()
-		_nat = (w if (drawer or compact) else lead() + 2.0 + pad_l() + (need if n == 1 else avail) + text_right())      # phones: the demo stretches the notice over its column
+		_nat = w
 	## the width this row takes in the stack
 	func natural_w() -> float: return _nat if _nat > 0.0 else _w
 	func full_h() -> float: return base_h() + ((P.touch() if compact else 32.0) + 6.0 if expanded else 0.0)
@@ -253,8 +252,8 @@ class InfoRow extends P.Hit:
 		var avail: float = w - lead() - 2.0 - pad_l() - 10.0 - 28.0
 		var need: float = P.tw(f, text, fz())
 		lines = 1 if need <= avail else 2
-		_w = lead() + 2.0 + pad_l() + (need if lines == 1 else avail) + 10.0 + 28.0
-		return maxf(34.0 if compact else 40.0, 0.0 if lines == 1 else lines * f.get_height(fz()) + 18.0)
+		_w = w
+		return TBAlertTicker.uniform_h(f, fz(), 34.0 if compact else 40.0)
 	func natural_w() -> float: return _w
 	func _has_point(p: Vector2) -> bool: return Rect2(lead() - 24.0, 0.0, size.x - lead() + 24.0, size.y).has_point(p)
 	func _draw() -> void:
@@ -278,6 +277,10 @@ class InfoRow extends P.Hit:
 			draw_multiline_string(f, Vector2(x, y0), TBAlertTicker.two_lines(f, z, text, w), HORIZONTAL_ALIGNMENT_LEFT, w, z, 2, cream)
 		TBBzIcons.draw(self, "close", Vector2(size.x - 10.0 - 1.0 - 9.0, size.y * 0.5), 10.0, TBTokens.c("cream") if hot else (TBTokens.c("ink_off") if not TBTokens.is_hc() else TBTokens.c("smoke")), 1.7)
 		if has_focus(): TBHudParts.focus_box(self, Rect2(lx, 0.0, size.x - lx, size.y).grow(3.0))
+
+## the one height of every notice: two lines of text and their padding (a one line notice sits in the middle of the same plate)
+static func uniform_h(f: Font, z: int, plate: float) -> float:
+	return maxf(plate, 2.0 * f.get_height(z) + 14.0)
 
 ## the text cut to what fits two lines of width w, ending in an ellipsis when words had to go (the plate shows two lines at most)
 static func two_lines(f: Font, z: int, text: String, w: float) -> String:

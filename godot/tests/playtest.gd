@@ -2,6 +2,7 @@ extends SceneTree
 ## A scripted human plays a campaign through the real interface path (commands as the buttons send them, End Turn on its worker thread, screens opened as the rail opens them)
 ## and writes down what it meets: errors, commands that fail and why, what the advisor nags about, idle resources, the pace of the economy. Read the output, not a pass/fail.
 ## Usage: -s tests/playtest.gd -- <era> <nation code or name fragment> <turns> <w> <h> <out dir> [seed]
+## Run it with a fresh XDG_DATA_HOME (and TB_DPR=2.66 TB_DPI=425 for an S22): the game reads and writes user://settings.cfg, and a text size or layout left there by an earlier run changes every screenshot.
 var main: Control
 var g: TBGame
 var me := 0

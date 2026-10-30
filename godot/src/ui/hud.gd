@@ -375,7 +375,7 @@ func _layout_demo(vp: Vector2) -> void:
 	_seal.compact = ph; _seal.narrow = false
 	_seal_geom(vp, m, rc, ph)
 	# ---- notices (top right; phones: beside the gauges)
-	var aw: float = L["alertW"]
+	var aw: float = float(L["alertW"]) * (1.0 if ph else 0.86)                 # every notice is this wide; the desktop column stays clear of an open window
 	_ticker.max_rows = 3 if not ph else 1
 	_ticker.inline_pill = false
 	_ticker.row_w = aw

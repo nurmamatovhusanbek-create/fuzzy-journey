@@ -631,10 +631,10 @@ class Chip extends Hit:
 			var pulse: float = 0.5 + 0.5 * sin(_t * 3.14) if not TBHudParts.reduced_motion() else 1.0
 			draw_arc(c, gr() + 8.0 + 3.0, 0.0, TAU, 48, TBHudParts.al(edge, 0.35 + 0.4 * pulse), 1.6, true)
 		var fb: Font = TBHudParts.fal(700)
-		var base_z: float = maxf(11.0, gr() * 0.6) * (0.78 if value.length() > 3 else 1.0)
+		var base_z: float = maxf(11.0, gr() * 0.6) * (1.0 if value.length() <= 2 else (0.84 if value.length() == 3 else 0.72))
 		var z: int = TBHudParts.fu(base_z)
 		var vc: Color = val_col if val_col.a > 0.0 else TBHudParts.tk("cream")
-		var maxw: float = (gr() + 8.0) * 1.7
+		var maxw: float = gr() * 1.38                                              # the figure stays inside the brass ring
 		while z > 6 and TBHudParts.tw(fb, value, z) > maxw: z -= 1
 		draw_string(fb, c + Vector2(-TBHudParts.tw(fb, value, z) * 0.5, gr() * 0.12), value, HORIZONTAL_ALIGNMENT_LEFT, -1, z, vc)
 		if k != 1.0: draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
