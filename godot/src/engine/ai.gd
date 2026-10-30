@@ -282,6 +282,7 @@ static func peace_bar(g: TBGame) -> float:
 static func accepts_pact(g: TBGame, t: int, p: int, rel: int) -> bool:
 	var pers: Dictionary = D.PERSONALITIES[g.personality[t]]
 	if g.grudge[t * g.N1 + p] > 20 or (g.has_truce(t, p) and rel == D.REL_ALLY): return false
+	if g.rules >= 3 and rel == D.REL_ALLY and TBDiplo.ally_count(g, t) >= TBDiplo.max_allies(g, t): return false
 	var s: float = float(pers["dipl"]) * 0.6 + (0.3 if rel == D.REL_NAP else 0.0)
 	if g.rules >= 1: s -= maxf(0.0, g.infamy[p] - 12.0) * 0.02
 	for o in range(1, g.N + 1):

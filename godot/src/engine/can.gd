@@ -219,6 +219,8 @@ static func _ally(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 	if t <= 0 or t >= g.N1: return _fail(out, "target")
 	if g.get_rel(n, t) == D.REL_WAR: return _fail(out, "war")
 	_need(out, "dp", g.dp[n], D.DP_ALLY, "dp")
+	var room := TBDiplo.ally_room(g, n, t)
+	if room != "" and out["ok"]: return _fail(out, "allies" if room == "mine" else "allies_theirs")
 	return out
 
 static func _nap(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:

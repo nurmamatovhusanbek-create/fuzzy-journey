@@ -257,5 +257,26 @@ func _init() -> void:
 		if gs.bl(q3, TBData.B_FARM) > 0 and (f2 & 6) != 0: bad_farms += 1
 		if gs.bl(q3, TBData.B_PORT) > 0 and (f2 & 1) == 0: bad_ports += 1
 	_ok(bad_farms == 0 and bad_ports == 0, "after 100 turns of AI building: no farm in a desert or beyond the polar circle (%d), no inland port (%d)" % [bad_farms, bad_ports])
+	print("-- an alliance is a promise: a court holds only so many")
+	var ga := TBGame.new(w, era, {"seed": 6})
+	var pa := _pick(ga, 12)
+	var H: int = pa[0]
+	_clear(ga)
+	ga.set_human(H); ga.dp[H] = 500.0
+	var cap := TBDiplo.max_allies(ga, H)
+	_ok(cap >= 4 and cap <= 14, "the cap grows with size and era (%d for %d provinces)" % [cap, ga.own_count(H)])
+	for i in range(1, pa.size()):
+		if TBDiplo.ally_count(ga, H) < cap: ga.set_rel(H, pa[i], TBData.REL_ALLY)
+	var full := TBDiplo.ally_count(ga, H) >= cap
+	if full:
+		var extra: int = pa[pa.size() - 1]
+		ga.set_rel(H, extra, TBData.REL_NAP)
+		var cn2 := ga.can({"cmd": "ally", "n": H, "t": extra})
+		var ap2 := ga.apply({"cmd": "ally", "n": H, "t": extra})
+		_ok(not bool(cn2["ok"]) and not bool(ap2["ok"]), "at the cap: can() and apply() both refuse a further alliance (%s / %s)" % [cn2.get("reason", ""), ap2.get("err", "")])
+	else:
+		print("  (could not fill the court with this seed; skipped)")
+	var gold3 := TBGame.new(w, era, {"seed": 6, "rules": 2})
+	_ok(TBDiplo.ally_room(gold3, 1, 2) == "", "rules 2 has no cap")
 	print("REALISM OK" if fails == 0 else "REALISM FAIL %d" % fails)
 	quit(fails)

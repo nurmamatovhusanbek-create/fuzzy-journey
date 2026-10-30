@@ -16,6 +16,7 @@ static func pact(g: TBGame, t: int, p: int, rel: int) -> Dictionary:
 	var blocked := ""
 	if g.grudge[t * g.N1 + p] > 20: blocked = "grudge"
 	elif g.has_truce(t, p) and rel == D.REL_ALLY: blocked = "truce"
+	elif g.rules >= 3 and rel == D.REL_ALLY and TBDiplo.ally_count(g, t) >= TBDiplo.max_allies(g, t): blocked = "allies"
 	var terms: Array = []
 	var s: float = float(pers["dipl"]) * 0.6
 	terms.append(["dv_temper", s])

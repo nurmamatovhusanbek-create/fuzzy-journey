@@ -116,6 +116,24 @@ static func befriend(g: TBGame, actor: int, partner: int, amount: int, military:
 		elif military and g.get_rel(o, partner) == D.REL_WAR and tie(g, o, actor) == 0.0:
 			_add_grudge(g, o, actor, int(roundf(float(amount) * BOND_ENVY)))
 
+## rules >= 3: how many alliances a court can honour at once (every ally is a promise to answer for): 2 + the square root of its provinces + half its era. A realm of 11 provinces in the
+## modern age holds 7, one of 62 holds 10. The Concert of Nations asks for 8: a great power's achievement.
+static func max_allies(g: TBGame, n: int) -> int:
+	return 2 + int(sqrt(float(g.own_count(n)))) + g.era[n] / 2
+
+static func ally_count(g: TBGame, n: int) -> int:
+	var c := 0
+	for o in range(1, g.N1):
+		if o != n and g.alive[o] != 0 and g.get_rel(n, o) == D.REL_ALLY: c += 1
+	return c
+
+## "" = both courts have room for one more alliance; "mine" / "theirs" = whose court is full (rules >= 3)
+static func ally_room(g: TBGame, a: int, b: int) -> String:
+	if g.rules < 3: return ""
+	if ally_count(g, a) >= max_allies(g, a): return "mine"
+	if ally_count(g, b) >= max_allies(g, b): return "theirs"
+	return ""
+
 ## a broken oath costs standing with everyone (rules >= 3)
 static func oath_broken(g: TBGame, n: int, was: int) -> void:
 	if g.rules < 3: return
@@ -200,7 +218,7 @@ static func _offer_valid(g: TBGame, from: int, to: int, what: String) -> bool:
 	var r := g.get_rel(from, to)
 	match what:
 		"nap": return r == D.REL_PEACE
-		"ally": return r == D.REL_NAP or (r == D.REL_PEACE and g.dp[from] >= D.DP_ALLY)
+		"ally": return (r == D.REL_NAP or (r == D.REL_PEACE and g.dp[from] >= D.DP_ALLY)) and ally_room(g, from, to) == ""
 		"trade":
 			if not (r != D.REL_WAR and not TBTrade.has(g, from, to) and g.trade_cnt[from] < TBTrade.max_deals(g, from) and g.trade_cnt[to] < TBTrade.max_deals(g, to)): return false
 			if g.rules >= 3 and g.human[from] == 0:                                    # the court that offers a route is the one that pays for it, so it must be able to
