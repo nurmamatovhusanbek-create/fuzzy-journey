@@ -93,6 +93,7 @@ func _fade_unseen(cache: Dictionary, seen: Dictionary, grace: bool = true) -> vo
 
 ## alphas toward their targets; true while any is still moving (the layer keeps redrawing)
 func _step_names(delta: float) -> bool:
+	_refresh_keepout()                                          # a ring or a window that opened since the last layout is covered from this frame on
 	var moving := false
 	var motion := TBKit.motion_ok()
 	for cache in [_nc, _pc]:

@@ -42,6 +42,26 @@ func ring_rect() -> Rect2:
 	var r: Vector2 = Vector2(_rect_off + 40.0, _rect_off + 40.0)
 	return Rect2(get_global_position() + _c - r, r * 2.0)
 
+## a province name on one line, or on two at the space that makes the wider line shortest; a line still too wide ends in an ellipsis
+func _split_name(f: Font, nm: String, z: int, maxw: float) -> PackedStringArray:
+	if P.tw(f, nm, z) <= maxw or not nm.contains(" "): return PackedStringArray([P.fit(f, nm, z, maxw)])
+	var words: PackedStringArray = nm.split(" ")
+	var best_a := nm; var best_b := ""; var best_w := INF
+	for i in range(1, words.size()):
+		var a: String = " ".join(words.slice(0, i)); var b: String = " ".join(words.slice(i))
+		var wd: float = maxf(P.tw(f, a, z), P.tw(f, b, z))
+		if wd < best_w: best_w = wd; best_a = a; best_b = b
+	return PackedStringArray([P.fit(f, best_a, z, maxw), P.fit(f, best_b, z, maxw)])
+
+## the ring with the verbs' names around it (global), for map names to keep out of; empty when no ring is up
+func label_rect() -> Rect2:
+	if not visible or _c == Vector2.INF or _is_armed() or _spots.is_empty(): return Rect2()
+	var R: float = _radius()
+	var l: float = maxf(R + 34.0, _lab_l) + 4.0
+	var r: float = maxf(R + 34.0, _lab_r) + 4.0
+	var v: float = R + 50.0
+	return Rect2(get_global_position() + _c - Vector2(l, v), Vector2(l + r, v * 2.0))
+
 func show_verbs(p: int, list: Array) -> void:
 	var same: bool = p == subject and visible and _same_ids(list)         # a rebuild of the same ring (a hover, a refresh) must not replay the pop-in
 	subject = p; verbs = list
@@ -198,6 +218,8 @@ func _place_tag(off: float, rect_off: float = -1.0) -> void:
 	_rect_off = rect_off if rect_off >= 0.0 else off
 
 var _tag_flip := false
+var _lab_l := 0.0                         # how far the verbs' names reach left / right of the centre (map names keep out of this)
+var _lab_r := 0.0
 var _rect_off := 118.0                    # the ring's own reach (what pickers keep clear of): not the card's offset, which also makes room for the verbs' names
 func _draw_connector() -> void:
 	if tag == null or not is_instance_valid(tag) or not tag.visible or _c == Vector2.INF: return
@@ -352,17 +374,34 @@ func _draw() -> void:
 	_ticks(_c, (R - 6.0 * rs) * grow, 72, 5.0 * rs, 6, TBTokens.BZ_BRASS, 0.8)
 	_dots(_c, (R + 8.0 * rs) * grow, Color(TBTokens.BZ_BRASS, 0.7), 0.6, 1.0, 5.0)
 	# the centre: the army
-	var cr: float = 44.0 * rs * grow
+	var cr: float = 54.0 * rs * grow
 	draw_circle(_c, cr, TBTokens.MAP_FACE92)
 	draw_arc(_c, cr, 0.0, TAU, 48, TBTokens.BZ_LO, 1.0, true)
-	if grow > 0.5:
-		var z: int = P.fs(30.0 * rs)
-		draw_string(fb, Vector2(_c.x - P.tw(fb, tx, z) * 0.5, _c.y + 9.0 * rs), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, z, TBTokens.c("cream"))
-		var cf: Font = K.tracked(K.display(), 3)
-		var cz: int = maxi(1, int(round(8.5 * rs)))
-		var cap: String = TBI18n.T("army").to_upper()
-		draw_string(cf, Vector2(_c.x - P.tw(cf, cap, cz) * 0.5, _c.y - 17.0 * rs), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, cz, TBTokens.BZ_BRASS)
+	if grow > 0.5:                                                           # the centre says which province this is, and what stands in it
+		var nf: Font = K.tracked(K.display(), 1)
+		var nz: int = maxi(8, P.fs(10.0 * rs))
+		var nm: String = TBI18n.place(g.world.name[_subj()]) if (_subj() >= 0 and _subj() < g.P) else ""
+		nm = nm.to_upper() if TBI18n.lang != "ru" else nm
+		var lines: PackedStringArray = _split_name(nf, nm, nz, 84.0 * rs)
+		while nz > 7 and (lines[0].ends_with("…") or (lines.size() > 1 and lines[1].ends_with("…"))):           # a long name is set smaller before it is cut
+			nz -= 1; lines = _split_name(nf, nm, nz, 84.0 * rs)
+		var lh: float = nf.get_height(nz)
+		var z: int = P.fs(21.0 * rs)
+		var num_h: float = float(z) * 0.78
+		var gap: float = 6.0 * rs
+		var block: float = lines.size() * lh + gap + num_h
+		var y0: float = _c.y - block * 0.5
+		for li in lines.size():
+			draw_string(nf, Vector2(_c.x - P.tw(nf, lines[li], nz) * 0.5, y0 + li * lh + nf.get_ascent(nz)), lines[li], HORIZONTAL_ALIGNMENT_LEFT, -1, nz, TBTokens.BZ_BRASS)
+		var ry: float = y0 + lines.size() * lh + gap * 0.5
+		draw_line(Vector2(_c.x - 14.0 * rs, ry), Vector2(_c.x + 14.0 * rs, ry), Color(TBTokens.BZ_BRASS, 0.55), 1.0)
+		var ic: float = 11.0 * rs
+		var tw_: float = P.tw(fb, tx, z)
+		var gx: float = _c.x - (ic + 4.0 * rs + tw_) * 0.5
+		TBHudParts.icon(self, "swords", Vector2(gx + ic * 0.5, y0 + lines.size() * lh + gap + num_h * 0.5), ic, TBTokens.BZ_BRASS, 1.2)
+		draw_string(fb, Vector2(gx + ic + 4.0 * rs, y0 + lines.size() * lh + gap + num_h), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, z, TBTokens.c("cream"))
 	var tag_off: float = R + 30.0 * rs
+	_lab_l = 0.0; _lab_r = 0.0
 	if rs >= 1.0:                                                            # the verbs' names stand beside their medallions: the card starts clear of the longest one on either side
 		var lf2: Font = K.tracked(K.display(), 2)
 		var lz2: int = P.fs(12.0)
@@ -372,7 +411,10 @@ func _draw() -> void:
 			var lab2: String = String(verbs[i]["label"])
 			lab2 = lab2.to_upper() if TBI18n.lang != "ru" else lab2
 			lab2 = P.fit(lf2, lab2, lz2, 150.0)
-			tag_off = maxf(tag_off, R * absf(d2.x) + 44.0 + P.tw(lf2, lab2, lz2) - 26.0)
+			var edge2: float = R * absf(d2.x) + 44.0 + P.tw(lf2, lab2, lz2)
+			tag_off = maxf(tag_off, edge2 - 26.0)
+			if d2.x > 0.0: _lab_r = maxf(_lab_r, edge2)
+			else: _lab_l = maxf(_lab_l, edge2)
 	_place_tag(tag_off, R + 30.0 * rs); _draw_connector()
 	for i in n:
 		var st: float = clampf((_t - 0.04 * i) / 0.2, 0.0, 1.0) if K.motion_ok() else 1.0

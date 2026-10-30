@@ -47,6 +47,9 @@ func _ready() -> void:
 	map.keepout_fn = func() -> Array:
 		var r: Array = hud.keepouts()
 		if panel.visible: r.append(panel.get_global_rect())
+		if ring != null and ring.visible:
+			var lr: Rect2 = ring.label_rect()
+			if lr.size != Vector2.ZERO: r.append(lr)
 		return r
 	flow = TBOrderFlow.new(); flow.map = map; flow.panel = panel; flow.host = self
 	flow.do_move = func(from: int, to: int): _do_move(from, to)
