@@ -435,7 +435,10 @@ func _place_nation_names() -> void:
 			cis = all_ci.duplicate(); cis.erase(pref_ci); cis.push_front(pref_ci)
 		var vorder: Array = range(vinfo.size())
 		var pref_vi := int(prev.get("vi", -1))
-		if pref_vi >= 0 and pref_vi < vinfo.size(): vorder.erase(pref_vi); vorder.push_front(pref_vi)
+		if pref_vi >= 2 and pref_vi < vinfo.size(): vorder.erase(pref_vi); vorder.push_front(pref_vi)          # a shortened form it was written in stays
+		if vinfo.size() > 1 and (vinfo[1][0] as Array).size() == 2:                                            # a long name goes on two lines when one line is wider than its country shows on screen
+			var limit: float = _nation_px(n, cnt[n]) * (0.75 if pref_vi == 1 else 0.9)                         # (and returns to one line only once there is clear room: no flicker at the edge)
+			if float(vinfo[0][2]) > limit: vorder.erase(1); vorder.push_front(1)
 		for ci in cis:
 			if placed_ok: break
 			var st: float = steps[ci / 3]
@@ -447,7 +450,7 @@ func _place_nation_names() -> void:
 				v = (core * cos(a) + _ax_dir[n] * sin(a)).normalized()
 				v = (v * cos(clampf(ps * ext, -0.12, 0.12)) + perp * sin(clampf(ps * ext, -0.12, 0.12))).normalized()
 			var pr := _proj_vec(v)
-			if map.mode == 0 and pr.z < 0.25: continue
+			if map.mode == 0 and pr.z < 0.5: continue                      # near the globe's edge a name is squeezed to a sliver and faint: not worth drawing
 			var pos := Vector2(pr.x, pr.y)
 			for vi in vorder:
 				var vv: Array = vinfo[vi]

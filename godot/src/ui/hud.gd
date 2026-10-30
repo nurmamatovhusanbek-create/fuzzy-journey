@@ -555,8 +555,12 @@ func keepouts() -> Array:
 		if (_chips[k] as Control).visible: out.append((_chips[k] as Control).get_global_rect())
 	for c in [_war, _inf, _more_chip, _date, _menu_btn]:
 		if (c as Control).visible: out.append((c as Control).get_global_rect())
+	var rail_hull := Rect2()
 	for b in _dock + [_dock_more]:
-		if (b as Control).visible and not _bottom.visible: out.append((b as Control).get_global_rect().grow(4.0))
+		if (b as Control).visible and not _bottom.visible:
+			out.append((b as Control).get_global_rect().grow(4.0))
+			rail_hull = (b as Control).get_global_rect() if rail_hull.size == Vector2.ZERO else rail_hull.merge((b as Control).get_global_rect())
+	if rail_hull.size != Vector2.ZERO: out.append(rail_hull.grow(14.0))              # the rail as one block: a name does not sit in the gaps between its buttons
 	if _bottom.visible: out.append(_bottom.get_global_rect())
 	var tr: Rect2 = _ticker.occupied_rect()
 	if tr.size.x > 0.0: out.append(tr.grow(4.0))
