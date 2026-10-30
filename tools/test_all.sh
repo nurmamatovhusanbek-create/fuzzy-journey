@@ -11,6 +11,7 @@ run "rulers: historical seeds, succession, determinism" tests/rulers.gd
 run "diplomacy: casus belli, infamy, coalitions" tests/diplo.gd
 run "diplomacy view mirrors the engine (acceptance, peace, trade)" tests/dipview.gd
 run "rules 3: quarrels reach friends, trade routes need means, victories are held" tests/realism.gd
+run "eras: every era starts sanely (capitals, rulers, names, land)" tests/era_audit.gd
 run "decisions" tests/decisions.gd
 run "trade deals" tests/trade.gd
 run "royal marriages" tests/marriage.gd

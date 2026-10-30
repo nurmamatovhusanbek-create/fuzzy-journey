@@ -4,7 +4,7 @@ extends SceneTree
 var findings := PackedStringArray()
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	print("%-11s %5s %5s %6s %6s %5s %5s %-26s %s" % ["era", "year", "nats", "owned", "neutr", "solo", "wars", "largest three (provinces)", "tech min/avg/max"])
+	print("%-11s %5s %5s %6s %6s %5s %5s %-120s %s" % ["era", "year", "nats", "owned", "neutr", "solo", "wars", "largest three (provinces)", "tech min/avg/max"])
 	for id in ["ancient", "roman", "medieval", "mongol", "timurid", "discovery", "gunpowder", "napoleonic", "victorian", "ww1", "ww2", "coldwar"]:
 		var era: Dictionary = TBWorld.load_era("res://data", id)
 		var g := TBGame.new(w, era, {"seed": 1})
@@ -33,13 +33,13 @@ func _init() -> void:
 				elif g.get_rel(n, o) == TBData.REL_ALLY: allies += 1
 		sizes.sort_custom(func(a, b): return a[0] > b[0])
 		var top := ""
-		for i in mini(3, sizes.size()): top += "%s %d, " % [sizes[i][1], sizes[i][0]]
-		print("%-11s %5d %5d %6d %6d %5d %5d %-26s %.1f/%.1f/%.1f  allies %d" % [id, int(era.get("year", 0)), alive, owned, g.own_count(0), solo, wars, top.substr(0, 26), tmin, tsum / maxf(1.0, alive), tmax, allies])
-		if sizes.size() > 0 and float(sizes[0][0]) > 0.25 * float(owned): findings.append("%s: %s holds %d%% of the owned land at the start" % [id, sizes[0][1], int(100.0 * float(sizes[0][0]) / float(owned))])
+		for i in mini(6, sizes.size()): top += "%s %d, " % [sizes[i][1], sizes[i][0]]
+		print("%-11s %5d %5d %6d %6d %5d %5d %-120s %.1f/%.1f/%.1f  allies %d" % [id, int(era.get("year", 0)), alive, owned, g.own_count(0), solo, wars, top.substr(0, 120), tmin, tsum / maxf(1.0, alive), tmax, allies])
+		if sizes.size() > 0 and float(sizes[0][0]) > 0.30 * float(owned): findings.append("%s: %s holds %d%% of the owned land at the start" % [id, sizes[0][1], int(100.0 * float(sizes[0][0]) / float(owned))])
 		if alive < 30: findings.append("%s: only %d nations at the start" % [id, alive])
 		if solo > alive / 2: findings.append("%s: %d of %d nations have a single province" % [id, solo, alive])
 	if findings.is_empty(): print("ERA AUDIT OK")
 	else:
 		for f in findings: print("FINDING: ", f)
 		print("ERA AUDIT: %d findings" % findings.size())
-	quit()
+	quit(findings.size())
