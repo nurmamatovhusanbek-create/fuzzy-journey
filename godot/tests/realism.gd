@@ -278,6 +278,45 @@ func _init() -> void:
 		print("  (could not fill the court with this seed; skipped)")
 	var gold3 := TBGame.new(w, era, {"seed": 6, "rules": 2})
 	_ok(TBDiplo.ally_room(gold3, 1, 2) == "", "rules 2 has no cap")
+	print("-- thrones are given names of their own country (rules 3)")
+	var gn := TBGame.new(w, {}, {"seed": 2})
+	var want := {"Russia": "slavic", "India": "india", "Japan": "japan", "Brazil": "iberia", "United States": "west", "China": "china", "Mongolia": "steppe", "Turkey": "turkic", "Iran": "turkic",
+		"Nigeria": "africa", "Indonesia": "sea", "Poland": "slavic", "Spain": "iberia", "Greece": "greek", "Saudi Arabia": "arab", "Egypt": "arab", "Kazakhstan": "steppe", "France": "west", "Ethiopia": "africa"}
+	var seen := 0; var wrong := ""
+	for n in range(1, gn.N1):
+		var nm: String = gn.dname(n)
+		if want.has(nm):
+			seen += 1
+			var got: String = TBRulers.sphere_of(gn, n)
+			if got != String(want[nm]): wrong += " %s=%s(want %s)" % [nm, got, want[nm]]
+	_ok(seen >= 12 and wrong == "", "capitals fall into the right name sphere (%d checked)%s" % [seen, wrong])
+	var capw := {"China": [116.4, 39.9], "France": [2.35, 48.86], "India": [77.2, 28.6], "Russia": [37.6, 55.75], "Japan": [139.7, 35.7], "United States of America": [-77.0, 38.9], "Brazil": [-47.9, -15.8],
+		"Egypt": [31.2, 30.0], "Germany": [13.4, 52.5], "Turkey": [32.9, 39.9], "Nigeria": [7.5, 9.1], "Australia": [149.1, -35.3], "Canada": [-75.7, 45.4]}
+	var capbad := ""; var capn := 0
+	for n in range(1, gn.N1):
+		var cn: String = gn.dname(n)
+		if capw.has(cn):
+			capn += 1
+			var pt: Array = capw[cn]
+			var km: float = TBGame.gc_dist(w.lon[gn.capital_of[n]], w.lat[gn.capital_of[n]], float(pt[0]), float(pt[1])) * 6371.0
+			if km > 1300.0: capbad += " %s %.0f km" % [cn, km]
+	_ok(capn >= 10 and capbad == "", "modern capitals stand near the real ones (%d checked)%s" % [capn, capbad])
+	var stray := 0; var named := 0
+	for n in range(1, gn.N1):
+		if gn.alive[n] == 0 or n == gn.rebel or not String(gn.r_name[n]).begins_with("rn:"): continue
+		named += 1
+		var pool: Array = TBRulers.SPHERE_NAMES[TBRulers.sphere_of(gn, n)]
+		if not pool.has(int(String(gn.r_name[n]).substr(3))): stray += 1
+	_ok(named > 50 and stray == 0, "every drawn name belongs to its sphere (%d drawn, %d strays)" % [named, stray])
+	var ru_ok := true
+	for i in TBRulers.NAME_POOL: if not TBI18n.has_key("rn_%d" % i): ru_ok = false
+	_ok(ru_ok, "all %d first names exist in every language file" % TBRulers.NAME_POOL)
+	var g2n := TBGame.new(w, {}, {"seed": 2, "rules": 2})
+	var old_ok := true
+	for n in range(1, g2n.N1):
+		var s2: String = g2n.r_name[n]
+		if s2.begins_with("rn:") and int(s2.substr(3)) >= 52: old_ok = false
+	_ok(old_ok, "rules 2 still draws from the first 52 names")
 	print("-- terrain follows the geography (rules 3); older rules keep the hash")
 	var gt := TBGame.new(w, {}, {"seed": 1})
 	var g2t := TBGame.new(w, {}, {"seed": 1, "rules": 2})

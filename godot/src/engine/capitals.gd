@@ -3,7 +3,7 @@
 class_name TBCapitals
 extends RefCounted
 
-const CAP_REACH := 700.0                       # km: farther than this from the historical capital, the point is not "where it stood" any more
+const CAP_REACH := 1300.0                      # km: farther than this from the historical capital, the point is not "where it stood" any more
 static var _tab: Dictionary = {}
 static var _loaded := false
 
