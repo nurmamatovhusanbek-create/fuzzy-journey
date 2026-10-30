@@ -515,7 +515,6 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 	if n != me and me > 0:
 		if rel == 1: note = "%s %d%% / %d%%" % [T.call("war_score"), g.war_score[me * g.N1 + n], g.war_score[n * g.N1 + me]]
 		elif g.has_truce(me, n): note = T.call("truce_left", {"n": g.truce[me * g.N1 + n] - g.turn})
-		elif rel == 3: note = T.call("rel_ally")
 	if note == "": note = "%s: %s" % [T.call("attitude"), T.call("pers_" + TBData.PERSONALITIES[g.personality[n]]["id"])]
 	v.add_child(K.para_bz("[i]%s[/i]" % note, 16.0, 1.3))
 	if not pick and n != me and me > 0: _actions(v, g, n, ctx, rel)

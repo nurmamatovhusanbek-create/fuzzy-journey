@@ -582,7 +582,7 @@ class Chip extends Hit:
 		var w: float = gsz()                                                      # the demo's cell is a fixed 84 (56): a caption a little wider than it just overhangs
 		if caption != "":
 			var cw: float = TBHudParts.twl(cap_font(), cap_text(), fcap(), cap_ls())
-			if cw > w + 12.0: w = cw + 4.0
+			if cw > w - 6.0: w = cw + 8.0                                         # a caption that nearly fills the cell gets room, so neighbours never touch
 		return ceilf(w)
 	func desired_h() -> float:
 		var h: float = gbox()

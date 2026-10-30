@@ -211,7 +211,7 @@ class AlertRow extends P.Hit:
 			draw_string(f, Vector2(x, bh * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5)), s1, HORIZONTAL_ALIGNMENT_LEFT, -1, z, cream)
 		else:
 			var y0: float = (bh - 2.0 * line_h()) * 0.5 + f.get_ascent(z)
-			draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, size.x - x - right, z, 2, cream, TextServer.BREAK_WORD_BOUND)
+			draw_multiline_string(f, Vector2(x, y0), TBAlertTicker.two_lines(f, z, text, size.x - x - right), HORIZONTAL_ALIGNMENT_LEFT, size.x - x - right, z, 2, cream, TextServer.BREAK_WORD_BOUND)
 		if dismissible and not drawer and not done:
 			TBBzIcons.draw(self, "close", Vector2(size.x - 10.0 - 1.0 - 9.0, bh * 0.5), 10.0, TBTokens.c("cream") if hot else (TBTokens.c("ink_off") if not TBTokens.is_hc() else TBTokens.c("smoke")), 1.7)
 		if flash > 0.0:
@@ -275,9 +275,20 @@ class InfoRow extends P.Hit:
 			draw_string(f, Vector2(x, size.y * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5)), text, HORIZONTAL_ALIGNMENT_LEFT, w, z, cream, TextServer.JUSTIFICATION_NONE)
 		else:
 			var y0: float = (size.y - lines * f.get_height(z)) * 0.5 + f.get_ascent(z)
-			draw_multiline_string(f, Vector2(x, y0), text, HORIZONTAL_ALIGNMENT_LEFT, w, z, 2, cream)
+			draw_multiline_string(f, Vector2(x, y0), TBAlertTicker.two_lines(f, z, text, w), HORIZONTAL_ALIGNMENT_LEFT, w, z, 2, cream)
 		TBBzIcons.draw(self, "close", Vector2(size.x - 10.0 - 1.0 - 9.0, size.y * 0.5), 10.0, TBTokens.c("cream") if hot else (TBTokens.c("ink_off") if not TBTokens.is_hc() else TBTokens.c("smoke")), 1.7)
 		if has_focus(): TBHudParts.focus_box(self, Rect2(lx, 0.0, size.x - lx, size.y).grow(3.0))
+
+## the text cut to what fits two lines of width w, ending in an ellipsis when words had to go (the plate shows two lines at most)
+static func two_lines(f: Font, z: int, text: String, w: float) -> String:
+	var lim: float = 2.0 * f.get_multiline_string_size("Ag", HORIZONTAL_ALIGNMENT_LEFT, -1, z).y + 1.0          # two lines as the font itself measures them
+	if f.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w, z, -1, TextServer.BREAK_WORD_BOUND).y <= lim: return text
+	var words: PackedStringArray = text.split(" ")
+	while words.size() > 1:
+		words.remove_at(words.size() - 1)
+		var t: String = " ".join(words) + "…"
+		if f.get_multiline_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, w, z, -1, TextServer.BREAK_WORD_BOUND).y <= lim: return t
+	return text
 
 # ---------------------------------------------------------------- feeding
 ## entries: TBAdvisor.ticker() output, each with "text" (one line) added by the caller; turn clears "dismissed for this turn"
@@ -343,6 +354,7 @@ func _add(e: Dictionary) -> void:
 		tw.tween_method(func(v: float): rw.ap = v; _layout(), 0.0, 1.0, 0.3)          # .slide-in: .3 s from 24 to the right
 
 func _resolve(k: String) -> void:
+	if not rows.has(k): return
 	var rw: AlertRow = rows[k]
 	rw.done = true; rw.set_expanded(false); rw.queue_redraw()
 	if P.reduced_motion():
@@ -455,6 +467,7 @@ func _ghost_info() -> void:
 # ---------------------------------------------------------------- layout
 ## stack bounds in ticker-local coordinates (top-left origin); notices are right-aligned in the row width (the demo: flex-end)
 func _layout() -> void:
+	order = order.filter(func(k): return rows.has(k))              # a key whose row is gone (dropped while a timer was pending) has no place
 	var rh: float = row_h()
 	var y: float = 0.0
 	var shown: int = 0
