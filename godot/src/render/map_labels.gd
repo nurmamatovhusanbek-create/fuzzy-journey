@@ -861,6 +861,7 @@ func _draw_layout() -> void:
 			if not _blocked(rr) and _claim(grid, rr):
 				if not _stars.has(p): _stars[p] = {"a": 0.0, "t": 1.0}
 				_stars[p]["t"] = 1.0; _stars[p]["x"] = pos.x; _stars[p]["y"] = pos.y; _stars[p]["limb"] = v[4]
+				_frame_rects.append(Rect2(pos - Vector2(8, 8), Vector2(16, 16)))          # names are placed after the markers and keep off them: a star is never printed over a name
 				drawn += 1
 			continue
 		var a: int = v[5]
