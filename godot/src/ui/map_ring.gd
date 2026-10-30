@@ -360,7 +360,18 @@ func _draw() -> void:
 		var cz: int = maxi(1, int(round(8.5 * rs)))
 		var cap: String = TBI18n.T("army").to_upper()
 		draw_string(cf, Vector2(_c.x - P.tw(cf, cap, cz) * 0.5, _c.y - 17.0 * rs), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, cz, TBTokens.BZ_BRASS)
-	_place_tag(R + 30.0 * rs); _draw_connector()
+	var tag_off: float = R + 30.0 * rs
+	if rs >= 1.0:                                                            # the verbs' names stand beside their medallions: the card starts clear of the longest one on either side
+		var lf2: Font = K.tracked(K.display(), 2)
+		var lz2: int = P.fs(12.0)
+		for i in n:
+			var d2 := Vector2(cos(float(_spots[i]["a"])), sin(float(_spots[i]["a"])))
+			if absf(d2.x) < 0.3: continue
+			var lab2: String = String(verbs[i]["label"])
+			lab2 = lab2.to_upper() if TBI18n.lang != "ru" else lab2
+			lab2 = P.fit(lf2, lab2, lz2, 150.0)
+			tag_off = maxf(tag_off, R * absf(d2.x) + 44.0 + P.tw(lf2, lab2, lz2) - 26.0)
+	_place_tag(tag_off); _draw_connector()
 	for i in n:
 		var st: float = clampf((_t - 0.04 * i) / 0.2, 0.0, 1.0) if K.motion_ok() else 1.0
 		var k: float = 1.0 - pow(1.0 - st, 3.0)
