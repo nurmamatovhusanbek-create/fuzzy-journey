@@ -149,6 +149,12 @@ card at 99 % and "Holding n of N turns" until then. Domination needs 25 % of the
 Total conquest still ends the game at once. **Diplomatic hegemony is no longer an ending**: it is the achievement "Concert of Nations" (8 alliances or 5 % of all nations, held 20 turns); games of rules 2 and older keep the old ending.
 In the 26-game sim the old ending was reachable by an AI from turn 90 in six eras; the new alliance ladder cut AI alliances to a third and none of the endings is reached by an AI before turn 200.
 
+**Alliance capacity** (`TBDiplo.max_allies`, rules 3). A promise to answer for another court is finite: a court holds `2 + sqrt(provinces) + era / 2` alliances (a modern realm of 11 provinces holds 7, one of 62 holds 10). Both courts must have room: `ally_room` is checked by the command, `TBCan`, the AI (`accepts_pact`) and the diplomacy view (`blocked = "allies"`). Before it a 9-province nation collected 28 allies and every run's diplomatic bar hit 100 %; with it allies stop at the cap.
+
+**What idle people and envoys are for** (`TBMissions`, rules 3). *Veteran colony* (`settle`): 60 people and 1 move settle discharged soldiers in a province (+30 people, +8 stability), as Rome's coloniae, the Habsburg Military Frontier, Cossack hosts and Israel's Nahal did. *Embassy* (`embassy`): 2 envoys and 40 gold cool the grudge a court holds against you by 12, warm its friends a little (`befriend`) and add 5 intelligence (a resident ambassador was also the court's eyes). Neither is used by the AI; the advisor's "at cap" alerts (`idle_men`, `idle_dp`) point to them.
+
+**Speed.** Measured on the largest worlds: the AI's trade step asked every court for its verdict (about 470 microseconds each); it now ranks routes by their best possible worth and asks courts in that order, and `loyalty_terms` skips nations at peace. `income()` reads building levels directly and caches each province's distance to its capital (exact float64, never saved). Turn cost fell from about 190 ms to about 110 ms in the modern world with identical results (checked by hashing 80 turns of three eras before and after). The remaining cost is GDScript's per-province loop in `income()` and the AI's frontier scans; a native core would be the next step, only if a phone shows it is needed.
+
 ## 8. Where to look
 
 | thing | code |
@@ -158,6 +164,7 @@ In the 26-game sim the old ending was reachable by an AI from turn 90 in six era
 | AI use of the level | `engine/ai.gd` (`_nation`, `_maybe_declare`, `_fight`, `peace_bar`) |
 | selector | `ui/pick_flow.gd` (card), saved as `cfg.aggression` |
 | districts | `engine/game.gd` (`bl`, `b_slots`, `set_bl`, `b_price`, `job_income`), `engine/ai.gd` (`_districts`), `ui/build_picker.gd` |
-| rules 3 | `engine/diplomacy.gd` (hurt, befriend, ties), `engine/trade.gd` (yield, means, maintain), `engine/turn.gd` (holds), `tests/realism.gd` |
+| rules 3 | `engine/diplomacy.gd` (hurt, befriend, ties, alliance capacity), `engine/trade.gd` (yield, means, maintain), `engine/missions.gd` (veteran colony, embassy), `engine/turn.gd` (holds), `tests/realism.gd` |
+| era starts and playtests | `tests/era_audit.gd`, `tests/playtest.gd`, `docs/PLAYTEST.md` |
 | tests | `tests/districts.gd`, `tests/model.gd`, `tests/victory.gd`, `tests/chron_keys.gd`, `tests/dipview.gd` |
 | balance matrix | `tools/sim.sh`, `docs/SIM_REPORT.md` |
