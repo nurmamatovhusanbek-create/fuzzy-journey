@@ -1,0 +1,18 @@
+# Playtest notes (rules 3)
+
+Method: `godot/tests/playtest.gd` plays a campaign with a scripted human (era, nation, turns, size, output dir), checks every `can()` against `apply()`, records alerts, idle resources and dialogs, and takes screenshots. Campaigns: Rome (ancient), Uzbekistan (modern, S22 size), Germany 1939, Portugal (discovery).
+
+## Fixed
+- `can()` and `apply()` disagreed on action points by a float32 rounding step (`_short_mp`).
+- Event dialogs stacked (14 at once); a new one now closes older ones.
+- Gold piled up because action points ran out first; human action points now grow with realm size.
+- Alliance spam (28 allies at 9 provinces, diplomatic bar at 100% in every run): a court holds `2 + sqrt(provinces) + era/2` alliances (rules 3 only). The AI, `can()`, `apply()` and the diplomacy view all use `TBDiplo.ally_room`.
+
+## Checked and left as is
+- Small-nation trade: Portugal (5 provinces) opened 3 routes by turn 10. Its later bankruptcy came from four simultaneous wars and falling happiness (63 to 22), not from trade fees.
+- "No general" alert: fires only when a general is affordable and an army qualifies, so it is a real prompt; the scripted bot never appoints.
+- AI snowball: 39 AI-only runs (13 eras x 3 seeds, 150 turns) show a flat concentration index (HHI about 0.13), no eliminations, and only the Roman Empire reaching an economic win (turn 90 to 110).
+
+## Open
+- Idle action points, envoys and manpower for much of a game (bot policy, but worth a tutorial hint or a sink).
+- Germany 1939 under a naive bot collapses to 10 provinces with 8 wars.
