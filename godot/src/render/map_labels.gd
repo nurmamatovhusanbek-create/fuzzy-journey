@@ -202,6 +202,21 @@ func _rebuild_cores() -> void:
 		if o == 0 or sum[o] == Vector3.ZERO: continue
 		var d := _unit[p].dot(sum[o])
 		if d > bd[o]: bd[o] = d; best[o] = p
+	for _it in 3:                                       # mean shift: overseas lands (Alaska, Hawaii, colonies) pull the overall centroid off the body of the realm, so the window slides to the densest part
+		var shifted := PackedVector3Array(); shifted.resize(n1)
+		for p in g.P:
+			var o := g.owner[p]
+			if o == 0 or best[o] < 0: continue
+			if _unit[p].dot(_unit[best[o]]) > 0.866: shifted[o] += _unit[p]
+		var nbest := PackedInt32Array(); nbest.resize(n1); nbest.fill(-1)
+		bd.fill(-2.0)
+		for p in g.P:
+			var o := g.owner[p]
+			if o == 0 or shifted[o] == Vector3.ZERO: continue
+			var d := _unit[p].dot(shifted[o].normalized())
+			if d > bd[o]: bd[o] = d; nbest[o] = p
+		for n in range(1, n1):
+			if nbest[n] >= 0: best[n] = nbest[n]
 	var core := PackedVector3Array(); core.resize(n1)
 	for p in g.P:
 		var o := g.owner[p]
