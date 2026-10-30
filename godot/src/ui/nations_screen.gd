@@ -31,6 +31,17 @@ static func compute(g: TBGame) -> Dictionary:
 	return {"ids": ids, "prov": prov, "army": army, "rank_p": rank_p, "rank_a": rank_a, "rank_t": rank_t, "by_p": by_p}
 
 ## nations sharing a land border with n -> number of border links
+## the tooltip of the trade request (rules >= 3): its cost in envoys, gold and people, and, when the court's willingness is held down by your means, which ingredient is the weakest
+static func _trade_tip(g: TBGame, me: int, n: int, cost: int) -> String:
+	var v: int = TBTrade.yield_of(g, me, n)
+	var tip: String = TBI18n.T("ask_tip_trade", {"c": cost, "g": TBTrade.fee_gold(v), "m": TBTrade.fee_men(v)})
+	var mm: Dictionary = TBTrade.means(g, me, v)
+	if float(mm["m"]) < 0.7:
+		var weak := "inc"
+		for k in ["gold", "men"]: if float(mm[k]) < float(mm[weak]): weak = k
+		tip += "\n" + TBI18n.T("trade_weak_" + weak)
+	return tip
+
 static func land_neighbours(g: TBGame, n: int) -> Dictionary:
 	var shared := {}
 	for p in g.owned(n):
@@ -594,7 +605,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		var pc: int = TBAsks.chance(g, me, kind, n, op)
 		if reason == "" and pc == 0: reason = T.call("dvb_" + String(TBAsks.view(g, me, kind, n, op).get("blocked", "grudge")))
 		add_btn.call(T.call("ask_proposed") if mine else label, icon, T.call("ask_next") if mine else "%d%%" % pc,
-			func(): done.call({"cmd": "ask", "kind": kind, "t": n, "op": op}), reason, "" if reason != "" else (T.call("ask_tip_trade", {"c": cost, "g": TBTrade.fee_gold(TBTrade.yield_of(g, me, n)), "m": TBTrade.fee_men(TBTrade.yield_of(g, me, n))}) if kind == "trade" and g.rules >= 3 else T.call("ask_tip", {"c": cost})))
+			func(): done.call({"cmd": "ask", "kind": kind, "t": n, "op": op}), reason, "" if reason != "" else (_trade_tip(g, me, n, cost) if kind == "trade" and g.rules >= 3 else T.call("ask_tip", {"c": cost})))
 	if rel == 1:
 		var ws: int = g.war_score[me * g.N1 + n]
 		req.call(T.call("dip_peace"), "flag", "peace", "white", D.DP_PEACE, dpw.call(D.DP_PEACE), {"cmd": "peace", "t": n, "kind": "white"})

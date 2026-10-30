@@ -141,10 +141,26 @@ func _draw_marches() -> void:
 		if run.size() > 1: runs.append(run)
 		for r in runs: _dashed(r, halo, col, 1.8 if atlas else 2.0, 3.0 if atlas else 8.0, 6.0 if atlas else 7.0)
 		var td: Vector3 = map.project(g.world.lon[int(m["to"])], g.world.lat[int(m["to"])])
-		if td.z > 0.02:                                                                                # the end of the way: a small diamond, like a route's seal
-			var c := Vector2(td.x, td.y); var sz := 4.5
-			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -sz), c + Vector2(sz, 0), c + Vector2(0, sz), c + Vector2(-sz, 0)]), TBTokens.c("bar_0"))
-			draw_polyline(PackedVector2Array([c + Vector2(0, -sz), c + Vector2(sz, 0), c + Vector2(0, sz), c + Vector2(-sz, 0), c + Vector2(0, -sz)]), col, 1.4, true)
+		if td.z > 0.02:                                                                                # the end of the way: an arrowhead along the last stride, and the strides still to walk
+			var c := Vector2(td.x, td.y)
+			var pv: Vector3 = map.project(g.world.lon[way[maxi(0, way.size() - 2)]], g.world.lat[way[maxi(0, way.size() - 2)]])
+			var dir: Vector2 = (c - Vector2(pv.x, pv.y)).normalized() if pv.z > 0.02 and Vector2(pv.x, pv.y).distance_to(c) > 2.0 else Vector2.ZERO
+			if dir == Vector2.ZERO:
+				var sz := 4.5
+				draw_colored_polygon(PackedVector2Array([c + Vector2(0, -sz), c + Vector2(sz, 0), c + Vector2(0, sz), c + Vector2(-sz, 0)]), TBTokens.c("bar_0"))
+				draw_polyline(PackedVector2Array([c + Vector2(0, -sz), c + Vector2(sz, 0), c + Vector2(0, sz), c + Vector2(-sz, 0), c + Vector2(0, -sz)]), col, 1.4, true)
+			else:
+				var nrm: Vector2 = dir.orthogonal()
+				var head := PackedVector2Array([c + dir * 2.0, c - dir * 9.0 + nrm * 5.5, c - dir * 5.0, c - dir * 9.0 - nrm * 5.5])
+				draw_colored_polygon(head, TBTokens.c("bar_0"))
+				draw_polyline(PackedVector2Array([head[0], head[1], head[2], head[3], head[0]]), col, 1.5, true)
+			var left: int = way.size() - 1                                                              # one province a turn: this many turns to go
+			if left > 1:
+				var f: Font = K.body_b(); var lz := 13
+				var tx: String = str(left)
+				var tp: Vector2 = c + Vector2(8.0, -8.0)
+				draw_string_outline(f, tp, tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, 4, TBTokens.HALO)
+				draw_string(f, tp, tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, TBTokens.c("brass_lt"))
 
 func _draw() -> void:
 	if g == null or map == null or g.human_id <= 0 or not map.is_inside_tree(): return
@@ -165,11 +181,11 @@ func _draw() -> void:
 		elif rel == D.REL_ALLY: _route(a, b, "ally", "a%d" % o, 1.0, alive_keys, 0)
 		elif rel == D.REL_NAP: _route(a, b, "nap", "n%d" % o, 1.0, alive_keys, 0)
 		elif rel == D.REL_MARRIAGE: _route(a, b, "marry", "m%d" % o, 1.0, alive_keys, 0)
-		if g.rules >= 1 and TBTrade.has(g, me, o): _route(a, b, "trade", "t%d" % o, -1.0, alive_keys, TBTrade.value(g, o, me))
+		if g.rules >= 1 and TBTrade.has(g, me, o): _route(a, b, "trade", "t%d" % o, -1.0, alive_keys, TBTrade.value(g, o, me), TBTrade.risk(g, me, o))
 	for k in _seen.keys():
 		if not alive_keys.has(k): _seen.erase(k)
 
-func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: Dictionary, income: int) -> void:
+func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: Dictionary, income: int, risk: String = "") -> void:
 	alive[key] = true; _live += 1
 	if not _seen.has(key): _seen[key] = 0.0 if K.motion_ok() else 99.0
 	var grow: float = clampf(float(_seen[key]) / 1.3, 0.0, 1.0)
@@ -181,7 +197,7 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 	var w := 2.0
 	match kind:
 		"war": col = TBTokens.MAP_BAD if atlas else TBTokens.c("neg_bar")
-		"trade": col = TBTokens.c("pos_bar")
+		"trade": col = TBTokens.c("warn") if risk != "" else TBTokens.c("pos_bar")                      # a route that is about to lapse is drawn amber
 		"ally": w = 3.2
 		"nap": w = 1.8
 		"marry": w = 2.2
@@ -238,7 +254,7 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 			draw_polyline(ring, col, 1.6, true)
 		if kind == "trade":
 			var f: Font = K.body_b()
-			var tx: String = "+%d" % income
+			var tx: String = ("+%d !" % income) if risk != "" else "+%d" % income
 			var lz: int = 13 if map.atlas_look() else 14
 			draw_string_outline(f, mp + Vector2(-f.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz).x * 0.5, -9.0 if map.atlas_look() else -10.0), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, 3 if map.atlas_look() else 4, TBTokens.HALO)
 			draw_string(f, mp + Vector2(-f.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz).x * 0.5, -9.0 if map.atlas_look() else -10.0), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, lz, TBTokens.c("brass_lt"))

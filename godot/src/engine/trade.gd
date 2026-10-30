@@ -159,6 +159,13 @@ static func ai_step(g: TBGame, n: int) -> void:
 		if accepts(g, o, n): best = o; best_v = v
 	if best > 0: propose(g, n, best)
 
+## rules >= 3: is the route between a and b about to lapse? "poor" = a treasury is empty (a 35 % chance a turn), "sour" = a grudge is within 15 of the breaking point; "" = safe
+static func risk(g: TBGame, a: int, b: int) -> String:
+	if g.rules < 3 or not has(g, a, b): return ""
+	if g.gold[a] < 1.0 or g.gold[b] < 1.0: return "poor"
+	if int(g.grudge[a * g.N1 + b]) >= SOUR_GRUDGE - 15 or int(g.grudge[b * g.N1 + a]) >= SOUR_GRUDGE - 15: return "sour"
+	return ""
+
 ## rules >= 3, once a turn: a route is not forever. It lapses when either side is bankrupt (chance per turn) or when the two courts have come to hate each other.
 static func maintain(g: TBGame) -> void:
 	if g.rules < 3: return

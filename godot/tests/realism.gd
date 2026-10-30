@@ -159,6 +159,12 @@ func _init() -> void:
 		TBTrade.maintain(g3)
 		if not TBTrade.has(g3, a, b): lapsed = true; break
 	_ok(lapsed, "a bankrupt partner loses the route sooner or later")
+	TBTrade.set_deal(g3, a, b, true); g3.grudge.fill(0); g3.gold[a] = 500.0; g3.gold[b] = 500.0
+	_ok(TBTrade.risk(g3, a, b) == "", "a healthy route shows no risk")
+	g3.gold[b] = 0.0
+	_ok(TBTrade.risk(g3, a, b) == "poor", "an empty treasury marks the route as about to lapse")
+	g3.gold[b] = 500.0; g3.grudge[a * g3.N1 + b] = 50
+	_ok(TBTrade.risk(g3, a, b) == "sour", "a grudge near the breaking point marks it too")
 
 	print("-- victories are held, not touched")
 	var g4 := TBGame.new(w, era, {"seed": 4})
