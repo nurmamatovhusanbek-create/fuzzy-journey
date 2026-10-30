@@ -612,7 +612,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		if rel == 2 or rel == 3:
 			add_btn.call(T.call("dip_break"), "close", "", func():
 				TBPanel.confirm(parent, T.call("confirm_break_t", {"a": g.dname(n)}), T.call("confirm_break_b"), T.call("break_pact"), func(): done.call({"cmd": "breakPact", "t": n}), true, "warning", "",
-					TBPanel.fact_row("warn", T.call("break_costs_h"), T.call("break_costs" if g.rules >= 3 else "break_costs_old", {"a": g.dname(n), "inf": int(TBDiplo.BREAK_ALLY_INFAMY if rel == 3 else TBDiplo.BREAK_NAP_INFAMY)}), "warn", K.is_phone(parent)))))
+					TBPanel.fact_row("warn", T.call("break_costs_h"), T.call("break_costs" if g.rules >= 3 else "break_costs_old", {"a": g.dname(n), "inf": int(TBDiplo.BREAK_ALLY_INFAMY if rel == 3 else TBDiplo.BREAK_NAP_INFAMY)}), "warn", K.is_phone(parent))))
 	if rel != 1:
 		var why: String = dpw.call(D.DP_WAR)
 		var wb: Button = K.danger(T.call("dip_war"), func():

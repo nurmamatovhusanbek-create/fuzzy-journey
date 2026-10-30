@@ -325,7 +325,7 @@ static func _districts(g: TBGame, n: int, own: PackedInt32Array, pers: Dictionar
 						D.B_PORT: w = 0.6
 						D.B_WATCHTOWER: w = 0.2
 					if w <= 0.0 or g.bl(best, b) >= int(D.BUILDINGS[b - 1]["maxLevel"]): continue
-					if g.bl(best, b) == 0 and g.b_used(best) >= g.b_slots(best): continue
+					if g.bl(best, b) == 0 and (g.b_used(best) >= g.b_slots(best) or g.site_error(best, b) != ""): continue
 					order.append([w + g.rng.next() * 0.6, b])
 				order.sort_custom(func(a, c): return a[0] > c[0])
 				for o in order.slice(0, 3):

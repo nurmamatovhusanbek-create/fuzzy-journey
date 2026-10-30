@@ -20,6 +20,7 @@ var prov_nat: PackedInt32Array
 var nbx_off: PackedInt32Array
 var nbx: PackedInt32Array
 var nbx_sea: PackedByteArray
+var geo: PackedByteArray          # per province: bit 0 coastal, bit 1 arid, bit 2 polar (data/geo.bin, baked by tools/bake_geo.py); empty when the file is missing
 
 static func load_from(dir: String) -> TBWorld:
 	var w := TBWorld.new()
@@ -34,6 +35,9 @@ static func load_from(dir: String) -> TBWorld:
 		w.nbx_off = _ints(d["nbOffX"]); w.nbx = _ints(d["nbX"]); w.nbx_sea = _bytes(d["nbSeaX"])
 	var gz := FileAccess.get_file_as_bytes(dir + "/ids.bin.gz")
 	w.ids = gz.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
+	if FileAccess.file_exists(dir + "/geo.bin"):
+		w.geo = FileAccess.get_file_as_bytes(dir + "/geo.bin")
+		if w.geo.size() != w.P: w.geo = PackedByteArray()
 	return w
 
 static func load_era(dir: String, era_id: String) -> Dictionary:

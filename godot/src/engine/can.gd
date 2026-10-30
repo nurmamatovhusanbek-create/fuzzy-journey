@@ -132,6 +132,8 @@ static func _build(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 		out["levels"] = lvl
 	if g.owner[p] != n or g.occupier[p] != 0: return _fail(out, "notyours")
 	if g.b_building[p] != 0: return _fail(out, "busy")
+	var site := g.site_error(p, b)
+	if site != "" and cur == 0: return _fail(out, site)
 	if cur == 0 and g.b_used(p) >= g.b_slots(p): return _fail(out, "slots" if g.rules >= 2 else "occupied")
 	if lvl > int(bt["maxLevel"]): return _fail(out, "max")
 	if g.tech_level[n] < float(bt["tech"][lvl - 1]): return _fail(out, "tech")

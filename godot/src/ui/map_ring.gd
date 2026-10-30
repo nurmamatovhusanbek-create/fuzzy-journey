@@ -36,6 +36,12 @@ func _init() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	visible = false
 
+## the screen rectangle the ring and its labels fill (empty when no ring is up): what a picker that opens from it must keep clear of
+func ring_rect() -> Rect2:
+	if not visible or _c == Vector2.INF: return Rect2()
+	var r: Vector2 = Vector2(_tag_off + 40.0, _tag_off + 40.0)
+	return Rect2(get_global_position() + _c - r, r * 2.0)
+
 func show_verbs(p: int, list: Array) -> void:
 	var same: bool = p == subject and visible and _same_ids(list)         # a rebuild of the same ring (a hover, a refresh) must not replay the pop-in
 	subject = p; verbs = list

@@ -800,7 +800,7 @@ func _draw_layout() -> void:
 				1: want = o == me or war or rel == 3 or p == sel or p == hov
 				_: want = true
 		var cap := cap_a[p] != 0
-		var ring := cap and (o == me or ztier >= 2 or p == sel or routes_lens)
+		var ring := cap and (_capital_star_shown(o, me, ztier) or p == sel or routes_lens)
 		if routes_lens and ring: ring = _on_a_route(o)                  # Routes lens: the capitals the lines run between are marked, nothing else
 		if not want and not ring: continue
 		if a > 0 and (not army_lens or (o != me and not _sees(p, me))): a = 0
@@ -924,13 +924,39 @@ func _ensure_star() -> void:
 	for i in 10: _star_poly.append(Vector2(sin(i * PI / 5.0), -cos(i * PI / 5.0)) * 4.5 * (1.0 if i % 2 == 0 else 0.42))
 	_star_line = _star_poly.duplicate(); _star_line.append(_star_poly[0])
 
-## capital: a 10 px ring with a filled 6 px square (a star always means "general")
+## capital: a five-pointed star (brass for your own, cream for the others) on a dark casing. A general's stars are the small brass ones above its army badge.
 func _capital_mark(pos: Vector2, al: float, mine: bool) -> void:
-	var casing := _a(tk("table"), 0.9 * al)
-	var c := _a(tk("brass_lt") if mine else tk("cream"), al)
-	draw_circle(pos, 7.0, casing)
-	draw_arc(pos, 5.0, 0.0, TAU, 20, c, 1.5, true)
-	draw_rect(Rect2(pos - Vector2(3, 3), Vector2(6, 6)), c)
+	_ensure_star()
+	var k: float = 1.9 * mk()                                          # the star's outer radius is 4.5 units in _star_poly
+	draw_set_transform(pos, 0.0, Vector2(k * 1.28, k * 1.28))
+	draw_colored_polygon(_star_poly, _a(tk("table"), 0.92 * al))
+	draw_set_transform(pos, 0.0, Vector2(k, k))
+	draw_colored_polygon(_star_poly, _a(tk("brass_lt") if mine else tk("cream"), al))
+	draw_polyline(_star_line, _a(tk("table"), 0.85 * al), 0.7, true)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+## which capitals carry a star at this zoom: none when a whole continent is in view; at country level the capitals of the big countries (and your own); close in, every capital
+func _capital_star_shown(o: int, me: int, ztier: int) -> bool:
+	if ztier >= 2: return true
+	if ztier == 0: return false
+	return o == me or _is_big_nation(o)
+
+var _big_key := -1
+var _big: Dictionary = {}
+const BIG_NATIONS := 22                 # the countries whose capital is starred at country level: the largest by provinces, and any with 20 or more
+const BIG_PROVINCES := 20
+
+func _is_big_nation(o: int) -> bool:
+	var key: int = hash([g.turn, g.occ_rev, g.own_count(0), g.N1])
+	if key != _big_key:
+		_big_key = key; _big.clear()
+		var order: Array = []
+		for n in range(1, g.N1):
+			if g.alive[n] != 0 and n != g.rebel: order.append([g.own_count(n), n])
+		order.sort_custom(func(a, b): return a[0] > b[0] if a[0] != b[0] else a[1] < b[1])
+		for i in order.size():
+			if i < BIG_NATIONS or int(order[i][0]) >= BIG_PROVINCES: _big[int(order[i][1])] = true
+	return _big.has(o)
 
 ## far tier: an 8 px dot. Affiliation by outline: own = 2 px brass + ink outer, war = 2 px red outline, others 1 px ink
 func _draw_dot(pos: Vector2, al: float, own: bool, war: bool, hot: bool, nat: Color) -> void:

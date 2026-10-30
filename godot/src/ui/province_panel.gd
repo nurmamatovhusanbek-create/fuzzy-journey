@@ -1094,12 +1094,14 @@ func _open_list(anchor: Control, rows: Array, _s: int, title_text: String = "") 
 
 ## the Build verb: the Blueprint picker (a rail of the buildings, one page for the chosen), not a plain list
 var _bpicker: TBBuildPicker
+var picker_env: Callable = Callable()          # () -> {anchor: Rect2 (the ring), bounds: Rect2 (the safe screen), keep: Array[Rect2] (HUD parts)}: where a picker may open
 func _open_build(anchor: Control, items: Array, s: int) -> void:
 	_close_popover()
 	if items.is_empty(): return
 	_bpicker = TBBuildPicker.new()
 	add_child(_bpicker)
-	_bpicker.setup(g, s, items, anchor.get_global_rect(), _vp)
+	var env: Dictionary = picker_env.call() if picker_env.is_valid() else {}
+	_bpicker.setup(g, s, items, env.get("anchor", anchor.get_global_rect()), _vp, env)
 	_bpicker.picked.connect(func(cmd: Dictionary): command.emit(cmd))
 	_bpicker.closed.connect(func(): _bpicker = null)
 

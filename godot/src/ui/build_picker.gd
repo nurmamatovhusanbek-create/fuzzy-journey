@@ -74,8 +74,11 @@ class Pips extends Control:
 
 static func glyph_of(id: String) -> String: return "b_" + id
 
-func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2) -> void:
-	_g = g; _p = p; _items = items
+var _anchor := Rect2()
+var _env: Dictionary = {}
+
+func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2, env: Dictionary = {}) -> void:
+	_g = g; _p = p; _items = items; _anchor = anchor; _env = env
 	top_level = true; z_index = 60
 	custom_minimum_size.x = 410.0                                 # the rail (62) + the page (300) + the margins: the figures below must not wrap
 	add_theme_stylebox_override("panel", TBBz.plate_box(12.0, true))
@@ -112,10 +115,8 @@ func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2) -> void:
 	for i in items.size():
 		if bool(items[i]["can"]["ok"]): first = i; break
 	_pick(first)
-	reset_size()
-	var sz := get_combined_minimum_size()
-	size = sz
-	position = Vector2(clampf(anchor.position.x + anchor.size.x * 0.5 - sz.x * 0.5, 6.0, maxf(6.0, vp.x - sz.x - 6.0)), clampf(anchor.position.y - sz.y - 6.0, 6.0, maxf(6.0, vp.y - sz.y - 6.0)))
+	_place()
+	_place.call_deferred()                                      # once the page has laid out (wrapped text changes the height)
 
 func _pick(i: int) -> void:
 	_sel = clampi(i, 0, _items.size() - 1)
@@ -173,7 +174,36 @@ func _pick(i: int) -> void:
 		var dm: Button = K.button(T.call("bp_demolish"), func(): _demolish(), false, true)
 		dm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_detail.add_child(dm)
+	_place.call_deferred()
+
+## beside the ring (right of it, then left), inside the safe screen, clear of the HUD's parts; otherwise the nearest spot inside the screen
+func _place() -> void:
+	if not is_inside_tree(): return
 	reset_size(); size = get_combined_minimum_size()
+	var sz: Vector2 = size
+	var vp: Vector2 = get_viewport_rect().size
+	var bounds: Rect2 = _env.get("bounds", Rect2(Vector2.ZERO, vp))
+	var keep: Array = _env.get("keep", [])
+	var lo := bounds.position + Vector2(8.0, 8.0)
+	var hi := bounds.end - sz - Vector2(8.0, 8.0)
+	var cy: float = _anchor.get_center().y - sz.y * 0.5 if _anchor.size.x > 0.0 else lo.y
+	var y: float = clampf(cy, lo.y, maxf(lo.y, hi.y))
+	var spots: Array = []
+	if _anchor.size.x > 0.0:
+		spots.append(Vector2(_anchor.end.x + 12.0, y)); spots.append(Vector2(_anchor.position.x - sz.x - 12.0, y))
+	var chosen := Vector2.INF
+	for s in spots:
+		var r := Rect2(s, sz)
+		if r.position.x < lo.x or r.end.x > bounds.end.x - 8.0: continue
+		var blocked := false
+		for k in keep:
+			if (k as Rect2).intersects(r):                                          # nudge it clear of a bar that is under it (the lens bar, the ticker) before giving up on this side
+				var up: float = (k as Rect2).position.y - sz.y - 6.0
+				if up >= lo.y and not (k as Rect2).intersects(Rect2(Vector2(r.position.x, up), sz)): r.position.y = up; s = Vector2(s.x, up)
+				else: blocked = true; break
+		if not blocked: chosen = s; break
+	if chosen == Vector2.INF: chosen = Vector2(clampf(_anchor.end.x + 12.0 if _anchor.size.x > 0.0 else lo.x, lo.x, maxf(lo.x, hi.x)), y)
+	position = chosen.floor()
 
 func _do() -> void:
 	var it: Dictionary = _items[_sel]

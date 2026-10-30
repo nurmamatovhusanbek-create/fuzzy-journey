@@ -65,6 +65,7 @@ func _ready() -> void:
 		if panel.visible: r.append(panel.get_global_rect())
 		return r
 	panel.verbs_ready.connect(func(sp: int, vs: Array): ring.g = g; ring.show_verbs(sp, vs))
+	panel.picker_env = func() -> Dictionary: return {"anchor": ring.ring_rect(), "bounds": get_global_rect(), "keep": hud.keepouts()}
 	panel.visibility_changed.connect(func(): if not panel.visible: ring.clear())
 	ring.pressed.connect(func(i: int): panel._press(i))
 	ring.dossier_requested.connect(func(q: int): _open_dossier(q))

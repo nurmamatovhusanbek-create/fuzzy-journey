@@ -523,6 +523,16 @@ const OVEREXTEND_FROM := 60                    # provinces a court rules without
 const OVEREXTEND_STEP := 0.004
 const SLOT_COST_STEP := 0.20                   # every building already in the province makes the next new one this much dearer
 
+## rules >= 3: where a building may stand: "" = anywhere; "coast" (a port needs the sea), "arid" / "polar" (a farm needs soil and rain: no farms in the great deserts or beyond 66 degrees)
+func site_error(p: int, b: int) -> String:
+	if rules < 3 or world.geo.size() != P: return ""
+	var f: int = world.geo[p]
+	if b == D.B_PORT: return "" if (f & 1) != 0 else "coast"
+	if b == D.B_FARM:
+		if (f & 2) != 0: return "arid"
+		if (f & 4) != 0: return "polar"
+	return ""
+
 ## level of building type b (1..NB, data.gd B_*) in province p; 0 = none
 func bl(p: int, b: int) -> int:
 	if rules >= 2: return b_lv[p * NB + b - 1]

@@ -64,6 +64,18 @@ for spec in "2340 1080 modern congo en" "2340 1080 modern emirates ru" "1920 108
   out=$(TB_DPR=$([ "$1" = 2340 ] && echo 2.66 || echo 1) TB_DPI=$([ "$1" = 2340 ] && echo 425 || echo 96) TB_NOANIM=1 timeout 200 xvfb-run -a -s "-screen 0 $1x$2x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/hud_name_shot.gd -- $1 $2 /tmp/hud_name.png $3 $4 $5 expect 2>&1)
   echo "$out" | grep -q "HUD_NAME OK" && echo "ok: hud name $4 $5 at $1" || { echo "FAIL: hud name $4 $5 at $1"; echo "$out" | grep -E "OVERLAP|SCRIPT|name '" | head -4; fail=1; }
 done
+# announcement dialogs (coming soon, confirm, war, tutorial, comfort): inside the screen, medallion / title / buttons on the card's axis, nothing cut off
+for spec in "2340 1080 2.66 425 en" "2340 1080 2.66 425 ru" "1920 1080 1 96 en"; do
+  set -- $spec
+  out=$(TB_DPR=$3 TB_DPI=$4 TB_NOANIM=1 timeout 280 xvfb-run -a -s "-screen 0 $1x$2x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/dialogs_shot.gd -- $1 $2 /tmp/dlg_shots $5 expect 2>&1)
+  echo "$out" | grep -q "DIALOGS OK" && echo "ok: dialogs $5 at $1" || { echo "FAIL: dialogs $5 at $1"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+done
+# the Build picker opens beside the ring, inside the safe area (a phone's camera cutout at the left edge), clear of the HUD
+out=$(TB_SAFE="58,0,0,0" TB_DPR=2.66 TB_DPI=425 TB_NOANIM=1 timeout 250 xvfb-run -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/build_place.gd -- 2340 1080 /tmp/build_place.png expect 2>&1)
+echo "$out" | grep -q "BUILD_PLACE OK" && echo "ok: build picker placement" || { echo "FAIL: build picker placement"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+# capital stars: none on a continent view, the big countries' at country level, every capital close in
+out=$(TB_DPR=2.66 TB_DPI=425 timeout 280 xvfb-run -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/capital_stars.gd -- 2340 1080 expect 2>&1)
+echo "$out" | grep -q "CAPITAL_STARS OK" && echo "ok: capital stars by zoom" || { echo "FAIL: capital stars by zoom"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 # map names while the globe turns: a name follows the map, does not hop between places or sizes, and fades instead of blinking (nations at country scale, districts zoomed in)
 for cfgs in "1.6 0.5" "4.2 0.12"; do
   set -- $cfgs

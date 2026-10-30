@@ -198,5 +198,46 @@ func _init() -> void:
 	var d := TBSave.to_dict(g7)
 	var g9 := TBSave.from_dict(w, d)
 	_ok(g9 != null and g9.rules == 3 and g9.vic_hold == g7.vic_hold and absf(g9.net_ema[3] - 12.5) < 0.001, "rules 3, the holds and the smoothed income survive a save")
+	print("-- where buildings may stand")
+	var gb := TBGame.new(w, era, {"seed": 4})
+	_ok(w.geo.size() == w.P, "the baked geography is there (%d provinces)" % w.geo.size())
+	var arid_p := -1; var dry_ok := -1; var coast_p := -1; var inland_p := -1; var polar_p := -1
+	for qq in gb.P:
+		if gb.owner[qq] == 0 or gb.capital[qq] != 0: continue
+		var f: int = w.geo[qq]
+		if arid_p < 0 and (f & 2) != 0: arid_p = qq
+		if polar_p < 0 and (f & 4) != 0: polar_p = qq
+		if coast_p < 0 and (f & 1) != 0 and (f & 2) == 0 and (f & 4) == 0: coast_p = qq
+		if inland_p < 0 and (f & 1) == 0: inland_p = qq
+	_ok(arid_p >= 0 and coast_p >= 0 and inland_p >= 0, "the world has deserts, coasts and inland provinces")
+	var tries := [["arid", arid_p, TBData.B_FARM, "arid"], ["inland", inland_p, TBData.B_PORT, "coast"], ["polar", polar_p, TBData.B_FARM, "polar"]]
+	for t in tries:
+		var tq: int = t[1]
+		if tq < 0: continue
+		var own: int = gb.owner[tq]
+		gb.set_human(own); gb.gold[own] = 5000.0; gb.mp[own] = 6.0; gb.tech_level[own] = 3.0
+		for k in 9: gb.b_lv[tq * gb.NB + k] = 0
+		gb.b_building[tq] = 0
+		var cn := gb.can({"cmd": "build", "n": own, "p": tq, "b": t[2]})
+		var ap := gb.apply({"cmd": "build", "n": own, "p": tq, "b": t[2]})
+		_ok(not bool(cn["ok"]) and String(cn["reason"]) == String(t[3]) and not bool(ap["ok"]) and String(ap["err"]) == String(t[3]), "%s: can() and apply() both say '%s' (%s / %s)" % [t[0], t[3], cn["reason"], ap.get("err", "ok")])
+	if coast_p >= 0:
+		var own2: int = gb.owner[coast_p]
+		gb.set_human(own2); gb.gold[own2] = 5000.0; gb.mp[own2] = 6.0; gb.tech_level[own2] = 3.0
+		for k in 9: gb.b_lv[coast_p * gb.NB + k] = 0
+		gb.b_building[coast_p] = 0
+		var okp := gb.apply({"cmd": "build", "n": own2, "p": coast_p, "b": TBData.B_PORT})
+		_ok(bool(okp["ok"]), "a port goes up on a coast")
+	var gold_old := TBGame.new(w, era, {"seed": 4, "rules": 2})
+	_ok(gold_old.site_error(arid_p, TBData.B_FARM) == "", "rules 2 (older games) keep building anywhere")
+	# a hundred turns of AI building: no farm in a desert, no port inland
+	var gs := TBGame.new(w, era, {"seed": 5})
+	for t in 100: gs.end_turn()
+	var bad_farms := 0; var bad_ports := 0
+	for q3 in gs.P:
+		var f2: int = w.geo[q3]
+		if gs.bl(q3, TBData.B_FARM) > 0 and (f2 & 6) != 0: bad_farms += 1
+		if gs.bl(q3, TBData.B_PORT) > 0 and (f2 & 1) == 0: bad_ports += 1
+	_ok(bad_farms == 0 and bad_ports == 0, "after 100 turns of AI building: no farm in a desert or beyond the polar circle (%d), no inland port (%d)" % [bad_farms, bad_ports])
 	print("REALISM OK" if fails == 0 else "REALISM FAIL %d" % fails)
 	quit(fails)

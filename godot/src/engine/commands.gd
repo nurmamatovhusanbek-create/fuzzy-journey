@@ -254,6 +254,8 @@ static func _c_build(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.owner[p] != n or g.occupier[p] != 0: return _err("notyours")
 	if g.b_building[p] != 0: return _err("busy")
 	var cur: int = g.bl(p, b)
+	var site := g.site_error(p, b)
+	if site != "" and cur == 0: return _err(site)                              # where it may stand (rules >= 3): a port on a coast, a farm on soil
 	if cur == 0 and g.b_used(p) >= g.b_slots(p): return _err("slots" if g.rules >= 2 else "occupied")
 	var lvl := cur + 1
 	if lvl > int(bt["maxLevel"]): return _err("max")
