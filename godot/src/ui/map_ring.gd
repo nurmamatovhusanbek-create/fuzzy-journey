@@ -39,7 +39,7 @@ func _init() -> void:
 ## the screen rectangle the ring and its labels fill (empty when no ring is up): what a picker that opens from it must keep clear of
 func ring_rect() -> Rect2:
 	if not visible or _c == Vector2.INF: return Rect2()
-	var r: Vector2 = Vector2(_tag_off + 40.0, _tag_off + 40.0)
+	var r: Vector2 = Vector2(_rect_off + 40.0, _rect_off + 40.0)
 	return Rect2(get_global_position() + _c - r, r * 2.0)
 
 func show_verbs(p: int, list: Array) -> void:
@@ -179,7 +179,7 @@ func _sync_tag() -> void:
 	tag.size = tag.get_combined_minimum_size(); tag.z_index = 5
 	add_child(tag)
 
-func _place_tag(off: float) -> void:
+func _place_tag(off: float, rect_off: float = -1.0) -> void:
 	if tag == null or not is_instance_valid(tag):
 		return
 	if _c == Vector2.INF:
@@ -195,8 +195,10 @@ func _place_tag(off: float) -> void:
 	var y: float = clampf(_c.y - h * 0.45, 150.0, maxf(150.0, size.y - h - 110.0))
 	tag.position = Vector2(x, y).floor()
 	_tag_off = off; _tag_flip = flip
+	_rect_off = rect_off if rect_off >= 0.0 else off
 
 var _tag_flip := false
+var _rect_off := 118.0                    # the ring's own reach (what pickers keep clear of): not the card's offset, which also makes room for the verbs' names
 func _draw_connector() -> void:
 	if tag == null or not is_instance_valid(tag) or not tag.visible or _c == Vector2.INF: return
 	var y: float = _c.y
@@ -371,7 +373,7 @@ func _draw() -> void:
 			lab2 = lab2.to_upper() if TBI18n.lang != "ru" else lab2
 			lab2 = P.fit(lf2, lab2, lz2, 150.0)
 			tag_off = maxf(tag_off, R * absf(d2.x) + 44.0 + P.tw(lf2, lab2, lz2) - 26.0)
-	_place_tag(tag_off); _draw_connector()
+	_place_tag(tag_off, R + 30.0 * rs); _draw_connector()
 	for i in n:
 		var st: float = clampf((_t - 0.04 * i) / 0.2, 0.0, 1.0) if K.motion_ok() else 1.0
 		var k: float = 1.0 - pow(1.0 - st, 3.0)
