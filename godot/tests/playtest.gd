@@ -19,7 +19,7 @@ func _frames(n: int) -> void:
 
 func act(c: Dictionary) -> Dictionary:
 	var w := TBAsks.wrap(g, c.duplicate()); w["n"] = me
-	var pre: Dictionary = g.can(w) if String(w["cmd"]) in ["move", "recruit", "hire", "build", "develop", "declareWar", "peace", "ally", "nap", "trade", "marry", "breakPact", "ultimatum", "demolish"] else {"ok": true}
+	var pre: Dictionary = g.can(w) if String(w["cmd"]) in ["move", "recruit", "hire", "build", "develop", "settle", "embassy", "declareWar", "peace", "ally", "nap", "trade", "marry", "breakPact", "ultimatum", "demolish"] else {"ok": true}
 	var res: Dictionary = g.apply(w)
 	var key := String(w["cmd"])
 	if bool(res["ok"]): oks[key] = int(oks.get(key, 0)) + 1
@@ -94,6 +94,16 @@ func play_turn(t: int) -> void:
 			var fill: float = g.job_fill(p, g.dev[p] + 1)
 			if fill >= 0.6 and fill > bf: bf = fill; dp = p
 		if dp >= 0: act({"cmd": "develop", "p": dp})
+	if g.manpower[me] >= 200.0 and g.mp[me] >= 1.0:                      # idle people go back to the land, where it is least settled
+		var sv := -1; var sl := 100
+		for p in g.owned(me):
+			if g.occupier[p] == 0 and g.stab[p] < sl: sl = g.stab[p]; sv = p
+		if sv >= 0 and sl < 95: act({"cmd": "settle", "p": sv})
+	if g.dp[me] >= 6.0 and g.gold[me] >= 80.0:                           # idle envoys mend the worst grudge
+		var wo := 0; var wg := 0
+		for o in range(1, g.N1):
+			if o != me and g.alive[o] != 0 and g.grudge[o * g.N1 + me] > wg and g.get_rel(me, o) != 1: wg = g.grudge[o * g.N1 + me]; wo = o
+		if wo > 0: act({"cmd": "embassy", "t": wo})
 	if t % 6 == 0:
 		for d in TBDecisions.LIST:
 			if g.gold[me] > 250.0 and g.mp[me] >= 2.0 and bool(g.can({"cmd": "decide", "n": me, "id": d["id"]}).get("ok", false)):

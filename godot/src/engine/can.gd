@@ -41,6 +41,8 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"ultimatum": return _ultimatum(g, n, c, out)
 		"marry": return _marry(g, n, c, out)
 		"trade": return _trade(g, n, c, out)
+		"settle": return _settle(g, n, c, out)
+		"embassy": return _embassy(g, n, c, out)
 	return _fail(out, "unknown")
 
 static func _fail(out: Dictionary, why: String) -> Dictionary:
@@ -255,6 +257,24 @@ static func _marry(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	if not TBDiplo.can_marry(g, n, t): return _fail(out, "state")
 	_need(out, "dp", g.dp[n], TBDiplo.DP_MARRY, "dp")
 	if out["ok"] and g.has_truce(n, t) and g.human[t] == 0: return _fail(out, "truce")
+	return out
+
+static func _settle(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var p: int = int(c.get("p", -1))
+	out["men"] = TBMissions.SETTLE_MEN; out["moves"] = int(TBMissions.SETTLE_MP)
+	var why := TBMissions.settle_why(g, n, p)
+	if why == "rules" or why == "notyours" or why == "nothing": return _fail(out, why)
+	_need(out, "men", g.manpower[n], float(TBMissions.SETTLE_MEN), "manpower")
+	_need(out, "moves", g.mp[n], TBMissions.SETTLE_MP, "mp")
+	return out
+
+static func _embassy(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var t: int = int(c.get("t", 0))
+	out["dp"] = int(TBMissions.EMBASSY_DP); out["gold"] = TBMissions.EMBASSY_GOLD
+	var why := TBMissions.embassy_why(g, n, t)
+	if why == "rules" or why == "target" or why == "war" or why == "nothing": return _fail(out, why)
+	_need(out, "dp", g.dp[n], TBMissions.EMBASSY_DP, "dp")
+	_need(out, "gold", g.gold[n], float(TBMissions.EMBASSY_GOLD), "gold")
 	return out
 
 static func _trade(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:

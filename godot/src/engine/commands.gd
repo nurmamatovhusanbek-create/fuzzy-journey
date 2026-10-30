@@ -16,9 +16,10 @@ const SCHEMA := {
 	"spy": {"t": "t", "op": "s"}, "eventChoice": {"uid": "u", "i": "k"}, "decide": {"id": "s"}, "doctrine": {"id": "s"},
 	"trade": {"t": "t"}, "marry": {"t": "t"}, "cancelTrade": {"t": "t"}, "ultimatum": {"t": "t", "?p": "pn"}, "appoint": {"?p": "pn"},
 	"ask": {"kind": "s", "t": "t", "?op": "s", "?p": "pn"}, "noop": {},
+	"settle": {"p": "p"}, "embassy": {"t": "t"},
 }
 const FLAGS := ["_force", "_ult"]                       # engine-internal switches (the AI and the court answers use them); never accepted from a client
-const PACT_CMDS := ["ally", "nap", "marry", "trade", "ultimatum", "breakPact"]
+const PACT_CMDS := ["ally", "nap", "marry", "trade", "ultimatum", "breakPact", "embassy"]
 const MAX_ID_LEN := 24
 
 ## the aimed-at nation of a command is wrong: oneself, a dead nation (except to cancel a deal or make peace), the rebels in a pact. TBCan uses the same rule, so its preview and apply() agree.
@@ -113,6 +114,8 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 		"doctrine": return TBDoctrine.adopt(g, n, String(c.get("id", "")))
 		"spy": return _c_spy(g, c)
 		"eventChoice": return TBEvents.resolve_choice(g, n, int(c.get("uid", 0)), int(c.get("i", 0)))
+		"settle": return TBMissions.settle(g, n, int(c.get("p", -1)))
+		"embassy": return TBMissions.embassy(g, n, int(c.get("t", 0)))
 		"noop": return {"ok": true}
 	return {"ok": false, "err": "unknown"}
 

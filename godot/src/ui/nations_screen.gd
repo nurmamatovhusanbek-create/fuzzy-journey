@@ -620,6 +620,12 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		if g.rules >= 1:
 			if TBTrade.has(g, me, n): add_btn.call(T.call("dip_close"), "trade", "", func(): done.call({"cmd": "cancelTrade", "t": n}))
 			else: req.call(T.call("dip_trade"), "trade", "trade", "", TBTrade.DP_COST, dpw.call(TBTrade.DP_COST), {"cmd": "trade", "t": n})
+		if g.rules >= 3:
+			var ec := g.can({"cmd": "embassy", "t": n})
+			var eoff := ""
+			if not bool(ec["ok"]): eoff = T.call("err_" + String(ec["reason"])) if TBI18n.has_key("err_" + String(ec["reason"])) else String(ec["reason"])
+			add_btn.call(T.call("dip_embassy"), "eye", "%d ✉" % TBMissions.EMBASSY_DP, func(): done.call({"cmd": "embassy", "t": n}), eoff,
+				T.call("dip_embassy_tip", {"g": TBMissions.EMBASSY_GOLD, "k": TBMissions.EMBASSY_GRUDGE, "i": int(TBMissions.EMBASSY_INTEL)}))
 		if rel == 2 or rel == 3:
 			add_btn.call(T.call("dip_break"), "close", "", func():
 				TBPanel.confirm(parent, T.call("confirm_break_t", {"a": g.dname(n)}), T.call("confirm_break_b"), T.call("break_pact"), func(): done.call({"cmd": "breakPact", "t": n}), true, "warning", "",

@@ -789,6 +789,12 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 					dparts.append({"t": " · " + T.call("cc_gain_turn", {"n": g.develop_gain(s, me)}), "short": false})
 					dparts.append({"t": " · " + T.call("cc_staffed", {"p": fill}), "short": fill < 70})
 				out.append(_mk("develop", "build", "cc_develop", dc, dparts))
+			if g.rules >= 3 and not held and g.occupier[s] == 0 and g.owner[s] == me:
+				var vc := g.can({"cmd": "settle", "p": s})
+				if String(vc["reason"]) != "nothing":
+					var vparts: Array = _cost_parts(T.call("cc_settle"), vc)
+					vparts.append({"t": " · " + T.call("cc_settle_gain", {"p": TBMissions.SETTLE_POP, "s": TBMissions.SETTLE_STAB}), "short": false})
+					out.append(_mk("settle", "men", "cc_settle", vc, vparts))
 		3:
 			var o3: int = cs["o"]
 			for fr in foreign_actions(o3, s):
@@ -1052,6 +1058,7 @@ func _press(i: int) -> void:
 		"hire": command.emit({"cmd": "hire", "p": s, "amount": 40})
 		"general": command.emit({"cmd": "appoint", "p": s})
 		"develop": command.emit({"cmd": "develop", "p": s})
+		"settle": command.emit({"cmd": "settle", "p": s})
 		"colonize": command.emit({"cmd": "colonize", "p": s})
 		"peace": command.emit({"cmd": "peace", "t": int(_case["enemy"]), "kind": "white"})
 		"terms": terms_requested.emit(int(_case["enemy"]))

@@ -278,5 +278,35 @@ func _init() -> void:
 		print("  (could not fill the court with this seed; skipped)")
 	var gold3 := TBGame.new(w, era, {"seed": 6, "rules": 2})
 	_ok(TBDiplo.ally_room(gold3, 1, 2) == "", "rules 2 has no cap")
+	print("-- veteran colonies and embassies: what idle people and envoys are for")
+	var gm := TBGame.new(w, era, {"seed": 7})
+	var pm := _pick(gm, 3)
+	var M: int = pm[0]; var Z: int = pm[1]
+	_clear(gm)
+	gm.set_human(M); gm.manpower[M] = 200.0; gm.mp[M] = 6.0; gm.gold[M] = 500.0; gm.dp[M] = 8.0; gm.intel[M] = 3.0
+	var sp := -1
+	for qq in gm.P:
+		if gm.owner[qq] == M and gm.occupier[qq] == 0: sp = qq; break
+	gm.pop[sp] = 300; gm.stab[sp] = 50
+	var cs := gm.can({"cmd": "settle", "n": M, "p": sp})
+	var rs := gm.apply({"cmd": "settle", "n": M, "p": sp})
+	_ok(bool(cs["ok"]) and bool(rs["ok"]), "veteran colony: can() and apply() agree it is possible")
+	_ok(gm.pop[sp] == 330 and gm.stab[sp] == 58 and absf(gm.manpower[M] - 140.0) < 0.01, "...it costs 60 people and adds 30 people and 8 stability (pop %d, stab %d, men %d)" % [gm.pop[sp], gm.stab[sp], int(gm.manpower[M])])
+	gm.manpower[M] = 10.0
+	_ok(not bool(gm.can({"cmd": "settle", "n": M, "p": sp})["ok"]) and not bool(gm.apply({"cmd": "settle", "n": M, "p": sp})["ok"]), "...and needs the people: both refuse when there are too few")
+	gm.manpower[M] = 200.0; gm.pop[sp] = 2000; gm.stab[sp] = 100
+	_ok(String(gm.apply({"cmd": "settle", "n": M, "p": sp}).get("err", "")) == "nothing", "...and refuses a province that is full and calm")
+	var gold_s := TBGame.new(w, era, {"seed": 7, "rules": 2})
+	_ok(not bool(gold_s.apply({"cmd": "settle", "n": 1, "p": 0})["ok"]), "rules 2 has no veteran colonies")
+	gm.set_rel(M, Z, TBData.REL_PEACE)
+	gm.grudge[Z * gm.N1 + M] = 30
+	var ce := gm.can({"cmd": "embassy", "n": M, "t": Z})
+	var re := gm.apply({"cmd": "embassy", "n": M, "t": Z})
+	_ok(bool(ce["ok"]) and bool(re["ok"]), "embassy: can() and apply() agree it is possible")
+	_ok(gm.grudge[Z * gm.N1 + M] == 18 and absf(gm.dp[M] - 6.0) < 0.01 and absf(gm.gold[M] - 460.0) < 0.01 and absf(gm.intel[M] - 8.0) < 0.01, "...the grudge falls 12, it costs 2 envoys and 40 gold, the staff adds 5 intelligence (grudge %d, intel %.0f)" % [gm.grudge[Z * gm.N1 + M], gm.intel[M]])
+	gm.set_rel(M, Z, TBData.REL_WAR)
+	_ok(not bool(gm.can({"cmd": "embassy", "n": M, "t": Z})["ok"]) and not bool(gm.apply({"cmd": "embassy", "n": M, "t": Z})["ok"]), "...none can be sent to a nation at war with you")
+	gm.set_rel(M, Z, TBData.REL_PEACE); gm.grudge[Z * gm.N1 + M] = 0; gm.intel[M] = 20.0
+	_ok(String(gm.apply({"cmd": "embassy", "n": M, "t": Z}).get("err", "")) == "nothing", "...and none when there is no grudge to cool and nothing to learn")
 	print("REALISM OK" if fails == 0 else "REALISM FAIL %d" % fails)
 	quit(fails)
