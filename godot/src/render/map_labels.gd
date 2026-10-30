@@ -927,8 +927,8 @@ func _ensure_star() -> void:
 ## capital: a five-pointed star (brass for your own, cream for the others) on a dark casing. A general's stars are the small brass ones above its army badge.
 func _capital_mark(pos: Vector2, al: float, mine: bool) -> void:
 	_ensure_star()
-	var k: float = 1.9 * mk()                                          # the star's outer radius is 4.5 units in _star_poly
-	draw_set_transform(pos, 0.0, Vector2(k * 1.28, k * 1.28))
+	var k: float = 1.3 * mk()                                          # the star's outer radius is 4.5 units in _star_poly: about 5.8 px, small enough to sit beside a name
+	draw_set_transform(pos, 0.0, Vector2(k * 1.3, k * 1.3))
 	draw_colored_polygon(_star_poly, _a(tk("table"), 0.92 * al))
 	draw_set_transform(pos, 0.0, Vector2(k, k))
 	draw_colored_polygon(_star_poly, _a(tk("brass_lt") if mine else tk("cream"), al))
