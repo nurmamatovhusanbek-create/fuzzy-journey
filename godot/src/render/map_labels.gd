@@ -101,6 +101,7 @@ func _step_names(delta: float) -> bool:
 			var e: Dictionary = cache[k]
 			var t: float = e["t"]
 			var a: float = e["a"]
+			if t > 0.0 and cache == _nc and _name_hidden_now(e): t = 0.0                  # between two layouts a name that the camera has carried under the HUD or to the globe's edge fades out at once
 			if a != t:
 				a = move_toward(a, t, delta * FADE_PER_S) if motion else t
 				e["a"] = a
@@ -111,9 +112,18 @@ func _step_names(delta: float) -> bool:
 					o *= exp(-delta * 11.0) if motion else 0.0
 					e["off"] = o if o.length() > 0.5 else Vector2.ZERO
 					moving = true
-			if a <= 0.0 and t <= 0.0: dead.append(k)
+			if a <= 0.0 and float(e["t"]) <= 0.0: dead.append(k)
 		for k in dead: cache.erase(k)
 	return moving
+
+## where a nation name stands this frame is under a HUD part, or so near the globe's edge that it is squeezed to a sliver
+func _name_hidden_now(e: Dictionary) -> bool:
+	var pr := _proj_vec(e["v"])
+	if map.mode == 0 and pr.z < 0.45: return true
+	var pos := Vector2(pr.x, pr.y) + (e["off"] as Vector2 if e.has("off") else Vector2.ZERO)
+	var lines: Array = e["lines"]
+	var r := Rect2(pos - Vector2((float(e["w"]) + float(e["gw"])) * 0.5, float(e["lh"]) * lines.size() * 0.5), Vector2(float(e["w"]) + float(e["gw"]), float(e["lh"]) * lines.size()))
+	return _blocked(r)
 
 func set_game(game: TBGame) -> void:
 	g = game
@@ -309,9 +319,10 @@ func _halo_alpha(pos: Vector2) -> float:
 	var l := TBLenses.lum(map.lenses.color(p))
 	return lerpf(0.78, 1.0, smoothstep(0.08, 0.4, l))
 
-const GENERIC_FIRST := ["Kingdom", "Republic", "Empire", "United", "Grand", "Holy", "Duchy", "Sultanate", "Emirate", "Khanate", "Principality", "Confederation"]
-const NAME_PREFIXES := ["Kingdom of the ", "Kingdom of ", "Republic of the ", "Republic of ", "Empire of ", "Grand Duchy of ", "Duchy of ", "Sultanate of ", "Emirate of ", "Principality of ", "Confederation of "]
+const GENERIC_FIRST := ["Kingdom", "Republic", "Empire", "United", "Grand", "Holy", "Duchy", "Sultanate", "Emirate", "Khanate", "Principality", "Confederation", "Democratic", "Central", "South", "North", "West", "East", "Federal", "Islamic", "People's", "Federated", "Commonwealth", "State", "Free", "New", "Papal", "Sacred"]
+const NAME_PREFIXES := ["People's Republic of ", "Islamic Republic of ", "Federal Republic of ", "United Republic of ", "Kingdom of the ", "Kingdom of ", "Republic of the ", "Republic of ", "Empire of ", "Grand Duchy of ", "Duchy of ", "Sultanate of ", "Emirate of ", "Principality of ", "Confederation of "]
 func _core_name(txt: String) -> String:
+	if txt.begins_with("Democratic Republic of the "): return "DR " + txt.substr(27)             # "DR Congo", not a second "Congo"
 	for pre in NAME_PREFIXES:
 		if txt.begins_with(pre) and txt.length() > pre.length() + 2: return txt.substr(pre.length())
 	return txt
@@ -949,13 +960,14 @@ var _big: Dictionary = {}
 const BIG_NATIONS := 22                 # the countries whose capital is starred at country level: the largest by provinces, and any with 20 or more
 const BIG_PROVINCES := 20
 
+## (counts come from the owner scan of _rebuild_cores, never from the game's own index: while a turn is being worked out on its thread the game must not be asked to rebuild it)
 func _is_big_nation(o: int) -> bool:
-	var key: int = hash([g.turn, g.occ_rev, g.own_count(0), g.N1])
-	if key != _big_key:
-		_big_key = key; _big.clear()
+	_rebuild_cores()
+	if _core_sig != _big_key:
+		_big_key = _core_sig; _big.clear()
 		var order: Array = []
 		for n in range(1, g.N1):
-			if g.alive[n] != 0 and n != g.rebel: order.append([g.own_count(n), n])
+			if _core_n[n] > 0 and g.alive[n] != 0 and n != g.rebel: order.append([_core_n[n], n])
 		order.sort_custom(func(a, b): return a[0] > b[0] if a[0] != b[0] else a[1] < b[1])
 		for i in order.size():
 			if i < BIG_NATIONS or int(order[i][0]) >= BIG_PROVINCES: _big[int(order[i][1])] = true

@@ -982,7 +982,7 @@ static func fact_row(glyph_id: String, label_text: String, text: String, tone: S
 	var col_t: Color = TBTokens.c("warn") if tone == "warn" else TBTokens.c("brass")
 	var pc := PanelContainer.new(); pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1, 1, 1, 0.03); sb.border_color = TBTokens.with_a(col_t, 0.28)
+	sb.bg_color = TBTokens.with_a(TBTokens.c("cream"), 0.03); sb.border_color = TBTokens.with_a(col_t, 0.28)
 	sb.set_border_width_all(1); sb.set_content_margin_all(10 if phone else 16)
 	pc.add_theme_stylebox_override("panel", sb)
 	var row := K.hbox(12 if phone else 18)
