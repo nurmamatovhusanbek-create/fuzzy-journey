@@ -78,8 +78,8 @@ func _process(delta: float) -> void:
 	if _t >= INTERVAL: _t = 0.0; next_tip()
 
 # ---------------------------------------------------------------- geometry and drawing
-func _fs_label() -> int: return maxi(8, int(round(8.7 * u)))
-func _fs_text() -> int: return maxi(10, int(round(14.0 * u)))
+func _fs_label() -> int: return maxi(9, int(round(10.0 * u)))
+func _fs_text() -> int: return maxi(11, int(round(16.5 * u)))
 func _pad() -> float: return 12.0 * u
 func _font_label() -> Font: return TBKit.tracked(TBKit.cinzel(700), 3)
 func _font_text() -> Font: return TBKit.alegreya(400, true)

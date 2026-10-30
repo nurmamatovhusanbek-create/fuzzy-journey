@@ -262,18 +262,19 @@ class RowBtn extends Button:
 		draw_colored_polygon(dia, TBTokens.with_a(TBTokens.BZ_HI if hot else TBTokens.BZ_LO, dim))
 		var f := TBKit.tracked(TBKit.alegreya(700) if TBKit.readable_fonts else TBKit.wordmark(), 3)
 		var tf := TBKit.tracked(TBKit.alegreya(700), 0.5)
-		var tsz := TBKit.fs(7.0 * u)
-		var tag_w: float = tf.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, tsz).x + 8.0 * u if tag != "" else 0.0
+		var tsz := TBKit.fs(9.5 * u)                                                    # the tag is read at a glance: big enough to say "coming soon"
+		var tag_tw: float = tf.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, tsz).x if tag != "" else 0.0
+		var tag_w: float = tag_tw + 16.0 * u if tag != "" else 0.0
 		var fsz := TBTitleParts.fit(f, title, TBKit.fs(13.5 * u), w - dx - 30.0 * u - 22.0 * u - (tag_w + 2.0 * u if tag != "" else 0.0))
 		var ink: Color = TBTokens.c("brass_lt") if down else (TBTokens.c("cream") if hot else TBTokens.c("smoke"))
 		draw_string(f, Vector2(dx + 22.0 * u, roundf(cy + f.get_ascent(fsz) * 0.5 - 2.0)), title, HORIZONTAL_ALIGNMENT_LEFT, w - dx - 30.0 * u, fsz, TBTokens.with_a(ink, dim), TextServer.JUSTIFICATION_NONE)
 		if tag != "":
-			var th: float = tsz + 7.0 * u
+			var th: float = tsz + 11.0 * u
 			var tr := Rect2(w - 8.0 * u - tag_w, cy - th * 0.5, tag_w, th)
 			var tcol: Color = TBTokens.with_a(TBTokens.BZ_HI if hot else TBTokens.BZ_LO, 0.9)
 			draw_rect(tr, TBTokens.with_a(TBTokens.BZ_LO, 0.10), true)
 			draw_rect(tr, tcol, false, 1.0)
-			draw_string(tf, Vector2(tr.position.x + 4.0 * u, roundf(cy + tf.get_ascent(tsz) * 0.5 - 1.0)), tag, HORIZONTAL_ALIGNMENT_LEFT, tag_w, tsz, tcol, TextServer.JUSTIFICATION_NONE)
+			draw_string(tf, Vector2(roundf(tr.position.x + (tag_w - tag_tw) * 0.5), roundf(cy + tf.get_ascent(tsz) * 0.5 - 1.0)), tag, HORIZONTAL_ALIGNMENT_LEFT, tag_tw + 2.0, tsz, tcol, TextServer.JUSTIFICATION_NONE)
 
 # ================================================================================================================================ the one selection bracket
 ## Four corner brackets drawn over the menu; it glides to the focused entry (jumps with Effects Off). `flash()` is the press feedback.

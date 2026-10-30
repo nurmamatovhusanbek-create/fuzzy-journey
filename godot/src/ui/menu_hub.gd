@@ -146,7 +146,7 @@ static func _load(parent: Control, ctx: Dictionary, h: TBPanel.Handle, slot: Str
 static func _leave_confirm(parent: Control, ctx: Dictionary, h: TBPanel.Handle) -> void:
 	var g: TBGame = ctx.get("g", null)
 	var d := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("leave_t"), "warning", {"width": 440})
-	d.body.add_child(TBPanel.para(T.call("leave_b", {"n": g.turn if g != null else 0}), 15))
+	d.lead(T.call("leave_b", {"n": g.turn if g != null else 0}))
 	var sx := K.button(T.call("save_exit"), func():
 		(ctx["on_save"] as Callable).call("auto"); d.close(); h.close(); (ctx["on_menu"] as Callable).call())
 	sx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -277,7 +277,7 @@ static func comfort(parent: Control, cfg: Dictionary, on_change: Callable, on_do
 		cfg[key] = value; on_change.call(key)
 		if key in ["text_scale", "hc"]:                    # sizes and colours changed: rebuild the dialog so it is its own live preview
 			d.close(); comfort(parent, cfg, on_change, on_done)
-	d.body.add_child(TBPanel.para(T.call("set_comfort_b"), 15))
+	d.lead(T.call("set_comfort_b"))
 	_seg(d.body, T.call("text_size"), [["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): apply.call("text_scale", float(v)), true)
 	d.body.add_child(TBPanel.para(T.call("text_preview"), 15, K.DIM))
 	_seg(d.body, T.call("high_contrast"), [["off", T.call("hc_off")], ["light", T.call("hc_light")], ["dark", T.call("hc_dark")]], _hc_id(cfg), func(v): apply.call("hc", v), true)

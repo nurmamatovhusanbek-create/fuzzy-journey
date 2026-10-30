@@ -478,7 +478,7 @@ static func tutorial(parent: Control, on_done: Callable, on_skip: Callable = Cal
 	var step := [1]
 	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("tut_title"), "book", {"width": 460})
 	var title := K.title("", 18, K.TEXT)
-	var body := TBPanel.para("", 15)
+	var body := TBPanel.para("", 17)
 	var pips := K.Pips.new(1, 7); pips.custom_minimum_size = Vector2(7 * 14, 18)
 	h.body.add_child(pips); h.body.add_child(title); h.body.add_child(body)
 	var skip_cb: Callable = on_skip if on_skip.is_valid() else on_done
@@ -596,6 +596,16 @@ static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) ->
 	var was: int = g.get_rel(me, n)
 	rows.append([T.call("war_fx_grudge"), "+%d" % (80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)), -1])
 	rows.append([T.call("war_fx_inf"), "+%d" % int(TBDiplo.NO_CB_INFAMY) if cbk == "" else T.call("war_fx_none"), -1 if cbk == "" else 0])
+	if g.rules >= 3:                                                                          # the quarrel reaches their friends (a share of the grudge, never as much)
+		var joining := 0; var kin := 0
+		var gr: int = 80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)
+		for o in range(1, g.N1):
+			if o == me or o == n or g.alive[o] == 0 or o == g.rebel or TBDiplo.tie(g, o, me) > 0.0: continue
+			if g.get_rel(n, o) == D.REL_ALLY:
+				if g.get_rel(me, o) != D.REL_WAR and not g.has_truce(me, o): joining += 1
+			elif TBDiplo.tie(g, o, n) >= TBDiplo.TIE_KIN: kin += 1
+		if joining > 0: rows.append([T.call("war_fx_join", {"k": joining}), str(joining), -1])
+		if kin > 0: rows.append([T.call("war_fx_friends", {"k": kin}), "+%d" % int(roundf(float(gr) * TBDiplo.TIE_KIN)), -1])
 	if TBTrade.has(g, me, n): rows.append([T.call("war_fx_trade"), T.call("war_fx_ends"), 0])
 	col.add_child(K.fxl(rows))
 	var cancel := K.button(T.call("cancel"), func(): h.close())
@@ -620,7 +630,7 @@ static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) ->
 static func battle_report(parent: Control, r: Dictionary) -> TBPanel.Handle:
 	var win: bool = r["win"]
 	var phone: bool = K.is_phone(parent)
-	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("br_title"), "attack", {"w": 480.0 if phone else 460.0})
+	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("br_title"), "attack", {"classic": true, "w": 480.0 if phone else 460.0})
 	var box := K.vbox(0); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.body.add_child(box)
 	if r.has("my0") and r.has("g") and not h.short and not h.phone and K.text_scale < 1.5:                      # B4: the armies face to face
 		var gg: TBGame = r["g"]
@@ -667,7 +677,7 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 	var can_defer: bool = on_defer.is_valid() and not (e["kind"] == "prop" and e["id"] == "ultimatum")
 	var phone: bool = K.is_phone(parent)
 	var turn: int = g.turn if g != null else 0
-	var opts := {"w": 600.0 if phone else 520.0, "dismissable": can_defer, "sub": ("%s %d" % [T.call("turn"), turn]) if turn > 0 else ""}
+	var opts := {"classic": true, "w": 600.0 if phone else 520.0, "dismissable": can_defer, "sub": ("%s %d" % [T.call("turn"), turn]) if turn > 0 else ""}
 	if can_defer: opts["on_dismiss"] = on_defer
 	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("ev_event"), "warn", opts)
 	var box := K.vbox(0); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL

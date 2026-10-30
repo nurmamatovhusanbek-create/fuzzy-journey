@@ -34,6 +34,7 @@ class Handle extends RefCounted:
 	var form := "dialog"                 # dialog | drawer | sheet | panel | page
 	var wide := false
 	var hero := false
+	var announce := false                # the announcement presentation of a plain dialog: medallion, centred title and rule, wider card, centred buttons
 	var modal := true
 	var dismissable := true
 	var on_back := Callable()            # returns true when it consumed a Back press (drill-in inside the screen)
@@ -127,6 +128,16 @@ class Handle extends RefCounted:
 			for b2 in [primary, secondary]:
 				if b2 != null: (b2 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL; footer.add_child(b2)
 			return
+		if announce:                                      # an announcement: the buttons sit together on the card's axis, the main one first and larger
+			footer.alignment = BoxContainer.ALIGNMENT_CENTER
+			for b3 in [primary, secondary]:
+				if b3 == null: continue
+				var c3 := b3 as Control
+				c3.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+				c3.custom_minimum_size.x = maxf(c3.custom_minimum_size.x, 150.0 if phone else 210.0)
+				c3.custom_minimum_size.y = maxf(c3.custom_minimum_size.y, 40.0 if phone else 46.0)
+				footer.add_child(c3)
+			return
 		if bz:                                            # `.foot{justify-content:space-between}`: buttons keep their own width
 			var room: float = minf(bz_w if bz_w > 0.0 else 460.0, TBPanel._vs(self).x - 32.0) - 36.0 - 10.0
 			var need := 0.0
@@ -149,6 +160,20 @@ class Handle extends RefCounted:
 				var tw: float = pb.get_theme_font("font").get_string_size(pb.text, HORIZONTAL_ALIGNMENT_LEFT, -1, pb.get_theme_font_size("font_size")).x
 				pb.custom_minimum_size.x = maxf(pb.custom_minimum_size.x, ceilf(tw) + 64.0)
 			footer.add_child(primary)
+	## the message of an announcement: a centred lead paragraph (a plain paragraph in the other presentations)
+	func lead(text: String) -> Label:
+		var l: Label = TBPanel.para(text, 15)
+		if announce:
+			l = K.label(text, 17 if phone else 21, TBTokens.c("ink_0"))
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size.x = 40
+		body.add_child(l)
+		return l
+	## a labelled block under the lead: a brass ring glyph, a small tracked label and the words ("what it costs", "ready now"); tone "warn" paints it amber
+	func fact(glyph_id: String, label_text: String, text: String, tone: String = "") -> Control:
+		var pc := TBPanel.fact_row(glyph_id, label_text, text, tone, phone)
+		body.add_child(pc)
+		return pc
 	func relayout() -> void: TBPanel._layout(self)
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
@@ -280,6 +305,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	h.narrow = vp0.x < 480.0
 	h.pad = 16 if portrait else (12 if short else 24)
 	h.bz = TBFrame.bezel
+	h.announce = h.bz and kind == Kind.DIALOG and title_text != "" and not h.hero and not h.wide and not (bool(opts.get("split", false))) and not bool(opts.get("classic", false))
 	h.bz_w = float(opts.get("w", 0.0)); h.bz_h = float(opts.get("h", 0.0))
 	h.dock = String(opts.get("dock", "center" if kind == Kind.DIALOG else "left"))
 	h.bz_pos = opts.get("pos", Vector2(-1, -1))
@@ -546,6 +572,8 @@ static func _ignore_mouse(n: Node) -> void:
 
 ## the demo's header (`.hd`): ring icon 46, title (Cinzel 700 22, .12em) over an italic subtitle, 36 unit close button, then the graduated rule
 static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyph_id: String, opts: Dictionary, vp0: Vector2) -> void:
+	if h.announce:
+		_announce_header(h, outer, title_text, glyph_id, opts); return
 	var phone: bool = h.phone
 	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 0)
 	var hm := MarginContainer.new()
@@ -582,6 +610,68 @@ static func _bz_header(h: Handle, outer: VBoxContainer, title_text: String, glyp
 	h.head = box
 	outer.add_child(box)
 
+## the announcement header: a brass medallion with the dialog's glyph, an optional tracked kicker (opts eyebrow), the title centred in large caps, the graduated rule
+## (a close button sits at the right of the medallion row; a spacer of the same size on the left keeps the medallion on the card's axis)
+static func _announce_header(h: Handle, outer: VBoxContainer, title_text: String, glyph_id: String, opts: Dictionary) -> void:
+	var phone: bool = h.phone
+	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 0)
+	var hm := MarginContainer.new()
+	var side_m: int = 14 if phone else 28
+	hm.add_theme_constant_override("margin_left", side_m); hm.add_theme_constant_override("margin_right", side_m)
+	hm.add_theme_constant_override("margin_top", 10 if phone else 22); hm.add_theme_constant_override("margin_bottom", 6 if phone else 12)
+	var col := K.vbox(0)
+	hm.add_child(col)
+	var med_px: int = 52 if phone else 76
+	var btn_px: int = 36 if phone else 44
+	var top := HBoxContainer.new(); top.add_theme_constant_override("separation", 0)
+	var lead := Control.new(); lead.custom_minimum_size = Vector2(btn_px, btn_px); lead.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.add_child(lead)
+	var cc := CenterContainer.new(); cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var med := K.ring_icon(glyph_id if glyph_id != "" else "info", med_px)
+	cc.add_child(med); top.add_child(cc)
+	if h.dismissable and not bool(opts.get("no_close", false)):
+		var xb := K.IconBtn.new("close", func(): pop_handle(h), btn_px)
+		K.a11y(xb, T.call("close"), "button")
+		xb.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		top.add_child(xb)
+	else:
+		var trail := Control.new(); trail.custom_minimum_size = Vector2(btn_px, btn_px); trail.mouse_filter = Control.MOUSE_FILTER_IGNORE; top.add_child(trail)
+	col.add_child(top)
+	var gap0 := Control.new(); gap0.custom_minimum_size = Vector2(0, 8 if phone else 14); gap0.mouse_filter = Control.MOUSE_FILTER_IGNORE; col.add_child(gap0)
+	var eyebrow: String = String(opts.get("eyebrow", ""))
+	if eyebrow != "":
+		var ey := TBBz.TLabel.new(K.cinzel(500), 11.0 if phone else 14.0, 0.34, 0.0, true)
+		ey.text = eyebrow; ey.add_theme_color_override("font_color", TBTokens.c("brass")); ey.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ey.size_flags_horizontal = Control.SIZE_EXPAND_FILL; ey.wrap_ok = true; ey.refit()
+		col.add_child(ey)
+		var gap1 := Control.new(); gap1.custom_minimum_size = Vector2(0, 4); gap1.mouse_filter = Control.MOUSE_FILTER_IGNORE; col.add_child(gap1)
+	var tl := K.title(title_text, 21 if phone else 30, TBTokens.c("ink_0"), 0.08)
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tl.custom_minimum_size.x = 40; tl.tooltip_text = title_text
+	(tl as TBBz.TLabel).wrap_ok = true
+	col.add_child(tl); h.title_label = tl
+	var sub := TBBz.TLabel.new(K.alegreya(400, true), 16.0 if phone else 19.0, 0.0)
+	sub.add_theme_color_override("font_color", K.DIM); sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sub.visible = false; sub.mouse_filter = Control.MOUSE_FILTER_IGNORE; sub.custom_minimum_size.x = 40
+	col.add_child(sub); h.sub_label = sub
+	if opts.has("sub"): h.set_sub(String(opts["sub"]))
+	var chips := K.hbox(6); chips.alignment = BoxContainer.ALIGNMENT_CENTER; col.add_child(chips); h.chip_slot = chips
+	var acts := K.hbox(4); acts.visible = false; col.add_child(acts); h.action_slot = acts
+	box.add_child(hm); box.add_child(K.header_rule(side_m))
+	h.head = box
+	outer.add_child(box)
+
+## the title of an announcement stays on one line when a smaller size makes it fit (down to 70 % of its size), and only then wraps
+static func _fit_announce_title(h: Handle, w: float) -> void:
+	var tl := h.title_label as TBBz.TLabel
+	if tl == null: return
+	var base: float = 21.0 if h.phone else 30.0
+	tl.px = base
+	var avail: float = w - 2.0 * (14.0 if h.phone else 28.0) - 4.0
+	var need: float = tl.exact_w()
+	if need > avail and need > 0.0: tl.px = maxf(base * 0.7, floorf(base * avail / need))
+	tl.refit()
+
 ## where a window's top edge sits (the same rule _fit_bz places it by)
 static func _top_y(h: Handle) -> float:
 	var phone: bool = h.phone
@@ -610,8 +700,11 @@ static func _fit_bz(h: Handle) -> void:
 	var phone: bool = h.phone
 	var wdef: float = {"dialog": 460.0, "drawer": 560.0, "panel": 900.0}.get(h.form, 460.0)
 	var w: float = h.bz_w if h.bz_w > 0.0 else (600.0 if (h.wide and h.form == "dialog") else wdef)
+	if h.announce: w = maxf(w, clampf(vs.x * 0.46, 480.0 if phone else 600.0, 820.0))                  # an announcement has room to say its message
 	w = minf(w, vs.x - (12.0 if phone else 32.0))
 	var panel_h: float = avail_h(h)                                                            # as tall as the room under the window's top edge (a card that is taller scrolls inside)
+	if h.announce: panel_h = vs.y - (16.0 if phone else 48.0)                                    # an announcement is centred: it may use the screen's height
+	if h.announce: _fit_announce_title(h, w)
 	var hmax: float = minf(h.bz_h if h.bz_h > 0.0 else panel_h, panel_h) if (phone or h.form == "dialog") else panel_h      # a desktop panel is as tall as its content, up to the whole room
 	var forced_h: bool = false
 	if h.movable and h.user_size.x > 0.0: w = clampf(h.user_size.x, WIN_MIN.x, maxf(WIN_MIN.x, vs.x - 8.0))                 # the player's size wins over the demo's width / content height
@@ -645,6 +738,7 @@ static func _fit_bz(h: Handle) -> void:
 	var y: float
 	if h.form == "dialog":
 		x = floorf((vs.x - w) * 0.5); y = maxf(8.0 if phone else 100.0, (vs.y - hmax) * 0.5 - 20.0)
+		if h.announce: y = maxf(8.0, floorf((vs.y - minf(c.size.y, hmax)) * 0.5))                       # centred on the screen, whatever its height
 		if h.dock == "left":
 			x = 60.0 if phone else 340.0; y = 8.0 if phone else 150.0
 	else:
@@ -874,6 +968,28 @@ static func _snap(h: Handle, to: float) -> void:
 
 # ---- small shared builders ---------------------------------------------------------------------------------------------------------------
 ## wrapping paragraph
+## a fact row of an announcement (see Handle.fact)
+static func fact_row(glyph_id: String, label_text: String, text: String, tone: String = "", phone: bool = false) -> Control:
+	var col_t: Color = TBTokens.c("warn") if tone == "warn" else TBTokens.c("brass")
+	var pc := PanelContainer.new(); pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(1, 1, 1, 0.03); sb.border_color = TBTokens.with_a(col_t, 0.28)
+	sb.set_border_width_all(1); sb.set_content_margin_all(10 if phone else 16)
+	pc.add_theme_stylebox_override("panel", sb)
+	var row := K.hbox(12 if phone else 18)
+	var ic := K.ring_icon(glyph_id, 34 if phone else 46)
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(ic)
+	var col := K.vbox(3 if phone else 4); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var lb := TBBz.TLabel.new(K.cinzel(500), 11.0 if phone else 13.0, 0.16, 0.0, true)
+	lb.text = label_text; lb.add_theme_color_override("font_color", col_t); lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL; lb.wrap_ok = true; lb.refit()
+	col.add_child(lb)
+	var tx := K.label(text, 15 if phone else 18, TBTokens.c("ink_0"))
+	tx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tx.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tx.custom_minimum_size.x = 40
+	col.add_child(tx)
+	row.add_child(col); pc.add_child(row)
+	return pc
+
 static func para(text: String, size: int = 15, color: Color = Color.TRANSPARENT) -> Label:
 	var l := K.label(text, size, color)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -965,7 +1081,7 @@ static func toggle(label_text: String, value: bool, cb: Callable) -> Button:
 # ---- confirmation dialog (P-16): L1 consequence / L2 data loss; default focus Cancel, the confirm names the act -------------------------------
 static func confirm(parent: Control, title_text: String, text: String, confirm_label: String, on_yes: Callable, danger: bool = true, glyph_id: String = "warning", cancel_label: String = "", extra: Control = null) -> Handle:
 	var h := open(parent, Kind.DIALOG, title_text, glyph_id, {"width": 420})
-	h.body.add_child(para(text, 15))
+	h.lead(text)
 	if extra != null: h.body.add_child(extra)
 	var cancel := K.button(cancel_label if cancel_label != "" else T.call("cancel"), func(): h.close())
 	var yes: Button

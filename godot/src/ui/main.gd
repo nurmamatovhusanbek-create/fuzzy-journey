@@ -659,10 +659,14 @@ func _place_title_note(tip: Control, items: Array, u: float) -> void:
 ## the title's Multiplayer row: the lobby when online play is on, else a plain note that it is coming
 func _multiplayer_entry() -> void:
 	if TBRelease.multiplayer: mp.open_menu(); return
-	var m := K.modal(_overlay, T.call("mp_soon_title"), 440)
-	var body := K.label(T.call("mp_soon_body"), 15, K.DIM); body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	m[1].add_child(body)
-	m[1].add_child(K.button(T.call("close"), func(): m[0].queue_free(), true))
+	var h := TBPanel.open(_overlay, TBPanel.Kind.DIALOG, T.call("mp_soon_title"), "nations", {"eyebrow": T.call("mp_soon_eyebrow")})
+	h.lead(T.call("mp_soon_lead"))
+	h.fact("check", T.call("mp_soon_ready_h"), T.call("mp_soon_ready"))
+	h.fact("clock", T.call("mp_soon_next_h"), T.call("mp_soon_next"))
+	var play := K.button(T.call("mp_soon_play"), func(): h.close(); _open_era_picker(), true)
+	var close := K.button(T.call("close"), func(): h.close())
+	h.actions(close, play)
+	h.focus_target = play
 
 func _open_menu_hub(tab: String = "") -> void:
 	var ctx := {"cfg": cfg, "in_game": mode == "game", "g": g if mode == "game" else null, "on_change": _on_setting_changed, "on_save": _save_slot, "on_load": _load_slot,
