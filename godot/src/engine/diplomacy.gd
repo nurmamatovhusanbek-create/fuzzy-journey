@@ -147,9 +147,10 @@ static func loyalty_terms(g: TBGame, t: int, p: int) -> Array:
 	var out: Array = []
 	if g.rules < 3: return out
 	var hit := 0.0
+	if g.war_cnt[p] == 0: return out                                   # at war with no one: nobody's friend is hit (and the courts ask this many times a turn)
 	for o in range(1, g.N1):
-		if o == t or o == p or g.alive[o] == 0 or o == g.rebel: continue
-		if tie(g, t, o) >= TIE_KIN and g.get_rel(p, o) == D.REL_WAR: hit += 0.5
+		if g.get_rel(p, o) != D.REL_WAR or o == t or o == p or g.alive[o] == 0 or o == g.rebel: continue
+		if tie(g, t, o) >= TIE_KIN: hit += 0.5
 	if hit > 0.0: out.append(["dv_loyalty", -minf(1.0, hit)])
 	return out
 

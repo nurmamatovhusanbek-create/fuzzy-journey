@@ -142,7 +142,9 @@ static func propose(g: TBGame, n: int, t: int, force: bool = false) -> Dictionar
 ## AI: occasionally sign a deal with a friendly neighbour. Rules >= 3: a court looks over its prospects and opens the most valuable route it can carry and that the other side will take.
 static func ai_step(g: TBGame, n: int) -> void:
 	if g.rules < 1 or g.trade_cnt[n] >= max_deals(g, n) or g.dp[n] < DP_COST or g.rng.next() > 0.08: return
-	var best := -1; var best_v := -1
+	var best := -1
+	var ranked := PackedInt32Array()
+	var mn := market(g, n)
 	for o in range(1, g.N1):
 		if o == n or g.alive[o] == 0 or o == g.rebel or has(g, n, o): continue
 		var r := g.get_rel(n, o)
@@ -153,10 +155,21 @@ static func ai_step(g: TBGame, n: int) -> void:
 				propose(g, n, o); return
 			continue
 		if g.human[o] != 0 or g.trade_cnt[o] >= max_deals(g, o): continue
-		var v := yield_of(g, n, o)
-		if v <= best_v: continue
-		if g.gold[n] < float(fee_gold(v)) or g.manpower[n] < float(fee_men(v)) or float(means(g, n, v)["m"]) < 0.5: continue    # a court only opens a route it can carry
-		if accepts(g, o, n): best = o; best_v = v
+		var ub := clampi(int(roundf(2.0 + K_YIELD * sqrt(sqrt(mn * market(g, o))))), 2, YIELD_CAP)      # what the route is worth at best: next door (reach 1)
+		ranked.append(ub * 4096 + (4095 - o))
+	ranked.sort()
+	var best_v := -1
+	var i := ranked.size() - 1
+	while i >= 0:                                                                          # the most promising first; the exact worth (with the distance) is worked out only while it could still win
+		var ub2: int = ranked[i] >> 12
+		var o2: int = 4095 - (ranked[i] & 4095)
+		i -= 1
+		if best > 0 and ub2 < best_v: break
+		var v2 := yield_of(g, n, o2)
+		if best > 0 and (v2 < best_v or (v2 == best_v and o2 > best)): continue            # the dearer route wins, the lower court number on a tie
+		if g.gold[n] < float(fee_gold(v2)) or g.manpower[n] < float(fee_men(v2)): continue
+		if float(means(g, n, v2)["m"]) < 0.5: continue                                      # a court only opens a route it can carry
+		if accepts(g, o2, n): best = o2; best_v = v2
 	if best > 0: propose(g, n, best)
 
 ## rules >= 3: is the route between a and b about to lapse? "poor" = a treasury is empty (a 35 % chance a turn), "sour" = a grudge is within 15 of the breaking point; "" = safe

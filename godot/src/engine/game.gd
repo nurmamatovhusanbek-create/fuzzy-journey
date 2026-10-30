@@ -61,6 +61,8 @@ var see_until := PackedInt32Array() # N1*N1: the turn until which nation a sees 
 var war_score := PackedInt32Array() # N1*N1
 var war_turns := PackedInt32Array() # N1*N1
 var grudge := PackedByteArray()     # N1*N1: grudge[a*N1+b] is how much a resents b (0..100, cools one point a turn)
+var _dist_cap := PackedInt32Array()     # per province: the capital its cached distance (below) was measured to; derived, never saved, always exact (same float64 the formula gives)
+var _dist_val := PackedFloat64Array()
 var net_ema := PackedFloat32Array() # rules >= 3: each nation's net income, smoothed over about 7 turns (0 = no history yet): the 'persistent income' that trade routes need
 var vic_hold := {}                  # rules >= 3: consecutive turns a player has held each victory condition ("<nation>:<id>" -> turns)
 var war_cnt := PackedInt32Array()   # per nation: number of ALIVE enemies it is at war with (incremental)
@@ -218,6 +220,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1); net_ema.resize(N1)
+	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
 	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:
@@ -478,28 +481,42 @@ func income(n: int) -> Dictionary:
 	var cap_lat := world.lat[cap] if cap >= 0 else 0.0
 	var inc_prod: float = reg["incProd"]; var inc_tax: float = reg["incTax"]; var adm_cost: float = reg["adminCost"]
 	var era_inc: int = eraD["incomeBonus"]; var era_mp: int = eraD["mpBonus"]
+	var lv2: bool = rules >= 2                                   # the hot loop reads the building levels directly (bl() / job_income() / job_fill() called for every province cost more than the sums)
 	for p in own:
 		if occupier[p] != 0 and occupier[p] != n:
 			tp += pop[p]; hs += happy[p]
 			continue
-		var stab_mod := 0.5 + stab[p] / 200.0
+		var stab_p: int = stab[p]
+		var pop_p: int = pop[p]
+		var happy_p: int = happy[p]
+		var stab_mod := 0.5 + stab_p / 200.0
 		var dv := clampi(dev[p], 1, 5)
 		var ec := clampi(econ[p], 1, 5)
-		hs += happy[p]; tp += pop[p]
-		var pop_b := pop[p] / 80
-		var mkt := 2 if bl(p, D.B_MARKET) > 0 else 0
-		var dinc: float = job_income(p, dv) if rules >= 2 else float(D.DEV_INCOME[dv])
+		hs += happy_p; tp += pop_p
+		var pop_b := pop_p / 80
+		var base_b: int = p * NB
+		var b_market: int = (b_lv[base_b + D.B_MARKET - 1] if lv2 else bl(p, D.B_MARKET))
+		var mkt := 2 if b_market > 0 else 0
+		var dinc: float = job_income(p, dv) if lv2 else float(D.DEV_INCOME[dv])
 		var pp := int(floor((3 + dinc + pop_b + era_inc + mkt) * stab_mod * inc_prod))
 		pp += int(floor(ec * dv * 0.4 * stab_mod))
-		if capital[p] != 0: pp += 3
-		if bl(p, D.B_WORKSHOP) > 0: pp = int(floor(pp * (1.0 + 0.05 * bl(p, D.B_WORKSHOP))))
+		var is_cap: bool = capital[p] != 0
+		if is_cap: pp += 3
+		var b_work: int = (b_lv[base_b + D.B_WORKSHOP - 1] if lv2 else bl(p, D.B_WORKSHOP))
+		if b_work > 0: pp = int(floor(pp * (1.0 + 0.05 * b_work)))
 		prod += pp
-		tax += int(floor(pop[p] / 20.0 * (tax_pct / 100.0) * (happy[p] / 100.0) * inc_tax))
-		if capital[p] == 0 and cap >= 0:
-			admin += int(floor(gc_dist(cap_lon, cap_lat, world.lon[p], world.lat[p]) * D.ADMIN_DIST_FACTOR * adm_cost))
-		man += int(floor((2 + pop[p] / 100 + era_mp) * stab_mod))
-		up_base += army[p] * (0.8 if bl(p, D.B_SUPPLYCAMP) > 0 else 1.0)
-		if bl(p, D.B_LIBRARY) > 0: rb += (pop[p] / 750.0) * bl(p, D.B_LIBRARY)
+		tax += int(floor(pop_p / 20.0 * (tax_pct / 100.0) * (happy_p / 100.0) * inc_tax))
+		if not is_cap and cap >= 0:
+			var dd: float
+			if _dist_cap[p] == cap: dd = _dist_val[p]
+			else:
+				dd = gc_dist(cap_lon, cap_lat, world.lon[p], world.lat[p]); _dist_val[p] = dd; _dist_cap[p] = cap
+			admin += int(floor(dd * D.ADMIN_DIST_FACTOR * adm_cost))
+		man += int(floor((2 + pop_p / 100 + era_mp) * stab_mod))
+		var b_camp: int = (b_lv[base_b + D.B_SUPPLYCAMP - 1] if lv2 else bl(p, D.B_SUPPLYCAMP))
+		up_base += army[p] * (0.8 if b_camp > 0 else 1.0)
+		var b_lib: int = (b_lv[base_b + D.B_LIBRARY - 1] if lv2 else bl(p, D.B_LIBRARY))
+		if b_lib > 0: rb += (pop_p / 750.0) * b_lib
 	var gld: int = prod + tax
 	if rules >= 1: gld += TBTrade.income(self, n)
 	if cap_lost_now: gld = int(floor(gld * 0.5))
