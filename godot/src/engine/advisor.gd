@@ -79,7 +79,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 				if g.b_used(p) < g.b_slots(p): sc += 0.5 + g.pop[p] / 600.0
 				if sc > igs: igs = sc; ig = p
 		out.append(_a("idle_gold", 0, ig, int(g.gold[n])))
-	var cap_mp := 6.0 + g.era[n] * 2.0
+	var cap_mp := mp_cap(g, n)
 	if g.rules >= 1 and g.trade_cnt[n] == 0 and g.dp[n] >= 2.0 and g.turn > 4: out.append(_a("no_trade", 0, -1))
 	if g.rules >= 1 and g.turn > 2:
 		if TBGenerals.count(g, n) < TBGenerals.cap(g, n) and g.gold[n] >= TBGenerals.cost(g, n) + 60:
@@ -102,6 +102,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 						if tp >= 0: ur = rr; up = tp
 			if up >= 0: out.append(_a("ult_chance", 0, up, int(ur * 10.0)))
 	if g.mp[n] >= cap_mp - 0.5: out.append(_a("idle_mp", 0, -1))
+	if g.rules >= 3 and g.turn > 4 and g.dp[n] >= dp_cap(g, n) - 0.5: out.append(_a("idle_dp", 0, -1))
 	if g.manpower[n] >= inc["manCap"] * 0.95 and inc["manCap"] > 50: out.append(_a("idle_men", 0, -1))
 	if g.budget[n * 4 + 2] == 0: out.append(_a("no_research", 0, -1))
 	if wars == 0 and g.turn > 3 and g.gold[n] > 120.0: out.append(_a("peacetime", 0, -1))

@@ -8,11 +8,13 @@ Method: `godot/tests/playtest.gd` plays a campaign with a scripted human (era, n
 - Gold piled up because action points ran out first; human action points now grow with realm size.
 - Alliance spam (28 allies at 9 provinces, diplomatic bar at 100% in every run): a court holds `2 + sqrt(provinces) + era/2` alliances (rules 3 only). The AI, `can()`, `apply()` and the diplomacy view all use `TBDiplo.ally_room`.
 
+- The "action points at cap" alert still used the old cap, so it fired all game in grown realms; it now uses `TBAdvisor.mp_cap`. A matching "envoys at cap" alert (`idle_dp`, rules 3) points to pacts, trade or marriage.
+
 ## Checked and left as is
 - Small-nation trade: Portugal (5 provinces) opened 3 routes by turn 10. Its later bankruptcy came from four simultaneous wars and falling happiness (63 to 22), not from trade fees.
 - "No general" alert: fires only when a general is affordable and an army qualifies, so it is a real prompt; the scripted bot never appoints.
 - AI snowball: 39 AI-only runs (13 eras x 3 seeds, 150 turns) show a flat concentration index (HHI about 0.13), no eliminations, and only the Roman Empire reaching an economic win (turn 90 to 110).
 
 ## Open
-- Idle action points, envoys and manpower for much of a game (bot policy, but worth a tutorial hint or a sink).
+- Idle manpower and a lack of late-game sinks for envoys (the alerts now say so; a real sink would be a design decision).
 - Germany 1939 under a naive bot collapses to 10 provinces with 8 wars.

@@ -349,7 +349,7 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable, feed: Array
 const MINISTERS := {
 	"threat": ["army", "min_army", "min_show_map", "map"], "occupied": ["army", "min_army", "min_show_map", "map"], "capital_lost": ["army", "min_army", "min_show_map", "map"],
 	"war_winning": ["army", "min_army", "min_open_nations", "nations"], "war_declared": ["army", "min_army", "min_open_nations", "nations"], "idle_men": ["army", "min_army", "min_show_map", "map"],
-	"no_general": ["army", "min_army", "", ""], "attrition": ["army", "min_army", "min_show_map", "map"], "idle_mp": ["army", "min_army", "", ""], "ult_chance": ["army", "min_army", "min_open_nations", "nations"],
+	"no_general": ["army", "min_army", "", ""], "attrition": ["army", "min_army", "min_show_map", "map"], "idle_mp": ["army", "min_army", "", ""], "idle_dp": ["pact", "min_foreign", "min_open_nations", "nations"], "ult_chance": ["army", "min_army", "min_open_nations", "nations"],
 	"coalition": ["pact", "min_foreign", "min_open_nations", "nations"], "infamy": ["pact", "min_foreign", "min_open_nations", "nations"], "peacetime": ["pact", "min_foreign", "min_open_nations", "nations"], "no_trade": ["pact", "min_foreign", "min_open_nations", "nations"],
 	"bankrupt": ["treasury", "min_treasury", "min_open_budget", "budget"], "low_treasury": ["treasury", "min_treasury", "min_open_budget", "budget"], "idle_gold": ["treasury", "min_treasury", "min_open_budget", "budget"], "no_research": ["treasury", "min_treasury", "min_open_budget", "budget"],
 	"unrest": ["spy", "min_police", "min_open_decrees", "decrees"]}
