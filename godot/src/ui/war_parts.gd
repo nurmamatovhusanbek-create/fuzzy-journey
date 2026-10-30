@@ -54,11 +54,11 @@ class FaceOff extends Control:
 		for e in [[ca, a], [cb, b]]:
 			var nm: String = g.dname(int(e[1])).to_upper()
 			var tw: float = minf(f.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, w * 0.4)
-			draw_string(f, Vector2(roundf((e[0] as Vector2).x - tw * 0.5), cy + r + 26.0), nm, HORIZONTAL_ALIGNMENT_LEFT, w * 0.4, fsz, TBTokens.c("cream"), TextServer.JUSTIFICATION_NONE)
+			draw_string(f, Vector2(roundf((e[0] as Vector2).x - tw * 0.5), cy + r + 26.0), nm, HORIZONTAL_ALIGNMENT_LEFT, w * 0.4, fsz, TBTokens.paper_or("cream", "ink_0"), TextServer.JUSTIFICATION_NONE)
 			var rl: String = TBWarParts.ruler_line(g, int(e[1]))
 			if rl != "":
 				var rw: float = minf(sf.get_string_size(rl, HORIZONTAL_ALIGNMENT_LEFT, -1, ssz).x, w * 0.42)
-				draw_string(sf, Vector2(roundf((e[0] as Vector2).x - rw * 0.5), cy + r + 46.0), rl, HORIZONTAL_ALIGNMENT_LEFT, w * 0.42, ssz, TBTokens.c("smoke"), TextServer.JUSTIFICATION_NONE)
+				draw_string(sf, Vector2(roundf((e[0] as Vector2).x - rw * 0.5), cy + r + 46.0), rl, HORIZONTAL_ALIGNMENT_LEFT, w * 0.42, ssz, TBTokens.paper_or("smoke", "ink_1"), TextServer.JUSTIFICATION_NONE)
 
 # ================================================================================================================================ the seal
 ## Hold to declare: a wax seal with a progress ring and its caption to the left. `confirmed` fires after HOLD_T (or Enter twice); `progress(0..1)` while held.
@@ -131,7 +131,7 @@ class Seal extends Button:
 		var fsz := TBKit.fs(13)
 		var txt: String = caption.to_upper()
 		var tw: float = minf(f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, w - 100.0)
-		var cap_col: Color = TBTokens.with_a(TBTokens.BZ_NOTICE_BAD.lerp(TBTokens.c("cream"), 0.25), 1.0)
+		var cap_col: Color = TBTokens.c("neg") if TBTokens.on_paper() else TBTokens.with_a(TBTokens.BZ_NOTICE_BAD.lerp(TBTokens.c("cream"), 0.25), 1.0)
 		if stacked:
 			draw_string(f, Vector2(roundf((w - tw) * 0.5), roundf(88.0 + f.get_ascent(fsz) + 4.0)), txt, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, cap_col, TextServer.JUSTIFICATION_NONE)
 		else:

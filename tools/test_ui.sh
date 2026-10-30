@@ -75,6 +75,9 @@ done
 # the Build picker opens beside the ring, inside the safe area (a phone's camera cutout at the left edge), clear of the HUD
 out=$(TB_SAFE="58,0,0,0" TB_DPR=2.66 TB_DPI=425 TB_NOANIM=1 timeout 250 "$XV" -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/build_place.gd -- 2340 1080 /tmp/build_place.png expect 2>&1)
 echo "$out" | grep -q "BUILD_PLACE OK" && echo "ok: build picker placement" || { echo "FAIL: build picker placement"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+# high contrast light: the dialogs, cards and windows are paper; every Bezel label in them must read on the surface under it
+out=$(TB_DPR=2.66 TB_DPI=425 TB_NOANIM=1 timeout 400 "$XV" -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/light_shots.gd -- 2340 1080 /tmp light expect 2>&1)
+echo "$out" | grep -q "LIGHT_CONTRAST OK" && echo "ok: light mode contrast" || { echo "FAIL: light mode contrast"; echo "$out" | grep -E "LOW CONTRAST|SCRIPT" | head -8; fail=1; }
 # capital stars: none on a continent view, the big countries' at country level, every capital close in
 out=$(TB_DPR=2.66 TB_DPI=425 timeout 280 "$XV" -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/capital_stars.gd -- 2340 1080 expect 2>&1)
 echo "$out" | grep -q "CAPITAL_STARS OK" && echo "ok: capital stars by zoom" || { echo "FAIL: capital stars by zoom"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }

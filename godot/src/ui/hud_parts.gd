@@ -58,6 +58,7 @@ static func twl(font: Font, s: String, size: int, ls: float = 0.0) -> float:
 static func txtl(ci: CanvasItem, font: Font, x: float, base: float, s: String, size: int, col: Color, ls: float = 0.0, align: int = 0, halo: float = 0.0, halo_col: Color = Color.TRANSPARENT) -> float:
 	var w: float = twl(font, s, size, ls)
 	var x0: float = x - (w * 0.5 if align == 1 else (w if align == 2 else 0.0))
+	if halo <= 0.0 and TBTokens.is_hc(): halo = 1.6                                   # high contrast: the HUD's words sit on whatever map lies under them, so they carry a dark edge
 	if halo > 0.0:
 		var hc: Color = halo_col if halo_col.a > 0.0 else TBTokens.HALO
 		if ls == 0.0: ci.draw_string_outline(font, Vector2(x0, base), s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, int(ceil(halo * 2.0)), hc)
@@ -77,10 +78,11 @@ static func txtl(ci: CanvasItem, font: Font, x: float, base: float, s: String, s
 ## the rail labels' text-shadow: 0 0 3px / 7px / 12px of the ground colour, as three growing dark outlines under the text
 static func glow_text(ci: CanvasItem, font: Font, x: float, base: float, s: String, size: int, col: Color, ls: float = 0.0) -> void:
 	var gc: Color = TBTokens.BZ_HALO
+	var boost: float = 2.4 if TBTokens.is_hc() else 1.0                              # high contrast: the map may be pale under the words
 	for pass_ in [[6, 0.16], [3, 0.30], [1, 0.55]]:
 		var hx: float = x
 		for i in s.length():
-			ci.draw_char_outline(font, Vector2(hx, base), s[i], size, int(pass_[0]), Color(gc.r, gc.g, gc.b, float(pass_[1])))
+			ci.draw_char_outline(font, Vector2(hx, base), s[i], size, int(pass_[0]), Color(gc.r, gc.g, gc.b, minf(1.0, float(pass_[1]) * boost)))
 			hx += font.get_char_size(s.unicode_at(i), size).x + ls
 	txtl(ci, font, x, base, s, size, col, ls)
 ## keyboard focus on a rectangular demo control: `outline: 2px solid var(--hi)` (the caller grows the rect by the 3 unit offset)

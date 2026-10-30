@@ -513,6 +513,29 @@ class TLabel extends Label:
 		if (text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING or clip_text) and (_lastw < 0.0 or is_equal_approx(cur, _lastw)): nx = 0.0         # a trimming label may shrink below its text
 		_lastw = w if nx > 0.0 or w <= 0.0 else w
 		custom_minimum_size = Vector2(nx, line_h())
+	## the surface this label sits on: the nearest flat panel / row fill above it, else the paper of the card (TBPanel marks it), else transparent (not in a card)
+	func _surface() -> Color:
+		var n: Node = get_parent()
+		while n != null:
+			if n.has_meta("tb_dark"): return TBTokens.BZ_WELL
+			var fill: Variant = null
+			if n is PanelContainer:
+				var sb: StyleBox = (n as PanelContainer).get_theme_stylebox("panel")
+				if sb is StyleBoxFlat: fill = (sb as StyleBoxFlat).bg_color
+			elif n is Control:
+				fill = n.get("fill")
+			if fill is Color and (fill as Color).a > 0.5: return fill
+			if n.has_meta("tb_paper"): return TBTokens.c("paper_0")
+			n = n.get_parent()
+		return Color.TRANSPARENT
+	## high contrast light: a label on paper draws a Bezel text colour as the ink that is meant for paper; a dark well inside a paper card keeps its own colours
+	func _on_paper() -> bool:
+		if not TBTokens.on_paper(): return false
+		var sf: Color = _surface()
+		return sf.a > 0.5 and TBTokens.luminance(sf) > 0.35
+	func _ink() -> Color:
+		var col: Color = get_theme_color("font_color")
+		return TBTokens.ink_for(col) if _on_paper() else col
 	func _enter_tree() -> void:
 		if autowrap_mode != TextServer.AUTOWRAP_OFF and not _native: _to_native()
 	func _to_native() -> void:
@@ -521,6 +544,7 @@ class TLabel extends Label:
 		visible_characters = -1
 		if upper: text = _t()
 		autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap_ok else autowrap_mode
+		if _on_paper(): add_theme_color_override("font_color", _ink())
 		var base: Font = TBBz.fvar_int(face, spacing())
 		add_theme_font_override("font", base); add_theme_font_size_override("font_size", roundi(fsz()))
 		custom_minimum_size.y = 0.0
@@ -547,7 +571,7 @@ class TLabel extends Label:
 		if horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER: x = (avail - w) * 0.5
 		elif horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT: x = avail - w
 		var bl: float = base_y if base_y >= 0.0 else TBBz.baseline(f, z, 0.0, size.y, line_h())
-		TBBz.text(get_canvas_item(), f, Vector2(x, bl), s, z, get_theme_color("font_color"), sp)
+		TBBz.text(get_canvas_item(), f, Vector2(x, bl), s, z, _ink(), sp)
 
 static var _fvi := {}
 ## integer-spaced face for native text (wrapping fallbacks)

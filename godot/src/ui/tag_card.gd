@@ -51,7 +51,7 @@ class Link extends Control:
 		var ci := get_canvas_item()
 		draw_rect(Rect2(0, 0, size.x, 1), TBTokens.BZ_TAG_LINE)
 		var f: Font = TBKit.cinzel(700)
-		var col: Color = TBTokens.BZ_IVORY if _hover else TBTokens.c("brass")
+		var col: Color = TBTokens.ink_for(TBTokens.BZ_IVORY) if _hover else TBTokens.ink_for(TBTokens.c("brass"))
 		TBBz.text(ci, f, Vector2(0, 7.0 + 12.0), text.to_upper() if TBI18n.lang != "ru" else text, 12.0, col, 12.0 * 0.18)
 		TBBz.text(ci, f, Vector2(size.x - TBBz.tw(f, "›", 12.0), 7.0 + 12.0), "›", 12.0, col)
 	func _gui_input(e: InputEvent) -> void:
@@ -71,7 +71,7 @@ func build_province(d: Dictionary) -> TBTagCard:
 	var pad := MarginContainer.new(); pad.add_theme_constant_override("margin_left", 15); pad.add_theme_constant_override("margin_right", 15)
 	pad.add_theme_constant_override("margin_top", 14); pad.add_theme_constant_override("margin_bottom", 12); add_child(pad)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); pad.add_child(v)
-	var c := K.caps(T.call("tag_province"), 10, TBTokens.c("brass")); (c as TBBz.TLabel).px = 11.0; (c as TBBz.TLabel).refit(); v.add_child(c)
+	var c := K.caps(T.call("tag_province"), 10, TBTokens.ink_for(TBTokens.c("brass"))); (c as TBBz.TLabel).px = 11.0; (c as TBBz.TLabel).refit(); v.add_child(c)
 	var t := K.title(String(d["name"]), 21, Color.TRANSPARENT, 0.05, 21.0 * 1.05); v.add_child(_margin(t, 3, 1))
 	var owner_col: String = "#D2A05A" if bool(d["own"]) else "#A89C80"
 	v.add_child(K.para_bz("[i][color=%s]%s[/color] · %s[/i]" % [owner_col, d["owner_name"], d["tag"]], 14.0, 1.2))
@@ -87,7 +87,7 @@ func build_nation(d: Dictionary) -> TBTagCard:
 	var pad := MarginContainer.new(); pad.add_theme_constant_override("margin_left", 15); pad.add_theme_constant_override("margin_right", 15)
 	pad.add_theme_constant_override("margin_top", 14); pad.add_theme_constant_override("margin_bottom", 12); add_child(pad)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); pad.add_child(v)
-	var c := K.caps(String(d["state"]), 10, TBTokens.c("brass")); (c as TBBz.TLabel).px = 11.0; (c as TBBz.TLabel).refit(); v.add_child(c)
+	var c := K.caps(String(d["state"]), 10, TBTokens.ink_for(TBTokens.c("brass"))); (c as TBBz.TLabel).px = 11.0; (c as TBBz.TLabel).refit(); v.add_child(c)
 	var t := K.title(String(d["name"]), 20, Color.TRANSPARENT, 0.06, 20.0 * 1.1); v.add_child(_margin(t, 3, 1))
 	v.add_child(K.para_bz("[i]%s[/i]" % d["ruler"], 14.0, 1.2))
 	var cells := HBoxContainer.new(); cells.add_theme_constant_override("separation", 5); cells.mouse_filter = Control.MOUSE_FILTER_IGNORE

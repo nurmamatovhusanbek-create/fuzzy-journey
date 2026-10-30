@@ -172,6 +172,25 @@ static func is_hc() -> bool:
 static func is_dark_hc() -> bool:
 	return mode == Mode.HC_DARK
 
+## High contrast light: panels, dialogs and cards are paper. A text or icon colour made for a dark Bezel plate (ivory, dim, brass, the light semantic tints) turns into its paper ink there;
+## in every other mode the colour is returned as it is. Use it where a Bezel colour is drawn on a surface that is paper in HC light.
+static func on_paper() -> bool:
+	return mode == Mode.HIGH_CONTRAST
+
+## a token for a dark plate, or another for paper (high contrast light): `paper_or("cream", "ink_0")`
+static func paper_or(dark_token: String, paper_token: String) -> Color:
+	return c(paper_token) if mode == Mode.HIGH_CONTRAST else c(dark_token)
+
+static func ink_for(col: Color) -> Color:
+	if mode != Mode.HIGH_CONTRAST: return col
+	if col.is_equal_approx(BZ_IVORY): return c("ink_0")
+	if col.is_equal_approx(BZ_DIM): return c("ink_1")
+	if col.is_equal_approx(BZ_BAD) or col.is_equal_approx(BZ_BAD_TXT) or col.is_equal_approx(BZ_NOTICE_BAD): return c("neg")
+	if col.is_equal_approx(BZ_GOOD): return c("pos")
+	if col.is_equal_approx(BZ_INFO): return c("info")
+	if col.is_equal_approx(c("brass_lt")) or col.is_equal_approx(c("brass")) or col.is_equal_approx(BZ_BRASS): return c("brass_ink")
+	return col
+
 ## ---- contrast (WCAG 2.x relative luminance; art bible appendix A) --------------------------------
 static func _lin(v: float) -> float:
 	return v / 12.92 if v <= 0.04045 else pow((v + 0.055) / 1.055, 2.4)

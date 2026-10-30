@@ -86,7 +86,7 @@ static func run(parent: Control, what_key: String, nation: String, view: Diction
 	card.add_theme_stylebox_override("panel", TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 2, 30, 20))
 	holder.add_child(card)
 	var col := K.vbox(8); col.alignment = BoxContainer.ALIGNMENT_CENTER; card.add_child(col)
-	var title := K.caps(T.call("nego_with", {"what": T.call(what_key), "a": nation}), 13, TBTokens.c("brass_lt"))
+	var title := K.caps(T.call("nego_with", {"what": T.call(what_key), "a": nation}), 13, TBTokens.ink_for(TBTokens.c("brass_lt")))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(title)
 	var dial := Dial.new()

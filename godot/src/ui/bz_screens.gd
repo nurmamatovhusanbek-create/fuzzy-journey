@@ -81,6 +81,7 @@ static func minister_row(icon: String, name_text: String, role: String, quote: S
 class GoalCard extends PanelContainer:
 	var frac := 0.0
 	func _init(title: String, sub: String, f: float, tip: String = "") -> void:
+		if not TBTokens.on_paper(): set_meta("tb_dark", true)           # a dark well keeps its cream text; in high contrast light the card is paper
 		frac = clampf(f, 0.0, 1.0)
 		size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tooltip_text = tip
@@ -96,8 +97,8 @@ class GoalCard extends PanelContainer:
 		sm.add_child(K.para_bz("[i]%s[/i]" % sub, 15.0, 1.25)); v.add_child(sm)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		draw_rect(r, TBTokens.BZ_WELL)
-		draw_rect(Rect2(0.5, 0.5, size.x - 1.0, size.y - 1.0), TBTokens.BZ_WELL_LINE, false, 1.0)
+		draw_rect(r, TBTokens.c("paper_1") if TBTokens.on_paper() else TBTokens.BZ_WELL)
+		draw_rect(Rect2(0.5, 0.5, size.x - 1.0, size.y - 1.0), TBTokens.c("rule") if TBTokens.on_paper() else TBTokens.BZ_WELL_LINE, false, 1.0)
 
 class Medal extends Control:
 	var frac := 0.0

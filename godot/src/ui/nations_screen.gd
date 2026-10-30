@@ -191,10 +191,10 @@ class NationRow extends Button:
 		var h1: float = roundf(TBBz.ascent(fn, nsz)) + roundf(TBBz.descent(fn, nsz))
 		var h2: float = roundf(TBBz.ascent(fi, isz)) + roundf(TBBz.descent(fi, isz))
 		var top: float = roundf((h - (h1 + h2)) * 0.5)
-		TBBz.text(ci, fn, Vector2(x0, top + roundf(TBBz.ascent(fn, nsz))), up, nsz, TBTokens.c("brass_lt") if me else TBTokens.c("ink_0"), nsz * 0.09)
-		var tc: Color = TBNationsScreen.rel_color(op) if rel != 3 and rel != 4 else TBTokens.BZ_INFO
+		TBBz.text(ci, fn, Vector2(x0, top + roundf(TBBz.ascent(fn, nsz))), up, nsz, TBTokens.ink_for(TBTokens.c("brass_lt")) if me else TBTokens.c("ink_0"), nsz * 0.09)
+		var tc: Color = TBTokens.ink_for(TBNationsScreen.rel_color(op) if rel != 3 and rel != 4 else TBTokens.BZ_INFO)        # a list row is paper in high contrast light
 		if rel == 1: tc = TBTokens.BZ_BAD
-		if me: tc = TBTokens.c("brass_lt")
+		if me: tc = TBTokens.ink_for(TBTokens.c("brass_lt"))
 		TBBz.text(ci, fi, Vector2(x0, top + h1 + roundf(TBBz.ascent(fi, isz))), st_text, isz, tc)
 		var fh: float = roundf(TBBz.ascent(fb, 16.0)) + roundf(TBBz.descent(fb, 16.0))
 		var ch: float = roundf(TBBz.ascent(fcap, 8.5)) + roundf(TBBz.descent(fcap, 8.5))

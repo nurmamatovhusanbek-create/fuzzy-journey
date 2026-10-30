@@ -771,10 +771,10 @@ class RingIcon extends Control:
 		if TBFrame.bezel:                                         # `.ring`: radial face, 1.3 brass hairline, 3 unit shade, the demo icon at .48 of the box
 			var d: float = minf(size.x, size.y)
 			TBBz.ring_face(get_canvas_item(), c, d)
-			TBGlyph.draw_ic(self, glyph, c, icon_px if icon_px > 0.0 else roundf(d * 0.48), TBTokens.c("ink_off" if muted else "brass_lt"))
+			TBGlyph.draw_ic(self, glyph, c, icon_px if icon_px > 0.0 else roundf(d * 0.48), TBTokens.c("ink_off") if muted else TBTokens.ink_for(TBTokens.c("brass_lt")))
 			return
 		var fr: float = TBBezel.ring(self, c, minf(size.x, size.y) * 0.5 - 1.5, 0, TBTokens.c("bar_0"))
-		TBGlyph.draw(self, glyph, c.round(), fr * 1.2, TBTokens.c("ink_off" if muted else "brass_lt"), 1.6)
+		TBGlyph.draw(self, glyph, c.round(), fr * 1.2, TBTokens.c("ink_off") if muted else TBTokens.ink_for(TBTokens.c("brass_lt")), 1.6)
 
 static func ring_icon(g: String, px: int = 38, muted: bool = false) -> Control:
 	var r := RingIcon.new(g, px); r.muted = muted

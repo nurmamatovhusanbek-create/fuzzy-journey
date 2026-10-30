@@ -268,11 +268,11 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 			adopt_slot.add_child(sp); adopt_slot.add_child(ab)
 		var seg := TBPanel.seg(items, cur_id, func(id: String):
 			DS["sel"] = id
-			say.call(T.call("doc_%s_d" % id), TBTokens.c("brass_lt"))
+			say.call(T.call("doc_%s_d" % id), TBTokens.ink_for(TBTokens.c("brass_lt")))
 			refresh_adopt.call())
 		var sm := MarginContainer.new(); sm.add_theme_constant_override("margin_top", 8); sm.add_theme_constant_override("margin_bottom", 8); sm.add_child(seg)
 		body.add_child(sm)
-		say.call(T.call("doc_%s_d" % cur_id) if cur_id != "" else T.call("doc_none"), TBTokens.c("brass_lt"))
+		say.call(T.call("doc_%s_d" % cur_id) if cur_id != "" else T.call("doc_none"), TBTokens.ink_for(TBTokens.c("brass_lt")))
 		body.add_child(fx_slot)
 		body.add_child(adopt_slot); refresh_adopt.call()
 		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 16); gap.mouse_filter = Control.MOUSE_FILTER_IGNORE; body.add_child(gap)
@@ -564,7 +564,7 @@ static func event_choice(icon: String, title_text: String, chips: Array, cb: Cal
 	var ri: Control = K.ring_icon(icon, 36); ri.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(ri)
 	var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; col.size_flags_vertical = Control.SIZE_SHRINK_CENTER; col.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_child(col)
 	var tl := TBBz.TLabel.new(K.cinzel(700), 13.0, 0.1, 0.0, true)
-	tl.text = title_text; tl.add_theme_color_override("font_color", TBTokens.BZ_IVORY)
+	tl.text = title_text; tl.add_theme_color_override("font_color", TBTokens.ink_for(TBTokens.BZ_IVORY))
 	tl.wrap_ok = true; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tl.refit(); tl.custom_minimum_size.x = 40             # after refit (which sets the one-line width): the title may wrap on a narrow screen
 	col.add_child(tl)
@@ -742,9 +742,9 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 	var top := K.hbox(14); top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not use_band: top.add_child(EventMedal.new(icon, TBTokens.BZ_BAD if bad else TBTokens.c("brass_lt")))
 	var tc := K.vbox(3); tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var kk := K.caps(kicker, 11, TBTokens.BZ_BAD if bad else TBTokens.c("brass_lt")); (kk as TBBz.TLabel).wrap_ok = true; kk.custom_minimum_size.x = 40; kk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var kk := K.caps(kicker, 11, TBTokens.ink_for(TBTokens.BZ_BAD if bad else TBTokens.c("brass_lt"))); (kk as TBBz.TLabel).wrap_ok = true; kk.custom_minimum_size.x = 40; kk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tc.add_child(kk)
-	var tl := K.title(title, 19, TBTokens.BZ_IVORY, 0.06, 19.0 * 1.15); (tl as TBBz.TLabel).wrap_ok = true; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var tl := K.title(title, 19, TBTokens.ink_for(TBTokens.BZ_IVORY), 0.06, 19.0 * 1.15); (tl as TBBz.TLabel).wrap_ok = true; tl.custom_minimum_size.x = 40; tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tc.add_child(tl)
 	top.add_child(tc)
 	box.add_child(top); _gap(box, 10)

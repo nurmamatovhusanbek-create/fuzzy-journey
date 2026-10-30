@@ -347,6 +347,7 @@ static func open(parent: Control, kind: int, title_text: String = "", glyph_id: 
 	root.add_child(holder); h.holder = holder
 	var card := PanelContainer.new()
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.set_meta("tb_paper", true)                          # in high contrast light the card is paper: Bezel text colours inside it are turned into inks (TBBz.TLabel)
 	holder.add_child(card); h.card = card
 	var pad := h.pad
 	if h.bz and h.form in ["dialog", "drawer", "panel"]:
