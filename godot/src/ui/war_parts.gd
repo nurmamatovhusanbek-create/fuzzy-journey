@@ -67,6 +67,7 @@ class Seal extends Button:
 	signal progress(f: float)
 	const HOLD_T := 0.6
 	var caption := ""
+	var stacked := false                  # the disc on the card's axis with its caption beneath it (an announcement dialog); otherwise the caption sits left of the disc
 	var _hold := 0.0
 	var _holding := false
 	var _armed := false
@@ -77,6 +78,7 @@ class Seal extends Button:
 		var f := TBKit.tracked(TBKit.wordmark(), 2)
 		var cw: float = f.get_string_size(caption.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(13)).x
 		custom_minimum_size = Vector2(minf(cw, 260.0) + 24.0 + 84.0, maxf(84.0, float(TBKit.touch())))
+		_cw = cw
 		tooltip_text = TBI18n.T("hold_confirm")
 		TBKit.a11y(self, caption, "button", TBI18n.T("hold_confirm"))
 		set_process(false)
@@ -99,6 +101,11 @@ class Seal extends Button:
 				get_tree().create_timer(3.0).timeout.connect(func():
 					if is_instance_valid(self) and _armed: _armed = false; caption = _cap0; queue_redraw())
 	var _cap0 := ""
+	var _cw := 0.0
+	## the stacked form: a square disc box with the caption under it, centred
+	func stack() -> void:
+		stacked = true
+		custom_minimum_size = Vector2(maxf(minf(_cw, 300.0) + 24.0, 170.0), 84.0 + 30.0)
 	func _reset() -> void:
 		_holding = false; _hold = 0.0; progress.emit(0.0); queue_redraw()
 	func _flash_hint() -> void:
@@ -115,6 +122,7 @@ class Seal extends Button:
 	func _draw() -> void:
 		var w := size.x; var h := size.y
 		var c := Vector2(w - 42.0, h * 0.5)
+		if stacked: c = Vector2(w * 0.5, 42.0)
 		var f_hold: float = clampf(_hold / HOLD_T, 0.0, 1.0)
 		var hot: bool = (is_hovered() or has_focus()) and not disabled
 		var rustc: Color = TBWarParts.rust(); var hi: Color = TBWarParts.rust_hi()
@@ -123,7 +131,11 @@ class Seal extends Button:
 		var fsz := TBKit.fs(13)
 		var txt: String = caption.to_upper()
 		var tw: float = minf(f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, w - 100.0)
-		draw_string(f, Vector2(w - 92.0 - tw, roundf(c.y + f.get_ascent(fsz) * 0.5 - 2.0)), txt, HORIZONTAL_ALIGNMENT_LEFT, w - 100.0, fsz, TBTokens.with_a(TBTokens.BZ_NOTICE_BAD.lerp(TBTokens.c("cream"), 0.25), 1.0), TextServer.JUSTIFICATION_NONE)
+		var cap_col: Color = TBTokens.with_a(TBTokens.BZ_NOTICE_BAD.lerp(TBTokens.c("cream"), 0.25), 1.0)
+		if stacked:
+			draw_string(f, Vector2(roundf((w - tw) * 0.5), roundf(88.0 + f.get_ascent(fsz) + 4.0)), txt, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, cap_col, TextServer.JUSTIFICATION_NONE)
+		else:
+			draw_string(f, Vector2(w - 92.0 - tw, roundf(c.y + f.get_ascent(fsz) * 0.5 - 2.0)), txt, HORIZONTAL_ALIGNMENT_LEFT, w - 100.0, fsz, cap_col, TextServer.JUSTIFICATION_NONE)
 		# ring: track, progress
 		draw_arc(c, 39.0, 0.0, TAU, 64, TBTokens.with_a(rustc, 0.35), 3.0, true)
 		if f_hold > 0.0: draw_arc(c, 39.0, -PI * 0.5, -PI * 0.5 + TAU * f_hold, 64, hi, 3.5, true)

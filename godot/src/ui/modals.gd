@@ -620,6 +620,9 @@ static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) ->
 		if TBFx.on(TBFx.LIGHT) and is_instance_valid(parent):
 			if main_node != null and main_node.has_method("_fly_to_nation"): main_node.call("_fly_to_nation", n)
 			var mo := TBWarParts.Moment.new(g, me, n, TBFx.on(TBFx.FULL)); parent.add_child(mo); mo.play())
+	if h.announce:                                                                             # the hold button on the card's axis, Cancel beneath it
+		seal.stack()
+		h.footer.vertical = true
 	h.actions(cancel, seal)
 	h.focus_target = cancel
 	if TBPanel.wants_focus(): cancel.grab_focus.call_deferred()

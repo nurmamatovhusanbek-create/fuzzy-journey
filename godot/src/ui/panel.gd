@@ -124,6 +124,15 @@ class Handle extends RefCounted:
 			return
 		for b in [secondary, primary]:                   # long labels wrap instead of widening the card (narrow screens, text size 150 / 200 %)
 			if K.text_scale >= 1.4 and b is Button and (b as Button).autowrap_mode == TextServer.AUTOWRAP_OFF: (b as Button).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; (b as Button).clip_text = false
+		if footer.vertical and announce:                  # an announcement stacked on purpose: the main control first, each on the axis at its own width
+			footer.alignment = BoxContainer.ALIGNMENT_BEGIN
+			for b4 in [primary, secondary]:
+				if b4 == null: continue
+				var c4 := b4 as Control
+				c4.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+				c4.custom_minimum_size.x = maxf(c4.custom_minimum_size.x, 150.0 if phone else 210.0)
+				footer.add_child(c4)
+			return
 		if footer.vertical:                               # narrow + large text: stacked, the primary first (top)
 			for b2 in [primary, secondary]:
 				if b2 != null: (b2 as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL; footer.add_child(b2)
