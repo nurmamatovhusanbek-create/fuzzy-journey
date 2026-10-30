@@ -674,15 +674,33 @@ class NationChip extends Hit:
 	var badge: int = 0
 	var rank_text: String = ""
 	var compact: bool = false           # phone landscape: medallion 25, no name
+	var max_name_w: float = 100000.0    # a name wider than this breaks into two lines (the bar sets it from the window width)
 	func med() -> float: return 25.0 if compact else 46.0
 	func medal() -> float: return 2.0 * med()
 	func name_font() -> Font: return TBHudParts.fcz(true)
 	func fname() -> int: return TBHudParts.fu(19.0)
 	func fsub() -> int: return TBHudParts.fu(15.0)
+	func name_text() -> String: return nation.to_upper() if TBI18n.lang != "ru" else nation
+	## the name on one line, or on two when it is wider than max_name_w and has a space to break at (the split that makes the wider line shortest)
+	func name_lines() -> PackedStringArray:
+		var nm: String = name_text()
+		var f: Font = name_font(); var z: int = fname()
+		if TBHudParts.twl(f, nm, z, 19.0 * 0.2) <= max_name_w or not nm.contains(" "): return PackedStringArray([nm])
+		var words: PackedStringArray = nm.split(" ")
+		var best_a := nm; var best_b := ""; var best_w := INF
+		for i in range(1, words.size()):
+			var a: String = " ".join(words.slice(0, i)); var b: String = " ".join(words.slice(i))
+			var wd: float = maxf(TBHudParts.twl(f, a, z, 19.0 * 0.2), TBHudParts.twl(f, b, z, 19.0 * 0.2))
+			if wd < best_w: best_w = wd; best_a = a; best_b = b
+		return PackedStringArray([best_a, best_b])
+	func name_w() -> float:
+		var wmax := 0.0
+		for ln in name_lines(): wmax = maxf(wmax, TBHudParts.twl(name_font(), ln, fname(), 19.0 * 0.2))
+		return wmax
 	func desired_w() -> float:
 		var w: float = 2.0 * med() + 8.0
 		if not show_name: return ceilf(w)
-		var tn: float = TBHudParts.twl(name_font(), nation.to_upper() if TBI18n.lang != "ru" else nation, fname(), 19.0 * 0.2)
+		var tn: float = name_w()
 		var ts: float = TBHudParts.tw(TBHudParts.fal(400, true), subtitle, fsub()) if subtitle != "" else 0.0
 		w = 2.0 * med() + 22.0 + maxf(tn, ts) + 6.0
 		if seat >= 0: w += 34.0
@@ -710,12 +728,15 @@ class NationChip extends Hit:
 			var fb: Font = name_font()
 			var fn: int = fname()
 			var top: float = m - 21.0 + 4.0                                  # the demo's text block top (renderTop: top = M + med - 21)
-			var nm: String = nation.to_upper() if TBI18n.lang != "ru" else nation
-			TBHudParts.txtl(self, fb, x, top + fb.get_ascent(fn), nm, fn, TBTokens.c("cream"), 19.0 * 0.2)
+			var lines: PackedStringArray = name_lines()
+			var lh: float = roundf(fb.get_height(fn))
+			top -= lh * 0.5 * float(lines.size() - 1)                         # a two-line name grows both ways, so the block stays centred on the medallion
+			for li in lines.size():
+				TBHudParts.txtl(self, fb, x, top + float(li) * lh + fb.get_ascent(fn), lines[li], fn, TBTokens.c("cream"), 19.0 * 0.2)
 			if subtitle != "":
 				var f2: Font = TBHudParts.fal(400, true)
 				var z2: int = fsub()
-				TBHudParts.txtl(self, f2, x, top + roundf(fb.get_height(fn)) + 3.0 + f2.get_ascent(z2), subtitle, z2, TBTokens.c("smoke"))
+				TBHudParts.txtl(self, f2, x, top + lh * float(lines.size()) + 3.0 + f2.get_ascent(z2), subtitle, z2, TBTokens.c("smoke"))
 		if seat >= 0:
 			var sx: float = size.x - 22.0
 			TBHudParts.seat_shape(self, Vector2(sx, c.y - 6.0), 10.0, seat, TBHudParts.tk("brass_lt"))

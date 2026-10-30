@@ -290,6 +290,7 @@ func _layout_demo(vp: Vector2) -> void:
 	var m: float = L["m"]; var med: float = L["med"]; var axis: float = L["axis"]
 	# ---- top row
 	_nat.compact = ph; _nat.show_name = not ph
+	_nat.max_name_w = clampf(vp.x * 0.22, 200.0, 440.0)                       # a long name breaks onto a second line instead of running under the gauges
 	_nat.size = Vector2(_nat.desired_w(), 2.0 * med + 8.0); _nat.position = Vector2(axis - med - 4.0, m - 4.0); _nat.visible = true
 	var gear: float = 40.0 if ph else 54.0
 	_menu_btn.framed = true; _menu_btn.ticks_n = 24; _menu_btn.icon_px = 18.0 if ph else 22.0
@@ -300,6 +301,7 @@ func _layout_demo(vp: Vector2) -> void:
 	var gsz: float = L["gsz"]
 	var gap_c: float = 6.0 if ph else 20.0
 	var x0: float = axis + med + (14.0 if ph else 200.0)
+	if not ph: x0 = maxf(x0, _nat.position.x + _nat.size.x + 24.0)           # the gauges start where the name ends
 	var x1: float = _menu_btn.position.x - 12.0
 	var chips_bottom: float = _flow_chips(x0, x1, m + med - gsz * 0.5, gap_c, ph)
 	_ribbon_h = maxf(m + 2.0 * med + 4.0, chips_bottom)

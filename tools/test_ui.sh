@@ -58,6 +58,12 @@ for t in toggle_close:TOGGLE_CLOSE win_fit:WIN_FIT touch_scroll:TOUCH_SCROLL inf
 done
 out=$(TB_NOANIM=1 timeout 280 xvfb-run -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/win_fit.gd -- 1920 1080 2>&1)
 echo "$out" | grep -q "WIN_FIT OK" && echo "ok: win_fit (desktop)" || { echo "FAIL: win_fit (desktop)"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+# the nation name beside the gauges: a long name (English and Russian) breaks onto two lines and the gauges start where it ends, at the S22's size and on a desktop window
+for spec in "2340 1080 modern congo en" "2340 1080 modern emirates ru" "1920 1080 modern congo en" "2340 1080 timurid timurid en"; do
+  set -- $spec
+  out=$(TB_DPR=$([ "$1" = 2340 ] && echo 2.66 || echo 1) TB_DPI=$([ "$1" = 2340 ] && echo 425 || echo 96) TB_NOANIM=1 timeout 200 xvfb-run -a -s "-screen 0 $1x$2x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/hud_name_shot.gd -- $1 $2 /tmp/hud_name.png $3 $4 $5 expect 2>&1)
+  echo "$out" | grep -q "HUD_NAME OK" && echo "ok: hud name $4 $5 at $1" || { echo "FAIL: hud name $4 $5 at $1"; echo "$out" | grep -E "OVERLAP|SCRIPT|name '" | head -4; fail=1; }
+done
 # map names while the globe turns: a name follows the map, does not hop between places or sizes, and fades instead of blinking (nations at country scale, districts zoomed in)
 for cfgs in "1.6 0.5" "4.2 0.12"; do
   set -- $cfgs
