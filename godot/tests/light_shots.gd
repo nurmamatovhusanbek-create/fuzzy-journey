@@ -27,7 +27,9 @@ func _init() -> void:
 	main.cfg["lang"] = "en"; TBI18n.load_lang("en"); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = false; main.cfg["fx"] = "off"; main.cfg["quality"] = "medium"; main.cfg["hc"] = hc
 	main.theme = TBKit.apply_settings(main.cfg)
 	main._apply_quality(); main._update_ui_scale()
+	await _shot("title")
 	main._begin_pick("modern", "normal")
+	await _shot("pick")
 	var me: int = 1
 	for n in range(1, main.g.N1):
 		if main.g.dname(n) == "Russia": me = n; break
@@ -69,5 +71,13 @@ func _init() -> void:
 	await _shot("war")
 	main._clear_overlay(); main._open_menu_hub("")
 	await _shot("menu")
+	main._clear_overlay(); main._open_dossier(g.capital_of[me])
+	await _shot("dossier")
+	main._clear_overlay(); main.hud.toast("Pact with Ukraine ends next turn"); main.hud.toast("Ukraine refused your trade deal", true)
+	await _shot("toasts")
+	main._clear_overlay(); g.over = true; g.winner = me; g.victory_kind = "domination"
+	TBModals.game_over(main._overlay, g, func(): pass)
+	await _shot("game_over")
+	g.over = false
 	print("LIGHT_CONTRAST OK" if bad == 0 else "LIGHT_CONTRAST FAIL %d" % bad)
 	quit(1 if (bad > 0 and a.size() > 4 and a[4] == "expect") else 0)
