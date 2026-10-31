@@ -8,7 +8,7 @@ const ICON_W := 36.0
 const SLIDER_W := 232.0
 const VAL_W := 60.0
 const STEP := 30.0                      # one square stepper: the same 28-30 high plate as every segmented cell
-const ROW_H := 64.0
+const ROW_H := 80.0                    # room for a two-line effect: every row is this tall, so the four rows keep an even pitch
 
 signal changed(v: float)
 
@@ -51,7 +51,7 @@ func _init(icon: String, caption: String, value: float, effect: Callable, zone_f
 		var r := K.hbox(16); box.add_child(r)
 		box.custom_minimum_size.y = ROW_H
 		slider.custom_minimum_size.x = SLIDER_W; slider.size_flags_horizontal = Control.SIZE_SHRINK_END
-		var steps := K.hbox(4); steps.add_child(minus); steps.add_child(plus); steps.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var steps := K.hbox(4); steps.add_child(minus); steps.add_child(plus); steps.size_flags_vertical = Control.SIZE_SHRINK_CENTER; steps.custom_minimum_size.x = STEP * 2.0 + 4.0; steps.size_flags_horizontal = Control.SIZE_SHRINK_END
 		r.add_child(ring); r.add_child(col); r.add_child(slider); r.add_child(val); r.add_child(steps)
 	add_child(box)
 	add_child(HSeparator.new())
@@ -59,9 +59,33 @@ func _init(icon: String, caption: String, value: float, effect: Callable, zone_f
 	_refresh()
 
 func _stepper(t: String, dir: int) -> Button:
-	var b := K.button(t, func(): slider.value = clampf(slider.value + dir * _step, slider.min_value, slider.max_value), false, true)
-	b.custom_minimum_size = Vector2(STEP, 28.0); b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var b := SquareBtn.new(t)
+	b.pressed.connect(func(): slider.value = clampf(slider.value + dir * _step, slider.min_value, slider.max_value))
 	return b
+
+## a stepper plate of one exact size (30 x 28, never wider than its glyph needs): the same shape in every row, so the columns cannot drift
+class SquareBtn extends Button:
+	var _glyph := ""
+	func _init(g: String) -> void:
+		_glyph = g
+		custom_minimum_size = Vector2(30.0, 28.0); size_flags_horizontal = Control.SIZE_SHRINK_CENTER; size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE; flat = true; clip_contents = true
+		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
+		add_theme_font_size_override("font_size", 1)
+		for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]: add_theme_color_override(fc, Color.TRANSPARENT)
+		text = ""
+	func _has_point(p: Vector2) -> bool:
+		var grow: float = maxf((float(TBKit.touch()) - 28.0) * 0.5, 0.0)
+		return Rect2(-grow, -grow, size.x + 2.0 * grow, size.y + 2.0 * grow).has_point(p)
+	func _draw() -> void:
+		var hot := is_hovered() or has_focus()
+		var fill: Color = TBTokens.c("paper_2") if is_pressed() else (TBTokens.c("paper_hover") if hot else TBTokens.c("paper_1"))
+		draw_rect(Rect2(Vector2.ZERO, size), TBTokens.c("brass") if hot else TBTokens.c("rule"), true)
+		draw_rect(Rect2(Vector2.ONE, size - Vector2(2, 2)), fill, true)
+		var f: Font = TBKit.body_b()
+		var fs := TBKit.fs(16)
+		var w := f.get_string_size(_glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string(f, Vector2((size.x - w) * 0.5, size.y * 0.5 + f.get_ascent(fs) * 0.5 - 2.0), _glyph, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TBTokens.c("ink_0"))
 
 func _refresh() -> void:
 	val.text = "%d%%" % int(slider.value); val.refit()

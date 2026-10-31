@@ -118,6 +118,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 	var n := g.human_id
 	var vsb: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
 	var h := TBPanel.open(parent, TBPanel.Kind.DRAWER, T.call("budget"), "treasury", {"w": 740, "h": 850})
+	var two_col: bool = h.phone and vsb.x >= 900.0                                   # a phone held sideways: the four policies sit two by two
 	var stacked: bool = h.phone or vsb.x < 900.0 or K.text_scale >= 1.5            # a narrow window: each policy is a name line and a slider line
 	var start: Array = []
 	for i in 4: start.append(int(g.budget[n * 4 + i]))
@@ -140,7 +141,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		stats.append([T.call("trade"), float(TBTrade.income(g, n)), 1] if (g.rules >= 1 and TBTrade.income(g, n) > 0) else [T.call("gold"), float(g.gold[n]), 0])
 		stats.append([T.call("tkr_upkeep"), -float(inc["upkeep"]), -1]); stats.append([T.call("tkr_admin"), -float(inc["admin"]), -1])
 		stats.append([T.call("infl_row"), -g.gold[n] * g.infl if g.rules >= 1 else 0.0, -1])
-		var grid_s := GridContainer.new(); grid_s.columns = 2 if h.phone else 3
+		var grid_s := GridContainer.new(); grid_s.columns = 6 if two_col else (2 if h.phone else 3)
 		grid_s.add_theme_constant_override("h_separation", 8); grid_s.add_theme_constant_override("v_separation", 8); grid_s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for st in stats: grid_s.add_child(_stat_cell(String(st[0]), float(st[1]), int(st[2]), h.phone))
 		net_slot.add_child(grid_s)
@@ -155,17 +156,21 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		var c3 := K.caps(T.call("bud_col_now")); c3.custom_minimum_size.x = TBBudgetRow.VAL_W; c3.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; hd.add_child(c3)
 		var sp1 := Control.new(); sp1.custom_minimum_size.x = TBBudgetRow.STEP * 2.0 + 4.0; hd.add_child(sp1)
 		h.body.add_child(hd); h.body.add_child(HSeparator.new())
+	var pol: Control = h.body
+	if two_col:
+		var pg := GridContainer.new(); pg.columns = 2; pg.add_theme_constant_override("h_separation", 24); pg.add_theme_constant_override("v_separation", 0); pg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.body.add_child(pg); pol = pg
 	for i in 4:
 		var idx := i
 		var r := TBBudgetRow.new(["tax", "happy", "research", "invest"][i], T.call(BUDGET_KEYS[i]), float(g.budget[n * 4 + i]),
 			func(v: float) -> String: return _bud_effect(g, n, idx, v), 50.0 if i == 0 else -1.0, stacked)
 		r.changed.connect(func(v: float): g.apply({"cmd": "budget", "n": n, "key": BUDGET_KEYS[idx], "val": int(v)}); (func(): if h.is_open(): (sync_ref[0] as Callable).call()).call())
-		h.body.add_child(r); rows.append(r)
+		pol.add_child(r); rows.append(r)
 	sync_ref[0] = sync
 	var pre := K.hbox(16); pre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var pm := MarginContainer.new(); pm.add_theme_constant_override("margin_top", 12); pm.add_child(pre); h.body.add_child(pm)
 	var pl := K.caps(T.call("preset")); pl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pl.size_flags_vertical = Control.SIZE_SHRINK_CENTER; pre.add_child(pl)
-	var preset_seg := TBPanel.seg([["balanced", T.call("pre_balanced")], ["war", T.call("pre_war")], ["growth", T.call("pre_growth")]], "", func(id: String): _budget_set(g, n, PRESETS[id]); sync.call())
+	var preset_seg := K.segmented([["balanced", T.call("pre_balanced")], ["war", T.call("pre_war")], ["growth", T.call("pre_growth")]], "", func(id: String): _budget_set(g, n, PRESETS[id]); sync.call(), true)
 	preset_seg.custom_minimum_size.x = 300.0; preset_seg.size_flags_horizontal = Control.SIZE_SHRINK_END
 	pre.add_child(preset_seg)
 	var revert := K.button(T.call("revert"), func(): _budget_set(g, n, start); sync.call())
