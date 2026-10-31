@@ -24,7 +24,8 @@ func _init() -> void:
 			"budget": main._open_budget()
 			"decrees": main._open_decisions()
 			"council": main._open_council()
-			"goals": main._open_goals()
+			"goals": main._open_council("goals")
+			"advice": main._open_council("advice")
 			"annals": main._open_annals()
 			"nations": main._open_nations(-1)
 		for i in 16: await process_frame
