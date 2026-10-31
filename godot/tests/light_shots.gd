@@ -20,11 +20,12 @@ func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	_out = a[2]
 	var hc: String = a[3] if a.size() > 3 else "light"
+	var tscale: float = float(a[5]) if a.size() > 5 else 1.0                      # -- w h out hc expect|- text_scale: the same screens at a larger text size
 	DisplayServer.window_set_size(Vector2i(int(a[0]), int(a[1]))); root.size = Vector2i(int(a[0]), int(a[1]))
 	var main: Control = load("res://src/ui/main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
-	main.cfg["lang"] = "en"; TBI18n.load_lang("en"); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = false; main.cfg["fx"] = "off"; main.cfg["quality"] = "medium"; main.cfg["hc"] = hc
+	main.cfg["lang"] = "en"; TBI18n.load_lang("en"); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = false; main.cfg["fx"] = "off"; main.cfg["quality"] = "medium"; main.cfg["hc"] = hc; main.cfg["text_scale"] = tscale
 	main.theme = TBKit.apply_settings(main.cfg)
 	main._apply_quality(); main._update_ui_scale()
 	await _shot("title")
