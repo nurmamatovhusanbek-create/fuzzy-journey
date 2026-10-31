@@ -42,3 +42,9 @@ Rule for every item: **evidence, then decision, then work, then proof** (engine 
 | 4 Godot 4.5 trial | Done (owner allowed it): engine suite, oracle and UI suite all pass on 4.5; report in `docs/GODOT45.md`; project stays on 4.4.1 |
 | 5 First minutes | Done: tutorial text brought up to date; small desktop windows now get a stage no taller than 0.8 px a unit (1366 x 768 laptops); events no longer open on turn 2 |
 | 6 Notes | Done: `docs/CHANGELOG.md` |
+
+## Round 2 (2026-10-31)
+
+| Item | State |
+|---|---|
+| Colour-blind and high contrast dark, by eye | Done, no defect found. Map palettes: 100 % of 147 adjacent owner pairs at dE >= 8 under deuteranopia, protanopia and tritanopia (`tests/map_a11y.gd`); every step of the stability / population / army / economy ramps is at least 23 dE apart in all three modes. Read by eye: political, diplomatic (own / ally / pact / war stay four hues plus the alliance and pact icons beside the names) and stability lenses in each mode, the high contrast map, and all 18 screens of `tests/light_shots.gd` in high contrast dark (dark cards, cream rules, red war button, HUD words on a pale map carry a dark edge). The stability lens is mostly pale in the colour-blind sets only because most provinces sit in its top two steps (34.7 and 26.2 dE apart under deuteranopia). |
