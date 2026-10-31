@@ -46,6 +46,19 @@ State per province: `levy[p]` (men available now, float32 in the save as int).
 - Mercenaries (`hire`) stay: no pool, 2.5x gold, dismissed when unpaid.
 - Disband: `disband(p, amount)` returns 60 % of the men to the province's pool and stops their pay (new command).
 
+
+### 3.1 As built (R4-B, first slice)
+
+Measured on the real start data (`tests/probe_levy.gd`): province population 100-199 (median 139), start army about 0.19 of the population, so the "pop" figure is an index, not people; the constants below are calibrated to it, not to real millions.
+
+- `levy_cap(p) = floor(pop * rate(era) * (0.5 + stab/200)) * 1.25 with an armoury`, rate by era 0.22 / 0.28 / 0.34 / 0.42 / 0.50 (ancient to modern, the era the owner has reached). Floor 4.
+- Refill each turn `max(1, cap / 10)`; none while the province is held by an enemy. A new game starts with 35 % of the cap ready. A ceded, conquered or settled province starts at 0.
+- Drained (pool under a quarter of the cap): population growth halves and happiness falls 1 per turn.
+- Recruit: 1 .. min(pool, room under 65 000). Gold = `(fee + 0.6 per man) * regime * (0.5 armoury)`; no nation-wide people cost any more. The nation's `manpower` is the sum of the pools, so every old read of it still works.
+- Men under arms cost taxes and production: `loss = min(0.35, 0.45 * under_arms / people)`, shown in the budget as `workLoss`.
+- The AI raises up to 20 (30 at war) men from a province with a pool; provinces with an empty pool are skipped.
+- Tests: `tests/levy.gd` (engine), the recruit card and the preview chip in `tests/ui_cmdcard.gd`, the control in `tests/troop_picker.gd`.
+
 ## 4. Movement and splitting (R4-C)
 
 - A move sends exactly the picked number; what is left stays. Armies of the same nation in one province merge into the province's stack (already the model: `army[p]`).
