@@ -154,7 +154,7 @@ func _init() -> void:
 			"labels": ch2.map(func(c): return c.get("label", {})), "fx": ch2.map(func(c): return c.get("effects", [])), "world": String(ev.get("scope", "world")) == "world"}
 		tests["sched_" + kind] = func(): TBModals.event_prompt(main._overlay, pend, func(c): pass, g)
 	tests["title"] = func(): main.show_menu()
-	tests["era"] = func(): main._open_era_picker()
+	tests["era"] = func(): main.show_menu(); main._open_era_picker()                  # the real route: the title first (it decides the era picker's layout)
 	tests["pick"] = func(): main._clear_overlay(); main._begin_pick("napoleonic", "normal"); main._pick_flow.select_nation(fr, false)
 	for k in tests:
 		main._clear_overlay(); main._select(-1)

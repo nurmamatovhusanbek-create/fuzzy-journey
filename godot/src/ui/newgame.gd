@@ -88,6 +88,7 @@ static func open(parent: Control, opts: Dictionary) -> TBPanel.Handle:
 	var split := BoxContainer.new(); split.vertical = false
 	split.add_theme_constant_override("separation", 0)
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL; split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if vs.y < 700.0: split.custom_minimum_size.y = minf(vs.y * 0.62, 480.0)                # a short window (a phone in landscape): the panel has no height of its own, the body would collapse to nothing (the era list and settings never showed)
 	h.body.add_child(split)
 	var rail_sc := ScrollContainer.new(); rail_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; rail_sc.follow_focus = true; rail_sc.scroll_deadzone = 12
 	rail_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
