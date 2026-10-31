@@ -1,1 +1,682 @@
-[{"id":"h_tim_baghdad","icon":"book","scope":"country","trigger":{"year":1401,"monthIdx":6,"nation":"timurid_empire"},"title":{"en":"The Fall of Baghdad","ru":"Падение Багдада"},"flavor":{"en":"Timur's army stands before a city that closed its gates once before. The tamer of kings asks his answer.","ru":"Войско Тимура стоит под стенами города, который уже однажды закрыл перед ним ворота."},"autoEffects":[],"choices":[{"label":{"en":"Raze it to an example","ru":"Разрушить в назидание"},"effects":[{"op":"nation.gold","target":"self","delta":120},{"op":"nation.infamy","target":"self","delta":8},{"op":"nation.stability","target":"self","delta":-3}]},{"label":{"en":"Spare the city","ru":"Пощадить город"},"effects":[{"op":"nation.stability","target":"self","delta":3},{"op":"nation.dp","target":"self","delta":2}]}]},{"id":"tim_ankara","icon":"warning","scope":"world","trigger":{"year":1402,"monthIdx":6},"title":{"en":"The Battle of Ankara","ru":"Битва при Анкаре"},"flavor":{"en":"Timur shatters the Ottoman army and captures the Sultan, throwing Anatolia into chaos.","ru":"Тимур разбивает османскую армию и пленяет султана."},"autoEffects":[]},{"id":"tim_death_timur","icon":"skull","scope":"country","trigger":{"year":1405,"monthIdx":1,"nation":"Timurid Empire"},"title":{"en":"The Death of Timur","ru":"Смерть Тимура"},"flavor":{"en":"The conqueror dies marching on China. His empire must find a new master — or fragment.","ru":"Завоеватель умирает в походе на Китай."},"choices":[{"label":{"en":"Secure the succession","ru":"Обеспечить наследование"},"effects":[{"op":"nation.gold","target":"self","delta":-50},{"op":"nation.stability","target":"self","delta":6}]},{"label":{"en":"Press the campaign","ru":"Продолжить поход"},"effects":[{"op":"nation.stability","target":"self","delta":-12}]}]},{"id":"tim_ming_treasure","icon":"globe","scope":"world","trigger":{"year":1405,"monthIdx":5},"title":{"en":"The Treasure Fleets","ru":"Флот сокровищ"},"flavor":{"en":"Zheng He's vast fleets sail the Indian Ocean, projecting Ming power across the seas.","ru":"Огромные флоты Чжэн Хэ бороздят Индийский океан."},"autoEffects":[]},{"id":"h_tim_grunwald","icon":"swords","scope":"country","trigger":{"year":1410,"monthIdx":6,"nation":"poland_lithuania"},"title":{"en":"The Field of Grunwald","ru":"Грюнвальдское поле"},"flavor":{"en":"The Teutonic Knights are at Poland's throat. Jogaila and Vytautas can unite their armies and offer battle.","ru":"Тевтонский орден держит Польшу за горло. Ягайло и Витовт могут объединить силы и дать бой."},"autoEffects":[],"choices":[{"label":{"en":"Offer battle","ru":"Дать бой"},"effects":[{"op":"nation.manpower","target":"self","delta":-50},{"op":"nation.combat","target":"self","delta":10,"turns":8},{"op":"nation.stability","target":"self","delta":6}]},{"label":{"en":"Avoid battle","ru":"Уклониться"},"effects":[{"op":"nation.gold","target":"self","delta":-40},{"op":"nation.stability","target":"self","delta":-2}]}]},{"id":"h_tim_ottoman_civil","icon":"book","scope":"country","trigger":{"year":1413,"monthIdx":0,"nation":"ottoman_empire"},"title":{"en":"Mehmed Reunites the Realm","ru":"Мехмед воссоединяет державу"},"flavor":{"en":"After the Ankara disaster and a decade of brother-war, one prince remains standing.","ru":"После Анкарской катастрофы и десятилетия братской войны остаётся один царевич."},"autoEffects":[],"choices":[{"label":{"en":"Reunify at once","ru":"Воссоединить немедленно"},"effects":[{"op":"nation.stability","target":"self","delta":8},{"op":"nation.manpower","target":"self","delta":-20}]},{"label":{"en":"Rebuild slowly","ru":"Восстанавливать медленно"},"effects":[{"op":"nation.gold","target":"self","delta":60},{"op":"nation.dev","target":"self","delta":1}]}]},{"id":"h_tim_agincourt","icon":"swords","scope":"country","trigger":{"year":1415,"monthIdx":6,"nation":"france"},"title":{"en":"The Road to Agincourt","ru":"Дорога к Азенкуру"},"flavor":{"en":"Henry V has landed in Normandy with a tired, sickly army. The nobility demands battle.","ru":"Генрих V высадился в Нормандии с усталой, больной армией. Дворянство требует битвы."},"autoEffects":[],"choices":[{"label":{"en":"Muster the nobility","ru":"Созвать дворянство"},"effects":[{"op":"nation.manpower","target":"self","delta":-60},{"op":"nation.stability","target":"self","delta":-6},{"op":"nation.combat","target":"self","delta":8,"turns":6}]},{"label":{"en":"Avoid a pitched battle","ru":"Избегать сражения"},"effects":[{"op":"nation.gold","target":"self","delta":-40},{"op":"nation.stability","target":"self","delta":2}]}]},{"id":"h_tim_hussites","icon":"book","scope":"country","trigger":{"year":1419,"monthIdx":6,"nation":"holy_roman_empire"},"title":{"en":"The Hussite Wars","ru":"Гуситские войны"},"flavor":{"en":"Prague has risen under Jan Zizka. The Church calls a crusade against the heretics.","ru":"Прага восстала под началом Яна Жижки. Церковь объявляет крестовый поход против еретиков."},"autoEffects":[],"choices":[{"label":{"en":"Launch a crusade","ru":"Начать крестовый поход"},"effects":[{"op":"nation.manpower","target":"self","delta":-60},{"op":"nation.gold","target":"self","delta":-60},{"op":"nation.combat","target":"self","delta":8,"turns":6}]},{"label":{"en":"Negotiate","ru":"Вести переговоры"},"effects":[{"op":"nation.stability","target":"self","delta":-3},{"op":"nation.gold","target":"self","delta":-20}]}]},{"id":"h_tim_joan","icon":"swords","scope":"country","trigger":{"year":1429,"monthIdx":0,"nation":"france"},"title":{"en":"The Maid of Orleans","ru":"Орлеанская дева"},"flavor":{"en":"A peasant girl claims visions and asks to lead the army to the besieged city of Orleans.","ru":"Крестьянка, ссылаясь на видения, просит позволить ей повести войско к осаждённому Орлеану."},"autoEffects":[],"choices":[{"label":{"en":"Heed the Maid","ru":"Прислушаться к Деве"},"effects":[{"op":"nation.combat","target":"self","delta":10,"turns":6},{"op":"nation.stability","target":"self","delta":8},{"op":"nation.manpower","target":"self","delta":30}]},{"label":{"en":"Dismiss her","ru":"Отослать её"},"effects":[{"op":"nation.stability","target":"self","delta":-3},{"op":"nation.gold","target":"self","delta":20}]}]},{"id":"h_tim_ming_fleets","icon":"globe","scope":"world","trigger":{"year":1433,"monthIdx":0},"title":{"en":"The Treasure Fleets Come Home","ru":"Корабли сокровищ возвращаются"},"flavor":{"en":"The last great Ming voyage returns. The court will not send another.","ru":"Возвращается последнее великое плавание Мин. Двор больше не пошлёт ни одного."},"autoEffects":[{"op":"nation.gold","target":"self","delta":20}]},{"id":"h_tim_medici","icon":"coins","scope":"world","trigger":{"year":1434,"monthIdx":0},"title":{"en":"The Rise of the Banking Houses","ru":"Возвышение банкирских домов"},"flavor":{"en":"Florentine and southern German banks lend to princes and popes. Money starts to rule.","ru":"Флорентийские и южногерманские банки ссужают князей и пап. Деньги начинают править."},"autoEffects":[{"op":"nation.gold","target":"self","delta":30}]},{"id":"h_tim_varna","icon":"book","scope":"country","trigger":{"year":1444,"monthIdx":6,"nation":"hungary"},"title":{"en":"The Crusade of Varna","ru":"Крестовый поход под Варной"},"flavor":{"en":"The Pope offers an indulgence, the Ottomans a ten-year truce. A young king is eager for glory.","ru":"Папа предлагает индульгенцию, османы — десятилетнее перемирие. Юный король жаждет славы."},"autoEffects":[],"choices":[{"label":{"en":"Break the truce and march","ru":"Нарушить перемирие и выступить"},"effects":[{"op":"nation.manpower","target":"self","delta":-70},{"op":"nation.stability","target":"self","delta":-6},{"op":"nation.combat","target":"self","delta":10,"turns":6}]},{"label":{"en":"Keep the truce","ru":"Соблюдать перемирие"},"effects":[{"op":"nation.gold","target":"self","delta":40},{"op":"nation.stability","target":"self","delta":2}]}]},{"id":"h_tim_constantinople","icon":"crown","scope":"country","trigger":{"year":1453,"monthIdx":0,"nation":"ottoman_empire"},"title":{"en":"The City of the World's Desire","ru":"Город, о котором мечтал мир"},"flavor":{"en":"Mehmed II has cast cannon bigger than any seen. The walls of Constantinople have held for a thousand years.","ru":"Мехмед II отлил пушки невиданного размера. Стены Константинополя стояли тысячу лет."},"autoEffects":[],"choices":[{"label":{"en":"Besiege Constantinople","ru":"Осадить Константинополь"},"effects":[{"op":"nation.manpower","target":"self","delta":-60},{"op":"nation.gold","target":"self","delta":-80},{"op":"nation.infamy","target":"self","delta":4},{"op":"nation.research","target":"self","delta":25},{"op":"nation.dev","target":"self","delta":1}]},{"label":{"en":"Wait","ru":"Подождать"},"effects":[{"op":"nation.gold","target":"self","delta":50}]}]}]
+[
+ {
+  "id": "h_tim_baghdad",
+  "icon": "book",
+  "scope": "country",
+  "trigger": {
+   "year": 1401,
+   "monthIdx": 6,
+   "nation": "timurid_empire"
+  },
+  "title": {
+   "en": "The Fall of Baghdad",
+   "ru": "Падение Багдада",
+   "uz": "Bag‘dodning qulashi"
+  },
+  "flavor": {
+   "en": "Timur's army stands before a city that closed its gates once before. The tamer of kings asks his answer.",
+   "ru": "Войско Тимура стоит под стенами города, который уже однажды закрыл перед ним ворота.",
+   "uz": "Temur qo‘shini bir marta darvozasini yopgan shahar oldida turibdi. Shohlarni o‘ziga bo‘ysundirgan hukmdor javobini so‘raydi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Raze it to an example",
+     "ru": "Разрушить в назидание",
+     "uz": "Uni ibrat uchun yakson qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 120
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": 8
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Spare the city",
+     "ru": "Пощадить город",
+     "uz": "Shaharni ayash"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     },
+     {
+      "op": "nation.dp",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "tim_ankara",
+  "icon": "warning",
+  "scope": "world",
+  "trigger": {
+   "year": 1402,
+   "monthIdx": 6
+  },
+  "title": {
+   "en": "The Battle of Ankara",
+   "ru": "Битва при Анкаре",
+   "uz": "Anqara jangi"
+  },
+  "flavor": {
+   "en": "Timur shatters the Ottoman army and captures the Sultan, throwing Anatolia into chaos.",
+   "ru": "Тимур разбивает османскую армию и пленяет султана.",
+   "uz": "Temur Usmonlilar qo‘shinini tor-mor etib, sultonni asir oladi va Anado‘lini tartibsizlikka tashlaydi."
+  },
+  "autoEffects": []
+ },
+ {
+  "id": "tim_death_timur",
+  "icon": "skull",
+  "scope": "country",
+  "trigger": {
+   "year": 1405,
+   "monthIdx": 1,
+   "nation": "Timurid Empire"
+  },
+  "title": {
+   "en": "The Death of Timur",
+   "ru": "Смерть Тимура",
+   "uz": "Temurning vafoti"
+  },
+  "flavor": {
+   "en": "The conqueror dies marching on China. His empire must find a new master — or fragment.",
+   "ru": "Завоеватель умирает в походе на Китай.",
+   "uz": "Fotih Xitoyga yurish chog‘ida vafot etadi. Uning imperiyasi yangi xo‘jayin topishi — yoki parchalanishi kerak."
+  },
+  "choices": [
+   {
+    "label": {
+     "en": "Secure the succession",
+     "ru": "Обеспечить наследование",
+     "uz": "Vorislikni mustahkamlash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 6
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Press the campaign",
+     "ru": "Продолжить поход",
+     "uz": "Yurishni davom ettirish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -12
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "tim_ming_treasure",
+  "icon": "globe",
+  "scope": "world",
+  "trigger": {
+   "year": 1405,
+   "monthIdx": 5
+  },
+  "title": {
+   "en": "The Treasure Fleets",
+   "ru": "Флот сокровищ",
+   "uz": "Xazina flotlari"
+  },
+  "flavor": {
+   "en": "Zheng He's vast fleets sail the Indian Ocean, projecting Ming power across the seas.",
+   "ru": "Огромные флоты Чжэн Хэ бороздят Индийский океан.",
+   "uz": "Chjen Xening ulkan flotlari Hind okeanida suzib, Min qudratini dengizlar ortiga yetkazadi."
+  },
+  "autoEffects": []
+ },
+ {
+  "id": "h_tim_grunwald",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": 1410,
+   "monthIdx": 6,
+   "nation": "poland_lithuania"
+  },
+  "title": {
+   "en": "The Field of Grunwald",
+   "ru": "Грюнвальдское поле",
+   "uz": "Grunvald maydoni"
+  },
+  "flavor": {
+   "en": "The Teutonic Knights are at Poland's throat. Jogaila and Vytautas can unite their armies and offer battle.",
+   "ru": "Тевтонский орден держит Польшу за горло. Ягайло и Витовт могут объединить силы и дать бой.",
+   "uz": "Tevton ritsarlari Polshaning bo‘g‘ziga tiralgan. Yogayla va Vitovt qo‘shinlarini birlashtirib, jang taklif qilishi mumkin."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Offer battle",
+     "ru": "Дать бой",
+     "uz": "Jang taklif qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 10,
+      "turns": 8
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 6
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Avoid battle",
+     "ru": "Уклониться",
+     "uz": "Jangdan qochish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_ottoman_civil",
+  "icon": "book",
+  "scope": "country",
+  "trigger": {
+   "year": 1413,
+   "monthIdx": 0,
+   "nation": "ottoman_empire"
+  },
+  "title": {
+   "en": "Mehmed Reunites the Realm",
+   "ru": "Мехмед воссоединяет державу",
+   "uz": "Mehmed saltanatni birlashtiradi"
+  },
+  "flavor": {
+   "en": "After the Ankara disaster and a decade of brother-war, one prince remains standing.",
+   "ru": "После Анкарской катастрофы и десятилетия братской войны остаётся один царевич.",
+   "uz": "Anqara falokati va o‘n yillik birodarlar urushidan so‘ng bir shahzoda tik turib qoldi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Reunify at once",
+     "ru": "Воссоединить немедленно",
+     "uz": "Darhol birlashtirish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 8
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -20
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Rebuild slowly",
+     "ru": "Восстанавливать медленно",
+     "uz": "Sekin tiklash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 60
+     },
+     {
+      "op": "nation.dev",
+      "target": "self",
+      "delta": 1
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_agincourt",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": 1415,
+   "monthIdx": 6,
+   "nation": "france"
+  },
+  "title": {
+   "en": "The Road to Agincourt",
+   "ru": "Дорога к Азенкуру",
+   "uz": "Azenkur yo‘li"
+  },
+  "flavor": {
+   "en": "Henry V has landed in Normandy with a tired, sickly army. The nobility demands battle.",
+   "ru": "Генрих V высадился в Нормандии с усталой, больной армией. Дворянство требует битвы.",
+   "uz": "Genrix V Normandiyaga charchagan, kasalmand qo‘shin bilan tushdi. Zodagonlar jang talab qilmoqda."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Muster the nobility",
+     "ru": "Созвать дворянство",
+     "uz": "Zodagonlarni to‘plash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -60
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -6
+     },
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 8,
+      "turns": 6
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Avoid a pitched battle",
+     "ru": "Избегать сражения",
+     "uz": "Ochiq jangdan qochish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_hussites",
+  "icon": "book",
+  "scope": "country",
+  "trigger": {
+   "year": 1419,
+   "monthIdx": 6,
+   "nation": "holy_roman_empire"
+  },
+  "title": {
+   "en": "The Hussite Wars",
+   "ru": "Гуситские войны",
+   "uz": "Gussitlar urushi"
+  },
+  "flavor": {
+   "en": "Prague has risen under Jan Zizka. The Church calls a crusade against the heretics.",
+   "ru": "Прага восстала под началом Яна Жижки. Церковь объявляет крестовый поход против еретиков.",
+   "uz": "Praga Yan Jijka boshchiligida qo‘zg‘aldi. Cherkov bid’atchilarga qarshi salib yurishini e’lon qiladi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Launch a crusade",
+     "ru": "Начать крестовый поход",
+     "uz": "Salib yurishini boshlash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -60
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -60
+     },
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 8,
+      "turns": 6
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Negotiate",
+     "ru": "Вести переговоры",
+     "uz": "Muzokara qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -20
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_joan",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": 1429,
+   "monthIdx": 0,
+   "nation": "france"
+  },
+  "title": {
+   "en": "The Maid of Orleans",
+   "ru": "Орлеанская дева",
+   "uz": "Orlean qizi"
+  },
+  "flavor": {
+   "en": "A peasant girl claims visions and asks to lead the army to the besieged city of Orleans.",
+   "ru": "Крестьянка, ссылаясь на видения, просит позволить ей повести войско к осаждённому Орлеану.",
+   "uz": "Dehqon qizi ko‘rinishlar ko‘rganini aytib, qo‘shinni qamal qilingan Orlean shahriga boshlab borishni so‘raydi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Heed the Maid",
+     "ru": "Прислушаться к Деве",
+     "uz": "Qizga quloq solish"
+    },
+    "effects": [
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 10,
+      "turns": 6
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 8
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 30
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Dismiss her",
+     "ru": "Отослать её",
+     "uz": "Uni rad etish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 20
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_ming_fleets",
+  "icon": "globe",
+  "scope": "world",
+  "trigger": {
+   "year": 1433,
+   "monthIdx": 0
+  },
+  "title": {
+   "en": "The Treasure Fleets Come Home",
+   "ru": "Корабли сокровищ возвращаются",
+   "uz": "Xazina flotlari uyga qaytdi"
+  },
+  "flavor": {
+   "en": "The last great Ming voyage returns. The court will not send another.",
+   "ru": "Возвращается последнее великое плавание Мин. Двор больше не пошлёт ни одного.",
+   "uz": "Min sulolasining oxirgi buyuk dengiz safari qaytdi. Saroy boshqasini yubormaydi."
+  },
+  "autoEffects": [
+   {
+    "op": "nation.gold",
+    "target": "self",
+    "delta": 20
+   }
+  ]
+ },
+ {
+  "id": "h_tim_medici",
+  "icon": "coins",
+  "scope": "world",
+  "trigger": {
+   "year": 1434,
+   "monthIdx": 0
+  },
+  "title": {
+   "en": "The Rise of the Banking Houses",
+   "ru": "Возвышение банкирских домов",
+   "uz": "Bank uylarining ko‘tarilishi"
+  },
+  "flavor": {
+   "en": "Florentine and southern German banks lend to princes and popes. Money starts to rule.",
+   "ru": "Флорентийские и южногерманские банки ссужают князей и пап. Деньги начинают править.",
+   "uz": "Florensiya va Janubiy Germaniya banklari knyazlar va papalarga qarz beradi. Pul hukmronlik qila boshlaydi."
+  },
+  "autoEffects": [
+   {
+    "op": "nation.gold",
+    "target": "self",
+    "delta": 30
+   }
+  ]
+ },
+ {
+  "id": "h_tim_varna",
+  "icon": "book",
+  "scope": "country",
+  "trigger": {
+   "year": 1444,
+   "monthIdx": 6,
+   "nation": "hungary"
+  },
+  "title": {
+   "en": "The Crusade of Varna",
+   "ru": "Крестовый поход под Варной",
+   "uz": "Varna salib yurishi"
+  },
+  "flavor": {
+   "en": "The Pope offers an indulgence, the Ottomans a ten-year truce. A young king is eager for glory.",
+   "ru": "Папа предлагает индульгенцию, османы — десятилетнее перемирие. Юный король жаждет славы.",
+   "uz": "Rim papasi gunohlardan kechirim, Usmonlilar o‘n yillik sulh taklif qiladi. Yosh qirol shon-sharafga tashna."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Break the truce and march",
+     "ru": "Нарушить перемирие и выступить",
+     "uz": "Sulhni buzib, yurish qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -70
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -6
+     },
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 10,
+      "turns": 6
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Keep the truce",
+     "ru": "Соблюдать перемирие",
+     "uz": "Sulhga rioya qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_constantinople",
+  "icon": "crown",
+  "scope": "country",
+  "trigger": {
+   "year": 1453,
+   "monthIdx": 0,
+   "nation": "ottoman_empire"
+  },
+  "title": {
+   "en": "The City of the World's Desire",
+   "ru": "Город, о котором мечтал мир",
+   "uz": "Dunyo orzu qilgan shahar"
+  },
+  "flavor": {
+   "en": "Mehmed II has cast cannon bigger than any seen. The walls of Constantinople have held for a thousand years.",
+   "ru": "Мехмед II отлил пушки невиданного размера. Стены Константинополя стояли тысячу лет.",
+   "uz": "Mehmed II hech qachon ko‘rilmagan katta to‘plar quydirdi. Konstantinopol devorlari ming yil turdi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Besiege Constantinople",
+     "ru": "Осадить Константинополь",
+     "uz": "Konstantinopolni qamal qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -60
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -80
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.research",
+      "target": "self",
+      "delta": 25
+     },
+     {
+      "op": "nation.dev",
+      "target": "self",
+      "delta": 1
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Wait",
+     "ru": "Подождать",
+     "uz": "Kutish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 50
+     }
+    ]
+   }
+  ]
+ }
+]

@@ -1,48 +1,282 @@
 [
-  { "id": "black_death_1347", "icon": "skull", "scope": "world", "trigger": { "year": 1347, "monthIdx": 0 },
-    "title": { "en": "The Black Death", "ru": "Чёрная смерть" },
-    "flavor": { "en": "A pestilence sweeps the known world, emptying cities and fields alike. A third of all souls may perish.", "ru": "Мор охватывает мир, опустошая города и поля." },
-    "autoEffects": [ { "op": "nation.stability", "target": "self", "delta": -18 }, { "op": "nation.manpower", "target": "self", "delta": -40 } ] },
-
-  { "id": "columbian_exchange_1492", "icon": "globe", "scope": "world", "trigger": { "year": 1492, "monthIdx": 9 },
-    "title": { "en": "The Columbian Exchange", "ru": "Колумбов обмен" },
-    "flavor": { "en": "Sails reach lands across the ocean. Crops, silver and disease begin to cross the world.", "ru": "Паруса достигают земель за океаном." },
-    "autoEffects": [] },
-
-  { "id": "industrial_revolution_1769", "icon": "coins", "scope": "world", "trigger": { "year": 1769, "monthIdx": 0 },
-    "title": { "en": "The Industrial Revolution", "ru": "Промышленная революция" },
-    "flavor": { "en": "Steam and steel transform production. The world will never be the same.", "ru": "Пар и сталь преображают производство." },
-    "autoEffects": [ { "op": "nation.gold", "target": "self", "delta": 80 } ] },
-
-  { "id": "spanish_flu_1918", "icon": "skull", "scope": "world", "trigger": { "year": 1918, "monthIdx": 2 },
-    "title": { "en": "The Spanish Flu", "ru": "Испанский грипп" },
-    "flavor": { "en": "A deadly influenza spreads along the supply lines of war, felling millions.", "ru": "Смертельный грипп распространяется по линиям войны." },
-    "autoEffects": [ { "op": "nation.stability", "target": "self", "delta": -10 }, { "op": "nation.manpower", "target": "self", "delta": -30 } ] },
-
-  { "id": "great_depression_1929", "icon": "scroll", "scope": "world", "trigger": { "year": 1929, "monthIdx": 9 },
-    "title": { "en": "The Great Depression", "ru": "Великая депрессия" },
-    "flavor": { "en": "Markets collapse worldwide; trade and tax revenues crater for years.", "ru": "Рынки рушатся по всему миру." },
-    "choices": [
-      { "label": { "en": "Public works (spend)", "ru": "Обществ. работы" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -120 }, { "op": "nation.stability", "target": "self", "delta": 6 } ] },
-      { "label": { "en": "Ride it out", "ru": "Переждать" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": -14 } ] }
-    ],
-    "autoEffects": [ { "op": "nation.gold", "target": "self", "delta": -60 } ] },
-
-  { "id": "crisis_2008", "icon": "coins", "scope": "world", "trigger": { "year": 2008, "monthIdx": 8 },
-    "title": { "en": "The 2008 Financial Crisis", "ru": "Финансовый кризис 2008" },
-    "flavor": { "en": "A banking collapse ripples across the globe, freezing credit and trade overnight.", "ru": "Банковский крах прокатывается по всему миру." },
-    "choices": [
-      { "label": { "en": "Bank bailout (spend reserves)", "ru": "Спасение банков" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -150 } ] },
-      { "label": { "en": "Austerity", "ru": "Жёсткая экономия" }, "effects": [ { "op": "nation.stability", "target": "self", "delta": -12 } ] }
-    ],
-    "autoEffects": [ { "op": "nation.gold", "target": "self", "delta": -50 } ] },
-
-  { "id": "covid_2020", "icon": "skull", "scope": "world", "trigger": { "year": 2020, "monthIdx": 2 },
-    "title": { "en": "A Global Pandemic", "ru": "Глобальная пандемия" },
-    "flavor": { "en": "A novel virus spreads worldwide. Borders close, economies stall, hospitals fill.", "ru": "Новый вирус распространяется по всему миру." },
-    "choices": [
-      { "label": { "en": "Lockdown (protect lives)", "ru": "Локдаун" }, "effects": [ { "op": "nation.gold", "target": "self", "delta": -90 }, { "op": "nation.stability", "target": "self", "delta": 4 } ] },
-      { "label": { "en": "Keep economy open", "ru": "Не закрывать экономику" }, "effects": [ { "op": "nation.manpower", "target": "self", "delta": -25 } ] }
-    ],
-    "autoEffects": [] }
+ {
+  "id": "black_death_1347",
+  "icon": "skull",
+  "scope": "world",
+  "trigger": {
+   "year": 1347,
+   "monthIdx": 0
+  },
+  "title": {
+   "en": "The Black Death",
+   "ru": "Чёрная смерть",
+   "uz": "Qora o‘lim"
+  },
+  "flavor": {
+   "en": "A pestilence sweeps the known world, emptying cities and fields alike. A third of all souls may perish.",
+   "ru": "Мор охватывает мир, опустошая города и поля.",
+   "uz": "Ma’lum dunyo bo‘ylab vabo qirg‘ini shaharlar va dalalarni bo‘shatadi. Barcha jonlarning uchdan biri halok bo‘lishi mumkin."
+  },
+  "autoEffects": [
+   {
+    "op": "nation.stability",
+    "target": "self",
+    "delta": -18
+   },
+   {
+    "op": "nation.manpower",
+    "target": "self",
+    "delta": -40
+   }
+  ]
+ },
+ {
+  "id": "columbian_exchange_1492",
+  "icon": "globe",
+  "scope": "world",
+  "trigger": {
+   "year": 1492,
+   "monthIdx": 9
+  },
+  "title": {
+   "en": "The Columbian Exchange",
+   "ru": "Колумбов обмен",
+   "uz": "Kolumb almashinuvi"
+  },
+  "flavor": {
+   "en": "Sails reach lands across the ocean. Crops, silver and disease begin to cross the world.",
+   "ru": "Паруса достигают земель за океаном.",
+   "uz": "Yelkanlar okean ortidagi yerlarga yetib boradi. Ekinlar, kumush va kasalliklar dunyo bo‘ylab o‘ta boshlaydi."
+  },
+  "autoEffects": []
+ },
+ {
+  "id": "industrial_revolution_1769",
+  "icon": "coins",
+  "scope": "world",
+  "trigger": {
+   "year": 1769,
+   "monthIdx": 0
+  },
+  "title": {
+   "en": "The Industrial Revolution",
+   "ru": "Промышленная революция",
+   "uz": "Sanoat inqilobi"
+  },
+  "flavor": {
+   "en": "Steam and steel transform production. The world will never be the same.",
+   "ru": "Пар и сталь преображают производство.",
+   "uz": "Bug‘ va po‘lat ishlab chiqarishni o‘zgartiradi. Dunyo endi hech qachon avvalgidek bo‘lmaydi."
+  },
+  "autoEffects": [
+   {
+    "op": "nation.gold",
+    "target": "self",
+    "delta": 80
+   }
+  ]
+ },
+ {
+  "id": "spanish_flu_1918",
+  "icon": "skull",
+  "scope": "world",
+  "trigger": {
+   "year": 1918,
+   "monthIdx": 2
+  },
+  "title": {
+   "en": "The Spanish Flu",
+   "ru": "Испанский грипп",
+   "uz": "Ispan grippi"
+  },
+  "flavor": {
+   "en": "A deadly influenza spreads along the supply lines of war, felling millions.",
+   "ru": "Смертельный грипп распространяется по линиям войны.",
+   "uz": "O‘ldiruvchi gripp urush ta’minot yo‘llari bo‘ylab tarqalib, millionlarni qulatadi."
+  },
+  "autoEffects": [
+   {
+    "op": "nation.stability",
+    "target": "self",
+    "delta": -10
+   },
+   {
+    "op": "nation.manpower",
+    "target": "self",
+    "delta": -30
+   }
+  ]
+ },
+ {
+  "id": "great_depression_1929",
+  "icon": "scroll",
+  "scope": "world",
+  "trigger": {
+   "year": 1929,
+   "monthIdx": 9
+  },
+  "title": {
+   "en": "The Great Depression",
+   "ru": "Великая депрессия",
+   "uz": "Buyuk depressiya"
+  },
+  "flavor": {
+   "en": "Markets collapse worldwide; trade and tax revenues crater for years.",
+   "ru": "Рынки рушатся по всему миру.",
+   "uz": "Bozorlar butun dunyoda qulaydi; savdo va soliq tushumlari yillar davomida chuqur cho‘kadi."
+  },
+  "choices": [
+   {
+    "label": {
+     "en": "Public works (spend)",
+     "ru": "Обществ. работы",
+     "uz": "Jamoat ishlari (sarflash)"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -120
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 6
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Ride it out",
+     "ru": "Переждать",
+     "uz": "Chidab o‘tish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -14
+     }
+    ]
+   }
+  ],
+  "autoEffects": [
+   {
+    "op": "nation.gold",
+    "target": "self",
+    "delta": -60
+   }
+  ]
+ },
+ {
+  "id": "crisis_2008",
+  "icon": "coins",
+  "scope": "world",
+  "trigger": {
+   "year": 2008,
+   "monthIdx": 8
+  },
+  "title": {
+   "en": "The 2008 Financial Crisis",
+   "ru": "Финансовый кризис 2008",
+   "uz": "2008-yilgi moliyaviy inqiroz"
+  },
+  "flavor": {
+   "en": "A banking collapse ripples across the globe, freezing credit and trade overnight.",
+   "ru": "Банковский крах прокатывается по всему миру.",
+   "uz": "Bank tizimining qulashi butun dunyoga tarqalib, kredit va savdoni bir kechada muzlatib qo‘yadi."
+  },
+  "choices": [
+   {
+    "label": {
+     "en": "Bank bailout (spend reserves)",
+     "ru": "Спасение банков",
+     "uz": "Banklarni qutqarish (zaxiralarni sarflash)"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -150
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Austerity",
+     "ru": "Жёсткая экономия",
+     "uz": "Tejamkorlik siyosati"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -12
+     }
+    ]
+   }
+  ],
+  "autoEffects": [
+   {
+    "op": "nation.gold",
+    "target": "self",
+    "delta": -50
+   }
+  ]
+ },
+ {
+  "id": "covid_2020",
+  "icon": "skull",
+  "scope": "world",
+  "trigger": {
+   "year": 2020,
+   "monthIdx": 2
+  },
+  "title": {
+   "en": "A Global Pandemic",
+   "ru": "Глобальная пандемия",
+   "uz": "Global pandemiya"
+  },
+  "flavor": {
+   "en": "A novel virus spreads worldwide. Borders close, economies stall, hospitals fill.",
+   "ru": "Новый вирус распространяется по всему миру.",
+   "uz": "Yangi virus butun dunyoga tarqaladi. Chegaralar yopiladi, iqtisodlar to‘xtaydi, kasalxonalar to‘ladi."
+  },
+  "choices": [
+   {
+    "label": {
+     "en": "Lockdown (protect lives)",
+     "ru": "Локдаун",
+     "uz": "Karantin (hayotni asrash)"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -90
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Keep economy open",
+     "ru": "Не закрывать экономику",
+     "uz": "Iqtisodni ochiq qoldirish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -25
+     }
+    ]
+   }
+  ],
+  "autoEffects": []
+ }
 ]

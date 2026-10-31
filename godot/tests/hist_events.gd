@@ -1,5 +1,5 @@
 extends SceneTree
-## Scheduled historical events: data integrity (EN+RU, valid ops) and that they fire in play for every era.
+## Scheduled historical events: data integrity (EN + RU + UZ, valid ops) and that they fire in play for every era.
 func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
@@ -10,10 +10,12 @@ func _init() -> void:
 		for e in evs:
 			total += 1
 			for k in ["title", "flavor"]:
-				if String(e[k].get("en", "")) == "" or String(e[k].get("ru", "")) == "": print("MISSING text ", e["id"], " ", k); fails += 1
+				for lg in ["en", "ru", "uz"]:
+					if String(e[k].get(lg, "")) == "": print("MISSING text ", lg, " ", e["id"], " ", k); fails += 1
 			for c in e.get("choices", []):
 				with_choices += 1
-				if String(c["label"].get("en", "")) == "" or String(c["label"].get("ru", "")) == "": print("MISSING label ", e["id"]); fails += 1
+				for lg in ["en", "ru", "uz"]:
+					if String(c["label"].get(lg, "")) == "": print("MISSING label ", lg, " ", e["id"]); fails += 1
 				for fx in c["effects"]:
 					if not String(fx["op"]).begins_with("nation."): print("BAD op ", e["id"], fx); fails += 1
 				if TBModals.fx_text(c["effects"]) == "" and c["effects"].size() > 0: print("fx_text empty ", e["id"]); fails += 1

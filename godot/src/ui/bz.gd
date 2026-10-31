@@ -541,13 +541,35 @@ class TLabel extends Label:
 	func _to_native() -> void:
 		if _native: return
 		_native = true
-		visible_characters = -1
 		if upper: text = _t()
+		visible_characters = -1                                              # after the text: assigning the text can reset it to 0 (the label then draws nothing)
 		autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap_ok else autowrap_mode
+		if wrap_ok: size_flags_vertical = Control.SIZE_FILL                 # a wrapped label takes its whole height: centred in a one-line slot, the first lines would spill above it
 		if _on_paper(): add_theme_color_override("font_color", _ink())
 		var base: Font = TBBz.fvar_int(face, spacing())
 		add_theme_font_override("font", base); add_theme_font_size_override("font_size", roundi(fsz()))
 		custom_minimum_size.y = 0.0
+		if autowrap_mode != TextServer.AUTOWRAP_OFF and not resized.is_connected(fit_longest_word):
+			resized.connect(fit_longest_word); fit_longest_word.call_deferred()      # every wrapped label: a word wider than the room is set smaller, not broken
+	## the longest word must fit the room the label has (a wrapped label breaks a word that is too wide in the middle): the type is set smaller one unit at a time, never below 9
+	func fit_longest_word() -> void:
+		var room: float = size.x
+		if room < 60.0 or has_meta("fitting"): return
+		set_meta("fitting", true)
+		var base: float = float(get_meta("px0")) if has_meta("px0") else px
+		set_meta("px0", base)
+		var words: PackedStringArray = _t().replace("-", " ").split(" ", false)
+		var p2: float = base
+		while p2 > 9.0:
+			var worst := 0.0
+			var z: float = TBKit.fsf(p2)
+			for wd in words: worst = maxf(worst, TBBz.tw(face, wd, z, TBKit.trk(z, em)))
+			if worst <= room - 2.0: break
+			p2 -= 1.0
+		if absf(p2 - px) > 0.1:
+			px = p2
+			add_theme_font_size_override("font_size", roundi(TBKit.fsf(p2)))
+		remove_meta("fitting")
 	func _draw() -> void:
 		if _native: return
 		if _mk() != _key: refit()

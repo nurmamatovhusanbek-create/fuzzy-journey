@@ -108,6 +108,8 @@ func _init() -> void:
 	root.add_child(main)
 	for i in 20: await process_frame
 	main.cfg["text_scale"] = sc; main.cfg["lang"] = lang; main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true
+	main._on_setting_changed("lang")                                              # main._ready read the language from the saved settings (en): apply the one under test
+	assert(TBI18n.lang == lang)
 	main._begin_pick("napoleonic", "normal")
 	var fr: int = main.g.nat_code.find("france")
 	main._start_game(fr)
@@ -132,6 +134,23 @@ func _init() -> void:
 		"event": func(): TBModals.event_prompt(main._overlay, {"kind": "rand", "id": "golden_age", "count": 2, "uid": 1, "cat": "culture"}, func(c): pass, g),
 		"prop": func(): TBModals.event_prompt(main._overlay, {"kind": "prop", "id": "nap", "from": sp, "count": 2, "uid": 2, "p": g.capital_of[sp]}, func(c): pass, g),
 	}
+	# scheduled history events carry their own text per language: the longest flavour, title and choice labels of every era, in the language under test
+	var lg: String = TBI18n.lang
+	var best := {"flavor": [0, {}], "title": [0, {}], "label": [0, {}]}
+	for era_id in ["ancient", "roman", "medieval", "mongol", "timurid", "discovery", "gunpowder", "napoleonic", "victorian", "ww1", "ww2", "coldwar", "modern"]:
+		for e in TBEvents.scheduled_for(era_id):
+			var ch: Array = e.get("choices", [])
+			var ll := 0
+			for c in ch: ll = maxi(ll, String(c["label"].get(lg, c["label"].get("en", ""))).length())
+			for pair in [["flavor", String(e["flavor"].get(lg, e["flavor"].get("en", ""))).length()], ["title", String(e["title"].get(lg, e["title"].get("en", ""))).length()], ["label", ll]]:
+				if int(pair[1]) > int((best[pair[0]] as Array)[0]) and (pair[0] != "label" or ch.size() > 0): best[pair[0]] = [int(pair[1]), e]
+	for kind in ["flavor", "title", "label"]:
+		var ev: Dictionary = (best[kind] as Array)[1]
+		if ev.is_empty(): continue
+		var ch2: Array = ev.get("choices", [])
+		var pend := {"kind": "sched", "id": ev["id"], "uid": 3, "n": fr, "icon": ev.get("icon", "flag"), "title": ev["title"], "flavor": ev["flavor"], "count": maxi(1, ch2.size()),
+			"labels": ch2.map(func(c): return c.get("label", {})), "fx": ch2.map(func(c): return c.get("effects", [])), "world": String(ev.get("scope", "world")) == "world"}
+		tests["sched_" + kind] = func(): TBModals.event_prompt(main._overlay, pend, func(c): pass, g)
 	tests["pick"] = func(): main._clear_overlay(); main._begin_pick("napoleonic", "normal"); main._pick_flow.select_nation(fr, false)
 	for k in tests:
 		main._clear_overlay(); main._select(-1)

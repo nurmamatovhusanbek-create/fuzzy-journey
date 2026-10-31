@@ -296,6 +296,24 @@ static func label(text: String, size: int = 0, color: Color = Color.TRANSPARENT)
 	l.add_theme_color_override("font_color", color if color.a > 0.0 else TEXT)
 	return l
 
+## a wrapping plain label: its longest word must fit the room it has (else the engine breaks the word in the middle): the font is set smaller one unit at a time, never below 9
+static func fit_label_words(l: Label) -> void:
+	var room: float = l.size.x
+	if room < 60.0 or l.has_meta("fitting") or l.text == "": return
+	l.set_meta("fitting", true)
+	var f: Font = l.get_theme_font("font")
+	var base: int = int(l.get_meta("fs0")) if l.has_meta("fs0") else l.get_theme_font_size("font_size")
+	l.set_meta("fs0", base)
+	var words: PackedStringArray = l.text.replace("-", " ").split(" ", false)
+	var sz: int = base
+	while sz > 9:
+		var worst := 0.0
+		for wd in words: worst = maxf(worst, f.get_string_size(wd, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x)
+		if worst <= room - 1.0: break
+		sz -= 1
+	if sz != l.get_theme_font_size("font_size"): l.add_theme_font_size_override("font_size", sz)
+	l.remove_meta("fitting")
+
 ## panel / modal title: Cinzel 700, oxblood on paper (brass-lt on bar); Cyrillic falls back to Alegreya SC one px larger
 static func title(text: String, size: int = 20, color: Color = Color.TRANSPARENT, em: float = -1.0, line_h: float = -1.0) -> Label:
 	if TBFrame.bezel:                                   # `.hd .t`: Cinzel 700, line-height 1, tracked .12em, uppercase

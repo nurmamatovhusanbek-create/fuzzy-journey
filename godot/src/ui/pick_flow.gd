@@ -343,26 +343,8 @@ func _text_need(b: Button) -> float:
 	var pad: float = (sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)) if sb != null else 24.0
 	return b.get_theme_font("font").get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, b.get_theme_font_size("font_size")).x + pad + 6.0
 
-## the title's longest word must fit the room the label has: shrink the type one unit at a time (a wrapped title breaks a word that is too wide in the middle)
-func _fit_longest_word(nl: TBBz.TLabel) -> void:
-	var room: float = nl.size.x
-	if room < 60.0 or nl.has_meta("fitting"): return
-	nl.set_meta("fitting", true)
-	var base: float = float(nl.get_meta("px0")) if nl.has_meta("px0") else nl.px
-	nl.set_meta("px0", base)
-	var px: float = base
-	var words: PackedStringArray = nl.text.split(" ", false)
-	var up: bool = TBI18n.lang != "ru"
-	while px > 9.0:
-		var worst := 0.0
-		var z: float = TBKit.fsf(px)
-		for wd in words: worst = maxf(worst, TBBz.tw(nl.face, wd.to_upper() if up else wd, z, TBKit.trk(z, nl.em)))
-		if worst <= room - 2.0: break
-		px -= 1.0
-	if absf(px - nl.px) > 0.1:
-		nl.px = px
-		nl.add_theme_font_size_override("font_size", roundi(TBKit.fsf(px)))
-	nl.remove_meta("fitting")
+## the title's longest word must fit the room the label has (TLabel sets the type smaller one unit at a time; a wrapped title would break the word in the middle)
+func _fit_longest_word(nl: TBBz.TLabel) -> void: nl.fit_longest_word()
 
 func _layout() -> void:
 	if g == null: return

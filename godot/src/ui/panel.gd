@@ -1046,6 +1046,7 @@ static func facts_grid(rows: Array, cols_pairs: int = 1) -> GridContainer:
 		g.add_child(cap)
 		var val := K.label(String(r[1]), 15, r[2] if r.size() > 2 else K.TEXT)
 		val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; val.size_flags_horizontal = Control.SIZE_EXPAND_FILL; val.custom_minimum_size.x = 40
+		val.resized.connect(func(): K.fit_label_words(val))             # a long word (Russian) is set smaller, not broken
 		g.add_child(val)
 	return g
 
