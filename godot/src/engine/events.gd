@@ -54,6 +54,8 @@ static func run(g: TBGame) -> void:
 	TBDiplo.offers_turn(g)
 
 # ---------------------------------------------------------------- scheduled historical events
+const STALE_YEARS := 3
+
 static func _scheduled(g: TBGame) -> void:
 	var evs := scheduled_for(g.era_id)
 	for ev in evs:
@@ -64,6 +66,9 @@ static func _scheduled(g: TBGame) -> void:
 		if g.year < ty or (g.year == ty and g.month_idx < tm): continue
 		# events dated before the scenario start never fire
 		if ty < g.start_year or (ty == g.start_year and tm < g.start_month):
+			g.ev_fired[id] = true; continue
+		# an event that is long overdue never fires: it came with a newer version than the save (a game played turn by turn meets every date within a year)
+		if g.year - ty >= STALE_YEARS:
 			g.ev_fired[id] = true; continue
 		if t.has("chance") and g.rng.next() > float(t["chance"]):
 			g.ev_fired[id] = true; continue

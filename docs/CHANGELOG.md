@@ -29,6 +29,7 @@ Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 s
 * The overflow audit used to run Russian and Uzbek in English (the game reloaded the saved language over the test's); fixed, and it now also opens the longest scheduled event of each language. Re-run: clean at 100 %, 150 % and 200 % text, 1080p and the S22 stage.
 * New checks: realism (rules 3), era audit, light-mode contrast, first minutes screenshots, UI tests run on fresh settings.
 
+* A history event that is more than three years overdue is skipped: a save made before an event was added no longer fires it years late (a 1.0.0 modern game would have met the 2026 to 2037 events in 2044).
 * Saves made by 1.0.0 (rules 2) load with this version and play on: three fixtures (`godot/tests/fixtures/save_v100_*.tbs`) are loaded and played 100 turns by `tests/old_saves.gd` in the engine suite.
 
 ## Known

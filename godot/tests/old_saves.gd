@@ -13,7 +13,12 @@ func _init() -> void:
 		if g == null: print("OLD_SAVES FAIL load ", era); bad += 1; continue
 		if g.rules != 2 or g.turn != 41: print("OLD_SAVES FAIL unexpected rules/turn ", era, " ", g.rules, " ", g.turn); bad += 1
 		for t in 100:
-			g.end_turn(); g.pending.clear()
+			g.end_turn()
+			for pe in g.pending:                                                          # events added after the save was made must not fire years late
+				if String(pe.get("kind", "")) != "sched": continue
+				for ev in TBEvents.scheduled_for(g.era_id):
+					if ev["id"] == pe["id"] and g.year - int(ev["trigger"]["year"]) >= 3: print("OLD_SAVES FAIL stale event ", pe["id"], " in year ", g.year); bad += 1
+			g.pending.clear()
 		var issues := ""
 		for n in range(1, g.N1):
 			if is_nan(g.gold[n]) or is_inf(g.gold[n]) or is_nan(g.tech_level[n]): issues += " nan:%d" % n
