@@ -22,7 +22,7 @@ Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 s
 * At 200 % text the End Turn dial no longer prints its word over the number and keeps its whole label on screen; the province ring's verbs are no longer cut to "MOVE AR…".
 * Long words (Russian, Uzbek) are set a size smaller instead of being broken in the middle; long event choices no longer lose their first lines at large text.
 
-* The budget screen's research line says how long the next technology level takes at the chosen setting. Research is slow late in the game (a 100-turn modern game gains about 0.04 of a level at the default 15 %), so the player can see what the slider buys.
+* Research no longer stalls late in the game: levels above 2.5 cost far less (190 points at 4.0, was 521), so a modern nation gains about 0.2 of a level in 40 years at the default budget (was 0.04). Earlier eras are unchanged. The budget screen's research line says how long the next level takes.
 
 ## Speed and tests
 * AI turn about 2 times faster (trade step, loyalty terms, income loop); outcomes identical.
