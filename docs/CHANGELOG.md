@@ -2,6 +2,12 @@
 
 Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 still load. Rules 3 is the default for new games; rules 0 to 2 are unchanged and rules 0 still matches the JavaScript reference bit for bit.
 
+## Fixes after the compact-mode round (map and orders)
+* A conquered province shows the occupier's flag and army (the badge, army totals and the army cycle follow the controller, not the old owner).
+* A war front no longer traps the selection: the first tap on an own army next to a selected enemy province picks it as the attacker, the second selects it.
+* Army pills: none at country scale; your own, wars and allies first, everyone once a province is wide enough for a pill; at the closest zoom the pill stays at 92 % and the figures at 11 px or more.
+* Routes lens on the flat map: straight lines the short way round the sideways wrap, drawn in every copy of the world that reaches the screen; the lens no longer hashes its two big arrays every frame.
+
 ## Rules and logic (new games)
 * Quarrels spread: hurting a friend of a nation costs you with that nation, less than with the friend; trade routes need a steady income, gold and people; a route lapses when either side is bankrupt or the courts hate each other.
 * A court holds only `2 + sqrt(provinces) + era / 2` alliances.

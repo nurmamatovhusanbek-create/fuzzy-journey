@@ -92,6 +92,8 @@ out=$(TB_NOANIM= timeout 290 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --pat
 echo "$out" | grep -q "ADVISOR_NOTE OK" && echo "ok: advisor_note 1920x1080" || { echo "FAIL: advisor_note 1920x1080"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_DPR=1.67 TB_DPI=420 TB_NOANIM= timeout 290 "$XV" -a -s "-screen 0 1700x800x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/advisor_note.gd -- 1600 720 2>&1)
 echo "$out" | grep -q "ADVISOR_NOTE OK" && echo "ok: advisor_note phone density" || { echo "FAIL: advisor_note phone density"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/routes_flat.gd -- 1280 720 2>&1)
+echo "$out" | grep -q "ROUTES_FLAT OK" && echo "ok: routes_flat" || { echo "FAIL: routes_flat"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960
 # HUD / command-card layout: no overlap with End Turn, nothing off screen, 48 u hit areas (stage sizes in design units: desktop 2098x1180, phone 844x390 / 800x360, portrait 540x960; x text scales)
