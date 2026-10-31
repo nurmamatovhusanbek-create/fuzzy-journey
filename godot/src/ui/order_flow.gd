@@ -51,6 +51,7 @@ func _pv(q: int) -> Dictionary:
 static func _def_text(pv: Dictionary) -> String: return "?" if int(pv["defenders"]) < 0 else TBKit.fmt(int(pv["defenders"]))
 
 func troops_for(from: int) -> int:
+	if panel != null and panel.send_n > 0: return clampi(panel.send_n, 1, maxi(1, g.army[from] - 1))
 	var frac := share()
 	if frac >= 0.999: return g.army[from] - 1
 	return maxi(1, int(floor((g.army[from] - 1) * frac)))

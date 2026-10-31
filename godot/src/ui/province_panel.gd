@@ -28,7 +28,10 @@ const HOT_KEY := {KEY_M: "move", KEY_R: "recruit", KEY_H: "hire", KEY_G: "genera
 
 var g: TBGame
 var p := -1
-var send_frac := 1.0                      # share of the stack a move sends (25 / 50 / 75 / 100 %)
+var send_frac := 1.0:                     # share of the stack a move sends (the quick 25 / 50 / 75 / 100 %); assigning it clears the exact number
+	set(v): send_frac = v; send_n = 0
+var send_n := 0                           # exact number of men a move sends (0: follow send_frac); the troop picker sets it
+var _picker: TBTroopPicker
 var flow: TBOrderFlow
 var busy_fn: Callable                     # () -> bool : the turn is resolving on the worker thread
 var blocked_fn: Callable                  # () -> bool : a modal / text field owns the keyboard, or no game is running
@@ -136,7 +139,7 @@ func show_province(game: TBGame, province: int) -> void:
 		visible = false
 		foreign_changed.emit(-1, [])
 		return
-	if changed: _war_target = -1; _brk_target = -1; _atk_src = -1; _close_popover()
+	if changed: _war_target = -1; _brk_target = -1; _atk_src = -1; send_n = 0; _close_popover()       # a new army starts with all its men; the exact number belongs to the army it was picked for
 	var was := visible
 	visible = true
 	rebuild()
@@ -677,25 +680,17 @@ func _build_share_row(s: int, cs: Dictionary, src: int) -> Control:
 	_cost.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_count = null; _share = null
 	if src >= 0:
-		var cap := CC.label(T.call("send_share"), 12, "ink_off", TBKit.body_b())
-		cap.text = cap.text.to_upper() if TBI18n.lang != "ru" else cap.text
-		cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		_share = CC.ShareSeg.new()
-		_share.cell_h = 34; _share.cell_w = 40.0
-		_share.set_current(send_frac)
 		var army := g.army[src] - 1
-		for i in 4:                                    # duplicate presets of a small army are disabled
-			var a := maxi(1, int(floor(army * CC.ShareSeg.FRACS[i]))) if i < 3 else army
-			_share.off[i] = i > 0 and a == (maxi(1, int(floor(army * CC.ShareSeg.FRACS[i - 1]))) if i - 1 < 3 else army)
-		_share.chosen.connect(func(f: float):
-			send_frac = f
-			share_changed.emit(f)
-			if flow != null: flow.share_changed()
-			_refresh_count())
-		_count = CC.label("", 14, "ink_0", TBKit.mono_b())
-		_count.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(cap); row.add_child(_share); row.add_child(_count)
-		_refresh_count()
+		_picker = TBTroopPicker.new()
+		_picker.setup(1, maxi(1, army), (clampi(send_n, 1, maxi(1, army)) if send_n > 0 else maxi(1, int(round(float(maxi(1, army)) * send_frac)))), T.call("send_share"))
+		_picker.changed.connect(func(n: int):
+			send_frac = float(n) / float(maxi(1, g.army[src] - 1))
+			send_n = n
+			share_changed.emit(send_frac)
+			if flow != null: flow.share_changed())
+		_share = _picker._seg
+		row.add_child(_picker)
+		_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	elif int(cs["kind"]) == 2:
 		var hint := CC.label(T.call("cc_raise_hint"), 13, "ink_1")
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
