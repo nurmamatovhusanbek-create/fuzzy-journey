@@ -171,7 +171,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 	var pm := MarginContainer.new(); pm.add_theme_constant_override("margin_top", 12); pm.add_child(pre); h.body.add_child(pm)
 	var pl := K.caps(T.call("preset")); pl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pl.size_flags_vertical = Control.SIZE_SHRINK_CENTER; pre.add_child(pl)
 	var preset_seg := K.segmented([["balanced", T.call("pre_balanced")], ["war", T.call("pre_war")], ["growth", T.call("pre_growth")]], "", func(id: String): _budget_set(g, n, PRESETS[id]); sync.call(), true)
-	preset_seg.custom_minimum_size.x = 300.0; preset_seg.size_flags_horizontal = Control.SIZE_SHRINK_END
+	preset_seg.custom_minimum_size.x = 360.0; preset_seg.size_flags_horizontal = Control.SIZE_SHRINK_END
 	pre.add_child(preset_seg)
 	var revert := K.button(T.call("revert"), func(): _budget_set(g, n, start); sync.call())
 	var done := K.button(T.call("done"), func(): h.close(), true)
