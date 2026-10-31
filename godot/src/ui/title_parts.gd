@@ -156,7 +156,15 @@ class Orrery extends Control:
 			if interactive and (is_top or is_hov) and eras[i].size() > 2:
 				var nm: String = String(eras[i][2]).to_upper()
 				var nw: float = nf.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nsz).x
-				draw_string(nf, lp0 + Vector2(-nw * 0.5, f.get_ascent(fs2) * 0.35 + nsz * 1.7), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nsz, TBTokens.with_a(TBTokens.c("brass_lt") if is_top else TBTokens.c("smoke"), a))
+				# the name goes on the outer side of the year (above it in the top half, below it in the bottom half) and is nudged outwards until it clears the ring: under the year it lay on the ring line
+				var base := Vector2(lp0.x - nw * 0.5, lp0.y + f.get_ascent(fs2) * 0.35 + (-nsz * 1.5 if d.y <= 0.0 else nsz * 1.9))
+				var clear: float = R * rs + 16.0
+				for _k in 80:
+					var rect := Rect2(base.x, base.y - nsz, nw, nsz * 1.2)
+					var cp := Vector2(clampf(c.x, rect.position.x, rect.end.x), clampf(c.y, rect.position.y, rect.end.y))          # the point of the name's box nearest the ring's centre
+					if cp.distance_to(c) >= clear: break
+					base += d * 2.0
+				draw_string(nf, base, nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nsz, TBTokens.with_a(TBTokens.c("brass_lt") if is_top else TBTokens.c("smoke"), a))
 
 # ================================================================================================================================ the Continue card (style 4)
 ## A notched card: flag medal (or a globe glyph), title in tracked caps, an italic line below and a chevron. `kind`: "continue" shows the flag, "new" the globe.
