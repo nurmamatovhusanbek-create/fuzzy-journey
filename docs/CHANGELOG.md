@@ -11,6 +11,7 @@ Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 s
 * Terrain follows the geography (mountain ranges, forests, steppe, marsh).
 * Ruler names fit the country (14 name spheres); the modern world finally has real capitals.
 * Nine new modern-era events (2026 to 2037).
+* Uzbek: all 180 scheduled history events (title, text, choices) now have Uzbek text (only 9 did, the rest showed English), and 544 nation names are in Uzbek on the map and in lists (Fransiya, Rossiya imperiyasi, Usmonlilar imperiyasi). Names without a form stay in English.
 
 ## Interface
 * Province ring: the centre names the province with its army beneath; the card and map names keep clear of the verbs' names.
@@ -18,10 +19,12 @@ Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 s
 * High contrast light mode readable on every dialog, card and the HUD.
 * Capital stars (big countries at country level), map names on two lines, names stable while the globe turns.
 * Tutorial text brought up to date; small desktop windows are no longer tiny.
+* Long words (Russian, Uzbek) are set a size smaller instead of being broken in the middle; long event choices no longer lose their first lines at large text.
 
 ## Speed and tests
 * AI turn about 2 times faster (trade step, loyalty terms, income loop); outcomes identical.
+* The overflow audit used to run Russian and Uzbek in English (the game reloaded the saved language over the test's); fixed, and it now also opens the longest scheduled event of each language. Re-run: clean at 100 %, 150 % and 200 % text, 1080p and the S22 stage.
 * New checks: realism (rules 3), era audit, light-mode contrast, first minutes screenshots, UI tests run on fresh settings.
 
 ## Known
-* Google Play still needs Godot 4.5 or newer (target API 35, 16 KB pages, AAB); a trial of 4.5 is waiting for permission to run the editor.
+* Google Play still needs Godot 4.5 or newer (target API 35, 16 KB pages, AAB); the 4.5 trial passed (see `docs/GODOT45.md`); the project stays on 4.4.1 until you decide.
