@@ -151,6 +151,7 @@ static func _c_recruit(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var p: int = c["p"]
 	if g.controller(p) != n or g.owner[p] != n: return _err("notyours")
 	var reg: Dictionary = D.REGIMES[g.regime[n]]
+	if g.rules >= 4: return _recruit_levy(g, c, reg)
 	var amount := clampi(int(c.get("amount", 15)), 5, 30)
 	var gold_cost := int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
 	var man_cost: int = D.COST_RECRUIT_MAN + amount
@@ -159,6 +160,20 @@ static func _c_recruit(g: TBGame, c: Dictionary) -> Dictionary:
 	if _short_mp(g, n, D.MP_RECRUIT): return _err("mp")
 	g.gold[n] -= gold_cost; g.manpower[n] -= man_cost; g.mp[n] -= D.MP_RECRUIT
 	g.army[p] = mini(65000, g.army[p] + amount); g.touch(p)
+	return {"ok": true}
+
+## rules 4: the men come out of the province's own levy pool, any number the pool holds; gold is a fixed fee plus a price per man
+static func _recruit_levy(g: TBGame, c: Dictionary, reg: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var p: int = c["p"]
+	var r := g.recruit_range(p)
+	var amount := clampi(int(c.get("amount", 15)), 1, maxi(1, r.y))
+	if r.y < 1: return _err("manpower")
+	var gold_cost := TBCan.recruit_gold(g, p, amount, reg)
+	if g.gold[n] < gold_cost: return _err("gold")
+	if _short_mp(g, n, D.MP_RECRUIT): return _err("mp")
+	g.gold[n] -= gold_cost; g.mp[n] -= D.MP_RECRUIT
+	g.levy[p] -= amount; g.manpower[n] = maxf(0.0, g.manpower[n] - amount)
+	g.army[p] = mini(TBGame.ARMY_CAP, g.army[p] + amount); g.touch(p)
 	return {"ok": true}
 
 static func _c_declare_war(g: TBGame, c: Dictionary) -> Dictionary:

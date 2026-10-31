@@ -90,11 +90,12 @@ static func _nation(g: TBGame, n: int) -> void:
 		while i < fr.size():
 			var p := fr[i]; var q := fr[i + 1]
 			i += 2
+			if g.rules >= 4 and g.recruit_range(p).y < 1: continue                    # an empty pool raises nobody
 			var hostile: bool = g.owner[q] != 0 and g.get_rel(n, g.controller(q)) == D.REL_WAR
 			var s: float = (3.0 if hostile else 0.5) - g.army[p] / 60.0 + g.rng.next() * 0.3
 			if s > bs2:
 				bs2 = s; best2 = p
-		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20})
+		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20 if g.rules < 4 else clampi(g.recruit_range(best2).y, 1, 20 + (10 if at_war else 0))})
 		lv += 1
 	# 3b. rules>=1: hoarded gold buys mercenaries (turns wealth into power; the game's main gold sink)
 	if g.rules >= 1 and g.gold[n] > 500:

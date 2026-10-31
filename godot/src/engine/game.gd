@@ -80,6 +80,7 @@ var happy := PackedByteArray()
 var defense := PackedByteArray()
 var move_fx: Array = []                       # [from, to, nation] marches the AI made this turn (view only, not saved): the interface shows those in sight
 var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
+var levy := PackedInt32Array()                  # rules >= 4: the men each province can still raise (see levy_cap); the nation's manpower is their sum
 var gen := PackedInt32Array()                 # generals (rules >= 1): see TBGenerals
 var terrain := PackedByteArray()
 var building := PackedByteArray()
@@ -184,7 +185,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	N1 = N + 1
 
 	# ---- provinces ----
-	occupier.resize(P); army.resize(P); pop.resize(P); occ_turns.resize(P); gen.resize(P); reb_age.resize(P); reb_from.resize(P); own_since.resize(P)
+	levy.resize(P); occupier.resize(P); army.resize(P); pop.resize(P); occ_turns.resize(P); gen.resize(P); reb_age.resize(P); reb_from.resize(P); own_since.resize(P)
 	for a in [dev, econ, stab, happy, defense, terrain, building, b_level, b_building, b_turns, capital, discoverable, dirty_flag]:
 		a.resize(P)
 	b_lv.resize(P * NB)
@@ -266,19 +267,23 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		TBRulers.init(self)
 		TBRealms.init(self)
 		TBTurn.refresh_world(self)          # world income, tech stats and the era's economic goal
+	if rules >= 4:                          # every province starts with part of its levy ready; a nation's manpower is the sum
+		for p in P:
+			if owner[p] != 0: levy[p] = int(float(levy_cap(p)) * LEVY_START)
+		for n in range(1, N1): manpower[n] = float(levy_total(n))
 
 ## nation name for display (localised)
 func dname(n: int) -> String: return TBI18n.nation(nat_name[n])
 
 func set_human(n: int) -> void:
 	human.fill(0); human[n] = 1; human_id = n
-	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"]; mp[n] = 10; dp[n] = 6
+	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"] if rules < 4 else float(levy_total(n)); mp[n] = 10; dp[n] = 6
 
 ## multiplayer: several human nations (human_id stays the first one, used by SP-centric helpers)
 func add_human(n: int) -> void:
 	human[n] = 1
 	if human_id == 0: human_id = n
-	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"]; mp[n] = 10; dp[n] = 6
+	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"] if rules < 4 else float(levy_total(n)); mp[n] = 10; dp[n] = 6
 
 func humans() -> PackedInt32Array:
 	var out := PackedInt32Array()
@@ -393,11 +398,50 @@ func set_owner(p: int, n: int) -> void:
 	if n == rebel and rebel > 0: reb_from[p] = owner[p]; reb_age[p] = 0       # a rebel province remembers who it rose against
 	elif owner[p] == rebel: reb_from[p] = 0; reb_age[p] = 0
 	owner[p] = n; own_since[p] = turn; own_dirty = true; touch(p)
+	if rules >= 4: levy[p] = 0                                         # a conquered or settled land has to be won over before it gives men
 	if gen[p] != 0: gen[p] = 0
 	if n != 0 and not core.is_empty() and core[p] == 0: core[p] = n      # first settlers make it home land
 
 func controller(p: int) -> int:
 	return occupier[p] if occupier[p] != 0 else owner[p]
+
+# ---------------------------------------------------------------- levy pools (rules >= 4; docs/WAR_DESIGN.md section 3)
+const LEVY_RATE := [0.22, 0.28, 0.34, 0.42, 0.50]   # share of a province's people that can be under arms, by era: real states carried 1-3 % of their people for years, industrial ones 5-10 %
+const LEVY_REFILL := 0.10                            # of the cap, each turn
+const LEVY_START := 0.35                             # a new game starts with this share of the cap ready
+const LEVY_LOW := 0.25                               # below this share of the cap a province is drained
+const ARMY_CAP := 65000
+const WORK_LOSS_K := 0.45                           # share of tax and production lost per share of the people under arms
+const WORK_LOSS_CAP := 0.35
+
+func levy_cap(p: int) -> int:
+	var n := owner[p]
+	var e: int = era[n] if n > 0 else 0
+	var c: float = float(pop[p]) * float(LEVY_RATE[e]) * (0.5 + float(stab[p]) / 200.0)
+	if bl(p, D.B_ARMORY) > 0: c *= 1.25
+	return maxi(4, int(floor(c)))
+
+func levy_gain(p: int) -> int:
+	return maxi(1, int(floor(float(levy_cap(p)) * LEVY_REFILL)))
+
+func levy_drained(p: int) -> bool:
+	return levy[p] * 4 < levy_cap(p) * int(LEVY_LOW * 4.0)
+
+func levy_total(n: int) -> int:
+	var t := 0
+	for p in owned(n): t += levy[p]
+	return t
+
+func levy_cap_total(n: int) -> int:
+	var t := 0
+	for p in owned(n): t += levy_cap(p)
+	return t
+
+## (lowest, highest, first) number of men one Recruit may raise in p: rules < 4 the old 5..30; rules 4 whatever the province's pool holds
+func recruit_range(p: int) -> Vector3i:
+	if rules < 4: return Vector3i(5, 30, 15)
+	var hi := mini(levy[p], ARMY_CAP - army[p])
+	return Vector3i(mini(1, hi), maxi(0, hi), mini(15, maxi(0, hi)))
 
 func reassign_capital(n: int) -> void:
 	var own := owned(n)
@@ -517,6 +561,12 @@ func income(n: int) -> Dictionary:
 		up_base += army[p] * (0.8 if b_camp > 0 else 1.0)
 		var b_lib: int = (b_lv[base_b + D.B_LIBRARY - 1] if lv2 else bl(p, D.B_LIBRARY))
 		if b_lib > 0: rb += (pop_p / 750.0) * b_lib
+	if rules >= 4:                                                          # men under arms are not at the plough: tax and production fall with their share of the people (docs/WAR_DESIGN.md section 3)
+		var under_arms := 0
+		for p in own: under_arms += army[p]
+		var loss := minf(WORK_LOSS_CAP, WORK_LOSS_K * float(under_arms) / maxf(1.0, float(tp)))
+		tax = int(floor(tax * (1.0 - loss))); prod = int(floor(prod * (1.0 - loss)))
+		out["workLoss"] = loss
 	var gld: int = prod + tax
 	if rules >= 1: gld += TBTrade.income(self, n)
 	if cap_lost_now: gld = int(floor(gld * 0.5))
@@ -530,6 +580,11 @@ func income(n: int) -> Dictionary:
 	out["gold"] = gld; out["manpower"] = man; out["upkeep"] = upkeep; out["tax"] = tax; out["production"] = prod; out["admin"] = admin
 	out["net"] = gld - admin - upkeep
 	out["manCap"] = maxi(120 + era[n] * 50, own.size() * 30 + era[n] * 35)
+	if rules >= 4:
+		var gain := 0
+		for p in own:
+			if occupier[p] == 0: gain += levy_gain(p)
+		out["manpower"] = gain; out["manCap"] = levy_cap_total(n)
 	out["pop"] = tp; out["happyAvg"] = int(round(hs / float(own.size()))); out["researchBonus"] = rb
 	return out
 

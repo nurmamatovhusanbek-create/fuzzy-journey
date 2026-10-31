@@ -84,6 +84,10 @@ static func _move(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 		out["kind"] = chk
 	return out
 
+## gold for raising `amount` men in p (rules 4): a fixed fee plus a price per man, cheaper with an armoury, by the regime's recruiting cost
+static func recruit_gold(g: TBGame, p: int, amount: int, reg: Dictionary) -> int:
+	return int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
+
 static func _recruit(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
@@ -91,6 +95,16 @@ static func _recruit(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dicti
 	var amount := clampi(int(c.get("amount", 15)), 5, 30)
 	var gold_cost := int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
 	var man_cost: int = D.COST_RECRUIT_MAN + amount
+	if g.rules >= 4:                                                         # the pool of this province, any number up to it
+		var r := g.recruit_range(p)
+		amount = clampi(int(c.get("amount", 15)), 1, maxi(1, r.y))
+		gold_cost = recruit_gold(g, p, amount, reg); man_cost = amount
+		out["gold"] = gold_cost; out["men"] = man_cost; out["moves"] = D.MP_RECRUIT; out["gain"] = amount; out["pool"] = g.levy[p]
+		if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")
+		if r.y < 1: return _fail(out, "manpower")
+		_need(out, "gold", g.gold[n], gold_cost, "gold")
+		_need(out, "moves", g.mp[n], D.MP_RECRUIT, "mp")
+		return out
 	out["gold"] = gold_cost; out["men"] = man_cost; out["moves"] = D.MP_RECRUIT; out["gain"] = amount
 	if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")
 	_need(out, "gold", g.gold[n], gold_cost, "gold")

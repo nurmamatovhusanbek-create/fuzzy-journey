@@ -23,6 +23,7 @@ run "capitals stand where the historical capitals were" tests/capitals.gd
 run "districts: slots, job fill, demolish, AI builds" tests/districts.gd
 run "honours" tests/honours.gd
 run "supply / attrition" tests/supply.gd
+run "rules 4: levy pools, recruits from the pool, work loss" tests/levy.gd
 run "doctrine" tests/doctrine.gd
 run "economy / research / aggression / rebellion model" tests/model.gd
 run "plaque animation state" tests/labels_anim.gd

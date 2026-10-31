@@ -58,7 +58,7 @@ func open(game: TBGame, province: int, what: String = "recruit") -> void:
 ## (lowest, highest, first) number of men the card offers: the command's own limits; the first is what the old one-press button raised
 static func range_for(game: TBGame, province: int, what: String) -> Vector3i:
 	if what == "hire": return Vector3i(10, 60, 40)
-	return Vector3i(5, 30, 15)
+	return game.recruit_range(province)
 
 func _cmd(n: int) -> Dictionary: return {"cmd": kind, "p": p, "amount": n}
 

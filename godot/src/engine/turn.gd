@@ -152,7 +152,7 @@ static func _tick(g: TBGame) -> void:
 			g.gold[n] *= 1.0 - g.infl                          # idle money loses value
 			y_sum += float(inc["gold"])
 		if g.rules >= 1 and g.human[n] != 0 and gold_before > 0.0 and g.gold[n] <= 0.0: g.log.append({"turn": g.turn, "kind": "bankrupt", "a": n})
-		g.manpower[n] = minf(inc["manCap"], g.manpower[n] + inc["manpower"])
+		if g.rules < 4: g.manpower[n] = minf(inc["manCap"], g.manpower[n] + inc["manpower"])          # rules 4: the people to raise live in the provinces (levy pools), the nation figure is their sum (below)
 		if g.rules >= 3 and g.human[n] != 0: g.mp[n] = minf(TBAdvisor.mp_cap(g, n), g.mp[n] + TBAdvisor.mp_gain(g, n))      # a human ruler's clerks grow with the realm
 		else: g.mp[n] = minf(6 + era * 2, g.mp[n] + 1 + era * 0.4)
 		if g.rules >= 1 and g.human[n] == 0: g.mp[n] = minf(8 + era * 2, g.mp[n] + 1.2)    # AI acts less cleverly: extra action points
@@ -210,6 +210,11 @@ static func _tick(g: TBGame) -> void:
 			var stab_mod := 0.5 + g.stab[p] / 200.0
 			var farm := 1.0 + 0.05 * g.bl(p, D.B_FARM)
 			var growth := int(floor(g.pop[p] * 0.01 * (g.happy[p] / 100.0) * stab_mod * farm))
+			if g.rules >= 4:                                                      # a province drained of its young men grows slowly and sulks; a held one does not refill
+				if g.levy_drained(p):
+					growth /= 2
+					g.happy[p] = maxi(0, g.happy[p] - 1)
+				if g.occupier[p] == 0: g.levy[p] = mini(g.levy_cap(p), g.levy[p] + g.levy_gain(p))
 			if growth > 0: g.pop[p] = mini(2000, g.pop[p] + growth)
 			if g.econ[p] < 5 and g.rng.next() < invest_chance: g.econ[p] += 1
 			if g.dev[p] < dev_cap and g.rng.next() < invest_chance * (0.5 if g.rules < 2 else 0.15) and (g.rules < 2 or g.job_fill(p, g.dev[p] + 1) >= 0.9): g.dev[p] += 1       # districts: slow organic growth, and only where the people are there to staff it
@@ -221,6 +226,7 @@ static func _tick(g: TBGame) -> void:
 		if g.gold[n] <= 0 and inc["net"] < 0:
 			for p in own:
 				g.army[p] = maxi(1, int(floor(g.army[p] * 0.95)))
+		if g.rules >= 4: g.manpower[n] = float(g.levy_total(n))
 	for p in rebels_to_spawn:
 		spawn_rebel(g, p)
 	if g.rules >= 1:
