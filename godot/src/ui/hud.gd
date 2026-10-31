@@ -379,8 +379,9 @@ func _layout_demo(vp: Vector2) -> void:
 	_seal.compact = ph; _seal.narrow = false
 	_seal_geom(vp, m, rc, ph)
 	# ---- notices (top right; phones: beside the gauges)
-	var aw: float = float(L["alertW"]) * (1.0 if ph else 0.86)                 # every notice is this wide; the desktop column stays clear of an open window
-	_ticker.max_rows = 3 if not ph else 1
+	var short_desktop: bool = not ph and vp.y < 900.0                         # a desktop layout on a small screen (a phone in desktop mode): the notices are a smaller column, or they cover a fifth of the map
+	var aw: float = float(L["alertW"]) * (1.0 if ph else (0.72 if short_desktop else 0.86))                 # every notice is this wide; the desktop column stays clear of an open window
+	_ticker.max_rows = 1 if ph else (2 if short_desktop else 3)
 	_ticker.inline_pill = false
 	_ticker.row_w = aw
 	_ticker.gap = 10.0 if ph else 14.0
