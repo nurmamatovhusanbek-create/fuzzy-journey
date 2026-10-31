@@ -448,7 +448,7 @@ func _draw() -> void:
 			var lz: int = P.fs(12.0)
 			var lab: String = String(v["label"])
 			lab = lab.to_upper() if TBI18n.lang != "ru" else lab
-			lab = P.fit(lf, lab, lz, 150.0)
+			lab = P.fit(lf, lab, lz, 150.0 * clampf(K.text_scale, 1.0, 2.0))                  # the room grows with the text size (a verb cut to 'MOVE AR…' says nothing)
 			var lw: float = P.tw(lf, lab, lz)
 			var dir := Vector2(cos(float(s["a"])), sin(float(s["a"])))
 			var lp: Vector2

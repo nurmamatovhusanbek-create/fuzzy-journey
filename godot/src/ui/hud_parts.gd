@@ -1053,6 +1053,11 @@ class Seal extends Hit:
 	func width_px() -> float: return diameter()
 	func height_px() -> float: return diameter() + 22.0
 	func caption_text() -> String: return caption
+	## half the width the label under the dial takes (px): at a large text size it is wider than the dial, and the dial must stand that far from the screen's edge
+	func caption_half_px() -> float:
+		if not caption_inside or caption == "": return 0.0
+		var cap: String = caption.to_upper() if TBI18n.lang != "ru" else caption
+		return (TBHudParts.tw(K.cinzel(700), cap, TBHudParts.fs(10.0 if (compact or narrow) else 13.0)) + 4.0 * float(cap.length() - 1)) * 0.5
 	func _animated() -> bool: return not TBHudParts.reduced_motion()
 	func fits_inside(text: String) -> bool: return TBHudParts.tw(K.body_b(), text, TBHudParts.fs(12.0)) <= 104.0
 	func sub_fits(_text: String) -> bool: return false
@@ -1131,14 +1136,15 @@ class Seal extends Hit:
 		else:
 			var tt2: String = str(turn_no) if turn_no > 0 else ""
 			if tt2 != "":
-				if not ph:
+				var cap_room: bool = float(z) <= (0.41 * R - 3.0) / 0.7                          # at a large text size the number is too tall for the word above it: the label under the dial names the dial
+				if not ph and cap_room:
 					var cf: Font = K.cinzel(500)
 					var tw_: String = TBI18n.T("aoc_turn", {"k": ""}).replace(":", "").strip_edges()                  # the word for "turn" in the language in use
 					if TBI18n.lang != "ru": tw_ = tw_.to_upper()
 					TBHudParts.txtl(self, cf, cs.x, cs.y - R * 0.24, tw_, TBHudParts.fs(9.5), TBTokens.c("brass_lt"), 3.5 if tw_.length() <= 4 else 1.6, 1)      # a longer word (NAVBAT) is tracked tighter to stay inside the ring
 				var nw: float = TBHudParts.tw(fb, tt2, z)                                    # a long number (turn 1000+) shrinks to stay inside the red arc
 				if nw > (R - 24.0) * 1.5: z = maxi(10, int(floorf(float(z) * (R - 24.0) * 1.5 / nw)))
-				TBHudParts.txtl(self, fb, cs.x, cs.y + R * 0.17, tt2, z, on, 0.0, 1)
+				TBHudParts.txtl(self, fb, cs.x, cs.y + (R * 0.17 if (ph or cap_room) else float(z) * 0.35), tt2, z, on, 0.0, 1)
 			else:
 				TBHudParts.chev(self, Vector2(cs.x - 3.0, cs.y), 18.0, on, 2.4); TBHudParts.chev(self, Vector2(cs.x + 7.0, cs.y), 18.0, on, 2.4)
 		# END TURN under the circle: Cinzel 700 13 (phone 10), tracking 4, ivory on a dark halo

@@ -412,7 +412,7 @@ func _seal_geom(vp: Vector2, m: float, rc: float, ph: bool) -> void:
 	var k: float = (2.0 * rc) / _seal.diameter()
 	_seal.u = k; _seal.scale = Vector2.ONE; _seal.pivot_offset = Vector2.ZERO
 	_seal.size = Vector2(sw_ * k, sh_ * k)
-	var cx: float = vp.x - m - rc
+	var cx: float = minf(vp.x - m - rc, vp.x - 6.0 - _seal.caption_half_px())        # the label under the dial may be wider than the dial: keep it on the screen
 	var cy: float = vp.y - m - rc - (21.0 if ph else 29.0)
 	_seal.position = Vector2(cx - sw_ * k * 0.5, cy - _seal.diameter() * k * 0.5)
 
