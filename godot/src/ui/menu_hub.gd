@@ -354,7 +354,7 @@ static func comfort(parent: Control, cfg: Dictionary, on_change: Callable, on_do
 	_seg(d.body, T.call("text_size"), [["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): apply.call("text_scale", float(v)), true)
 	d.body.add_child(TBPanel.para(T.call("text_preview"), 15, K.DIM))
 	_seg(d.body, T.call("high_contrast"), [["off", T.call("hc_off")], ["light", T.call("hc_light")], ["dark", T.call("hc_dark")]], _hc_id(cfg), func(v): apply.call("hc", v), true)
-	d.body.add_child(K.toggle(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): apply.call("reduce_motion", v)))
+	d.body.add_child(_switch(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): apply.call("reduce_motion", v), false))          # the same Off / On selector as in Settings
 	var finish := func() -> void:
 		cfg["comfort_seen"] = true; on_change.call("comfort_seen")
 		d.close()
