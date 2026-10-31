@@ -6,6 +6,9 @@ func _check(ok: bool, what: String) -> void:
 func _find(n: Node, cls: String, out: Array) -> void:
 	if n.get_class() == cls or (n.get_script() != null and String(n.get_script().get_global_name()) == cls): out.append(n)
 	for c in n.get_children(): _find(c, cls, out)
+func _find_dec(n: Node, out: Array) -> void:
+	if n is TBModals.DecisionRow: out.append(n)
+	for c in n.get_children(): _find_dec(c, out)
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	var w := int(a[0]); var h := int(a[1]); var sc := float(a[2]); var lang := a[3]
@@ -24,11 +27,8 @@ func _init() -> void:
 	for i in 20: await process_frame
 	main._open_decisions()
 	for i in 16: await process_frame
-	var cards: Array = []
-	_find(main._overlay, "PanelContainer", cards)
 	var dec: Array = []
-	for c in cards:
-		if (c as Control).get_script() != null and String((c as Control).get_script().resource_path).ends_with("modals.gd"): dec.append(c)
+	_find_dec(main._overlay, dec)
 	print("decree cards: %d" % dec.size())
 	_check(dec.size() >= 6, "the decree cards were found (%d)" % dec.size())
 	var cols := {}                                               # x of the card -> list of cards
