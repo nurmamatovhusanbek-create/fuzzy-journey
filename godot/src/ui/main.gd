@@ -57,7 +57,7 @@ func _ready() -> void:
 	panel.flow = flow
 	panel.busy_fn = func() -> bool: return _busy
 	panel.blocked_fn = func() -> bool: return mode != "game" or _modal_open()
-	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
+	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.amount_requested.connect(_open_amount); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
 	panel.insp_fn = hud.inspector_rect; panel.sheet_fn = hud.sheet_mode; TBPanel.drawer_rect_fn = hud.drawer_rect
 	TBPanel.drawer_opened_fn = func() -> void:
 		if hud.exclusive_panels() and panel != null: panel.show_province(g, -1)
@@ -966,6 +966,7 @@ func _dismiss_map_info() -> void:
 	if selected >= 0 or (ring != null and ring.visible): _select(-1)
 
 func _select(p: int) -> void:
+	_close_amount()
 	selected = p
 	map.select(p)
 	map.outline_nation(g.owner[p] if (p >= 0 and g != null and g.human_id != 0 and g.owner[p] != 0) else -1)       # AoC: the owner's border lights up in brass
@@ -974,6 +975,26 @@ func _select(p: int) -> void:
 	if p >= 0 and hud.exclusive_panels() and not hud.sheet_mode(): TBPanel.close_drawers(_overlay)       # 700-1099 px: the drawer and the inspector never share the width
 	panel.show_province(g, p) if p >= 0 else panel.show_province(g, -1)
 	ring.g = g; ring.set_selection(p)
+
+## Recruit / Hire ask "how many?" first (docs/WAR_DESIGN.md section 2): a chip beside the province with the troop picker and the live price
+var _amount_card: TBRecruitCard
+func _open_amount(kind: String, p: int) -> void:
+	if g == null or p < 0: return
+	if _amount_card == null or not is_instance_valid(_amount_card):
+		_amount_card = TBRecruitCard.new()
+		_amount_card.confirmed.connect(func(n: int):
+			var kd := _amount_card.kind; var pp := _amount_card.p
+			_close_amount()
+			_on_command({"cmd": kd, "p": pp, "amount": n}, true))
+		_amount_card.cancelled.connect(_close_amount)
+		add_child(_amount_card)
+		map.view_changed.connect(func(): if _amount_card != null and is_instance_valid(_amount_card): _amount_card.place(map, self))
+	_amount_card.open(g, p, kind)
+	_amount_card.place(map, self)
+	_amount_card.place.call_deferred(map, self)
+
+func _close_amount() -> void:
+	if _amount_card != null and is_instance_valid(_amount_card): _amount_card.visible = false
 
 ## the Move verb / M: arm the selected army (own armies become targets too)
 func _on_move_requested(p: int) -> void:

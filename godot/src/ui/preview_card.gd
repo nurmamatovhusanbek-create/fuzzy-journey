@@ -18,6 +18,9 @@ var _cells: HBoxContainer
 var _ok: Button
 var _cancel: Button
 var _is_attack := true
+var _pick_slot: VBoxContainer
+var picker: TBTroopPicker                  # how many men go (the army's own limits); built once per army, only moved afterwards so a drag is never interrupted
+signal amount_picked(n: int)
 
 func _init() -> void:
 	visible = false
@@ -38,6 +41,8 @@ func _init() -> void:
 	var sm := MarginContainer.new(); sm.name = "SubMargin"; _sub_slot.add_child(sm)
 	_cells = HBoxContainer.new(); _cells.add_theme_constant_override("separation", 5)
 	var cm := MarginContainer.new(); cm.add_theme_constant_override("margin_top", 8); cm.add_theme_constant_override("margin_bottom", 11); cm.add_child(_cells); v.add_child(cm)
+	_pick_slot = VBoxContainer.new(); _pick_slot.add_theme_constant_override("separation", 0)
+	var pm := MarginContainer.new(); pm.add_theme_constant_override("margin_bottom", 11); pm.add_child(_pick_slot); v.add_child(pm)
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); v.add_child(row)
 	_ok = K.danger(T.call("pv_attack"), func(): confirmed.emit(), "attack"); _ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	(_ok as TBBz.Btn).kbd = "↵"
@@ -90,3 +95,18 @@ func setup(place: String, kind: String, info: Dictionary, moves: int, send: int)
 
 func _cell(v: String, c: String) -> Control:
 	return TBTagCard.Cell.new(v, c, 0.0, Color.WHITE, TBTokens.BZ_IVORY, 0.1)
+
+## the troop picker under the figures: `max_n` men can go, `value` of them do. A new range rebuilds it, the same range only moves it.
+func sync_picker(max_n: int, value: int) -> void:
+	if max_n <= 1:
+		if picker != null and is_instance_valid(picker): picker.queue_free()
+		picker = null
+		return
+	if picker == null or not is_instance_valid(picker) or picker.hi != max_n:
+		if picker != null and is_instance_valid(picker): picker.queue_free()
+		picker = TBTroopPicker.new()
+		_pick_slot.add_child(picker)
+		picker.setup(1, max_n, value, T.call("send_share"), true)
+		picker.changed.connect(func(n: int): amount_picked.emit(n))
+	elif picker.value != value:
+		picker.set_value(value)

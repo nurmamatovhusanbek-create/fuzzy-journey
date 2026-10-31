@@ -130,6 +130,34 @@ func _init() -> void:
 	await _shot("9_preview_half")
 	main.panel.send_frac = 1.0
 	main.flow.share_changed()
+	# the preview chip carries the troop picker: an exact number changes what the order sends and the odds
+	var chip = main.flow._chip
+	_check(chip.picker != null and chip.picker.hi == 118 and chip.picker.value == 118, "the preview chip offers every man but one (%s)" % str(chip.picker.hi if chip.picker != null else -1))
+	var odds_all: float = main.flow._pv(enemy_p)["atk"]
+	chip.picker._slider.value = 40
+	_check(main.flow.troops_for(enemy_src) == 40 and main.flow.mode == TBOrderFlow.Mode.PREVIEW, "typing or sliding the number on the chip sets the men sent (%d)" % main.flow.troops_for(enemy_src))
+	_check(float(main.flow._pv(enemy_p)["atk"]) < odds_all and main.flow._pv(enemy_p)["send"] == 40, "the odds follow the number (send %d)" % int(main.flow._pv(enemy_p)["send"]))
+	_check(chip.picker == main.flow._chip.picker and chip.picker.value == 40, "the picker is kept while it is dragged, not rebuilt")
+	main.panel.send_frac = 1.0
+	main.flow.share_changed()
+	_check(main.flow.troops_for(enemy_src) == 118 and chip.picker.value == 118, "the quick shares and the chip stay in step")
+	# Recruit asks how many first
+	var home: int = g.owned(me)[0]
+	g.gold[me] = 400.0; g.manpower[me] = 100.0; g.mp[me] = 6.0
+	var army0: int = g.army[home]; var man0: float = g.manpower[me]
+	main._open_amount("recruit", home)
+	var rcard = main._amount_card
+	_check(rcard != null and rcard.visible and rcard.picker.lo == 5 and rcard.picker.hi == 30 and rcard.picker.value == 15, "Recruit opens a card with the number 5 to 30, 15 first")
+	rcard.picker._slider.value = 22
+	rcard._confirm()
+	await process_frame
+	_check(g.army[home] == army0 + 22 and not rcard.visible, "the recruits are the number chosen (%d)" % (g.army[home] - army0))
+	_check(int(man0 - g.manpower[me]) == TBData.COST_RECRUIT_MAN + 22, "the people paid follow the number (%d)" % int(man0 - g.manpower[me]))
+	g.gold[me] = 0.0
+	main._open_amount("recruit", home)
+	_check(main._amount_card.visible and main._amount_card._ok.disabled, "with no gold the card says so and cannot confirm")
+	main._close_amount()
+	g.gold[me] = 400.0
 	# Esc steps back exactly one layer
 	main.panel.back()
 	_check(main.flow.mode == TBOrderFlow.Mode.ARMED and main.panel.visible, "Esc leaves the preview, keeps the card")

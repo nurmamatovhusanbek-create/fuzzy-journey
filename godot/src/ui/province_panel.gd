@@ -14,6 +14,7 @@ signal closed
 signal nation_requested(n: int)
 signal terms_requested(enemy: int)         ## the Terms verb: the peace-terms window for this enemy
 signal share_changed(frac: float)
+signal amount_requested(kind: String, p: int)      # Recruit / Hire: ask "how many?" before sending the command
 signal select_requested(p: int)
 ## the selected province belongs to another nation: its Actions list for the left panel (o = -1 when none)
 signal foreign_changed(o: int, rows: Array)
@@ -1049,8 +1050,8 @@ func _press(i: int) -> void:
 			if _confirm_mode() == "never": command.emit({"cmd": "declareWar", "t": int(_case["o"])})
 			else: _war_target = int(_case["o"]); rebuild()
 		"ult": command.emit({"cmd": "ultimatum", "t": int(_case["o"]), "p": s})
-		"recruit": command.emit({"cmd": "recruit", "p": s, "amount": 15})
-		"hire": command.emit({"cmd": "hire", "p": s, "amount": 40})
+		"recruit": amount_requested.emit("recruit", s)
+		"hire": amount_requested.emit("hire", s)
 		"general": command.emit({"cmd": "appoint", "p": s})
 		"develop": command.emit({"cmd": "develop", "p": s})
 		"settle": command.emit({"cmd": "settle", "p": s})

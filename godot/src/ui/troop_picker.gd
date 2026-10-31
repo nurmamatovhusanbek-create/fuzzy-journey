@@ -11,6 +11,7 @@ signal changed(n: int)
 var lo := 1
 var hi := 1
 var value := 1
+var compact := false                   # no steppers: the slider and the number fit a narrow chip
 var caption := ""                       # what the number is ("Send", "Recruit"): the accessible name of the slider and the field
 var _slider: HSlider
 var _edit: LineEdit
@@ -24,8 +25,8 @@ func _init() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 ## (re)build for a range and a start value; safe to call again when the army or the pool changes
-func setup(lo_: int, hi_: int, start: int, name_: String = "") -> void:
-	lo = maxi(0, lo_); hi = maxi(lo, hi_); caption = name_
+func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = false) -> void:
+	lo = maxi(0, lo_); hi = maxi(lo, hi_); caption = name_; compact = compact_
 	for c in get_children(): c.queue_free()
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
@@ -49,6 +50,7 @@ func setup(lo_: int, hi_: int, start: int, name_: String = "") -> void:
 	TBKit.a11y(_edit, caption, "")
 	_of = TBKit.num("", 14, TBTokens.c("ink_1"))
 	_of.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_minus.visible = not compact; _plus.visible = not compact
 	row.add_child(_minus); row.add_child(_slider); row.add_child(_plus); row.add_child(_edit); row.add_child(_of)
 	_seg = CC.ShareSeg.new()
 	_seg.cell_h = 34; _seg.cell_w = 40.0

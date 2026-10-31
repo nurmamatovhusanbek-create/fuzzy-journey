@@ -317,6 +317,10 @@ func _show_preview() -> void:
 		_chip = TBPreviewCard.new()
 		_chip.confirmed.connect(func(): confirm())
 		_chip.cancelled.connect(func(): cancel())
+		_chip.amount_picked.connect(func(n: int):                       # the number was chosen on the chip: the card and the arrow follow
+			if panel != null:
+				panel.send_frac = float(n) / float(maxi(1, g.army[src] - 1)); panel.send_n = n
+			share_changed())
 		host.add_child(_chip)
 		_chip.minimum_size_changed.connect(_place_chip)
 		if map != null and not map.view_changed.is_connected(_place_chip): map.view_changed.connect(_place_chip)
@@ -324,6 +328,7 @@ func _show_preview() -> void:
 	if c["kind"] == "attack": info = _pv(tgt)
 	var cost := g.can({"cmd": "move", "from": src, "to": tgt, "troops": troops_for(src)})
 	_chip.setup(TBI18n.place(g.world.name[tgt]), c["kind"], info, int(cost["moves"]), troops_for(src))
+	_chip.sync_picker(g.army[src] - 1, troops_for(src))
 	_chip.visible = true
 	_place_chip()
 	_place_chip.call_deferred()
