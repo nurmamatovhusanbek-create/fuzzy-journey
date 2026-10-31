@@ -11,6 +11,8 @@ var map: TBMapView
 var g: TBGame
 var _seen: Dictionary = {}               # route key -> seconds since it appeared
 var _t := 0.0
+var _sig_t := 0.0
+var _rel_sig := 0
 var _live := 0                           # routes drawn in the last frame (a map with none costs nothing)
 const SEG := 28
 
@@ -42,7 +44,10 @@ func _process(d: float) -> void:
 	_t += d
 	for k in _seen.keys(): _seen[k] = float(_seen[k]) + d
 	# a new pact, trade deal or war shows up at once (it used to wait for the camera to move), the camera moves the lines, and while a line grows in or a load travels it keeps drawing
-	var sig: int = hash([hash(g.rel), hash(g.trade), g.human_id, map.lon0, map.lat0, map.zoom, map.size, map.mode, g.turn, map.lenses.mode, map.lenses.route_kind, _march_sig()])
+	_sig_t += d
+	if _sig_t >= 0.15 or _rel_sig == 0:
+		_sig_t = 0.0; _rel_sig = hash([hash(g.rel), hash(g.trade)])                    # two big arrays: hashing them every frame cost more than drawing the lines
+	var sig: int = hash([_rel_sig, g.human_id, map.lon0, map.lat0, map.zoom, map.size, map.mode, g.turn, map.lenses.mode, map.lenses.route_kind, _march_sig()])
 	if sig != _sig: _sig = sig; queue_redraw()
 	elif _anim and K.motion_ok(): queue_redraw()                     # only a line growing in or a trade load on its way needs frames; a still route is not redrawn
 
@@ -54,6 +59,7 @@ func _cap(n: int) -> Array:
 
 ## points of the great circle between two lon/lat (degrees), projected; each [Vector2, visible]
 func _arc(a: Array, b: Array, bend: float) -> Array:
+	if map.mode == 1: return _flat_line(a, b, bend)
 	var u := _unit(a); var v := _unit(b)
 	var ang: float = acos(clampf(u.dot(v), -1.0, 1.0))
 	var via := Vector3.ZERO                  # exactly opposite capitals have no single great circle: go by way of a point a quarter turn off
@@ -78,6 +84,22 @@ func _arc(a: Array, b: Array, bend: float) -> Array:
 		var span: float = (p1 - p0).length()
 		for i in pts.size():
 			pts[i][0] = Vector2(pts[i][0]) + nrm * sin(PI * float(i) / SEG) * bend * (span * 0.085 if map.atlas_look() else minf(span, 600.0) * 0.12)       # demo: control point .17 x length off the chord
+	return pts
+
+## flat map: the great circle swings over the pole in Mercator, so the line is straight on the paper, the short way round the sideways wrap (x continues past the edge, never jumps)
+func _flat_line(a: Array, b: Array, bend: float) -> Array:
+	var pa: Vector3 = map.project(float(a[0]), float(a[1]))
+	var pb: Vector3 = map.project(float(b[0]), float(b[1]))
+	var xb: float = pa.x + deg_to_rad(wrapf(float(b[0]) - float(a[0]), -180.0, 180.0)) * map.flat_scale()
+	var p0 := Vector2(pa.x, pa.y); var p1 := Vector2(xb, pb.y)
+	var nrm: Vector2 = (p1 - p0).orthogonal().normalized() if p1.distance_to(p0) > 0.001 else Vector2.ZERO
+	var span: float = p0.distance_to(p1)
+	var pts: Array = []
+	for i in SEG + 1:
+		var f: float = float(i) / SEG
+		var q: Vector2 = p0.lerp(p1, f)
+		if bend != 0.0: q += nrm * sin(PI * f) * bend * minf(span, 600.0) * 0.12      # the same sideways bow as on the globe, so a pact and a trade line do not lie on top of each other
+		pts.append([q, true])
 	return pts
 
 ## slerp between two unit vectors a quarter turn apart (never degenerate)
@@ -185,13 +207,28 @@ func _draw() -> void:
 	for k in _seen.keys():
 		if not alive_keys.has(k): _seen.erase(k)
 
+## flat map: the world repeats sideways, so a line is drawn in every copy of it that reaches the screen (a route from Asia to America leaves one edge and arrives from the other)
 func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: Dictionary, income: int, risk: String = "") -> void:
+	if map.mode != 1:
+		_route_at(a, b, kind, key, bend, alive, income, risk, 0.0); return
+	var world_w: float = TAU * map.flat_scale()
+	var xa: float = map.project(float(a[0]), float(a[1])).x
+	var xb: float = xa + deg_to_rad(wrapf(float(b[0]) - float(a[0]), -180.0, 180.0)) * map.flat_scale()
+	var shown := false
+	for dx in [0.0, -world_w, world_w]:
+		if maxf(xa, xb) + dx >= -20.0 and minf(xa, xb) + dx <= map.size.x + 20.0:
+			_route_at(a, b, kind, key, bend, alive, income, risk, dx); shown = true
+	if not shown: alive[key] = true
+
+func _route_at(a: Array, b: Array, kind: String, key: String, bend: float, alive: Dictionary, income: int, risk: String, dx: float) -> void:
 	alive[key] = true; _live += 1
 	if not _seen.has(key): _seen[key] = 0.0 if K.motion_ok() else 99.0
 	var grow: float = clampf(float(_seen[key]) / 1.3, 0.0, 1.0)
 	if grow < 1.0 or kind == "trade": _anim = true
 	grow = 1.0 - pow(1.0 - grow, 3.0)
 	var pts: Array = _arc(a, b, bend)
+	if dx != 0.0:
+		for i in pts.size(): pts[i][0] = Vector2(pts[i][0]) + Vector2(dx, 0.0)
 	var atlas: bool = map.atlas_look()
 	var col: Color = TBTokens.c("brass_lt")
 	var w := 2.0
@@ -220,7 +257,7 @@ func _route(a: Array, b: Array, kind: String, key: String, bend: float, alive: D
 	var runs: Array = []
 	for i in last + 1:
 		if bool(pts[i][1]):
-			if run.size() > 0 and absf(run[run.size() - 1].x - Vector2(pts[i][0]).x) > map.size.x * 0.5:       # flat map: the arc crossed the date line
+			if run.size() > 0 and map.mode == 0 and absf(run[run.size() - 1].x - Vector2(pts[i][0]).x) > map.size.x * 0.5:       # flat map: the arc crossed the date line
 				if run.size() > 1: runs.append(run)
 				run = PackedVector2Array()
 			run.append(pts[i][0])
