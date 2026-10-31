@@ -41,10 +41,10 @@ func _init() -> void:
 			for i in 12: await process_frame
 			map.labels.queue_redraw()
 			for i in 90: await process_frame
-			var shown: bool = map.labels.armies_shown()
+			var shown: bool = map.labels.pills_fit()
 			var n := _active(main)
 			print("mode ", mode, " zoom ", snappedf(map.zoom, 0.01), " deg/px ", snappedf(map.prov_dpp(), 0.01), " lines_shown ", shown, " army pills ", n)
-			_check((n > 0) == shown, "mode %d zoom %.2f: pills %d but armies_shown %s" % [mode, map.zoom, n, str(shown)])
+			_check((n > 0) == shown, "mode %d zoom %.2f: pills %d but pills_fit %s" % [mode, map.zoom, n, str(shown)])
 			if zf == 0.0: shown_at_far = shown
 			else: shown_at_near = shown
 		_check(not shown_at_far, "mode %d: the whole-world view shows no army numbers" % mode)
@@ -72,7 +72,7 @@ func _init() -> void:
 		var f := 1.0
 		while f < 30.0:
 			map.zoom = z0 * f; map._push_view()
-			if map.labels.armies_shown(): break
+			if map.labels.pills_fit(): break
 			f *= 1.05
 		print("mode ", mode, ": borders and army numbers appear from zoom x", snappedf(f, 0.01), " of the whole-world view (buffer ", map._vp.size, ")")
 	print("ARMY_RULE OK" if fails == 0 else "ARMY_RULE FAIL %d" % fails)

@@ -169,7 +169,7 @@ static func mk() -> float: return clampf(TBKit.text_scale, 1.0, 1.5)
 const ARMY_PSZ_OWN := 64.0
 const ARMY_PSZ_ALL := 84.0
 ## the one rule for army pills on the map: the borders show and a province is wide enough to carry a pill
-func armies_shown() -> bool: return map != null and map.prov_lines_shown() and prov_px() >= ARMY_PSZ_OWN
+func pills_fit() -> bool: return map != null and map.prov_lines_shown() and prov_px() >= ARMY_PSZ_OWN
 var _shrink := 1.0
 func amk() -> float: return mk() * _shrink
 
@@ -793,7 +793,7 @@ func _draw_layout() -> void:
 	var psz := prov_px()
 	var ztier := 0 if psz < 14.0 else (1 if psz < 40.0 else 2)
 	var atier := maxi(1, ztier) if map.prov_lines_shown() else 0                  # army markers: only while the province borders show (zoomed out to country level the numbers would only be in the way)
-	if not armies_shown(): atier = 0                                               # country scale: no army pills at all, a province must be wide enough to carry one
+	if not pills_fit(): atier = 0                                               # country scale: no army pills at all, a province must be wide enough to carry one
 	var army_mine_only := psz < ARMY_PSZ_ALL                                       # in between only your own, wars, allies and the one you point at
 
 	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
