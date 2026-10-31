@@ -19,6 +19,7 @@ Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 s
 * High contrast light mode readable on every dialog, card and the HUD.
 * Capital stars (big countries at country level), map names on two lines, names stable while the globe turns.
 * Tutorial text brought up to date; small desktop windows are no longer tiny.
+* At 200 % text the End Turn dial no longer prints its word over the number and keeps its whole label on screen; the province ring's verbs are no longer cut to "MOVE AR…".
 * Long words (Russian, Uzbek) are set a size smaller instead of being broken in the middle; long event choices no longer lose their first lines at large text.
 
 ## Speed and tests
