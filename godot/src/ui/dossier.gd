@@ -23,7 +23,7 @@ class BuildTile extends Control:
 	func _init(ic: String, l: String, s: String, is_built: bool, is_building: bool, ok: bool) -> void:
 		icon = ic; label = l; sub = s; built = is_built; building = is_building; enabled = ok
 		size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		custom_minimum_size = Vector2(0, 2.0 + 9.0 + 22.0 + 4.0 + 14.0 + 17.0 + 9.0)
+		custom_minimum_size = Vector2(0, 2.0 + 9.0 + 22.0 + 4.0 + 14.0 + 17.0 + 9.0 + 10.0)           # room for a second line of the name
 		focus_mode = Control.FOCUS_NONE
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if ok and not built else Control.CURSOR_ARROW
 		mouse_entered.connect(func(): _hover = true; queue_redraw()); mouse_exited.connect(func(): _hover = false; queue_redraw())
@@ -47,10 +47,31 @@ class BuildTile extends Control:
 		TBBzIcons.draw(self, icon, Vector2(w * 0.5, 1.0 + 9.0 + 11.0), 22.0, col)
 		var fc: Font = TBKit.cinzel(700); var fi: Font = TBKit.alegreya(400, true)
 		var up: String = label.to_upper() if TBI18n.lang != "ru" else label
-		var lw: float = TBBz.tw(fc, up, 10.5, 10.5 * 0.14) - 10.5 * 0.14
-		TBBz.text(ci, fc, Vector2((w - lw) * 0.5, 1.0 + 9.0 + 22.0 + 4.0 + 10.0), up, 10.5, col, 10.5 * 0.14)
+		var ls: Array = _label_lines(fc, up, w - 10.0)                           # a long name (Uzbek, Russian) breaks onto a second line, or is set smaller: never over the tile's edge
+		var y0: float = 1.0 + 9.0 + 22.0 + 4.0 + 10.0
+		for k in ls.size():
+			var lt: String = ls[k][0]; var lz: float = ls[k][1]
+			var lw: float = TBBz.tw(fc, lt, lz, lz * 0.14) - lz * 0.14
+			TBBz.text(ci, fc, Vector2((w - lw) * 0.5, y0 + float(k) * (lz + 1.5)), lt, lz, col, lz * 0.14)
+		var extra: float = 0.0 if ls.size() < 2 else float(ls[1][1]) + 1.5
 		var sw: float = TBBz.tw(fi, sub, 13.0)
-		TBBz.text(ci, fi, Vector2((w - sw) * 0.5, 1.0 + 9.0 + 22.0 + 4.0 + 14.0 + 11.0), sub, 13.0, col)
+		TBBz.text(ci, fi, Vector2((w - sw) * 0.5, 1.0 + 9.0 + 22.0 + 4.0 + 14.0 + 11.0 + extra), sub, 13.0, col)
+	## the label in one line when it fits, else in two lines split at the space or hyphen that makes the wider line shortest; still too wide: a smaller size (never under 6.5)
+	func _label_lines(fc: Font, up: String, maxw: float) -> Array:
+		var sz := 10.5
+		if TBBz.tw(fc, up, sz, sz * 0.14) - sz * 0.14 <= maxw: return [[up, sz]]
+		var best: Array = []; var bw := 1.0e9
+		for i in range(1, up.length() - 1):
+			var chr: String = up[i]
+			if chr != " " and chr != "-": continue
+			var a: String = up.substr(0, i + (1 if chr == "-" else 0)).strip_edges(); var b: String = up.substr(i + 1).strip_edges()
+			var m: float = maxf(TBBz.tw(fc, a, sz, sz * 0.14), TBBz.tw(fc, b, sz, sz * 0.14))
+			if m < bw: bw = m; best = [a, b]
+		if best.is_empty():
+			while sz > 6.5 and TBBz.tw(fc, up, sz, sz * 0.14) - sz * 0.14 > maxw: sz -= 0.5
+			return [[up, sz]]
+		while sz > 6.5 and maxf(TBBz.tw(fc, best[0], sz, sz * 0.14), TBBz.tw(fc, best[1], sz, sz * 0.14)) - sz * 0.14 > maxw: sz -= 0.5
+		return [[best[0], sz], [best[1], sz]]
 	func _gui_input(e: InputEvent) -> void:
 		if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and not e.pressed and enabled and not built and not building:
 			pressed.emit(); accept_event()

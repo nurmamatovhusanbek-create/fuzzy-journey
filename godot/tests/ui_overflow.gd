@@ -27,7 +27,7 @@ func _walk(n: Node, tag: String) -> void:
 		var par := c.get_parent()
 		if par is Control and not (par is ScrollContainer) and not (par is Container) and c.size.x > 4.0:
 			var pr := Rect2(Vector2.ZERO, (par as Control).size)
-			if c.position.x > -5000.0 and (c.position.x < -2.0 or c.position.x + c.size.x > pr.size.x + 2.0) and not (par as Control).clip_contents and c.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			if c.position.x > -5000.0 and (c.position.x < -2.0 or c.position.x + c.size.x > pr.size.x + 2.0) and not (par as Control).clip_contents and c.mouse_filter != Control.MOUSE_FILTER_IGNORE and not c.has_meta("side"):             # (a window's resize handles are centred on its corner on purpose)
 				_bad.append("%s sticks out of its parent: %s (%.0f..%.0f in %.0f) widest: %s" % [tag, c.get_path(), c.position.x, c.position.x + c.size.x, pr.size.x, _widest(c)])
 	for k in n.get_children(): _walk(k, tag)
 
@@ -153,6 +153,7 @@ func _init() -> void:
 		var pend := {"kind": "sched", "id": ev["id"], "uid": 3, "n": fr, "icon": ev.get("icon", "flag"), "title": ev["title"], "flavor": ev["flavor"], "count": maxi(1, ch2.size()),
 			"labels": ch2.map(func(c): return c.get("label", {})), "fx": ch2.map(func(c): return c.get("effects", [])), "world": String(ev.get("scope", "world")) == "world"}
 		tests["sched_" + kind] = func(): TBModals.event_prompt(main._overlay, pend, func(c): pass, g)
+	tests["dossier"] = func(): main._open_dossier(g.capital_of[fr])
 	tests["title"] = func(): main.show_menu()
 	tests["era"] = func(): main.show_menu(); main._open_era_picker()                  # the real route: the title first (it decides the era picker's layout)
 	tests["pick"] = func(): main._clear_overlay(); main._begin_pick("napoleonic", "normal"); main._pick_flow.select_nation(fr, false)
