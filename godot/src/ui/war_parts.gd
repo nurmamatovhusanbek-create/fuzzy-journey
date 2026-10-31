@@ -102,10 +102,18 @@ class Seal extends Button:
 					if is_instance_valid(self) and _armed: _armed = false; caption = _cap0; queue_redraw())
 	var _cap0 := ""
 	var _cw := 0.0
+	## where the caption is drawn, in global coordinates (the test measures it against the disc), and the centre of the disc
+	func caption_rect() -> Rect2:
+		var f := TBKit.tracked(TBKit.wordmark(), 2)
+		var fsz := TBKit.fs(13)
+		var tw: float = minf(f.get_string_size(caption.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, size.x if stacked else size.x - 100.0)
+		var x0: float = (size.x - tw) * 0.5 if stacked else size.x - 92.0 - tw
+		return Rect2(global_position + Vector2(x0, 88.0), Vector2(tw, f.get_height(fsz)))
+	func disc_center_x() -> float: return global_position.x + (size.x * 0.5 if stacked else size.x - 42.0)
 	## the stacked form: a square disc box with the caption under it, centred
 	func stack() -> void:
 		stacked = true
-		custom_minimum_size = Vector2(maxf(minf(_cw, 300.0) + 24.0, 170.0), 84.0 + 30.0)
+		custom_minimum_size = Vector2(maxf(minf(_cw, 300.0) + 24.0, 170.0), 84.0 + 44.0)          # room under the caption: the Cancel button below it never touches the text
 	func _reset() -> void:
 		_holding = false; _hold = 0.0; progress.emit(0.0); queue_redraw()
 	func _flash_hint() -> void:
@@ -130,7 +138,7 @@ class Seal extends Button:
 		var f := TBKit.tracked(TBKit.wordmark(), 2)
 		var fsz := TBKit.fs(13)
 		var txt: String = caption.to_upper()
-		var tw: float = minf(f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, w - 100.0)
+		var tw: float = minf(f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, w if stacked else w - 100.0)          # stacked: the caption has the whole width, so it centres under the disc
 		var cap_col: Color = TBTokens.c("neg") if TBTokens.on_paper() else TBTokens.with_a(TBTokens.BZ_NOTICE_BAD.lerp(TBTokens.c("cream"), 0.25), 1.0)
 		if stacked:
 			draw_string(f, Vector2(roundf((w - tw) * 0.5), roundf(88.0 + f.get_ascent(fsz) + 4.0)), txt, HORIZONTAL_ALIGNMENT_LEFT, w, fsz, cap_col, TextServer.JUSTIFICATION_NONE)

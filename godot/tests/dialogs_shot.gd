@@ -63,7 +63,18 @@ func _init() -> void:
 	await _audit("confirm", h2, vs); root.get_viewport().get_texture().get_image().save_png(out + "/dlg_confirm.png"); h2.close(); await _frames(4)
 	# 3. war declaration
 	var h3 := TBModals.war_confirm(main._overlay, main.g, sp, func(): pass)
-	await _audit("war", h3, vs); root.get_viewport().get_texture().get_image().save_png(out + "/dlg_war.png"); h3.close(); await _frames(4)
+	await _audit("war", h3, vs)
+	var seals: Array = []
+	_find_all(h3.footer, func(n: Node) -> bool: return n is TBWarParts.Seal, seals)
+	if not seals.is_empty():
+		var sl: TBWarParts.Seal = seals[0]
+		var cr: Rect2 = sl.caption_rect()
+		_check(absf((cr.position.x + cr.size.x * 0.5) - sl.disc_center_x()) <= 1.5, "war: the hold caption is centred under its disc (%.1f px off)" % ((cr.position.x + cr.size.x * 0.5) - sl.disc_center_x()))
+		var cancel_top := 1.0e9
+		for b in h3.footer.get_children():
+			if b is Button and not (b is TBWarParts.Seal) and (b as Control).visible: cancel_top = minf(cancel_top, (b as Control).get_global_rect().position.y)
+		_check(cancel_top - (cr.end.y) >= 8.0, "war: the Cancel button is clear of the caption (%.1f px gap)" % (cancel_top - cr.end.y))
+	root.get_viewport().get_texture().get_image().save_png(out + "/dlg_war.png"); h3.close(); await _frames(4)
 	# 4. the tutorial
 	var h4 := TBModals.tutorial(main._overlay, func(): pass)
 	await _audit("tutorial", h4, vs); root.get_viewport().get_texture().get_image().save_png(out + "/dlg_tutorial.png"); h4.close(); await _frames(4)
