@@ -277,11 +277,15 @@ func _flow_chips(x0: float, x1: float, top: float, gap_c: float, compact: bool) 
 	for k in order:
 		if not shown.has(k): dropped.append(k)
 	_more_chip.visible = not dropped.is_empty()
+	_chips_right = cx - gap_c
 	if _more_chip.visible:
 		_more_chip.caption = ""; _more_chip.has_delta = false; _more_chip.frac = -1.0
 		_more_chip.set_num(float(dropped.size()), func(v: float) -> String: return "+%d" % int(v))
 		_more_chip.size = Vector2(_more_chip.desired_w(), _more_chip.desired_h()); _more_chip.position = Vector2(cx, top)
+		_chips_right = cx + _more_chip.size.x
 	return bottom
+
+var _chips_right: float = 0.0                 # the right edge of the last gauge on the top row (a phone's notices start after it)
 
 func _layout_demo(vp: Vector2) -> void:
 	var ph: bool = _prof != Prof.DESKTOP
@@ -381,7 +385,13 @@ func _layout_demo(vp: Vector2) -> void:
 	_ticker.row_w = aw
 	_ticker.gap = 10.0 if ph else 14.0
 	_ticker.compact = ph
-	_ticker.position = Vector2(vp.x - m - aw, m + 2.0 * med + 22.0) if not ph else Vector2(axis + med + 14.0 + gsz * 4.0 + 30.0, m)
+	if ph:                                                                      # phone: beside the gauges, between the last one (a war or infamy gauge is a fifth and a sixth) and the gear
+		var tx: float = _chips_right + 12.0
+		aw = clampf(minf(aw, _menu_btn.position.x - 10.0 - tx), 150.0, aw)
+		_ticker.row_w = aw
+		_ticker.position = Vector2(tx, m)
+	else:
+		_ticker.position = Vector2(vp.x - m - aw, m + 2.0 * med + 22.0)
 	_ticker._layout()
 	# ---- inspector + drawer areas
 	var tk_bottom: float = _ticker.position.y

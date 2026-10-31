@@ -131,6 +131,10 @@ func _offer_comfort() -> void:
 ## The UI is laid out in the Bezel demo's design units: a stage 1180 units tall on a desktop (390 on a phone held in landscape), scaled to the window.
 ## So a number in the demo (a 46 unit medallion, a 22 unit title) is the same number here. cfg "ui" is the demo's S / M / L (taller stage = smaller UI).
 const PHONE_STAGE := 760.0
+const COMPACT_STAGE := 460.0          # the phone layout's stage height in units (a taller stage = smaller UI; the old 390 made everything twice the desktop size; below 560 the phone layouts apply, also with the "small" interface setting x1.18); tests: TB_COMPACT_STAGE
+static func compact_stage() -> float:
+	var env := OS.get_environment("TB_COMPACT_STAGE")
+	return clampf(float(env), 360.0, 559.0) if env != "" else COMPACT_STAGE
 static func phone_stage() -> float:
 	var env := OS.get_environment("TB_PHONE_STAGE")                                  # tests: try another stage height
 	return clampf(float(env), 400.0, 1400.0) if env != "" else PHONE_STAGE
@@ -160,7 +164,7 @@ func _px_per_unit(s: Vector2i, k: float = 1.0) -> float:
 	var vw: float = s.x / dpr; var vh: float = s.y / dpr
 	if s.y > s.x: return clampf(s.x / 360.0, 1.0, 3.0) / k                    # portrait: 360 unit wide column
 	var phone: bool = vh < 560.0 and vw < 1300.0
-	var dh: float = ((phone_stage() if String(cfg.get("phone_ui", "desktop")) == "desktop" else 390.0) if phone else clampf(float(s.y) / 0.8, 760.0, 1180.0)) * k          # a small desktop window (a 1366 x 768 laptop) gets a shorter stage: no less than 0.8 px a unit, so the words stay readable
+	var dh: float = ((phone_stage() if String(cfg.get("phone_ui", "desktop")) == "desktop" else compact_stage()) if phone else clampf(float(s.y) / 0.8, 760.0, 1180.0)) * k          # a small desktop window (a 1366 x 768 laptop) gets a shorter stage: no less than 0.8 px a unit, so the words stay readable
 	return s.y / dh
 
 ## keep UI clear of notches / rounded corners / gesture bars on phones
@@ -932,6 +936,9 @@ func _on_peek(p: int) -> void:
 		if tip != null: tip.visible = false
 		return
 	flow.g = g
+	if p == selected and flow.mode == TBOrderFlow.Mode.IDLE:                         # the province card already shows this: no second box over the map
+		if tip != null: tip.visible = false
+		return
 	tip.show_for(g, p, flow, flow.mode == TBOrderFlow.Mode.IDLE and not map.district_zoom())
 	tip.position = (get_local_mouse_position() + Vector2(-tip.size.x * 0.5, -tip.size.y - 40.0)).clamp(Vector2.ZERO, size - tip.size)
 
@@ -1329,15 +1336,16 @@ func _update_perf(delta: float) -> void:
 		if _perf_label != null: _perf_label.visible = false
 		return
 	if _perf_label == null:
-		_perf_label = K.label("", 11, K.GOLD2); _perf_label.add_theme_font_override("font", K.mono())
-		_perf_label.set_anchors_preset(Control.PRESET_TOP_RIGHT); _perf_label.offset_left = -620; _perf_label.offset_right = -8; _perf_label.offset_top = 100; _perf_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; _perf_label.z_index = 100
+		_perf_label = K.label("", 9, K.GOLD2); _perf_label.add_theme_font_override("font", K.mono())
+		_perf_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT); _perf_label.offset_left = 6; _perf_label.offset_right = 306; _perf_label.offset_top = -13; _perf_label.offset_bottom = -1
+		_perf_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT; _perf_label.z_index = 100; _perf_label.modulate.a = 0.7; _perf_label.mouse_filter = Control.MOUSE_FILTER_IGNORE      # a thin line in the bottom-left corner, under the minimap
 		add_child(_perf_label)
 	_perf_label.visible = true
 	_perf_t += delta
 	if _perf_t < 0.5: return
 	_perf_t = 0.0
 	var ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
-	_perf_label.text = "%d fps · frame %.1f ms · map tier %d @%.0f%% · mem %d MB · turn %d ms" % [Engine.get_frames_per_second(), ms, map.quality, map._rs() * 100.0, OS.get_static_memory_usage() / 1048576, _turn_ms]
+	_perf_label.text = "%d fps · %.0f ms" % [Engine.get_frames_per_second(), ms] + (" · turn %d ms" % _turn_ms if _turn_ms > 0 else "")        # (map tier, scale and memory are for a debug build: --verbose)
 
 func _process(delta: float) -> void:
 	_update_perf(delta)
