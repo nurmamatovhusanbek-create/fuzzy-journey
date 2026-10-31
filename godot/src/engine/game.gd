@@ -407,11 +407,11 @@ func controller(p: int) -> int:
 
 # ---------------------------------------------------------------- levy pools (rules >= 4; docs/WAR_DESIGN.md section 3)
 const LEVY_RATE := [0.22, 0.28, 0.34, 0.42, 0.50]   # share of a province's people that can be under arms, by era: real states carried 1-3 % of their people for years, industrial ones 5-10 %
-const LEVY_REFILL := 0.10                            # of the cap, each turn
+const LEVY_REFILL := 0.06                            # of the cap, each turn
 const LEVY_START := 0.35                             # a new game starts with this share of the cap ready
 const LEVY_LOW := 0.25                               # below this share of the cap a province is drained
 const ARMY_CAP := 65000
-const WORK_LOSS_K := 0.45                           # share of tax and production lost per share of the people under arms
+const WORK_LOSS_K := 0.30                           # share of tax and production lost per share of the people under arms
 const WORK_LOSS_CAP := 0.35
 
 func levy_cap(p: int) -> int:

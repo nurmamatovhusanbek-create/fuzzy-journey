@@ -90,12 +90,12 @@ static func _nation(g: TBGame, n: int) -> void:
 		while i < fr.size():
 			var p := fr[i]; var q := fr[i + 1]
 			i += 2
-			if g.rules >= 4 and g.recruit_range(p).y < 1: continue                    # an empty pool raises nobody
+			if g.rules >= 4 and _levy_spare(g, p, at_war) < 1: continue               # a province keeps a reserve at home (more in peace); an empty pool raises nobody
 			var hostile: bool = g.owner[q] != 0 and g.get_rel(n, g.controller(q)) == D.REL_WAR
 			var s: float = (3.0 if hostile else 0.5) - g.army[p] / 60.0 + g.rng.next() * 0.3
 			if s > bs2:
 				bs2 = s; best2 = p
-		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20 if g.rules < 4 else clampi(g.recruit_range(best2).y, 1, 20 + (10 if at_war else 0))})
+		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20 if g.rules < 4 else clampi(_levy_spare(g, best2, at_war), 1, 20 + (10 if at_war else 0))})
 		lv += 1
 	# 3b. rules>=1: hoarded gold buys mercenaries (turns wealth into power; the game's main gold sink)
 	if g.rules >= 1 and g.gold[n] > 500:
@@ -341,3 +341,8 @@ static func _districts(g: TBGame, n: int, own: PackedInt32Array, pers: Dictionar
 				var sc2: float = fill * 3.0 + g.stab[p] / 50.0 - g.dev[p] * 0.5
 				if sc2 > bsc: bsc = sc2; bp = p
 			if bp >= 0: g.apply({"cmd": "develop", "n": n, "p": bp})
+
+## rules 4: men the AI may raise from p without draining it (it keeps 40 % of the cap at home in peace, 15 % at war: a drained province sulks and grows slowly)
+static func _levy_spare(g: TBGame, p: int, at_war: bool) -> int:
+	var keep := int(float(g.levy_cap(p)) * (0.15 if at_war else 0.40))
+	return mini(g.recruit_range(p).y, g.levy[p] - keep)
