@@ -194,7 +194,12 @@ static func _srow(title: String, ctl: Control, stacked: bool, hint: String = "")
 
 ## a choice of more than three options: a drop-down (a pill showing the current choice); three or fewer stay a segmented control
 static func _choice(items: Array, cur: String, cb: Callable) -> Control:
-	if items.size() <= 3: return K.segmented(items, cur, cb, true)
+	if items.size() <= 3:
+		var sg: Control = K.segmented(items, cur, cb, true)
+		var need := 0.0                                                      # one row: the cells side by side (the control sizes itself from the width it is given, so without this it would stack)
+		for i in items.size(): need += (sg as K.Segmented)._nat(i)
+		sg.custom_minimum_size.x = need + (items.size() - 1) * (sg as K.Segmented).GAP + 2.0
+		return sg
 	var ob := OptionButton.new()
 	ob.focus_mode = Control.FOCUS_ALL; ob.fit_to_longest_item = true
 	ob.custom_minimum_size = Vector2(150.0, float(K.touch()))

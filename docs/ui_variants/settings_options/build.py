@@ -110,5 +110,16 @@ prev='<div style="width:230px;border:1px solid #3a2f1b;background:#120e09;paddin
 rows2=''.join([row('Quality',pill('Auto')),row('Map view',seg(['Globe','Flat'],'Globe')),row('Map style',pill('Standard')),row('Effects',pill('Light')),row('Interface size',pill('Normal')),row('Phone layout',pill('Desktop'))])
 out['opt_E_page']=page('E2','<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;color:var(--dim)"><span class="chev" style="margin:0">‹</span><span class="cap">Look &amp; map</span></div><div style="display:flex;gap:18px"><div style="flex:1">%s</div>%s</div>'%(rows2,prev))
 
+
+# ---- F: my suggestion: search + preset chips + essentials (drop-downs) + folds
+def chip(t,on=False): return '<span style="border:1px solid %s;background:%s;padding:5px 12px;margin-right:8px;font-family:Cinzel;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:%s">%s</span>'%('var(--hi)' if on else '#3a2f1b','#2a2113' if on else 'transparent','var(--ivory)' if on else 'var(--dim)',t)
+search_s='<div style="border:1px solid #3a2f1b;background:#120e09;padding:7px 12px;font-size:14.5px;color:var(--dim2);display:flex;gap:10px;margin-bottom:10px">⌕ <span>Search settings…</span></div>'
+presets=('<div style="display:flex;align-items:center;margin-bottom:6px"><span class="cap" style="margin-right:12px;color:var(--dim)">Feel</span>%s%s%s%s</div>')%(chip('Balanced',True),chip('Phone saver'),chip('Cinematic'),chip('Comfort'))
+ess2=''.join([row('Language',seg(['English','Русский','Oʻzbekcha'],'English')),row('Quality',pill('Auto')),row('Text size',pill('125 %')),row('Master volume',sl(70))])
+def fold2(t,summary,n,open_=False,inner=''):
+    return ('<div style="border:1px solid #3a2f1b;margin-top:8px;background:#17120c"><div style="display:flex;align-items:center;gap:10px;padding:9px 14px"><span class="cap" style="width:150px">%s</span><span style="flex:1;color:var(--dim);font-size:14px">%s</span><span class="val" style="color:var(--dim2)">%d</span><span class="chev">%s</span></div>%s</div>')%(t,summary,n,'⌄' if open_ else '›',('<div style="padding:0 14px 6px;border-top:1px solid #2a2216">%s</div>'%inner) if open_ else '')
+out['opt_F_hybrid']=page('F',search_s+presets+'<div class="sec" style="padding:6px 2px 0">Essentials</div>'+ess2+fold2('Display details','Globe · Standard map · Light effects',9)+fold2('Accessibility','Contrast off · Colours off · 2 switches on',9)+fold2('Audio mixer','Music 80 · Effects 80 · Interface 80',5)+fold2('Advanced','Performance readout off',3))
+acc=''.join([row('High contrast',pill('Off')),row('Colour vision',pill('Off')),row('Reduce motion',tg(False)),row('Large touch targets',tg(True)),row('Readable fonts',tg(False)),row('Confirm destructive actions',pill('Risky only'))])
+out['opt_F_hybrid_open']=page('F2',search_s+'<div class="sec" style="padding:2px 2px 0">Essentials</div>'+row('Language',seg(['English','Русский','Oʻzbekcha'],'English'))+row('Text size',pill('125 %'))+fold2('Display details','Globe · Standard map · Light effects',9)+fold2('Accessibility','Contrast off · Colours off · 2 switches on',9,True,acc))
 for k,v in out.items(): open(k+'.html','w').write(v)
 print(len(out),'files')
