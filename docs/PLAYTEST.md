@@ -18,3 +18,6 @@ Method: `godot/tests/playtest.gd` plays a campaign with a scripted human (era, n
 ## Open
 - Idle manpower and a lack of late-game sinks for envoys (the alerts now say so; a real sink would be a design decision).
 - Germany 1939 under a naive bot collapses to 10 provinces with 8 wars.
+
+## Rome, ancient, 60 turns (2026-10-31, after the new ancient events)
+No script errors, 0 can/apply mismatches, 0 slow turns; 37 event choices answered, the new events appear as ordinary event cards. The scripted player's happiness fell from 65 to 18 and its net income turned negative by turn 60: that is the bot's own budget (high tax, constant recruiting and settling), not the model. Every headless test of this kind ends with a heap-corruption message at process exit (`corrupted double-linked list` / `double free`), also in `ui_hotseat.gd`, after the result is printed; it needs a look under a debugger before a release build, and a run under Godot 4.5 would show whether it is the engine.

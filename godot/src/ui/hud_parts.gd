@@ -1133,7 +1133,9 @@ class Seal extends Hit:
 			if tt2 != "":
 				if not ph:
 					var cf: Font = K.cinzel(500)
-					TBHudParts.txtl(self, cf, cs.x, cs.y - R * 0.24, "TURN", TBHudParts.fs(9.5), TBTokens.c("brass_lt"), 3.5, 1)
+					var tw_: String = TBI18n.T("aoc_turn", {"k": ""}).replace(":", "").strip_edges()                  # the word for "turn" in the language in use
+					if TBI18n.lang != "ru": tw_ = tw_.to_upper()
+					TBHudParts.txtl(self, cf, cs.x, cs.y - R * 0.24, tw_, TBHudParts.fs(9.5), TBTokens.c("brass_lt"), 3.5 if tw_.length() <= 4 else 1.6, 1)      # a longer word (NAVBAT) is tracked tighter to stay inside the ring
 				var nw: float = TBHudParts.tw(fb, tt2, z)                                    # a long number (turn 1000+) shrinks to stay inside the red arc
 				if nw > (R - 24.0) * 1.5: z = maxi(10, int(floorf(float(z) * (R - 24.0) * 1.5 / nw)))
 				TBHudParts.txtl(self, fb, cs.x, cs.y + R * 0.17, tt2, z, on, 0.0, 1)
