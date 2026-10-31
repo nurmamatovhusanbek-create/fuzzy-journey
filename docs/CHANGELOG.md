@@ -10,7 +10,7 @@ Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 s
 * Buildings follow the land: ports need a coast, farms need soil and rain.
 * Terrain follows the geography (mountain ranges, forests, steppe, marsh).
 * Ruler names fit the country (14 name spheres); the modern world finally has real capitals.
-* Nine new modern-era events (2026 to 2037).
+* Nine new modern-era events (2026 to 2037); fifteen for the ancient and Roman eras (Trasimene, Raphia, Chen Sheng, the Han founding, Baideng, the last Maurya, the Maccabees, the Land Law; the Pantheon, the Western Regions, the Red Sea trade, Ctesiphon, the Marcomannic wars, the eunuchs, the revolt in Syria). Ancient: 18 of 28 events fire in 100 turns (was 12 of 20); Roman: 14 of 26 (was 9 of 19).
 * Uzbek: all 180 scheduled history events (title, text, choices) now have Uzbek text (only 9 did, the rest showed English), and 544 nation names are in Uzbek on the map and in lists (Fransiya, Rossiya imperiyasi, Usmonlilar imperiyasi). Names without a form stay in English.
 
 ## Interface
