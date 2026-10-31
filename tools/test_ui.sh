@@ -107,6 +107,11 @@ for cfg in "1280 720 1.0 en" "800 360 1.0 uz" "1920 1080 1.5 en" "1920 1080 1.5 
   out=$(TB_NOANIM=1 timeout 200 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_overflow.gd -- $cfg 2>&1)
   echo "$out" | grep -q "OVERFLOW_AUDIT 0 findings" && echo "ok: ui_overflow $cfg" || { echo "FAIL: ui_overflow $cfg"; echo "$out" | grep -E "OVERFLOW |SCRIPT" | head -5; fail=1; }
 done
+# the phone stage (an S22: 2340 x 1080 at 2.66) at the two large text sizes
+for cfg in "2340 1080 1.5 en" "2340 1080 2.0 en" "2340 1080 2.0 ru" "2340 1080 2.0 uz"; do
+  out=$(TB_DPR=2.66 TB_DPI=425 TB_NOANIM=1 timeout 250 "$XV" -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_overflow.gd -- $cfg 2>&1)
+  echo "$out" | grep -q "OVERFLOW_AUDIT 0 findings" && echo "ok: ui_overflow phone stage $cfg" || { echo "FAIL: ui_overflow phone stage $cfg"; echo "$out" | grep -E "OVERFLOW |SCRIPT" | head -5; fail=1; }
+done
 # portrait is not shipped (Android and the project are landscape-locked): reported, never fatal
 out=$(TB_NOANIM=1 timeout 200 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_overflow.gd -- 540 960 2.0 ru 2>&1)
 echo "$out" | grep -q "OVERFLOW_AUDIT 0 findings" && echo "ok: ui_overflow 540 960 2.0 ru (portrait, informational)" || echo "info: portrait 540x960 at 200% ru has overflow items (not shipped, not counted)"
