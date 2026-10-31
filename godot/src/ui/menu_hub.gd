@@ -172,91 +172,144 @@ static func _group(title: String) -> VBoxContainer:
 	g.add_child(K.caps(title, 12, K.GOLD))
 	return g
 
+## the categories of the Settings tab (a rail on the left, or a row of chips on a narrow or large-text window); one category at a time keeps the page calm
+const SET_CATS := [["display", "set_display"], ["map", "set_cat_map"], ["comfort", "set_cat_comfort"], ["sound", "set_audio"], ["language", "language"], ["advanced", "set_advanced"]]
+
+## one row: the name on the left, its control on the right (stacked, name above control, on a narrow window)
+static func _srow(title: String, ctl: Control, stacked: bool, hint: String = "") -> Control:
+	var box: BoxContainer = VBoxContainer.new() if stacked else HBoxContainer.new()
+	box.add_theme_constant_override("separation", 6 if stacked else 14)
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var lb := K.vbox(0); lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL; lb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var l := K.label(title, 16); l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size.x = 60
+	lb.add_child(l)
+	if hint != "":
+		var hl := K.label(hint, 13, K.DIM); hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hl.custom_minimum_size.x = 60
+		lb.add_child(hl)
+	ctl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if stacked else Control.SIZE_SHRINK_END
+	ctl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.add_child(lb); box.add_child(ctl)
+	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", 4); m.add_theme_constant_override("margin_bottom", 6); m.add_child(box)
+	return m
+
+## a choice of more than three options: a drop-down (a pill showing the current choice); three or fewer stay a segmented control
+static func _choice(items: Array, cur: String, cb: Callable) -> Control:
+	if items.size() <= 3: return K.segmented(items, cur, cb, true)
+	var ob := OptionButton.new()
+	ob.focus_mode = Control.FOCUS_ALL; ob.fit_to_longest_item = true
+	ob.custom_minimum_size = Vector2(150.0, float(K.touch()))
+	var sel := 0
+	for i in items.size():
+		ob.add_item(String(items[i][1]), i)
+		if String(items[i][0]) == cur: sel = i
+	ob.select(sel)
+	ob.item_selected.connect(func(i: int): cb.call(String(items[i][0])))
+	return ob
+
 static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebuild: Callable, portrait: bool) -> void:
 	var cfg: Dictionary = ctx["cfg"]
 	var on_change: Callable = ctx["on_change"]
 	var wide: bool = not portrait and h.card.size.x >= 720.0 and K.text_scale < 1.4
-	var host: BoxContainer = BoxContainer.new(); host.vertical = not wide
-	host.add_theme_constant_override("separation", 28 if wide else 20)
-	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var c1 := K.vbox(20); c1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var c2 := K.vbox(20); c2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	host.add_child(c1); host.add_child(c2)
+	var stacked: bool = not wide and (portrait or h.card.size.x < 520.0 or K.text_scale >= 1.4)
 	var keep_scroll := func() -> void: mem["scroll"] = h.scroll.scroll_vertical
 	var set := func(key: String, value: Variant, needs_rebuild: bool = false) -> void:
 		cfg[key] = value
 		keep_scroll.call()
 		on_change.call(key)
 		if needs_rebuild: rebuild.call()
-	# ---- Display: quality, map view and style, interface size, text size, language
-	var gd := _group(T.call("set_display"))
-	_seg(gd, T.call("quality"), [["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], String(cfg["quality"]), func(v): set.call("quality", v))
-	_seg(gd, T.call("map_view"), [["globe", T.call("globe")], ["flat", T.call("flat")]], String(cfg["view"]), func(v): set.call("view", v))
-	_seg(gd, T.call("map_style"), [["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")], ["hc", T.call("style_hc")]], String(cfg.get("theme", "standard")), func(v): set.call("theme", v))
-	_seg(gd, T.call("fx_title"), [["off", T.call("fx_off")], ["light", T.call("fx_light")], ["full", T.call("fx_full")]], String(cfg.get("fx", "full")), func(v): set.call("fx", v))
-	_seg(gd, T.call("era_ui_title"), [["ring", T.call("era_ui_ring")], ["classic", T.call("era_ui_classic")]], String(cfg.get("era_ui", "ring")), func(v): set.call("era_ui", v))
-	_seg(gd, T.call("ui_size"), [["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], String(cfg.get("ui", "normal")), func(v): set.call("ui", v))
-	_seg(gd, T.call("phone_layout"), [["desktop", T.call("phone_desktop")], ["compact", T.call("phone_compact")]], String(cfg.get("phone_ui", "desktop")), func(v): set.call("phone_ui", v))
-	gd.add_child(K.toggle(T.call("tips_title"), bool(cfg.get("tips", true)), func(v): set.call("tips", v)))
-	_seg(gd, T.call("text_size"), [["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): set.call("text_scale", float(v), true))
-	gd.add_child(TBPanel.para(T.call("text_preview"), 15, K.DIM))
-	_seg(gd, T.call("language"), [["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], String(cfg["lang"]), func(v): set.call("lang", v, true))
-	# ---- Access
-	var ga := _group(T.call("set_access"))
-	_seg(ga, T.call("high_contrast"), [["off", T.call("hc_off")], ["light", T.call("hc_light")], ["dark", T.call("hc_dark")]], _hc_id(cfg), func(v): cfg.erase("contrast"); set.call("hc", v, true))
-	_seg(ga, T.call("cvd_title"), [["off", T.call("cvd_off")], ["deuter", T.call("cvd_deuter")], ["protan", T.call("cvd_protan")], ["tritan", T.call("cvd_tritan")]], String(cfg.get("cvd", "off")), func(v): set.call("cvd", v))
-	_seg(ga, T.call("navpad_title"), [["auto", T.call("navpad_auto")], ["on", T.call("navpad_on")], ["off", T.call("navpad_off")]], String(cfg.get("navpad", "auto")), func(v): set.call("navpad", v))
-	ga.add_child(K.toggle(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): set.call("reduce_motion", v)))
-	ga.add_child(K.toggle(T.call("large_targets"), bool(cfg.get("touch_large", false)), func(v): set.call("touch_large", v, true)))
-	ga.add_child(K.toggle(T.call("readable_fonts"), bool(cfg.get("readable", false)), func(v): set.call("readable", v, true)))
-	_seg(ga, T.call("set_confirm"), [["off", T.call("confirm_off")], ["risky", T.call("confirm_risky")], ["all", T.call("confirm_all")]], String(cfg.get("confirm", "risky")), func(v): set.call("confirm", v))
-	var warn := K.label("", 13, K.DIM); warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; warn.visible = false
-	ga.add_child(K.toggle(T.call("set_tts"), bool(cfg.get("tts", false)), func(v): set.call("tts", v)))
-	var tb := K.button(T.call("tts_test"), func():
-		K.tts_test()
-		warn.text = K.tts_warning; warn.visible = K.tts_warning != "")
-	tb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	ga.add_child(tb); ga.add_child(warn)
-	ga.add_child(K.toggle(T.call("set_mirror"), bool(cfg.get("mirror", false)), func(v): set.call("mirror", v)))
-	# ---- Audio: mute-all, four buses with steppers, visual alert strip
-	var gu := _group(T.call("set_audio"))
-	gu.add_child(K.toggle(T.call("sound"), bool(cfg.get("sound", true)), func(v): set.call("sound", v)))
-	for it in [["vol_master", "vol_master"], ["vol_music", "vol_music"], ["vol_sfx", "vol_sfx"], ["vol_ui", "vol_ui"]]:
-		var key: String = it[0]
-		gu.add_child(K.label(T.call(String(it[1])), 13, K.DIM))
-		gu.add_child(K.slider_row(T.call(String(it[1])), 0, 100, 5, float(cfg.get(key, 80)), func(v: float): set.call(key, int(v))))
-	gu.add_child(K.toggle(T.call("set_vis_alerts"), bool(cfg.get("vis_alerts", false)) or not bool(cfg.get("sound", true)), func(v): set.call("vis_alerts", v)))
-	if not bool(cfg.get("sound", true)): gu.add_child(TBPanel.para(T.call("vis_alerts_muted"), 13, K.DIM))
-	# ---- Advanced
-	var gv := _group(T.call("set_advanced"))
-	gv.add_child(K.toggle(T.call("perf_overlay"), bool(cfg.get("perf", false)), func(v): set.call("perf", v)))
-	if ctx.has("on_diag") and (ctx["on_diag"] as Callable).is_valid():
-		var db := K.button(T.call("copy_diag"), Callable())
-		db.pressed.connect(func(): (ctx["on_diag"] as Callable).call(); db.text = T.call("diag_copied"))
-		db.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		gv.add_child(db)
-	var reset := K.button(T.call("reset_access"), func():
-		TBPanel.confirm(parent, T.call("reset_confirm_t"), T.call("reset_confirm_b"), T.call("reset_do"), func():
-			for k in ACCESS_DEFAULTS: cfg[k] = ACCESS_DEFAULTS[k]
-			cfg.erase("contrast")
-			on_change.call("reset_access"); rebuild.call(), false, "info"))
-	reset.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	gv.add_child(reset)
-	c1.add_child(gd); c1.add_child(gu); c2.add_child(ga); c2.add_child(gv)
-	# ---- jump chips (everything is on this one page, so any setting is the Settings tab + one tap)
-	var jumps: Array = [["d", T.call("set_display")], ["a", T.call("set_access")], ["u", T.call("set_audio")], ["v", T.call("set_advanced")]]
-	var targets := {"d": gd, "a": ga, "u": gu, "v": gv}
-	var chips := K.segmented(jumps, "", func(id: String):
-		var tgt: Control = targets[id]
-		(func():
-			if is_instance_valid(h.scroll) and is_instance_valid(tgt): h.scroll.scroll_vertical = maxi(0, int(tgt.global_position.y - h.body.global_position.y) - 4)).call_deferred(), true)
-	K.a11y(chips, T.call("set_jump"), "")
-	h.body.add_child(K.caps(T.call("set_jump"), 12, K.DIM))
-	h.body.add_child(chips)
-	h.body.add_child(host)
+	var cat: String = String(mem.get("set_cat", "display"))
+	var page := K.vbox(4); page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_child(K.caps(T.call(String(SET_CATS[_cat_index(cat)][1])), 12, K.GOLD))
+	match cat:
+		"display":
+			page.add_child(_srow(T.call("quality"), _choice([["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], String(cfg["quality"]), func(v): set.call("quality", v)), stacked, T.call("q_auto")))
+			page.add_child(_srow(T.call("fx_title"), _choice([["off", T.call("fx_off")], ["light", T.call("fx_light")], ["full", T.call("fx_full")]], String(cfg.get("fx", "full")), func(v): set.call("fx", v)), stacked))
+			page.add_child(_srow(T.call("ui_size"), _choice([["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], String(cfg.get("ui", "normal")), func(v): set.call("ui", v)), stacked))
+			page.add_child(_srow(T.call("phone_layout"), _choice([["desktop", T.call("phone_desktop")], ["compact", T.call("phone_compact")]], String(cfg.get("phone_ui", "desktop")), func(v): set.call("phone_ui", v)), stacked))
+			page.add_child(_srow(T.call("era_ui_title"), _choice([["ring", T.call("era_ui_ring")], ["classic", T.call("era_ui_classic")]], String(cfg.get("era_ui", "ring")), func(v): set.call("era_ui", v)), stacked))
+			page.add_child(K.toggle(T.call("tips_title"), bool(cfg.get("tips", true)), func(v): set.call("tips", v)))
+		"map":
+			page.add_child(_srow(T.call("map_view"), _choice([["globe", T.call("globe")], ["flat", T.call("flat")]], String(cfg["view"]), func(v): set.call("view", v)), stacked))
+			page.add_child(_srow(T.call("map_style"), _choice([["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")], ["hc", T.call("style_hc")]], String(cfg.get("theme", "standard")), func(v): set.call("theme", v)), stacked))
+			page.add_child(_srow(T.call("navpad_title"), _choice([["auto", T.call("navpad_auto")], ["on", T.call("navpad_on")], ["off", T.call("navpad_off")]], String(cfg.get("navpad", "auto")), func(v): set.call("navpad", v)), stacked))
+			page.add_child(_srow(T.call("cvd_title"), _choice([["off", T.call("cvd_off")], ["deuter", T.call("cvd_deuter")], ["protan", T.call("cvd_protan")], ["tritan", T.call("cvd_tritan")]], String(cfg.get("cvd", "off")), func(v): set.call("cvd", v)), stacked))
+		"comfort":
+			page.add_child(_srow(T.call("text_size"), _choice([["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): set.call("text_scale", float(v), true)), stacked))
+			page.add_child(TBPanel.para(T.call("text_preview"), 15, K.DIM))
+			page.add_child(_srow(T.call("high_contrast"), _choice([["off", T.call("hc_off")], ["light", T.call("hc_light")], ["dark", T.call("hc_dark")]], _hc_id(cfg), func(v): cfg.erase("contrast"); set.call("hc", v, true)), stacked))
+			page.add_child(K.toggle(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): set.call("reduce_motion", v)))
+			page.add_child(K.toggle(T.call("large_targets"), bool(cfg.get("touch_large", false)), func(v): set.call("touch_large", v, true)))
+			page.add_child(K.toggle(T.call("readable_fonts"), bool(cfg.get("readable", false)), func(v): set.call("readable", v, true)))
+			page.add_child(_srow(T.call("set_confirm"), _choice([["off", T.call("confirm_off")], ["risky", T.call("confirm_risky")], ["all", T.call("confirm_all")]], String(cfg.get("confirm", "risky")), func(v): set.call("confirm", v)), stacked))
+			var warn := K.label("", 13, K.DIM); warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; warn.visible = false
+			page.add_child(K.toggle(T.call("set_tts"), bool(cfg.get("tts", false)), func(v): set.call("tts", v)))
+			var tb := K.button(T.call("tts_test"), func():
+				K.tts_test()
+				warn.text = K.tts_warning; warn.visible = K.tts_warning != "")
+			tb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			page.add_child(tb); page.add_child(warn)
+			page.add_child(K.toggle(T.call("set_mirror"), bool(cfg.get("mirror", false)), func(v): set.call("mirror", v)))
+		"sound":
+			page.add_child(K.toggle(T.call("sound"), bool(cfg.get("sound", true)), func(v): set.call("sound", v)))
+			for it in [["vol_master", "vol_master"], ["vol_music", "vol_music"], ["vol_sfx", "vol_sfx"], ["vol_ui", "vol_ui"]]:
+				var key: String = it[0]
+				var sr := K.slider_row(T.call(String(it[1])), 0, 100, 5, float(cfg.get(key, 80)), func(v: float): set.call(key, int(v)))
+				sr.custom_minimum_size.x = 250.0
+				page.add_child(_srow(T.call(String(it[1])), sr, stacked))
+			page.add_child(K.toggle(T.call("set_vis_alerts"), bool(cfg.get("vis_alerts", false)) or not bool(cfg.get("sound", true)), func(v): set.call("vis_alerts", v)))
+			if not bool(cfg.get("sound", true)): page.add_child(TBPanel.para(T.call("vis_alerts_muted"), 13, K.DIM))
+		"language":
+			page.add_child(_srow(T.call("language"), _choice([["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], String(cfg["lang"]), func(v): set.call("lang", v, true)), stacked))
+		"advanced":
+			page.add_child(K.toggle(T.call("perf_overlay"), bool(cfg.get("perf", false)), func(v): set.call("perf", v)))
+			if ctx.has("on_diag") and (ctx["on_diag"] as Callable).is_valid():
+				var db := K.button(T.call("copy_diag"), Callable())
+				db.pressed.connect(func(): (ctx["on_diag"] as Callable).call(); db.text = T.call("diag_copied"))
+				db.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+				page.add_child(db)
+			var reset := K.button(T.call("reset_access"), func():
+				TBPanel.confirm(parent, T.call("reset_confirm_t"), T.call("reset_confirm_b"), T.call("reset_do"), func():
+					for k in ACCESS_DEFAULTS: cfg[k] = ACCESS_DEFAULTS[k]
+					cfg.erase("contrast")
+					on_change.call("reset_access"); rebuild.call(), false, "info"))
+			reset.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			page.add_child(reset)
+	# ---- the rail (wide window) or a row of chips (narrow): one tap to another category
+	var pick := func(id: String) -> void:
+		if id == String(mem.get("set_cat", "display")): return
+		mem["set_cat"] = id; mem["scroll"] = 0
+		rebuild.call()
+	var nav: Control
+	if wide:
+		var rail := K.vbox(4); rail.custom_minimum_size.x = 176.0
+		for c in SET_CATS:
+			var id: String = c[0]
+			var b := K.button(T.call(String(c[1])), func(): pick.call(id), id == cat)
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			K.a11y(b, T.call(String(c[1])), "tab")
+			rail.add_child(b)
+		nav = rail
+		var host := HBoxContainer.new(); host.add_theme_constant_override("separation", 22); host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		host.add_child(nav); host.add_child(VSeparator.new()); host.add_child(page)
+		h.body.add_child(host)
+	else:
+		var chips := HFlowContainer.new(); chips.add_theme_constant_override("h_separation", 6); chips.add_theme_constant_override("v_separation", 6)
+		for c in SET_CATS:
+			var id2: String = c[0]
+			var b2 := K.button(T.call(String(c[1])), func(): pick.call(id2), id2 == cat, true)
+			K.a11y(b2, T.call(String(c[1])), "tab")
+			chips.add_child(b2)
+		h.body.add_child(chips)
+		var gap := Control.new(); gap.custom_minimum_size.y = 8.0; h.body.add_child(gap)
+		h.body.add_child(page)
 	if mem.has("scroll"):
 		var sv: int = int(mem["scroll"])
 		(func(): if is_instance_valid(h.scroll): h.scroll.scroll_vertical = sv).call_deferred()
+
+static func _cat_index(id: String) -> int:
+	for i in SET_CATS.size():
+		if String(SET_CATS[i][0]) == id: return i
+	return 0
 
 static func _scale_id(v: float) -> String:
 	if v >= 1.75: return "2.0"
