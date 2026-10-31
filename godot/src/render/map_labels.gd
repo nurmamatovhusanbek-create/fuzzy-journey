@@ -165,6 +165,11 @@ static func strong() -> bool: return TBLenses.cvd != "off" or TBTokens.is_hc()
 ## marker geometry follows the text size up to 1.5x (labels follow it fully)
 static func mk() -> float: return clampf(TBKit.text_scale, 1.0, 1.5)
 ## the army marker's own scale: the text-size scale times the shrink that comes with closing in past province scale (set once per layout from the map)
+## province width (logical px, the same measure as `prov_px`) from which army pills show: your own, wars and allies first, everybody once a province is wide enough for a pill without hiding it
+const ARMY_PSZ_OWN := 64.0
+const ARMY_PSZ_ALL := 84.0
+## the one rule for army pills on the map: the borders show and a province is wide enough to carry a pill
+func armies_shown() -> bool: return map != null and map.prov_lines_shown() and prov_px() >= ARMY_PSZ_OWN
 var _shrink := 1.0
 func amk() -> float: return mk() * _shrink
 
@@ -788,6 +793,9 @@ func _draw_layout() -> void:
 	var psz := prov_px()
 	var ztier := 0 if psz < 14.0 else (1 if psz < 40.0 else 2)
 	var atier := maxi(1, ztier) if map.prov_lines_shown() else 0                  # army markers: only while the province borders show (zoomed out to country level the numbers would only be in the way)
+	if not armies_shown(): atier = 0                                               # country scale: no army pills at all, a province must be wide enough to carry one
+	var army_mine_only := psz < ARMY_PSZ_ALL                                       # in between only your own, wars, allies and the one you point at
+
 	var R := map.radius_px(); var cx := map.size.x * 0.5; var cy := map.size.y * 0.5
 	var c0 := cos(map.lat0); var s0 := sin(map.lat0); var cl := cos(map.lon0); var sl := sin(map.lon0)
 	var sel := map.selected; var hov := map.hover
@@ -828,7 +836,7 @@ func _draw_layout() -> void:
 			match atier:
 				0: want = false
 				1: want = o == me or war or rel == 3 or p == sel or p == hov
-				_: want = true
+				_: want = (not army_mine_only) or o == me or war or rel == 3 or p == sel or p == hov
 		var cap := cap_a[p] != 0
 		var ring := cap and (_capital_star_shown(o, me, ztier) or p == sel or routes_lens)
 		if routes_lens and ring: ring = _on_a_route(o)                  # Routes lens: the capitals the lines run between are marked, nothing else
@@ -1027,7 +1035,7 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var txt := TBKit.fmt(int(round(st["shown"])))
 	var near: bool = ztier == 2
 	var atlas := map.atlas_look()
-	var fsz: int = maxi(8, int(round(float(TBKit.fs(15.0 if atlas else (13.0 if near else 12.0))) * _shrink)))
+	var fsz: int = maxi(11, int(round(float(TBKit.fs(15.0 if atlas else (13.0 if near else 12.0))) * _shrink)))
 	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var bw := _badge_w(nfont, int(round(st["shown"])), near, o != 0)
 	var bh: float = _badge_h(near)

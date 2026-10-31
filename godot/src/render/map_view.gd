@@ -299,10 +299,10 @@ func prov_dpp() -> float:
 func prov_lines_alpha() -> float: return clampf((LINES_D1 - prov_dpp()) / (LINES_D1 - LINES_D2), 0.0, 1.0)
 ## the rule: army numbers show while the province lines show (a little in, so they never appear on an invisible line), globe and flat, desktop and phone
 func prov_lines_shown() -> bool: return prov_lines_alpha() >= 0.25
-## the army marker gets smaller as you close in past province scale (full size where the lines are full, 62 % from a radius of 3500 px): in a big province it would cover the province
+## the army marker gets smaller as you close in past province scale (full size where the lines are full, 92 % from a radius of 4500 px: smaller than that and the figures cannot be read): in a big province it would cover the province
 func army_scale() -> float:
 	var r: float = 57.29578 / maxf(prov_dpp(), 1e-5)
-	return lerpf(1.0, 0.62, smoothstep(LINES_R1, 3500.0, r))
+	return lerpf(1.0, 0.92, smoothstep(LINES_R1, 4500.0, r))
 
 func _push_view() -> void:
 	if _mat == null: return

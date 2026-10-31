@@ -41,10 +41,10 @@ func _init() -> void:
 			for i in 12: await process_frame
 			map.labels.queue_redraw()
 			for i in 90: await process_frame
-			var shown: bool = map.prov_lines_shown()
+			var shown: bool = map.labels.armies_shown()
 			var n := _active(main)
 			print("mode ", mode, " zoom ", snappedf(map.zoom, 0.01), " deg/px ", snappedf(map.prov_dpp(), 0.01), " lines_shown ", shown, " army pills ", n)
-			_check((n > 0) == shown, "mode %d zoom %.2f: pills %d but lines_shown %s" % [mode, map.zoom, n, str(shown)])
+			_check((n > 0) == shown, "mode %d zoom %.2f: pills %d but armies_shown %s" % [mode, map.zoom, n, str(shown)])
 			if zf == 0.0: shown_at_far = shown
 			else: shown_at_near = shown
 		_check(not shown_at_far, "mode %d: the whole-world view shows no army numbers" % mode)
@@ -58,12 +58,12 @@ func _init() -> void:
 		map.zoom = base_z * zf; map._push_view()
 		var sc: float = map.army_scale()
 		print("globe x", zf, " radius ", snappedf(map.radius_px(), 1.0), " lines ", snappedf(map.prov_lines_alpha(), 0.01), " shown ", map.prov_lines_shown(), " marker scale ", snappedf(sc, 0.01))
-		_check(sc <= prev + 1e-4 and sc >= 0.61 and sc <= 1.0, "the marker scale only shrinks as you zoom in (%.2f)" % sc)
+		_check(sc <= prev + 1e-4 and sc >= 0.91 and sc <= 1.0, "the marker scale only shrinks as you zoom in (%.2f)" % sc)
 		prev = sc
 		if a.size() > 2:
 			for i in 40: await process_frame
 			root.get_viewport().get_texture().get_image().save_png("%s/zoom_%02d.png" % [a[2], int(zf * 10.0)])
-	_check(map.army_scale() < 0.7, "much closer in, the marker is about 62 %")
+	_check(map.army_scale() < 0.96 and map.army_scale() >= 0.91, "much closer in, the marker is about 92 % and never unreadable")
 	map.zoom = 1.0; map._push_view()
 	# where the numbers switch on, per view mode (zoom factor of the whole-world view)
 	for mode in [0, 1]:
@@ -72,7 +72,7 @@ func _init() -> void:
 		var f := 1.0
 		while f < 30.0:
 			map.zoom = z0 * f; map._push_view()
-			if map.prov_lines_shown(): break
+			if map.labels.armies_shown(): break
 			f *= 1.05
 		print("mode ", mode, ": borders and army numbers appear from zoom x", snappedf(f, 0.01), " of the whole-world view (buffer ", map._vp.size, ")")
 	print("ARMY_RULE OK" if fails == 0 else "ARMY_RULE FAIL %d" % fails)
