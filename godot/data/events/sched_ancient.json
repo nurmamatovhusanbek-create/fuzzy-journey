@@ -20,6 +20,144 @@
   "autoEffects": []
  },
  {
+  "id": "h_anc_trasimene",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": -217,
+   "monthIdx": 6,
+   "nation": "rome"
+  },
+  "title": {
+   "en": "Lake Trasimene",
+   "ru": "Тразименское озеро",
+   "uz": "Trazimen ko‘li"
+  },
+  "flavor": {
+   "en": "Hannibal's ambush in the morning mist has destroyed a consular army. Rome must choose between a dictator's patience and a fresh battle.",
+   "ru": "Засада Ганнибала в утреннем тумане уничтожила консульскую армию. Рим выбирает между терпением диктатора и новой битвой.",
+   "uz": "Hannibalning tong tumanidagi pistirmasi konsul qo‘shinini yo‘q qildi. Rim diktatorning sabri va yangi jang o‘rtasida tanlaydi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Name Fabius dictator",
+     "ru": "Назначить Фабия диктатором",
+     "uz": "Fabiyni diktator etib tayinlash"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 25
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -30
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Demand a decisive battle",
+     "ru": "Потребовать решающей битвы",
+     "uz": "Hal qiluvchi jangni talab qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -4
+     },
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 10,
+      "turns": 6
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_anc_raphia",
+  "icon": "shield",
+  "scope": "country",
+  "trigger": {
+   "year": -217,
+   "monthIdx": 6,
+   "nation": "ptolemaic_kingdom"
+  },
+  "title": {
+   "en": "Raphia",
+   "ru": "Рафия",
+   "uz": "Rafiya"
+  },
+  "flavor": {
+   "en": "Antiochus marches on Egypt. The king can arm native Egyptians to meet him, and risk what they will ask afterwards.",
+   "ru": "Антиох идёт на Египет. Царь может вооружить коренных египтян — и рискнуть тем, чего они потребуют потом.",
+   "uz": "Antioxus Misrga yurmoqda. Podshoh mahalliy misrliklarni qurollantirishi mumkin, keyin ular nima talab qilishi esa xavf."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Arm the Egyptians",
+     "ru": "Вооружить египтян",
+     "uz": "Misrliklarni qurollantirish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 60
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -5
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Hire mercenaries",
+     "ru": "Нанять наёмников",
+     "uz": "Yollanma askarlar yollash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -60
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 20
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "anc_cannae",
   "icon": "swords",
   "scope": "world",
@@ -433,6 +571,72 @@
   ]
  },
  {
+  "id": "h_anc_chen_sheng",
+  "icon": "warning",
+  "scope": "country",
+  "trigger": {
+   "year": -209,
+   "monthIdx": 6,
+   "nation": "han_empire"
+  },
+  "title": {
+   "en": "The Rebellion of Chen Sheng",
+   "ru": "Восстание Чэнь Шэна",
+   "uz": "Chen Shen qo‘zg‘oloni"
+  },
+  "flavor": {
+   "en": "Conscripts delayed by floods know the penalty is death either way. They rise, and the provinces follow.",
+   "ru": "Рекруты, задержанные наводнением, знают: наказание — смерть в любом случае. Они поднимают мятеж, и провинции следуют за ними.",
+   "uz": "Toshqin sabab kechikkan chaqiriluvchilar ikki holda ham o‘lim jazosini bilishadi. Ular qo‘zg‘olon ko‘taradi, viloyatlar esa ularga ergashadi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Send the armies to crush it",
+     "ru": "Послать армии подавить мятеж",
+     "uz": "Qo‘zg‘olonni bostirish uchun qo‘shin yuborish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Ease the labour levies",
+     "ru": "Облегчить трудовые повинности",
+     "uz": "Mehnat majburiyatlarini yengillashtirish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 6
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_anc_hasdrubal",
   "icon": "globe",
   "scope": "country",
@@ -494,6 +698,72 @@
       "op": "nation.gold",
       "target": "self",
       "delta": 20
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_anc_han_founding",
+  "icon": "crown",
+  "scope": "country",
+  "trigger": {
+   "year": -202,
+   "monthIdx": 0,
+   "nation": "han_empire"
+  },
+  "title": {
+   "en": "The Founding of Han",
+   "ru": "Основание Хань",
+   "uz": "Xan sulolasining tashkil topishi"
+  },
+  "flavor": {
+   "en": "A commoner turned conqueror takes the imperial title. How much of the harsh Qin law should he keep?",
+   "ru": "Простолюдин, ставший победителем, принимает императорский титул. Что сохранить от суровых законов Цинь?",
+   "uz": "Oddiy odamdan g‘olibga aylangan hukmdor imperator unvonini oladi. Qinning qattiq qonunlaridan qanchasini saqlash kerak?"
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Soften the laws, keep the system",
+     "ru": "Смягчить законы, сохранив порядок",
+     "uz": "Qonunlarni yumshatib, tartibni saqlash"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 5
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 30
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Reward allies with kingdoms",
+     "ru": "Наградить союзников царствами",
+     "uz": "Ittifoqchilarni qirolliklar bilan mukofotlash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     },
+     {
+      "op": "nation.dp",
+      "target": "self",
+      "delta": 1
      }
     ]
    }
@@ -591,6 +861,73 @@
   ]
  },
  {
+  "id": "h_anc_baideng",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": -200,
+   "monthIdx": 0,
+   "nation": "xiongnu"
+  },
+  "title": {
+   "en": "The Siege at Baideng",
+   "ru": "Осада Байдэна",
+   "uz": "Baydengdagi qamal"
+  },
+  "flavor": {
+   "en": "The chanyu has trapped the Han emperor in the northern hills. A peace of marriage and silk is on offer, or the horse peoples can press the kill.",
+   "ru": "Шаньюй запер ханьского императора в северных горах. Предлагают мир через брак и шёлк — или кочевники могут добить.",
+   "uz": "Chanyu Xan imperatorini shimoliy tog‘larda qamal qildi. Nikoh va ipak evaziga tinchlik taklif qilinmoqda, yoki ko‘chmanchilar zarbani davom ettirishi mumkin."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Accept the marriage treaty",
+     "ru": "Принять брачный договор",
+     "uz": "Nikoh shartnomasini qabul qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 100
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Press the attack",
+     "ru": "Усилить натиск",
+     "uz": "Hujumni kuchaytirish"
+    },
+    "effects": [
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 10,
+      "turns": 6
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": 2
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -20
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_anc_magnesia",
   "icon": "crown",
   "scope": "country",
@@ -658,6 +995,143 @@
   ]
  },
  {
+  "id": "h_anc_shunga",
+  "icon": "crown",
+  "scope": "country",
+  "trigger": {
+   "year": -185,
+   "monthIdx": 0,
+   "nation": "mauryan_empire"
+  },
+  "title": {
+   "en": "The Last Maurya",
+   "ru": "Последний из Маурьев",
+   "uz": "So‘nggi Maurya"
+  },
+  "flavor": {
+   "en": "The commander-in-chief reviews the army before the king. The generals look at him, not at the throne.",
+   "ru": "Главнокомандующий принимает смотр войска перед царём. Полководцы смотрят на него, а не на трон.",
+   "uz": "Bosh sarkarda podshoh oldida qo‘shin ko‘rigini o‘tkazmoqda. Sarkardalar taxtga emas, unga qaraydi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Purge the disloyal officers",
+     "ru": "Очистить армию от нелояльных",
+     "uz": "Sodiq bo‘lmagan zobitlarni tozalash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Pay the army to stay loyal",
+     "ru": "Заплатить армии за верность",
+     "uz": "Sadoqat uchun qo‘shinga to‘lash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -80
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_anc_maccabees",
+  "icon": "warning",
+  "scope": "country",
+  "trigger": {
+   "year": -167,
+   "monthIdx": 0,
+   "nation": "seleucid_kingdom"
+  },
+  "title": {
+   "en": "The Maccabean Revolt",
+   "ru": "Восстание Маккавеев",
+   "uz": "Makkabeylar qo‘zg‘oloni"
+  },
+  "flavor": {
+   "en": "A priestly family in Judaea has taken up arms against royal edicts on worship. The hills favour them.",
+   "ru": "Священническая семья в Иудее взялась за оружие против царских указов о богослужении. Холмы на их стороне.",
+   "uz": "Yahudiyadagi ruhoniylar oilasi ibodat haqidagi shoh farmonlariga qarshi qurol ko‘tardi. Tog‘lar ularning tarafida."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Send the army to crush them",
+     "ru": "Послать армию подавить их",
+     "uz": "Ularni bostirish uchun qo‘shin yuborish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Restore the Temple's customs",
+     "ru": "Вернуть храмовые обычаи",
+     "uz": "Ma’bad urf-odatlarini tiklash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -20
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": -2
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_anc_carthage",
   "icon": "warning",
   "scope": "country",
@@ -713,6 +1187,77 @@
       "op": "nation.stability",
       "target": "self",
       "delta": 4
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_anc_gracchi",
+  "icon": "scroll",
+  "scope": "country",
+  "trigger": {
+   "year": -133,
+   "monthIdx": 0,
+   "nation": "rome"
+  },
+  "title": {
+   "en": "The Land Law",
+   "ru": "Земельный закон",
+   "uz": "Yer qonuni"
+  },
+  "flavor": {
+   "en": "A tribune proposes to give public land to landless citizens. The great estates will not give it up quietly.",
+   "ru": "Народный трибун предлагает наделить безземельных граждан общественной землёй. Крупные поместья не отдадут её тихо.",
+   "uz": "Xalq tribuni yersiz fuqarolarga jamoat yerlarini berishni taklif qiladi. Yirik mulklar uni jimgina topshirmaydi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Distribute the public land",
+     "ru": "Раздать общественную землю",
+     "uz": "Jamoat yerlarini taqsimlash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 50
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -5
+     },
+     {
+      "op": "nation.pop_pct",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Side with the landowners",
+     "ru": "Встать на сторону землевладельцев",
+     "uz": "Yer egalari tomonini olish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 60
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -25
      }
     ]
    }

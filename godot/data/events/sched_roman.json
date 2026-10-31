@@ -212,6 +212,138 @@
   ]
  },
  {
+  "id": "h_rom_han_xiyu",
+  "icon": "globe",
+  "scope": "country",
+  "trigger": {
+   "year": 123,
+   "monthIdx": 0,
+   "nation": "han"
+  },
+  "title": {
+   "en": "The Western Regions",
+   "ru": "Западный край",
+   "uz": "G‘arbiy o‘lka"
+  },
+  "flavor": {
+   "en": "A Han general proposes to garrison the oasis cities of the Tarim basin and reopen the silk road.",
+   "ru": "Ханьский полководец предлагает разместить гарнизоны в оазисах Таримской впадины и вновь открыть Шёлковый путь.",
+   "uz": "Xan sarkardasi Tarim havzasi vohalariga garnizon qo‘yib, Ipak yo‘lini qayta ochishni taklif qiladi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Garrison the oases",
+     "ru": "Поставить гарнизоны в оазисах",
+     "uz": "Vohalarda garnizon joylashtirish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.trade",
+      "target": "self",
+      "delta": 60
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Hold the passes only",
+     "ru": "Удерживать только перевалы",
+     "uz": "Faqat dovonlarni ushlab turish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_rom_pantheon",
+  "icon": "crown",
+  "scope": "country",
+  "trigger": {
+   "year": 126,
+   "monthIdx": 0,
+   "nation": "roman_empire"
+  },
+  "title": {
+   "en": "The Pantheon",
+   "ru": "Пантеон",
+   "uz": "Panteon"
+  },
+  "flavor": {
+   "en": "A great domed temple to all the gods rises in Rome, a statement in brick and concrete of what the empire can afford.",
+   "ru": "В Риме поднимается огромный куполообразный храм всех богов — заявление из кирпича и бетона о возможностях империи.",
+   "uz": "Rimda barcha xudolarga atalgan ulkan gumbazli ma’bad ko‘tariladi: g‘isht va betonda yozilgan imperiya imkoniyatlari haqida bayonot."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Fund public works across the cities",
+     "ru": "Финансировать общественные работы в городах",
+     "uz": "Shaharlardagi jamoat ishlarini moliyalashtirish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -80
+     },
+     {
+      "op": "nation.happy",
+      "target": "self",
+      "delta": 6
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Keep the treasury full",
+     "ru": "Беречь казну",
+     "uz": "G‘aznani to‘la saqlash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 50
+     },
+     {
+      "op": "nation.happy",
+      "target": "self",
+      "delta": -2
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_rom_bar_kokhba",
   "icon": "book",
   "scope": "country",
@@ -314,6 +446,67 @@
   ]
  },
  {
+  "id": "h_rom_axum",
+  "icon": "coins",
+  "scope": "country",
+  "trigger": {
+   "year": 150,
+   "monthIdx": 0,
+   "nation": "axum"
+  },
+  "title": {
+   "en": "The Red Sea Trade",
+   "ru": "Торговля Красного моря",
+   "uz": "Qizil dengiz savdosi"
+  },
+  "flavor": {
+   "en": "The ports of Axum receive ships from Egypt and India. Ivory and gold flow to the coast.",
+   "ru": "Порты Аксума принимают суда из Египта и Индии. Слоновая кость и золото текут к побережью.",
+   "uz": "Aksum portlari Misr va Hindistondan kemalarni qabul qiladi. Fil suyagi va oltin qirg‘oqqa oqib keladi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Mint gold coin and open the ports",
+     "ru": "Чеканить золотую монету и открыть порты",
+     "uz": "Oltin tanga zarb qilib, portlarni ochish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 60
+     },
+     {
+      "op": "nation.trade",
+      "target": "self",
+      "delta": 60
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Hold the highlands",
+     "ru": "Удерживать нагорье",
+     "uz": "Tog‘liklarni ushlab turish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 20
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_rom_parthia_war",
   "icon": "swords",
   "scope": "country",
@@ -412,6 +605,77 @@
   ]
  },
  {
+  "id": "h_rom_ctesiphon",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": 165,
+   "monthIdx": 0,
+   "nation": "parthian_empire"
+  },
+  "title": {
+   "en": "Ctesiphon Falls",
+   "ru": "Падение Ктесифона",
+   "uz": "Ktesifonning qulashi"
+  },
+  "flavor": {
+   "en": "A Roman army has burned the royal palace on the Tigris. The shah can rebuild and rearm, or buy peace.",
+   "ru": "Римская армия сожгла царский дворец на Тигре. Царь может отстроиться и вооружиться или купить мир.",
+   "uz": "Rim qo‘shini Dajla bo‘yidagi shoh saroyini yondirdi. Shoh qayta qurib qurollanishi yoki tinchlikni sotib olishi mumkin."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Rebuild and rearm",
+     "ru": "Отстроить и вооружиться",
+     "uz": "Qayta qurish va qurollanish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -70
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Sue for terms",
+     "ru": "Просить мира",
+     "uz": "Tinchlik so‘rash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": -2
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_rom_embassy_han",
   "icon": "globe",
   "scope": "world",
@@ -467,6 +731,209 @@
       "op": "nation.stability",
       "target": "self",
       "delta": 1
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_rom_marcomannic",
+  "icon": "shield",
+  "scope": "country",
+  "trigger": {
+   "year": 167,
+   "monthIdx": 0,
+   "nation": "roman_empire"
+  },
+  "title": {
+   "en": "The Marcomannic Wars",
+   "ru": "Маркоманская война",
+   "uz": "Markomanlar urushi"
+  },
+  "flavor": {
+   "en": "Germanic tribes pour across the Danube and reach Italy's borders. The emperor takes the field himself.",
+   "ru": "Германские племена перешли Дунай и дошли до границ Италии. Император лично выходит в поле.",
+   "uz": "German qabilalari Dunayni kesib o‘tib, Italiya chegaralariga yetdi. Imperator shaxsan jangga chiqadi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Fortify the Danube line",
+     "ru": "Укрепить дунайскую границу",
+     "uz": "Dunay chizig‘ini mustahkamlash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -80
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     },
+     {
+      "op": "nation.army_pct",
+      "target": "self",
+      "delta": 5
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Settle the tribes inside the frontier",
+     "ru": "Поселить племена внутри границы",
+     "uz": "Qabilalarni chegara ichida joylashtirish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": -1
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_rom_eunuchs",
+  "icon": "scroll",
+  "scope": "country",
+  "trigger": {
+   "year": 168,
+   "monthIdx": 0,
+   "nation": "han"
+  },
+  "title": {
+   "en": "The Eunuchs and the Scholars",
+   "ru": "Евнухи и учёные",
+   "uz": "Xo‘jasaralar va olimlar"
+  },
+  "flavor": {
+   "en": "The boy emperor's court is split between palace eunuchs and the officials who accuse them.",
+   "ru": "Двор юного императора разделён между дворцовыми евнухами и чиновниками, обвиняющими их.",
+   "uz": "Yosh imperator saroyi saroy xo‘jasaralari va ularni ayblayotgan amaldorlar o‘rtasida bo‘lingan."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Side with the scholar-officials",
+     "ru": "Поддержать чиновников-учёных",
+     "uz": "Olim amaldorlarni qo‘llash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.research",
+      "target": "self",
+      "delta": 10
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Side with the eunuchs",
+     "ru": "Поддержать евнухов",
+     "uz": "Xo‘jasaralarni qo‘llash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -5
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_rom_cassius",
+  "icon": "warning",
+  "scope": "country",
+  "trigger": {
+   "year": 175,
+   "monthIdx": 0,
+   "nation": "roman_empire"
+  },
+  "title": {
+   "en": "The Revolt in Syria",
+   "ru": "Мятеж в Сирии",
+   "uz": "Suriyadagi qo‘zg‘olon"
+  },
+  "flavor": {
+   "en": "A trusted general in the East has proclaimed himself emperor on a false rumour of the emperor's death.",
+   "ru": "Доверенный полководец на Востоке провозгласил себя императором, поверив ложному слуху о смерти государя.",
+   "uz": "Sharqdagi ishonchli sarkarda imperatorning o‘limi haqidagi yolg‘on mish-mishga ishonib, o‘zini imperator deb e’lon qildi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "March east at once",
+     "ru": "Немедленно идти на восток",
+     "uz": "Darhol sharqqa yurish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Wait for the rebellion to falter",
+     "ru": "Ждать, пока мятеж ослабнет",
+     "uz": "Qo‘zg‘olon susayishini kutish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 20
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -2
      }
     ]
    }
