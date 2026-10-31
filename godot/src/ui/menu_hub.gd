@@ -74,14 +74,18 @@ static func _saves(h: TBPanel.Handle, ctx: Dictionary, parent: Control, in_game:
 	var v: VBoxContainer = h.body
 	var saving: bool = in_game and String(mem["mode"]) == "save"
 	if in_game:
-		v.add_child(K.segmented([["save", T.call("save")], ["load", T.call("load")]], "save" if saving else "load", func(id: String):
+		var mode_seg := K.segmented([["save", T.call("save")], ["load", T.call("load")]], "save" if saving else "load", func(id: String):
 			mem["mode"] = id
 			for c in v.get_children(): c.queue_free()
-			_saves(h, ctx, parent, in_game)))
+			_saves(h, ctx, parent, in_game))
+		mode_seg.custom_minimum_size.x = SLOT_W; mode_seg.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN         # the same control column width as everywhere
+		v.add_child(mode_seg)
 	var slots: Array = ["auto"] + SAVE_SLOTS
 	var any := false
+	var auto_row := K.vbox(0); auto_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL; v.add_child(auto_row)          # the autosave stands alone on the first row, the numbered slots form an even grid
 	var grid := GridContainer.new(); grid.columns = 2 if (h.card.size.x >= 720.0 and h.form == "panel") else 1
 	grid.add_theme_constant_override("h_separation", 12); grid.add_theme_constant_override("v_separation", 8); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var gap_s := Control.new(); gap_s.custom_minimum_size.y = 4.0; v.add_child(gap_s)
 	v.add_child(grid)
 	for slot in slots:
 		var sl: String = slot
@@ -117,7 +121,9 @@ static func _saves(h: TBPanel.Handle, ctx: Dictionary, parent: Control, in_game:
 		else:
 			c = TBPanel.card("save" if sl != "auto" else "hourglass", title, detail, chips, cb, reason, false, false)
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		grid.add_child(c)
+		c.custom_minimum_size.y = maxf(c.custom_minimum_size.y, 88.0)
+		if sl == "auto": auto_row.add_child(c)
+		else: grid.add_child(c)
 		if exists and meta.is_empty() and sl != "auto":
 			var del := K.button(T.call("delete"), func():
 				TBPanel.confirm(parent, T.call("delete_confirm_t", {"s": title}), T.call("delete_confirm_b"), T.call("delete"), func():
@@ -175,10 +181,20 @@ static func _group(title: String) -> VBoxContainer:
 ## the categories of the Settings tab (a rail on the left, or a row of chips on a narrow or large-text window); one category at a time keeps the page calm
 const SET_CATS := [["display", "set_display"], ["map", "set_cat_map"], ["comfort", "set_cat_comfort"], ["sound", "set_audio"], ["language", "language"], ["advanced", "set_advanced"]]
 
-## one row: the name on the left, its control on the right (stacked, name above control, on a narrow window)
+## the grammar of every settings row: the name (and a hint) on the left, ONE control on the right in a column of one fixed width and one height, a hairline under the row.
+## Controls are only ever a segmented choice (two or three options, a switch is On / Off), a drop-down (four or more) or a slider: never a mix of shapes.
+const SLOT_W := 300.0
+
+## height of every control in a row: the segmented cell's own height (a drop-down and a slider row are made the same)
+static func _ctl_h() -> float:
+	var t := K.Segmented.new()
+	var hh: float = t._h0()
+	t.free()
+	return hh
+
 static func _srow(title: String, ctl: Control, stacked: bool, hint: String = "") -> Control:
 	var box: BoxContainer = VBoxContainer.new() if stacked else HBoxContainer.new()
-	box.add_theme_constant_override("separation", 6 if stacked else 14)
+	box.add_theme_constant_override("separation", 6 if stacked else 16)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var lb := K.vbox(0); lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL; lb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var l := K.label(title, 16); l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size.x = 60
@@ -186,23 +202,20 @@ static func _srow(title: String, ctl: Control, stacked: bool, hint: String = "")
 	if hint != "":
 		var hl := K.label(hint, 13, K.DIM); hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hl.custom_minimum_size.x = 60
 		lb.add_child(hl)
-	ctl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if stacked else Control.SIZE_SHRINK_END
+	ctl.custom_minimum_size.x = maxf(ctl.custom_minimum_size.x, SLOT_W)
+	ctl.size_flags_horizontal = Control.SIZE_EXPAND_FILL if stacked else Control.SIZE_SHRINK_END
 	ctl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.add_child(lb); box.add_child(ctl)
-	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", 4); m.add_theme_constant_override("margin_bottom", 6); m.add_child(box)
-	return m
+	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", 8); m.add_theme_constant_override("margin_bottom", 8); m.add_child(box)
+	var out := K.vbox(0); out.add_child(m); out.add_child(HSeparator.new())
+	return out
 
-## a choice of more than three options: a drop-down (a pill showing the current choice); three or fewer stay a segmented control
+## a choice: two or three options stay a segmented control (equal cells filling the column); four or more become a drop-down of the same width and height
 static func _choice(items: Array, cur: String, cb: Callable) -> Control:
-	if items.size() <= 3:
-		var sg: Control = K.segmented(items, cur, cb, true)
-		var need := 0.0                                                      # one row: the cells side by side (the control sizes itself from the width it is given, so without this it would stack)
-		for i in items.size(): need += (sg as K.Segmented)._nat(i)
-		sg.custom_minimum_size.x = need + (items.size() - 1) * (sg as K.Segmented).GAP + 2.0
-		return sg
+	if items.size() <= 3: return K.segmented(items, cur, cb, true)
 	var ob := OptionButton.new()
-	ob.focus_mode = Control.FOCUS_ALL; ob.fit_to_longest_item = true
-	ob.custom_minimum_size = Vector2(150.0, float(K.touch()))
+	ob.focus_mode = Control.FOCUS_ALL; ob.fit_to_longest_item = false
+	ob.custom_minimum_size = Vector2(SLOT_W, _ctl_h())
 	var sel := 0
 	for i in items.size():
 		ob.add_item(String(items[i][1]), i)
@@ -210,6 +223,10 @@ static func _choice(items: Array, cur: String, cb: Callable) -> Control:
 	ob.select(sel)
 	ob.item_selected.connect(func(i: int): cb.call(String(items[i][0])))
 	return ob
+
+## a yes / no setting: the same segmented control with Off and On
+static func _switch(title: String, value: bool, cb: Callable, stacked: bool, hint: String = "") -> Control:
+	return _srow(title, _choice([["off", T.call("off")], ["on", T.call("on")]], "on" if value else "off", func(id: String): cb.call(id == "on")), stacked, hint)
 
 static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebuild: Callable, portrait: bool) -> void:
 	var cfg: Dictionary = ctx["cfg"]
@@ -232,7 +249,7 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 			page.add_child(_srow(T.call("ui_size"), _choice([["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], String(cfg.get("ui", "normal")), func(v): set.call("ui", v)), stacked))
 			page.add_child(_srow(T.call("phone_layout"), _choice([["desktop", T.call("phone_desktop")], ["compact", T.call("phone_compact")]], String(cfg.get("phone_ui", "desktop")), func(v): set.call("phone_ui", v)), stacked))
 			page.add_child(_srow(T.call("era_ui_title"), _choice([["ring", T.call("era_ui_ring")], ["classic", T.call("era_ui_classic")]], String(cfg.get("era_ui", "ring")), func(v): set.call("era_ui", v)), stacked))
-			page.add_child(K.toggle(T.call("tips_title"), bool(cfg.get("tips", true)), func(v): set.call("tips", v)))
+			page.add_child(_switch(T.call("tips_title"), bool(cfg.get("tips", true)), func(v): set.call("tips", v), stacked))
 		"map":
 			page.add_child(_srow(T.call("map_view"), _choice([["globe", T.call("globe")], ["flat", T.call("flat")]], String(cfg["view"]), func(v): set.call("view", v)), stacked))
 			page.add_child(_srow(T.call("map_style"), _choice([["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")], ["hc", T.call("style_hc")]], String(cfg.get("theme", "standard")), func(v): set.call("theme", v)), stacked))
@@ -242,31 +259,31 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 			page.add_child(_srow(T.call("text_size"), _choice([["1.0", "100%"], ["1.25", "125%"], ["1.5", "150%"], ["2.0", "200%"]], _scale_id(float(cfg.get("text_scale", 1.0))), func(v): set.call("text_scale", float(v), true)), stacked))
 			page.add_child(TBPanel.para(T.call("text_preview"), 15, K.DIM))
 			page.add_child(_srow(T.call("high_contrast"), _choice([["off", T.call("hc_off")], ["light", T.call("hc_light")], ["dark", T.call("hc_dark")]], _hc_id(cfg), func(v): cfg.erase("contrast"); set.call("hc", v, true)), stacked))
-			page.add_child(K.toggle(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): set.call("reduce_motion", v)))
-			page.add_child(K.toggle(T.call("large_targets"), bool(cfg.get("touch_large", false)), func(v): set.call("touch_large", v, true)))
-			page.add_child(K.toggle(T.call("readable_fonts"), bool(cfg.get("readable", false)), func(v): set.call("readable", v, true)))
+			page.add_child(_switch(T.call("reduce_motion"), bool(cfg.get("reduce_motion", false)), func(v): set.call("reduce_motion", v), stacked))
+			page.add_child(_switch(T.call("large_targets"), bool(cfg.get("touch_large", false)), func(v): set.call("touch_large", v, true), stacked))
+			page.add_child(_switch(T.call("readable_fonts"), bool(cfg.get("readable", false)), func(v): set.call("readable", v, true), stacked))
 			page.add_child(_srow(T.call("set_confirm"), _choice([["off", T.call("confirm_off")], ["risky", T.call("confirm_risky")], ["all", T.call("confirm_all")]], String(cfg.get("confirm", "risky")), func(v): set.call("confirm", v)), stacked))
 			var warn := K.label("", 13, K.DIM); warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; warn.visible = false
-			page.add_child(K.toggle(T.call("set_tts"), bool(cfg.get("tts", false)), func(v): set.call("tts", v)))
+			page.add_child(_switch(T.call("set_tts"), bool(cfg.get("tts", false)), func(v): set.call("tts", v), stacked))
 			var tb := K.button(T.call("tts_test"), func():
 				K.tts_test()
 				warn.text = K.tts_warning; warn.visible = K.tts_warning != "")
 			tb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 			page.add_child(tb); page.add_child(warn)
-			page.add_child(K.toggle(T.call("set_mirror"), bool(cfg.get("mirror", false)), func(v): set.call("mirror", v)))
+			page.add_child(_switch(T.call("set_mirror"), bool(cfg.get("mirror", false)), func(v): set.call("mirror", v), stacked))
 		"sound":
-			page.add_child(K.toggle(T.call("sound"), bool(cfg.get("sound", true)), func(v): set.call("sound", v)))
+			page.add_child(_switch(T.call("sound"), bool(cfg.get("sound", true)), func(v): set.call("sound", v), stacked))
 			for it in [["vol_master", "vol_master"], ["vol_music", "vol_music"], ["vol_sfx", "vol_sfx"], ["vol_ui", "vol_ui"]]:
 				var key: String = it[0]
 				var sr := K.slider_row(T.call(String(it[1])), 0, 100, 5, float(cfg.get(key, 80)), func(v: float): set.call(key, int(v)))
-				sr.custom_minimum_size.x = 250.0
+				sr.custom_minimum_size.x = SLOT_W + 12.0
 				page.add_child(_srow(T.call(String(it[1])), sr, stacked))
-			page.add_child(K.toggle(T.call("set_vis_alerts"), bool(cfg.get("vis_alerts", false)) or not bool(cfg.get("sound", true)), func(v): set.call("vis_alerts", v)))
+			page.add_child(_switch(T.call("set_vis_alerts"), bool(cfg.get("vis_alerts", false)) or not bool(cfg.get("sound", true)), func(v): set.call("vis_alerts", v), stacked))
 			if not bool(cfg.get("sound", true)): page.add_child(TBPanel.para(T.call("vis_alerts_muted"), 13, K.DIM))
 		"language":
 			page.add_child(_srow(T.call("language"), _choice([["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], String(cfg["lang"]), func(v): set.call("lang", v, true)), stacked))
 		"advanced":
-			page.add_child(K.toggle(T.call("perf_overlay"), bool(cfg.get("perf", false)), func(v): set.call("perf", v)))
+			page.add_child(_switch(T.call("perf_overlay"), bool(cfg.get("perf", false)), func(v): set.call("perf", v), stacked))
 			if ctx.has("on_diag") and (ctx["on_diag"] as Callable).is_valid():
 				var db := K.button(T.call("copy_diag"), Callable())
 				db.pressed.connect(func(): (ctx["on_diag"] as Callable).call(); db.text = T.call("diag_copied"))
@@ -286,26 +303,21 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 		rebuild.call()
 	var nav: Control
 	if wide:
-		var rail := K.vbox(4); rail.custom_minimum_size.x = 176.0
+		var rail := K.vbox(0); rail.custom_minimum_size.x = 200.0
 		for c in SET_CATS:
 			var id: String = c[0]
-			var b := K.button(T.call(String(c[1])), func(): pick.call(id), id == cat)
-			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			K.a11y(b, T.call(String(c[1])), "tab")
-			rail.add_child(b)
-		nav = rail
-		var host := HBoxContainer.new(); host.add_theme_constant_override("separation", 22); host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		host.add_child(nav); host.add_child(VSeparator.new()); host.add_child(page)
+			var lr := K.ListRow.new(T.call(String(c[1])), "", func(): pick.call(id))
+			lr.selected = id == cat
+			rail.add_child(lr)
+		var host := HBoxContainer.new(); host.add_theme_constant_override("separation", 24); host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		host.add_child(rail); host.add_child(page)
 		h.body.add_child(host)
 	else:
-		var chips := HFlowContainer.new(); chips.add_theme_constant_override("h_separation", 6); chips.add_theme_constant_override("v_separation", 6)
-		for c in SET_CATS:
-			var id2: String = c[0]
-			var b2 := K.button(T.call(String(c[1])), func(): pick.call(id2), id2 == cat, true)
-			K.a11y(b2, T.call(String(c[1])), "tab")
-			chips.add_child(b2)
+		var items: Array = []
+		for c in SET_CATS: items.append([c[0], T.call(String(c[1]))])
+		var chips := K.segmented(items, cat, func(id: String): pick.call(id), true)
 		h.body.add_child(chips)
-		var gap := Control.new(); gap.custom_minimum_size.y = 8.0; h.body.add_child(gap)
+		var gap := Control.new(); gap.custom_minimum_size.y = 10.0; h.body.add_child(gap)
 		h.body.add_child(page)
 	if mem.has("scroll"):
 		var sv: int = int(mem["scroll"])
@@ -420,8 +432,6 @@ static func _honours(h: TBPanel.Handle, ctx: Dictionary, portrait: bool) -> void
 	var grid := GridContainer.new(); grid.columns = 2 if wide else 1
 	grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 10); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var empty := TBPanel.empty_state("trophy", T.call("honours_none"), T.call("honours_none_why")); empty.visible = false
-	var chips := TBPanel.flow(6)
-	var cbs := {}
 	var draw := func() -> void:
 		for c in grid.get_children(): c.queue_free()
 		var shown := 0
@@ -433,14 +443,13 @@ static func _honours(h: TBPanel.Handle, ctx: Dictionary, portrait: bool) -> void
 			shown += 1
 			grid.add_child(_tile(id, String(it[1]), got, String(d.get(id, "")), _progress(g, id)))
 		empty.visible = shown == 0
-	for f in [["all", T.call("f_all")], ["earned", T.call("f_earned")], ["locked", T.call("f_locked")]]:
-		var fid: String = f[0]
-		var cb := TBPanel.chip_button(String(f[1]), fid == "all", func():
-			S["f"] = fid
-			for k in cbs: (cbs[k] as TBPanel.ChipBtn).set_on(k == fid)
-			draw.call())
-		chips.add_child(cb); cbs[fid] = cb
-	v.add_child(chips); v.add_child(grid); v.add_child(empty)
+	var chips := K.segmented([["all", T.call("f_all")], ["earned", T.call("f_earned")], ["locked", T.call("f_locked")]], "all", func(fid: String):
+		S["f"] = fid
+		draw.call(), true)
+	chips.custom_minimum_size.x = SLOT_W
+	chips.size_flags_horizontal = Control.SIZE_SHRINK_END
+	top.add_child(chips)
+	v.add_child(grid); v.add_child(empty)
 	draw.call()
 
 static func _tile(id: String, glyph_id: String, got: bool, year: String, prog: Array) -> Control:
