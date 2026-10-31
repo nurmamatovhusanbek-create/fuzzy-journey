@@ -8,6 +8,7 @@ const ICON_W := 36.0
 const SLIDER_W := 232.0
 const VAL_W := 60.0
 const STEP := 30.0                      # one square stepper: the same 28-30 high plate as every segmented cell
+const ROW_H_STACKED := 112.0           # a phone: the name and a two-line effect, then the slider line
 const ROW_H := 80.0                    # room for a two-line effect: every row is this tall, so the four rows keep an even pitch
 
 signal changed(v: float)
@@ -44,6 +45,7 @@ func _init(icon: String, caption: String, value: float, effect: Callable, zone_f
 	var box := MarginContainer.new(); box.add_theme_constant_override("margin_top", 8); box.add_theme_constant_override("margin_bottom", 8)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if stacked:
+		box.custom_minimum_size.y = ROW_H_STACKED
 		var v := K.vbox(6); box.add_child(v)
 		var top := K.hbox(12); top.add_child(ring); top.add_child(col); top.add_child(val); v.add_child(top)
 		var low := K.hbox(8); low.add_child(minus); low.add_child(slider); low.add_child(plus); v.add_child(low)
@@ -89,6 +91,7 @@ class SquareBtn extends Button:
 
 func _refresh() -> void:
 	val.text = "%d%%" % int(slider.value); val.refit()
+	val.custom_minimum_size.x = VAL_W                       # the label would shrink to its text ("15%" is narrower than "50%") and pull the slider with it: the column keeps its width
 	if _effect.is_valid():
 		eff.text = String(_effect.call(slider.value)); eff.refit()
 

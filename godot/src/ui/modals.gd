@@ -141,7 +141,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		stats.append([T.call("trade"), float(TBTrade.income(g, n)), 1] if (g.rules >= 1 and TBTrade.income(g, n) > 0) else [T.call("gold"), float(g.gold[n]), 0])
 		stats.append([T.call("tkr_upkeep"), -float(inc["upkeep"]), -1]); stats.append([T.call("tkr_admin"), -float(inc["admin"]), -1])
 		stats.append([T.call("infl_row"), -g.gold[n] * g.infl if g.rules >= 1 else 0.0, -1])
-		var grid_s := GridContainer.new(); grid_s.columns = 6 if two_col else (2 if h.phone else 3)
+		var grid_s := GridContainer.new(); grid_s.columns = 3 if h.phone and vsb.x >= 900.0 else (2 if h.phone else 3)
 		grid_s.add_theme_constant_override("h_separation", 8); grid_s.add_theme_constant_override("v_separation", 8); grid_s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for st in stats: grid_s.add_child(_stat_cell(String(st[0]), float(st[1]), int(st[2]), h.phone))
 		net_slot.add_child(grid_s)
