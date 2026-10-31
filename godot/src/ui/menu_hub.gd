@@ -268,16 +268,18 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 			var tb := K.button(T.call("tts_test"), func():
 				K.tts_test()
 				warn.text = K.tts_warning; warn.visible = K.tts_warning != "")
-			tb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			page.add_child(tb); page.add_child(warn)
+			tb.custom_minimum_size = Vector2(SLOT_W, _ctl_h())
+			page.add_child(_srow("", tb, stacked)); page.add_child(warn)
 			page.add_child(_switch(T.call("set_mirror"), bool(cfg.get("mirror", false)), func(v): set.call("mirror", v), stacked))
 		"sound":
 			page.add_child(_switch(T.call("sound"), bool(cfg.get("sound", true)), func(v): set.call("sound", v), stacked))
 			for it in [["vol_master", "vol_master"], ["vol_music", "vol_music"], ["vol_sfx", "vol_sfx"], ["vol_ui", "vol_ui"]]:
 				var key: String = it[0]
-				var sr := K.slider_row(T.call(String(it[1])), 0, 100, 5, float(cfg.get(key, 80)), func(v: float): set.call(key, int(v)))
-				sr.custom_minimum_size.x = SLOT_W + 12.0
-				page.add_child(_srow(T.call(String(it[1])), sr, stacked))
+				var cur_v: int = int(cfg.get(key, 80))
+				var near := 0                                              # a volume is five steps, the same control as every other choice; the stored value is only changed by choosing one
+				for st in [0, 25, 50, 75, 100]:
+					if absi(st - cur_v) < absi(near - cur_v): near = st
+				page.add_child(_srow(T.call(String(it[1])), _choice([["0", "0"], ["25", "25"], ["50", "50"], ["75", "75"], ["100", "100"]], str(near), func(v): set.call(key, int(v))), stacked))
 			page.add_child(_switch(T.call("set_vis_alerts"), bool(cfg.get("vis_alerts", false)) or not bool(cfg.get("sound", true)), func(v): set.call("vis_alerts", v), stacked))
 			if not bool(cfg.get("sound", true)): page.add_child(TBPanel.para(T.call("vis_alerts_muted"), 13, K.DIM))
 		"language":
@@ -287,15 +289,15 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 			if ctx.has("on_diag") and (ctx["on_diag"] as Callable).is_valid():
 				var db := K.button(T.call("copy_diag"), Callable())
 				db.pressed.connect(func(): (ctx["on_diag"] as Callable).call(); db.text = T.call("diag_copied"))
-				db.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-				page.add_child(db)
+				db.custom_minimum_size = Vector2(SLOT_W, _ctl_h())
+				page.add_child(_srow("", db, stacked))
 			var reset := K.button(T.call("reset_access"), func():
 				TBPanel.confirm(parent, T.call("reset_confirm_t"), T.call("reset_confirm_b"), T.call("reset_do"), func():
 					for k in ACCESS_DEFAULTS: cfg[k] = ACCESS_DEFAULTS[k]
 					cfg.erase("contrast")
 					on_change.call("reset_access"); rebuild.call(), false, "info"))
-			reset.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			page.add_child(reset)
+			reset.custom_minimum_size = Vector2(SLOT_W, _ctl_h())
+			page.add_child(_srow("", reset, stacked))
 	# ---- the rail (wide window) or a row of chips (narrow): one tap to another category
 	var pick := func(id: String) -> void:
 		if id == String(mem.get("set_cat", "display")): return
