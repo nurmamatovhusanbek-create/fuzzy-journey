@@ -1065,7 +1065,7 @@ func _do_move(from: int, to: int) -> void:
 			map.labels.add_fx("march", from, step_to, TBTokens.c("brass_lt"))
 			map.labels.add_glide(from, step_to, g.human_id, maxi(tr, 1) if tr != 0 else maxi(a0 - 1, 1))
 			_select(step_to)
-			_after_change()
+			_after_change(false)
 			return
 		if rs == "move":
 			map.labels.add_fx("march", from, to, TBTokens.c("brass_lt"))
@@ -1084,7 +1084,7 @@ func _do_move(from: int, to: int) -> void:
 				get_tree().create_timer(0.7).timeout.connect(func(): if mode == "game" and g != null: TBModals.battle_report(_overlay, rep))
 			else: TBModals.battle_report(_overlay, rep)
 		_select(to)
-	_after_change()
+	_after_change(false)
 
 var _shown_events := {}
 var _hot_n := 0                          # hot-seat: players to pick (0 = not setting one up)
@@ -1121,11 +1121,11 @@ func _defer_event(uid: int) -> void:
 	hud.refresh()
 	show_events()
 
-func _after_change() -> void:
+func _after_change(rebuild_card: bool = true) -> void:
 	show_events()
 	map.repaint(g.take_dirty())
 	hud.refresh()
-	if selected >= 0: flow.refresh(); panel.rebuild()
+	if selected >= 0 and rebuild_card: flow.refresh(); panel.rebuild()                 # (a command that has just selected its target has built the card already)
 
 # ---------------------------------------------------------------- end turn (worker thread so the UI never freezes)
 func end_turn() -> void:
