@@ -210,9 +210,9 @@ static func _srow(title: String, ctl: Control, stacked: bool, hint: String = "")
 	var out := K.vbox(0); out.add_child(m); out.add_child(HSeparator.new())
 	return out
 
-## a choice: two or three options stay a segmented control (equal cells filling the column); four or more become a drop-down of the same width and height
+## a choice: up to six options are one segmented control (equal cells filling the column, a second row when they do not fit one); only a longer list would become a drop-down
 static func _choice(items: Array, cur: String, cb: Callable) -> Control:
-	if items.size() <= 3: return K.segmented(items, cur, cb, true)
+	if items.size() <= 6: return K.segmented(items, cur, cb, true)          # every choice is the same shape: equal cells in the one control column (four become a 2 x 2 block when they do not fit one row)
 	var ob := OptionButton.new()
 	ob.focus_mode = Control.FOCUS_ALL; ob.fit_to_longest_item = false
 	ob.custom_minimum_size = Vector2(SLOT_W, _ctl_h())
