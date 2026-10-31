@@ -1,0 +1,65 @@
+<!doctype html><html><head><meta charset="utf-8"><title>V2</title><style>
+@font-face{font-family:Cinzel;font-weight:500;src:url(../../../godot/assets/fonts/cinzel-latin-500-normal.woff2)}
+@font-face{font-family:Cinzel;font-weight:900;src:url(../../../godot/assets/fonts/cinzel-latin-900-normal.woff2)}
+@font-face{font-family:Alegreya;font-weight:400;src:url(../../../godot/assets/fonts/alegreya-latin-400-normal.woff2)}
+@font-face{font-family:Alegreya;font-weight:500;src:url(../../../godot/assets/fonts/alegreya-latin-500-normal.woff2)}
+:root{--bg:#0A0D12;--panel:#17130F;--panel2:#211B14;--brass:#C9A24B;--hi:#E5C77A;--lo:#7F6A33;--ivory:#EFE6CF;--dim:#A89C80;--dim2:#7d735c;--good:#69B3A2;--bad:#D2603F;--info:#7FA8E8}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1280px;height:720px;background:radial-gradient(1200px 700px at 30% 20%,#15202c,#070a0f);font-family:Alegreya,Georgia,serif;color:var(--ivory);overflow:hidden}
+.cap{font-family:Cinzel,Georgia,serif;font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--hi)}
+.win{position:absolute;left:260px;top:60px;width:760px;height:600px;background:linear-gradient(#1b1610,#14100b);border:1px solid var(--lo);box-shadow:0 20px 60px #000c;display:flex;flex-direction:column}
+.hd{height:58px;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid #3a2f1b}
+.hd .ic{width:36px;height:36px;border:1px solid var(--brass);border-radius:50%;display:grid;place-items:center;color:var(--hi)}
+.hd h1{font-family:Cinzel;font-weight:900;letter-spacing:.14em;font-size:19px;color:var(--ivory)}
+.hd .x{margin-left:auto;width:32px;height:32px;border:1px solid var(--lo);border-radius:50%;display:grid;place-items:center;color:var(--dim)}
+.tabs{display:flex;padding:0 18px;border-bottom:1px solid #2c2416}
+.tabs div{flex:1;text-align:center;padding:12px 0 10px;font-family:Cinzel;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2);position:relative}
+.tabs div.on{color:var(--ivory)}
+.tabs div.on:after{content:"";position:absolute;left:30%;right:30%;bottom:-1px;height:2px;background:var(--hi)}
+.body{flex:1;overflow:hidden;padding:16px 20px;position:relative}
+.ft{height:54px;border-top:1px solid #3a2f1b;display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+.btn{font-family:Cinzel;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;border:1px solid var(--lo);color:var(--hi);background:#1c160e;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+.btn.pri{background:linear-gradient(#e0c06e,#b38f3e);color:#1b1408;border-color:#e0c06e;font-weight:900}
+.row{display:flex;align-items:center;gap:14px;min-height:40px;border-bottom:1px solid #2a2216;padding:4px 2px}
+.row .l{flex:1;font-size:16px;color:var(--ivory)} .row .l small{display:block;font-size:12.5px;color:var(--dim2);margin-top:-1px}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--lo);background:#1c160e;padding:5px 12px;font-family:Cinzel;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--hi);border-radius:3px;min-width:116px;justify-content:space-between}
+.pill i{font-style:normal;color:var(--dim2);font-size:9px}
+.seg{display:inline-flex;border:1px solid var(--lo);border-radius:3px;overflow:hidden}
+.seg b{font-family:Cinzel;font-weight:500;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px;color:var(--dim);border-left:1px solid #3a2f1b}
+.seg b:first-child{border-left:0} .seg b.on{background:linear-gradient(#e0c06e,#b38f3e);color:#1b1408;font-weight:900}
+.tg{width:42px;height:22px;border:1px solid var(--lo);border-radius:12px;background:#1c160e;position:relative}
+.tg:after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--dim2)}
+.tg.on{background:#5a4620;border-color:var(--hi)} .tg.on:after{left:23px;background:var(--hi)}
+.sl{width:170px;height:22px;position:relative}
+.sl:before{content:"";position:absolute;left:0;right:0;top:10px;height:3px;background:#3a2f1b}
+.sl u{position:absolute;left:0;top:10px;height:3px;background:var(--hi)} .sl s{position:absolute;top:4px;width:15px;height:15px;border-radius:50%;background:var(--brass);border:2px solid #1b1408}
+.stp{display:inline-flex;align-items:center;gap:10px;font-family:Cinzel;font-size:12px;letter-spacing:.08em;color:var(--ivory)}
+.stp a{width:26px;height:26px;border:1px solid var(--lo);display:grid;place-items:center;color:var(--hi);border-radius:3px;font-size:11px}
+.val{font-family:Cinzel;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--hi)}
+.chev{color:var(--dim2);margin-left:8px}
+.sec{font-family:Cinzel;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--hi);padding:14px 2px 6px}
+.note{position:absolute;left:0;right:0;bottom:-34px;text-align:center;color:#8f836a;font-size:13px}
+.tag{position:absolute;left:30px;top:16px;font-family:Cinzel;letter-spacing:.16em;font-size:12px;color:var(--hi)}
+.tag b{display:block;font-size:22px;color:var(--ivory);letter-spacing:.1em;margin-top:4px}
+.tag span{display:block;font-family:Alegreya;letter-spacing:0;text-transform:none;font-size:14px;color:var(--dim);margin-top:6px;max-width:215px;line-height:1.35}
+
+:root{--u:8px}
+.win{width:760px;left:260px;height:640px;top:40px}
+.grid-on:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;background-image:linear-gradient(to right,rgba(127,214,255,.22) 1px,transparent 1px),linear-gradient(to bottom,rgba(127,214,255,.22) 1px,transparent 1px);background-size:8px 8px;mix-blend-mode:screen}
+.grid-on .win:before{content:"";position:absolute;left:20px;right:20px;top:0;bottom:0;border-left:1px solid rgba(255,90,90,.9);border-right:1px solid rgba(255,90,90,.9);z-index:98;pointer-events:none}
+.stat{border:1px solid #3a2f1b;background:#17120c;padding:8px 12px;display:flex;flex-direction:column;justify-content:center;height:56px}
+.stat .k{font-family:Cinzel;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2)} .stat .v{font-size:20px;font-family:Cinzel;color:var(--ivory)} .pos{color:var(--good)!important} .neg{color:var(--bad)!important}
+.ico{width:32px;height:32px;border:1px solid var(--brass);border-radius:50%;display:grid;place-items:center;color:var(--hi);font-size:14px;flex:none}
+.eff{font-style:italic;font-size:13.5px;color:var(--dim);line-height:1.25}
+.name{font-family:Cinzel;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ivory)}
+.pct{font-family:Cinzel;font-size:20px;color:var(--ivory);text-align:right}
+.trk{position:relative;height:28px}
+.trk:before{content:"";position:absolute;left:0;right:0;top:12px;height:4px;background:#2d2415}
+.trk u{position:absolute;left:0;top:12px;height:4px;background:linear-gradient(#e0c06e,#b38f3e)}
+.trk s{position:absolute;top:5px;width:18px;height:18px;border-radius:50%;background:#1b1408;border:2px solid var(--brass)}
+.trk i{position:absolute;top:12px;height:4px;background:repeating-linear-gradient(45deg,#7a3a24 0 3px,#3a1e14 3px 6px)}
+.tick{display:flex;justify-content:space-between;font-size:10px;color:var(--dim2);margin-top:-4px;font-family:Cinzel;letter-spacing:.08em}
+.sq{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--lo);background:#1c160e;color:var(--hi);font-size:14px;border-radius:3px}
+.hl{height:1px;background:#2a2216}
+.vr{width:1px;background:#2a2216;align-self:stretch}
+</style></head><body><div class="win"><div class="hd"><div class="ic">☼</div><h1>BUDGET</h1><div class="x">×</div></div><div class="body"><div style="margin-bottom:8px"><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px"><div class="stat"><span class="k">Taxes</span><span class="v pos">+98</span></div><div class="stat"><span class="k">Provinces</span><span class="v pos">+833</span></div><div class="stat"><span class="k">Army</span><span class="v neg">−625</span></div><div class="stat"><span class="k">Administration</span><span class="v neg">−24</span></div><div class="stat"><span class="k">Inflation</span><span class="v ">0</span></div><div class="stat"><span class="k">Treasury</span><span class="v ">100</span></div></div></div><div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:center;height:56px;border-top:1px solid #2a2216;border-bottom:1px solid #2a2216"><span class="name" style="font-size:13px">Preset</span><span class="seg"><b class="">Balanced</b><b class="">War</b><b class="">Growth</b></span></div><div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:center;min-height:64px;border-bottom:1px solid #2a2216"><div><div class="name" style="font-size:13px">Tax</div><div class="eff">Taxes bring 98 gold a turn; above 50 % they upset the people</div></div><div style="display:grid;grid-template-columns:56px 1fr 56px;gap:8px;align-items:center"><span class="sq" style="width:56px">−</span><div class="pct" style="text-align:center;border:1px solid #3a2f1b;height:28px;line-height:26px;font-size:15px;background:#120e09">50 %</div><span class="sq" style="width:56px">+</span></div></div><div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:center;min-height:64px;border-bottom:1px solid #2a2216"><div><div class="name" style="font-size:13px">Public goods</div><div class="eff">Contentment settles near 50 (neutral at 20 %)</div></div><div style="display:grid;grid-template-columns:56px 1fr 56px;gap:8px;align-items:center"><span class="sq" style="width:56px">−</span><div class="pct" style="text-align:center;border:1px solid #3a2f1b;height:28px;line-height:26px;font-size:15px;background:#120e09">20 %</div><span class="sq" style="width:56px">+</span></div></div><div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:center;min-height:64px;border-bottom:1px solid #2a2216"><div><div class="name" style="font-size:13px">Research</div><div class="eff">About 6.5 research points a turn · next level in about 28 turns</div></div><div style="display:grid;grid-template-columns:56px 1fr 56px;gap:8px;align-items:center"><span class="sq" style="width:56px">−</span><div class="pct" style="text-align:center;border:1px solid #3a2f1b;height:28px;line-height:26px;font-size:15px;background:#120e09">15 %</div><span class="sq" style="width:56px">+</span></div></div><div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:center;min-height:64px;border-bottom:1px solid #2a2216"><div><div class="name" style="font-size:13px">Investment</div><div class="eff">0.8 % chance a turn per province to improve</div></div><div style="display:grid;grid-template-columns:56px 1fr 56px;gap:8px;align-items:center"><span class="sq" style="width:56px">−</span><div class="pct" style="text-align:center;border:1px solid #3a2f1b;height:28px;line-height:26px;font-size:15px;background:#120e09">15 %</div><span class="sq" style="width:56px">+</span></div></div></div><div class="ft"><span class="btn">Revert</span><span class="btn pri">Done</span></div></div></body></html>
