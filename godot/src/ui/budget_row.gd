@@ -19,9 +19,10 @@ var eff: TBBz.TLabel
 var _effect := Callable()
 var _step := 5.0
 var _caption := ""
+var _box: MarginContainer
 
 func _init(icon: String, caption: String, value: float, effect: Callable, zone_from: float, stacked: bool, step_v: float = 5.0) -> void:
-	_effect = effect; _step = step_v; _caption = caption
+	_effect = effect; _step = step_v; _caption = caption; _stacked = stacked
 	add_theme_constant_override("separation", 0)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var ring := K.ring_icon(icon, 34)
@@ -55,6 +56,7 @@ func _init(icon: String, caption: String, value: float, effect: Callable, zone_f
 		slider.custom_minimum_size.x = SLIDER_W; slider.size_flags_horizontal = Control.SIZE_SHRINK_END
 		var steps := K.hbox(4); steps.add_child(minus); steps.add_child(plus); steps.size_flags_vertical = Control.SIZE_SHRINK_CENTER; steps.custom_minimum_size.x = STEP * 2.0 + 4.0; steps.size_flags_horizontal = Control.SIZE_SHRINK_END
 		r.add_child(ring); r.add_child(col); r.add_child(slider); r.add_child(val); r.add_child(steps)
+	_box = box
 	add_child(box)
 	add_child(HSeparator.new())
 	slider.value_changed.connect(func(v: float): _refresh(); changed.emit(v))
@@ -100,3 +102,11 @@ func set_value(v: float) -> void:
 	slider.set_value_no_signal(v)
 	slider.queue_redraw()
 	_refresh()
+
+## the height this row needs for its own text (two or three lines of effect), and a way to give every row the tallest: the rows keep an even pitch in every language
+func natural_h() -> float:
+	_box.custom_minimum_size.y = 0.0
+	var need: float = _box.get_combined_minimum_size().y
+	return maxf(need, ROW_H_STACKED if _stacked else ROW_H)
+func set_row_h(h: float) -> void: _box.custom_minimum_size.y = h
+var _stacked := false

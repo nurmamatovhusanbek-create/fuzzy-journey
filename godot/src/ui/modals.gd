@@ -146,6 +146,7 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		for st in stats: grid_s.add_child(_stat_cell(String(st[0]), float(st[1]), int(st[2]), h.phone))
 		net_slot.add_child(grid_s)
 		for i in 4: (rows[i] as TBBudgetRow).set_value(float(g.budget[n * 4 + i]))
+		(func(): _even_rows(rows)).call_deferred()
 		on_change.call()
 	# ---- the ledger: a header, then the four policies on one grid
 	if not stacked:
@@ -178,6 +179,14 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 	h.actions(revert, done)
 	sync.call()
 	return h
+
+## every policy row as tall as the tallest (a language with longer effect lines needs three lines): the four rows keep one pitch
+static func _even_rows(rows: Array) -> void:
+	var mh := 0.0
+	for r in rows:
+		if is_instance_valid(r): mh = maxf(mh, (r as TBBudgetRow).natural_h())
+	for r in rows:
+		if is_instance_valid(r): (r as TBBudgetRow).set_row_h(mh)
 
 ## one figure of the budget summary: its name, its signed amount (teal gain, rust cost), on an engraved plate of one fixed height
 static func _stat_cell(caption: String, amount: float, tone: int, phone: bool) -> Control:
