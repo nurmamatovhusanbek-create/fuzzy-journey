@@ -253,10 +253,16 @@ static func _tick(g: TBGame) -> void:
 			if g.grudge[i] != 0: g.grudge[i] -= 1
 
 ## research cost: rules>=1 makes eras reachable within a normal game
+const TECH_FLAT_FROM := 2.5               # rules 3: up to this level a step costs what it always did; above it the cost grows by TECH_LATE_GROWTH per tenth of a level (was 8 %: the modern era barely advanced)
+const TECH_LATE_GROWTH := 1.01
+
 ## public: research points a nation at level lvl needs for its next step (the budget screen tells the player how long that takes)
 static func tech_need(g: TBGame, lvl: float) -> int: return _need(g, lvl)
 
 static func _need(g: TBGame, lvl: float) -> int:
+	if g.rules >= 3:                                                      # rules 3: the early levels keep their cost, the late ones grow slowly (1 % a tenth of a level above level 2.5, not 8 %): research still buys something in the modern era
+		var low: float = minf(lvl, TECH_FLAT_FROM)
+		return maxi(1, int(float(D.tech_needed(low)) * 0.4 * pow(TECH_LATE_GROWTH, maxf(0.0, lvl - TECH_FLAT_FROM) * 10.0)))
 	var base := D.tech_needed(lvl)
 	return base if g.rules == 0 else maxi(1, int(base * 0.4))
 
