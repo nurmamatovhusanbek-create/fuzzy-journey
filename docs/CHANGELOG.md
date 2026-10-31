@@ -6,6 +6,7 @@ Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 s
 * A conquered province shows the occupier's flag and army (the badge, army totals and the army cycle follow the controller, not the old owner).
 * A war front no longer traps the selection: the first tap on an own army next to a selected enemy province picks it as the attacker, the second selects it.
 * Army pills: none at country scale; your own, wars and allies first, everyone once a province is wide enough for a pill; at the closest zoom the pill stays at 92 % and the figures at 11 px or more.
+* How many soldiers: the move preview carries a troop picker (slider, typed number, 25/50/75/100 % presets) and the odds follow it; Recruit and Hire open a card with the same picker and the live price before anything is spent.
 * Routes lens on the flat map: straight lines the short way round the sideways wrap, drawn in every copy of the world that reaches the screen; the lens no longer hashes its two big arrays every frame.
 
 ## Rules and logic (new games)

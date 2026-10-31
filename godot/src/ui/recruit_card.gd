@@ -49,7 +49,7 @@ func open(game: TBGame, province: int, what: String = "recruit") -> void:
 	var r := TBRecruitCard.range_for(g, p, kind)
 	_cap.text = T.call("recruit") if kind == "recruit" else T.call("cc_hire"); _cap.refit()
 	_name.text = TBI18n.place(g.world.name[p]); _name.refit()
-	picker.setup(r.x, r.y, clampi(r.z, r.x, r.y), T.call("recruit") if kind == "recruit" else T.call("cc_hire"))
+	picker.setup(r.x, r.y, clampi(r.z, r.x, r.y), T.call("recruit") if kind == "recruit" else T.call("cc_hire"), true)
 	if not picker.changed.is_connected(_on_amount): picker.changed.connect(_on_amount)
 	_on_amount(picker.value)
 	visible = true

@@ -148,6 +148,8 @@ func _init() -> void:
 	main._open_amount("recruit", home)
 	var rcard = main._amount_card
 	_check(rcard != null and rcard.visible and rcard.picker.lo == 5 and rcard.picker.hi == 30 and rcard.picker.value == 15, "Recruit opens a card with the number 5 to 30, 15 first")
+	await process_frame
+	await _shot("13_recruit_card")
 	rcard.picker._slider.value = 22
 	rcard._confirm()
 	await process_frame
