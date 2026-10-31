@@ -93,7 +93,8 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 	for it in gs:
 		var cell := VBoxContainer.new(); cell.add_theme_constant_override("separation", 0); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var gg := K.gauge(28.0 if ph else 34.0, String(it[1]), "", float(it[2]), it[3]); gg.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; cell.add_child(gg)
-		var cp := _cap(String(it[0]), 9.5); cp.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; cell.add_child(cp)
+		var cp := _cap(String(it[0]), 9.5 * minf(1.0, 1.5 / K.text_scale));      # at 200 % text three captions side by side are wider than the window: they stop growing at 150 %
+		cp.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; cell.add_child(cp)
 		row.add_child(cell)
 	var rm := MarginContainer.new(); rm.add_theme_constant_override("margin_bottom", 8); rm.add_child(row); body.add_child(rm)
 	# buildings
