@@ -17,6 +17,7 @@ var picker: TBTroopPicker
 var _cap: TBBz.TLabel
 var _name: TBBz.TLabel
 var _price: Label
+var _pool: Label
 var _why: Label
 var _ok: Button
 var _cancel: Button
@@ -36,6 +37,7 @@ func _init() -> void:
 	_cap = K.caps("", 10) as TBBz.TLabel; _box.add_child(_cap)
 	_name = K.title("", 19, Color.TRANSPARENT, 0.06, 19.0 * 1.1) as TBBz.TLabel; _box.add_child(_name)
 	picker = TBTroopPicker.new(); _box.add_child(picker)
+	_pool = K.label("", 13, TBTokens.c("ink_1")); _box.add_child(_pool)
 	_price = K.label("", 14); _price.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; _box.add_child(_price)
 	_why = K.label("", 13, TBTokens.c("neg")); _why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; _why.visible = false; _box.add_child(_why)
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); _box.add_child(row)
@@ -51,6 +53,8 @@ func open(game: TBGame, province: int, what: String = "recruit") -> void:
 	_name.text = TBI18n.place(g.world.name[p]); _name.refit()
 	picker.setup(r.x, r.y, clampi(r.z, r.x, r.y), T.call("recruit") if kind == "recruit" else T.call("cc_hire"), true)
 	if not picker.changed.is_connected(_on_amount): picker.changed.connect(_on_amount)
+	_pool.visible = g.rules >= 4 and kind == "recruit"
+	if _pool.visible: _pool.text = T.call("rc_pool", {"k": g.levy[p], "c": g.levy_cap(p)})
 	_on_amount(picker.value)
 	visible = true
 	reset_size()

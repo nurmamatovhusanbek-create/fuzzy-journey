@@ -129,6 +129,7 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 		[T.call("terrain"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]]
 	if g.rules >= 1:
 		rows.append([T.call("supply"), str(g.supply_limit(p))])
+		if g.rules >= 4 and g.owner[p] == me: rows.append([T.call("levy"), "%d / %d" % [g.levy[p], g.levy_cap(p)], "neg" if g.levy_drained(p) else ""])
 		if g.attrition(p) > 0: rows.append([T.call("attrition"), str(g.attrition(p)), "neg"])
 		if g.gen[p] != 0: rows.append([T.call("general"), TBGenerals.display_name(g, p)])
 	if g.occupier[p] != 0: rows.append([T.call("cc_occupation"), T.call("occupied_by", {"nation": g.dname(g.occupier[p])}), "neg"])
