@@ -150,11 +150,11 @@ class Seal extends Button:
 		elif hot: draw_arc(c, 39.0, 0.0, TAU, 64, TBTokens.with_a(hi, 0.6), 1.5, true)
 		# wax disc
 		var down: float = 2.0 if f_hold > 0.0 else 0.0
-		draw_circle(c + Vector2(0, 3.0), 31.0, TBTokens.with_a(TBTokens.BZ_SHADOW, 0.5))
+		draw_circle(c + Vector2(0, 2.0), 31.0, TBTokens.with_a(TBTokens.BZ_SHADOW, 0.5))
 		var base: Color = TBTokens.BZ_DNG_A.lerp(TBTokens.BZ_DNG_B, 0.55)
 		for k in 8:
 			var t: float = float(k) / 7.0
-			draw_circle(c + Vector2(0, down) + Vector2(-1.0, -1.0) * (1.0 - t) * 4.0, 31.0 * (1.0 - t * 0.55), base.lerp(TBTokens.BZ_DNG_HA, (1.0 - t) * 0.35 + (0.12 if hot else 0.0)).darkened(0.18 * t if f_hold > 0.0 else 0.0))
+			draw_circle(c + Vector2(0, down) + Vector2(-1.0, -1.0) * t * 4.0, 31.0 * (1.0 - t * 0.55), base.lerp(TBTokens.BZ_DNG_HA, (1.0 - t) * 0.35 + (0.12 if hot else 0.0)).darkened(0.18 * t if f_hold > 0.0 else 0.0))
 		draw_arc(c + Vector2(0, down), 24.0, 0.0, TAU, 48, TBTokens.with_a(TBTokens.BZ_DNG_TX, 0.32), 1.4, true)
 		TBBzIcons.draw(self, "war", c + Vector2(0, down), 28.0, TBTokens.BZ_DNG_TX, 1.8)
 		if has_focus() and TBFrame.kbd_nav: draw_arc(c, 45.0, 0.0, TAU, 64, TBTokens.c("brass_lt"), 2.0, true)

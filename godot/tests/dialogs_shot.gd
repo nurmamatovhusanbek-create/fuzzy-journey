@@ -70,6 +70,24 @@ func _init() -> void:
 		var sl: TBWarParts.Seal = seals[0]
 		var cr: Rect2 = sl.caption_rect()
 		_check(absf((cr.position.x + cr.size.x * 0.5) - sl.disc_center_x()) <= 1.5, "war: the hold caption is centred under its disc (%.1f px off)" % ((cr.position.x + cr.size.x * 0.5) - sl.disc_center_x()))
+		# the wax disc is drawn concentric with its ring and its icon: measure the centroid of the orange pixels against the disc's centre
+		var img: Image = root.get_viewport().get_texture().get_image()
+		var xf: Transform2D = sl.get_viewport().get_final_transform() * sl.get_global_transform_with_canvas()
+		var ctr: Vector2 = xf * Vector2(sl.size.x * 0.5 if sl.stacked else sl.size.x - 42.0, 42.0 if sl.stacked else sl.size.y * 0.5)
+		var rad: int = int(26.0 * xf.get_scale().x)
+		var sx := 0.0; var sy := 0.0; var cnt := 0.0
+		for dy in range(-rad - 6, rad + 7):
+			for dx in range(-rad - 6, rad + 7):
+				var px := int(ctr.x) + dx; var py := int(ctr.y) + dy
+				if px < 0 or py < 0 or px >= img.get_width() or py >= img.get_height(): continue
+				var c: Color = img.get_pixel(px, py)
+				if c.r > 0.62 and c.g > 0.26 and c.g < 0.55 and c.b < 0.42 and c.r - c.b > 0.3:
+					sx += px; sy += py; cnt += 1.0
+		if cnt > 50.0:
+			var off := Vector2(sx / cnt, sy / cnt) - ctr
+			_check(off.length() <= 0.12 * float(rad) + 1.0, "war: the wax disc is concentric with its ring (%.1f, %.1f px off, radius %d)" % [off.x, off.y, rad])
+		else:
+			_check(false, "war: the wax disc was not found in the picture (%d px)" % int(cnt))
 		var cancel_top := 1.0e9
 		for b in h3.footer.get_children():
 			if b is Button and not (b is TBWarParts.Seal) and (b as Control).visible: cancel_top = minf(cancel_top, (b as Control).get_global_rect().position.y)
