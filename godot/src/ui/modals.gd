@@ -448,7 +448,8 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> TBPanel.H
 		if tr != "none": rc.add_child(TBPanel.para("%s: %s" % [T.call("rtr_" + tr), T.call("rtr_%s_d" % tr)], 13, K.DIM))
 		hb.add_child(rc); lcol.add_child(hb)
 	var army := 0
-	for p in g.owned(me): army += g.army[p]
+	for p in g.P:
+		if g.controller(p) == me: army += g.army[p]
 	var figs := TBPanel.flow(6)                                      # the three figures in one row, not three ledger lines (m-10)
 	figs.add_child(K.chip("%s %d" % [T.call("lands"), g.own_count(me)], "flag", "own"))
 	figs.add_child(K.chip("%s %s" % [T.call("total_army"), K.fmt(army)], "swords", "neutral"))
@@ -462,7 +463,8 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> TBPanel.H
 		for i in mini(4, order.size()):
 			var o: int = order[i]
 			var oa := 0
-			for p in g.owned(o): oa += g.army[p]
+			for p in g.P:
+				if g.controller(p) == o: oa += g.army[p]
 			var ratio := float(oa) / maxf(1.0, army)
 			var tag: String = T.call("brief_stronger") if ratio > 1.3 else (T.call("brief_weaker") if ratio < 0.75 else T.call("brief_equal"))
 			var rowb := K.hbox(8); rowb.add_child(TBFlags.chip(g, o, 0.6)); var nl := K.label(g.dname(o), 14); nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; nl.custom_minimum_size.x = 40; rowb.add_child(nl)
@@ -806,7 +808,7 @@ static func game_over(parent: Control, g: TBGame, on_menu: Callable) -> TBPanel.
 	var rows: Array = []
 	var army_of := {}
 	for p in g.P:
-		var o: int = g.owner[p]
+		var o: int = g.controller(p)
 		if o > 0: army_of[o] = int(army_of.get(o, 0)) + g.army[p]
 	for n in range(1, g.N1):
 		if g.alive[n] == 0 or n == g.rebel: continue

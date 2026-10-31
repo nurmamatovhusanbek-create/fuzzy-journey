@@ -17,7 +17,9 @@ static func compute(g: TBGame) -> Dictionary:
 	var army := PackedInt32Array(); army.resize(g.N1)
 	for p in g.P:
 		var o: int = g.owner[p]
-		if o > 0: prov[o] += 1; army[o] += g.army[p]
+		if o > 0: prov[o] += 1
+		var c: int = g.controller(p)
+		if c > 0: army[c] += g.army[p]
 	var ids: Array = []
 	for n in range(1, g.N1):
 		if g.alive[n] != 0 and n != g.rebel and prov[n] > 0: ids.append(n)

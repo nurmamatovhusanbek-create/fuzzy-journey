@@ -254,7 +254,7 @@ func cycle(dir: int) -> void:
 		return
 	var armies: Array = []
 	for p in g.P:
-		if g.owner[p] == _me() and g.controller(p) == _me() and g.army[p] > 1: armies.append(p)
+		if g.controller(p) == _me() and g.army[p] > 1: armies.append(p)
 	if armies.is_empty(): return
 	armies.sort_custom(func(a: int, b: int) -> bool: return g.army[a] > g.army[b] if g.army[a] != g.army[b] else a < b)
 	var j := armies.find(focus_p)

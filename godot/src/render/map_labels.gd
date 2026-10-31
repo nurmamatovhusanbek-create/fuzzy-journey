@@ -1007,7 +1007,7 @@ func _draw_dot(pos: Vector2, al: float, own: bool, war: bool, hot: bool, nat: Co
 
 ## one army marker for the current zoom tier: dot (far), pennant (mid) or gonfalon (near); affiliation by outline, never by colour alone
 func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, me: int, ztier: int) -> void:
-	var o := g.owner[p]
+	var o := g.controller(p)
 	var rel := g.get_rel(me, o) if o != me else -1
 	var own := o == me
 	var war := rel == 1

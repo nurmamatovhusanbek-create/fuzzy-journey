@@ -182,7 +182,7 @@ func _sync_tag() -> void:
 	if _nation_mode():
 		var army := 0
 		for q in g.P:
-			if g.owner[q] == o: army += g.army[q]
+			if g.controller(q) == o: army += g.army[q]
 		var op: int = TBNationsScreen.opinion(g, me, o)
 		var ruler := ""
 		if g.rules >= 1 and g.r_name[o] != "": ruler = "%s %s" % [TBI18n.T(TBRulers.title_key(g, o)), TBRulers.display_name(g, o)]
