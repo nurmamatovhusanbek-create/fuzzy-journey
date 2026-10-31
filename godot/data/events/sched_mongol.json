@@ -656,5 +656,392 @@
     ]
    }
   ]
+ },
+ {
+  "id": "h_mon_red_turbans",
+  "icon": "warning",
+  "scope": "country",
+  "trigger": {
+   "year": 1351,
+   "monthIdx": 0,
+   "nation": "mongol_empire"
+  },
+  "title": {
+   "en": "The Red Turbans",
+   "ru": "Красные повязки",
+   "uz": "Qizil salla qo‘zg‘olonchilari"
+  },
+  "flavor": {
+   "en": "Floods on the Yellow River and a labour levy to mend its dykes set the countryside alight.",
+   "ru": "Разлив Хуанхэ и повинность чинить дамбы поджигают деревню.",
+   "uz": "Sariq daryo toshqini va to‘g‘onlarni tuzatish uchun mehnat majburiyati qishloqni alangalatdi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Send the steppe cavalry",
+     "ru": "Послать степную конницу",
+     "uz": "Dasht otliqlarini yuborish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -2
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Win over the Han gentry",
+     "ru": "Привлечь ханьскую знать",
+     "uz": "Xan mulkdorlarini jalb qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -60
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_mon_golden_bull",
+  "icon": "scroll",
+  "scope": "country",
+  "trigger": {
+   "year": 1356,
+   "monthIdx": 0,
+   "nation": "holy_roman_empire"
+  },
+  "title": {
+   "en": "The Golden Bull",
+   "ru": "Золотая булла",
+   "uz": "Oltin buqa"
+  },
+  "flavor": {
+   "en": "The emperor can settle how he is elected, once and for all, by seven electors.",
+   "ru": "Император может раз и навсегда определить порядок избрания семью курфюрстами.",
+   "uz": "Imperator o‘zining yetti saylovchi tomonidan saylanish tartibini bir marta va butunlay belgilab qo‘yishi mumkin."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Fix the electors by law",
+     "ru": "Закрепить курфюрстов законом",
+     "uz": "Saylovchilarni qonun bilan mustahkamlash"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.dp",
+      "target": "self",
+      "delta": 1
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Keep the crown's freedom",
+     "ru": "Сохранить свободу короны",
+     "uz": "Toj erkinligini saqlash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_mon_louis_hungary",
+  "icon": "crown",
+  "scope": "country",
+  "trigger": {
+   "year": 1370,
+   "monthIdx": 0,
+   "nation": "hungary"
+  },
+  "title": {
+   "en": "Louis the Great",
+   "ru": "Людовик Великий",
+   "uz": "Buyuk Lyudovik"
+  },
+  "flavor": {
+   "en": "The king of Hungary is offered the crown of Poland as well. Dalmatia pulls him south.",
+   "ru": "Королю Венгрии предлагают ещё и польскую корону. Далмация тянет его на юг.",
+   "uz": "Vengriya qiroliga Polsha tojini ham taklif qilishmoqda. Dalmatsiya uni janubga tortmoqda."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Take the Polish crown",
+     "ru": "Принять польскую корону",
+     "uz": "Polsha tojini qabul qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.dp",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Consolidate Dalmatia",
+     "ru": "Укрепить Далмацию",
+     "uz": "Dalmatsiyani mustahkamlash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_mon_peasants",
+  "icon": "warning",
+  "scope": "country",
+  "trigger": {
+   "year": 1381,
+   "monthIdx": 6,
+   "nation": "england"
+  },
+  "title": {
+   "en": "The Peasants' Revolt",
+   "ru": "Восстание Уота Тайлера",
+   "uz": "Dehqonlar qo‘zg‘oloni"
+  },
+  "flavor": {
+   "en": "A poll tax to pay for the French war has sent thousands of villagers marching on London.",
+   "ru": "Подушная подать на французскую войну подняла тысячи крестьян на поход к Лондону.",
+   "uz": "Fransiya urushi uchun solingan jon solig‘i minglab qishloq aholisini Londonga yurishga undadi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Crush the rising",
+     "ru": "Подавить восстание",
+     "uz": "Qo‘zg‘olonni bostirish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -2
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Grant concessions",
+     "ru": "Пойти на уступки",
+     "uz": "Yon berishlar qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -60
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 5
+     },
+     {
+      "op": "nation.happy",
+      "target": "self",
+      "delta": 4
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_mon_kosovo",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": 1389,
+   "monthIdx": 6,
+   "nation": "ras_ka"
+  },
+  "title": {
+   "en": "Kosovo Polje",
+   "ru": "Косово поле",
+   "uz": "Kosovo dalasi"
+  },
+  "flavor": {
+   "en": "The Ottoman army has crossed the Balkans. The prince can meet it on the Field of Blackbirds or come to terms.",
+   "ru": "Османская армия прошла через Балканы. Князь может встретить её на Косовом поле или искать соглашения.",
+   "uz": "Usmonlilar qo‘shini Bolqondan o‘tdi. Knyaz uni Kosovo dalasida kutib olishi yoki kelishuvga erishishi mumkin."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Meet them in the field",
+     "ru": "Встретить их в поле",
+     "uz": "Ularni dalada kutib olish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 10,
+      "turns": 6
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Seek a vassal's terms",
+     "ru": "Искать условий вассала",
+     "uz": "Vassal sifatida shart so‘rash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_mon_delhi",
+  "icon": "warning",
+  "scope": "country",
+  "trigger": {
+   "year": 1398,
+   "monthIdx": 6,
+   "nation": "sultanate_of_delhi"
+  },
+  "title": {
+   "en": "The Conqueror at the Indus",
+   "ru": "Завоеватель у Инда",
+   "uz": "Hind daryosi bo‘yidagi fotih"
+  },
+  "flavor": {
+   "en": "A great army from the north has crossed the Indus. The sultan's court is divided.",
+   "ru": "Огромная армия с севера перешла Инд. Двор султана разделён.",
+   "uz": "Shimoldan kelgan ulkan qo‘shin Hind daryosidan o‘tdi. Sulton saroyi ikkiga bo‘lingan."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Defend Delhi",
+     "ru": "Защищать Дели",
+     "uz": "Dehlini himoya qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -40
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Pay tribute",
+     "ru": "Заплатить дань",
+     "uz": "Xiroj to‘lash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -80
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
+     }
+    ]
+   }
+  ]
  }
 ]

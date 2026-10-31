@@ -289,6 +289,62 @@
   ]
  },
  {
+  "id": "h_tim_horodlo",
+  "icon": "scroll",
+  "scope": "country",
+  "trigger": {
+   "year": 1413,
+   "monthIdx": 6,
+   "nation": "poland_lithuania"
+  },
+  "title": {
+   "en": "The Union of Horodlo",
+   "ru": "Городельская уния",
+   "uz": "Gorodlo uniyasi"
+  },
+  "flavor": {
+   "en": "Two realms under one dynasty can bind their nobles together by sharing privileges.",
+   "ru": "Два государства под одной династией могут связать знать, разделив привилегии.",
+   "uz": "Bir sulola ostidagi ikki davlat zodagonlarini imtiyozlarni bo‘lishish orqali bir-biriga bog‘lashi mumkin."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Share the privileges",
+     "ru": "Разделить привилегии",
+     "uz": "Imtiyozlarni bo‘lishish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.dp",
+      "target": "self",
+      "delta": 1
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Keep the union loose",
+     "ru": "Оставить унию свободной",
+     "uz": "Uniyani yengil saqlash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 30
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_tim_agincourt",
   "icon": "swords",
   "scope": "country",
@@ -350,6 +406,72 @@
       "op": "nation.stability",
       "target": "self",
       "delta": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_ulugh_beg",
+  "icon": "book",
+  "scope": "country",
+  "trigger": {
+   "year": 1417,
+   "monthIdx": 0,
+   "nation": "timurid_empire"
+  },
+  "title": {
+   "en": "The Madrasa at Samarkand",
+   "ru": "Медресе Самарканда",
+   "uz": "Samarqanddagi madrasa"
+  },
+  "flavor": {
+   "en": "A scholar-prince raises great schools and an observatory at the old Silk Road crossroads.",
+   "ru": "Принц-учёный возводит великие школы и обсерваторию на старом перекрёстке Шёлкового пути.",
+   "uz": "Olim shahzoda Ipak yo‘lining qadimiy chorrahasida buyuk maktablar va rasadxona qurmoqda."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Found schools and an observatory",
+     "ru": "Основать школы и обсерваторию",
+     "uz": "Maktablar va rasadxona qurish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -80
+     },
+     {
+      "op": "nation.research",
+      "target": "self",
+      "delta": 30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Spend on the army",
+     "ru": "Потратить на армию",
+     "uz": "Qo‘shinga sarflash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 40
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -40
      }
     ]
    }
@@ -516,6 +638,67 @@
   ]
  },
  {
+  "id": "h_tim_timbuktu",
+  "icon": "coins",
+  "scope": "country",
+  "trigger": {
+   "year": 1433,
+   "monthIdx": 6,
+   "nation": "mali"
+  },
+  "title": {
+   "en": "The Tuareg Take Timbuktu",
+   "ru": "Туареги берут Томбукту",
+   "uz": "Tuareglar Tombuktuni oladi"
+  },
+  "flavor": {
+   "en": "Desert raiders hold the great river-and-caravan city. The crown is far away.",
+   "ru": "Пустынные всадники заняли великий город речной и караванной торговли. Корона далеко.",
+   "uz": "Cho‘l otliqlari daryo va karvon savdosining buyuk shahrini egalladi. Toj esa uzoqda."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Garrison the river cities",
+     "ru": "Поставить гарнизоны в речных городах",
+     "uz": "Daryo shaharlarida garnizon joylashtirish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -30
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Trade through the Tuareg",
+     "ru": "Торговать через туарегов",
+     "uz": "Tuareglar orqali savdo qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 50
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_tim_medici",
   "icon": "coins",
   "scope": "world",
@@ -609,6 +792,32 @@
   ]
  },
  {
+  "id": "tim_printing",
+  "icon": "book",
+  "scope": "world",
+  "trigger": {
+   "year": 1450,
+   "monthIdx": 0
+  },
+  "title": {
+   "en": "Movable Type",
+   "ru": "Подвижные литеры",
+   "uz": "Harakatlanuvchi harflar"
+  },
+  "flavor": {
+   "en": "Printed books begin to carry knowledge faster than any scribe can copy it.",
+   "ru": "Печатные книги начинают нести знания быстрее, чем может переписать любой писец.",
+   "uz": "Bosma kitoblar bilimni har qanday kotib ko‘chirishidan tezroq tarqata boshlaydi."
+  },
+  "autoEffects": [
+   {
+    "op": "nation.research",
+    "target": "self",
+    "delta": 15
+   }
+  ]
+ },
+ {
   "id": "h_tim_constantinople",
   "icon": "crown",
   "scope": "country",
@@ -674,6 +883,139 @@
       "op": "nation.gold",
       "target": "self",
       "delta": 50
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_roses",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": 1455,
+   "monthIdx": 0,
+   "nation": "english_territory"
+  },
+  "title": {
+   "en": "The Wars of the Roses",
+   "ru": "Война Алой и Белой розы",
+   "uz": "Qizil va Oq atirgullar urushi"
+  },
+  "flavor": {
+   "en": "A weak king and two great houses: the realm slides into war between the claimants.",
+   "ru": "Слабый король и два великих дома: страна сползает в войну между претендентами.",
+   "uz": "Zaif qirol va ikki buyuk xonadon: mamlakat da’vogarlar urushiga sirpanmoqda."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Back the ruling house",
+     "ru": "Поддержать правящий дом",
+     "uz": "Hukmron xonadonni qo‘llash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Back the challenger",
+     "ru": "Поддержать претендента",
+     "uz": "Da’vogarni qo‘llash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     },
+     {
+      "op": "nation.dp",
+      "target": "self",
+      "delta": 1
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_tim_belgrade",
+  "icon": "shield",
+  "scope": "country",
+  "trigger": {
+   "year": 1456,
+   "monthIdx": 6,
+   "nation": "hungary"
+  },
+  "title": {
+   "en": "The Siege of Belgrade",
+   "ru": "Осада Белграда",
+   "uz": "Belgrad qamali"
+  },
+  "flavor": {
+   "en": "The sultan's army besieges the gate of Hungary. The regent has a relief force of crusaders and townsmen.",
+   "ru": "Армия султана осаждает врата Венгрии. У регента есть войско из крестоносцев и горожан.",
+   "uz": "Sulton qo‘shini Vengriya darvozasini qamal qilmoqda. Regentda salibchilar va shahar aholisidan iborat yordamchi qo‘shin bor."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Relieve the fortress",
+     "ru": "Деблокировать крепость",
+     "uz": "Qal’ani qutqarish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 8,
+      "turns": 6
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Withdraw north",
+     "ru": "Отойти на север",
+     "uz": "Shimolga chekinish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
      }
     ]
    }

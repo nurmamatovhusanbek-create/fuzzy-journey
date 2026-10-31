@@ -119,6 +119,67 @@
   ]
  },
  {
+  "id": "h_med_charter",
+  "icon": "scroll",
+  "scope": "country",
+  "trigger": {
+   "year": 1100,
+   "monthIdx": 6,
+   "nation": "england"
+  },
+  "title": {
+   "en": "The Coronation Charter",
+   "ru": "Коронационная хартия",
+   "uz": "Toj kiyish xartiyasi"
+  },
+  "flavor": {
+   "en": "A new king promises to end the abuses of his brother's reign. The barons want it in writing.",
+   "ru": "Новый король обещает покончить со злоупотреблениями прежнего правления. Бароны хотят это увидеть на бумаге.",
+   "uz": "Yangi qirol akasi hukmronligidagi zulmlarni tugatishni va’da qiladi. Baronlar buni yozma ravishda ko‘rishni xohlaydi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Issue the charter",
+     "ru": "Издать хартию",
+     "uz": "Xartiyani chiqarish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -20
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Rule by prerogative",
+     "ru": "Править по праву короны",
+     "uz": "Qirol huquqi bilan boshqarish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -3
+     }
+    ]
+   }
+  ]
+ },
+ {
   "id": "h_med_devol",
   "icon": "scroll",
   "scope": "country",
@@ -403,6 +464,133 @@
       "op": "nation.stability",
       "target": "self",
       "delta": 3
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_med_anarchy",
+  "icon": "swords",
+  "scope": "country",
+  "trigger": {
+   "year": 1139,
+   "monthIdx": 0,
+   "nation": "england"
+  },
+  "title": {
+   "en": "Two Claimants",
+   "ru": "Два претендента",
+   "uz": "Ikki da’vogar"
+  },
+  "flavor": {
+   "en": "The old king left a daughter and a nephew. The barons choose sides and castles change hands.",
+   "ru": "Старый король оставил дочь и племянника. Бароны выбирают стороны, замки переходят из рук в руки.",
+   "uz": "Keksa qirol qiz va jiyan qoldirdi. Baronlar tomon tanlamoqda, qal’alar qo‘ldan-qo‘lga o‘tmoqda."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Muster the barons for one side",
+     "ru": "Собрать баронов под одним знаменем",
+     "uz": "Baronlarni bir tomon ostiga to‘plash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Let the claimants wear each other down",
+     "ru": "Дать претендентам истощить друг друга",
+     "uz": "Da’vogarlar bir-birini holdan toydirsin"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 30
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -5
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_med_second_crusade",
+  "icon": "flag",
+  "scope": "country",
+  "trigger": {
+   "year": 1147,
+   "monthIdx": 0,
+   "nation": "france"
+  },
+  "title": {
+   "en": "The Second Crusade",
+   "ru": "Второй крестовый поход",
+   "uz": "Ikkinchi salib yurishi"
+  },
+  "flavor": {
+   "en": "The fall of Edessa shocks Christendom. The king is urged to take the cross himself.",
+   "ru": "Падение Эдессы потрясает христианский мир. Короля призывают лично взять крест.",
+   "uz": "Edessaning qulashi nasroniy dunyosini larzaga soldi. Qirolga shaxsan salib olish tavsiya etilmoqda."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Take the cross with the army",
+     "ru": "Идти в поход с армией",
+     "uz": "Qo‘shin bilan salib yurishiga chiqish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -60
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": -1
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Send gold instead",
+     "ru": "Отправить золото вместо себя",
+     "uz": "O‘rniga oltin yuborish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 2
      }
     ]
    }
@@ -697,6 +885,276 @@
     "op": "nation.stability",
     "target": "self",
     "delta": -2
+   }
+  ]
+ },
+ {
+  "id": "h_med_fourth_crusade",
+  "icon": "warning",
+  "scope": "country",
+  "trigger": {
+   "year": 1203,
+   "monthIdx": 6,
+   "nation": "byzantine_empire"
+  },
+  "title": {
+   "en": "The Crusaders at the Gates",
+   "ru": "Крестоносцы у ворот",
+   "uz": "Salibchilar darvoza oldida"
+  },
+  "flavor": {
+   "en": "A Venetian fleet carrying an army has anchored before the city, with a claimant in its train.",
+   "ru": "Венецианский флот с армией встал перед городом, а с ним — претендент на трон.",
+   "uz": "Qo‘shin olib kelgan Venetsiya floti shahar oldiga langar tashladi, yonida taxt da’vogari ham bor."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Pay the Venetians to leave",
+     "ru": "Откупиться от венецианцев",
+     "uz": "Venetsiyaliklarga pul to‘lab jo‘natish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -100
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Fortify the walls",
+     "ru": "Укрепить стены",
+     "uz": "Devorlarni mustahkamlash"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -50
+     },
+     {
+      "op": "nation.combat",
+      "target": "self",
+      "delta": 10,
+      "turns": 6
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_med_kurultai",
+  "icon": "crown",
+  "scope": "country",
+  "trigger": {
+   "year": 1206,
+   "monthIdx": 0,
+   "nation": "mongols"
+  },
+  "title": {
+   "en": "The Great Kurultai",
+   "ru": "Великий курултай",
+   "uz": "Buyuk quriltoy"
+  },
+  "flavor": {
+   "en": "The chiefs of the steppe gather by the Onon river. One of them has bound the tribes together.",
+   "ru": "Вожди степи собираются на реке Онон. Один из них объединил племена.",
+   "uz": "Dasht boshliqlari Onon daryosi bo‘yida yig‘ilmoqda. Ulardan biri qabilalarni birlashtirdi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Proclaim a single khan",
+     "ru": "Провозгласить единого хана",
+     "uz": "Yagona xonni e’lon qilish"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 6
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": 60
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Keep the tribes apart",
+     "ru": "Оставить племена порознь",
+     "uz": "Qabilalarni alohida saqlash"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 30
+     },
+     {
+      "op": "nation.dp",
+      "target": "self",
+      "delta": 1
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_med_navas",
+  "icon": "shield",
+  "scope": "country",
+  "trigger": {
+   "year": 1212,
+   "monthIdx": 6,
+   "nation": "castilla"
+  },
+  "title": {
+   "en": "Las Navas de Tolosa",
+   "ru": "Лас-Навас-де-Толоса",
+   "uz": "Las-Navas-de-Tolosa"
+  },
+  "flavor": {
+   "en": "The pope preaches a crusade against the Almohads in Spain. The other kings of the peninsula will march.",
+   "ru": "Папа проповедует крестовый поход против альмохадов в Испании. Выступят и другие короли полуострова.",
+   "uz": "Rim papasi Ispaniyadagi Muvahhidlarga qarshi salib yurishini targ‘ib qilmoqda. Yarimorolning boshqa qirollari ham yurish qiladi."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Join the great army",
+     "ru": "Присоединиться к великой армии",
+     "uz": "Katta qo‘shinga qo‘shilish"
+    },
+    "effects": [
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -40
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 3
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Guard the frontier",
+     "ru": "Охранять границу",
+     "uz": "Chegarani qo‘riqlash"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 1
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 20
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "h_med_magna_carta",
+  "icon": "scroll",
+  "scope": "country",
+  "trigger": {
+   "year": 1215,
+   "monthIdx": 6,
+   "nation": "england"
+  },
+  "title": {
+   "en": "The Charter at Runnymede",
+   "ru": "Хартия в Раннимиде",
+   "uz": "Raniymiddagi xartiya"
+  },
+  "flavor": {
+   "en": "The barons have taken London and name their terms. The king is asked to seal them.",
+   "ru": "Бароны заняли Лондон и называют свои условия. Короля просят скрепить их печатью.",
+   "uz": "Baronlar Londonni egalladi va shartlarini aytmoqda. Qirolga ularni muhr bilan tasdiqlash taklif qilinmoqda."
+  },
+  "autoEffects": [],
+  "choices": [
+   {
+    "label": {
+     "en": "Seal the Charter",
+     "ru": "Скрепить хартию печатью",
+     "uz": "Xartiyani muhrlash"
+    },
+    "effects": [
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": 4
+     },
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": -30
+     },
+     {
+      "op": "nation.infamy",
+      "target": "self",
+      "delta": -2
+     }
+    ]
+   },
+   {
+    "label": {
+     "en": "Refuse the barons",
+     "ru": "Отказать баронам",
+     "uz": "Baronlarga rad javobini berish"
+    },
+    "effects": [
+     {
+      "op": "nation.gold",
+      "target": "self",
+      "delta": 20
+     },
+     {
+      "op": "nation.stability",
+      "target": "self",
+      "delta": -6
+     },
+     {
+      "op": "nation.manpower",
+      "target": "self",
+      "delta": -30
+     }
+    ]
    }
   ]
  }
