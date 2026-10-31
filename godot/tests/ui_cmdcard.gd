@@ -103,6 +103,15 @@ func _init() -> void:
 	main._select(enemy_p)
 	await _shot("6_held")
 	g.occupier[enemy_p] = 0; g.army[enemy_p] = 32
+	# a war front never traps the selection: with the enemy selected, the first tap on a neighbouring own army picks it as the attacker, the second selects it
+	main.flow.touch = false
+	main._select(enemy_p)
+	main.flow.g = g
+	var picked: bool = main.flow.pick(enemy_src, false, false)
+	_check(picked and main.panel._atk_src == enemy_src, "front: first tap on an own army next to the selected enemy picks the attacker")
+	picked = main.flow.pick(enemy_src, false, false)
+	_check(not picked, "front: the second tap on the same army falls through to a plain selection")
+	main._select(enemy_src)
 	# ---- orders: touch flow. Select the own army next to the enemy, tap the enemy -> preview, tap again -> confirm
 	main.flow.touch = true
 	main._select(enemy_src)

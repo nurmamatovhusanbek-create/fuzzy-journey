@@ -220,7 +220,7 @@ func pick(q: int, secondary: bool, from_touch: bool) -> bool:
 		# an enemy province is selected: tapping an own army next to it picks the attacker (the card shows "From ...")
 		if panel != null and panel.p >= 0 and q != panel.p and g.controller(q) == _me() and g.army[q] > 1 and g.controller(panel.p) != _me():
 			var ca := check(panel.p, q)
-			if ca["valid"] and ca["kind"] == "attack": panel.set_attacker(q); return true
+			if ca["valid"] and ca["kind"] == "attack" and panel._atk_src != q: panel.set_attacker(q); return true       # the second tap on the same army selects it: a war front never traps the selection
 		return false
 	if q == src: return false
 	var c := check(q)
