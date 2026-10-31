@@ -116,14 +116,16 @@ static func _bud_effect(g: TBGame, n: int, i: int, v: float) -> String:
 
 static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.Handle:
 	var n := g.human_id
-	var h := TBPanel.open(parent, TBPanel.Kind.DRAWER, T.call("budget"), "treasury", {"w": 560, "h": 850})
+	var vsb: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
+	var h := TBPanel.open(parent, TBPanel.Kind.DRAWER, T.call("budget"), "treasury", {"w": 740, "h": 850})
+	var stacked: bool = h.phone or vsb.x < 900.0 or K.text_scale >= 1.5            # a narrow window: each policy is a name line and a slider line
 	var start: Array = []
 	for i in 4: start.append(int(g.budget[n * 4 + i]))
 	var base_net: int = int(g.income(n)["net"])
 	var rows: Array = []
 	var sync_ref: Array = [Callable()]
-	var net_slot := K.hbox(18)                                  # `#bsum`: the gauge, NET INCOME and the leader rows
-	var sum_m := MarginContainer.new(); sum_m.add_theme_constant_override("margin_bottom", 6 if h.phone else 12); sum_m.add_child(net_slot)
+	var net_slot := K.hbox(16)                                  # the gauge and the six figures of the summary
+	var sum_m := MarginContainer.new(); sum_m.add_theme_constant_override("margin_bottom", 8 if h.phone else 16); sum_m.add_child(net_slot)
 	h.body.add_theme_constant_override("separation", 0)
 	h.body.add_child(sum_m)
 	var sync := func() -> void:
@@ -131,45 +133,60 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		var net: int = int(inc["net"])
 		h.set_sub(T.call("bud_sub", {"n": K.signed(float(net))}))
 		for c in net_slot.get_children(): c.queue_free()
-		var gw := MarginContainer.new(); gw.add_theme_constant_override("margin_right", 8); gw.add_theme_constant_override("margin_bottom", 5); gw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var gw := MarginContainer.new(); gw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		gw.add_child(K.gauge(24.0 if h.phone else 40.0, K.signed(float(net)), "" if h.phone else T.call("bud_per_turn").to_upper(), clampf(absf(float(net)) / maxf(1.0, float(inc["gold"])), 0.02, 1.0), TBTokens.c("pos") if net >= 0 else TBTokens.c("neg")))
 		net_slot.add_child(gw)
-		var lv := K.vbox(0); lv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; lv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		lv.add_child(K.wrappable(K.caps(T.call("income_net"))))
-		var mt := MarginContainer.new(); mt.add_theme_constant_override("margin_top", 6)
-		var items: Array = [[T.call("bud_taxes"), K.signed(float(inc["tax"])), 1], [T.call("bud_provinces"), K.signed(float(inc["production"])) if int(inc["production"]) != 0 else "0", 1 if int(inc["production"]) != 0 else 0]]
-		if g.rules >= 1 and TBTrade.income(g, n) > 0: items.insert(1, [T.call("trade"), K.signed(float(TBTrade.income(g, n))), 1])
-		items.append([T.call("tkr_upkeep"), K.signed(-float(inc["upkeep"])), -1 if int(inc["upkeep"]) != 0 else 0])
-		items.append([T.call("tkr_admin"), K.signed(-float(inc["admin"])), -1 if int(inc["admin"]) != 0 else 0])
-		if g.rules >= 1 and g.gold[n] > 0: items.append([T.call("infl_row"), K.signed(-g.gold[n] * g.infl), -1])
-		if net != base_net: items.append([T.call("dv_total"), K.signed(float(net - base_net)), 1 if net > base_net else -1])
-		mt.add_child(K.fxl(items, 2 if h.phone else 0)); lv.add_child(mt)
-		net_slot.add_child(lv)
-		for i in 4: (rows[i] as TBBzParts.SRow).set_value(float(g.budget[n * 4 + i]))
+		var stats: Array = [[T.call("bud_taxes"), float(inc["tax"]), 1], [T.call("bud_provinces"), float(inc["production"]), 1]]
+		stats.append([T.call("trade"), float(TBTrade.income(g, n)), 1] if (g.rules >= 1 and TBTrade.income(g, n) > 0) else [T.call("gold"), float(g.gold[n]), 0])
+		stats.append([T.call("tkr_upkeep"), -float(inc["upkeep"]), -1]); stats.append([T.call("tkr_admin"), -float(inc["admin"]), -1])
+		stats.append([T.call("infl_row"), -g.gold[n] * g.infl if g.rules >= 1 else 0.0, -1])
+		var grid_s := GridContainer.new(); grid_s.columns = 2 if h.phone else 3
+		grid_s.add_theme_constant_override("h_separation", 8); grid_s.add_theme_constant_override("v_separation", 8); grid_s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for st in stats: grid_s.add_child(_stat_cell(String(st[0]), float(st[1]), int(st[2]), h.phone))
+		net_slot.add_child(grid_s)
+		for i in 4: (rows[i] as TBBudgetRow).set_value(float(g.budget[n * 4 + i]))
 		on_change.call()
-	var vsb: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size
-	var grid := GridContainer.new(); grid.columns = 2 if h.phone else 1
-	grid.add_theme_constant_override("h_separation", 22); grid.add_theme_constant_override("v_separation", 10 if h.phone else 14)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.body.add_child(grid)
+	# ---- the ledger: a header, then the four policies on one grid
+	if not stacked:
+		var hd := K.hbox(16); hd.custom_minimum_size.y = 24.0
+		var sp0 := Control.new(); sp0.custom_minimum_size.x = TBBudgetRow.ICON_W; hd.add_child(sp0)
+		var c1 := K.caps(T.call("bud_col_policy")); c1.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hd.add_child(c1)
+		var c2 := K.caps(T.call("bud_col_share")); c2.custom_minimum_size.x = TBBudgetRow.SLIDER_W; hd.add_child(c2)
+		var c3 := K.caps(T.call("bud_col_now")); c3.custom_minimum_size.x = TBBudgetRow.VAL_W; c3.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; hd.add_child(c3)
+		var sp1 := Control.new(); sp1.custom_minimum_size.x = TBBudgetRow.STEP * 2.0 + 4.0; hd.add_child(sp1)
+		h.body.add_child(hd); h.body.add_child(HSeparator.new())
 	for i in 4:
 		var idx := i
-		var r := K.srow(["tax", "happy", "research", "invest"][i], T.call(BUDGET_KEYS[i]), 0, 100, 5, g.budget[n * 4 + i],
-			func(v: float): g.apply({"cmd": "budget", "n": n, "key": BUDGET_KEYS[idx], "val": int(v)}); (func(): if h.is_open(): (sync_ref[0] as Callable).call()).call(),
-			Callable(), func(v: float) -> String: return _bud_effect(g, n, idx, v), 50.0 if i == 0 else -1.0)
-		grid.add_child(r); rows.append(r)
+		var r := TBBudgetRow.new(["tax", "happy", "research", "invest"][i], T.call(BUDGET_KEYS[i]), float(g.budget[n * 4 + i]),
+			func(v: float) -> String: return _bud_effect(g, n, idx, v), 50.0 if i == 0 else -1.0, stacked)
+		r.changed.connect(func(v: float): g.apply({"cmd": "budget", "n": n, "key": BUDGET_KEYS[idx], "val": int(v)}); (func(): if h.is_open(): (sync_ref[0] as Callable).call()).call())
+		h.body.add_child(r); rows.append(r)
 	sync_ref[0] = sync
-	var pre := K.hbox(10); pre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var pre := K.hbox(16); pre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var pm := MarginContainer.new(); pm.add_theme_constant_override("margin_top", 12); pm.add_child(pre); h.body.add_child(pm)
-	pre.add_child(K.caps(T.call("preset")))
+	var pl := K.caps(T.call("preset")); pl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pl.size_flags_vertical = Control.SIZE_SHRINK_CENTER; pre.add_child(pl)
 	var preset_seg := TBPanel.seg([["balanced", T.call("pre_balanced")], ["war", T.call("pre_war")], ["growth", T.call("pre_growth")]], "", func(id: String): _budget_set(g, n, PRESETS[id]); sync.call())
-	preset_seg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preset_seg.custom_minimum_size.x = 300.0; preset_seg.size_flags_horizontal = Control.SIZE_SHRINK_END
 	pre.add_child(preset_seg)
 	var revert := K.button(T.call("revert"), func(): _budget_set(g, n, start); sync.call())
 	var done := K.button(T.call("done"), func(): h.close(), true)
 	h.actions(revert, done)
 	sync.call()
 	return h
+
+## one figure of the budget summary: its name, its signed amount (teal gain, rust cost), on an engraved plate of one fixed height
+static func _stat_cell(caption: String, amount: float, tone: int, phone: bool) -> Control:
+	var pc := PanelContainer.new(); pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pc.add_theme_stylebox_override("panel", TBBz.well_box(TBTokens.BZ_WELL_LINE, 12.0, 6.0))
+	pc.custom_minimum_size.y = 44.0 if phone else 52.0
+	var v := K.vbox(0); v.size_flags_vertical = Control.SIZE_SHRINK_CENTER; pc.add_child(v)
+	var cp := K.caps(caption); (cp as TBBz.TLabel).px = 9.5; (cp as TBBz.TLabel).refit(); cp.custom_minimum_size.x = 40; cp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(cp)
+	var vl := TBBz.TLabel.new(TBKit.alegreya(700), 18.0 if phone else 20.0, 0.0)
+	vl.text = K.signed(amount) if (amount != 0.0 and tone != 0) else (str(int(amount)) if amount != 0.0 else "0"); vl.refit()
+	vl.add_theme_color_override("font_color", TBTokens.c("pos") if (tone > 0 and amount != 0.0) else (TBTokens.c("neg") if (tone < 0 and amount != 0.0) else TBTokens.c("ink_0")))
+	v.add_child(vl)
+	return pc
 
 # =====================================================================================================================================================
 # Decrees (panel / page): the demo's `decreesBody`, a grid of engraved cards (2 columns, 3 on a phone); doctrine (game only) above it
