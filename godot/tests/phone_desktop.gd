@@ -40,6 +40,6 @@ func _init() -> void:
 	for i in 10: await process_frame
 	vs = root.get_visible_rect().size
 	print("compact: logical ", vs, " profile ", hud._prof)
-	_check(absf(vs.y - 390.0) < 2.0 and hud._prof != 0, "compact brings the 390 unit phone layout back")
+	_check(absf(vs.y - main.compact_stage()) < 2.0 and hud._prof != 0, "compact brings the compact phone layout back (%d units)" % int(main.compact_stage()))
 	print("PHONE_DESKTOP OK" if fails == 0 else "PHONE_DESKTOP FAIL %d" % fails)
 	quit(fails)
