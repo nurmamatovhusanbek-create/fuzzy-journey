@@ -303,10 +303,10 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 			elif g.dp[me] < cost: K.disable(ab, T.call("err_dp"))
 			var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			adopt_slot.add_child(sp); adopt_slot.add_child(ab)
-		var seg := TBPanel.seg(items, cur_id, func(id: String):
+		var seg := K.segmented(items, cur_id, func(id: String):
 			DS["sel"] = id
 			say.call(T.call("doc_%s_d" % id), TBTokens.ink_for(TBTokens.c("brass_lt")))
-			refresh_adopt.call())
+			refresh_adopt.call(), true)                                # the same segmented control as everywhere: equal cells
 		var sm := MarginContainer.new(); sm.add_theme_constant_override("margin_top", 8); sm.add_theme_constant_override("margin_bottom", 8); sm.add_child(seg)
 		body.add_child(sm)
 		say.call(T.call("doc_%s_d" % cur_id) if cur_id != "" else T.call("doc_none"), TBTokens.ink_for(TBTokens.c("brass_lt")))
