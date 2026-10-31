@@ -20,6 +20,7 @@ static func open(parent: Control, ctx: Dictionary) -> TBPanel.Handle:
 	var portrait := TBPanel.is_portrait(vs)
 	var S := {"tab": tab, "topic_open": false}
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("menu"), "gear", {"scroll": true})
+	if h.scroll != null: h.scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS          # the scrollbar always holds its place: a page that scrolls and one that does not keep the same column
 	var ui := {}
 	var titles := {"saves": T.call("saves"), "settings": T.call("settings"), "howto": T.call("tut_help"), "honours": T.call("honours")}
 	# ---- tabs
