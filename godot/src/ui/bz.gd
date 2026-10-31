@@ -306,12 +306,13 @@ static func draw_notch(ci: RID, w: float, h: float, variant: int, hot: bool, pre
 	if pressed: a = mul_rgb(a, 0.85); b = mul_rgb(b, 0.85)
 	if off: lo = dim(lo); a = dim(a); b = dim(b)
 	var bw: float = 2.0 if TBTokens.is_hc() else 1.0
-	var o := notch(0, 0, w, h, k)
 	var i := notch(bw, bw, w - bw, h - bw, k - bw)
-	for s in 8:                                                  # rim: the eight quads between the two octagons (no overlap, so opacity stays exact)
-		var t: int = (s + 1) % 8
-		poly(ci, PackedVector2Array([o[s], o[t], i[t], i[s]]), lo)
 	poly_g(ci, i, vgrad(i, bw, h - 2.0 * bw, a, b))
+	# rim: ONE closed antialiased outline along the middle of the rim. It used to be eight thin quads between two octagons; at fractional scales their
+	# aliased edges dropped pixels, so a different corner of the plate went missing at different widths (a button 260 wide lost its right chamfers, one 259 wide did not)
+	var m := notch(bw * 0.5, bw * 0.5, w - bw * 0.5, h - bw * 0.5, k - bw * 0.5)
+	var closed := m.duplicate(); closed.append(m[0])
+	RenderingServer.canvas_item_add_polyline(ci, closed, PackedColorArray([lo]), bw, true)
 	return col
 
 ## keyboard focus ring of a notched control: 2 unit ring 3 units outside the plate (outline: 2px solid var(--hi); outline-offset: 3px)
