@@ -105,7 +105,13 @@ static func _bud_effect(g: TBGame, n: int, i: int, v: float) -> String:
 	match i:
 		0: return T.call("bud_tax_fx", {"g": int(inc["tax"])})
 		1: return T.call("bud_goods_fx", {"h": int(clampf(50.0 + (v - 20.0) * 0.6 - maxf(0.0, g.budget[n * 4] - 50.0) * 0.5, 0.0, 100.0))})
-		2: return T.call("bud_research_fx", {"r": "%.1f" % D.tech_gain(int(inc["pop"]), int(v))})
+		2:
+			var gain: float = D.tech_gain(int(inc["pop"]), int(v))
+			var line: String = T.call("bud_research_fx", {"r": "%.1f" % gain})
+			if g.rules >= 3 and g.tech_level[n] < 5.0 and gain > 0.0:                    # how long the next level takes at this setting (the catch-up bonus is left out: "about")
+				var left: float = maxf(0.0, float(TBTurn.tech_need(g, g.tech_level[n])) - g.research[n])
+				line += " · " + T.call("bud_research_next", {"t": int(ceil(left / gain))})
+			return line
 	return T.call("bud_invest_fx", {"p": "%.1f" % (v * 0.05)})
 
 static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.Handle:

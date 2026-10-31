@@ -49,6 +49,8 @@ Progress is the minimum of the three ratios (share, gold, deals), so the goals s
 * **No race in late eras.** If the world already starts within 1.0 of the cap (`tech_start_top > 4.0` — WWI 4.3, WWII 4.7, Cold War 4.89)
   everyone arrives at 5.0 together, so the path is unavailable there (progress 0). In the early and mid eras it is a real race.
 
+* **Measured pace (rules 3, 80 turns, nations with 8+ provinces).** Mean gain per nation: ancient 0.76, Roman 0.65, medieval 0.23, Mongol 0.20, Timurid 0.22, Discovery 0.17, gunpowder 0.18, Napoleonic 0.17, Victorian 0.10, WWI 0.07, WWII 0.04, Cold War 0.03, modern 0.04. The cost of a level is `60 · 1.08^(10·level) · 0.4`, so late levels cost 500+ points against a few points a turn. A flatter late curve would speed every era's AI and change the balance; left as it is, and the budget screen now shows the turns to the next level.
+
 ## 4. AI aggression ("World" selector on the nation-pick card)
 
 Stored per game (`aggr_level`, saved). Level 1 is the original behaviour.

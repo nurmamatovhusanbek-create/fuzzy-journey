@@ -253,6 +253,9 @@ static func _tick(g: TBGame) -> void:
 			if g.grudge[i] != 0: g.grudge[i] -= 1
 
 ## research cost: rules>=1 makes eras reachable within a normal game
+## public: research points a nation at level lvl needs for its next step (the budget screen tells the player how long that takes)
+static func tech_need(g: TBGame, lvl: float) -> int: return _need(g, lvl)
+
 static func _need(g: TBGame, lvl: float) -> int:
 	var base := D.tech_needed(lvl)
 	return base if g.rules == 0 else maxi(1, int(base * 0.4))

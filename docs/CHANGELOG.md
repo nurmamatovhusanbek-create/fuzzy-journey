@@ -22,6 +22,8 @@ Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 s
 * At 200 % text the End Turn dial no longer prints its word over the number and keeps its whole label on screen; the province ring's verbs are no longer cut to "MOVE AR…".
 * Long words (Russian, Uzbek) are set a size smaller instead of being broken in the middle; long event choices no longer lose their first lines at large text.
 
+* The budget screen's research line says how long the next technology level takes at the chosen setting. Research is slow late in the game (a 100-turn modern game gains about 0.04 of a level at the default 15 %), so the player can see what the slider buys.
+
 ## Speed and tests
 * AI turn about 2 times faster (trade step, loyalty terms, income loop); outcomes identical.
 * The overflow audit used to run Russian and Uzbek in English (the game reloaded the saved language over the test's); fixed, and it now also opens the longest scheduled event of each language. Re-run: clean at 100 %, 150 % and 200 % text, 1080p and the S22 stage.
