@@ -144,17 +144,20 @@ func _init() -> void:
 	# Recruit asks how many first
 	var home: int = g.owned(me)[0]
 	g.gold[me] = 400.0; g.manpower[me] = 100.0; g.mp[me] = 6.0
+	if g.rules >= 4: g.levy[home] = 40
 	var army0: int = g.army[home]; var man0: float = g.manpower[me]
 	main._open_amount("recruit", home)
 	var rcard = main._amount_card
-	_check(rcard != null and rcard.visible and rcard.picker.lo == 5 and rcard.picker.hi == 30 and rcard.picker.value == 15, "Recruit opens a card with the number 5 to 30, 15 first")
+	var rr := g.recruit_range(home)
+	_check(rcard != null and rcard.visible and rcard.picker.lo == rr.x and rcard.picker.hi == rr.y and rcard.picker.value == rr.z, "Recruit opens a card with the number %d to %d, %d first" % [rr.x, rr.y, rr.z])
 	await process_frame
 	await _shot("13_recruit_card")
-	rcard.picker._slider.value = 22
+	var want: int = clampi(22, rr.x, rr.y)
+	rcard.picker._slider.value = want
 	rcard._confirm()
 	await process_frame
-	_check(g.army[home] == army0 + 22 and not rcard.visible, "the recruits are the number chosen (%d)" % (g.army[home] - army0))
-	_check(int(man0 - g.manpower[me]) == TBData.COST_RECRUIT_MAN + 22, "the people paid follow the number (%d)" % int(man0 - g.manpower[me]))
+	_check(g.army[home] == army0 + want and not rcard.visible, "the recruits are the number chosen (%d)" % (g.army[home] - army0))
+	_check(int(man0 - g.manpower[me]) == (want if g.rules >= 4 else TBData.COST_RECRUIT_MAN + want), "the people paid follow the number (%d)" % int(man0 - g.manpower[me]))
 	g.gold[me] = 0.0
 	main._open_amount("recruit", home)
 	_check(main._amount_card.visible and main._amount_card._ok.disabled, "with no gold the card says so and cannot confirm")

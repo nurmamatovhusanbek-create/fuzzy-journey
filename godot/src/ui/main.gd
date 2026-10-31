@@ -130,6 +130,7 @@ func _offer_comfort() -> void:
 
 ## The UI is laid out in the Bezel demo's design units: a stage 1180 units tall on a desktop (390 on a phone held in landscape), scaled to the window.
 ## So a number in the demo (a 46 unit medallion, a 22 unit title) is the same number here. cfg "ui" is the demo's S / M / L (taller stage = smaller UI).
+const NEW_GAME_RULES := 4                 # the rules a new game starts with (a save keeps the rules it was made with); 4 = levy pools (docs/WAR_DESIGN.md)
 const PHONE_STAGE := 760.0
 const COMPACT_STAGE := 460.0          # the phone layout's stage height in units (a taller stage = smaller UI; the old 390 made everything twice the desktop size; below 560 the phone layouts apply, also with the "small" interface setting x1.18); tests: TB_COMPACT_STAGE
 static func compact_stage() -> float:
@@ -836,7 +837,7 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	cfg["difficulty"] = difficulty; _save_cfg()
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	TBFlags.cur_era = String(era.get("id", ""))
-	g = TBGame.new(world, era, {"seed": (int(OS.get_environment("TB_SEED")) if OS.get_environment("TB_SEED") != "" else int(Time.get_unix_time_from_system()) & 0x7fffffff | 1), "difficulty": difficulty, "aggression": int(cfg.get("aggression", 1))})
+	g = TBGame.new(world, era, {"seed": (int(OS.get_environment("TB_SEED")) if OS.get_environment("TB_SEED") != "" else int(Time.get_unix_time_from_system()) & 0x7fffffff | 1), "difficulty": difficulty, "aggression": int(cfg.get("aggression", 1)), "rules": NEW_GAME_RULES if OS.get_environment("TB_RULES") == "" else int(OS.get_environment("TB_RULES"))})
 	TBLenses.dark_land = true
 	map.setup(g)
 	mode = "pick"; _spin = false; _enter_game_visuals()
