@@ -78,6 +78,9 @@ func setup(place: String, kind: String, info: Dictionary, moves: int, send: int)
 		var dial := K.gauge(40.0, "%d%%" % int(roundf(share * 100.0)), T.call("pv_odds").to_upper() if TBI18n.lang != "ru" else T.call("pv_odds"), share, col)
 		dial.position = Vector2(-8.0, -4.0); _dial_slot.add_child(dial)
 		var line: String = T.call("cc_victory", {"k": int(info.get("hold", 0)), "l": int(info.get("lost", 0))}) if win else T.call("cc_defeat", {"a": int(info["lost"])})
+		if info.has("range"):                                              # rules 4: the best and the worst case around the expected result
+			var rg: Dictionary = info["range"]
+			line += " " + T.call("pv_range", {"b": int((rg["best"] as Dictionary)["a_left"]), "w": int((rg["worst"] as Dictionary)["a_left"])})
 		sm.add_child(K.para_bz("[i]%s[/i]" % line, 14.0, 1.2))
 		_cells.add_child(_cell(K.fmt(float(info["send"])), T.call("pv_your_army")))
 		_cells.add_child(_cell(K.fmt(float(info["defenders"])), T.call("pv_defenders")))

@@ -734,6 +734,14 @@ func combat_preview(n: int, from: int, to: int, troops: int) -> Dictionary:
 	if rides: atk *= TBGenerals.mul(self, from)
 	if rules >= 1: dfn *= TBGenerals.mul(self, to)
 	var out := {"send": send, "defenders": army[to], "atk": atk, "dfn": dfn, "win": atk > dfn, "rides": rides, "mp": D.MP_ATTACK}
+	if rules >= 4:                                                          # three rounds, a range instead of a verdict
+		var am: float = atk / float(send); var dm: float = dfn / float(maxi(1, army[to]))
+		var rg := TBBattle.ranged(send, am, army[to], dm)
+		var ex: Dictionary = rg["expected"]
+		out["win"] = bool(ex["win"]); out["range"] = rg
+		out["hold"] = int(ex["a_left"]); out["lost"] = int(ex["a_lost"]); out["enemy_lost"] = int(ex["d_lost"])
+		out["chance"] = 0.5 if (rg["best"]["win"] != rg["worst"]["win"]) else (1.0 if bool(ex["win"]) else 0.0)
+		return out
 	if atk > dfn:
 		var surv := maxi(1, int(round((atk - dfn) / maxf(0.01, combat_mul(n)))))
 		var occ := mini(send, surv)
@@ -779,6 +787,7 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 	var rides := rules >= 1 and TBGenerals.follows(self, from, avail - send)
 	if rides: atk *= TBGenerals.mul(self, from)
 	if rules >= 1: dfn *= TBGenerals.mul(self, to)
+	if rules >= 4: return _battle4(atk_n, def_n, from, to, send, avail, atk, dfn, rides)
 	if atk > dfn:
 		var surv := maxi(1, int(round((atk - dfn) / maxf(0.01, combat_mul(atk_n)))))
 		var occ := mini(send, surv)
@@ -809,6 +818,52 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 		if rides: TBGenerals.lose(self, from, atk_n, atk_loss * 2 > send)
 		TBGenerals.win(self, to, def_n)
 	return "loss"
+
+
+## rules 4: the battle of three rounds. The winner keeps the field (the attacker occupies with the men that are left), the beaten army retreats with most of its survivors,
+## an attacker who fails comes home with what is left of the men he sent
+func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int, atk: float, dfn: float, rides: bool) -> String:
+	var def_men: int = army[to]
+	var r := TBBattle.fight(send, atk / float(send), def_men, dfn / float(maxi(1, def_men)))
+	var a_left: int = int(r["a_left"]); var d_left: int = int(r["d_left"])
+	if bool(r["win"]):
+		var occ: int = maxi(1, a_left)
+		if owner[to] == 0: set_owner(to, atk_n)
+		elif owner[to] == atk_n:
+			occupier[to] = 0; occ_rev += 1
+		elif atk_n == rebel or def_n == rebel: cede(to, atk_n)
+		else:
+			occupier[to] = atk_n; occ_turns[to] = 0; occ_rev += 1
+			if human[atk_n] != 0 or human[def_n] != 0 or capital[to] != 0:
+				log.append({"turn": turn, "kind": "occupied", "a": atk_n, "b": def_n, "p": to})
+		army[to] = occ; defense[to] = 0
+		army[from] = maxi(0, avail - send)
+		_retreat(def_n, to, from, int(floor(float(d_left) * TBBattle.RETREAT)))
+		touch(from); touch(to)
+		if (human[atk_n] != 0 or human[def_n] != 0) and battle_fx.size() < 60: battle_fx.append([from, to, 1, atk_n, def_n])
+		if gen[to] != 0 and def_n != 0 and human[def_n] != 0: log.append({"turn": turn, "kind": "general_fell", "a": def_n, "p": to, "gn": TBGenerals.name_idx(self, to), "sk": TBGenerals.skill(self, to)})
+		gen[to] = 0
+		if rides:
+			TBGenerals.transfer(self, from, to); TBGenerals.win(self, to, atk_n)
+		return "win"
+	army[from] = mini(ARMY_CAP, maxi(0, avail - send) + a_left)                # the survivors come home
+	army[to] = maxi(1, d_left)
+	touch(from); touch(to)
+	if (human[atk_n] != 0 or human[def_n] != 0) and battle_fx.size() < 60: battle_fx.append([from, to, 0, atk_n, def_n])
+	if rides: TBGenerals.lose(self, from, atk_n, int(r["a_lost"]) * 2 > send)
+	TBGenerals.win(self, to, def_n)
+	return "loss"
+
+## a beaten army falls back to the strongest neighbour its nation still holds (not the one the attack came from); with nowhere to go the men are scattered
+func _retreat(n: int, lost_p: int, attack_from: int, men: int) -> void:
+	if men <= 0 or n == 0: return
+	var best := -1
+	for i in range(nb_off[lost_p], nb_off[lost_p + 1]):
+		var q: int = nb[i]
+		if q == attack_from or controller(q) != n: continue
+		if best < 0 or army[q] > army[best]: best = q
+	if best >= 0:
+		army[best] = mini(ARMY_CAP, army[best] + men); touch(best)
 
 func cede(p: int, to: int) -> void:
 	var from := owner[p]
