@@ -36,6 +36,7 @@ run "synth audio" tests/audio.gd
 run "UI contrast: tokens vs art bible 4.2-4.7 (normal + high contrast)" tests/ui_contrast.gd
 run "soak: random human, 7 eras, invariants" tests/soak.gd
 run "historical events: integrity + firing" tests/hist_events.gd
+run "saves of release 1.0.0 still load and play on" tests/old_saves.gd
 run "security: command schema, wire format, saves, settings, server text/rate rules" tests/security.gd
 run "fuzz: random and hostile commands keep the invariants" tests/fuzz_commands.gd
 echo "== links: res paths, translation keys, language parity"; python3 tools/audit_links.py || fail=1
