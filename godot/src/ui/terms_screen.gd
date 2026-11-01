@@ -84,6 +84,7 @@ static func _card(title_text: String, body_text: String, pct: int, off: String, 
 
 ## opts: on_cmd(cmd) receives {"cmd": "ask", ...}; the window is rebuilt after a request is sent
 static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) -> TBPanel.Handle:
+	if g.rules >= 4 and g.human[enemy] == 0: return TBPeaceTable.open(parent, g, enemy, opts)          # rules 4: the peace table, answered at once
 	var me: int = g.human_id
 	var on_cmd: Callable = opts.get("on_cmd", Callable())
 	var ws_me: int = g.war_score[me * g.N1 + enemy]

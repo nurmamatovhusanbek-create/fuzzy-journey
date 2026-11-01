@@ -1046,6 +1046,9 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		sfx.play("coin")
 	elif String(cmd.get("cmd", "")) == "ask":
 		hud.toast(T.call("ask_sent", {"a": g.dname(int(cmd["t"]))}))
+	elif String(cmd.get("cmd", "")) == "peaceDeal":
+		sfx.play("coin")
+		hud.toast(T.call("deal_done", {"a": g.dname(int(cmd["t"]))}))
 	elif res.has("success"):
 		hud.toast(T.call("spy_ok") if res["success"] else T.call("spy_fail"), not res["success"])
 	_after_change()

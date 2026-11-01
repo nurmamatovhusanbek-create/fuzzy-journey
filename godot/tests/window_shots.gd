@@ -1,5 +1,5 @@
 extends SceneTree
-## One window of the game as a picture. Usage: -s tests/window_shots.gd -- <w> <h> <text scale> <lang> <out dir> <window> [<window> ...]   windows: budget decrees council goals annals nations
+## One window of the game as a picture. Usage: -s tests/window_shots.gd -- <w> <h> <text scale> <lang> <out dir> <window> [<window> ...]   windows: budget decrees council goals annals nations terms
 ## (TB_PHONE_UI=compact, TB_DPR/TB_DPI as for the other UI shots)
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
@@ -27,6 +27,15 @@ func _init() -> void:
 			"goals": main._open_goals()
 			"annals": main._open_annals()
 			"nations": main._open_nations(-1)
+			"terms":
+				var gg: TBGame = main.g; var me: int = gg.human_id; var en := -1
+				for n in range(1, gg.N1):
+					if n != me and n != gg.rebel and gg.alive[n] != 0 and gg.human[n] == 0 and gg.own_count(n) > 5 and not gg.friendly(me, n): en = n; break
+				gg.set_rel(me, en, TBData.REL_WAR)
+				var ol: Array = gg.owned(en)
+				for i in 4: gg.occupier[ol[i]] = me; gg.siege[ol[i]] = 0
+				gg.occ_rev += 1; gg.war_score[me * gg.N1 + en] = 48; gg.war_turns[me * gg.N1 + en] = 9; gg.exh[en] = 30.0; gg.gold[en] = 900.0
+				TBTermsScreen.open(main._overlay, gg, en, {"on_cmd": func(_c): pass})
 		for i in 16: await process_frame
 		root.get_viewport().get_texture().get_image().save_png("%s/win_%s_%dx%d_s%d_%s.png" % [out, win, w, h, int(sc * 100), lang])
 	print("WINDOW_SHOTS DONE")
