@@ -397,7 +397,7 @@ class Btn extends Button:
 		var f: Font = TBKit.cinzel(700)
 		var s: float = fsz()
 		var d := {"font": f, "size": s, "sp": TBKit.trk(s, 0.16), "gap": 6.0 if small else 7.0, "padx": 12.0 if _ph() else (11.0 if small else 14.0)}
-		d["tw"] = TBBz.tw(f, text, s, d["sp"])
+		d["tw"] = maxf(0.0, TBBz.tw(f, text, s, d["sp"]) - (float(d["sp"]) if text != "" else 0.0))          # the letter-space after the last letter is not ink: leave it out so the writing is centred by what you see
 		d["icon"] = (glyph_px * (0.75 if small and glyph_px >= 16.0 else 1.0)) if glyph != "" else 0.0
 		var sf: float = TBKit.fsf(12.0)
 		d["sub_w"] = TBBz.tw(TBKit.alegreya(700), sub, sf, 0.0) if sub != "" else 0.0
