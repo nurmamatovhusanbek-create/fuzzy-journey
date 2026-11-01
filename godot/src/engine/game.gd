@@ -853,7 +853,7 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 		army[from] = maxi(0, avail - occ)
 		touch(from); touch(to)
 		if rules >= 1:
-			if (human[atk_n] != 0 or human[def_n] != 0) and battle_fx.size() < 60: battle_fx.append([from, to, 1, atk_n, def_n])
+			if (human[atk_n] != 0 or human[def_n] != 0 or _seen_fight(to)) and battle_fx.size() < 60: battle_fx.append([from, to, 1, atk_n, def_n])
 			if gen[to] != 0 and def_n != 0 and human[def_n] != 0: log.append({"turn": turn, "kind": "general_fell", "a": def_n, "p": to, "gn": TBGenerals.name_idx(self, to), "sk": TBGenerals.skill(self, to)})
 			gen[to] = 0
 			if rides:
@@ -864,7 +864,7 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 	army[to] = maxi(1, army[to] - int(round(army[to] * (atk / (atk + dfn)) * 0.55)))
 	touch(from); touch(to)
 	if rules >= 1:
-		if (human[atk_n] != 0 or human[def_n] != 0) and battle_fx.size() < 60: battle_fx.append([from, to, 0, atk_n, def_n])
+		if (human[atk_n] != 0 or human[def_n] != 0 or _seen_fight(to)) and battle_fx.size() < 60: battle_fx.append([from, to, 0, atk_n, def_n])
 		if rides: TBGenerals.lose(self, from, atk_n, atk_loss * 2 > send)
 		TBGenerals.win(self, to, def_n)
 	return "loss"
@@ -895,7 +895,7 @@ func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int,
 		army[from] = maxi(0, avail - send)
 		_retreat(def_n, to, from, int(floor(float(d_left) * TBBattle.RETREAT)))
 		touch(from); touch(to)
-		if (human[atk_n] != 0 or human[def_n] != 0) and battle_fx.size() < 60: battle_fx.append([from, to, 1, atk_n, def_n])
+		if (human[atk_n] != 0 or human[def_n] != 0 or _seen_fight(to)) and battle_fx.size() < 60: battle_fx.append([from, to, 1, atk_n, def_n])
 		if gen[to] != 0 and def_n != 0 and human[def_n] != 0: log.append({"turn": turn, "kind": "general_fell", "a": def_n, "p": to, "gn": TBGenerals.name_idx(self, to), "sk": TBGenerals.skill(self, to)})
 		gen[to] = 0
 		if rides:
@@ -904,12 +904,16 @@ func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int,
 	army[from] = mini(ARMY_CAP, maxi(0, avail - send) + a_left)                # the survivors come home
 	army[to] = maxi(1, d_left)
 	touch(from); touch(to)
-	if (human[atk_n] != 0 or human[def_n] != 0) and battle_fx.size() < 60: battle_fx.append([from, to, 0, atk_n, def_n])
+	if (human[atk_n] != 0 or human[def_n] != 0 or _seen_fight(to)) and battle_fx.size() < 60: battle_fx.append([from, to, 0, atk_n, def_n])
 	if rides: TBGenerals.lose(self, from, atk_n, int(r["a_lost"]) * 2 > send)
 	TBGenerals.win(self, to, def_n)
 	return "loss"
 
 ## a beaten army falls back to the strongest neighbour its nation still holds (not the one the attack came from); with nowhere to go the men are scattered
+## rules >= 4: a fight the human player can see (in sight of his army or realm) is worth showing, whoever fights it
+func _seen_fight(p: int) -> bool:
+	return rules >= 4 and human_id > 0 and TBVision.sees(self, p)
+
 func _retreat(n: int, lost_p: int, attack_from: int, men: int) -> void:
 	if men <= 0 or n == 0: return
 	var best := -1

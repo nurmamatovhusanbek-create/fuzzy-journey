@@ -212,6 +212,40 @@ func add_glide(from: int, to: int, nation: int, count: int) -> void:
 	_fx.append({"kind": "glide", "from": from, "to": to, "col": TBTokens.c("brass_lt"), "t0": Time.get_ticks_msec(), "dur": 700, "nation": nation, "count": count})
 	queue_redraw()
 
+## attacks that stay on the map until the player acts again: a red arrow from the attacker's province to the one attacked, and a ring where it fell. [[from, to], ...]
+var _alerts: Array = []
+func set_alerts(arr: Array) -> void:
+	_alerts = arr.duplicate(); queue_redraw()
+func clear_alerts() -> void:
+	if _alerts.is_empty(): return
+	_alerts.clear(); queue_redraw()
+func has_alerts() -> bool: return not _alerts.is_empty()
+
+func _draw_alerts() -> void:
+	if g == null: return
+	var red: Color = Color("E0513A")
+	var t: float = Time.get_ticks_msec() / 1000.0
+	for al in _alerts:
+		var pt := map.project(g.world.lon[al[1]], g.world.lat[al[1]])
+		var pf := map.project(g.world.lon[al[0]], g.world.lat[al[0]])
+		if pt.z <= 0.0: continue
+		var to2 := Vector2(pt.x, pt.y)
+		var pulse: float = 0.5 + 0.5 * sin(t * 4.0) if TBKit.motion_ok() else 0.6
+		draw_arc(to2, 20.0 + 4.0 * pulse, 0.0, TAU, 40, Color(red, 0.85), 2.5, true)
+		if pf.z <= 0.0: continue
+		var from2 := Vector2(pf.x, pf.y)
+		var dist: float = from2.distance_to(to2)
+		if dist < 2.0: continue
+		var d := (to2 - from2).normalized()
+		if dist < 90.0: from2 = to2 - d * 90.0                          # next-door provinces stand close together: the shaft still comes from the attacker's side, long enough to read
+		var tip := to2 - d * 24.0
+		var side := Vector2(-d.y, d.x)
+		draw_line(from2, tip, Color(0, 0, 0, 0.55), 6.0, true)
+		draw_line(from2, tip, red, 3.5, true)
+		var head := PackedVector2Array([tip + d * 13.0, tip - d * 6.0 + side * 9.0, tip - d * 6.0 - side * 9.0])
+		draw_colored_polygon(head, Color(0, 0, 0, 0.55))
+		draw_colored_polygon(PackedVector2Array([tip + d * 11.0, tip - d * 4.0 + side * 7.0, tip - d * 4.0 - side * 7.0]), red)
+
 func add_fx(kind: String, from: int, to: int, col: Color, delay_ms: int = 0) -> void:
 	_fx.append({"kind": kind, "from": from, "to": to, "col": col, "t0": Time.get_ticks_msec() + delay_ms, "dur": 700 if kind == "atk" else (2600 if kind == "march" else 900)})
 	queue_redraw()
@@ -765,7 +799,7 @@ func _state(p: int) -> Dictionary:
 
 ## advance fades, count roll-ups and pops; ask for a redraw while anything is moving
 func _process(delta: float) -> void:
-	var busy := not _fx.is_empty()
+	var busy := not _fx.is_empty() or (not _alerts.is_empty() and TBKit.motion_ok())
 	var motion := TBKit.motion_ok()
 	if not _order.is_empty() and bool(_order["dashed"]) and motion: busy = true       # marching dashes
 	if g != null:
@@ -1553,6 +1587,7 @@ func _draw_clash(at: Vector2, k: float, col: Color, text: String, motion: bool) 
 
 ## battle arrows (same arrow language, solid, fading over 120 ms at the end) and impact rings
 func _draw_fx() -> void:
+	if not _alerts.is_empty(): _draw_alerts()
 	var now := Time.get_ticks_msec()
 	var keep: Array = []
 	var motion := TBKit.motion_ok()

@@ -1029,6 +1029,7 @@ func _dismiss_map_info() -> void:
 	if selected >= 0 or (ring != null and ring.visible): _select(-1)
 
 func _select(p: int) -> void:
+	_clear_attack_marks()
 	_close_amount()
 	selected = p
 	map.select(p)
@@ -1083,6 +1084,7 @@ func _goto_nation(n: int) -> void:
 
 # ---------------------------------------------------------------- commands
 func _on_command(c: Dictionary, from_card: bool = false) -> void:
+	_clear_attack_marks()
 	if mp.in_game:
 		mp.send_command(TBAsks.wrap(g, c)); return
 	var cmd := TBAsks.wrap(g, c.duplicate()); cmd["n"] = g.human_id
@@ -1223,6 +1225,9 @@ func _defer_event(uid: int) -> void:
 	hud.refresh()
 	show_events()
 
+func _clear_attack_marks() -> void:
+	if map != null and map.labels != null: map.labels.clear_alerts()
+
 func _after_change(rebuild_card: bool = true) -> void:
 	TBNationsScreen.refresh_live()                                    # an open Nations window follows the state (a pact answered, a turn gone by)
 	show_events()
@@ -1235,6 +1240,7 @@ func end_turn() -> void:
 	if mp.in_game:
 		mp.end_turn(); return
 	if _busy or mode != "game": return
+	_clear_attack_marks()
 	if _is_hotseat():
 		var hs := g.humans()
 		var nxt := _next_human(hs)
@@ -1296,16 +1302,18 @@ func _replay_battles() -> void:
 	var me := g.human_id
 	var i := 0
 	var focus := -1
+	var alerts: Array = []
 	for b in g.battle_fx:
-		if int(b[4]) != me and int(b[3]) != me: continue
-		if int(b[3]) == me: continue                      # own attacks already play when ordered; AI-run turns of other humans skip
+		if int(b[3]) == me: continue                      # own attacks already play when ordered
+		var on_me: bool = int(b[4]) == me
 		var held: bool = int(b[2]) == 0
 		var col: Color = TBTokens.c("pos_bar") if held else TBTokens.c("neg_bar")
-		if focus < 0: focus = int(b[1])                    # the camera goes to the first province that was attacked
-		map.labels.add_fx("atk", int(b[0]), int(b[1]), TBTokens.c("neg_bar"), i * 220)         # the attacker's arrow is red, whatever the outcome
-		map.labels.add_fx("cap", int(b[0]), int(b[1]), col, i * 220 + 250)                      # the outcome shows where it ends
+		if focus < 0 or (on_me and not (alerts.size() > 0 and int(alerts[0][2]) == 1)): focus = int(b[1])      # the camera goes to the first attack on you, else the first one seen
+		if alerts.size() < 8: alerts.append([int(b[0]), int(b[1]), 1 if on_me else 0])
+		map.labels.add_fx("cap", int(b[0]), int(b[1]), col, i * 220 + 250)                      # the outcome shows where it ended
 		i += 1
 		if i >= 8: break
+	map.labels.set_alerts(alerts)                          # the red arrows stay until the player's next action
 	if focus >= 0 and g.world != null:
 		map.fly_to(g.world.lon[focus], g.world.lat[focus], 2.4 if map.mode == 0 else maxf(map.zoom, 3.0), 1.0 if TBFx.on(TBFx.FULL) else 0.0)
 	g.battle_fx.clear()
