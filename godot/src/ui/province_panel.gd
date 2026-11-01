@@ -211,9 +211,9 @@ func _classify(s: int) -> Dictionary:
 	var o := g.owner[s]; var ctrl := g.controller(s)
 	var cs := {"p": s, "o": o, "ctrl": ctrl, "me": me, "held": false, "retake": false, "enemy": 0}
 	if o == me and ctrl == me:
-		cs["kind"] = 1 if g.army[s] > 1 else 2
+		cs["kind"] = 1 if g.army[s] > g.keep() else 2
 	elif ctrl == me:
-		cs["kind"] = 1 if g.army[s] > 1 else 2; cs["held"] = true
+		cs["kind"] = 1 if g.army[s] > g.keep() else 2; cs["held"] = true
 	elif o == 0:
 		cs["kind"] = 5
 	else:
@@ -406,7 +406,7 @@ func _source_for(cs: Dictionary) -> int:
 	if flow != null and flow.mode == TBOrderFlow.Mode.PREVIEW: return flow.src
 	if k == 1: return int(cs["p"])
 	if k == 4:
-		if _atk_src >= 0 and g.controller(_atk_src) == g.human_id and g.army[_atk_src] > 1 and flow != null and flow.check(int(cs["p"]), _atk_src)["valid"]: return _atk_src
+		if _atk_src >= 0 and g.controller(_atk_src) == g.human_id and g.army[_atk_src] > g.keep() and flow != null and flow.check(int(cs["p"]), _atk_src)["valid"]: return _atk_src
 		return flow.best_source(int(cs["p"])) if flow != null else -1
 	return -1
 
@@ -587,7 +587,7 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 				list.append(CC.InfoChip.new("",  "", "%s %s" % ["★".repeat(mini(5, TBGenerals.skill(g, s))), TBGenerals.display_name(g, s)], "", "%s: %s" % [T.call("general"), TBGenerals.display_name(g, s)]))
 			var outside: bool = g.owner[s] != me
 			var attr := g.attrition(s)
-			if g.rules >= 1 and g.army[s] > 1 and (outside or attr > 0):
+			if g.rules >= 1 and g.army[s] > g.keep() and (outside or attr > 0):
 				var cap_txt: String = T.call("supply") if attr == 0 else T.call("attrition")
 				list.append(CC.InfoChip.new("supply", T.call("cc_supply") if attr == 0 else T.call("attrition"), "%d" % g.supply_limit(s) if attr == 0 else "−%d" % attr, "neg" if attr > 0 else "", T.call("supply_hint")))
 			if g.occupier[s] != 0 and g.occupier[s] != me:
@@ -681,11 +681,11 @@ func _build_share_row(s: int, cs: Dictionary, src: int) -> Control:
 	_cost.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_count = null; _share = null
 	if src >= 0:
-		var army := g.army[src] - 1
+		var army := g.army[src] - g.keep()
 		_picker = TBTroopPicker.new()
 		_picker.setup(1, maxi(1, army), (clampi(send_n, 1, maxi(1, army)) if send_n > 0 else maxi(1, int(round(float(maxi(1, army)) * send_frac)))), T.call("send_share"))
 		_picker.changed.connect(func(n: int):
-			send_frac = float(n) / float(maxi(1, g.army[src] - 1))
+			send_frac = float(n) / float(maxi(1, g.army[src] - g.keep()))
 			send_n = n
 			share_changed.emit(send_frac)
 			if flow != null: flow.share_changed())
@@ -702,7 +702,7 @@ func _refresh_count() -> void:
 	if _count == null: return
 	var src := _source_for(_case)
 	if src < 0: return
-	var n := flow.troops_for(src) if flow != null else maxi(1, g.army[src] - 1)
+	var n := flow.troops_for(src) if flow != null else maxi(1, g.army[src] - g.keep())
 	_count.text = "→ %d" % n
 
 # ---------------------------------------------------------------- verbs

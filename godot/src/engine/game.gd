@@ -435,6 +435,9 @@ func levy_gain(p: int) -> int:
 func levy_drained(p: int) -> bool:
 	return levy[p] * 4 < levy_cap(p) * int(LEVY_LOW * 4.0)
 
+## the men an army must leave behind when it marches: one in the old rules, none in rules 4 (a province may be emptied)
+func keep() -> int: return 1 if rules < 4 else 0
+
 func levy_total(n: int) -> int:
 	var t := 0
 	for p in owned(n): t += mini(levy[p], levy_cap(p))                   # a pool never counts for more than its cap (the cap falls with stability)
@@ -762,7 +765,7 @@ func move_check(n: int, from: int, to: int) -> String:
 	var se := sea_edge(from, to)
 	if se < 0: return "!notadjacent"
 	if se == 1 and bl(from, D.B_PORT) == 0: return "!needport"
-	if army[from] <= 1: return "!noarmy"
+	if army[from] <= keep(): return "!noarmy"
 	var ct := controller(to)
 	if ct == n: return "move"
 	if ct != 0 and friendly(n, ct): return "!friendly"
@@ -773,7 +776,7 @@ func move_check(n: int, from: int, to: int) -> String:
 ## what resolve_combat would do (combat is deterministic): strengths, winner and losses, without changing anything
 func combat_preview(n: int, from: int, to: int, troops: int) -> Dictionary:
 	var avail := army[from]
-	var send := maxi(1, mini(troops if troops != 0 else avail - 1, avail - 1))
+	var send := maxi(1, mini(troops if troops != 0 else avail - keep(), avail - keep()))
 	var def_n := controller(to)
 	var rides := rules >= 1 and TBGenerals.follows(self, from, avail - send)
 	var atk: float = send * combat_mul(n) * float(D.TERRAIN_ATK[terrain[to]])
@@ -808,10 +811,10 @@ func move_or_attack(n: int, from: int, to: int, troops: int) -> String:
 	var se := sea_edge(from, to)
 	if se < 0: return "!notadjacent"
 	if se == 1 and bl(from, D.B_PORT) == 0: return "!needport"
-	if army[from] <= 1: return "!noarmy"
+	if army[from] <= keep(): return "!noarmy"
 	var ctrl_to := controller(to)
 	if ctrl_to == n:
-		var k := mini(troops if troops != 0 else army[from] - 1, army[from] - 1)
+		var k := mini(troops if troops != 0 else army[from] - keep(), army[from] - keep())
 		if k <= 0: return "!noarmy"
 		var left := army[from] - k
 		army[from] = left; army[to] = mini(65000, army[to] + k); touch(from); touch(to)
@@ -826,7 +829,7 @@ func move_or_attack(n: int, from: int, to: int, troops: int) -> String:
 
 func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 	var avail := army[from]
-	var send := maxi(1, mini(troops if troops != 0 else avail - 1, avail - 1))
+	var send := maxi(1, mini(troops if troops != 0 else avail - keep(), avail - keep()))
 	var atk_n := n
 	var def_n := controller(to)
 	var atk: float = send * combat_mul(atk_n) * float(D.TERRAIN_ATK[terrain[to]])

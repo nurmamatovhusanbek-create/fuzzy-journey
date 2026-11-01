@@ -64,7 +64,7 @@ static func plan(g: TBGame, n: int, from: int, to: int, r_in: Dictionary = {}) -
 	var out := {"ok": false, "err": "notadjacent", "path": PackedInt32Array(), "mp": 0.0, "kind": "", "last": from}
 	if g.rules < 1: return out
 	if g.controller(from) != n: out["err"] = "notyours"; return out
-	if g.army[from] <= 1: out["err"] = "noarmy"; return out
+	if g.army[from] <= g.keep(): out["err"] = "noarmy"; return out
 	if to == from or to < 0 or to >= g.P: out["err"] = "target"; return out
 	var r: Dictionary = r_in if not r_in.is_empty() else reach(g, n, from, float(REACH))          # a caller that asks about many targets from one province passes its own reach
 	if not r.has(to): return out
@@ -99,7 +99,7 @@ static func turns(g: TBGame, n: int, path: PackedInt32Array, kind: String) -> in
 ## every province the army of `from` can be ordered to: {to: plan-lite {mp, kind}}
 static func targets(g: TBGame, n: int, from: int, r_in: Dictionary = {}) -> Dictionary:
 	var out := {}
-	if g.rules < 1 or g.controller(from) != n or g.army[from] <= 1: return out
+	if g.rules < 1 or g.controller(from) != n or g.army[from] <= g.keep(): return out
 	var r: Dictionary = r_in if not r_in.is_empty() else reach(g, n, from, float(REACH))
 	for q in r:
 		if q == from: continue
@@ -117,7 +117,7 @@ static func targets(g: TBGame, n: int, from: int, r_in: Dictionary = {}) -> Dict
 static func order(g: TBGame, n: int, from: int, to: int, troops: int) -> String:
 	var pl := plan(g, n, from, to)
 	if not bool(pl["ok"]): return "!" + String(pl["err"])
-	var k: int = mini(troops if troops != 0 else g.army[from] - 1, g.army[from] - 1)
+	var k: int = mini(troops if troops != 0 else g.army[from] - g.keep(), g.army[from] - g.keep())
 	if k <= 0: return "!noarmy"
 	cancel_at(g, n, from)
 	var m := {"n": n, "at": from, "to": to, "k": k}
@@ -143,7 +143,7 @@ static func order_at(g: TBGame, n: int, p: int) -> Dictionary:
 static func _stride(g: TBGame, m: Dictionary, pl: Dictionary) -> String:
 	var n: int = int(m["n"]); var at: int = int(m["at"]); var to: int = int(m["to"])
 	var path: PackedInt32Array = pl["path"]
-	var k: int = mini(int(m["k"]), g.army[at] - 1)
+	var k: int = mini(int(m["k"]), g.army[at] - g.keep())
 	if k <= 0: m["done"] = true; return "!noarmy"
 	if String(pl["kind"]) == "attack" and path.size() == 2:
 		m["done"] = true
@@ -170,7 +170,7 @@ static func advance(g: TBGame) -> void:
 		if g.alive[n] == 0: continue
 		var at: int = int(m["at"])
 		var from_at := at
-		if g.controller(at) != n or g.army[at] <= 1:
+		if g.controller(at) != n or g.army[at] <= g.keep():
 			g.log.append({"turn": g.turn, "kind": "march_stop", "a": n, "p": at, "why": "noarmy"}); continue
 		var pl := plan(g, n, at, int(m["to"]))
 		if not bool(pl["ok"]):

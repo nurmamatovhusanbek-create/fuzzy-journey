@@ -24,6 +24,7 @@ run "districts: slots, job fill, demolish, AI builds" tests/districts.gd
 run "honours" tests/honours.gd
 run "supply / attrition" tests/supply.gd
 run "rules 4: levy pools, recruits from the pool, work loss" tests/levy.gd
+run "rules 4: the whole army may go, an army of one moves, the conqueror can go on" tests/send_all.gd
 run "rules 4: battles of three rounds, range, retreat" tests/battle.gd
 run "rules 4: morale, war exhaustion, desertion, peace readiness" tests/morale.gd
 run "rules 4: sieges of fortified provinces, supply reach" tests/siege.gd

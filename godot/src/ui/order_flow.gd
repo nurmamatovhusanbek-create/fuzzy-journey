@@ -51,10 +51,10 @@ func _pv(q: int) -> Dictionary:
 static func _def_text(pv: Dictionary) -> String: return "?" if int(pv["defenders"]) < 0 else TBKit.fmt(int(pv["defenders"]))
 
 func troops_for(from: int) -> int:
-	if panel != null and panel.send_n > 0: return clampi(panel.send_n, 1, maxi(1, g.army[from] - 1))
+	if panel != null and panel.send_n > 0: return clampi(panel.send_n, 1, maxi(1, g.army[from] - g.keep()))
 	var frac := share()
-	if frac >= 0.999: return g.army[from] - 1
-	return maxi(1, int(floor((g.army[from] - 1) * frac)))
+	if frac >= 0.999: return g.army[from] - g.keep()
+	return maxi(1, int(floor((g.army[from] - g.keep()) * frac)))
 
 # ---------------------------------------------------------------- queries
 ## what a move from the current source into q would be: {valid, kind, reason, preview (needs confirm), explicit_only}
@@ -119,7 +119,7 @@ func best_source(target: int) -> int:
 	var best := -1
 	for e in range(g.nb_off[target], g.nb_off[target + 1]):
 		var q: int = g.nb[e]
-		if g.controller(q) != _me() or g.army[q] <= 1: continue
+		if g.controller(q) != _me() or g.army[q] <= g.keep(): continue
 		if not check(target, q)["valid"] or str(check(target, q)["kind"]) != "attack": continue
 		if best < 0 or g.army[q] > g.army[best]: best = q
 	return best
@@ -136,7 +136,7 @@ func on_select(p: int) -> void:
 	_drop_reach()
 	tgt = -1; explicit = false; focus_p = -1
 	src = -1
-	if g != null and p >= 0 and g.controller(p) == _me() and g.army[p] > 1: src = p
+	if g != null and p >= 0 and g.controller(p) == _me() and g.army[p] > g.keep(): src = p
 	mode = Mode.ARMED if src >= 0 else Mode.IDLE
 	targets = compute_targets()
 	_sync_map(); _hide_chip()
@@ -145,7 +145,7 @@ func on_select(p: int) -> void:
 func refresh() -> void:
 	if g == null: return
 	_drop_reach()
-	if src >= 0 and (g.controller(src) != _me() or g.army[src] <= 1):
+	if src >= 0 and (g.controller(src) != _me() or g.army[src] <= g.keep()):
 		var keep := panel.p if panel != null else -1
 		clear()
 		if keep >= 0: on_select(keep)
@@ -157,7 +157,7 @@ func refresh() -> void:
 	_sync_map()
 
 func arm(p: int) -> void:                    # the Move verb / M
-	if g.controller(p) != _me() or g.army[p] <= 1: return
+	if g.controller(p) != _me() or g.army[p] <= g.keep(): return
 	src = p; explicit = true; mode = Mode.ARMED; tgt = -1
 	targets = compute_targets()
 	_sync_map(); _hide_chip()
@@ -219,7 +219,7 @@ func pick(q: int, secondary: bool, from_touch: bool) -> bool:
 		return false
 	if src < 0:
 		# an enemy province is selected: tapping an own army next to it picks the attacker (the card shows "From ...")
-		if panel != null and panel.p >= 0 and q != panel.p and g.controller(q) == _me() and g.army[q] > 1 and g.controller(panel.p) != _me():
+		if panel != null and panel.p >= 0 and q != panel.p and g.controller(q) == _me() and g.army[q] > g.keep() and g.controller(panel.p) != _me():
 			var ca := check(panel.p, q)
 			if ca["valid"] and ca["kind"] == "attack" and panel._atk_src != q: panel.set_attacker(q); return true       # the second tap on the same army selects it: a war front never traps the selection
 		return false
@@ -255,7 +255,7 @@ func cycle(dir: int) -> void:
 		return
 	var armies: Array = []
 	for p in g.P:
-		if g.controller(p) == _me() and g.army[p] > 1: armies.append(p)
+		if g.controller(p) == _me() and g.army[p] > g.keep(): armies.append(p)
 	if armies.is_empty(): return
 	armies.sort_custom(func(a: int, b: int) -> bool: return g.army[a] > g.army[b] if g.army[a] != g.army[b] else a < b)
 	var j := armies.find(focus_p)
@@ -319,7 +319,7 @@ func _show_preview() -> void:
 		_chip.cancelled.connect(func(): cancel())
 		_chip.amount_picked.connect(func(n: int):                       # the number was chosen on the chip: the card and the arrow follow
 			if panel != null:
-				panel.send_frac = float(n) / float(maxi(1, g.army[src] - 1)); panel.send_n = n
+				panel.send_frac = float(n) / float(maxi(1, g.army[src] - g.keep())); panel.send_n = n
 			share_changed())
 		host.add_child(_chip)
 		_chip.minimum_size_changed.connect(_place_chip)
@@ -328,7 +328,7 @@ func _show_preview() -> void:
 	if c["kind"] == "attack": info = _pv(tgt)
 	var cost := g.can({"cmd": "move", "from": src, "to": tgt, "troops": troops_for(src)})
 	_chip.setup(TBI18n.place(g.world.name[tgt]), c["kind"], info, int(cost["moves"]), troops_for(src))
-	_chip.sync_picker(g.army[src] - 1, troops_for(src))
+	_chip.sync_picker(g.army[src] - g.keep(), troops_for(src))
 	_chip.visible = true
 	_place_chip()
 	_place_chip.call_deferred()

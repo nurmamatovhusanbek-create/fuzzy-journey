@@ -68,7 +68,7 @@ static func _move(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 	out["moves"] = int(need)
 	out["kind"] = "attack" if att else "move"
 	var troops: int = int(c.get("troops", 0))
-	out["gain"] = mini(troops if troops != 0 else g.army[from] - 1, g.army[from] - 1)
+	out["gain"] = mini(troops if troops != 0 else g.army[from] - g.keep(), g.army[from] - g.keep())
 	if g.rules >= 1 and g.sea_edge(from, to) < 0:                       # a march (TBMarch): the route decides the geometry and the move points
 		var pl := TBMarch.plan(g, n, from, to)
 		if not bool(pl["ok"]):
