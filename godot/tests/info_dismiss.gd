@@ -69,12 +69,12 @@ func _init() -> void:
 	_check(main.selected == other and _count(main, "TBTagCard") <= 1, "another district replaces the first (%s)" % _info(main))
 	main._on_pick(foreign, false); await _frames(14)
 	_check(main.selected == foreign and _count(main, "TBTagCard") <= 1, "a foreign country replaces it (%s)" % _info(main))
-	# the long-press tip goes with the next call
+	# no floating card: neither a long press nor a hover shows one
 	main._select(-1); await _frames(4)
 	main._on_peek(foreign); await _frames(6)
-	_check(main.tip.visible, "a long press shows the tip")
-	main.hud._screen("budget"); await _frames(14)
-	_check(not main.tip.visible, "the tip is gone after a button was pressed (%s)" % _info(main))
+	_check(not main.tip.visible, "a long press shows no floating card over the map")
+	main._on_hover(foreign); await _frames(4)
+	_check(not main.tip.visible, "hovering shows no floating card either")
 	# the camera and the zoom keep the info (they are the same map)
 	main._clear_overlay(); main._select(-1); await _frames(6)
 	main._on_pick(mine, false); await _frames(10)

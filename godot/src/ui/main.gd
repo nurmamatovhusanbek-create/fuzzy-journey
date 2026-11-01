@@ -1001,8 +1001,7 @@ func _on_peek(p: int) -> void:
 	if p == selected and flow.mode == TBOrderFlow.Mode.IDLE:                         # the province card already shows this: no second box over the map
 		if tip != null: tip.visible = false
 		return
-	tip.show_for(g, p, flow, flow.mode == TBOrderFlow.Mode.IDLE and not map.district_zoom())
-	tip.position = (get_local_mouse_position() + Vector2(-tip.size.x * 0.5, -tip.size.y - 40.0)).clamp(Vector2.ZERO, size - tip.size)
+	if tip != null: tip.visible = false                                              # no floating card over the map: the province card and the order bar carry the information
 
 ## desktop-only hover card (dark plate): flag + place, owner and relation, army and terrain, and in an armed state the attack outcome
 func _on_hover(p: int) -> void:
@@ -1017,8 +1016,7 @@ func _on_hover(p: int) -> void:
 		return
 	flow.g = g
 	flow.hover(p)
-	tip.show_for(g, p, flow, flow.mode == TBOrderFlow.Mode.IDLE and not map.district_zoom())
-	_place_tip()
+	if tip != null: tip.visible = false
 
 func _place_tip() -> void:
 	if tip == null or not tip.visible: return

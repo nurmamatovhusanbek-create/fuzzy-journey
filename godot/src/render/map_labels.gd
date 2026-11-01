@@ -227,8 +227,8 @@ static func strong() -> bool: return TBLenses.cvd != "off" or TBTokens.is_hc()
 static func mk() -> float: return clampf(TBKit.text_scale, 1.0, 1.5)
 ## the army marker's own scale: the text-size scale times the shrink that comes with closing in past province scale (set once per layout from the map)
 ## province width (logical px, the same measure as `prov_px`) from which army pills show: your own, wars and allies first, everybody once a province is wide enough for a pill without hiding it
-const ARMY_PSZ_OWN := 64.0
-const ARMY_PSZ_ALL := 84.0
+const ARMY_PSZ_OWN := 100.0     # was 64: at a regional view on a phone (about a hundred counters at once) the numbers are not needed; they come when you are closer
+const ARMY_PSZ_ALL := 130.0     # was 84
 ## the one rule for army pills on the map: the borders show and a province is wide enough to carry a pill
 func pills_fit() -> bool: return map != null and map.prov_lines_shown() and prov_px() >= ARMY_PSZ_OWN
 var _shrink := 1.0
