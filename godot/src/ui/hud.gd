@@ -691,7 +691,7 @@ func _describe(e: Dictionary) -> void:
 	var pn: String = TBI18n.place(g.world.name[int(e["p"])]) if int(e["p"]) >= 0 else ""
 	var on: String = g.dname(int(e["n"])) if int(e["n"]) > 0 else ""
 	var ratio: float = int(e["k"]) / 10.0
-	var vars := {"k": int(e["k"]), "r": ("%.1f" % ratio) if ratio < 10.0 else "%d" % int(round(ratio)), "p": pn, "a": on}
+	var vars := {"k": int(e["k"]), "r": ("%.1f" % ratio) if ratio < 10.0 else "%d" % int(round(ratio)), "p": pn, "a": on, "e": g.dname(int(e["e"])) if int(e.get("e", -1)) > 0 else ""}
 	var text: String = ""
 	var long: String = ""
 	match String(e["cls"]):

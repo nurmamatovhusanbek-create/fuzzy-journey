@@ -147,8 +147,9 @@ class AlertRow extends P.Hit:
 		_buttons = HBoxContainer.new(); _buttons.add_theme_constant_override("separation", 8)
 		_buttons.position = Vector2(lead() + 12.0, base_h() + 2.0)
 		var ult: bool = bool(entry["ult"])
-		var yes: Button = TBHudParts.btn(TBI18n.T("mp_yield") if ult else TBI18n.T("mp_accept"), "primary", func(): on_answer.call(int(entry["uid"]), 0), true, 14)
-		var no: Button = TBHudParts.btn(TBI18n.T("mp_defy") if ult else TBI18n.T("mp_decline"), "secondary", func(): on_answer.call(int(entry["uid"]), 1), true, 14)
+		var call: bool = String(entry["id"]) == "call"
+		var yes: Button = TBHudParts.btn(TBI18n.T("mp_yield") if ult else TBI18n.T("mp_join" if call else "mp_accept"), "primary", func(): on_answer.call(int(entry["uid"]), 0), true, 14)
+		var no: Button = TBHudParts.btn(TBI18n.T("mp_defy") if ult else TBI18n.T("mp_stay" if call else "mp_decline"), "secondary", func(): on_answer.call(int(entry["uid"]), 1), true, 14)
 		var bh: float = TBHudParts.touch() if compact else 32.0
 		yes.custom_minimum_size = Vector2(96, bh); no.custom_minimum_size = Vector2(96, bh)
 		_buttons.add_child(yes); _buttons.add_child(no)

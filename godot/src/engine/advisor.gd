@@ -160,7 +160,7 @@ static func ticker(g: TBGame, n: int, computed: Array = []) -> Array:
 		var uid: int = int(e["uid"])
 		if String(e["kind"]) == "prop":
 			var ult: bool = String(e["id"]) == "ultimatum"
-			out.append({"key": "o:%d" % uid, "cls": "offer", "sev": 2 if ult else 1, "id": String(e["id"]), "p": int(e.get("p", -1)), "n": int(e["from"]), "k": 0, "uid": uid, "ps": [], "ult": ult, "soft": bool(e.get("soft", false))})
+			out.append({"key": "o:%d" % uid, "cls": "offer", "sev": 2 if ult else 1, "id": String(e["id"]), "p": int(e.get("p", -1)), "n": int(e["from"]), "e": int(e.get("e", -1)), "k": 0, "uid": uid, "ps": [], "ult": ult, "soft": bool(e.get("soft", false))})
 		else:
 			out.append({"key": "e:%d" % uid, "cls": "event", "sev": 1, "id": String(e["id"]), "p": -1, "n": -1, "k": 0, "uid": uid, "ps": [], "ult": false})
 	out.append_array(answers(g, n))

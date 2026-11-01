@@ -1110,12 +1110,26 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		sfx.play("coin")
 	elif String(cmd.get("cmd", "")) == "ask":
 		hud.toast(T.call("ask_sent", {"a": g.dname(int(cmd["t"]))}))
+	elif String(cmd.get("cmd", "")) == "callAlly":
+		var who: String = g.dname(int(cmd["t"]))
+		var rr: String = String(res.get("result", ""))
+		hud.toast(T.call("call_joined" if rr == "joined" else ("call_stays" if rr == "refused" else "call_asked"), {"a": who}), rr == "refused")
+		if rr == "joined": sfx.play("coin")
 	elif String(cmd.get("cmd", "")) == "peaceDeal":
 		sfx.play("coin")
 		hud.toast(T.call("deal_done", {"a": g.dname(int(cmd["t"]))}))
 	elif res.has("success"):
 		hud.toast(T.call("spy_ok") if res["success"] else T.call("spy_fail"), not res["success"])
+	if res["ok"] and String(cmd.get("cmd", "")) == "declareWar" and g.rules >= 4 and mode == "game": _call_sheet_soon(int(cmd["t"]))
 	_after_change()
+
+## rules 4: after you declare war, the sheet to call your allies in (after the "War" moment when it plays)
+func _call_sheet_soon(enemy: int) -> void:
+	if TBCallSheet.callable_allies(g, g.human_id, enemy).is_empty(): return
+	var wait: float = (2.5 if TBFx.on(TBFx.FULL) else 1.4) if TBFx.on(TBFx.LIGHT) else 0.0
+	if wait > 0.0: await get_tree().create_timer(wait).timeout
+	if g == null or mode != "game" or not is_instance_valid(_overlay) or g.get_rel(g.human_id, enemy) != TBData.REL_WAR: return
+	TBCallSheet.open(_overlay, g, enemy, func(c: Dictionary): _on_command(c, false))
 
 var _pv_to := -1
 ## how many men a move sends from `from`, following the 25/50/75/100 % choice on the command card
