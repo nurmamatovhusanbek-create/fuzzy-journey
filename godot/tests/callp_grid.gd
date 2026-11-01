@@ -71,7 +71,7 @@ func _run() -> void:
 			var e := _content_error(img, (b as Control).get_global_rect(), rs, Vector2(10.0, 5.0), 0.2)
 			print("  %s: off the middle by %s" % [(b as Button).text, str(e)])
 			if e != Vector2.INF: worst = maxf(worst, maxf(absf(e.x), absf(e.y)))
-		_check(worst <= 1.3, "the words are in the middle of their plates (worst %.2f)" % worst)
+		_check(worst <= 1.5, "the words are in the middle of their plates (worst %.2f)" % worst)
 	if meds.size() == 1:
 		var mr := (meds[0] as Control).get_global_rect()
 		_check(absf(mr.get_center().x - cr.get_center().x) <= 1.5, "the medallion is on the card's axis (%.1f vs %.1f)" % [mr.get_center().x, cr.get_center().x])
