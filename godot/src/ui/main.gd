@@ -981,6 +981,14 @@ func _frame_land(h: TBPanel.Handle, e: int) -> void:
 		var pt2 := map.project(g.world.lon[p], g.world.lat[p])
 		if first2: bb2 = Rect2(Vector2(pt2.x, pt2.y), Vector2.ZERO); first2 = false
 		else: bb2 = bb2.expand(Vector2(pt2.x, pt2.y))
+	var guard := 0
+	while map.labels != null and not map.labels.pills_fit() and map.zoom < 13.0 and guard < 12:       # the prices show like army counters: close enough for a province to carry one
+		map.zoom_by(1.25); guard += 1
+	bb2 = Rect2(); first2 = true
+	for p in ps:
+		var pt3 := map.project(g.world.lon[p], g.world.lat[p])
+		if first2: bb2 = Rect2(Vector2(pt3.x, pt3.y), Vector2.ZERO); first2 = false
+		else: bb2 = bb2.expand(Vector2(pt3.x, pt3.y))
 	map.drag_by(free.get_center() - bb2.get_center())
 
 ## touch long-press: the same tooltip content as the desktop hover, shown above the finger, released with it

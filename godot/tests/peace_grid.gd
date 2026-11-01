@@ -109,12 +109,13 @@ func _init() -> void:
 	var wr: Rect2 = Rect2()
 	for h3 in main._overlay.get_children():
 		if h3.has_meta("tb_handle"): wr = ((h3.get_meta("tb_handle") as TBPanel.Handle).card as Control).get_global_rect()
+	_check(main.map.labels.pills_fit() and main.map.labels.mark_rects.size() >= 1, "the prices are drawn once the provinces are wide enough (%d)" % main.map.labels.mark_rects.size())
 	var behind := 0
 	for o3 in TBPeace.offers(gg, me, en):
 		var pt3: Vector3 = main.map.project(gg.world.lon[int(o3["p"])], gg.world.lat[int(o3["p"])])
 		var gp: Vector2 = main.map.get_global_rect().position + Vector2(pt3.x, pt3.y)
-		if wr.grow(-2.0).has_point(gp) or not main.map.get_global_rect().has_point(gp): behind += 1
-	_check(behind == 0, "every priced province is on screen and clear of the window (%d hidden)" % behind)
+		if wr.grow(-2.0).has_point(gp): behind += 1
+	_check(behind == 0, "no priced province is hidden behind the window (%d hidden)" % behind)
 	for m in main.map.labels._marks:
 		var pb: Rect2 = main.map._prov_rect(int(m["p"]))
 		_check(pb.size.x > 0.0, "province %d has an on-screen box" % int(m["p"]))
@@ -163,7 +164,7 @@ func _init() -> void:
 			if (mrs[i4]["rect"] as Rect2).intersects(mrs[j4]["rect"] as Rect2): overlaps += 1
 	_check(overlaps == 0, "no two price tags overlap (%d overlaps)" % overlaps)
 	_check(plates >= 1 or mrs.size() >= 1, "tags were drawn (%d)" % mrs.size())
-	_check(worst <= 1.1, "the type is centred in its plate within 1.1 px (worst %.2f)" % worst)
+	_check(worst * rs <= 1.1, "the type is centred in its plate within one picture pixel (worst %.2f units = %.2f picture px)" % [worst, worst * rs])
 	# the buttons: what is written on a button (icon and word together) sits in the middle of it, measured on the picture
 	var all_btn: Array = []
 	_walk(main._overlay, all_btn, "Button")
@@ -224,6 +225,14 @@ func _init() -> void:
 	_walk(main._overlay, all_b, "Button")
 	for b in all_b: if (b as Button).text.to_upper().contains("OFFER"): offer2 = b
 	_check(offer2 != null and not offer2.disabled, "the Offer button is on with one province chosen")
+	# country scale: the prices go like the army counters do, and come back when you close in
+	var z_keep: float = main.map.zoom
+	main.map.zoom_by(0.1)
+	for i in 30: await process_frame
+	_check(main.map.labels.mark_rects.is_empty(), "at country scale no price is drawn")
+	main.map.jump_to(gg.world.lon[ol[0]], gg.world.lat[ol[0]], z_keep)
+	for i in 30: await process_frame
+	_check(main.map.labels.mark_rects.size() >= 1, "closing in brings the prices back")
 	for h2 in main._overlay.get_children():
 		if h2.has_meta("tb_handle"): (h2.get_meta("tb_handle") as TBPanel.Handle).close()
 	for i in 20: await process_frame

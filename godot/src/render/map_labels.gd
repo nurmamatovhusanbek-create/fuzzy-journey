@@ -54,9 +54,9 @@ func clear_marks() -> void:
 func marks_count() -> int: return _marks.size()
 func _draw_marks(c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> void:
 	mark_rects = []
-	if _marks.is_empty(): return
+	if _marks.is_empty() or not pills_fit(): return                           # the same rule as the army counters: nothing at country scale, a province must be wide enough to carry one
 	var f: Font = TBKit.mono_b()
-	var fs := TBKit.fs(13.0)
+	var fs := TBKit.fs(13.0 * minf(1.0, amk()))                              # and the same size: it follows the counters' scale
 	var brass := TBTokens.c("brass")
 	var plates: Array = []
 	for m in _marks:
