@@ -115,6 +115,10 @@ func _init() -> void:
 		var gp: Vector2 = main.map.get_global_rect().position + Vector2(pt3.x, pt3.y)
 		if wr.grow(-2.0).has_point(gp) or not main.map.get_global_rect().has_point(gp): behind += 1
 	_check(behind == 0, "every priced province is on screen and clear of the window (%d hidden)" % behind)
+	for m in main.map.labels._marks:
+		var pb: Rect2 = main.map._prov_rect(int(m["p"]))
+		_check(pb.size.x > 0.0, "province %d has an on-screen box" % int(m["p"]))
+	_check(main.map.labels._marks_set.size() == main.map.labels.marks_count(), "the tagged provinces are known to the counters")
 	var cand: int = ol[0]
 	var other: int = ol[8]
 	main._on_pick(cand, false)

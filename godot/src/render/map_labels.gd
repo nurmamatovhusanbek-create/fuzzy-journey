@@ -40,12 +40,15 @@ func set_order(from: int, to: int, attack: bool, dashed: bool, label: String = "
 
 ## price tags on provinces (the peace table: tap a tagged province to ask for it). Each mark is {p, text, on}; `on` = chosen. They do not select anything.
 var _marks: Array = []
+var _marks_set := {}                   # the provinces that carry a price: their army counters step aside while the tags are up (a tag takes the middle of the province)
 func set_marks(list: Array) -> void:
 	_marks = list
+	_marks_set = {}
+	for m in list: _marks_set[int(m["p"])] = true
 	queue_redraw()
 func clear_marks() -> void:
 	if _marks.is_empty(): return
-	_marks = []
+	_marks = []; _marks_set = {}
 	queue_redraw()
 func marks_count() -> int: return _marks.size()
 func _draw_marks(c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> void:
@@ -60,7 +63,10 @@ func _draw_marks(c0: float, s0: float, sl: float, cl: float, R: float, cx: float
 		var txt: String = String(m["text"])
 		var tw := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var cw := tw + 18.0; var ch := float(fs) + 10.0
-		var r := Rect2(Vector2(pr.x, pr.y - 26.0) - Vector2(cw, ch) * 0.5, Vector2(cw, ch)).abs()          # above the province's army counter, not on it
+		var mid := Vector2(pr.x, pr.y)                                         # the middle of the province's own outline on screen (its bounding box), not the anchor its army counter hangs from
+		var pb: Rect2 = map._prov_rect(int(m["p"]))
+		if pb.size.x > 4.0 and pb.size.y > 4.0: mid = pb.get_center()
+		var r := Rect2(mid - Vector2(cw, ch) * 0.5, Vector2(cw, ch)).abs()
 		if on: draw_style_box(TBHudParts.sbox(Color(brass, 1.0), TBTokens.PAPER_100, ch * 0.5, 2), r)
 		else: draw_style_box(TBHudParts.sbox(TBTokens.INK_700, brass, ch * 0.5, 1), r)
 		draw_string(f, Vector2(r.position.x + 9.0, r.position.y + 5.0 + f.get_ascent(fs)), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TBTokens.INK_700 if on else TBTokens.PAPER_100)
@@ -855,6 +861,7 @@ func _draw_layout() -> void:
 	for p in g.P:
 		var o := own_a[p]
 		if o == 0: continue
+		if not _marks_set.is_empty() and _marks_set.has(p): continue    # the peace table's price tag stands in the middle of this province: no army counter under it
 		var a := arm_a[p]
 		var rel := relv[o] if o != me else -1
 		var war := rel == 1
