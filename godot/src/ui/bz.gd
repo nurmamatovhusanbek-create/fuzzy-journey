@@ -454,7 +454,10 @@ class Btn extends Button:
 			TBBz.shift(ci, Vector2(0, 1) if prs else Vector2.ZERO)
 			x += float(d["icon"]) + float(d["gap"])
 		var f: Font = d["font"]
-		TBBz.text(ci, f, Vector2(x, TBBz.baseline(f, d["size"], 0, h, d["size"])), text, d["size"], tx, d["sp"])
+		var bl: float = TBBz.baseline(f, d["size"], 0, h, d["size"])
+		var cap: Rect2 = TBKit.ink_box(f, int(roundf(float(d["size"]))), "H")          # the capitals are what is read: their middle is the plate's middle (the line box leaves them a pixel high)
+		bl += clampf(roundf(h * 0.5 - (bl + cap.get_center().y)), -1.0, 1.0)
+		TBBz.text(ci, f, Vector2(x, bl), text, d["size"], tx, d["sp"])
 		x += float(d["tw"]) + float(d["gap"])
 		if sub != "":
 			var sf: float = TBKit.fsf(12.0)

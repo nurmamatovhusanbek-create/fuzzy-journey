@@ -98,6 +98,10 @@ out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --pa
 echo "$out" | grep -q "PEACE_GRID OK" && echo "ok: peace_grid" || { echo "FAIL: peace_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/recruit_grid.gd -- 1280 800 1.0 2>&1)
 echo "$out" | grep -q "RECRUIT_GRID OK" && echo "ok: recruit_grid" || { echo "FAIL: recruit_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/call_grid.gd -- 1280 800 1.0 2>&1)
+echo "$out" | grep -q "CALL_GRID OK" && echo "ok: call_grid" || { echo "FAIL: call_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/callp_grid.gd -- 1280 800 1.0 2>&1)
+echo "$out" | grep -q "CALLP_GRID OK" && echo "ok: callp_grid" || { echo "FAIL: callp_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/move_grid.gd -- 1280 800 1.0 2>&1)
 echo "$out" | grep -q "MOVE_GRID OK" && echo "ok: move_grid" || { echo "FAIL: move_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720

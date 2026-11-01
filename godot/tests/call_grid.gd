@@ -1,5 +1,5 @@
 extends SceneTree
-## The call-to-arms sheet that opens after you declare war: rows, switches, flags and the two plates on the card's own left and right edge, the stepper plates clear of the slider thumb, the share buttons equal,
+## The call-to-arms sheet that opens after you declare war: rows (tap to choose), flags and the two plates;
 ## and what is written on a button or in the number field in the middle of it (measured on the picture). Usage: -s tests/recruit_grid.gd -- <w> <h> <text scale>
 var fails := 0
 func _check(ok: bool, what: String) -> void:
@@ -62,17 +62,17 @@ func _run() -> void:
 	var card: Control = hd.card
 	var cr := card.get_global_rect(); var hr := main.get_global_rect()
 	_check(cr.position.x >= hr.position.x and cr.end.x <= hr.end.x and cr.position.y >= hr.position.y and cr.end.y <= hr.end.y, "the sheet is inside the screen (%s in %s)" % [str(cr), str(hr)])
-	var tgs: Array = []; _walk(hd.body, tgs, func(x): return x is Button and x.has_signal("toggled_to"))
+	var tgs: Array = []; _walk(hd.body, tgs, func(x): return x is TBCallSheet.Row)
 	var meds: Array = []; _walk(hd.body, meds, func(x): return x is TBNationParts.FlagMedal)
 	print("rows: toggles %d  flags %d" % [tgs.size(), meds.size()])
-	_check(tgs.size() == list.size() and meds.size() == list.size(), "one flag and one switch per ally")
+	_check(tgs.size() == list.size() and meds.size() == list.size(), "one flag and one row per ally")
 	# each flag is on its switch's centre line, and all flags/switches share their left edges
 	for i in mini(tgs.size(), meds.size()):
 		var tr := (tgs[i] as Control).get_global_rect(); var mr := (meds[i] as Control).get_global_rect()
-		_check(absf(tr.get_center().y - mr.get_center().y) <= 1.0, "row %d: flag and switch share a centre line (%.1f vs %.1f)" % [i, mr.get_center().y, tr.get_center().y])
+		_check(absf(tr.get_center().y - mr.get_center().y) <= 1.0, "row %d: flag and row share a centre line (%.1f vs %.1f)" % [i, mr.get_center().y, tr.get_center().y])
 		_check(absf(mr.position.x - (meds[0] as Control).get_global_rect().position.x) <= 0.6, "row %d: flags share a left edge" % i)
-		_check(absf(tr.position.x - (tgs[0] as Control).get_global_rect().position.x) <= 0.6 and absf(tr.end.x - (tgs[0] as Control).get_global_rect().end.x) <= 0.6, "row %d: switches share both edges" % i)
-		_check(tr.position.x >= mr.end.x + 4.0, "row %d: the switch starts after its flag" % i)
+		_check(absf(tr.position.x - (tgs[0] as Control).get_global_rect().position.x) <= 0.6 and absf(tr.end.x - (tgs[0] as Control).get_global_rect().end.x) <= 0.6, "row %d: rows share both edges" % i)
+		_check(tr.position.x <= mr.position.x - 4.0 and tr.end.x >= mr.end.x + 4.0, "row %d: the flag sits inside its row" % i)
 	var btn: Array = []; _walk(card, btn, func(x): return x is TBBz.Btn and (x as Button).is_visible_in_tree())
 	_check(btn.size() == 2, "two plates (%d)" % btn.size())
 	btn.sort_custom(func(x, y): return (x as Control).get_global_rect().position.x < (y as Control).get_global_rect().position.x)
@@ -83,6 +83,7 @@ func _run() -> void:
 	_check(okr0.end.x <= cr.end.x - 8.0 and lr.position.x >= cr.position.x + 8.0, "the plates are inside the card with padding")
 	# switching two allies on
 	(tgs[0] as Button).pressed.emit(); (tgs[1] as Button).pressed.emit()
+	_check((tgs[0] as TBCallSheet.Row).on and (tgs[1] as TBCallSheet.Row).on, "a tap on a country chooses it")
 	for i in 6: await process_frame
 	_check(not ok.disabled, "Call allies lights up once two are chosen")
 	_check(ok.text.find("2") >= 0, "the plate says how many (%s)" % ok.text)
