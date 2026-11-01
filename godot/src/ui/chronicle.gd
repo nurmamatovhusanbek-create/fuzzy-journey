@@ -8,7 +8,7 @@ const CATS := ["mine", "all", "war", "diplo", "events"]
 
 static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
-		"war", "peace", "occupied", "annexed", "liberated", "ceded", "eliminated", "rebels", "reconciled", "rebels_end", "independence", "ultimatum": return "war"
+		"war", "peace", "occupied", "annexed", "liberated", "call_refused", "ceded", "eliminated", "rebels", "reconciled", "rebels_end", "independence", "ultimatum": return "war"
 		"coalition", "coalition_end", "resent": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union", "ans": return "diplo"
 		"realm": return "events"
@@ -67,6 +67,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"occupied": return T.call("e_occupied", {"a": a, "b": b, "p": pn})
 		"annexed": return T.call("e_annexed", {"a": a, "b": b, "p": pn})
 		"liberated": return T.call("e_liberated", {"a": a, "b": b, "p": pn})
+		"call_refused": return T.call("e_call_refused", {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"ruler":
 			if String(e["k"]) == "elected" and not involves(e, g.human_id): return ""
 			return T.call("e_ruler_" + String(e["k"]), {"a": a, "old": TBRulers.name_of(e["old"], int(e["oldn"])), "new": TBRulers.name_of(e["new"], int(e["num"]))})

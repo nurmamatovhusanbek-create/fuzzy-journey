@@ -203,6 +203,10 @@ static func _c_declare_war(g: TBGame, c: Dictionary) -> Dictionary:
 	g.log.append({"turn": g.turn, "kind": "war", "a": n, "b": t, "cb": cb_kind})
 	for o in range(1, g.N + 1):
 		if o != n and o != t and g.alive[o] != 0 and g.get_rel(t, o) == D.REL_ALLY and not g.friendly(n, o) and g.get_rel(n, o) != D.REL_WAR and not g.has_truce(n, o):
+			if g.rules >= 4 and g.human[o] == 0 and TBWar.call_willingness(g, o, t, n) <= TBWar.CALL_YES:          # the ally weighs the call; one that stays out is remembered by the ally it left alone
+				TBDiplo._add_grudge(g, t, o, TBWar.CALL_SNUB_GRUDGE)
+				g.log.append({"turn": g.turn, "kind": "call_refused", "a": o, "b": t, "n": n})
+				continue
 			g.set_rel(n, o, D.REL_WAR)
 			g.log.append({"turn": g.turn, "kind": "war", "a": o, "b": n, "ally": 1})
 	return {"ok": true}

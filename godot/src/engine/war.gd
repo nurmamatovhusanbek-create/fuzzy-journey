@@ -95,3 +95,36 @@ static func resist(g: TBGame, p: int) -> bool:
 	earn(g, o, oc, RES_POINTS)
 	if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "liberated", "a": oc, "b": o, "p": p})
 	return true
+
+
+# ---------------------------------------------------------------- calls to arms (docs/WAR_DESIGN.md section 11)
+const CALL_YES := 0.45                 # an AI ally joins when its willingness is above this
+const CALL_SNUB_GRUDGE := 20           # the injured ally's grudge against one who stays out of his war
+
+## how ready ally `o` is to fight for `t`, whom `n` attacked: 0.5 x trust + 0.3 x the threat n is to o + 0.2 x a shared border - 0.4 x the distance to the war - 0.3 x its own exhaustion.
+## Every term is in 0..1; the result is returned with its terms for the interface.
+static func call_terms(g: TBGame, o: int, t: int, n: int) -> Array:
+	var trust: float = clampf(1.0 - float(g.grudge[o * g.N1 + t]) / 60.0, 0.0, 1.0)
+	var po := 1.0; var pn := 1.0
+	for p in g.owned(o): po += float(g.army[p])
+	for p in g.owned(n): pn += float(g.army[p])
+	var threat: float = clampf(pn / (pn + po), 0.0, 1.0)                           # a stronger aggressor is a danger to everyone near him
+	var border := 0.0
+	for p in g.owned(o):
+		if border > 0.0: break
+		for i in range(g.nb_off[p], g.nb_off[p + 1]):
+			if g.owner[g.nb[i]] == n: border = 1.0; break
+	var dist := 1.0
+	var co: int = g.capital_of[o]; var ct: int = g.capital_of[t]
+	if co >= 0 and ct >= 0:
+		var a1 := deg_to_rad(g.world.lat[co]); var a2 := deg_to_rad(g.world.lat[ct])
+		var dl := deg_to_rad(g.world.lon[co] - g.world.lon[ct])
+		var c := clampf(sin(a1) * sin(a2) + cos(a1) * cos(a2) * cos(dl), -1.0, 1.0)
+		dist = acos(c) / PI                                                         # 0 = the same place, 1 = the far side of the world
+	var weary: float = g.exh[o] / 100.0
+	return [["trust", 0.5 * trust], ["threat", 0.3 * threat], ["border", 0.2 * border], ["distance", -0.4 * dist], ["weary", -0.3 * weary]]
+
+static func call_willingness(g: TBGame, o: int, t: int, n: int) -> float:
+	var w := 0.0
+	for tm in call_terms(g, o, t, n): w += float(tm[1])
+	return w

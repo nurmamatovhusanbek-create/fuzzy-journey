@@ -29,6 +29,7 @@ run "rules 4: morale, war exhaustion, desertion, peace readiness" tests/morale.g
 run "rules 4: sieges of fortified provinces, supply reach" tests/siege.gd
 run "rules 4: war score, peace table, deals" tests/peace.gd
 run "rules 4: occupation income, resistance, no annexation without a treaty" tests/occupation.gd
+run "rules 4: calls to arms weighed by trust, threat, border, distance, exhaustion" tests/calls.gd
 run "doctrine" tests/doctrine.gd
 run "economy / research / aggression / rebellion model" tests/model.gd
 run "plaque animation state" tests/labels_anim.gd
