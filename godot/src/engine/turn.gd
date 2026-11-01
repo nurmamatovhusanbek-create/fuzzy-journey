@@ -236,8 +236,10 @@ static func _tick(g: TBGame) -> void:
 					g.happy[p] = maxi(0, g.happy[p] - 1)
 				if g.occupier[p] == 0: g.levy[p] = mini(g.levy_cap(p), g.levy[p] + g.levy_gain(p))
 			if growth > 0: g.pop[p] = mini(2000, g.pop[p] + growth)
-			if g.econ[p] < 5 and g.rng.next() < invest_chance: g.econ[p] += 1
-			if g.dev[p] < dev_cap and g.rng.next() < invest_chance * (0.5 if g.rules < 2 else 0.15) and (g.rules < 2 or g.job_fill(p, g.dev[p] + 1) >= 0.9): g.dev[p] += 1       # districts: slow organic growth, and only where the people are there to staff it
+			if g.rules >= 4: TBInvest.step(g, p, invest_chance, dev_cap)                         # progress bars, shrinking returns (docs/PROVINCE_WORTH.md)
+			else:
+				if g.econ[p] < 5 and g.rng.next() < invest_chance: g.econ[p] += 1
+				if g.dev[p] < dev_cap and g.rng.next() < invest_chance * (0.5 if g.rules < 2 else 0.15) and (g.rules < 2 or g.job_fill(p, g.dev[p] + 1) >= 0.9): g.dev[p] += 1       # districts: slow organic growth, and only where the people are there to staff it
 			if g.rules >= 1:
 				if rebel_chance > 0.0 and g.capital[p] == 0 and (g.rules < 4 or g.occupier[p] == 0) and spawned < REB_MAX_PER_TURN and g.stab[p] < REB_THRESHOLD and g.rng.next() < rebel_hazard(g, p, rebel_chance):
 					rebels_to_spawn.append(p); spawned += 1

@@ -80,6 +80,8 @@ var happy := PackedByteArray()
 var defense := PackedByteArray()
 var move_fx: Array = []                       # [from, to, nation] marches the AI made this turn (view only, not saved): the interface shows those in sight
 var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
+var inv_e := PackedFloat32Array()                 # rules >= 4: progress (0..1) of each province towards its next economy / development level (TBInvest)
+var inv_d := PackedFloat32Array()
 var war_pts := PackedFloat32Array()             # rules >= 4: score earned in the field against each enemy (battles, sieges, capitals), N1*N1; the war score adds the land held and the enemy's exhaustion
 var unrest := PackedInt32Array()                # rules >= 4: resistance of an occupied province, 0-100; at 100 it rises and throws the occupier out
 var siege := PackedInt32Array()                 # rules >= 4: turns left before a fortress taken in the field falls (0 = not besieged); the owner keeps the province until then
@@ -227,7 +229,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1); net_ema.resize(N1)
-	siege.resize(P); unrest.resize(P); war_pts.resize(N1 * N1)
+	siege.resize(P); unrest.resize(P); war_pts.resize(N1 * N1); inv_e.resize(P); inv_d.resize(P)
 	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())

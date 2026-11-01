@@ -134,6 +134,10 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 		[T.call("terrain"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]]
 	if g.rules >= 1:
 		rows.append([T.call("supply"), str(g.supply_limit(p))])
+		if g.rules >= 4 and g.owner[p] == me:
+			var ip: Dictionary = TBInvest.progress(g, p)
+			rows.append([T.call("invest_progress"), T.call("invest_progress_v", {"e": int(roundf(float(ip["econ"]) * 100.0)), "d": int(roundf(float(ip["dev"]) * 100.0))}), ""])
+			if g.econ[p] > TBInvest.econ_potential(g, p) + 0.01: rows.append([T.call("invest_limit"), T.call("invest_limit_v"), "neg"])
 		if g.rules >= 4 and g.owner[p] == me: rows.append([T.call("levy"), "%d / %d" % [g.levy[p], g.levy_cap(p)], "neg" if g.levy_drained(p) else ""])
 		if g.attrition(p) > 0: rows.append([T.call("attrition"), str(g.attrition(p)), "neg"])
 		if g.gen[p] != 0: rows.append([T.call("general"), TBGenerals.display_name(g, p)])
