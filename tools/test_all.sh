@@ -27,6 +27,7 @@ run "rules 4: levy pools, recruits from the pool, work loss" tests/levy.gd
 run "rules 4: battles of three rounds, range, retreat" tests/battle.gd
 run "rules 4: morale, war exhaustion, desertion, peace readiness" tests/morale.gd
 run "rules 4: sieges of fortified provinces, supply reach" tests/siege.gd
+run "rules 4: war score, peace table, deals" tests/peace.gd
 run "doctrine" tests/doctrine.gd
 run "economy / research / aggression / rebellion model" tests/model.gd
 run "plaque animation state" tests/labels_anim.gd
@@ -43,6 +44,7 @@ run "historical events: integrity + firing" tests/hist_events.gd
 run "saves of release 1.0.0 still load and play on" tests/old_saves.gd
 run "security: command schema, wire format, saves, settings, server text/rate rules" tests/security.gd
 run "fuzz: random and hostile commands keep the invariants" tests/fuzz_commands.gd
+TB_FUZZ_RULES=4 run "fuzz (rules 4: levy, sieges, peace table)" tests/fuzz_commands.gd
 echo "== links: res paths, translation keys, language parity"; python3 tools/audit_links.py || fail=1
 echo "== oracle: GDScript engine vs JS reference (rules 0)"; tools/oracle.sh "$GODOT" || fail=1
 echo "== multiplayer: server + 2 clients (lockstep of mirrored state)"; tools/test_mp.sh "$GODOT" 2>&1 | tail -3; [ "${PIPESTATUS[0]}" -eq 0 ] || fail=1

@@ -35,6 +35,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"demolish": return _demolish(g, n, c, out)
 		"declareWar": return _declare_war(g, n, c, out)
 		"peace": return _peace(g, n, c, out)
+		"peaceDeal": return _peace_deal(g, n, c, out)
 		"ally": return _ally(g, n, c, out)
 		"nap": return _nap(g, n, c, out)
 		"breakPact": return _break_pact(g, n, c, out)
@@ -223,10 +224,31 @@ static func _peace(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	var kind: String = c.get("kind", "white")
 	out["kind"] = kind
 	out["dp"] = D.DP_PEACE                                     # charged (never refused for lack of it: the engine floors dp at 0)
+	if g.rules >= 4 and (kind == "cede" or kind == "vassal"):                  # the same table the command uses
+		var cap: float = TBPeace.limit(g, n, t) if g.human[t] == 0 else TBPeace.budget(g, n, t)
+		var deal: Dictionary = TBPeace.auto_deal(g, n, t, cap) if kind == "cede" else {"provs": [], "gold": 0, "vassal": true, "disarm": false}
+		if kind == "cede" and (deal["provs"] as Array).is_empty(): return _fail(out, "warscore")
+		var pr := TBPeace.price(g, n, t, deal)
+		if not bool(pr["ok"]): return _fail(out, "refused" if String(pr["why"]) == "limit" else String(pr["why"]))
+		return out
 	if kind == "vassal":
 		if g.rules < 1 or ws < 50: return _fail(out, "warscore")
 		if g.overlord[t] != 0 or g.overlord[n] != 0: return _fail(out, "vassal")
 	if kind == "cede" and ws < 25: return _fail(out, "warscore")
+	return out
+
+## rules 4: the peace table's deal, priced; `pts` / `budget` / `limit` tell the screen where it stands
+static func _peace_deal(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var t: int = int(c.get("t", 0))
+	if g.rules < 4: return _fail(out, "rules")
+	if t <= 0 or t >= g.N1 or g.get_rel(n, t) != D.REL_WAR: return _fail(out, "notwar")
+	out["kind"] = "deal"; out["dp"] = D.DP_PEACE
+	var deal := {"provs": c.get("provs", []), "gold": int(c.get("gold", 0)), "vassal": int(c.get("vassal", 0)) != 0, "disarm": int(c.get("disarm", 0)) != 0}
+	var pr := TBPeace.price(g, n, t, deal)
+	out["pts"] = pr["pts"]; out["budget"] = pr["budget"]; out["limit"] = pr["limit"]
+	if not bool(pr["ok"]):
+		var why := String(pr["why"])
+		return _fail(out, "refused" if why == "limit" else why)
 	return out
 
 static func _ally(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:

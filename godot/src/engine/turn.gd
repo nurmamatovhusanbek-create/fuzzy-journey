@@ -114,6 +114,7 @@ static func _tick(g: TBGame) -> void:
 				g.siege[p] -= 2 if g.army[p] >= 3 * garrison else 1
 				if g.siege[p] <= 0:
 					g.siege[p] = 0; g.occ_turns[p] = 0
+					TBWar.earn(g, oc, o, TBWar.SIEGE_PTS + (TBWar.CAPITAL_PTS if g.capital[p] != 0 else 0.0))
 					if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "occupied", "a": oc, "b": o, "p": p})
 				g.touch(p)
 			elif oc != 0:
@@ -185,7 +186,8 @@ static func _tick(g: TBGame) -> void:
 				var v := g.province_value(q)
 				tot += v
 				if g.occupier[q] == n and g.siege[q] == 0: occ += v
-			g.war_score[i] = clampi(int(round(occ / (tot if tot != 0.0 else 1.0) * 100.0)), 0, 100)
+			var occ_pct: float = occ / (tot if tot != 0.0 else 1.0) * 100.0
+			g.war_score[i] = TBWar.score(g, n, o, occ_pct) if g.rules >= 4 else clampi(int(round(occ_pct)), 0, 100)
 		if g.rules >= 4:
 			var tpop := 0
 			for p in own: tpop += g.pop[p]

@@ -6,11 +6,11 @@ extends RefCounted
 const D = preload("res://src/engine/data.gd")
 
 # ---------------------------------------------------------------- the command schema (one list for the interface, the AI and the server)
-## field kinds: p province | pn province or -1 | t nation | q 0..65000 | b building type | r regime | u event uid | k choice index | v -1000..1000 | s short id string; "?name" is optional.
+## field kinds: a list of up to 64 provinces | p province | pn province or -1 | t nation | q 0..65000 | b building type | r regime | u event uid | k choice index | v -1000..1000 | s short id string; "?name" is optional.
 ## `n` (the acting nation) is always required. Keys that are not listed are dropped, so a hostile client cannot smuggle a flag such as `_force` through; only a trusted caller keeps FLAGS.
 const SCHEMA := {
 	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"},
-	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
+	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "peaceDeal": {"t": "t", "?provs": "a", "?gold": "q", "?vassal": "q", "?disarm": "q"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
 	"build": {"p": "p", "b": "b"}, "demolish": {"p": "p", "?b": "b"}, "budget": {"key": "s", "val": "v"},
 	"colonize": {"p": "p"}, "relocate": {"p": "p"}, "develop": {"p": "p"}, "regime": {"r": "r"},
 	"spy": {"t": "t", "op": "s"}, "eventChoice": {"uid": "u", "i": "k"}, "decide": {"id": "s"}, "doctrine": {"id": "s"},
@@ -21,6 +21,7 @@ const SCHEMA := {
 const FLAGS := ["_force", "_ult"]                       # engine-internal switches (the AI and the court answers use them); never accepted from a client
 const PACT_CMDS := ["ally", "nap", "marry", "trade", "ultimatum", "breakPact", "embassy"]
 const MAX_ID_LEN := 24
+const MAX_LIST := 64
 
 ## the aimed-at nation of a command is wrong: oneself, a dead nation (except to cancel a deal or make peace), the rebels in a pact. TBCan uses the same rule, so its preview and apply() agree.
 ## Rules 0 is the legacy mode kept bit-identical with the JavaScript reference (tools/oracle.sh); its AI pacts with the rebel pseudo-nation, so the dead / rebel clauses start at rules 1.
@@ -34,6 +35,15 @@ static func _field(g: TBGame, kind: String, v: Variant) -> Variant:
 	if kind == "s":
 		if not (v is String) or String(v).length() > MAX_ID_LEN: return null
 		return String(v)
+	if kind == "a":                                                                  # a short list of provinces
+		if not (v is Array) or (v as Array).size() > MAX_LIST: return null
+		var list: Array = []
+		for e in v:
+			if not (e is int or e is float) or (e is float and (is_nan(e) or is_inf(e))): return null
+			var pi := int(e)
+			if pi < 0 or pi >= g.P: return null
+			list.append(pi)
+		return list
 	if not (v is int or v is float): return null
 	if v is float and (is_nan(v) or is_inf(v) or absf(v) > 2.0e9): return null
 	var i := int(v)
@@ -91,6 +101,7 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 		"recruit": return _c_recruit(g, c)
 		"declareWar": return _c_declare_war(g, c)
 		"peace": return _c_peace(g, c)
+		"peaceDeal": return _c_peace_deal(g, c)
 		"ally": return _c_ally(g, c)
 		"nap": return _c_nap(g, c)
 		"breakPact": return _c_break_pact(g, c)
@@ -201,6 +212,11 @@ static func _c_peace(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.get_rel(n, t) != D.REL_WAR: return _err("notwar")
 	var ws := g.war_score[n * g.N1 + t]
 	var kind: String = c.get("kind", "white")
+	if g.rules >= 4 and (kind == "cede" or kind == "vassal"):                  # the same table as the peace screen: the old buttons ask for what the score allows
+		var cap: float = TBPeace.limit(g, n, t) if (g.human[t] == 0 and not c.get("_force", false)) else TBPeace.budget(g, n, t)
+		var deal: Dictionary = TBPeace.auto_deal(g, n, t, cap) if kind == "cede" else {"provs": [], "gold": 0, "vassal": true, "disarm": false}
+		if kind == "cede" and (deal["provs"] as Array).is_empty(): return _err("warscore")
+		return _finish_deal(g, n, t, deal, bool(c.get("_force", false)))
 	if g.human[t] == 0 and not c.get("_force", false) and not TBAI.accepts_peace(g, t, n, kind): return _err("refused")
 	if kind == "vassal":
 		if g.rules < 1 or ws < 50: return _err("warscore")
@@ -232,6 +248,41 @@ static func _c_peace(g: TBGame, c: Dictionary) -> Dictionary:
 	for p in g.owned(n):
 		if g.occupier[p] == t:
 			g.occupier[p] = 0; g.touch(p)
+	g.occ_rev += 1
+	g.set_rel(n, t, D.REL_PEACE)
+	var tt: int = D.TRUCE_TURNS if g.rules == 0 else 12
+	g.truce[n * g.N1 + t] = g.turn + tt; g.truce[t * g.N1 + n] = g.turn + tt
+	g.dp[n] = maxf(0.0, g.dp[n] - D.DP_PEACE)
+	g.log.append({"turn": g.turn, "kind": "peace", "a": n, "b": t})
+	return {"ok": true}
+
+## rules 4: the peace table's own command. An empty deal is a white peace (the AI weighs it as ever); anything else is priced by TBPeace and an AI loser accepts up to its limit
+static func _c_peace_deal(g: TBGame, c: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var t: int = c["t"]
+	if g.rules < 4: return _err("rules")
+	if g.get_rel(n, t) != D.REL_WAR: return _err("notwar")
+	var deal := {"provs": c.get("provs", []), "gold": int(c.get("gold", 0)), "vassal": int(c.get("vassal", 0)) != 0, "disarm": int(c.get("disarm", 0)) != 0}
+	if (deal["provs"] as Array).is_empty() and int(deal["gold"]) == 0 and not bool(deal["vassal"]) and not bool(deal["disarm"]):
+		return _c_peace(g, {"n": n, "t": t, "kind": "white", "_force": c.get("_force", false)})
+	return _finish_deal(g, n, t, deal, bool(c.get("_force", false)))
+
+static func _finish_deal(g: TBGame, n: int, t: int, deal: Dictionary, force: bool) -> Dictionary:
+	var cost := TBPeace.price(g, n, t, deal)
+	if not bool(cost["ok"]):
+		var why := String(cost["why"])
+		return _err("refused" if why == "limit" else ("warscore" if why == "warscore" else why))
+	if bool(deal.get("vassal", false)) and g.rules >= 1 and (g.overlord[t] != 0 or g.overlord[n] != 0): return _err("vassal")
+	TBPeace.execute(g, n, t, deal, cost)
+	return _end_war(g, n, t)
+
+## the common tail of every peace: occupations lapse, the war ends, a truce begins
+static func _end_war(g: TBGame, n: int, t: int) -> Dictionary:
+	for p in g.owned(t):
+		if g.occupier[p] == n:
+			g.occupier[p] = 0; g.siege[p] = 0; g.touch(p)
+	for p in g.owned(n):
+		if g.occupier[p] == t:
+			g.occupier[p] = 0; g.siege[p] = 0; g.touch(p)
 	g.occ_rev += 1
 	g.set_rel(n, t, D.REL_PEACE)
 	var tt: int = D.TRUCE_TURNS if g.rules == 0 else 12

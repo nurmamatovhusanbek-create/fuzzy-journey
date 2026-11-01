@@ -1,7 +1,7 @@
 extends SceneTree
 ## Command fuzzer: random, malformed and hostile commands against the engine (the one mutation API every client path uses). No command may crash the engine (a runtime error prints
 ## "SCRIPT ERROR" and fails the run) or break the state: sizes, ranges, finiteness, no resource from nothing. Usage: -s tests/fuzz_commands.gd -- [iterations=4000] [seed=1] [era=napoleonic]   (run headless)
-const CMDS := ["move", "recruit", "declareWar", "peace", "ally", "nap", "breakPact", "build", "budget", "colonize", "relocate", "regime", "develop", "demolish", "hire", "spy", "eventChoice", "decide",
+const CMDS := ["move", "recruit", "declareWar", "peace", "peaceDeal", "ally", "nap", "breakPact", "build", "budget", "colonize", "relocate", "regime", "develop", "demolish", "hire", "spy", "eventChoice", "decide",
 	"trade", "marry", "cancelTrade", "appoint", "doctrine", "ultimatum", "ask", "noop", "nope", "", "__proto__"]
 const HEAVY := ["move", "recruit", "build", "budget", "develop", "hire", "declareWar", "peace"]
 var rng := RandomNumberGenerator.new()
@@ -92,7 +92,8 @@ func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
 	var pack := TBWorld.load_era("res://data", era) if era != "modern" else {}
-	g = TBGame.new(w, pack, {"seed": 5, "rules": 2})
+	var rules_n: int = int(a[3]) if a.size() > 3 else (int(OS.get_environment("TB_FUZZ_RULES")) if OS.get_environment("TB_FUZZ_RULES") != "" else 2)
+	g = TBGame.new(w, pack, {"seed": 5, "rules": rules_n})
 	var fr := 1
 	for n in range(1, g.N1):
 		if g.alive[n] == 1: fr = n; break

@@ -272,6 +272,7 @@ static func accepts_peace(g: TBGame, t: int, p: int, kind: String) -> bool:
 	want += (their_ws - my_ws) * 0.04
 	want += minf(1.5, dur / 20.0)
 	want -= g.grudge[t * N1 + p] / 80.0
+	if g.rules >= 4: want += (g.exh[t] - g.exh[p]) * 0.03                      # worn out, he wants it over (the peace table's disposition shows the same term)
 	if kind == "cede": want -= 0.5 + their_ws * 0.02
 	if kind == "vassal": want -= 1.5 + their_ws * 0.03
 	return want > peace_bar(g)

@@ -18,6 +18,11 @@ const EXH_CAS_K := 100.0               # per whole population lost in a turn's b
 const CAS_CAP := 5.0
 const EXH_ADAPT := 0.985               # a long war is borne: what is already felt fades by this factor a turn, so the figure settles (a quiet war near 27, a bloody one higher) instead of climbing to 100
 const EXH_REST := 3.0                  # lost each turn at peace
+const BATTLE_PTS := 30.0               # war score for a battle: this many points per whole enemy army destroyed (at most BATTLE_CAP)
+const BATTLE_CAP := 8.0
+const SIEGE_PTS := 4.0
+const CAPITAL_PTS := 15.0
+const EXH_SCORE := 0.2                 # an exhausted enemy is easier to bargain with: a fifth of his exhaustion is added to the score
 const WEARY_K := 0.3                   # exhaustion points -> the older 'weariness' that cuts stability and mood
 
 static func morale_mul(g: TBGame, n: int) -> float:
@@ -25,6 +30,12 @@ static func morale_mul(g: TBGame, n: int) -> float:
 
 ## a battle was fought: winner and loser change heart; the men lost count towards the nations' weariness this turn
 static func on_battle(g: TBGame, win_n: int, lose_n: int, win_lost: int, win_before: int, lose_lost: int, lose_before: int) -> void:
+	if win_n != 0 and lose_n != 0 and g.get_rel(win_n, lose_n) == TBData.REL_WAR:                # the dead of a lost battle are points for the winner
+		var total := lose_before
+		var sum := 0
+		for p in g.owned(lose_n): sum += g.army[p]
+		total = maxi(total, sum + lose_lost)
+		earn(g, win_n, lose_n, minf(BATTLE_CAP, BATTLE_PTS * float(lose_lost) / float(maxi(1, total))))
 	if win_n != 0:
 		g.lost_turn[win_n] += win_lost
 		g.morale[win_n] = minf(100.0, g.morale[win_n] + WIN_GAIN)
@@ -53,3 +64,13 @@ static func tick(g: TBGame, n: int, at_war: bool, pop: int) -> void:
 ## the older 'weariness' (0-40) the stability and mood formulas already take
 static func weary(g: TBGame, n: int) -> float:
 	return minf(40.0, g.exh[n] * WEARY_K)
+
+## points toward the war score of w against l
+static func earn(g: TBGame, w: int, l: int, pts: float) -> void:
+	if w == 0 or l == 0 or w == g.rebel or l == g.rebel or pts <= 0.0: return
+	var i := w * g.N1 + l
+	g.war_pts[i] = minf(100.0, g.war_pts[i] + pts)
+
+## the war score of n against o: the share of o's land n holds, plus what it won in the field, plus a fifth of o's exhaustion
+static func score(g: TBGame, n: int, o: int, occ_pct: float) -> int:
+	return clampi(int(round(occ_pct + g.war_pts[n * g.N1 + o] + g.exh[o] * EXH_SCORE)), 0, 100)

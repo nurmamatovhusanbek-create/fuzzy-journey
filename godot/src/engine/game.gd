@@ -80,6 +80,7 @@ var happy := PackedByteArray()
 var defense := PackedByteArray()
 var move_fx: Array = []                       # [from, to, nation] marches the AI made this turn (view only, not saved): the interface shows those in sight
 var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
+var war_pts := PackedFloat32Array()             # rules >= 4: score earned in the field against each enemy (battles, sieges, capitals), N1*N1; the war score adds the land held and the enemy's exhaustion
 var siege := PackedInt32Array()                 # rules >= 4: turns left before a fortress taken in the field falls (0 = not besieged); the owner keeps the province until then
 var morale := PackedFloat32Array()              # rules >= 4: how well each nation's armies hold (TBWar)
 var exh := PackedFloat32Array()                 # rules >= 4: war exhaustion of each nation, 0-100 (TBWar)
@@ -225,7 +226,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1); net_ema.resize(N1)
-	siege.resize(P)
+	siege.resize(P); war_pts.resize(N1 * N1)
 	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
@@ -482,6 +483,7 @@ func set_rel(a: int, b: int, v: int) -> void:
 	if v == D.REL_WAR:
 		if rules >= 1 and trade[a * N1 + b] != 0: TBTrade.set_deal(self, a, b, false)
 		war_score[a * N1 + b] = 0; war_score[b * N1 + a] = 0
+		war_pts[a * N1 + b] = 0.0; war_pts[b * N1 + a] = 0.0
 		war_turns[a * N1 + b] = 0; war_turns[b * N1 + a] = 0
 
 ## single choke point for alive flips (keeps war_cnt consistent)
@@ -873,6 +875,7 @@ func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int,
 		else:
 			occupier[to] = atk_n; occ_turns[to] = 0; occ_rev += 1
 			siege[to] = siege_len(to)
+			if siege[to] == 0 and capital[to] != 0: TBWar.earn(self, atk_n, def_n, TBWar.CAPITAL_PTS)
 			if siege[to] == 0 and (human[atk_n] != 0 or human[def_n] != 0 or capital[to] != 0):
 				log.append({"turn": turn, "kind": "occupied", "a": atk_n, "b": def_n, "p": to})
 		army[to] = occ; defense[to] = 0
