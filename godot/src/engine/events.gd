@@ -197,6 +197,11 @@ static func _resolve(g: TBGame, e: Dictionary, choice: int) -> void:
 	if e["kind"] == "prop" and e["id"] == "ultimatum":
 		TBDiplo.resolve_ultimatum(g, int(e["from"]), n, int(e["p"]), choice == 0)
 		return
+	if e["kind"] == "prop" and e["id"] == "call":                                       # an ally asks for help: 0 = join its war, 1 = stay out (and be remembered for it)
+		var caller: int = int(e["from"]); var foe: int = int(e.get("e", 0))
+		if choice == 0 and TBWar.call_why(g, caller, n, foe) == "": TBWar.join(g, n, caller, foe)
+		else: TBWar.snub(g, n, caller, foe)
+		return
 	if e["kind"] == "prop":
 		if choice == 0: TBDiplo.accept_offer(g, int(e["from"]), n, String(e["id"]))
 		g.log.append({"turn": g.turn, "kind": "offer_" + ("yes" if choice == 0 else "no"), "a": int(e["from"]), "b": n, "id": e["id"]})

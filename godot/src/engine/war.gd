@@ -98,7 +98,8 @@ static func resist(g: TBGame, p: int) -> bool:
 
 
 # ---------------------------------------------------------------- calls to arms (docs/WAR_DESIGN.md section 11)
-const CALL_YES := 0.45                 # an AI ally joins when its willingness is above this
+const CALL_YES := 0.45                 # willingness at which an AI ally joins half the time
+const CALL_SPREAD := 0.20              # ...and always from this much above, never from this much below
 const CALL_SNUB_GRUDGE := 20           # the injured ally's grudge against one who stays out of his war
 
 ## how ready ally `o` is to fight for `t`, whom `n` attacked: 0.5 x trust + 0.3 x the threat n is to o + 0.2 x a shared border - 0.4 x the distance to the war - 0.3 x its own exhaustion.
@@ -128,3 +129,40 @@ static func call_willingness(g: TBGame, o: int, t: int, n: int) -> float:
 	var w := 0.0
 	for tm in call_terms(g, o, t, n): w += float(tm[1])
 	return w
+
+## the chance, 0..1, that ally `o` answers the call of `t` (whom `e` fights): its willingness mapped around CALL_YES, so 0.45 is a coin toss and the extremes are certain
+static func call_chance(g: TBGame, o: int, t: int, e: int) -> float:
+	return clampf(0.5 + (call_willingness(g, o, t, e) - CALL_YES) / (2.0 * CALL_SPREAD), 0.0, 1.0)
+
+## can `o` be asked to fight `e` for `t` at all: allied to t, not already at war with e, no truce, not bound to e
+static func call_why(g: TBGame, t: int, o: int, e: int) -> String:
+	if g.rules < 4: return "rules"
+	if o <= 0 or o >= g.N1 or e <= 0 or e >= g.N1 or t <= 0 or o == t or o == e or t == e: return "target"
+	if g.alive[o] == 0 or g.alive[e] == 0 or o == g.rebel or e == g.rebel: return "target"
+	if g.get_rel(t, o) != TBData.REL_ALLY: return "notally"
+	if g.get_rel(t, e) != TBData.REL_WAR: return "notwar"
+	if g.get_rel(o, e) == TBData.REL_WAR: return "already"
+	if g.has_truce(o, e) or g.friendly(o, e): return "bound"
+	return ""
+
+## ask the ally (AI: answered at once by chance; a human gets a prompt). Returns "joined", "refused" or "pending".
+## A refusal puts CALL_SNUB_GRUDGE on the caller's grudge against the ally that stayed out.
+static func ask_ally(g: TBGame, t: int, o: int, e: int) -> String:
+	if g.human[o] != 0:
+		for q in g.pending: if int(q["n"]) == o and q["kind"] == "prop" and q["id"] == "call" and int(q["from"]) == t and int(q.get("e", -1)) == e: return "pending"
+		g.ev_uid += 1
+		g.pending.append({"uid": g.ev_uid, "n": o, "kind": "prop", "id": "call", "from": t, "e": e, "icon": "⚔", "cat": "", "count": 2})
+		return "pending"
+	if g.rng.chance(call_chance(g, o, t, e)):
+		join(g, o, t, e)
+		return "joined"
+	snub(g, o, t, e)
+	return "refused"
+
+static func join(g: TBGame, o: int, t: int, e: int) -> void:
+	g.set_rel(o, e, TBData.REL_WAR); g.last_war_turn[o] = g.turn
+	g.log.append({"turn": g.turn, "kind": "war", "a": o, "b": e, "ally": 1})
+
+static func snub(g: TBGame, o: int, t: int, e: int) -> void:
+	TBDiplo._add_grudge(g, t, o, CALL_SNUB_GRUDGE)
+	g.log.append({"turn": g.turn, "kind": "call_refused", "a": o, "b": t, "n": e})

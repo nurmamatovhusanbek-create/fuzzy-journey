@@ -36,6 +36,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"declareWar": return _declare_war(g, n, c, out)
 		"peace": return _peace(g, n, c, out)
 		"peaceDeal": return _peace_deal(g, n, c, out)
+		"callAlly": return _call_ally(g, n, c, out)
 		"ally": return _ally(g, n, c, out)
 		"nap": return _nap(g, n, c, out)
 		"breakPact": return _break_pact(g, n, c, out)
@@ -235,6 +236,16 @@ static func _peace(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 		if g.rules < 1 or ws < 50: return _fail(out, "warscore")
 		if g.overlord[t] != 0 or g.overlord[n] != 0: return _fail(out, "vassal")
 	if kind == "cede" and ws < 25: return _fail(out, "warscore")
+	return out
+
+## rules 4: calling an ally: costs DP_CALL; `chance` is what the answer will be weighed by (0..1)
+static func _call_ally(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var o: int = int(c.get("t", 0)); var e: int = int(c.get("e", 0))
+	out["dp"] = D.DP_CALL
+	var why := TBWar.call_why(g, n, o, e)
+	if why != "": return _fail(out, why)
+	out["chance"] = 1.0 if g.human[o] != 0 else TBWar.call_chance(g, o, n, e)
+	_need(out, "dp", g.dp[n], float(D.DP_CALL), "dp")
 	return out
 
 ## rules 4: the peace table's deal, priced; `pts` / `budget` / `limit` tell the screen where it stands

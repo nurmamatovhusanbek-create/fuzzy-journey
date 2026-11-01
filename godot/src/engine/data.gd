@@ -110,6 +110,7 @@ const MP_MOVE := 1
 const MP_RECRUIT := 1
 const DP_WAR := 3
 const DP_PEACE := 2
+const DP_CALL := 1                   # rules >= 4: asking an ally to join a war
 const DP_ALLY := 4
 const DP_NAP := 2
 const TRUCE_TURNS := 8

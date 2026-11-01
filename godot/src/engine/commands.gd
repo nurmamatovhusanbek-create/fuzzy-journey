@@ -10,7 +10,7 @@ const D = preload("res://src/engine/data.gd")
 ## `n` (the acting nation) is always required. Keys that are not listed are dropped, so a hostile client cannot smuggle a flag such as `_force` through; only a trusted caller keeps FLAGS.
 const SCHEMA := {
 	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"},
-	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "peaceDeal": {"t": "t", "?provs": "a", "?gold": "q", "?vassal": "q", "?disarm": "q"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
+	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "peaceDeal": {"t": "t", "?provs": "a", "?gold": "q", "?vassal": "q", "?disarm": "q"}, "callAlly": {"t": "t", "e": "t"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
 	"build": {"p": "p", "b": "b"}, "demolish": {"p": "p", "?b": "b"}, "budget": {"key": "s", "val": "v"},
 	"colonize": {"p": "p"}, "relocate": {"p": "p"}, "develop": {"p": "p"}, "regime": {"r": "r"},
 	"spy": {"t": "t", "op": "s"}, "eventChoice": {"uid": "u", "i": "k"}, "decide": {"id": "s"}, "doctrine": {"id": "s"},
@@ -102,6 +102,7 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 		"declareWar": return _c_declare_war(g, c)
 		"peace": return _c_peace(g, c)
 		"peaceDeal": return _c_peace_deal(g, c)
+		"callAlly": return _c_call_ally(g, c)
 		"ally": return _c_ally(g, c)
 		"nap": return _c_nap(g, c)
 		"breakPact": return _c_break_pact(g, c)
@@ -203,12 +204,14 @@ static func _c_declare_war(g: TBGame, c: Dictionary) -> Dictionary:
 	g.log.append({"turn": g.turn, "kind": "war", "a": n, "b": t, "cb": cb_kind})
 	for o in range(1, g.N + 1):
 		if o != n and o != t and g.alive[o] != 0 and g.get_rel(t, o) == D.REL_ALLY and not g.friendly(n, o) and g.get_rel(n, o) != D.REL_WAR and not g.has_truce(n, o):
-			if g.rules >= 4 and g.human[o] == 0 and TBWar.call_willingness(g, o, t, n) <= TBWar.CALL_YES:          # the ally weighs the call; one that stays out is remembered by the ally it left alone
-				TBDiplo._add_grudge(g, t, o, TBWar.CALL_SNUB_GRUDGE)
-				g.log.append({"turn": g.turn, "kind": "call_refused", "a": o, "b": t, "n": n})
+			if g.rules >= 4:                                                                      # the ally weighs the call (an AI at once, by chance; a human is asked); one that stays out is remembered by the ally it left alone
+				TBWar.ask_ally(g, t, o, n)
 				continue
 			g.set_rel(n, o, D.REL_WAR)
 			g.log.append({"turn": g.turn, "kind": "war", "a": o, "b": n, "ally": 1})
+	if g.rules >= 4 and g.human[n] == 0:                                                         # an AI aggressor calls its own allies the way the player's sheet does (a human decides for himself)
+		for o in range(1, g.N + 1):
+			if o != n and o != t and g.alive[o] != 0 and TBWar.call_why(g, n, o, t) == "": TBWar.ask_ally(g, n, o, t)
 	return {"ok": true}
 
 static func _c_peace(g: TBGame, c: Dictionary) -> Dictionary:
@@ -294,6 +297,15 @@ static func _end_war(g: TBGame, n: int, t: int) -> Dictionary:
 	g.dp[n] = maxf(0.0, g.dp[n] - D.DP_PEACE)
 	g.log.append({"turn": g.turn, "kind": "peace", "a": n, "b": t})
 	return {"ok": true}
+
+## rules 4: ask an ally to join the war against `e`. Costs DP_CALL; an AI answers at once (by the chance TBWar.call_chance shows), a human gets a prompt.
+static func _c_call_ally(g: TBGame, c: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var o: int = c["t"]; var e: int = c["e"]
+	var why := TBWar.call_why(g, n, o, e)
+	if why != "": return _err(why)
+	if g.dp[n] < float(D.DP_CALL): return _err("dp")
+	g.dp[n] -= float(D.DP_CALL)
+	return {"ok": true, "result": TBWar.ask_ally(g, n, o, e)}
 
 static func _c_ally(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var t: int = c["t"]
