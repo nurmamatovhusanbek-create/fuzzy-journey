@@ -11,13 +11,14 @@ const LOSS_BASE := 6.0
 const LOSS_SHARE_K := 30.0             # plus this many points per whole army lost
 const BROKEN := 30.0                   # below this an army deserts
 const DESERT := 0.01
-const EXH_TURN := 0.6                  # each turn at war
-const EXH_OCC := 0.3                   # per own province held by the enemy (at most OCC_CAP provinces count)
+const EXH_TURN := 0.4                  # each turn at war
+const EXH_OCC := 0.2                   # per own province held by the enemy (at most OCC_CAP provinces count)
 const OCC_CAP := 10
-const EXH_CAS_K := 150.0               # per whole population lost in a turn's battles; at most CAS_CAP a turn
-const CAS_CAP := 8.0
+const EXH_CAS_K := 100.0               # per whole population lost in a turn's battles; at most CAS_CAP a turn
+const CAS_CAP := 5.0
+const EXH_ADAPT := 0.985               # a long war is borne: what is already felt fades by this factor a turn, so the figure settles (a quiet war near 27, a bloody one higher) instead of climbing to 100
 const EXH_REST := 3.0                  # lost each turn at peace
-const WEARY_K := 0.4                   # exhaustion points -> the older 'weariness' that cuts stability and mood
+const WEARY_K := 0.3                   # exhaustion points -> the older 'weariness' that cuts stability and mood
 
 static func morale_mul(g: TBGame, n: int) -> float:
 	return 1.0 + MORALE_SWING * (g.morale[n] - MORALE_START) / 100.0
@@ -43,7 +44,7 @@ static func tick(g: TBGame, n: int, at_war: bool, pop: int) -> void:
 	for p in g.owned(n):
 		if g.occupier[p] != 0 and g.occupier[p] != n: occ += 1
 	var up: float = EXH_TURN + EXH_OCC * float(mini(occ, OCC_CAP)) + minf(CAS_CAP, EXH_CAS_K * float(lost) / float(maxi(1, pop)))
-	g.exh[n] = minf(100.0, g.exh[n] + up)
+	g.exh[n] = minf(100.0, g.exh[n] * EXH_ADAPT + up)
 	var m: float = g.morale[n]
 	m += (MORALE_START - m) * 0.05                                  # the fighting spirit settles back to its usual level
 	if g.exh[n] > 50.0: m -= (g.exh[n] - 50.0) * 0.03               # a tired country fights with less heart

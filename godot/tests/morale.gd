@@ -33,16 +33,16 @@ func _init() -> void:
 	_check(e1 > TBWar.EXH_TURN, "casualties add to the weariness (%.2f)" % e1)
 	_check(g.lost_turn[b] == 0, "the turn's casualty count is spent")
 	TBWar.tick(g, b, true, pop_a)
-	_check(absf(g.exh[b] - e1 - TBWar.EXH_TURN) < 0.001, "a quiet turn at war adds only the turn's share")
+	_check(absf(g.exh[b] - (e1 * TBWar.EXH_ADAPT + TBWar.EXH_TURN)) < 0.001, "a quiet turn at war adds only the turn's share")
 	var q: int = g.owned(b)[0]
 	g.occupier[q] = a
 	var before: float = g.exh[b]
 	TBWar.tick(g, b, true, pop_a)
-	_check(g.exh[b] - before > TBWar.EXH_TURN + TBWar.EXH_OCC - 0.001, "an occupied province adds weariness")
+	_check(g.exh[b] - before * TBWar.EXH_ADAPT > TBWar.EXH_TURN + TBWar.EXH_OCC - 0.001, "an occupied province adds weariness")
 	g.exh[b] = 80.0; g.morale[b] = 70.0
 	TBWar.tick(g, b, true, pop_a)
 	_check(g.morale[b] < 70.0, "a worn-out country fights with less heart (%.1f)" % g.morale[b])
-	_check(TBWar.weary(g, b) > 30.0 and TBWar.weary(g, b) <= 40.0, "high exhaustion feeds the old weariness, capped at 40")
+	_check(TBWar.weary(g, b) > 20.0 and TBWar.weary(g, b) <= 40.0, "high exhaustion feeds the old weariness, capped at 40")
 	# peace restores
 	g.exh[b] = 20.0; g.morale[b] = 40.0
 	TBWar.tick(g, b, false, pop_a)
