@@ -122,6 +122,7 @@ static func propose(g: TBGame, n: int, t: int, force: bool = false) -> Dictionar
 	if g.rules < 1: return {"ok": false, "err": "rules"}
 	if t <= 0 or t >= g.N1 or t == n or g.alive[t] == 0 or t == g.rebel: return {"ok": false, "err": "target"}
 	if g.get_rel(n, t) == D.REL_WAR: return {"ok": false, "err": "war"}
+	if TBDiplo.deal_why(g, n, t, "trade") != "": return {"ok": false, "err": "nocontact"}
 	if has(g, n, t): return {"ok": false, "err": "active"}
 	if g.trade_cnt[n] >= max_deals(g, n): return {"ok": false, "err": "tradefull"}
 	if g.dp[n] < DP_COST: return {"ok": false, "err": "dp"}

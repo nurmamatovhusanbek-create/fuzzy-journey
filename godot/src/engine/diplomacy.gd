@@ -182,6 +182,14 @@ static func shared_concern(g: TBGame, a: int, b: int) -> bool:
 		if shares_border(g, o, a) and shares_border(g, o, b): return true
 	return false
 
+## rules >= 4: may a and b deal at all? "" | "nocontact" (they do not know of each other) | "toofar" (a royal marriage needs a near court). Used by the commands, the previews and the offers.
+static func deal_why(g: TBGame, a: int, b: int, what: String) -> String:
+	if g.rules < 4: return ""
+	var c := contact(g, a, b)
+	if c == "none": return "nocontact"
+	if what == "marry" and c == "far": return "toofar"
+	return ""
+
 ## how much a court of `from` wants to offer `what` ("nap" | "ally" | "trade" | "marry") to `to`: 0 = never. Rules >= 4 only.
 static func offer_fit(g: TBGame, from: int, to: int, what: String) -> float:
 	var c := contact(g, from, to)
@@ -239,10 +247,19 @@ const DP_MARRY := 3
 static func can_marry(g: TBGame, a: int, b: int) -> bool:
 	if g.rules < 1 or a == b or a == g.rebel or b == g.rebel or g.alive[a] == 0 or g.alive[b] == 0: return false
 	var r := g.get_rel(a, b)
+	if g.rules >= 4 and deal_why(g, a, b, "marry") != "": return false
+	return (r == D.REL_PEACE or r == D.REL_NAP) and TBRulers.is_hereditary(g, a) and TBRulers.is_hereditary(g, b) and g.overlord[a] == 0 and g.overlord[b] == 0
+
+## the dynastic part of can_marry without the distance (for tests and previews)
+static func can_marry_ignoring_distance(g: TBGame, a: int, b: int) -> bool:
+	if g.rules < 1 or a == b or a == g.rebel or b == g.rebel or g.alive[a] == 0 or g.alive[b] == 0: return false
+	var r := g.get_rel(a, b)
 	return (r == D.REL_PEACE or r == D.REL_NAP) and TBRulers.is_hereditary(g, a) and TBRulers.is_hereditary(g, b) and g.overlord[a] == 0 and g.overlord[b] == 0
 
 static func marry(g: TBGame, n: int, t: int, force: bool = false) -> Dictionary:
 	if g.rules < 1: return {"ok": false, "err": "rules"}
+	var dw := deal_why(g, n, t, "marry")
+	if dw != "": return {"ok": false, "err": dw}
 	if not can_marry(g, n, t): return {"ok": false, "err": "state"}
 	if g.dp[n] < DP_MARRY: return {"ok": false, "err": "dp"}
 	if g.has_truce(n, t) and g.human[t] == 0: return {"ok": false, "err": "truce"}

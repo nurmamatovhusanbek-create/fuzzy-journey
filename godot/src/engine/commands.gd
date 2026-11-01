@@ -310,6 +310,8 @@ static func _c_call_ally(g: TBGame, c: Dictionary) -> Dictionary:
 static func _c_ally(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var t: int = c["t"]
 	if g.get_rel(n, t) == D.REL_WAR: return _err("war")
+	var dw0 := TBDiplo.deal_why(g, n, t, "ally")
+	if dw0 != "": return _err(dw0)
 	if g.dp[n] < D.DP_ALLY: return _err("dp")
 	var room := TBDiplo.ally_room(g, n, t)
 	if room != "": return _err("allies" if room == "mine" else "allies_theirs")
@@ -322,6 +324,8 @@ static func _c_ally(g: TBGame, c: Dictionary) -> Dictionary:
 static func _c_nap(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var t: int = c["t"]
 	if g.get_rel(n, t) != D.REL_PEACE: return _err("state")
+	var dw0 := TBDiplo.deal_why(g, n, t, "nap")
+	if dw0 != "": return _err(dw0)
 	if g.dp[n] < D.DP_NAP: return _err("dp")
 	if g.human[t] == 0 and not c.get("_force", false) and not TBAI.accepts_pact(g, t, n, D.REL_NAP): return _err("refused")
 	g.dp[n] -= D.DP_NAP; g.set_rel(n, t, D.REL_NAP)

@@ -267,6 +267,8 @@ static func _ally(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 	out["dp"] = D.DP_ALLY
 	if t <= 0 or t >= g.N1: return _fail(out, "target")
 	if g.get_rel(n, t) == D.REL_WAR: return _fail(out, "war")
+	var dw := TBDiplo.deal_why(g, n, t, "ally")
+	if dw != "": return _fail(out, dw)
 	_need(out, "dp", g.dp[n], D.DP_ALLY, "dp")
 	var room := TBDiplo.ally_room(g, n, t)
 	if room != "" and out["ok"]: return _fail(out, "allies" if room == "mine" else "allies_theirs")
@@ -277,6 +279,8 @@ static func _nap(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionar
 	out["dp"] = D.DP_NAP
 	if t <= 0 or t >= g.N1: return _fail(out, "state")
 	if g.get_rel(n, t) != D.REL_PEACE: return _fail(out, "state")
+	var dw := TBDiplo.deal_why(g, n, t, "nap")
+	if dw != "": return _fail(out, dw)
 	_need(out, "dp", g.dp[n], D.DP_NAP, "dp")
 	return out
 
@@ -301,6 +305,8 @@ static func _marry(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	out["dp"] = TBDiplo.DP_MARRY
 	if g.rules < 1: return _fail(out, "rules")
 	if t <= 0 or t >= g.N1: return _fail(out, "state")
+	var dw := TBDiplo.deal_why(g, n, t, "marry")
+	if dw != "": return _fail(out, dw)
 	if not TBDiplo.can_marry(g, n, t): return _fail(out, "state")
 	_need(out, "dp", g.dp[n], TBDiplo.DP_MARRY, "dp")
 	if out["ok"] and g.has_truce(n, t) and g.human[t] == 0: return _fail(out, "truce")
@@ -330,6 +336,7 @@ static func _trade(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	if g.rules < 1: return _fail(out, "rules")
 	if t <= 0 or t >= g.N1 or t == n or g.alive[t] == 0 or t == g.rebel: return _fail(out, "target")
 	if g.get_rel(n, t) == D.REL_WAR: return _fail(out, "war")
+	if TBDiplo.deal_why(g, n, t, "trade") != "": return _fail(out, "nocontact")
 	if TBTrade.has(g, n, t): return _fail(out, "active")
 	if g.trade_cnt[n] >= TBTrade.max_deals(g, n): return _fail(out, "tradefull")
 	_need(out, "dp", g.dp[n], TBTrade.DP_COST, "dp")
