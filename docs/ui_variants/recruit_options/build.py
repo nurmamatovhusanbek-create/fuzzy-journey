@@ -112,6 +112,34 @@ def b3(phone=False):
             '<div class="slr" style="margin:0;height:14px"><div class="tks" style="top:2px"></div><div class="nums" style="top:12px"><span>1</span><span>25 %%</span><span>50 %%</span><span>75 %%</span><span>26</span></div></div></div>%s'
             '<div class="cost" style="width:100px">21 g &middot; 15 men<small>Army 120 &rarr; 135</small></div>%s%s</div></div>')%(stp('&minus;'),stp('+'),go(),no())
 
+
+XCSS = """
+.share.sm b{min-width:34px;font-size:12.5px}
+.bt.ico{padding:0;width:34px}
+.slr .nums span{cursor:default}
+.slr .nums.pct{font:500 10px Cinzel}
+"""
+def pgx(title, inner, kind):
+    html=pgd(title, inner, kind=kind, w=(1100 if kind=='desk' else 780), bottom=(72 if kind=='desk' else 12))
+    return html.replace('</style>', XCSS+'</style>',1)
+X=ICON.replace('M6 21V4M6 5h12l-3 4 3 4H6','M6 6l12 12M18 6L6 18')
+def cross(): return '<span class="bt ico">%s</span>'%X
+def share_sm(): return '<div class="share sm"><b>25</b><b>50</b><b class="on">75</b><b>100</b></div>'
+
+# ---- O1: B2 in one row, every control kept (phone: shorter slider, Cancel becomes a cross plate)
+def o1(phone):
+    left='<div style="width:%dpx;line-height:1.15"><div class="lbl">Recruit &middot; <span style="color:var(--ivory)">AISNE</span></div><div class="cost" style="margin-top:3px">21 g &middot; 15 men<small>army 120 &rarr; 135%s</small></div></div>'%(150 if not phone else 132, '' if phone else ' &middot; pool 11 left')
+    return ('<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;height:78px">%s%s%s%s<div class="fld" style="width:%dpx">15</div>%s%s%s</div>')%(left,stp('&minus;'),slr(58,False),stp('+'),64 if phone else 76,share_sm() if phone else share(),go(),cross() if phone else no())
+
+# ---- O2: the presets are the slider's own labelled ticks (tap a mark to jump there): one control fewer
+def o2(phone):
+    left='<div style="width:%dpx;line-height:1.15"><div class="lbl">Recruit &middot; <span style="color:var(--ivory)">AISNE</span></div><div class="cost" style="margin-top:3px">21 g &middot; 15 men<small>army 120 &rarr; 135%s</small></div></div>'%(150 if not phone else 132, '' if phone else ' &middot; pool 11 left')
+    sl='<div class="slr"><div class="trk"><div class="fill" style="width:58%"></div></div><div class="tks"></div><div class="thumb" style="left:58%"></div><div class="nums pct"><span>1</span><span>25</span><span>50</span><span style="color:var(--hi)">75</span><span>100 %</span></div></div>'
+    return ('<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;height:78px">%s%s%s%s<div class="fld" style="width:%dpx">15</div>%s%s</div>')%(left,stp('&minus;'),sl,stp('+'),70,go(),no())
+
+for name,fn in [('O1_allcontrols',o1),('O2_tickpresets',o2)]:
+    for kind in ('desk','phone'):
+        open('rec_%s_%s.html'%(name,kind),'w').write(pgx(name, fn(kind=='phone'), kind))
 for name,fn in [('B1_oneline',b1),('B2_twolines',b2),('B3_bar',b3)]:
     for kind in ('desk','phone'):
         open('rec_%s_%s.html'%(name,kind),'w').write(pgd(name, fn(kind=='phone'), kind=kind))
