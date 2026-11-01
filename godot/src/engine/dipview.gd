@@ -52,6 +52,9 @@ static func peace(g: TBGame, t: int, p: int, kind: String) -> Dictionary:
 	terms.append(["dv_front", want])
 	var weary: float = minf(1.5, dur / 20.0)
 	want += weary; terms.append(["dv_weary", weary])
+	if g.rules >= 4:                                                   # a country worn out by the war wants it over; one whose enemy is worn out presses on
+		var ex: float = (g.exh[t] - g.exh[p]) * 0.03
+		want += ex; terms.append(["dv_exh", ex])
 	var gr: float = -float(g.grudge[t * N1 + p]) / 80.0
 	want += gr
 	if gr != 0.0: terms.append(["dv_grudge", gr])

@@ -119,6 +119,10 @@ static func _tick(g: TBGame) -> void:
 				g.occ_turns[p] = 0
 		if g.rules >= 1 and g.army[p] > 20:
 			var lost := g.attrition(p)
+			if g.rules >= 4:
+				var c := g.controller(p)
+				if lost > 0 and c != 0: g.morale[c] = maxf(0.0, g.morale[c] - 0.5)         # a hungry army loses heart
+				if c != 0 and g.morale[c] < TBWar.BROKEN: lost += maxi(1, int(float(g.army[p]) * TBWar.DESERT))      # a broken army melts away
 			if lost > 0:
 				g.army[p] -= lost; g.touch(p)
 		if o != 0 and warflag[o] == 0 and g.defense[p] < DEF_CAP:
@@ -175,6 +179,11 @@ static func _tick(g: TBGame) -> void:
 				tot += v
 				if g.occupier[q] == n: occ += v
 			g.war_score[i] = clampi(int(round(occ / (tot if tot != 0.0 else 1.0) * 100.0)), 0, 100)
+		if g.rules >= 4:
+			var tpop := 0
+			for p in own: tpop += g.pop[p]
+			TBWar.tick(g, n, at_war, tpop)
+			weary = maxf(weary, TBWar.weary(g, n))
 		var stab_delta: float = ((-0.5 - weary / 100.0) if g.rules == 0 else (-0.15 - weary / 250.0)) if at_war else 2.0
 		if g.rules >= 1: stab_delta += TBRulers.stab_add(g, n)
 		var stab_goal := 0.0

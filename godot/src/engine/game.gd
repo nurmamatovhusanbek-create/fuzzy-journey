@@ -80,6 +80,9 @@ var happy := PackedByteArray()
 var defense := PackedByteArray()
 var move_fx: Array = []                       # [from, to, nation] marches the AI made this turn (view only, not saved): the interface shows those in sight
 var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
+var morale := PackedFloat32Array()              # rules >= 4: how well each nation's armies hold (TBWar)
+var exh := PackedFloat32Array()                 # rules >= 4: war exhaustion of each nation, 0-100 (TBWar)
+var lost_turn := PackedInt32Array()             # rules >= 4: men each nation lost in battle this turn (feeds exhaustion)
 var levy := PackedInt32Array()                  # rules >= 4: the men each province can still raise (see levy_cap); the nation's manpower is their sum
 var gen := PackedInt32Array()                 # generals (rules >= 1): see TBGenerals
 var terrain := PackedByteArray()
@@ -221,6 +224,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1); net_ema.resize(N1)
+	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
@@ -692,6 +696,7 @@ func combat_mul(n: int) -> float:
 	var m: float = D.ERAS[era[n]]["combatMul"]
 	if combat_turns[n] > 0: m += combat_bonus[n]
 	if rules >= 1: m *= TBRulers.combat_mul(self, n)
+	if rules >= 4: m *= TBWar.morale_mul(self, n)
 	return m
 
 ## rules >= 1: how many soldiers a province can feed. Armies above this in foreign land waste away.
@@ -826,6 +831,9 @@ func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int,
 	var def_men: int = army[to]
 	var r := TBBattle.fight(send, atk / float(send), def_men, dfn / float(maxi(1, def_men)))
 	var a_left: int = int(r["a_left"]); var d_left: int = int(r["d_left"])
+	var a_nat: int = 0 if atk_n == rebel else atk_n; var d_nat: int = 0 if def_n == rebel else def_n
+	if bool(r["win"]): TBWar.on_battle(self, a_nat, d_nat, int(r["a_lost"]), send, int(r["d_lost"]), def_men)
+	else: TBWar.on_battle(self, d_nat, a_nat, int(r["d_lost"]), def_men, int(r["a_lost"]), send)
 	if bool(r["win"]):
 		var occ: int = maxi(1, a_left)
 		if owner[to] == 0: set_owner(to, atk_n)
