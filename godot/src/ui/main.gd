@@ -1224,6 +1224,7 @@ func _defer_event(uid: int) -> void:
 	show_events()
 
 func _after_change(rebuild_card: bool = true) -> void:
+	TBNationsScreen.refresh_live()                                    # an open Nations window follows the state (a pact answered, a turn gone by)
 	show_events()
 	map.repaint(g.take_dirty())
 	hud.refresh()
@@ -1282,6 +1283,7 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	_flush_log()
 	_replay_battles()
 	hud.refresh()
+	TBNationsScreen.refresh_live()
 	if selected >= 0: flow.refresh(); panel.rebuild()
 	if hot and not g.over: _hot_switch(g.human_id, true)
 	else: show_events()
@@ -1293,15 +1295,19 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 func _replay_battles() -> void:
 	var me := g.human_id
 	var i := 0
+	var focus := -1
 	for b in g.battle_fx:
 		if int(b[4]) != me and int(b[3]) != me: continue
 		if int(b[3]) == me: continue                      # own attacks already play when ordered; AI-run turns of other humans skip
 		var held: bool = int(b[2]) == 0
 		var col: Color = TBTokens.c("pos_bar") if held else TBTokens.c("neg_bar")
-		map.labels.add_fx("atk", int(b[0]), int(b[1]), col, i * 220)
-		map.labels.add_fx("cap", int(b[0]), int(b[1]), col, i * 220 + 250)
+		if focus < 0: focus = int(b[1])                    # the camera goes to the first province that was attacked
+		map.labels.add_fx("atk", int(b[0]), int(b[1]), TBTokens.c("neg_bar"), i * 220)         # the attacker's arrow is red, whatever the outcome
+		map.labels.add_fx("cap", int(b[0]), int(b[1]), col, i * 220 + 250)                      # the outcome shows where it ends
 		i += 1
 		if i >= 8: break
+	if focus >= 0 and g.world != null:
+		map.fly_to(g.world.lon[focus], g.world.lat[focus], 2.4 if map.mode == 0 else maxf(map.zoom, 3.0), 1.0 if TBFx.on(TBFx.FULL) else 0.0)
 	g.battle_fx.clear()
 	# the strides of your own standing march orders: a march arrow for each, and the fight where one reached an enemy
 	var si := 0

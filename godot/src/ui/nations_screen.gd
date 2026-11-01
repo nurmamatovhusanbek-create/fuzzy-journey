@@ -8,6 +8,11 @@ const K = preload("res://src/ui/ui_kit.gd")
 const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 ## per-session memory: only the filter / sort / tab are remembered between openings
+## the open (non-pick) window's way to bring itself up to date: main calls refresh_live() after a command or a turn, so the card never shows old figures
+static var live_refresh := Callable()
+static func refresh_live() -> void:
+	if live_refresh.is_valid(): live_refresh.call()
+
 static var mem := {"filter": "all", "sort": "prov", "tab": "list", "metric": "p", "table": false}
 
 # ---- data ---------------------------------------------------------------------------------------------------------------------------------
@@ -440,6 +445,28 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			return true
 		return false
 	build_list.call()
+	if not pick:
+		live_refresh = func() -> void:
+			if not h.is_open() or not is_instance_valid(h.card):
+				live_refresh = Callable(); return
+			if rows.is_empty() or not ui.has("apply"): return
+			var s2: Dictionary = compute(g)
+			for k in s2: st[k] = s2[k]
+			near.clear()
+			if me > 0: near.merge(land_neighbours(g, me), true)
+			for k2 in rows:
+				var rr: NationRow = rows[k2]
+				if not is_instance_valid(rr): return
+				rr.rank = int(st["rank_p"][k2])
+				rr.rel = g.get_rel(me, k2) if (me > 0 and k2 != me) else -1
+				rr.op = opinion(g, me, k2)
+				rr.st_text = rel_text(g, me, k2, rr.op)
+				rr.queue_redraw()
+			(ui["apply"] as Callable).call()
+			var dsc: ScrollContainer = ui["detail_scroll"]
+			var keep: int = dsc.scroll_vertical if is_instance_valid(dsc) else 0
+			if int(S["sel"]) > 0: (ui["select"] as Callable).call(int(S["sel"]), false)
+			if is_instance_valid(dsc): (func() -> void: if is_instance_valid(dsc): dsc.scroll_vertical = keep).call_deferred()
 	if portrait and int(S["sel"]) > 0 and rows.has(int(S["sel"])): (ui["select"] as Callable).call(int(S["sel"]), true)
 	elif rows.has(int(S["sel"])): h.focus_target = rows[int(S["sel"])]          # keyboard / pad: focus starts on the selected nation row
 	return h

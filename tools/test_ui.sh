@@ -102,6 +102,10 @@ out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --pa
 echo "$out" | grep -q "CALL_GRID OK" && echo "ok: call_grid" || { echo "FAIL: call_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/call_tick.gd -- 1280 800 1.0 2>&1)
 echo "$out" | grep -q "CALL_TICK OK" && echo "ok: call_tick" || { echo "FAIL: call_tick"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/nations_live.gd 2>&1)
+echo "$out" | grep -q "NATIONS_LIVE OK" && echo "ok: nations_live" || { echo "FAIL: nations_live"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_DPR=2.66 TB_DPI=425 TB_PHONE_UI=compact TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 2400x1100x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/ring_clear.gd -- 2340 1080 2>&1)
+echo "$out" | grep -q "RING_CLEAR OK" && echo "ok: ring_clear (phone)" || { echo "FAIL: ring_clear (phone)"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/move_grid.gd -- 1280 800 1.0 2>&1)
 echo "$out" | grep -q "MOVE_GRID OK" && echo "ok: move_grid" || { echo "FAIL: move_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720

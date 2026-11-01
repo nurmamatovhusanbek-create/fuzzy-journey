@@ -237,16 +237,32 @@ func _layout() -> void:
 	if a.x < -40.0 or a.y < -40.0 or a.x > size.x + 40.0 or a.y > size.y + 40.0:          # the province is not on screen: no ring for it
 		_c = Vector2.INF; return
 	var c: Vector2 = a
-	# keep the whole ring on screen: below the top bar, above the bottom row
-	c.x = clampf(c.x, reach, maxf(reach, size.x - reach)); c.y = clampf(c.y, minf(reach + 70.0, size.y * 0.5), maxf(reach + 70.0, size.y - reach - 20.0))
-	if avoid_fn.is_valid():                  # the inspector and the rail are tall rectangles: slide sideways clear of them
+	# keep the whole ring and the words around it on screen: below the top bar, above the bottom row, clear of the turn dial, the minimap and the rail
+	var lx: float = maxf(reach, _lab_l + 10.0); var rx: float = maxf(reach, _lab_r + 10.0)          # the verbs' names reach further than the ring (from the last draw)
+	var xlo: float = lx; var xhi: float = size.x - rx
+	if xhi < xlo: xlo = size.x * 0.5; xhi = xlo
+	var ylo: float = minf(reach + 70.0, size.y * 0.5); var yhi: float = maxf(ylo, size.y - reach - 20.0)
+	c.x = clampf(c.x, xlo, xhi); c.y = clampf(c.y, ylo, yhi)
+	if avoid_fn.is_valid():
+		var rects: Array = []
 		for r in avoid_fn.call():
 			var rc := Rect2((r as Rect2).position - global_position, (r as Rect2).size)
-			if rc.size.y < 140.0: continue
-			if Rect2(c - Vector2(reach, reach), Vector2(reach, reach) * 2.0).intersects(rc):
-				if rc.position.x > c.x: c.x = minf(c.x, rc.position.x - reach - 4.0)
-				elif rc.end.x < c.x: c.x = maxf(c.x, rc.end.x + reach + 4.0)
-	c.x = clampf(c.x, reach * 0.5, size.x - reach * 0.5)
+			if rc.size.x <= 0.0 or rc.size.y <= 0.0 or rc.get_center().y < 150.0 and rc.size.y < 140.0: continue          # the top bar's chips are passed under, as before
+			rects.append(rc)
+		for pass_i in 4:
+			var moved := false
+			for rc2 in rects:
+				var box := Rect2(c - Vector2(lx, reach), Vector2(lx + rx, reach * 2.0))
+				if not box.intersects(rc2): continue
+				var cands: Array = [Vector2(rc2.position.x - rx - 4.0, c.y), Vector2(rc2.end.x + lx + 4.0, c.y), Vector2(c.x, rc2.position.y - reach - 4.0), Vector2(c.x, rc2.end.y + reach + 4.0)]
+				var best := Vector2.INF; var bd := INF
+				for cd in cands:
+					var v: Vector2 = cd
+					if v.x < xlo or v.x > xhi or v.y < ylo or v.y > yhi: continue
+					var d: float = v.distance_to(c)
+					if d < bd: bd = d; best = v
+				if best != Vector2.INF: c = best; moved = true
+			if not moved: break
 	_c = c
 	for i in n:
 		var ang: float = -PI * 0.5 + TAU * float(i) / maxf(1.0, float(n))
