@@ -957,7 +957,11 @@ func _chip_text(key: String) -> Array:
 			var names: PackedStringArray = PackedStringArray()
 			for o in range(1, g.N1):
 				if g.alive[o] != 0 and g.get_rel(n, o) == 1: names.append(g.dname(o))
-			return [T.call("hud_wars"), T.call("tk_wars_with", {"l": ", ".join(names)}), [], ""]
+			var rows_w: Array = []
+			if g.rules >= 4:                                              # how the war sits on the army and on the people (TBWar)
+				rows_w.append([T.call("mor_name"), "%d" % int(round(g.morale[n])), "neg" if g.morale[n] < TBWar.BROKEN else ("pos" if g.morale[n] >= 85.0 else "")])
+				rows_w.append([T.call("exh_name"), "%d / 100" % int(round(g.exh[n])), "neg" if g.exh[n] >= 60.0 else ""])
+			return [T.call("hud_wars"), T.call("tk_wars_with", {"l": ", ".join(names)}), rows_w, ""]
 		"infamy":
 			var rows5: Array = [[T.call("tkr_infamy"), str(int(g.infamy[n])), "neg" if g.infamy[n] >= 12.0 else ""]]
 			if g.coalition[n] != 0: rows5.append([T.call("tkr_coal"), T.call("tkr_yes"), "neg"])
