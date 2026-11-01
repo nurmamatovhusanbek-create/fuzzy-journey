@@ -10,3 +10,17 @@
    compare with our districts model (rules 2: development, economy, building slots) and write what to change. The worth figure in item 1 should follow whatever this finds.
 3. **Remove the floating province info.** Said before and still present: the small floating hover card (e.g. "QINGHAI · Tibet · Tinchlik / Armiya noma'lum · Tog'lar") that sits on the map. Remove it.
    To confirm: whether the "VILOYAT MARI" card beside the open ring (stats, "DOSYE") counts as the same thing or stays.
+
+## Batch 2 (same session, phone screenshots at turns 6 and 16). The player said: take notes, do not start until told.
+
+4. **Sending troops must work from inner provinces too.** The troop-count slider (rules 4) has to be available for any province of yours that holds troops, not only border ones. To check on the phone why it
+   is missing there (the player's wording: "even in inner provinces").
+5. **No forced "leave 1 soldier".** A province may be emptied: the whole army can go. A province with no army shows no army counter at all (today the map is full of "1" counters).
+6. **Agreements and pacts need real logic.** A North American country offering a non-aggression pact to the Timurids (a hover card "HUJUM QILMASLIK · BEOTHUK · +28" with a route drawn halfway round the world) makes no sense.
+   Build the rules for who proposes what to whom: contact / distance / shared borders, shared enemies or threats, relative power, existing relations, and which agreements are even sensible for the pair;
+   the same logic for acceptance, for AI-to-AI and AI-to-player offers. Write it down (docs) before building.
+7. **After taking a province, the army in it cannot move again** — neither on to attack nor back into own land. Make it possible (to check what blocks it: a moved-this-turn flag, occupation rules or the picker).
+8. **When an attack happens, the camera goes to the province being attacked, with a red arrow from the attacker.** The arrow starts from the attacking country's side. Open question: for the player's own attacks and for AI attacks on the
+   player, or all attacks that can be seen.
+
+Also seen in the screenshots: the floating hover card (e.g. "RAJASTHAN · Rajastxon · Tinchlik", "MIN IMPERIYASI · Tinchlik") is still on the map — see item 3, remove it.
