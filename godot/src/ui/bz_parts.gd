@@ -416,6 +416,8 @@ class Gauge extends Control:
 		if d != "":
 			var ds: float = TBKit.fsf(maxf(9.0, r * 0.27)); var fr: Font = TBKit.alegreya(400)
 			var dw: float = TBBz.tw(fr, d, ds)
+			var room: float = 2.0 * sqrt(maxf(1.0, (r - 9.0) * (r - 9.0) - (r * 0.52) * (r * 0.52)))          # the chord of the dial at the caption's height: a long word is set smaller, never over the ring
+			if dw > room: ds = maxf(6.0, ds * room / dw); dw = TBBz.tw(fr, d, ds)
 			TBBz.text(ci, fr, Vector2(c.x - dw * 0.5, c.y + r * 0.52), d, ds, col)
 
 # =====================================================================================================================================

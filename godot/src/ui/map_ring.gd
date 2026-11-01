@@ -189,13 +189,9 @@ func _sync_tag() -> void:
 		tag = TBTagCard.new().build_nation({"state": TBNationsScreen.rel_text(g, me, o, op), "name": g.dname(o), "ruler": ruler,
 			"army": K.fmt(float(army)), "rel": ("+%d" % op) if op > 0 else str(op), "rel_col": TBNationsScreen.rel_color(op)})
 		tag.link_pressed.connect(func(): nation_requested.emit(o))
-	else:
-		var oname: String = g.dname(o) if o != 0 else TBI18n.T("cc_tag_unclaimed")
-		var mine: bool = o == me
-		tag = TBTagCard.new().build_province({"name": TBI18n.place(g.world.name[sel]), "owner_name": oname, "own": mine, "tag": TBI18n.T("tag_yours") if mine else "",
-			"pop": K.fmt(float(g.pop[sel])), "stab": g.stab[sel], "happy": g.happy[sel]})
-		var pp: int = sel
-		tag.link_pressed.connect(func(): dossier_requested.emit(pp))
+	else:                                                              # no floating province card: the ring's centre opens the dossier
+		if tag != null: tag.visible = false
+		return
 	tag.size = tag.get_combined_minimum_size(); tag.z_index = 5
 	add_child(tag)
 
@@ -270,8 +266,12 @@ func _layout() -> void:
 		var rr: float = (28.0 if prim else 23.0) * _rs()
 		_spots.append({"p": c + Vector2(cos(ang), sin(ang)) * R, "r": rr, "a": ang})
 
+func _in_centre(pt: Vector2) -> bool:
+	return visible and _c != Vector2.INF and not _is_armed() and not _nation_mode() and pt.distance_to(_c) <= 54.0 * _rs()
+
 func _has_point(pt: Vector2) -> bool:
 	if not visible or _c == Vector2.INF or _is_armed(): return false
+	if _in_centre(pt): return true
 	for i in _spots.size():
 		var s: Dictionary = _spots[i]
 		if pt.distance_to(s["p"]) <= maxf(float(s["r"]), P.touch() * 0.5): return true
@@ -295,8 +295,9 @@ func _gui_input(e: InputEvent) -> void:
 	elif e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and not (e as InputEventMouseButton).pressed:
 		var j := _idx_at((e as InputEventMouseButton).position)
 		if j >= 0: _tip_hide(); _tip_wait = 0.0; pressed.emit(j); accept_event()
+		elif _in_centre((e as InputEventMouseButton).position) and sel >= 0: dossier_requested.emit(sel); accept_event()
 	elif e is InputEventMouseButton and (e as InputEventMouseButton).pressed and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
-		if _idx_at((e as InputEventMouseButton).position) >= 0: accept_event()
+		if _idx_at((e as InputEventMouseButton).position) >= 0 or _in_centre((e as InputEventMouseButton).position): accept_event()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_MOUSE_EXIT and _hover != -1:

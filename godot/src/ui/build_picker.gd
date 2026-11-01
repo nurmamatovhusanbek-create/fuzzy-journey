@@ -121,7 +121,7 @@ func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2, env: Dic
 func _pick(i: int) -> void:
 	_sel = clampi(i, 0, _items.size() - 1)
 	for j in _rail_btns.size(): (_rail_btns[j] as RailBtn).sel = j == _sel; (_rail_btns[j] as RailBtn).queue_redraw()
-	for c in _detail.get_children(): c.queue_free()
+	for c in _detail.get_children(): _detail.remove_child(c); c.queue_free()           # at once: the new page is measured without the old one
 	var it: Dictionary = _items[_sel]
 	var cn: Dictionary = it["can"]
 	var bd: Dictionary = D.BUILDINGS[int(it["b"]) - 1]
@@ -174,7 +174,22 @@ func _pick(i: int) -> void:
 		var dm: Button = K.button(T.call("bp_demolish"), func(): _demolish(), false, true)
 		dm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_detail.add_child(dm)
-	_place.call_deferred()
+	_fit.call_deferred()
+
+var _max_h := 0.0
+## choosing another building changes the page but not the panel: its top edge and its rail stay where they are (they used to move with every page, under the finger), and the page only ever grows
+func _fit() -> void:
+	if not is_inside_tree(): return
+	_detail.custom_minimum_size.y = 0.0
+	_max_h = maxf(_max_h, _detail.get_combined_minimum_size().y)
+	_detail.custom_minimum_size.y = _max_h
+	var top_y: float = position.y
+	reset_size(); size = get_combined_minimum_size()
+	var vp: Vector2 = get_viewport_rect().size
+	var bounds: Rect2 = _env.get("bounds", Rect2(Vector2.ZERO, vp))
+	var lo: float = bounds.position.y + 8.0
+	var hi: float = maxf(lo, bounds.end.y - size.y - 8.0)
+	position.y = clampf(top_y, lo, hi)
 
 ## beside the ring (right of it, then left), inside the safe screen, clear of the HUD's parts; otherwise the nearest spot inside the screen
 func _place() -> void:
