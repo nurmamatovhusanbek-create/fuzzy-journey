@@ -23,27 +23,95 @@ static func add_relations(v: VBoxContainer, g: TBGame, n: int, on_nation: Callab
 		for o in range(1, g.N1):
 			if g.alive[o] == 0 or o == n or o == g.rebel: continue
 			if g.get_rel(n, o) == int(grp[1]): arr.append(o)
-		groups.append([String(grp[0]), arr])
+		groups.append([String(grp[0]), arr, 1 if int(grp[1]) == 1 else 0])
 	var vassals: Array = []; var trade_p: Array = []
 	for o in range(1, g.N1):
 		if g.alive[o] == 0 or o == n or o == g.rebel: continue
 		if g.overlord[o] == n: vassals.append(o)
 		if g.rules >= 1 and TBTrade.has(g, n, o): trade_p.append(o)
-	groups.append([T.call("vassals"), vassals]); groups.append([T.call("trade_partners"), trade_p])
-	if g.overlord[n] != 0: groups.append([T.call("overlord"), [g.overlord[n]]])
+	groups.append([T.call("vassals"), vassals, 0]); groups.append([T.call("trade_partners"), trade_p, 0])
+	if g.overlord[n] != 0: groups.append([T.call("overlord"), [g.overlord[n]], 0])
 	var any := false
 	for grp in groups:
-		var arr2: Array = grp[1]
+		var arr2: Array = _by_nearness(g, n, grp[1])
 		if arr2.is_empty(): continue
 		any = true
-		v.add_child(_cap(String(grp[0]), 14.0, 6.0))
-		var fw := TBPanel.flow(6); v.add_child(fw)
-		var shown: int = arr2.size() if cap <= 0 else mini(cap, arr2.size())
-		for i in shown:
+		v.add_child(_group_head(String(grp[0]), arr2.size(), int(grp[2]) == 1))
+		var gr := GridContainer.new(); gr.columns = 1 if K.text_scale >= 1.4 else 2
+		gr.add_theme_constant_override("h_separation", 16); gr.add_theme_constant_override("v_separation", 0); gr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		v.add_child(gr)
+		var shown: int = mini(arr2.size(), cap if cap > 0 else GROUP_SHOW)
+		var rows: Array = []
+		for i in arr2.size():
 			var oo: int = arr2[i]
-			fw.add_child(TBPanel.nation_button(g, oo, func(): if on_nation.is_valid(): on_nation.call(oo)))
-		if arr2.size() > shown: fw.add_child(K.chip("+%d" % (arr2.size() - shown), "", "neutral"))
+			var row := RelRow.new(g, n, oo, int(grp[2]) == 1, func(): if on_nation.is_valid(): on_nation.call(oo))
+			row.visible = i < shown
+			gr.add_child(row); rows.append(row)
+		var spacer: Control = null
+		if gr.columns == 2:                                         # an odd last row leaves its neighbour's place empty, at the same width (a lone row would take the whole line)
+			spacer = Control.new(); spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL; spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			spacer.visible = shown % 2 == 1; gr.add_child(spacer)
+		if arr2.size() > shown:
+			var more := K.button(T.call("rel_more", {"k": arr2.size() - shown}), Callable(), false, true)
+			more.pressed.connect(func() -> void:
+				for rw in rows: (rw as Control).visible = true
+				if spacer != null: spacer.visible = arr2.size() % 2 == 1
+				more.queue_free())
+			var mw := MarginContainer.new(); mw.add_theme_constant_override("margin_top", 6); mw.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN; mw.add_child(more); v.add_child(mw)
 	return any
+
+const GROUP_SHOW := 6
+
+## countries with the nearest first (border, near, far, none), then the larger army; rules < 4 keeps the order as it is
+static func _by_nearness(g: TBGame, n: int, ids: Array) -> Array:
+	if g.rules < 4: return ids
+	var out: Array = ids.duplicate()
+	var rank := {"border": 0, "near": 1, "far": 2, "none": 3}
+	out.sort_custom(func(a: int, b: int) -> bool:
+		var ra: int = rank[TBDiplo.contact(g, n, a)]; var rb: int = rank[TBDiplo.contact(g, n, b)]
+		if ra != rb: return ra < rb
+		return a < b)
+	return out
+
+## a group's header: its name, a count in a small round tag, a hairline; wars in the rust colour
+static func _group_head(title: String, count: int, war: bool) -> Control:
+	var hb := K.hbox(10); hb.custom_minimum_size = Vector2(0, 28)
+	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", 10); m.add_child(hb)
+	var cap := K.caps(title, 12, TBTokens.BZ_BAD_TXT if war else K.GOLD); cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(cap)
+	var cnt := K.label(str(count), 13, TBTokens.c("cream")); cnt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var pc := PanelContainer.new(); pc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var sb := StyleBoxFlat.new(); sb.bg_color = TBTokens.BZ_WELL; sb.border_color = TBTokens.BZ_WELL_LINE; sb.set_border_width_all(1); sb.set_corner_radius_all(10)
+	sb.content_margin_left = 7; sb.content_margin_right = 7; sb.content_margin_top = 1; sb.content_margin_bottom = 1
+	pc.add_theme_stylebox_override("panel", sb); pc.add_child(cnt); hb.add_child(pc)
+	var line := ColorRect.new(); line.color = TBTokens.BZ_WELL_LINE; line.custom_minimum_size = Vector2(0, 1); line.size_flags_horizontal = Control.SIZE_EXPAND_FILL; line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(line)
+	return m
+
+## one country: its flag, its name in capitals (two lines at most), and how near it is (rules >= 4); a tap opens its card
+class RelRow extends Button:
+	func _init(g: TBGame, me: int, o: int, war: bool, cb: Callable) -> void:
+		flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+		custom_minimum_size = Vector2(0, maxf(38.0, TBKit.touch())); size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
+		var hb := TBKit.hbox(10); hb.set_anchors_preset(Control.PRESET_FULL_RECT); hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(hb)
+		var fl := TBNationParts.FlagMedal.new(TBFlags.medal_of(g, o), 28.0); hb.add_child(fl)
+		var nm := TBBz.TLabel.new(TBKit.cinzel(700), 12.0, 0.06, 0.0, true)
+		nm.text = g.dname(o); nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER; nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		(nm as TBBz.TLabel).wrap_ok = true; (nm as TBBz.TLabel).refit(); nm.custom_minimum_size.x = 40
+		nm.add_theme_color_override("font_color", TBTokens.c("cream"))
+		hb.add_child(nm)
+		var ct := ""
+		if g.rules >= 4:
+			var c := TBDiplo.contact(g, me, o)
+			ct = TBI18n.T("contact_" + c)
+			var lb := TBKit.label(ct, 13, TBTokens.BZ_GOOD if c == "border" else (TBTokens.BZ_BAD_TXT if c == "none" else K.DIM))
+			lb.size_flags_vertical = Control.SIZE_SHRINK_CENTER; lb.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_child(lb)
+		TBKit.a11y(self, "%s %s" % [g.dname(o), ct], "button")
+		pressed.connect(cb)
+		mouse_entered.connect(queue_redraw); mouse_exited.connect(queue_redraw); focus_entered.connect(queue_redraw); focus_exited.connect(queue_redraw)
+	func _draw() -> void:
+		if is_hovered() or has_focus(): draw_rect(Rect2(Vector2.ZERO, size), Color(1, 1, 1, 0.04))
+		draw_line(Vector2(0, size.y - 0.5), Vector2(size.x, size.y - 0.5), Color(TBTokens.c("rule"), 0.6), 1.0)
 
 ## opts: on_nation(n)
 static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.Handle:
