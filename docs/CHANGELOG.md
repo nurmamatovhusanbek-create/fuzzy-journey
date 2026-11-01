@@ -1,5 +1,10 @@
 # Changes since 1.0.0 (proposed version 1.1.0, Android version code 3)
 
+## Rules 4 war systems (in progress)
+- Saves of rules 4 games loaded as nothing (the rules limit was 3): fixed, and the round-trip test now covers rules 4.
+- Army morale and war exhaustion, supply reach, sieges of fortified provinces, a war score earned in the field, occupation income and resistance, and a peace table where the winner ticks land, gold, a vassal or disarmament and sees what the other side will accept. Details in docs/WAR_DESIGN.md section 14.
+- Work loss no longer counts an enemy host standing in your province as your own men.
+
 Everything below is on branch `claude/ecstatic-gauss-f495v8`; saves from 1.0.0 still load. Rules 3 is the default for new games; rules 0 to 2 are unchanged and rules 0 still matches the JavaScript reference bit for bit.
 
 ## Fixes after the compact-mode round (map and orders)
