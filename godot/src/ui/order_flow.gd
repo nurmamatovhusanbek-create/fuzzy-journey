@@ -24,7 +24,7 @@ var explicit := false                   # "Move" pressed: own armies become targ
 var targets := PackedInt32Array()       # provinces lit on the map
 var touch := false                      # the last pick came from a finger
 var focus_p := -1                       # keyboard focus ring (Tab)
-var _chip: TBPreviewCard
+var _chip: TBMoveBar
 var _hover := -1
 
 func _me() -> int: return g.human_id
@@ -314,7 +314,7 @@ func _show_preview() -> void:
 	var c := check(tgt)
 	if not c["valid"]: return
 	if _chip == null or not is_instance_valid(_chip):
-		_chip = TBPreviewCard.new()
+		_chip = TBMoveBar.new()
 		_chip.confirmed.connect(func(): confirm())
 		_chip.cancelled.connect(func(): cancel())
 		_chip.amount_picked.connect(func(n: int):                       # the number was chosen on the chip: the card and the arrow follow
@@ -338,16 +338,7 @@ func _hide_chip() -> void:
 
 func _place_chip() -> void:
 	if _chip == null or not is_instance_valid(_chip) or not _chip.visible or tgt < 0 or g == null: return
-	var pt := map.project(g.world.lon[tgt], g.world.lat[tgt])
-	var t := Vector2(pt.x, pt.y)
-	_chip.reset_size()
-	var sz := _chip.size
-	var vp := host.size
-	var x: float = t.x + 60.0                                   # the demo's rule: right of the target, flipped to its left when it does not fit
-	if x + sz.x > vp.x - 28.0: x = t.x - 60.0 - sz.x
-	var y: float = clampf(t.y - sz.y * 0.5, 150.0, maxf(150.0, vp.y - sz.y - 120.0))
-	var best := Vector2(x, y).floor()
-	_chip.position = best
+	_chip.dock(host)                                            # the bar sits at the bottom of the map: the target and the arrow stay in view above it
 
 ## the order as the command card shows it (read-only): the chip owns Cancel / Attack, the card only explains.
 ## {mode: "idle"|"armed"|"preview", src, tgt, kind, send, moves, win, hold, lost, atk, dfn, defenders}

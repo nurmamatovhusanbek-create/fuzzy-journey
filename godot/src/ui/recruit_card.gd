@@ -45,7 +45,10 @@ func _init() -> void:
 
 ## an icon-only notched plate (the kit's button would turn to its text-wrapping mode at large text and lose the icon): the same width for both, the glyph in the middle
 func _plate(glyph: String, primary: bool, cb: Callable) -> Button:
-	var b := TBBz.Btn.new("", TBBz.V.PRI if primary else TBBz.V.SEC, false)
+	return TBRecruitCard.plate(glyph, TBBz.V.PRI if primary else TBBz.V.SEC, cb)
+
+static func plate(glyph: String, variant: int, cb: Callable) -> Button:
+	var b := TBBz.Btn.new("", variant, false)
 	b.glyph = glyph
 	b.pressed.connect(cb)
 	return b

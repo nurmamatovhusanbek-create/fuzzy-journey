@@ -98,6 +98,8 @@ out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --pa
 echo "$out" | grep -q "PEACE_GRID OK" && echo "ok: peace_grid" || { echo "FAIL: peace_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/recruit_grid.gd -- 1280 800 1.0 2>&1)
 echo "$out" | grep -q "RECRUIT_GRID OK" && echo "ok: recruit_grid" || { echo "FAIL: recruit_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/move_grid.gd -- 1280 800 1.0 2>&1)
+echo "$out" | grep -q "MOVE_GRID OK" && echo "ok: move_grid" || { echo "FAIL: move_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 540 960
 # HUD / command-card layout: no overlap with End Turn, nothing off screen, 48 u hit areas (stage sizes in design units: desktop 2098x1180, phone 844x390 / 800x360, portrait 540x960; x text scales)

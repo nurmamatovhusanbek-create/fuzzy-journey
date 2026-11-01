@@ -343,6 +343,7 @@ class Btn extends Button:
 	var small := false
 	var glyph := ""                  # demo icon id (or an old glyph name) drawn before the label
 	var glyph_px := 16.0
+	var ink_nudge := Vector2.ZERO    # an icon whose artwork is not symmetric in its box is moved by what the pixel test measured, so the ink is in the middle
 	var sub := ""
 	var kbd := ""
 	var preview_state := ""          # "hover" / "pressed" / "focus": freezes a state for specimen sheets and tests
@@ -448,7 +449,7 @@ class Btn extends Button:
 		var x: float = (w - float(d["content"])) * 0.5
 		if float(d["icon"]) > 0.0:
 			TBBz.unshift(ci)
-			TBGlyph.draw_ic(self, glyph, Vector2(x + float(d["icon"]) * 0.5, h * 0.5 + (1.0 if prs else 0.0)), float(d["icon"]), tx)
+			TBGlyph.draw_ic(self, glyph, Vector2(x + float(d["icon"]) * 0.5, h * 0.5 + (1.0 if prs else 0.0)) + ink_nudge, float(d["icon"]), tx)
 			TBBz.shift(ci, Vector2(0, 1) if prs else Vector2.ZERO)
 			x += float(d["icon"]) + float(d["gap"])
 		var f: Font = d["font"]
