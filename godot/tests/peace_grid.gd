@@ -164,7 +164,7 @@ func _init() -> void:
 			if (mrs[i4]["rect"] as Rect2).intersects(mrs[j4]["rect"] as Rect2): overlaps += 1
 	_check(overlaps == 0, "no two price tags overlap (%d overlaps)" % overlaps)
 	_check(plates >= 1 or mrs.size() >= 1, "tags were drawn (%d)" % mrs.size())
-	_check(worst * rs <= 1.1, "the type is centred in its plate within one picture pixel (worst %.2f units = %.2f picture px)" % [worst, worst * rs])
+	_check(worst <= 1.1, "the type is centred in its plate within 1.1 units (worst %.2f units = %.2f picture px)" % [worst, worst * rs])
 	# the buttons: what is written on a button (icon and word together) sits in the middle of it, measured on the picture
 	var all_btn: Array = []
 	_walk(main._overlay, all_btn, "Button")

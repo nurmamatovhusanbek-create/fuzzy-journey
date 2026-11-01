@@ -68,7 +68,7 @@ func _draw_marks(c0: float, s0: float, sl: float, cl: float, R: float, cx: float
 		var mid := Vector2(pr.x, pr.y)                                         # the middle of the province's own outline on screen (its bounding box), not the anchor its army counter hangs from
 		var pb: Rect2 = map._prov_rect(int(m["p"]))
 		if pb.size.x > 4.0 and pb.size.y > 4.0: mid = pb.get_center()
-		plates.append({"p": int(m["p"]), "txt": txt, "on": bool(m["on"]), "ink": ink, "r": Rect2((mid - Vector2(cw, ch) * 0.5).round(), Vector2(cw, ch)), "moved": false})
+		plates.append({"p": int(m["p"]), "txt": txt, "on": bool(m["on"]), "ink": ink, "r": Rect2(_snap(mid - Vector2(cw, ch) * 0.5), Vector2(cw, ch)), "moved": false})
 	for it in 8:                                                               # two tags never overlap: when provinces are close on screen the later one steps aside (a tag that is not crowded stays exactly in the middle)
 		var any := false
 		for i in plates.size():
@@ -90,9 +90,14 @@ func _draw_marks(c0: float, s0: float, sl: float, cl: float, R: float, cx: float
 		if on: draw_style_box(TBHudParts.sbox(Color(brass, 1.0), TBTokens.PAPER_100, ch * 0.5, 2), r)
 		else: draw_style_box(TBHudParts.sbox(TBTokens.INK_700, brass, ch * 0.5, 1), r)
 		var ink2: Rect2 = pl["ink"]
-		var pen := (r.get_center() - (ink2.position + ink2.size * 0.5)).round()
+		var pen := _snap(r.get_center() - (ink2.position + ink2.size * 0.5))
 		draw_string(f, pen, String(pl["txt"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TBTokens.INK_700 if on else TBTokens.PAPER_100)
 		mark_rects.append({"p": int(pl["p"]), "rect": r, "on": on, "moved": bool(pl["moved"])})
+
+## to whole device pixels (the layer is laid out in units that the window scales): a figure snapped to units would sit up to half a device pixel's worth of a unit off its plate
+func _snap(v: Vector2) -> Vector2:
+	var sc: float = maxf(0.01, get_global_transform_with_canvas().get_scale().x)
+	return (v * sc).round() / sc
 
 func clear_order() -> void:
 	if _order.is_empty(): return
