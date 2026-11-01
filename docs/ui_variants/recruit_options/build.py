@@ -137,6 +137,25 @@ def o2(phone):
     sl='<div class="slr"><div class="trk"><div class="fill" style="width:58%"></div></div><div class="tks"></div><div class="thumb" style="left:58%"></div><div class="nums pct"><span>1</span><span>25</span><span>50</span><span style="color:var(--hi)">75</span><span>100 %</span></div></div>'
     return ('<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;height:78px">%s%s%s%s<div class="fld" style="width:%dpx">15</div>%s%s</div>')%(left,stp('&minus;'),sl,stp('+'),70,go(),no())
 
+
+CHK=ICON.replace('M6 21V4M6 5h12l-3 4 3 4H6','M5 12.5l4.5 4.5L19 7.5')
+def okb(): return '<span class="bt pri ico" style="width:38px">%s</span>'%CHK
+def nob(): return '<span class="bt ico" style="width:38px">%s</span>'%X
+def okl(): return '<span class="bt pri" style="padding:0 12px;gap:6px">%s Recruit</span>'%CHK
+
+def left(phone):
+    return '<div style="width:%dpx;line-height:1.15"><div class="lbl" style="color:var(--ivory)">AISNE</div><div class="cost" style="margin-top:2px">21 g &middot; 15 men<small>%s</small></div></div>'%(104 if phone else 150,'army 120 &rarr; 135' if not phone else '&rarr; 135')
+def sl2():
+    return '<div class="slr" style="margin:0 6px"><div class="trk"><div class="fill" style="width:58%"></div></div><div class="tks"></div><div class="thumb" style="left:58%"></div><div class="nums pct"><span>1</span><span>25</span><span>50</span><span style="color:var(--hi)">75</span><span>100 %</span></div></div>'
+def p1(phone):   # both buttons as icon plates
+    return ('<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;height:70px">%s%s%s%s<div class="fld" style="width:62px">15</div>%s%s</div>')%(left(phone),stp('&minus;'),sl2(),stp('+'),okb(),nob())
+def p2(phone):   # Recruit keeps its word but is smaller; Cancel is a cross plate
+    return ('<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;height:70px">%s%s%s%s<div class="fld" style="width:62px">15</div>%s%s</div>')%(left(phone),stp('&minus;'),sl2(),stp('+'),okl(),nob())
+def pgy(title, inner, kind):
+    return pgx(title, inner, kind)
+for name,fn in [('P1_iconbuttons',p1),('P2_smallword',p2)]:
+    for kind in ('desk','phone'):
+        open('rec_%s_%s.html'%(name,kind),'w').write(pgy(name, fn(kind=='phone'), kind))
 for name,fn in [('O1_allcontrols',o1),('O2_tickpresets',o2)]:
     for kind in ('desk','phone'):
         open('rec_%s_%s.html'%(name,kind),'w').write(pgx(name, fn(kind=='phone'), kind))
