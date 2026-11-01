@@ -111,7 +111,7 @@ static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
 	if era_id != "modern" and (era_id.length() > 24 or not _plain_id(era_id) or not FileAccess.file_exists("res://data/eras/%s.json" % era_id)): return null
 	if not TBData.DIFFICULTY.has(d["difficulty"]): return null
 	var rules: int = int(d.get("rules", 0))
-	if rules < 0 or rules > 3: return null
+	if rules < 0 or rules > 4: return null
 	var era_pack := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	var g := TBGame.new(w, era_pack, {"seed": d["seed_value"], "difficulty": d["difficulty"], "rules": rules})
 	for k in FIELDS_PACKED:
