@@ -24,7 +24,8 @@ func _init() -> void:
 			"budget": main._open_budget()
 			"decrees": main._open_decisions()
 			"council": main._open_council()
-			"goals": main._open_goals()
+			"goals": main._open_council("goals")
+			"advice": main._open_council("advice")
 			"annals": main._open_annals()
 			"nations": main._open_nations(-1)
 			"terms":
@@ -38,6 +39,12 @@ func _init() -> void:
 				main._open_terms(en)
 				for i in 10: await process_frame
 				main._on_pick(ol[0], false); main._on_pick(ol[2], false)
+			"prov_own": main._select(main.g.capital_of[main.g.human_id])
+			"prov_foreign": main._select(main.g.capital_of[main.g.nat_code.find("spain")])
+			"prov_war":
+				var en: int = main.g.nat_code.find("uk")
+				main.g.set_rel(main.g.human_id, en, 1)
+				main._select(main.g.capital_of[en])
 		for i in 16: await process_frame
 		root.get_viewport().get_texture().get_image().save_png("%s/win_%s_%dx%d_s%d_%s.png" % [out, win, w, h, int(sc * 100), lang])
 	print("WINDOW_SHOTS DONE")

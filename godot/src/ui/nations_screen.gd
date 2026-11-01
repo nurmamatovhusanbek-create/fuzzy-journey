@@ -587,6 +587,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 	var add_btn := func(label: String, icon: String, sub: String, cb: Callable, reason: String = "", tip: String = "") -> void:
 		var b: Button = K.button(label, cb, false, false, icon, sub)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.custom_minimum_size = Vector2(0.0, 36.0)                  # every diplomacy action is the same height and the same column width
 		if tip != "": b.tooltip_text = tip
 		if reason != "": K.disable(b, reason)
 		acts.add_child(b)
@@ -637,6 +638,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 			TBModals.war_confirm(parent, g, n, func(): done.call({"cmd": "declareWar", "t": n})), "war")
 		(wb as TBBz.Btn).sub = "%d ✉" % D.DP_WAR
 		wb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		wb.custom_minimum_size = Vector2(0.0, 36.0)
 		if why != "": K.disable(wb, why)
 		var wrap := K.vbox(0); wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL; wrap.add_child(wb)
 		v.add_child(_pad(wrap, 8.0))
