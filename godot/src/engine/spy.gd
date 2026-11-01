@@ -12,8 +12,20 @@ const INFAMY := {"steal": 1.0, "sabotage": 3.0, "incite": 5.0}
 const SEV := {"steal": 1, "sabotage": 2, "incite": 3}
 
 ## how well a court watches its own house: learning and administration
+const TOWER_STEP := 0.02                       # each watchtower of a province: a watchful eye (six at most count)
+const TOWER_MAX := 0.12
+const ACADEMY_GUARD := 0.12                    # the military academy, once its twelve turns of training are done: officers who know how agents work
+const ACADEMY_OWN := 0.05
+
+static func towers(g: TBGame, n: int) -> int:
+	var c := 0
+	for p in g.owned(n): c += mini(1, g.bl(p, D.B_WATCHTOWER))
+	return c
+
 static func guard(g: TBGame, t: int) -> float:
-	return clampf(0.15 + 0.06 * float(g.tech_level[t]), 0.10, 0.55)
+	var v: float = 0.15 + 0.06 * float(g.tech_level[t]) + minf(TOWER_MAX, TOWER_STEP * float(towers(g, t)))
+	if TBDecisions.graduated(g, t, "mil_academy"): v += ACADEMY_GUARD
+	return clampf(v, 0.10, 0.65)
 
 ## the sum behind the chance, [[key, value], ...] (the same terms the interface may list)
 static func terms(g: TBGame, n: int, t: int, op: String) -> Array:
@@ -21,6 +33,7 @@ static func terms(g: TBGame, n: int, t: int, op: String) -> Array:
 	var lead: float = clampf((g.tech_level[n] - g.tech_level[t]) * 0.10, -0.3, 0.3)
 	if lead != 0.0: out.append(["sp_lead", lead])
 	out.append(["sp_guard", -guard(g, t)])
+	if TBDecisions.graduated(g, n, "mil_academy"): out.append(["sp_academy", ACADEMY_OWN])
 	if g.see_until[n * g.N1 + t] > g.turn: out.append(["sp_report", 0.08])                         # a fresh report from their court: you know the doors
 	if g.get_rel(n, t) == D.REL_MARRIAGE or g.get_rel(t, n) == D.REL_MARRIAGE: out.append(["sp_kin", 0.10])
 	if TBTrade.has(g, n, t): out.append(["sp_merchants", 0.06])                                  # merchants are eyes and ears

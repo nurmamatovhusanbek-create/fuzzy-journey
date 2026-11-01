@@ -172,6 +172,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	if g.rules >= 1:
 		if g.r_name[me] != "": court.append([T.call("skill_adm") + " / " + T.call("skill_dip") + " / " + T.call("skill_mil"), "%d / %d / %d" % [g.r_adm[me], g.r_dip[me], g.r_mil[me]], 0])
 		court.append([T.call("doctrine"), T.call("doc_" + TBDoctrine.IDS[g.doctrine[me]]) if g.doctrine[me] != 0 else T.call("doc_none_short"), 0])
+		if g.rules >= 4: court.append([T.call("spy_guard"), T.call("spy_guard_v", {"p": int(roundf(TBSpy.guard(g, me) * 100.0)), "t": TBSpy.towers(g, me)}), 0])
 		court.append([T.call("infamy"), "%.0f%s" % [g.infamy[me], ("  " + T.call("coalition")) if g.coalition[me] != 0 else ""], -1 if g.infamy[me] >= 12.0 else 0])
 	body.add_child(_cap(T.call("realm_court"), 14.0, 6.0))
 	body.add_child(K.fxl(court, 2))

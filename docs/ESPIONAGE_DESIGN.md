@@ -16,7 +16,14 @@ How a country counters: its guard rises with its learning. How you raise your ch
 - **Ties cut**: sabotage 50 %, incite 80 % (× the half for a trace): a non-aggression pact ends, a trade route ends, and their eyes shut out your agents (`see_until`). You cannot spy on allies or kin of the throne by rule, so those ties are not at risk.
 - The chronicle tells the target who struck (and that it was traced), and tells you your agents were lost or exposed and which ties ended.
 
+## How a court raises its guard (the player's levers)
+- **Watchtowers** (the existing building, 60 gold): each province with one adds +2 % to the guard, six count at most (+12 %). The page of the building says so.
+- **Military Academy** (a decree, rules 4 only, era 1+): 700 gold and 5 move points, **twelve turns of training with no effect**, then for good: +12 % guard, +5 % to your own operations, +3 % army strength. It is dear and slow because it reaches
+  several areas at once (counter-intelligence, agents, the army). A save from before it existed loads (the decree table grows by one column).
+- **Learning** counts 6 % per level already. The Realm page shows the guard ("Guard against agents: 33 % · 2 watchtowers").
+- The AI buys the academy like any other decree (rich courts, now and then).
+
 ## Not done here
-- No standing counter-intelligence action or vigilance after an incident (a new decree or building would be the way); no casus belli from a caught incite.
+- No vigilance that rises after an incident; no casus belli from a caught incite.
 - AI use is unchanged (at war, 12–32 % a turn when it has the intel).
 - Tests: `tests/spy_logic.gd`.

@@ -205,9 +205,9 @@ static func _stat_cell(caption: String, amount: float, tone: int, phone: bool) -
 # =====================================================================================================================================================
 # Decrees (panel / page): the demo's `decreesBody`, a grid of engraved cards (2 columns, 3 on a phone); doctrine (game only) above it
 # =====================================================================================================================================================
-const DEC_GLYPH := {"mil_reform": "army", "trade_fair": "trade", "centralize": "decrees", "conscript": "people", "propaganda": "star", "patronage": "annals", "fortify": "fortify", "amnesty": "pact"}
+const DEC_GLYPH := {"mil_reform": "army", "trade_fair": "trade", "centralize": "decrees", "conscript": "people", "propaganda": "star", "patronage": "annals", "fortify": "fortify", "amnesty": "pact", "mil_academy": "army"}
 ## effect rows of each decree (i18n `dec_<id>_e1` / `_e2`), the tone of each: pos = good (teal), neg = bad (rust), "" = neutral note
-const DEC_FX := {"mil_reform": ["pos"], "trade_fair": ["pos"], "centralize": ["pos"], "conscript": ["pos", "neg"], "propaganda": ["pos", "pos"], "patronage": ["pos"], "fortify": ["pos"], "amnesty": ["pos", ""]}
+const DEC_FX := {"mil_reform": ["pos"], "trade_fair": ["pos"], "centralize": ["pos"], "conscript": ["pos", "neg"], "propaganda": ["pos", "pos"], "patronage": ["pos"], "fortify": ["pos"], "amnesty": ["pos", ""], "mil_academy": ["pos", "pos"]}
 
 static func _dec_reason(why: String) -> String:
 	var key := "err_" + why

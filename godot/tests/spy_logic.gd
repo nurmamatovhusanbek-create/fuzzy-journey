@@ -26,6 +26,37 @@ func _init() -> void:
 	for tm in TBSpy.terms(g, me, t, "sabotage"): keys.append(String(tm[0]))
 	_check(keys.has("sp_base") and keys.has("sp_guard") and keys.has("sp_hard"), "the terms are named (%s)" % str(keys))
 	_check(TBAsks.chance(g, me, "spy", t, "steal") == int(roundf(TBSpy.chance(g, me, t, "steal") * 100.0)), "the button shows the same chance")
+	# how a court raises its guard: watchtowers, and a military academy (costly, twelve turns of training, then for good)
+	var guard0 := TBSpy.guard(g, t)
+	var own_t := g.owned(t)
+	for i in mini(4, own_t.size()): g.set_bl(own_t[i], TBData.B_WATCHTOWER, 1)
+	var guard1 := TBSpy.guard(g, t)
+	_check(guard1 > guard0 and guard1 - guard0 <= TBSpy.TOWER_MAX + 0.001, "watchtowers raise the guard a little (%.2f -> %.2f)" % [guard0, guard1])
+	for i in own_t.size(): g.set_bl(own_t[i], TBData.B_WATCHTOWER, 1)
+	_check(TBSpy.guard(g, t) - guard0 <= TBSpy.TOWER_MAX + 0.001, "and never past their cap")
+	for i in own_t.size(): g.set_bl(own_t[i], TBData.B_WATCHTOWER, 0)
+	g.era[t] = 2; g.gold[t] = 5000.0; g.mp[t] = 20.0
+	var ra := TBDecisions.apply(g, t, "mil_academy")
+	_check(bool(ra["ok"]) and g.gold[t] <= 4300.0 + 0.1, "the academy is bought for a high price (%s, gold %.0f)" % [str(ra), g.gold[t]])
+	_check(TBSpy.guard(g, t) == guard0, "during training nothing changes (%.2f)" % TBSpy.guard(g, t))
+	g.turn += 11
+	_check(not TBDecisions.graduated(g, t, "mil_academy"), "eleven turns are not enough")
+	g.turn += 1
+	_check(TBDecisions.graduated(g, t, "mil_academy") and TBSpy.guard(g, t) > guard0 + 0.1, "after twelve turns the guard is up for good (%.2f -> %.2f)" % [guard0, TBSpy.guard(g, t)])
+	g.turn += 200
+	_check(TBDecisions.graduated(g, t, "mil_academy"), "and stays")
+	var cm := TBDecisions.combat_mul(g, t)
+	_check(cm > 1.02, "it also schools the army (%.2f)" % cm)
+	# your own academy helps your own agents
+	g.era[me] = 2; g.gold[me] = 5000.0; g.mp[me] = 20.0
+	var before_own := TBSpy.chance(g, me, t, "steal")
+	TBDecisions.apply(g, me, "mil_academy"); g.turn += 12
+	var keys2: Array = []
+	for tm in TBSpy.terms(g, me, t, "steal"): keys2.append(String(tm[0]))
+	_check(keys2.has("sp_academy"), "your own graduates show in your chance")
+	g.turn -= 212
+	g = TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4}); me = g.nat_code.find("france"); g.set_human(me); g.pending.clear(); t = g.nat_code.find("spain")
+	g.set_rel(me, t, TBData.REL_PEACE); g.tech_level[me] = 2.0; g.tech_level[t] = 2.0
 	# consequences over many operations: caught ones cost relations, infamy and ties
 	var caught := 0; var traced := 0; var cut_nap := 0; var cut_trade := 0; var runs := 600
 	var gr_sum := 0
@@ -52,6 +83,17 @@ func _init() -> void:
 		var r2 := g.apply({"cmd": "spy", "n": me, "t": t, "op": "steal"})
 		if bool(r2["ok"]) and not bool(r2["success"]) and not bool(r2.get("caught", false)) and g.grudge[t * g.N1 + me] == 0: quiet += 1
 	_check(quiet > 0, "some failures go unseen (%d)" % quiet)
+	# a save from before the academy existed (every nation's row of decrees one column shorter) still loads, with the old decrees where they were
+	var dd: Dictionary = TBSave.to_dict(g)
+	var ndec: int = TBDecisions.LIST.size()
+	var old_arr := PackedInt32Array(); old_arr.resize(g.N1 * (ndec - 1))
+	g.dec_until[me * ndec + 0] = 77
+	for n in g.N1:
+		for c in ndec - 1: old_arr[n * (ndec - 1) + c] = g.dec_until[n * ndec + c]
+	dd["dec_until"] = old_arr
+	var gl: TBGame = TBSave.from_dict(w, dd)
+	_check(gl != null, "an older save with one decree fewer still loads")
+	if gl != null: _check(gl.dec_until[me * ndec + 0] == 77 and gl.dec_until[me * ndec + ndec - 1] == 0, "its decrees are where they were and the new one is empty")
 	# the old rules keep the flat chance
 	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
 	var m3 := g3.nat_code.find("france"); var t3 := g3.nat_code.find("spain")

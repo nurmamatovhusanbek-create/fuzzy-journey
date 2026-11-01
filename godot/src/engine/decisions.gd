@@ -14,6 +14,7 @@ const LIST := [
 	{"id": "patronage", "gold": 160, "mp": 2, "dur": 20, "era": 1, "icon": "📚"},
 	{"id": "fortify", "gold": 140, "mp": 3, "dur": 0, "era": 0, "icon": "🏰"},
 	{"id": "amnesty", "gold": 120, "mp": 2, "dur": 0, "era": 0, "icon": "🕊"},
+	{"id": "mil_academy", "gold": 700, "mp": 5, "dur": 12, "era": 1, "icon": "🎓"},        # rules 4: twelve turns of training, then it lasts for good
 ]
 
 static func index_of(id: String) -> int:
@@ -41,6 +42,7 @@ static func why_not(g: TBGame, n: int, i: int) -> String:
 	if is_active(g, n, i): return "active"
 	if g.gold[n] < float(d["gold"]): return "gold"
 	if g.mp[n] + (0.0001 if g.rules >= 3 else 0.0) < float(d["mp"]): return "mp"
+	if d["id"] == "mil_academy" and (g.rules < 4 or graduated(g, n, "mil_academy")): return "rules" if g.rules < 4 else "active"
 	if d["id"] == "amnesty" and g.infamy[n] < 4.0: return "noinfamy"
 	if d["id"] == "amnesty" and g.dec_until[n * LIST.size() + i] > g.turn - 20 and g.dec_until[n * LIST.size() + i] != 0: return "cooldown"
 	return ""
@@ -68,11 +70,18 @@ static func apply(g: TBGame, n: int, id: String) -> Dictionary:
 	return {"ok": true}
 
 # ---------------------------------------------------------------- modifiers (multiplicative / additive, neutral when inactive)
+## a course that has run its time: started (a turn is remembered) and no longer running. The military academy trains for `dur` turns, then its effects hold for good.
+static func graduated(g: TBGame, n: int, id: String) -> bool:
+	var i := index_of(id)
+	if i < 0 or g.rules < 4: return false
+	var v: int = g.dec_until[n * LIST.size() + i]
+	return v > 0 and v <= g.turn
+
 static func _on(g: TBGame, n: int, id: String) -> bool:
 	return g.dec_until[n * LIST.size() + index_of(id)] > g.turn
 
 static func gold_mul(g: TBGame, n: int) -> float: return 1.0 + (0.15 if _on(g, n, "trade_fair") else 0.0)
-static func combat_mul(g: TBGame, n: int) -> float: return 1.0 + (0.08 if _on(g, n, "mil_reform") else 0.0)
+static func combat_mul(g: TBGame, n: int) -> float: return 1.0 + (0.08 if _on(g, n, "mil_reform") else 0.0) + (0.03 if graduated(g, n, "mil_academy") else 0.0)
 static func admin_mul(g: TBGame, n: int) -> float: return 0.85 if _on(g, n, "centralize") else 1.0
 static func manpower_mul(g: TBGame, n: int) -> float: return 1.0 + (0.3 if _on(g, n, "conscript") else 0.0)
 static func research_mul(g: TBGame, n: int) -> float: return 1.0 + (0.25 if _on(g, n, "patronage") else 0.0)
@@ -99,8 +108,8 @@ static func ai_steady(g: TBGame, n: int) -> void:
 static func ai_pick(g: TBGame, n: int) -> void:
 	if g.gold[n] < 260.0 or g.mp[n] < 3.0 or g.rng.next() > (0.12 if g.gold[n] < 2000.0 else 0.4): return
 	var at_war: bool = g.war_cnt[n] > 0
-	var order := ["mil_reform", "centralize", "trade_fair", "patronage", "conscript", "amnesty", "fortify", "propaganda"]
-	if at_war: order = ["mil_reform", "conscript", "fortify", "propaganda", "centralize", "trade_fair", "patronage", "amnesty"]
+	var order := ["mil_reform", "centralize", "mil_academy", "trade_fair", "patronage", "conscript", "amnesty", "fortify", "propaganda"]
+	if at_war: order = ["mil_reform", "conscript", "fortify", "propaganda", "centralize", "trade_fair", "patronage", "amnesty", "mil_academy"]
 	if _restless(g, n): order = ["propaganda"] + order        # a wobbling realm steadies itself first
 	for id in order:
 		var i := index_of(id)

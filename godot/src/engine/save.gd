@@ -118,6 +118,12 @@ static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
 		if not d.has(k): continue                                                  # tolerate saves from before a field existed
 		var cur = g.get(k)
 		if typeof(d[k]) != typeof(cur): return null
+		if k == "dec_until" and d[k].size() != cur.size() and g.N1 > 0 and d[k].size() % g.N1 == 0 and d[k].size() < cur.size():        # a save from before a decree was added: every nation's row gains empty columns
+			var old_w: int = d[k].size() / g.N1; var new_w: int = cur.size() / g.N1
+			var grown: PackedInt32Array = PackedInt32Array(); grown.resize(cur.size())
+			for n in g.N1:
+				for c in old_w: grown[n * new_w + c] = d[k][n * old_w + c]
+			d[k] = grown
 		if k != "nb_off" and k != "nb" and k != "nb_sea" and d[k].size() != cur.size(): return null
 		g.set(k, d[k])
 	for k in FIELDS_SCALAR:
