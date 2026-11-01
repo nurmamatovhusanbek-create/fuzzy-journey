@@ -38,6 +38,33 @@ func set_order(from: int, to: int, attack: bool, dashed: bool, label: String = "
 	_path_key = ""
 	queue_redraw()
 
+## price tags on provinces (the peace table: tap a tagged province to ask for it). Each mark is {p, text, on}; `on` = chosen. They do not select anything.
+var _marks: Array = []
+func set_marks(list: Array) -> void:
+	_marks = list
+	queue_redraw()
+func clear_marks() -> void:
+	if _marks.is_empty(): return
+	_marks = []
+	queue_redraw()
+func marks_count() -> int: return _marks.size()
+func _draw_marks(c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> void:
+	if _marks.is_empty(): return
+	var f: Font = TBKit.mono_b()
+	var fs := TBKit.fs(13.0)
+	var brass := TBTokens.c("brass")
+	for m in _marks:
+		var pr := _screen(int(m["p"]), c0, s0, sl, cl, R, cx, cy)
+		if map.mode == 0 and pr.z < 0.15: continue
+		var on: bool = bool(m["on"])
+		var txt: String = String(m["text"])
+		var tw := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var cw := tw + 18.0; var ch := float(fs) + 10.0
+		var r := Rect2(Vector2(pr.x, pr.y - 26.0) - Vector2(cw, ch) * 0.5, Vector2(cw, ch)).abs()          # above the province's army counter, not on it
+		if on: draw_style_box(TBHudParts.sbox(Color(brass, 1.0), TBTokens.PAPER_100, ch * 0.5, 2), r)
+		else: draw_style_box(TBHudParts.sbox(TBTokens.INK_700, brass, ch * 0.5, 1), r)
+		draw_string(f, Vector2(r.position.x + 9.0, r.position.y + 5.0 + f.get_ascent(fs)), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TBTokens.INK_700 if on else TBTokens.PAPER_100)
+
 func clear_order() -> void:
 	if _order.is_empty(): return
 	_order = {}
@@ -926,6 +953,7 @@ func _draw_layout() -> void:
 		var st2: Dictionary = _pl[p]
 		if int(st2["extra"]) > 0 and int(st2["zt"]) == 2 and chosen_set.has(p): _draw_tab(st2, float(st2["a"]) * float(st2["limb"]))
 	_draw_order()
+	_draw_marks(c0, s0, sl, cl, R, cx, cy)
 	_draw_focus()
 	_place_nation_names()
 	_place_province_names()

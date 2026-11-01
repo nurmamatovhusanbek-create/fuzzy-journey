@@ -98,7 +98,7 @@ func _ready() -> void:
 		if w != null and _nations_filter == "war": w.close(); _nations_filter = ""
 		else: _open_nations(-1, "war"))
 	panel.nation_requested.connect(_open_nation)
-	panel.terms_requested.connect(func(e: int): TBTermsScreen.open(_overlay, g, e, {"on_cmd": func(c: Dictionary): _on_command(c, false)}))
+	panel.terms_requested.connect(func(e: int): _open_terms(e))
 	hud.budget_pressed.connect(func(): if not _toggle_window("treasury"): _open_budget())
 	hud.save_pressed.connect(func(): _open_menu_hub("saves"))
 	hud.settings_pressed.connect(func(): _open_menu_hub("settings"))
@@ -921,6 +921,9 @@ func _on_pick(p: int, secondary: bool) -> void:
 		if _pick_flow != null and is_instance_valid(_pick_flow): _pick_flow.on_map_pick(p)
 		return
 	if mode != "game" or _busy: return
+	if _peace_flip.is_valid():                                               # the peace table owns the map: a tap asks for the province (or nothing), it never selects it
+		if p >= 0 and not secondary: _peace_flip.call(p)
+		return
 	flow.g = g
 	if p >= 0 and not secondary and flow.mode == TBOrderFlow.Mode.IDLE and _nations_window() != null and g.owner[p] > 0:   # the Nations window is open: a country on the map shows its card
 		_open_nations(g.owner[p]); return
@@ -931,8 +934,58 @@ func _on_pick(p: int, secondary: bool) -> void:
 	if flow.pick(p, secondary, map.last_pick_touch): return
 	if not secondary: _select(p)
 
+## the peace table: the land is chosen on the map. While it is open a tap on a province goes to the window (the province keeps no selection, no ring), each province you hold shows its price
+var _peace_flip := Callable()
+func _open_terms(e: int) -> void:
+	_select(-1)
+	if flow != null: flow.cancel()
+	var marks := func(list: Array, sel: Array) -> void:
+		map.labels.set_marks(list)
+		map.set_targets(PackedInt32Array(sel))
+	var reg := func(c: Callable) -> void: _peace_flip = c
+	var h: TBPanel.Handle = TBTermsScreen.open(_overlay, g, e, {"on_cmd": func(c: Dictionary): _on_command(c, false), "marks": marks, "register": reg})
+	if g.rules >= 4 and g.human[e] == 0 and h != null and not h.modal: _frame_land(h, e)
+
+## bring the provinces on the peace table into the part of the map the window leaves free: centre them there and zoom out until they all fit
+func _frame_land(h: TBPanel.Handle, e: int) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if g == null or map == null or h == null or not is_instance_valid(h.card): return
+	var ps: Array = []
+	for o in TBPeace.offers(g, g.human_id, e): ps.append(int(o["p"]))
+	if ps.is_empty(): return
+	var win: Rect2 = h.card.get_global_rect()
+	var mr: Rect2 = map.get_global_rect()
+	var left_free: float = win.position.x - mr.position.x
+	var right_free: float = mr.end.x - win.end.x
+	var free: Rect2 = Rect2(win.end.x - mr.position.x, 0.0, right_free, mr.size.y) if right_free >= left_free else Rect2(0.0, 0.0, left_free, mr.size.y)
+	free = free.grow_individual(-30.0, -150.0, -30.0, -110.0)               # clear of the HUD at the top and the lens bar at the bottom
+	var lon := 0.0; var lat := 0.0
+	for p in ps:
+		lon += g.world.lon[p]; lat += g.world.lat[p]
+	lon /= ps.size(); lat /= ps.size()
+	map.jump_to(lon, lat, maxf(map.zoom, 4.0))
+	for i in 5:
+		var bb := Rect2()
+		var first := true
+		for p in ps:
+			var pt := map.project(g.world.lon[p], g.world.lat[p])
+			if first: bb = Rect2(Vector2(pt.x, pt.y), Vector2.ZERO); first = false
+			else: bb = bb.expand(Vector2(pt.x, pt.y))
+		var k: float = minf(free.size.x / maxf(1.0, bb.size.x + 60.0), free.size.y / maxf(1.0, bb.size.y + 60.0))
+		if k < 1.0: map.zoom_by(maxf(0.5, k))
+		else: break
+	var bb2 := Rect2()
+	var first2 := true
+	for p in ps:
+		var pt2 := map.project(g.world.lon[p], g.world.lat[p])
+		if first2: bb2 = Rect2(Vector2(pt2.x, pt2.y), Vector2.ZERO); first2 = false
+		else: bb2 = bb2.expand(Vector2(pt2.x, pt2.y))
+	map.drag_by(free.get_center() - bb2.get_center())
+
 ## touch long-press: the same tooltip content as the desktop hover, shown above the finger, released with it
 func _on_peek(p: int) -> void:
+	if _peace_flip.is_valid(): return
 	if mode != "game" or g == null or p < 0:
 		if tip != null: tip.visible = false
 		return
@@ -945,6 +998,9 @@ func _on_peek(p: int) -> void:
 
 ## desktop-only hover card (dark plate): flag + place, owner and relation, army and terrain, and in an armed state the attack outcome
 func _on_hover(p: int) -> void:
+	if _peace_flip.is_valid():
+		if tip != null: tip.visible = false
+		return
 	if mode == "pick" and _pick_flow != null and is_instance_valid(_pick_flow):
 		_pick_flow.on_map_hover(p); return                                  # A4: the nation under the pointer is outlined and its small card shown
 	if mode != "game" or p < 0 or OS.has_feature("mobile") or g == null:

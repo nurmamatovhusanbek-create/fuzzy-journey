@@ -21,6 +21,12 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 	cells.add_child(c_budget); cells.add_child(c_limit)
 	body.add_child(cells)
 	body.add_child(K.para_bz(T.call("terms_table_hint"), 15.0, 1.3))
+	var offs: Array = TBPeace.offers(g, me, enemy)
+	var cost_of := {}
+	for o in offs: cost_of[int(o["p"])] = float(o["cost"])
+	var marks_fn: Callable = opts.get("marks", Callable())
+	var pick_on: bool = marks_fn.is_valid() and not h.modal                     # the window leaves the map free: the land is picked on the map, each province carrying its price
+	var chosen := K.label("", 15)
 	var total := K.label("", 16)
 	var why := K.label("", 14, TBTokens.BZ_BAD_TXT); why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; why.visible = false
 	var ui := {}                                                          # the Offer button, reached through a dictionary: a lambda copies plain variables when it is made
@@ -37,20 +43,45 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 		var rk: String = "err_" + String(c.get("reason", ""))
 		why.text = "" if (bool(c.get("ok", false)) or empty) else (T.call(rk) if TBI18n.has_key(rk) else String(c.get("reason", "")))
 		why.visible = why.text != ""
-	# ---- land you hold
+		var sel_pts := 0.0
+		for pv0 in st["provs"]: sel_pts += float(cost_of.get(int(pv0), 0.0))
+		chosen.text = T.call("terms_chosen", {"n": (st["provs"] as Array).size(), "pts": "%.1f" % sel_pts})
+		if marks_fn.is_valid():
+			var mk: Array = []
+			for o2 in offs: mk.append({"p": int(o2["p"]), "text": "%.1f" % float(o2["cost"]), "on": (st["provs"] as Array).has(int(o2["p"]))})
+			marks_fn.call(mk, (st["provs"] as Array).duplicate())
+	ui["refresh"] = refresh
+	# ---- land you hold: on the map (a price on every province you hold, tap one to ask for it) or, where the window covers the map, a list of switches
 	body.add_child(K.caps(T.call("terms_land"), 12, K.GOLD))
-	var offs: Array = TBPeace.offers(g, me, enemy)
+	var flip := func(pv: int) -> void:
+		if not cost_of.has(pv): return
+		var arr: Array = st["provs"]
+		if arr.has(pv): arr.erase(pv)
+		else: arr.append(pv)
+		ui["refresh"].call()
+	ui["flip"] = flip
 	if offs.is_empty():
 		body.add_child(K.para_bz(T.call("terms_no_land"), 15.0, 1.3))
-	for o in offs:
-		var pv: int = int(o["p"])
-		var label := "%s · %s" % [TBI18n.place(g.world.name[pv]), T.call("pts_n", {"n": "%.1f" % float(o["cost"])})]
-		var pick := func(on: bool) -> void:
-			var arr: Array = st["provs"]
-			if on: arr.append(pv)
-			else: arr.erase(pv)
-			refresh.call()
-		body.add_child(K.toggle(label, false, pick, 0.0))
+	elif pick_on:
+		body.add_child(K.para_bz(T.call("terms_pick_hint"), 15.0, 1.3))
+		body.add_child(chosen)
+		var fit := func() -> void:
+			var cap: float = float(g.can({"cmd": "peaceDeal", "n": me, "t": enemy}).get("limit", 0.0))
+			st["provs"] = (TBPeace.auto_deal(g, me, enemy, cap)["provs"] as Array).duplicate()
+			ui["refresh"].call()
+		var clr := func() -> void:
+			st["provs"] = []
+			ui["refresh"].call()
+		var prow := K.hbox(8)
+		var b_fit := K.button(T.call("terms_fit"), fit, false, false, "flag"); b_fit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		prow.add_child(b_fit); prow.add_child(K.button(T.call("terms_clear"), clr))
+		body.add_child(prow)
+	else:
+		for o in offs:
+			var pv: int = int(o["p"])
+			var label := "%s · %s" % [TBI18n.place(g.world.name[pv]), T.call("pts_n", {"n": "%.1f" % float(o["cost"])})]
+			var pick := func(_on: bool) -> void: flip.call(pv)
+			body.add_child(K.toggle(label, false, pick, 0.0))
 	# ---- gold, a vassal, disarmament
 	var room: int = TBPeace.gold_room(g, enemy)
 	if room > 0:
@@ -80,5 +111,11 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 	row.add_child(white); row.add_child(offer)
 	body.add_child(total); body.add_child(why); body.add_child(row)
 	body.move_child(row, 1); body.move_child(why, 1); body.move_child(total, 1)          # the verdict and the two buttons sit right under the scores, always in view
+	var reg: Callable = opts.get("register", Callable())
+	if pick_on and reg.is_valid():
+		reg.call(flip)                                                       # a tap on the map reaches the window, never the province card or the ring
+		h.root.tree_exiting.connect(func() -> void:
+			reg.call(Callable())
+			if marks_fn.is_valid(): marks_fn.call([], []))
 	refresh.call()
 	return h

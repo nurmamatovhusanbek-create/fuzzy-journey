@@ -7,6 +7,9 @@ func _check(ok: bool, what: String) -> void:
 func _walk(n: Node, out: Array, cls: String) -> void:
 	if n.get_class() == cls or (n.get_script() != null and String(n.get_script().get_global_name()) == cls): out.append(n)
 	for c in n.get_children(): _walk(c, out, cls)
+func _find_sliders(n: Node, out: Array) -> void:
+	if n is HSlider: out.append(n)
+	for c in n.get_children(): _find_sliders(c, out)
 func _find_toggles(n: Node, out: Array) -> void:
 	if n is Button and n.has_method("set_on") and n.has_method("_fit"): out.append(n)
 	for c in n.get_children(): _find_toggles(c, out)
@@ -83,5 +86,69 @@ func _init() -> void:
 		(tg[tg.size() - 2] as Button).emit_signal("pressed")
 		await process_frame
 		_check(not offer.disabled, "taking it back switches it on again")
+	# the slider keeps clear of its steppers (the thumb is 29 px across and sits on the track's ends)
+	var sl: Array = []
+	_find_sliders(body, sl)
+	_check(sl.size() == 1, "the gold slider is there")
+	if sl.size() == 1:
+		var srect := (sl[0] as Control).get_global_rect()
+		var minus_r := Rect2(); var plus_r := Rect2()
+		for b in btn:
+			if (b as Button).text == "−": minus_r = (b as Control).get_global_rect()
+			elif (b as Button).text == "+": plus_r = (b as Control).get_global_rect()
+		print("  slider x %.1f..%.1f  minus ..%.1f  plus %.1f.." % [srect.position.x, srect.end.x, minus_r.end.x, plus_r.position.x])
+		_check(srect.position.x - 14.5 >= minus_r.end.x - 1.0, "the thumb at 0 does not reach the minus plate (%.1f vs %.1f)" % [srect.position.x - 14.5, minus_r.end.x])
+		_check(srect.end.x + 14.5 <= plus_r.position.x + 1.0, "the thumb at the top does not reach the plus plate (%.1f vs %.1f)" % [srect.end.x + 14.5, plus_r.position.x])
+	# the land on the map: a price on each province you hold, a tap asks for it and selects nothing
+	hd.close()
+	for i in 20: await process_frame
+	main._open_terms(en)
+	for i in 20: await process_frame
+	_check(main.map.labels.marks_count() == 4, "four provinces carry a price on the map (%d)" % main.map.labels.marks_count())
+	for i in 10: await process_frame
+	var wr: Rect2 = Rect2()
+	for h3 in main._overlay.get_children():
+		if h3.has_meta("tb_handle"): wr = ((h3.get_meta("tb_handle") as TBPanel.Handle).card as Control).get_global_rect()
+	var behind := 0
+	for o3 in TBPeace.offers(gg, me, en):
+		var pt3: Vector3 = main.map.project(gg.world.lon[int(o3["p"])], gg.world.lat[int(o3["p"])])
+		var gp: Vector2 = main.map.get_global_rect().position + Vector2(pt3.x, pt3.y)
+		if wr.grow(-2.0).has_point(gp) or not main.map.get_global_rect().has_point(gp): behind += 1
+	_check(behind == 0, "every priced province is on screen and clear of the window (%d hidden)" % behind)
+	var cand: int = ol[0]
+	var other: int = ol[8]
+	main._on_pick(cand, false)
+	await process_frame
+	_check(main.selected == -1 and not main.ring.visible, "tapping a priced province selects nothing and opens no ring")
+	var on_n := 0
+	for m in main.map.labels._marks: if bool(m["on"]): on_n += 1
+	_check(on_n == 1, "the tapped province is marked as chosen (%d)" % on_n)
+	main._on_pick(other, false)
+	await process_frame
+	on_n = 0
+	for m in main.map.labels._marks: if bool(m["on"]): on_n += 1
+	_check(on_n == 1 and main.selected == -1, "a province that is not on offer changes nothing")
+	main._on_pick(cand, false)
+	await process_frame
+	on_n = 0
+	for m in main.map.labels._marks: if bool(m["on"]): on_n += 1
+	_check(on_n == 0, "a second tap takes it back")
+	main._on_pick(cand, false)
+	await process_frame
+	var th: Array = []
+	_find_toggles(main._overlay, th)
+	_check(th.size() == 2, "on the map the list of land switches is gone; only vassal and disarm remain (%d)" % th.size())
+	var offer2: Button = null
+	var all_b: Array = []
+	_walk(main._overlay, all_b, "Button")
+	for b in all_b: if (b as Button).text.to_upper().contains("OFFER"): offer2 = b
+	_check(offer2 != null and not offer2.disabled, "the Offer button is on with one province chosen")
+	for h2 in main._overlay.get_children():
+		if h2.has_meta("tb_handle"): (h2.get_meta("tb_handle") as TBPanel.Handle).close()
+	for i in 20: await process_frame
+	_check(main.map.labels.marks_count() == 0, "closing the window takes the prices off the map")
+	main._on_pick(cand, false)
+	await process_frame
+	_check(main.selected == cand, "afterwards a tap selects the province again")
 	print("PEACE_GRID OK" if fails == 0 else "PEACE_GRID FAIL %d" % fails)
 	quit(fails)

@@ -1377,7 +1377,10 @@ class SliderRow extends HBoxContainer:
 		value_label = TBKit.num(_text(value), 14)
 		value_label.custom_minimum_size.x = maxf(48.0, TBKit.mono_b().get_string_size("100%", HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(14)).x + 12.0)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		add_child(minus); add_child(slider); add_child(plus); add_child(value_label)
+		var sm := MarginContainer.new(); sm.size_flags_horizontal = Control.SIZE_EXPAND_FILL                       # the thumb at either end keeps clear of the stepper plates (as in the budget row)
+		sm.add_theme_constant_override("margin_left", 14); sm.add_theme_constant_override("margin_right", 14)
+		sm.add_child(slider)
+		add_child(minus); add_child(sm); add_child(plus); add_child(value_label)
 		slider.value_changed.connect(func(v: float):
 			value_label.text = _text(v); TBKit.a11y(slider, "%s %s" % [_name, _text(v)], "slider")
 			changed.emit(v))

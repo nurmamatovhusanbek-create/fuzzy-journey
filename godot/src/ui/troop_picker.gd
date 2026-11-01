@@ -51,7 +51,10 @@ func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = 
 	_of = TBKit.num("", 14, TBTokens.c("ink_1"))
 	_of.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_minus.visible = not compact; _plus.visible = not compact
-	row.add_child(_minus); row.add_child(_slider); row.add_child(_plus); row.add_child(_edit); row.add_child(_of)
+	var sm := MarginContainer.new(); sm.size_flags_horizontal = Control.SIZE_EXPAND_FILL                      # the thumb at either end keeps clear of the stepper plates
+	sm.add_theme_constant_override("margin_left", 14); sm.add_theme_constant_override("margin_right", 14)
+	sm.add_child(_slider)
+	row.add_child(_minus); row.add_child(sm); row.add_child(_plus); row.add_child(_edit); row.add_child(_of)
 	_seg = CC.ShareSeg.new()
 	_seg.cell_h = 34; _seg.cell_w = 40.0
 	for i in 4: _seg.off[i] = i > 0 and _share_n(i) == _share_n(i - 1)      # a preset that lands on the same number as the one before it is no choice

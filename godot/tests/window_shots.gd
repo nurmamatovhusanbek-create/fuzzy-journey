@@ -35,7 +35,9 @@ func _init() -> void:
 				var ol: Array = gg.owned(en)
 				for i in 4: gg.occupier[ol[i]] = me; gg.siege[ol[i]] = 0
 				gg.occ_rev += 1; gg.war_score[me * gg.N1 + en] = 48; gg.war_turns[me * gg.N1 + en] = 9; gg.exh[en] = 30.0; gg.gold[en] = 900.0
-				TBTermsScreen.open(main._overlay, gg, en, {"on_cmd": func(_c): pass})
+				main._open_terms(en)
+				for i in 10: await process_frame
+				main._on_pick(ol[0], false); main._on_pick(ol[2], false)
 		for i in 16: await process_frame
 		root.get_viewport().get_texture().get_image().save_png("%s/win_%s_%dx%d_s%d_%s.png" % [out, win, w, h, int(sc * 100), lang])
 	print("WINDOW_SHOTS DONE")
