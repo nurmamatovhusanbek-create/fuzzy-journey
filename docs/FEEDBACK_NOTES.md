@@ -33,3 +33,15 @@ Also seen in the screenshots: the floating hover card (e.g. "RAJASTHAN · Rajast
     100 %. To fix: the display must never pass 100 %, and the pool should not sit above the cap (find why it gets there: the cap shrinking after growth, recruits returning, conquest). Check the wording of the "at the limit" line too.
 11. **Army counters appear too early when zoomed out.** At the scale of the second screenshot (the Caspian / Central Asia on a phone, about a hundred counters at once) the numbers are not needed. Raise the zoom at which counters appear
     (the appearance distance "lower than that" view), calibrated on this phone screenshot, for both globe and flat. Today's gate is the same fit rule used for the province pills (`pills_fit`).
+
+## Batch 4 (notes only; the player has said not to start building yet)
+
+12. **Country card, relations part (allies / royal marriage / non-aggression / at war / trade).** Long lists of name chips that overflow (11 allies, many of them on other continents, which is also a symptom of the pact logic in item 6).
+    The player wants the data display reworked, mocks first; nothing was approved. Mocks must be measured in pixels for alignment before they are sent, and use only the real data and flags.
+13. **Uzbek text overflows** ("yurishiga" was named). The only string with that word is the budget gauge caption (`bud_per_turn`); it did not overflow in my budget screenshots (phone and desktop layouts). Ask the player on which screen.
+14. **Espionage has no real mechanism.** Today (`TBCommands._c_spy`): success = clamp(0.60 + 0.08 × tech gap, 0.25, 0.90), failure only worsens the target's relation by 25; no counter-intelligence, no discovery, no consequence
+    for a caught agent; the AI only sabotages nations it is at war with. The player wants: how a country counters covert operations, how the chances can be raised, what happens when agents are caught (relations cut, incidents), and sabotage that can break relations.
+    Design first (docs), then engine + AI + UI.
+15. **The province ring sometimes lands on top of the End Turn dial** (right edge of the screen, with its labels running off the screen). Keep the whole ring and its labels clear of the HUD (turn dial, minimap, rail, top bar).
+16. **The ring is not needed every time.** Find a way around it. Ideas to put to the player: (a) the ring opens only on a second tap or a long press, a first tap only selects and shows the province; (b) the ring opens only where there is
+    something to do (own province with troops or a free action), never on foreign or empty land; (c) a setting: ring always / on second tap / off, with the bottom bars (recruit, move) and a small action bar as the other way in.
