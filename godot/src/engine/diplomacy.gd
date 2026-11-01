@@ -139,6 +139,62 @@ static func oath_broken(g: TBGame, n: int, was: int) -> void:
 	if g.rules < 3: return
 	g.infamy[n] = minf(100.0, g.infamy[n] + (BREAK_ALLY_INFAMY if was == D.REL_ALLY else BREAK_NAP_INFAMY))
 
+# ---------------------------------------------------------------- contact (rules >= 4): who deals with whom
+## A court deals with countries it knows of: a neighbour, one inside its sphere (the sphere widens with the era), or one it already has ties with. Distance is the angle between the
+## capitals, 0 (the same place) to 1 (the far side of the world). A proposal needs contact; a pact asked of a far court is weighed down by the distance (dv_far).
+const SPHERE_BASE := 0.12
+const SPHERE_ERA := 0.06
+
+static func capital_dist(g: TBGame, a: int, b: int) -> float:
+	var ca: int = g.capital_of[a]; var cb: int = g.capital_of[b]
+	if ca < 0 or cb < 0: return 1.0
+	var a1 := deg_to_rad(g.world.lat[ca]); var a2 := deg_to_rad(g.world.lat[cb])
+	var dl := deg_to_rad(g.world.lon[ca] - g.world.lon[cb])
+	return acos(clampf(sin(a1) * sin(a2) + cos(a1) * cos(a2) * cos(dl), -1.0, 1.0)) / PI
+
+static func sphere(g: TBGame, n: int) -> float: return SPHERE_BASE + SPHERE_ERA * float(g.era[n])
+
+static func shares_border(g: TBGame, a: int, b: int) -> bool:
+	for p in g.owned(a):
+		for i in range(g.nb_off[p], g.nb_off[p + 1]):
+			if g.owner[g.nb[i]] == b: return true
+	return false
+
+## "border" | "near" (inside half the sphere) | "far" (inside the sphere) | "none"
+static func contact(g: TBGame, a: int, b: int) -> String:
+	if a == b: return "border"
+	if shares_border(g, a, b): return "border"
+	var d: float = capital_dist(g, a, b)
+	var sp: float = maxf(sphere(g, a), sphere(g, b))
+	if d <= sp * 0.5: return "near"
+	if d <= sp: return "far"
+	if g.get_rel(a, b) != D.REL_PEACE or TBTrade.has(g, a, b): return "far"          # ties already made keep them in touch
+	return "none"
+
+## a war both of them fight, or a stronger third country on both their borders
+static func shared_concern(g: TBGame, a: int, b: int) -> bool:
+	for o in range(1, g.N1):
+		if o == a or o == b or g.alive[o] == 0 or o == g.rebel: continue
+		if g.get_rel(a, o) == D.REL_WAR and g.get_rel(b, o) == D.REL_WAR: return true
+	var top: float = maxf(power(g, a), power(g, b))
+	for o in range(1, g.N1):
+		if o == a or o == b or g.alive[o] == 0 or o == g.rebel or power(g, o) <= top: continue
+		if shares_border(g, o, a) and shares_border(g, o, b): return true
+	return false
+
+## how much a court of `from` wants to offer `what` ("nap" | "ally" | "trade" | "marry") to `to`: 0 = never. Rules >= 4 only.
+static func offer_fit(g: TBGame, from: int, to: int, what: String) -> float:
+	var c := contact(g, from, to)
+	if c == "none": return 0.0
+	match what:
+		"nap": return {"border": 1.0, "near": 0.5, "far": 0.12}[c]
+		"ally":
+			if shared_concern(g, from, to): return {"border": 1.0, "near": 0.8, "far": 0.25}[c]
+			return 0.2 if (c == "border" and g.get_rel(from, to) == D.REL_NAP) else 0.0
+		"trade": return {"border": 0.8, "near": 0.8, "far": 0.5}[c]
+		"marry": return {"border": 0.7, "near": 0.6, "far": 0.15}[c]
+	return 0.0
+
 ## terms a court adds when weighing a request from p (rules >= 3): [[key, value], ...]
 ##   dv_loyalty: p is at war with t's friends (an ally, kin, a vassal or liege): -0.5 each, at most -1.0
 ##   dv_common (pacts only): friends of both: +0.15 each, at most +0.45
@@ -157,6 +213,11 @@ static func loyalty_terms(g: TBGame, t: int, p: int) -> Array:
 static func pact_terms(g: TBGame, t: int, p: int, rel: int) -> Array:
 	var out: Array = loyalty_terms(g, t, p)
 	if g.rules < 3: return out
+	if g.rules >= 4:                                                      # a pact with a country across the world means little to a court
+		var cc := contact(g, t, p)
+		var ally: bool = rel == D.REL_ALLY
+		var pen: float = {"border": 0.0, "near": -0.15 if ally else 0.0, "far": -0.7 if ally else -0.3, "none": -1.5 if ally else -0.9}[cc]
+		if pen != 0.0: out.append(["dv_far", pen])
 	var common := 0.0
 	for o in range(1, g.N1):
 		if o == t or o == p or g.alive[o] == 0 or o == g.rebel: continue
@@ -209,7 +270,7 @@ static func on_succession(g: TBGame, n: int, rng: TBRng) -> void:
 static func ai_marry(g: TBGame, n: int) -> void:
 	if g.rules < 1 or g.dp[n] < DP_MARRY + 1.0 or g.rng.next() > 0.04 or not TBRulers.is_hereditary(g, n): return
 	for o in range(1, g.N1):
-		if o != n and can_marry(g, n, o) and g.human[o] == 0 and g.own_count(o) >= 6:
+		if o != n and can_marry(g, n, o) and g.human[o] == 0 and g.own_count(o) >= 6 and (g.rules < 4 or offer_fit(g, n, o, "marry") >= 0.5):
 			marry(g, n, o); return
 
 
@@ -269,10 +330,21 @@ static func ai_offer(g: TBGame, n: int) -> void:
 		for e in g.pending: if int(e["n"]) == h and e["kind"] == "prop": busy = true
 		if busy: return
 		var kinds: Array = []
+		var wts: Array = []
 		for w in ["nap", "ally", "trade", "marry"]:
-			if _offer_valid(g, n, h, w): kinds.append(w)
+			if _offer_valid(g, n, h, w):
+				var wt: float = offer_fit(g, n, h, w) if g.rules >= 4 else 1.0           # rules 4: only what a court that knows of you would offer
+				if wt > 0.0: kinds.append(w); wts.append(wt)
 		if kinds.is_empty(): continue
 		var what: String = kinds[g.rng.randi_n(kinds.size())]
+		if g.rules >= 4:
+			var tot := 0.0
+			for x in wts: tot += float(x)
+			var roll: float = g.rng.next() * tot
+			what = kinds[kinds.size() - 1]
+			for i in kinds.size():
+				roll -= float(wts[i])
+				if roll <= 0.0: what = kinds[i]; break
 		var f: int = TBVision.friendliness(g, h, n)                       # how warmly n regards h
 		if what == "trade" and f > AUTO_FRIEND:
 			_pay_route(g, n, h)
