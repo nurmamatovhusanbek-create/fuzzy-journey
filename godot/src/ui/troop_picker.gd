@@ -40,8 +40,12 @@ func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = 
 	_slider.value_changed.connect(func(v: float): _apply(int(round(v)), "slider"))
 	_edit = LineEdit.new()
 	_edit.alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_edit.custom_minimum_size = Vector2(maxf(64.0, TBKit.mono_b().get_string_size(str(hi), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(15)).x + 28.0), TBKit.touch())
+	_edit.custom_minimum_size = Vector2(maxf(64.0, TBKit.mono_b().get_string_size(str(hi), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(15)).x + 28.0), 34.0)          # the one control height of the card (the share buttons and the verbs are 34 too)
 	_edit.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
+	for sbn in ["normal", "focus", "read_only"]:                                    # the engine centres the line box, and a figure stands on the baseline: lift it so the figure itself is in the middle of the field
+		var sb: StyleBox = _edit.get_theme_stylebox(sbn).duplicate()
+		sb.content_margin_bottom = maxf(sb.content_margin_bottom, 0.0) + 3.0 * maxf(1.0, TBKit.text_scale)
+		_edit.add_theme_stylebox_override(sbn, sb)
 	_edit.select_all_on_focus = true
 	_edit.max_length = 6
 	_edit.text_changed.connect(_on_text)
@@ -60,6 +64,7 @@ func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = 
 	for i in 4: _seg.off[i] = i > 0 and _share_n(i) == _share_n(i - 1)      # a preset that lands on the same number as the one before it is no choice
 	_seg.chosen.connect(func(f: float): _apply(clampi(hi if f >= 0.999 else int(floor(float(hi) * f)), lo, hi), "preset"))
 	var seg_row := HBoxContainer.new()
+	_seg.size_flags_horizontal = Control.SIZE_EXPAND_FILL                      # the four presets share the whole width: equal cells from the left edge to the right one, like every other row
 	seg_row.add_child(_seg)
 	add_child(row); add_child(seg_row)
 	value = clampi(start, lo, hi)

@@ -381,7 +381,8 @@ class ShareSeg extends Control:
 			var t := "%d" % int(FRACS[i] * 100.0) + ("%" if i == 3 else "")
 			var tw := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13)).x
 			var c := TBCmdCard.tk("ink_0") if on else (TBCmdCard.tk("ink_off") if off[i] else TBCmdCard.tk("ink_1"))
-			draw_string(f, Vector2(r.position.x + (r.size.x - tw) * 0.5, P.base(f, TBCmdCard.fs(13), r.get_center().y)), t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13), c)
+			var ink: Rect2 = TBKit.ink_box(f, TBCmdCard.fs(13), t)                                  # the figure's ink, not its advance, goes in the middle of the cell
+			draw_string(f, (r.get_center() - (ink.position + ink.size * 0.5)).round(), t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13), c)
 		if has_focus():
 			P.focus_ring(self, Rect2(Vector2.ZERO, size))
 
