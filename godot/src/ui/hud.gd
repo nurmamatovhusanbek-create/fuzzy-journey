@@ -701,6 +701,9 @@ func _describe(e: Dictionary) -> void:
 			e["tex"] = TBFlags.medal_of(g, int(e["n"]))
 		"offer":
 			text = T.call("tk_offer_" + id, vars)
+			if id == "call":                                                                   # an ally asks for help (D1): the caller's flag, two lines, a cross and a tick on the row
+				e["inline"] = true; e["tex"] = TBFlags.medal_of(g, int(e["n"]))
+				e["sub"] = T.call("tk_call_sub", {"a": on, "p": int(roundf(TBWar.call_chance(g, g.human_id, int(e["n"]), int(e["e"])) * 100.0))})
 			long = T.call("prop_" + id, vars) if TBI18n.has_key("prop_" + id) else text
 			if bool(e.get("soft", false)):                                                     # a quiet notice: their flag, tap to accept, cross to decline
 				e["tex"] = TBFlags.medal_of(g, int(e["n"]))

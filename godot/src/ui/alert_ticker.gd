@@ -121,10 +121,15 @@ class AlertRow extends P.Hit:
 		return TBAlertTicker.uniform_h(font(), fz(), plate_h())
 	func pad_l() -> float: return 28.0 if compact else 34.0
 	func lead() -> float: return 18.0 if compact else 22.0                 # the .tz margin-left: room for the medallion's left half
-	func text_right() -> float: return 10.0 + (0.0 if drawer else 28.0)             # the x slot is always there (the demo: every notice has one); it is drawn only when the notice can be dismissed
+	func inline() -> bool: return bool(entry.get("inline", false))
+	func btn_d() -> float: return 28.0 if compact else 34.0
+	func text_right() -> float:
+		if inline(): return 12.0 + 2.0 * btn_d() + 6.0 + 10.0                          # room for the cross and the tick
+		return 10.0 + (0.0 if drawer else 28.0)             # the x slot is always there (the demo: every notice has one); it is drawn only when the notice can be dismissed
 	func med_s() -> float: return 38.0 / 46.0 if compact else 1.0
 	## decide one or two lines for a row width, and the plate's natural width
 	func set_width(w: float) -> void:
+		if inline(): w = maxf(w, 364.0 if compact else 440.0)                              # a call to arms has a second line and two round buttons: it takes the room the mock gives it
 		_w = w
 		var avail: float = maxf(40.0, w - lead() - 2.0 - pad_l() - text_right())
 		var need: float = P.tw(font(), text, fz())
@@ -147,9 +152,8 @@ class AlertRow extends P.Hit:
 		_buttons = HBoxContainer.new(); _buttons.add_theme_constant_override("separation", 8)
 		_buttons.position = Vector2(lead() + 12.0, base_h() + 2.0)
 		var ult: bool = bool(entry["ult"])
-		var call: bool = String(entry["id"]) == "call"
-		var yes: Button = TBHudParts.btn(TBI18n.T("mp_yield") if ult else TBI18n.T("mp_join" if call else "mp_accept"), "primary", func(): on_answer.call(int(entry["uid"]), 0), true, 14)
-		var no: Button = TBHudParts.btn(TBI18n.T("mp_defy") if ult else TBI18n.T("mp_stay" if call else "mp_decline"), "secondary", func(): on_answer.call(int(entry["uid"]), 1), true, 14)
+		var yes: Button = TBHudParts.btn(TBI18n.T("mp_yield") if ult else TBI18n.T("mp_accept"), "primary", func(): on_answer.call(int(entry["uid"]), 0), true, 14)
+		var no: Button = TBHudParts.btn(TBI18n.T("mp_defy") if ult else TBI18n.T("mp_decline"), "secondary", func(): on_answer.call(int(entry["uid"]), 1), true, 14)
 		var bh: float = TBHudParts.touch() if compact else 32.0
 		yes.custom_minimum_size = Vector2(96, bh); no.custom_minimum_size = Vector2(96, bh)
 		_buttons.add_child(yes); _buttons.add_child(no)
@@ -167,6 +171,13 @@ class AlertRow extends P.Hit:
 			var pos: Vector2 = (e as InputEventMouseButton).position
 			if pos.x > size.x - 34.0 and pos.y < base_h() and down:
 				down = false; queue_redraw(); dismiss_pressed.emit(); accept_event(); return
+		if inline() and e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT and not (e as InputEventMouseButton).pressed:
+			var q: Vector2 = (e as InputEventMouseButton).position
+			var d: float = btn_d(); var cy: float = base_h() * 0.5
+			var yes_c := Vector2(size.x - 10.0 - d * 0.5, cy); var no_c := Vector2(yes_c.x - d - 6.0, cy)
+			var pad: float = maxf(0.0, (TBHudParts.touch() - d) * 0.5)
+			if q.distance_to(yes_c) <= d * 0.5 + pad: down = false; queue_redraw(); answered.emit(int(entry["uid"]), 0); accept_event(); return
+			if q.distance_to(no_c) <= d * 0.5 + pad: down = false; queue_redraw(); answered.emit(int(entry["uid"]), 1); accept_event(); return
 		super(e)
 	## noticeFlag(): the notice medallion with the answer's colour as its hairline and the court's flag (30, phone 24) in the face
 	func _flag_medallion(c: Vector2, col: Color) -> void:
@@ -192,7 +203,7 @@ class AlertRow extends P.Hit:
 			TBAlertTicker.draw_plate(self, pr, hot, TBAlertTicker.ans_edge(ok, hot))
 			if not TBTokens.is_hc(): TBAlertTicker.inset_glow(self, pr.grow(-1.0), 6.0, TBTokens.with_a(TBTokens.BZ_ANS_YES_HOT, 0.34) if ok else TBTokens.with_a(TBTokens.BZ_ANS_NO_HOT, 0.44))
 			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), (TBTokens.BZ_ANS_YES_HOT if ok else TBTokens.BZ_ANS_NO_HOT) if not TBTokens.is_hc() else TBTokens.c("ink_0"))
-		elif not done and entry.get("tex") != null and (String(entry["cls"]) != "offer" or bool(entry.get("soft", false))):          # a notice about a country: its flag in the medallion, the kind's colour on the rim
+		elif not done and entry.get("tex") != null and (String(entry["cls"]) != "offer" or bool(entry.get("soft", false)) or inline()):          # a notice about a country: its flag in the medallion, the kind's colour on the rim
 			TBAlertTicker.draw_plate(self, pr, hot)
 			_flag_medallion(Vector2(lx + 1.0, bh * 0.5), kc)
 		else:
@@ -206,7 +217,19 @@ class AlertRow extends P.Hit:
 		var x: float = lx + 1.0 + pad_l()
 		var cream: Color = TBTokens.c("cream") if not done else TBTokens.c("smoke")
 		var right: float = text_right()
-		if lines <= 1:
+		if inline() and not done:
+			var sf: Font = P.fal(400); var sz: int = P.fu(12.0 if compact else 13.0)
+			var hh: float = f.get_height(z) + sf.get_height(sz)
+			var ty: float = (bh - hh) * 0.5
+			draw_string(f, Vector2(x, ty + f.get_ascent(z)), TBHudParts.fit(f, text, z, size.x - x - right), HORIZONTAL_ALIGNMENT_LEFT, -1, z, cream)
+			draw_string(sf, Vector2(x, ty + f.get_height(z) + sf.get_ascent(sz)), TBHudParts.fit(sf, String(entry.get("sub", "")), sz, size.x - x - right), HORIZONTAL_ALIGNMENT_LEFT, -1, sz, TBTokens.c("ink_off") if not TBTokens.is_hc() else TBTokens.c("smoke"))
+			var d: float = btn_d(); var cy: float = bh * 0.5
+			var yes_c := Vector2(size.x - 10.0 - d * 0.5, cy); var no_c := Vector2(yes_c.x - d - 6.0, cy)
+			draw_circle(no_c, d * 0.5, TBTokens.c("bar_0")); draw_arc(no_c, d * 0.5 - 0.75, 0.0, TAU, 40, TBTokens.c("rule"), 1.5, true)
+			TBBzIcons.draw(self, "close", no_c, 11.0 if compact else 12.0, TBTokens.c("cream"), 1.8)
+			BZ.grad_disc(self, yes_c, d * 0.5, [[0.0, Color("EBCF85")], [1.0, Color("B38F3E")]])
+			TBBzIcons.draw(self, "check", yes_c, 14.0 if compact else 16.0, TBTokens.c("on_act") if false else Color("1B1408"), 2.0)
+		elif lines <= 1:
 			var s1: String = TBHudParts.fit(f, text, z, size.x - x - right)
 			draw_string(f, Vector2(x, bh * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5)), s1, HORIZONTAL_ALIGNMENT_LEFT, -1, z, cream)
 		else:
@@ -347,7 +370,7 @@ func _add(e: Dictionary) -> void:
 	rw.dismiss_pressed.connect(_on_dismiss.bind(rw))
 	rw.tip_on.connect(func(): tip_requested.emit(rw, rw.entry.get("tip", [])))
 	rw.tip_off.connect(func(): tip_hidden.emit())
-	if String(e["cls"]) == "offer" and not bool(e.get("soft", false)):
+	if String(e["cls"]) == "offer" and not bool(e.get("soft", false)) and not bool(e.get("inline", false)):
 		rw.build_buttons(func(uid: int, c: int): answered.emit(uid, c))
 		rw._buttons.visible = false
 	rows[String(e["key"])] = rw
@@ -382,6 +405,7 @@ func _on_row(rw: AlertRow) -> void:
 		_on_dismiss(rw); return
 	if String(e["cls"]) == "offer" and bool(e.get("soft", false)):       # a quiet notice: a tap accepts it
 		answered.emit(int(e["uid"]), 0); return
+	if String(e["cls"]) == "offer" and bool(e.get("inline", false)): return
 	if String(e["cls"]) == "offer":
 		rw.set_expanded(not rw.expanded)
 		_layout()

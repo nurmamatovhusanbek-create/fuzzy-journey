@@ -637,7 +637,7 @@ static func _announce_header(h: Handle, outer: VBoxContainer, title_text: String
 	var lead := Control.new(); lead.custom_minimum_size = Vector2(btn_px, btn_px); lead.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(lead)
 	var cc := CenterContainer.new(); cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var med: Control = TBNationParts.FlagMedal.new(opts["medal"], float(med_px)) if opts.get("medal") != null else K.ring_icon(glyph_id if glyph_id != "" else "info", med_px)          # opts medal: a flag in place of the glyph
+	var med := K.ring_icon(glyph_id if glyph_id != "" else "info", med_px)
 	cc.add_child(med); top.add_child(cc)
 	if h.dismissable and not bool(opts.get("no_close", false)):
 		var xb := K.IconBtn.new("close", func(): pop_handle(h), btn_px)

@@ -1210,11 +1210,9 @@ func show_events() -> void:
 	for e in g.pending:
 		if int(e["n"]) != g.human_id or _shown_events.has(e["uid"]): continue
 		_shown_events[e["uid"]] = true
+		if e["kind"] == "prop" and e["id"] == "call": sfx.play("offer"); continue               # an ally's call to arms is answered in the notice strip (flag, ✕ / ✓), no dialog
 		sfx.play("event")
 		var uid: int = e["uid"]
-		if e["kind"] == "prop" and e["id"] == "call" and int(e.get("e", -1)) > 0:             # an ally's call to arms: its own prompt (the flag of the enemy in the medallion)
-			_event_dlg[uid] = TBCallPrompt.open(_overlay, g, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}), func(): _defer_event(uid))
-			return
 		_event_dlg[uid] = TBModals.event_prompt(_overlay, e, func(i: int): _on_command({"cmd": "eventChoice", "uid": uid, "i": i}), g, func(): _defer_event(uid))
 		return                      # one at a time; the next shows after this one is answered
 
