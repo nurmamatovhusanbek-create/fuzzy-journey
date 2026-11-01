@@ -246,7 +246,9 @@ static func _tick(g: TBGame) -> void:
 		if g.gold[n] <= 0 and inc["net"] < 0:
 			for p in own:
 				g.army[p] = maxi(1, int(floor(g.army[p] * 0.95)))
-		if g.rules >= 4: g.manpower[n] = float(g.levy_total(n))
+		if g.rules >= 4:
+			g.normalize_levy(n)
+			g.manpower[n] = float(g.levy_total(n))
 	for p in rebels_to_spawn:
 		spawn_rebel(g, p)
 	if g.rules >= 1:

@@ -636,8 +636,8 @@ func refresh() -> void:
 	gc.state = 2 if (g.gold[n] <= 0.0 and net < 0) else (1 if (net < 0 and g.gold[n] < -net * 5.0) else 0)
 	var mc: P.Chip = _chips["man"]
 	mc.set_num(g.manpower[n], fmt); mc.has_delta = true; mc.delta = int(bd["man_gain"]); mc.state = 1 if bd["man_full"] else 0
-	mc.sub_text = "%d%%" % int(round(100.0 * g.manpower[n] / maxf(1.0, float(bd["man_cap"]))))
-	mc.frac = g.manpower[n] / maxf(1.0, float(bd["man_cap"]))
+	mc.sub_text = "%d%%" % int(round(100.0 * minf(1.0, g.manpower[n] / maxf(1.0, float(bd["man_cap"])))))
+	mc.frac = minf(1.0, g.manpower[n] / maxf(1.0, float(bd["man_cap"])))
 	_suffix["man"] = ""
 	var pc: P.Chip = _chips["mp"]
 	pc.set_num(floorf(g.mp[n]), fmt); pc.has_delta = true; pc.delta_on = true
@@ -948,7 +948,7 @@ func _chip_text(key: String) -> Array:
 			var lead_g: Array = [[fmt.call(float(bd["gold"])), "big"], [" " + T.call("tk_g_gold") + " · ", "dim"], [sg.call(float(bd["net"])), "pos" if bd["net"] >= 0 else "neg"], [" " + T.call("tk_g_per_turn"), "dim"]]
 			return [T.call("hud_cap_gold"), "", rows, T.call("tk_hint_budget"), lead_g, hist.slice(maxi(0, hist.size() - 8))]
 		"man":
-			var rows2: Array = [[T.call("tkr_men"), "%s / %s" % [fmt.call(float(bd["man"])), fmt.call(float(bd["man_cap"]))], ""], [T.call("tkr_growth"), "+%d" % int(bd["man_gain"]), "pos"], [T.call("tkr_recruit"), "%d g · %d" % [TBData.COST_RECRUIT_GOLD, TBData.COST_RECRUIT_MAN], ""]]
+			var rows2: Array = [[T.call("tkr_men"), "%s / %s" % [fmt.call(minf(float(bd["man"]), float(bd["man_cap"]))), fmt.call(float(bd["man_cap"]))], ""], [T.call("tkr_growth"), "+%d" % int(bd["man_gain"]), "pos"], [T.call("tkr_recruit"), "%d g · %d" % [TBData.COST_RECRUIT_GOLD, TBData.COST_RECRUIT_MAN], ""]]
 			return [T.call("hud_cap_man"), T.call("tk_man_full") if bool(bd["man_full"]) else "", rows2, "", [[fmt.call(float(bd["man"])), "big"], [" " + T.call("tk_g_men") + ", +%d " % int(bd["man_gain"]) + T.call("tk_g_per_turn"), "dim"]]]
 		"mp":
 			var rows3: Array = [[T.call("tkr_moves"), "%d / %d" % [int(floorf(float(bd["mp"]))), int(bd["mp_cap"])], ""], [T.call("tkr_refill"), "+%.1f" % float(bd["mp_gain"]), "pos"], [T.call("tkr_move"), str(TBData.MP_MOVE), ""], [T.call("tkr_attack"), str(TBData.MP_ATTACK), ""], [T.call("tkr_recr"), str(TBData.MP_RECRUIT), ""]]

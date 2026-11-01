@@ -437,8 +437,14 @@ func levy_drained(p: int) -> bool:
 
 func levy_total(n: int) -> int:
 	var t := 0
-	for p in owned(n): t += levy[p]
+	for p in owned(n): t += mini(levy[p], levy_cap(p))                   # a pool never counts for more than its cap (the cap falls with stability)
 	return t
+
+## bring every pool of n back under its cap (the cap moves with stability, pop and armories, after a pool has filled)
+func normalize_levy(n: int) -> void:
+	for p in owned(n):
+		var c: int = levy_cap(p)
+		if levy[p] > c: levy[p] = c
 
 func levy_cap_total(n: int) -> int:
 	var t := 0
@@ -448,7 +454,7 @@ func levy_cap_total(n: int) -> int:
 ## (lowest, highest, first) number of men one Recruit may raise in p: rules < 4 the old 5..30; rules 4 whatever the province's pool holds
 func recruit_range(p: int) -> Vector3i:
 	if rules < 4: return Vector3i(5, 30, 15)
-	var hi := mini(levy[p], ARMY_CAP - army[p])
+	var hi := mini(mini(levy[p], levy_cap(p)), ARMY_CAP - army[p])
 	return Vector3i(mini(1, hi), maxi(0, hi), mini(15, maxi(0, hi)))
 
 func reassign_capital(n: int) -> void:

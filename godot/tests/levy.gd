@@ -46,6 +46,15 @@ func _init() -> void:
 	var inc1 := g.income(me)
 	_check(float(inc1["workLoss"]) > float(inc0["workLoss"]) and int(inc1["tax"]) < int(inc0["tax"]), "a bigger host takes more men from the fields (loss %.2f -> %.2f)" % [float(inc0["workLoss"]), float(inc1["workLoss"])])
 	_check(float(inc1["workLoss"]) <= TBGame.WORK_LOSS_CAP + 0.0001, "the loss is capped")
+	# a pool above a fallen cap never counts for more than the cap, and the next turn brings it back under
+	var gp := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var mep := gp.nat_code.find("france"); gp.set_human(mep)
+	var hp: int = gp.owned(mep)[0]
+	gp.levy[hp] = gp.levy_cap(hp) + 500
+	_check(gp.levy_total(mep) <= gp.levy_cap_total(mep), "the total never passes the cap total (%d / %d)" % [gp.levy_total(mep), gp.levy_cap_total(mep)])
+	_check(gp.recruit_range(hp).y <= gp.levy_cap(hp), "a recruit never offers more than the cap")
+	gp.normalize_levy(mep)
+	_check(gp.levy[hp] == gp.levy_cap(hp), "normalising brings the pool to its cap")
 	# old rules are untouched
 	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
 	var h3: int = g3.owned(g3.nat_code.find("france"))[0]
