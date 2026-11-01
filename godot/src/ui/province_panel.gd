@@ -591,7 +591,7 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 				var cap_txt: String = T.call("supply") if attr == 0 else T.call("attrition")
 				list.append(CC.InfoChip.new("supply", T.call("cc_supply") if attr == 0 else T.call("attrition"), "%d" % g.supply_limit(s) if attr == 0 else "−%d" % attr, "neg" if attr > 0 else "", T.call("supply_hint")))
 			if g.occupier[s] != 0 and g.occupier[s] != me:
-				list.append(CC.InfoChip.new("warning", "", T.call("occupied_by", {"nation": g.dname(g.occupier[s])}), "neg"))
+				list.append(CC.InfoChip.new("warning", "", TBDossier._occ_text(g, s), "neg"))
 		3:
 			var o: int = cs["o"]
 			if g.rules >= 1:
@@ -1213,7 +1213,7 @@ func _build_drawer(s: int, cs: Dictionary) -> Control:
 	var gen_txt := dash
 	if g.rules >= 1 and g.gen[s] != 0: gen_txt = "%s %s" % ["★".repeat(mini(5, TBGenerals.skill(g, s))), TBGenerals.display_name(g, s)]
 	var occ := dash
-	if g.occupier[s] != 0: occ = T.call("occupied_by", {"nation": g.dname(g.occupier[s])})
+	if g.occupier[s] != 0: occ = TBDossier._occ_text(g, s)
 	var sup := dash
 	if g.rules >= 1: sup = "%s %d · %s %d" % [T.call("cc_limit"), g.supply_limit(s), T.call("attrition").to_lower(), g.attrition(s)]
 	grid.add_child(_ledger_row(T.call("pop"), TBKit.fmt(g.pop[s] * 1000), null))

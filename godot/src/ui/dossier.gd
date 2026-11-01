@@ -7,6 +7,11 @@ const K = preload("res://src/ui/ui_kit.gd")
 const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 
+## "occupied by X", or while a fortress holds out "besieged by X: n turns"
+static func _occ_text(g: TBGame, p: int) -> String:
+	if g.rules >= 4 and g.siege[p] > 0: return T.call("besieged_by", {"nation": g.dname(g.occupier[p]), "n": g.siege[p]})
+	return T.call("occupied_by", {"nation": g.dname(g.occupier[p])})
+
 ## `.cap` with the dossier's own size: 9.5 under the gauges
 static func _cap(txt: String, px: float, col: Color = Color.TRANSPARENT) -> Control:
 	var c := K.caps(txt, 10, col); (c as TBBz.TLabel).px = px; (c as TBBz.TLabel).refit(); return c
@@ -132,6 +137,9 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 		if g.rules >= 4 and g.owner[p] == me: rows.append([T.call("levy"), "%d / %d" % [g.levy[p], g.levy_cap(p)], "neg" if g.levy_drained(p) else ""])
 		if g.attrition(p) > 0: rows.append([T.call("attrition"), str(g.attrition(p)), "neg"])
 		if g.gen[p] != 0: rows.append([T.call("general"), TBGenerals.display_name(g, p)])
-	if g.occupier[p] != 0: rows.append([T.call("cc_occupation"), T.call("occupied_by", {"nation": g.dname(g.occupier[p])}), "neg"])
+	if g.rules >= 4 and g.army[p] > 0 and g.controller(p) == me and g.owner[p] != me:
+		var sd := g.supply_depth(p, me)
+		rows.append([T.call("supply_line"), ("%d+" if sd >= TBGame.SUPPLY_REACH else "%d") % sd, "neg" if sd >= TBGame.SUPPLY_REACH else ""])
+	if g.occupier[p] != 0: rows.append([T.call("cc_occupation"), _occ_text(g, p), "neg"])
 	body.add_child(K.ledger(rows))
 	return h

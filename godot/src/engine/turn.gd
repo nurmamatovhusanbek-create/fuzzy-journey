@@ -109,7 +109,14 @@ static func _tick(g: TBGame) -> void:
 		var o := g.owner[p]
 		if g.rules >= 1:
 			var oc := g.occupier[p]
-			if oc != 0:
+			if oc != 0 and g.rules >= 4 and g.siege[p] > 0:                      # the garrison holds behind its walls: the siege ticks down, a strong host is quicker
+				var garrison: int = 20 * g.bl(p, D.B_FORTRESS) * maxi(1, g.dev[p])
+				g.siege[p] -= 2 if g.army[p] >= 3 * garrison else 1
+				if g.siege[p] <= 0:
+					g.siege[p] = 0; g.occ_turns[p] = 0
+					if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "occupied", "a": oc, "b": o, "p": p})
+				g.touch(p)
+			elif oc != 0:
 				if g.occ_turns[p] < 250: g.occ_turns[p] += 1
 				if o != 0 and g.occ_turns[p] >= (10 if g.capital[p] != 0 else 5) and g.get_rel(o, oc) == D.REL_WAR:
 					if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "annexed", "a": oc, "b": o, "p": p})
@@ -177,7 +184,7 @@ static func _tick(g: TBGame) -> void:
 			for q in g.owned(o):
 				var v := g.province_value(q)
 				tot += v
-				if g.occupier[q] == n: occ += v
+				if g.occupier[q] == n and g.siege[q] == 0: occ += v
 			g.war_score[i] = clampi(int(round(occ / (tot if tot != 0.0 else 1.0) * 100.0)), 0, 100)
 		if g.rules >= 4:
 			var tpop := 0

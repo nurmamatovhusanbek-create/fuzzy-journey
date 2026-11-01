@@ -80,6 +80,7 @@ var happy := PackedByteArray()
 var defense := PackedByteArray()
 var move_fx: Array = []                       # [from, to, nation] marches the AI made this turn (view only, not saved): the interface shows those in sight
 var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
+var siege := PackedInt32Array()                 # rules >= 4: turns left before a fortress taken in the field falls (0 = not besieged); the owner keeps the province until then
 var morale := PackedFloat32Array()              # rules >= 4: how well each nation's armies hold (TBWar)
 var exh := PackedFloat32Array()                 # rules >= 4: war exhaustion of each nation, 0-100 (TBWar)
 var lost_turn := PackedInt32Array()             # rules >= 4: men each nation lost in battle this turn (feeds exhaustion)
@@ -224,6 +225,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1); net_ema.resize(N1)
+	siege.resize(P)
 	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
@@ -531,7 +533,7 @@ func income(n: int) -> Dictionary:
 	var era_inc: int = eraD["incomeBonus"]; var era_mp: int = eraD["mpBonus"]
 	var lv2: bool = rules >= 2                                   # the hot loop reads the building levels directly (bl() / job_income() / job_fill() called for every province cost more than the sums)
 	for p in own:
-		if occupier[p] != 0 and occupier[p] != n:
+		if occupier[p] != 0 and occupier[p] != n and siege[p] == 0:
 			tp += pop[p]; hs += happy[p]
 			continue
 		var stab_p: int = stab[p]
@@ -567,7 +569,8 @@ func income(n: int) -> Dictionary:
 		if b_lib > 0: rb += (pop_p / 750.0) * b_lib
 	if rules >= 4:                                                          # men under arms are not at the plough: tax and production fall with their share of the people (docs/WAR_DESIGN.md section 3)
 		var under_arms := 0
-		for p in own: under_arms += army[p]
+		for p in own:
+			if occupier[p] == 0 or occupier[p] == n: under_arms += army[p]          # an enemy host standing in the province is not the owner's men
 		var loss := minf(WORK_LOSS_CAP, WORK_LOSS_K * float(under_arms) / maxf(1.0, float(tp)))
 		tax = int(floor(tax * (1.0 - loss))); prod = int(floor(prod * (1.0 - loss)))
 		out["workLoss"] = loss
@@ -712,7 +715,34 @@ func attrition(p: int) -> int:
 	var c := controller(p)
 	if c == 0 or owner[p] == c or c == rebel: return 0
 	var over := army[p] - supply_limit(p)
-	return maxi(0, int(ceil(over * 0.07))) if over > 0 else 0
+	var lost := maxi(0, int(ceil(over * 0.07))) if over > 0 else 0
+	if rules >= 4 and supply_depth(p, c) >= SUPPLY_REACH: lost += int(ceil(float(army[p]) * SUPPLY_FAR))      # beyond the reach of the carts: the culminating point
+	return lost
+
+const SUPPLY_REACH := 4                 # an army this many provinces from friendly land (or further) is out of reach of its depots
+const SUPPLY_FAR := 0.02                # share of such an army lost to hunger and sickness each turn, on top of the local limit
+
+## rules >= 4: how many provinces away the nearest land of c (or of an ally) is: 0 = on it, 1 = next to it ... capped at SUPPLY_REACH. Land that is only occupied does not feed an army.
+func supply_depth(p: int, c: int) -> int:
+	if _supplies(p, c): return 0
+	var seen := {p: true}
+	var frontier := [p]
+	for d in range(1, SUPPLY_REACH):
+		var nxt := []
+		for q in frontier:
+			for i in range(nb_off[q], nb_off[q + 1]):
+				var r: int = nb[i]
+				if seen.has(r): continue
+				seen[r] = true
+				if _supplies(r, c): return d
+				nxt.append(r)
+		if nxt.is_empty(): break
+		frontier = nxt
+	return SUPPLY_REACH
+
+func _supplies(p: int, c: int) -> bool:
+	var o := owner[p]
+	return o != 0 and occupier[p] == 0 and (o == c or friendly(c, o))
 
 ## read-only twin of move_or_attack's checks: "move", "attack", or an error code starting with "!"
 func move_check(n: int, from: int, to: int) -> String:
@@ -838,11 +868,12 @@ func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int,
 		var occ: int = maxi(1, a_left)
 		if owner[to] == 0: set_owner(to, atk_n)
 		elif owner[to] == atk_n:
-			occupier[to] = 0; occ_rev += 1
+			occupier[to] = 0; siege[to] = 0; occ_rev += 1
 		elif atk_n == rebel or def_n == rebel: cede(to, atk_n)
 		else:
 			occupier[to] = atk_n; occ_turns[to] = 0; occ_rev += 1
-			if human[atk_n] != 0 or human[def_n] != 0 or capital[to] != 0:
+			siege[to] = siege_len(to)
+			if siege[to] == 0 and (human[atk_n] != 0 or human[def_n] != 0 or capital[to] != 0):
 				log.append({"turn": turn, "kind": "occupied", "a": atk_n, "b": def_n, "p": to})
 		army[to] = occ; defense[to] = 0
 		army[from] = maxi(0, avail - send)
@@ -873,8 +904,15 @@ func _retreat(n: int, lost_p: int, attack_from: int, men: int) -> void:
 	if best >= 0:
 		army[best] = mini(ARMY_CAP, army[best] + men); touch(best)
 
+## rules >= 4: how many turns a field victory over a fortified province must be followed up before it falls (a bigger fort and the capital hold longer)
+func siege_len(p: int) -> int:
+	var fl := bl(p, D.B_FORTRESS)
+	if fl <= 0: return 0
+	return 1 + fl + (1 if capital[p] != 0 else 0)
+
 func cede(p: int, to: int) -> void:
 	var from := owner[p]
+	siege[p] = 0
 	set_owner(p, to); occupier[p] = 0; occ_rev += 1
 	TBDiplo.on_land_taken(self, p, from, to)
 	if from != 0 and capital[p] != 0:

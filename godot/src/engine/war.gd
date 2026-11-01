@@ -42,7 +42,7 @@ static func tick(g: TBGame, n: int, at_war: bool, pop: int) -> void:
 		return
 	var occ := 0
 	for p in g.owned(n):
-		if g.occupier[p] != 0 and g.occupier[p] != n: occ += 1
+		if g.occupier[p] != 0 and g.occupier[p] != n and g.siege[p] == 0: occ += 1
 	var up: float = EXH_TURN + EXH_OCC * float(mini(occ, OCC_CAP)) + minf(CAS_CAP, EXH_CAS_K * float(lost) / float(maxi(1, pop)))
 	g.exh[n] = minf(100.0, g.exh[n] * EXH_ADAPT + up)
 	var m: float = g.morale[n]
