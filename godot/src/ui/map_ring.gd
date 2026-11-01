@@ -412,10 +412,11 @@ func _draw() -> void:
 		var ry: float = y0 + lines.size() * lh + gap * 0.5
 		draw_line(Vector2(_c.x - 14.0 * rs, ry), Vector2(_c.x + 14.0 * rs, ry), Color(TBTokens.BZ_BRASS, 0.55), 1.0)
 		var ic: float = 11.0 * rs
-		var tw_: float = P.tw(fb, tx, z)
+		var wtx: String = K.fmt(float(int(roundf(g.province_value(_subj()))))) if (_subj() >= 0 and _subj() < g.P) else "0"          # what the province is worth (development, economy, people; the capital counts for more): the army is on the map
+		var tw_: float = P.tw(fb, wtx, z)
 		var gx: float = _c.x - (ic + 4.0 * rs + tw_) * 0.5
-		TBHudParts.icon(self, "swords", Vector2(gx + ic * 0.5, y0 + lines.size() * lh + gap + num_h * 0.5), ic, TBTokens.BZ_BRASS, 1.2)
-		draw_string(fb, Vector2(gx + ic + 4.0 * rs, y0 + lines.size() * lh + gap + num_h), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, z, TBTokens.c("cream"))
+		TBHudParts.icon(self, "coin", Vector2(gx + ic * 0.5, y0 + lines.size() * lh + gap + num_h * 0.5), ic, TBTokens.BZ_BRASS, 1.2)
+		draw_string(fb, Vector2(gx + ic + 4.0 * rs, y0 + lines.size() * lh + gap + num_h), wtx, HORIZONTAL_ALIGNMENT_LEFT, -1, z, TBTokens.c("cream"))
 	var tag_off: float = R + 30.0 * rs
 	_lab_l = 0.0; _lab_r = 0.0
 	if rs >= 1.0:                                                            # the verbs' names stand beside their medallions: the card starts clear of the longest one on either side
