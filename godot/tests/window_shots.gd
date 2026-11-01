@@ -39,6 +39,10 @@ func _init() -> void:
 				main._open_terms(en)
 				for i in 10: await process_frame
 				main._on_pick(ol[0], false); main._on_pick(ol[2], false)
+			"ally":
+				var al: int = main.g.nat_code.find("spain"); var uk: int = main.g.nat_code.find("uk")
+				main.g.set_rel(main.g.human_id, al, TBData.REL_ALLY); main.g.set_rel(main.g.human_id, uk, TBData.REL_WAR); main.g.set_rel(al, uk, TBData.REL_PEACE)
+				main._open_nations(al)
 			"prov_own": main._select(main.g.capital_of[main.g.human_id])
 			"prov_foreign": main._select(main.g.capital_of[main.g.nat_code.find("spain")])
 			"prov_war":
