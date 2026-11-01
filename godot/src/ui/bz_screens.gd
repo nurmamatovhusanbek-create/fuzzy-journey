@@ -14,7 +14,7 @@ static func date_str(g: TBGame, turn: int) -> String:
 ## a chronicle entry's headline and icon, from its kind
 static func chron_kind(kind: String) -> Array:
 	match kind:
-		"war", "occupied", "annexed", "ceded", "eliminated", "independence", "ultimatum", "rebels", "reconciled", "rebels_end", "victory", "defeat": return ["war", "an_war"]
+		"war", "occupied", "annexed", "liberated", "ceded", "eliminated", "independence", "ultimatum", "rebels", "reconciled", "rebels_end", "victory", "defeat": return ["war", "an_war"]
 		"peace", "ally", "vassal", "coalition", "coalition_end", "marriage", "marriage_end", "union", "spy": return ["pact", "an_dip"]
 		"trade": return ["trade", "an_dip"]
 		"bankrupt", "decision", "doctrine": return ["treasury", "an_econ"]

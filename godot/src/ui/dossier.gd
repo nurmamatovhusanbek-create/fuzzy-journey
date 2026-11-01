@@ -141,5 +141,6 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 		var sd := g.supply_depth(p, me)
 		rows.append([T.call("supply_line"), ("%d+" if sd >= TBGame.SUPPLY_REACH else "%d") % sd, "neg" if sd >= TBGame.SUPPLY_REACH else ""])
 	if g.occupier[p] != 0: rows.append([T.call("cc_occupation"), _occ_text(g, p), "neg"])
+	if g.rules >= 4 and g.occupier[p] != 0 and g.siege[p] == 0: rows.append([T.call("resistance"), "%d / 100" % g.unrest[p], "neg" if g.unrest[p] >= 70 else ""])
 	body.add_child(K.ledger(rows))
 	return h

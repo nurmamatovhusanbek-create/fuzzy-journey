@@ -81,6 +81,7 @@ var defense := PackedByteArray()
 var move_fx: Array = []                       # [from, to, nation] marches the AI made this turn (view only, not saved): the interface shows those in sight
 var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
 var war_pts := PackedFloat32Array()             # rules >= 4: score earned in the field against each enemy (battles, sieges, capitals), N1*N1; the war score adds the land held and the enemy's exhaustion
+var unrest := PackedInt32Array()                # rules >= 4: resistance of an occupied province, 0-100; at 100 it rises and throws the occupier out
 var siege := PackedInt32Array()                 # rules >= 4: turns left before a fortress taken in the field falls (0 = not besieged); the owner keeps the province until then
 var morale := PackedFloat32Array()              # rules >= 4: how well each nation's armies hold (TBWar)
 var exh := PackedFloat32Array()                 # rules >= 4: war exhaustion of each nation, 0-100 (TBWar)
@@ -226,7 +227,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1); net_ema.resize(N1)
-	siege.resize(P); war_pts.resize(N1 * N1)
+	siege.resize(P); unrest.resize(P); war_pts.resize(N1 * N1)
 	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
@@ -576,6 +577,9 @@ func income(n: int) -> Dictionary:
 		var loss := minf(WORK_LOSS_CAP, WORK_LOSS_K * float(under_arms) / maxf(1.0, float(tp)))
 		tax = int(floor(tax * (1.0 - loss))); prod = int(floor(prod * (1.0 - loss)))
 		out["workLoss"] = loss
+		var occ_inc := 0                                                  # land held as occupier pays the occupier half of what it would pay its owner
+		for p in occupied_by(n): occ_inc += int(floor(float(pop[p]) / 20.0 * (tax_pct / 100.0) * (float(happy[p]) / 100.0) * inc_tax * TBWar.OCC_SHARE))
+		tax += occ_inc; out["occTax"] = occ_inc
 	var gld: int = prod + tax
 	if rules >= 1: gld += TBTrade.income(self, n)
 	if cap_lost_now: gld = int(floor(gld * 0.5))
@@ -874,7 +878,7 @@ func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int,
 		elif atk_n == rebel or def_n == rebel: cede(to, atk_n)
 		else:
 			occupier[to] = atk_n; occ_turns[to] = 0; occ_rev += 1
-			siege[to] = siege_len(to)
+			siege[to] = siege_len(to); unrest[to] = TBWar.RES_START
 			if siege[to] == 0 and capital[to] != 0: TBWar.earn(self, atk_n, def_n, TBWar.CAPITAL_PTS)
 			if siege[to] == 0 and (human[atk_n] != 0 or human[def_n] != 0 or capital[to] != 0):
 				log.append({"turn": turn, "kind": "occupied", "a": atk_n, "b": def_n, "p": to})
@@ -907,6 +911,20 @@ func _retreat(n: int, lost_p: int, attack_from: int, men: int) -> void:
 	if best >= 0:
 		army[best] = mini(ARMY_CAP, army[best] + men); touch(best)
 
+var _occ_rev_seen := -1
+var _occ_by := {}
+## rules >= 4: the provinces nation n holds as occupier (a fortress still under siege does not count yet); cached until an occupation changes
+func occupied_by(n: int) -> Array:
+	if _occ_rev_seen != occ_rev:
+		_occ_by = {}
+		for p in P:
+			var oc := occupier[p]
+			if oc != 0 and siege[p] == 0 and owner[p] != oc:
+				if not _occ_by.has(oc): _occ_by[oc] = []
+				(_occ_by[oc] as Array).append(p)
+		_occ_rev_seen = occ_rev
+	return _occ_by.get(n, [])
+
 ## rules >= 4: how many turns a field victory over a fortified province must be followed up before it falls (a bigger fort and the capital hold longer)
 func siege_len(p: int) -> int:
 	var fl := bl(p, D.B_FORTRESS)
@@ -915,7 +933,7 @@ func siege_len(p: int) -> int:
 
 func cede(p: int, to: int) -> void:
 	var from := owner[p]
-	siege[p] = 0
+	siege[p] = 0; unrest[p] = 0
 	set_owner(p, to); occupier[p] = 0; occ_rev += 1
 	TBDiplo.on_land_taken(self, p, from, to)
 	if from != 0 and capital[p] != 0:

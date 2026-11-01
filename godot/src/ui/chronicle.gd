@@ -8,7 +8,7 @@ const CATS := ["mine", "all", "war", "diplo", "events"]
 
 static func category(e: Dictionary) -> String:
 	match String(e["kind"]):
-		"war", "peace", "occupied", "annexed", "ceded", "eliminated", "rebels", "reconciled", "rebels_end", "independence", "ultimatum": return "war"
+		"war", "peace", "occupied", "annexed", "liberated", "ceded", "eliminated", "rebels", "reconciled", "rebels_end", "independence", "ultimatum": return "war"
 		"coalition", "coalition_end", "resent": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union", "ans": return "diplo"
 		"realm": return "events"
@@ -66,6 +66,7 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"rebels_end": return T.call("e_rebels_end", {"a": a, "p": pn}) if involves(e, g.human_id) else ""
 		"occupied": return T.call("e_occupied", {"a": a, "b": b, "p": pn})
 		"annexed": return T.call("e_annexed", {"a": a, "b": b, "p": pn})
+		"liberated": return T.call("e_liberated", {"a": a, "b": b, "p": pn})
 		"ruler":
 			if String(e["k"]) == "elected" and not involves(e, g.human_id): return ""
 			return T.call("e_ruler_" + String(e["k"]), {"a": a, "old": TBRulers.name_of(e["old"], int(e["oldn"])), "new": TBRulers.name_of(e["new"], int(e["num"]))})
@@ -120,6 +121,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 		"resent": return e.get("a", -1) == me
 		"occupied": return e.get("b", -1) == me
 		"annexed": return e.get("b", -1) == me
+		"liberated": return e.get("b", -1) == me or e.get("a", -1) == me
 		"ultimatum": return e.get("b", -1) == me
 		"spy": return e.get("b", -1) == me and bool(e["ok"])
 		"general_fell": return true
@@ -128,7 +130,7 @@ static func is_bad(e: Dictionary, me: int) -> bool:
 ## which entries pop up as toasts when they happen
 static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 	match String(e["kind"]):
-		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "ultimatum", "trade", "marriage", "marriage_end", "union": return involves(e, me)
+		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "liberated", "ultimatum", "trade", "marriage", "marriage_end", "union": return involves(e, me)
 		"resent": return e.get("a", -1) == me
 		"rebels", "reconciled", "rebels_end", "bankrupt", "era", "ruler", "realm", "general_up", "general_fell": return e.get("a", -1) == me
 		"coalition", "coalition_end": return true

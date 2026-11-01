@@ -113,13 +113,15 @@ static func _tick(g: TBGame) -> void:
 				var garrison: int = 20 * g.bl(p, D.B_FORTRESS) * maxi(1, g.dev[p])
 				g.siege[p] -= 2 if g.army[p] >= 3 * garrison else 1
 				if g.siege[p] <= 0:
-					g.siege[p] = 0; g.occ_turns[p] = 0
+					g.siege[p] = 0; g.occ_turns[p] = 0; g.occ_rev += 1
 					TBWar.earn(g, oc, o, TBWar.SIEGE_PTS + (TBWar.CAPITAL_PTS if g.capital[p] != 0 else 0.0))
 					if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "occupied", "a": oc, "b": o, "p": p})
 				g.touch(p)
 			elif oc != 0:
 				if g.occ_turns[p] < 250: g.occ_turns[p] += 1
-				if o != 0 and g.occ_turns[p] >= (10 if g.capital[p] != 0 else 5) and g.get_rel(o, oc) == D.REL_WAR:
+				if g.rules >= 4:                                                # land is only ever transferred by a treaty; meanwhile the people resist
+					if o != 0: TBWar.resist(g, p)
+				elif o != 0 and g.occ_turns[p] >= (10 if g.capital[p] != 0 else 5) and g.get_rel(o, oc) == D.REL_WAR:
 					if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "annexed", "a": oc, "b": o, "p": p})
 					g.cede(p, oc); g.army[p] = maxi(g.army[p], 6); g.stab[p] = mini(g.stab[p], 50); g.touch(p)
 					continue

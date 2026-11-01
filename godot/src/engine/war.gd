@@ -23,6 +23,13 @@ const BATTLE_CAP := 8.0
 const SIEGE_PTS := 4.0
 const CAPITAL_PTS := 15.0
 const EXH_SCORE := 0.2                 # an exhausted enemy is easier to bargain with: a fifth of his exhaustion is added to the score
+const OCC_SHARE := 0.5                 # of the owner's tax an occupier collects
+const RES_START := 40                  # resistance of a province the day it falls
+const RES_DOWN := 2                    # per turn while the garrison is large enough
+const RES_UP := 3                      # per turn when it is not
+const RES_GARRISON := 0.06             # share of the people the garrison must reach to keep order
+const RES_BLOW := 0.5                  # share of the garrison lost when the province rises
+const RES_POINTS := 2.0                # war score the owner earns by it
 const WEARY_K := 0.3                   # exhaustion points -> the older 'weariness' that cuts stability and mood
 
 static func morale_mul(g: TBGame, n: int) -> float:
@@ -74,3 +81,17 @@ static func earn(g: TBGame, w: int, l: int, pts: float) -> void:
 ## the war score of n against o: the share of o's land n holds, plus what it won in the field, plus a fifth of o's exhaustion
 static func score(g: TBGame, n: int, o: int, occ_pct: float) -> int:
 	return clampi(int(round(occ_pct + g.war_pts[n * g.N1 + o] + g.exh[o] * EXH_SCORE)), 0, 100)
+
+## once a turn for an occupied province (rules >= 4, siege over): the garrison either keeps order or the people wear it down; at 100 the province rises and returns to its owner
+## returns true when it rose
+static func resist(g: TBGame, p: int) -> bool:
+	var oc := g.occupier[p]; var o := g.owner[p]
+	var need := int(float(g.pop[p]) * RES_GARRISON)
+	if g.army[p] >= need: g.unrest[p] = maxi(0, g.unrest[p] - RES_DOWN)
+	else: g.unrest[p] = mini(100, g.unrest[p] + RES_UP)
+	if g.unrest[p] < 100: return false
+	g.occupier[p] = 0; g.unrest[p] = 0; g.siege[p] = 0
+	g.army[p] = maxi(1, int(float(g.army[p]) * (1.0 - RES_BLOW))); g.occ_rev += 1; g.touch(p)
+	earn(g, o, oc, RES_POINTS)
+	if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "liberated", "a": oc, "b": o, "p": p})
+	return true
