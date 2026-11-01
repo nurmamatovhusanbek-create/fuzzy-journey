@@ -1463,6 +1463,28 @@ class ToggleRow extends Button:
 		if size.y > want + 0.5 and want <= float(TBKit.touch()) + 0.5: reset_size()
 
 ## `inset`: the row's content sits this far from the row's own edges (12 in a list of rows; 0 where the row shares a column with plates and buttons, so its label and its switch land on the column's edges)
+## The box the ink of `txt` really covers when drawn at pen position (0, baseline) in font `f` at `size`: x from the pen, y relative to the baseline (negative is up).
+## Centring on the advance width or the line box leaves type off centre (a "1" has empty space on its left, figures stand on the baseline): centre the ink with this.
+static var _ink_cache := {}
+static func ink_box(f: Font, size: int, txt: String) -> Rect2:
+	var key := "%d|%d|%s" % [f.get_instance_id(), size, txt]
+	if _ink_cache.has(key): return _ink_cache[key]
+	var ts := TextServerManager.get_primary_interface()
+	var rids: Array[RID] = f.get_rids()
+	var box := Rect2(0, -float(size) * 0.7, f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x, float(size) * 0.7)      # fallback: the advance and a figure's height
+	if not rids.is_empty() and txt != "":
+		var mn := Vector2(1e9, 1e9); var mx := Vector2(-1e9, -1e9)
+		for i in txt.length():
+			var pen: float = f.get_string_size(txt.substr(0, i), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x if i > 0 else 0.0          # where the glyph is drawn: the width of what comes before it, spacing and kerning included
+			var gi: int = ts.font_get_glyph_index(rids[0], size, txt.unicode_at(i), 0)
+			var c: Dictionary = ts.font_get_glyph_contours(rids[0], size, gi)
+			var pts: PackedVector3Array = c.get("points", PackedVector3Array())
+			for q in pts:
+				mn = Vector2(minf(mn.x, pen + q.x), minf(mn.y, q.y)); mx = Vector2(maxf(mx.x, pen + q.x), maxf(mx.y, q.y))
+		if mx.x > mn.x and mx.y > mn.y: box = Rect2(mn, mx - mn)
+	_ink_cache[key] = box
+	return box
+
 static func toggle(text: String, value: bool, cb: Callable = Callable(), inset: float = 12.0) -> Button:
 	return ToggleRow.new(text, value, cb, inset)
 

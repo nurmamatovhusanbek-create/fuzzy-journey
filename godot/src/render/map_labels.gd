@@ -40,6 +40,7 @@ func set_order(from: int, to: int, attack: bool, dashed: bool, label: String = "
 
 ## price tags on provinces (the peace table: tap a tagged province to ask for it). Each mark is {p, text, on}; `on` = chosen. They do not select anything.
 var _marks: Array = []
+var mark_rects: Array = []             # where each tag was drawn last (control-local): [{p, rect, on}]; the tests measure the type inside the plate
 var _marks_set := {}                   # the provinces that carry a price: their army counters step aside while the tags are up (a tag takes the middle of the province)
 func set_marks(list: Array) -> void:
 	_marks = list
@@ -52,24 +53,46 @@ func clear_marks() -> void:
 	queue_redraw()
 func marks_count() -> int: return _marks.size()
 func _draw_marks(c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> void:
+	mark_rects = []
 	if _marks.is_empty(): return
 	var f: Font = TBKit.mono_b()
 	var fs := TBKit.fs(13.0)
 	var brass := TBTokens.c("brass")
+	var plates: Array = []
 	for m in _marks:
 		var pr := _screen(int(m["p"]), c0, s0, sl, cl, R, cx, cy)
 		if map.mode == 0 and pr.z < 0.15: continue
-		var on: bool = bool(m["on"])
 		var txt: String = String(m["text"])
-		var tw := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		var cw := tw + 18.0; var ch := float(fs) + 10.0
+		var ink: Rect2 = TBKit.ink_box(f, fs, txt)                            # the plate is cut to the type's ink and the ink is centred in it, both ways
+		var cw := ink.size.x + 20.0; var ch := float(fs) + 10.0
 		var mid := Vector2(pr.x, pr.y)                                         # the middle of the province's own outline on screen (its bounding box), not the anchor its army counter hangs from
 		var pb: Rect2 = map._prov_rect(int(m["p"]))
 		if pb.size.x > 4.0 and pb.size.y > 4.0: mid = pb.get_center()
-		var r := Rect2(mid - Vector2(cw, ch) * 0.5, Vector2(cw, ch)).abs()
+		plates.append({"p": int(m["p"]), "txt": txt, "on": bool(m["on"]), "ink": ink, "r": Rect2((mid - Vector2(cw, ch) * 0.5).round(), Vector2(cw, ch)), "moved": false})
+	for it in 8:                                                               # two tags never overlap: when provinces are close on screen the later one steps aside (a tag that is not crowded stays exactly in the middle)
+		var any := false
+		for i in plates.size():
+			for j in range(i + 1, plates.size()):
+				var ri: Rect2 = plates[i]["r"]; var rj: Rect2 = plates[j]["r"]
+				if not ri.grow(4.0).intersects(rj): continue
+				any = true
+				var dx: float = minf(ri.end.x, rj.end.x) - maxf(ri.position.x, rj.position.x) + 4.0
+				var dy: float = minf(ri.end.y, rj.end.y) - maxf(ri.position.y, rj.position.y) + 4.0
+				var d: Vector2 = rj.get_center() - ri.get_center()
+				if dy <= dx: rj.position.y += (dy if d.y >= 0.0 else -dy)
+				else: rj.position.x += (dx if d.x >= 0.0 else -dx)
+				plates[j]["r"] = rj.abs(); plates[j]["moved"] = true
+		if not any: break
+	for pl in plates:
+		var r: Rect2 = pl["r"]
+		var on: bool = pl["on"]
+		var ch := r.size.y
 		if on: draw_style_box(TBHudParts.sbox(Color(brass, 1.0), TBTokens.PAPER_100, ch * 0.5, 2), r)
 		else: draw_style_box(TBHudParts.sbox(TBTokens.INK_700, brass, ch * 0.5, 1), r)
-		draw_string(f, Vector2(r.position.x + 9.0, r.position.y + 5.0 + f.get_ascent(fs)), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TBTokens.INK_700 if on else TBTokens.PAPER_100)
+		var ink2: Rect2 = pl["ink"]
+		var pen := (r.get_center() - (ink2.position + ink2.size * 0.5)).round()
+		draw_string(f, pen, String(pl["txt"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, TBTokens.INK_700 if on else TBTokens.PAPER_100)
+		mark_rects.append({"p": int(pl["p"]), "rect": r, "on": on, "moved": bool(pl["moved"])})
 
 func clear_order() -> void:
 	if _order.is_empty(): return

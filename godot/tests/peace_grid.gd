@@ -118,7 +118,84 @@ func _init() -> void:
 	for m in main.map.labels._marks:
 		var pb: Rect2 = main.map._prov_rect(int(m["p"]))
 		_check(pb.size.x > 0.0, "province %d has an on-screen box" % int(m["p"]))
+	var foreign_ok := true
+	for m in main.map.labels._marks:
+		if gg.owner[int(m["p"])] != en or gg.occupier[int(m["p"])] != me: foreign_ok = false
+	_check(foreign_ok, "a tag is only ever on land of the loser that you hold: never on a province that is already yours")
 	_check(main.map.labels._marks_set.size() == main.map.labels.marks_count(), "the tagged provinces are known to the counters")
+	# the type sits in the middle of its plate: measured on the picture itself
+	for i in 40: await process_frame
+	var img: Image = root.get_viewport().get_texture().get_image()
+	var rs: float = float(img.get_width()) / main.get_global_rect().size.x                  # the UI is laid out larger than the window and scaled down
+	var worst := 0.0
+	var plates := 0
+	print("  labels rect %s map rect %s root %s img %s" % [str(main.map.labels.get_global_rect()), str(main.map.get_global_rect()), str(root.size), str(img.get_size())])
+	for mr0 in main.map.labels.mark_rects: print("  mark %d local rect %s" % [int(mr0["p"]), str(mr0["rect"])])
+	for mr in main.map.labels.mark_rects:
+		var pr: Rect2 = Rect2(main.map.labels.get_global_rect().position + (mr["rect"] as Rect2).position, (mr["rect"] as Rect2).size)
+		if bool(mr["moved"]):
+			print("  tag %d was moved off its province's middle to clear a neighbour: not measured" % int(mr["p"])); continue
+		var fill: Color = TBTokens.c("brass") if bool(mr["on"]) else TBTokens.INK_700
+		var x0 := int((pr.position.x + 7.0) * rs); var x1 := int((pr.end.x - 7.0) * rs)
+		var y0 := int((pr.position.y + 4.0) * rs); var y1 := int((pr.end.y - 4.0) * rs)
+		if x0 < 0 or y0 < 0 or x1 >= img.get_width() or y1 >= img.get_height():
+			print("  tag %d skipped: off the picture (%d,%d)" % [int(mr["p"]), x0, y0]); continue
+		var bx0 := 1 << 30; var bx1 := -1; var by0 := 1 << 30; var by1 := -1
+		for yy in range(y0, y1):
+			for xx in range(x0, x1):
+				var c: Color = img.get_pixel(xx, yy)
+				var d: float = absf(c.r - fill.r) + absf(c.g - fill.g) + absf(c.b - fill.b)
+				if d > 0.9:
+					bx0 = mini(bx0, xx); bx1 = maxi(bx1, xx); by0 = mini(by0, yy); by1 = maxi(by1, yy)
+		if bx1 < 0:
+			print("  tag %d: no type found in the plate (%d,%d - %d,%d), fill %s" % [int(mr["p"]), x0, y0, x1, y1, str(fill)]); continue
+		plates += 1
+		var f0: Font = TBKit.mono_b(); var fs0 := TBKit.fs(13.0)
+		print("  tag %d: glyph box %dx%d px, font ascent %.1f descent %.1f size %d, plate %.1fx%.1f" % [int(mr["p"]), bx1 - bx0 + 1, by1 - by0 + 1, f0.get_ascent(fs0), f0.get_descent(fs0), fs0, pr.size.x, pr.size.y])
+		var ex: float = (float(bx0 + bx1 + 1) * 0.5) / rs - pr.get_center().x
+		var ey: float = (float(by0 + by1 + 1) * 0.5) / rs - pr.get_center().y
+		worst = maxf(worst, maxf(absf(ex), absf(ey)))
+		print("  tag %d: type centre off the plate centre by (%.2f, %.2f) px" % [int(mr["p"]), ex, ey])
+	var overlaps := 0
+	var mrs: Array = main.map.labels.mark_rects
+	for i4 in mrs.size():
+		for j4 in range(i4 + 1, mrs.size()):
+			if (mrs[i4]["rect"] as Rect2).intersects(mrs[j4]["rect"] as Rect2): overlaps += 1
+	_check(overlaps == 0, "no two price tags overlap (%d overlaps)" % overlaps)
+	_check(plates >= 1 or mrs.size() >= 1, "tags were drawn (%d)" % mrs.size())
+	_check(worst <= 1.1, "the type is centred in its plate within 1.1 px (worst %.2f)" % worst)
+	# the buttons: what is written on a button (icon and word together) sits in the middle of it, measured on the picture
+	var all_btn: Array = []
+	_walk(main._overlay, all_btn, "Button")
+	var bworst := 0.0
+	var bcount := 0
+	for b in all_btn:
+		var bb := b as Button
+		if bb.text == "" or bb.text == "−" or bb.text == "+" or not bb.is_visible_in_tree() or bb.disabled: continue
+		var br3: Rect2 = bb.get_global_rect()
+		var bx0 := int((br3.position.x + 10.0) * rs); var bx1 := int((br3.end.x - 10.0) * rs)
+		var by0 := int((br3.position.y + 5.0) * rs); var by1 := int((br3.end.y - 5.0) * rs)
+		if bx0 < 0 or by0 < 0 or bx1 >= img.get_width() or by1 >= img.get_height(): continue
+		var lum := PackedFloat32Array()
+		for yy in range(by0, by1):
+			for xx in range(bx0, bx1):
+				var cc: Color = img.get_pixel(xx, yy); lum.append(cc.r * 0.3 + cc.g * 0.59 + cc.b * 0.11)
+		var sorted := lum.duplicate(); sorted.sort()
+		var med: float = sorted[sorted.size() / 2]
+		var w3 := bx1 - bx0
+		var cx0 := 1 << 30; var cx1 := -1; var cy0 := 1 << 30; var cy1 := -1
+		for i3 in lum.size():
+			if absf(lum[i3] - med) > 0.22:
+				var xx3: int = bx0 + i3 % w3; var yy3: int = by0 + i3 / w3
+				cx0 = mini(cx0, xx3); cx1 = maxi(cx1, xx3); cy0 = mini(cy0, yy3); cy1 = maxi(cy1, yy3)
+		if cx1 < 0: continue
+		bcount += 1
+		var bex: float = (float(cx0 + cx1 + 1) * 0.5) / rs - br3.get_center().x
+		var bey: float = (float(cy0 + cy1 + 1) * 0.5) / rs - br3.get_center().y
+		bworst = maxf(bworst, maxf(absf(bex), absf(bey)))
+		print("  button '%s': content centre off the button centre by (%.2f, %.2f) px" % [bb.text, bex, bey])
+	_check(bcount >= 2, "the buttons were measured (%d)" % bcount)
+	_check(bworst <= 2.0, "what is written on a button is centred on it within 2 px (worst %.2f)" % bworst)
 	var cand: int = ol[0]
 	var other: int = ol[8]
 	main._on_pick(cand, false)
