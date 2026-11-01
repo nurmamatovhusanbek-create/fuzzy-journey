@@ -12,6 +12,7 @@ var lo := 1
 var hi := 1
 var value := 1
 var compact := false                   # no steppers: the slider and the number fit a narrow chip
+var bar := false                       # the bottom bar's row: [-] slider with its preset marks [+] number; nothing else (no '/ n', no preset box)
 var caption := ""                       # what the number is ("Send", "Recruit"): the accessible name of the slider and the field
 var _slider: HSlider
 var _edit: LineEdit
@@ -25,13 +26,17 @@ func _init() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 ## (re)build for a range and a start value; safe to call again when the army or the pool changes
-func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = false) -> void:
-	lo = maxi(0, lo_); hi = maxi(lo, hi_); caption = name_; compact = compact_
+func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = false, bar_: bool = false) -> void:
+	lo = maxi(0, lo_); hi = maxi(lo, hi_); caption = name_; compact = compact_; bar = bar_
 	for c in get_children(): c.queue_free()
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	_minus = TBKit.button("−", func(): nudge(-coarse()))
-	_plus = TBKit.button("+", func(): nudge(coarse()))
+	if TBFrame.bezel:                                                                 # the game's round ringed steppers
+		_minus = TBBzParts.Stp.new("−", func(): nudge(-coarse()))
+		_plus = TBBzParts.Stp.new("+", func(): nudge(coarse()))
+	else:
+		_minus = TBKit.button("−", func(): nudge(-coarse()))
+		_plus = TBKit.button("+", func(): nudge(coarse()))
 	for b in [_minus, _plus]: (b as Control).custom_minimum_size = Vector2(TBKit.touch(), TBKit.touch())
 	TBKit.a11y(_minus, TBI18n.T("step_down", {"s": caption}), "button")
 	TBKit.a11y(_plus, TBI18n.T("step_up", {"s": caption}), "button")
@@ -39,7 +44,7 @@ func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = 
 	_slider.editable = hi > lo
 	_slider.value_changed.connect(func(v: float): _apply(int(round(v)), "slider"))
 	_edit = LineEdit.new()
-	_edit.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER if bar else HORIZONTAL_ALIGNMENT_RIGHT
 	_edit.custom_minimum_size = Vector2(maxf(64.0, TBKit.mono_b().get_string_size(str(hi), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(15)).x + 28.0), 34.0)          # the one control height of the card (the share buttons and the verbs are 34 too)
 	_edit.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	for sbn in ["normal", "focus", "read_only"]:                                    # the engine centres the line box, and a figure stands on the baseline: lift it so the figure itself is in the middle of the field
@@ -55,9 +60,23 @@ func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = 
 	_of = TBKit.num("", 14, TBTokens.c("ink_1"))
 	_of.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_minus.visible = not compact; _plus.visible = not compact
+	if bar:
+		_edit.custom_minimum_size = Vector2(maxf(62.0, _edit.custom_minimum_size.x - 22.0), 34.0)
+		_edit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		for b in [_minus, _plus]: (b as Control).custom_minimum_size = Vector2(34, 34)                       # the round steppers at their own size (the touch size makes them fat in a bar)
 	var sm := MarginContainer.new(); sm.size_flags_horizontal = Control.SIZE_EXPAND_FILL                      # the thumb at either end keeps clear of the stepper plates
 	sm.add_theme_constant_override("margin_left", 14); sm.add_theme_constant_override("margin_right", 14)
 	sm.add_child(_slider)
+	if bar:
+		(_slider as TBBzParts.BzSlider).show_nums = false
+		(_slider as TBBzParts.BzSlider).label_picked.connect(_on_label)
+		row.add_child(_minus); row.add_child(sm); row.add_child(_plus); row.add_child(_edit)
+		row.add_theme_constant_override("separation", 8)
+		add_child(row)
+		_seg = null
+		value = clampi(start, lo, hi)
+		_show()
+		return
 	row.add_child(_minus); row.add_child(sm); row.add_child(_plus); row.add_child(_edit); row.add_child(_of)
 	_seg = CC.ShareSeg.new()
 	_seg.cell_h = 34; _seg.cell_w = 40.0
@@ -69,6 +88,22 @@ func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = 
 	add_child(row); add_child(seg_row)
 	value = clampi(start, lo, hi)
 	_show()
+
+## the preset marks under the slider: the lowest, a quarter, half, three quarters, all; the one the number stands on is lit; a mark that would land on the same number as the one before is dropped
+func _set_marks() -> void:
+	var sl := _slider as TBBzParts.BzSlider
+	var span: float = maxf(1.0, float(maxi(hi, lo + 1) - lo))
+	var list: Array = [{"r": 0.0, "t": str(lo), "on": value == lo, "n": lo}]
+	for i in 4:
+		var n := _share_n(i)
+		if n <= int(list[list.size() - 1]["n"]): continue
+		list.append({"r": float(n - lo) / span, "t": ("%d" % [int(CC.ShareSeg.FRACS[i] * 100.0)]) if i < 3 else "100 %", "on": value == n, "n": n})
+	sl.labels = list
+	sl.queue_redraw()
+
+func _on_label(i: int) -> void:
+	var sl := _slider as TBBzParts.BzSlider
+	if i >= 0 and i < sl.labels.size(): _apply(int(sl.labels[i]["n"]), "mark")
 
 func coarse() -> int: return maxi(1, int(round(float(hi - lo) / 20.0)))        # the steppers move about 5 % of the range; the typed number and the slider are exact
 
@@ -95,7 +130,8 @@ func _show() -> void:
 	_of.text = "/ %s" % TBKit.fmt(hi)
 	_minus.disabled = value <= lo or hi <= lo
 	_plus.disabled = value >= hi or hi <= lo
-	_seg.set_current(float(value) / float(maxi(1, hi)))
+	if _seg != null: _seg.set_current(float(value) / float(maxi(1, hi)))
+	if bar: _set_marks()
 	TBKit.a11y(_slider, "%s %s" % [caption, TBKit.fmt(value)], "slider")
 
 ## digits only; a number beyond the range is shown as the range allows once the field is left

@@ -8,7 +8,7 @@ func _walk(n: Node, out: Array, test: Callable) -> void:
 	if test.call(n): out.append(n)
 	for c in n.get_children(): _walk(c, out, test)
 ## where the writing inside `r` sits relative to the middle of `r`: Vector2 error in units, or INF when nothing was found
-func _content_error(img: Image, r: Rect2, rs: float, inset: Vector2) -> Vector2:
+func _content_error(img: Image, r: Rect2, rs: float, inset: Vector2, thr: float = 0.22) -> Vector2:
 	var x0 := int((r.position.x + inset.x) * rs); var x1 := int((r.end.x - inset.x) * rs)
 	var y0 := int((r.position.y + inset.y) * rs); var y1 := int((r.end.y - inset.y) * rs)
 	if x0 < 0 or y0 < 0 or x1 >= img.get_width() or y1 >= img.get_height() or x1 <= x0 or y1 <= y0: return Vector2.INF
@@ -21,7 +21,7 @@ func _content_error(img: Image, r: Rect2, rs: float, inset: Vector2) -> Vector2:
 	var w := x1 - x0
 	var cx0 := 1 << 30; var cx1 := -1; var cy0 := 1 << 30; var cy1 := -1
 	for i in lum.size():
-		if absf(lum[i] - med) > 0.22:
+		if absf(lum[i] - med) > thr:
 			var xx2: int = x0 + i % w; var yy2: int = y0 + i / w
 			cx0 = mini(cx0, xx2); cx1 = maxi(cx1, xx2); cy0 = mini(cy0, yy2); cy1 = maxi(cy1, yy2)
 	if cx1 < 0: return Vector2.INF
@@ -46,78 +46,81 @@ func _init() -> void:
 	g.gold[g.human_id] = 3000.0
 	main._open_amount("recruit", home)
 	for i in 30: await process_frame
-	var card: TBRecruitCard = main._amount_card
-	var box: Control = card._box
-	var br := box.get_global_rect()
-	print("card %s  box x %.1f..%.1f" % [str(card.get_global_rect()), br.position.x, br.end.x])
-	var n := 0
-	for c in box.get_children():
-		if not (c is Control) or not (c as Control).visible: continue
-		var r := (c as Control).get_global_rect()
-		print("  row %d %-18s x %.1f..%.1f  y %.1f h %.1f  min %s" % [n, c.get_class(), r.position.x, r.end.x, r.position.y, r.size.y, str((c as Control).get_combined_minimum_size())])
-		_check(absf(r.position.x - br.position.x) < 0.6, "row %d starts at the card's content edge (%.1f vs %.1f)" % [n, r.position.x, br.position.x])
-		_check(absf(r.end.x - br.end.x) < (1.5 if c is Label else 0.6), "row %d ends at the card's content edge (%.1f vs %.1f)" % [n, r.end.x, br.end.x])          # a tracked title carries one letter-space after its last letter
-		n += 1
-	# the picker's row: stepper plates, slider, number
-	var sl: Array = []; _walk(card, sl, func(x): return x is HSlider)
-	var btn: Array = []; _walk(card, btn, func(x): return x is Button and (x as Button).is_visible_in_tree())
-	_check(sl.size() == 1, "one slider")
-	var minus_r := Rect2(); var plus_r := Rect2()
+	var bar: TBRecruitCard = main._amount_card
+	var br := bar.get_global_rect()
+	var hr := main.get_global_rect()
+	print("bar %s  host %s" % [str(br), str(hr)])
+	_check(absf(br.get_center().x - hr.get_center().x) <= 1.0, "the bar is centred on the screen")
+	_check(br.end.y <= hr.end.y - 60.0 and br.end.y >= hr.end.y - 120.0, "the bar sits above the lens bar (bottom edge %.0f of %.0f)" % [br.end.y, hr.end.y])
+	_check(br.position.x >= hr.position.x and br.end.x <= hr.end.x, "the bar is inside the screen")
+	var btn: Array = []; _walk(bar, btn, func(x): return x is Button and (x as Button).is_visible_in_tree())
+	var sl: Array = []; _walk(bar, sl, func(x): return x is HSlider)
+	var ed: Array = []; _walk(bar, ed, func(x): return x is LineEdit)
+	_check(sl.size() == 1 and ed.size() == 1, "one slider and one number field")
+	var minus: Button = null; var plus: Button = null; var okb: Button = bar._ok; var nob: Button = bar._cancel
 	for b in btn:
-		if (b as Button).text == "−": minus_r = (b as Control).get_global_rect()
-		elif (b as Button).text == "+": plus_r = (b as Control).get_global_rect()
-	if sl.size() == 1 and minus_r.size.x > 0.0 and plus_r.size.x > 0.0:
-		var srect := (sl[0] as Control).get_global_rect()
-		print("  slider x %.1f..%.1f  minus ..%.1f  plus %.1f.." % [srect.position.x, srect.end.x, minus_r.end.x, plus_r.position.x])
-		_check(srect.position.x - 14.5 >= minus_r.end.x - 1.0, "the thumb at the bottom does not reach the minus plate")
-		_check(srect.end.x + 14.5 <= plus_r.position.x + 1.0, "the thumb at the top does not reach the plus plate")
-	# the share buttons: equal cells in one band, equal heights
-	var cells: Array = []
-	for b in btn:
-		var t: String = (b as Button).text
-		if t.ends_with("%"): cells.append(b)
-	if cells.size() >= 2:
-		var w0: float = (cells[0] as Control).size.x; var h0: float = (cells[0] as Control).size.y
-		for cc in cells:
-			_check(absf((cc as Control).size.x - w0) < 1.0 and absf((cc as Control).size.y - h0) < 1.0, "share cells are the same size (%s)" % (cc as Button).text)
-	# the two buttons: same height; writing centred; the number field's figure centred
-	for i in 3: await process_frame
+		if (b as Button).text == "−": minus = b
+		elif (b as Button).text == "+": plus = b
+	_check(minus != null and plus != null, "both steppers are there")
+	# one row: every part centred on one line
+	var parts := {"province block": (bar._price.get_parent() as Control), "minus": minus, "slider": sl[0], "plus": plus, "number": ed[0], "confirm": okb, "cancel": nob}
+	var cy0: float = (parts["minus"] as Control).get_global_rect().get_center().y
+	for k in parts:
+		var r2 := (parts[k] as Control).get_global_rect()
+		print("  %-14s x %.1f..%.1f  y %.1f..%.1f  centre y %.1f" % [k, r2.position.x, r2.end.x, r2.position.y, r2.end.y, r2.get_center().y])
+		if k != "slider": _check(absf(r2.get_center().y - cy0) <= 1.0, "%s is on the row's centre line (%.1f vs %.1f)" % [k, r2.get_center().y, cy0])
+	for k2 in parts:
+		var r4 := (parts[k2] as Control).get_global_rect()
+		_check(r4.position.x >= br.position.x and r4.end.x <= br.end.x - 8.0, "%s is inside the bar with its padding (%.1f..%.1f in %.1f..%.1f)" % [k2, r4.position.x, r4.end.x, br.position.x, br.end.x])
+	var okr := okb.get_global_rect(); var nor := nob.get_global_rect()
+	_check(absf(okr.size.x - nor.size.x) < 0.6 and absf(okr.size.y - nor.size.y) < 0.6 and okr.size.x >= 40.0, "the two plates are the same size and wide enough for an icon (%s / %s)" % [str(okr.size), str(nor.size)])
+	var srect := (sl[0] as Control).get_global_rect()
+	var minus_r := minus.get_global_rect(); var plus_r := plus.get_global_rect()
+	_check(srect.position.x - 14.5 >= minus_r.end.x - 1.0 and srect.end.x + 14.5 <= plus_r.position.x + 1.0, "the thumb stays clear of both steppers")
+	_check(srect.size.x >= (220.0 if sc < 1.5 else 150.0), "the slider is long (%.0f units)" % srect.size.x)
+	# the preset marks stay between the steppers
+	var slb := sl[0] as TBBzParts.BzSlider
+	_check(slb.labels.size() >= 3, "preset marks are there (%d)" % slb.labels.size())
+	var lf: Font = TBKit.cinzel(500); var lz: float = TBKit.fsf(10.5)
+	var first: Dictionary = slb.labels[0]; var last: Dictionary = slb.labels[slb.labels.size() - 1]
+	var tw1: float = TBBz.tw(lf, String(first["t"]), lz, 0.0); var tw2: float = TBBz.tw(lf, String(last["t"]), lz, 0.0)
+	var fx: float = srect.position.x + clampf(srect.size.x * float(first["r"]) - tw1 * 0.5, -10.0, srect.size.x + 12.0 - tw1)          # the slider pulls its end marks inside the same limits
+	var lx: float = srect.position.x + clampf(srect.size.x * float(last["r"]) - tw2 * 0.5, -10.0, srect.size.x + 12.0 - tw2) + tw2
+	_check(fx >= minus_r.end.x + 2.0 and lx <= plus_r.position.x - 2.0, "the first and last marks stay clear of the steppers (%.1f..%.1f vs %.1f..%.1f)" % [fx, lx, minus_r.end.x, plus_r.position.x])
+	# tapping a mark jumps the number
+	var before: int = bar.picker.value
+	var hi: int = bar.picker.hi
+	slb.label_picked.emit(slb.labels.size() - 1)
+	await process_frame
+	_check(bar.picker.value == hi, "tapping the last mark takes everything (%d of %d)" % [bar.picker.value, hi])
+	slb.label_picked.emit(2)
+	await process_frame
+	_check(bar.picker.value == int(slb.labels[2]["n"]), "tapping a middle mark jumps to it (%d)" % bar.picker.value)
+	bar.picker.set_value(before)
+	# the pictures
+	for i in 6: await process_frame
 	var img: Image = root.get_viewport().get_texture().get_image()
-	var rs: float = float(img.get_width()) / main.get_global_rect().size.x
+	var rs: float = float(img.get_width()) / hr.size.x
 	var worst := 0.0
-	var allow := 2.0
-	for b in btn:
-		var bb := b as Button
-		if bb.text == "" or bb.text == "−" or bb.text == "+" or bb.disabled: continue
-		var e := _content_error(img, bb.get_global_rect(), rs, Vector2(10.0, 5.0))
-		if e == Vector2.INF: continue
-		worst = maxf(worst, maxf(absf(e.x), absf(e.y)) - maxf(0.0, 0.06 * bb.size.y - 2.0))                 # up to 6 % of the button's height: the kit centres the line box, capitals sit a little high
-		print("  button '%s' %.0fx%.0f: content off the middle by (%.2f, %.2f)" % [bb.text, bb.size.x, bb.size.y, e.x, e.y])
-	_check(worst <= 2.0, "what is written on a button is centred on it (worst %.2f)" % worst)
-	var segs: Array = []; _walk(card, segs, func(x): return x is Control and x.get_script() != null and x.has_signal("chosen") and x.has_method("set_current"))
-	_check(segs.size() == 1, "the share presets are there")
-	if segs.size() == 1:
-		var sg := (segs[0] as Control).get_global_rect()
-		print("  presets x %.1f..%.1f (card content %.1f..%.1f) h %.1f" % [sg.position.x, sg.end.x, br.position.x, br.end.x, sg.size.y])
-		_check(absf(sg.position.x - br.position.x) < 0.6 and absf(sg.end.x - br.end.x) < 0.6, "the presets span the card's content width")
-		var cw: float = (sg.size.x - 6.0) / 4.0
-		var cworst := 0.0
-		for q in 4:
-			var cell := Rect2(sg.position.x + 3.0 + q * cw, sg.position.y + 3.0, cw, sg.size.y - 6.0)
-			var e3 := _content_error(img, cell, rs, Vector2(4.0, 3.0))
-			if e3 == Vector2.INF: continue
-			cworst = maxf(cworst, maxf(absf(e3.x), absf(e3.y)))
-			print("  preset %d: figure off the cell's middle by (%.2f, %.2f)" % [q, e3.x, e3.y])
-		_check(cworst <= 1.3, "the figures stand in the middle of their cells (worst %.2f)" % cworst)
-	var edits: Array = []; _walk(card, edits, func(x): return x is LineEdit)
-	for ed in edits:
-		var er := (ed as LineEdit).get_global_rect()
-		var e2 := _content_error(img, er, rs, Vector2(8.0, 6.0))
-		print("  number field %.0fx%.0f: figure off the middle by %s" % [er.size.x, er.size.y, str(e2)])
-		if e2 != Vector2.INF: _check(absf(e2.y) <= maxf(1.5, 0.03 * er.size.y), "the figure in the number field is centred vertically (%.2f)" % e2.y)
+	for pair in [[minus, "minus sign"], [plus, "plus sign"]]:
+		var bb := pair[0] as Button
+		var e := _content_error(img, bb.get_global_rect(), rs, Vector2(8.0, 8.0), 0.12)
+		print("  %s in its ring: off the middle by %s" % [pair[1], str(e)])
+		if e != Vector2.INF: worst = maxf(worst, maxf(absf(e.x), absf(e.y)))
+	_check(worst <= 0.9, "the stepper signs are in the middle of their rings (worst %.2f)" % worst)
+	worst = 0.0
+	for pair in [[okb, "check"], [nob, "cross"]]:
+		var bb2 := pair[0] as Button
+		var e2 := _content_error(img, bb2.get_global_rect(), rs, Vector2(10.0, 5.0))
+		print("  %s on its plate: off the middle by %s" % [pair[1], str(e2)])
+		if e2 != Vector2.INF: worst = maxf(worst, maxf(absf(e2.x), absf(e2.y)))
+	_check(worst <= 0.9, "the icons are in the middle of their plates (worst %.2f)" % worst)
+	var er := (ed[0] as LineEdit).get_global_rect()
+	var e3 := _content_error(img, er, rs, Vector2(6.0, 5.0))
+	print("  number in its field %.0fx%.0f: off the middle by %s" % [er.size.x, er.size.y, str(e3)])
+	if e3 != Vector2.INF: _check(absf(e3.x) <= 1.0 and absf(e3.y) <= maxf(1.0, 0.03 * er.size.y), "the number is in the middle of its field (%s)" % str(e3))
 	if OS.get_environment("TB_SHOT") != "":
-		var cr := card.get_global_rect()
-		var crop := img.get_region(Rect2i(int((cr.position.x - 20.0) * rs), int((cr.position.y - 20.0) * rs), int((cr.size.x + 40.0) * rs), int((cr.size.y + 40.0) * rs)))
+		var crop := img.get_region(Rect2i(int((br.position.x - 20.0) * rs), int((br.position.y - 20.0) * rs), int((br.size.x + 40.0) * rs), int((br.size.y + 40.0) * rs)))
 		crop.save_png(OS.get_environment("TB_SHOT"))
 	print("RECRUIT_GRID OK" if fails == 0 else "RECRUIT_GRID FAIL %d" % fails)
 	quit(fails)

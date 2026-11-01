@@ -425,6 +425,8 @@ class Gauge extends Control:
 class BzSlider extends HSlider:
 	var show_nums := true
 	var zone_from := -1.0            # value where the hatched zone starts (to the max); < 0 = none
+	var labels: Array = []           # [{r: position 0..1, t: text, on: bool}] drawn in place of the numerals; a tap on one emits label_picked(index)
+	signal label_picked(i: int)
 	var _hot := false
 	var _drag := false
 	func _init() -> void:
@@ -444,6 +446,14 @@ class BzSlider extends HSlider:
 	func _c(col: Color) -> Color: return TBBz.dim(col, 0.3, 0.4) if not editable else col
 	func _enter_tree() -> void:
 		custom_minimum_size.y = 40.0 if TBKit.is_phone(self) else 44.0                 # `.phone .slr{height:40px}`
+	func _gui_input(e: InputEvent) -> void:
+		if labels.is_empty() or not (e is InputEventMouseButton) or not e.pressed or e.button_index != MOUSE_BUTTON_LEFT or e.position.y < 27.0: return
+		var best := -1; var bd := 1e9
+		for i in labels.size():
+			var d: float = absf(e.position.x - size.x * float(labels[i]["r"]))
+			if d < bd: bd = d; best = i
+		if best >= 0 and bd <= 26.0:
+			label_picked.emit(best); accept_event()
 	func _draw() -> void:
 		var ci := get_canvas_item()
 		var w: float = size.x
@@ -476,8 +486,17 @@ class BzSlider extends HSlider:
 		for q in [0.0, 0.25, 0.5, 0.75]: draw_rect(Rect2(roundf(w * q), 25, 1, 8), br)
 		draw_rect(Rect2(w - 1.0, 25, 1, 8), br)
 		for k2 in 20: draw_rect(Rect2(roundf(w * k2 * 0.05), 25, 1, 4), lo)
+		if not labels.is_empty():                                              # preset marks: each stands under the place its value takes on the track
+			var lf: Font = TBKit.cinzel(500)
+			var lz: float = TBKit.fsf(10.5); var lsp: float = TBKit.trk(lz, 0.08)
+			var lbl: float = TBBz.baseline(lf, lz, 32.0, 13.0, 13.0)
+			for lb in labels:
+				var tw2: float = TBBz.tw(lf, String(lb["t"]), lz, lsp) - lsp
+				var lx: float = clampf(w * float(lb["r"]) - tw2 * 0.5, -10.0, w + 12.0 - tw2)
+				var lcol: Color = _c(TBTokens.c("brass_lt")) if bool(lb.get("on", false)) else _c(TBTokens.c("ink_1"))
+				TBBz.text(ci, lf, Vector2(lx, lbl), String(lb["t"]), lz, lcol, lsp)
 		# numerals: Cinzel 500 9.5 tracked .1em, spread edge to edge
-		if show_nums and not phn:
+		elif show_nums and not phn:
 			var f: Font = TBKit.cinzel(500)
 			var z: float = TBKit.fsf(9.5); var sp: float = TBKit.trk(z, 0.1)
 			var labs: Array = ["0", "25", "50", "75", "100"]
@@ -545,11 +564,11 @@ class Stp extends Button:
 		TBBz.round_btn(ci, c, minf(size.x, size.y), TBBz.dim(ring, 0.3, 0.4) if off else ring, hot)
 		var f: Font = TBKit.alegreya(700)
 		var z: float = TBKit.fsf(19.0 * minf(size.x, size.y) / 34.0)
-		var tw: float = TBBz.tw(f, _txt, z)
 		var ink: Color = TBTokens.BZ_WHITE if hot else TBTokens.c("brass_lt")
 		if TBTokens.is_hc(): ink = TBTokens.c("ink_0")
 		if off: ink = TBBz.dim(ink, 0.3, 0.4)
-		TBBz.text(ci, f, Vector2(c.x - tw * 0.5, TBBz.baseline(f, z, 0.0, size.y, z)), _txt, z, ink)
+		var ib: Rect2 = TBKit.ink_box(f, int(round(z)), _txt)                         # the sign itself, not its line box, sits in the middle of the ring
+		TBBz.text(ci, f, c - (ib.position + ib.size * 0.5) + Vector2(0.0, 0.0), _txt, z, ink)
 		TBBz.unshift(ci)
 		if (has_focus() and TBFrame.kbd_nav) or preview_state == "focus": TBBz.ring_stroke(ci, c, 17.0 + 4.0, 2.0, TBTokens.c("brass_lt") if not TBTokens.is_hc() else TBTokens.c("ink_0"))
 
