@@ -239,7 +239,7 @@ static func _tick(g: TBGame) -> void:
 			if g.econ[p] < 5 and g.rng.next() < invest_chance: g.econ[p] += 1
 			if g.dev[p] < dev_cap and g.rng.next() < invest_chance * (0.5 if g.rules < 2 else 0.15) and (g.rules < 2 or g.job_fill(p, g.dev[p] + 1) >= 0.9): g.dev[p] += 1       # districts: slow organic growth, and only where the people are there to staff it
 			if g.rules >= 1:
-				if rebel_chance > 0.0 and g.capital[p] == 0 and spawned < REB_MAX_PER_TURN and g.stab[p] < REB_THRESHOLD and g.rng.next() < rebel_hazard(g, p, rebel_chance):
+				if rebel_chance > 0.0 and g.capital[p] == 0 and (g.rules < 4 or g.occupier[p] == 0) and spawned < REB_MAX_PER_TURN and g.stab[p] < REB_THRESHOLD and g.rng.next() < rebel_hazard(g, p, rebel_chance):
 					rebels_to_spawn.append(p); spawned += 1
 			elif rebel_chance > 0.0 and g.capital[p] == 0 and g.stab[p] < 30 and g.rng.next() < rebel_chance:
 				rebels_to_spawn.append(p)
@@ -342,11 +342,11 @@ static func _rebel_lifecycle(g: TBGame, own: PackedInt32Array) -> void:
 		if not gone and g.reb_age[p] >= 6 and g.army[p] < 20 and g.occupier[p] == 0:
 			var cap := g.capital_of[former]
 			var calm: float = clampf((g.stab[cap] if cap >= 0 else 40) / 60.0, 0.0, 1.2)
-			if g.rng.chance(REB_RECON * calm):
+			if g.rng.chance(REB_RECON * calm * (2.0 if g.rules >= 4 else 1.0)):
 				g.cede(p, former); g.stab[p] = 45; g.happy[p] = mini(100, g.happy[p] + 10); g.army[p] = maxi(1, g.army[p] / 2); g.touch(p)
 				g.log.append({"turn": g.turn, "kind": "reconciled", "a": former, "p": p})
 				continue
-		if gone or g.reb_age[p] >= REB_DISSOLVE:
+		if gone or g.reb_age[p] >= (REB_DISSOLVE if g.rules < 4 else REB_DISSOLVE * 2 / 3):
 			var was := former
 			g.set_owner(p, 0); g.occupier[p] = 0; g.stab[p] = 50; g.army[p] = maxi(2, g.army[p] / 3); g.touch(p)
 			g.log.append({"turn": g.turn, "kind": "rebels_end", "a": was, "p": p})

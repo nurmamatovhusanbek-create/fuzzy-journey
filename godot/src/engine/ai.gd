@@ -190,7 +190,12 @@ static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		var atk := g.army[p] * 0.9
 		var dfn := g.army[q] * g.def_mul(q) + 1.0
 		var score := atk / dfn + g.province_value(q) * 0.05 + (1.0 if g.capital[q] != 0 else 0.0)
-		if atk > dfn * (1.1 if g.rules == 0 else float(D.AGGRESSION[g.aggr_level]["atk"])): cands.append([score, p, q])
+		if g.rules >= 4:                                                      # the same three-round battle the player sees: attack only when the expected outcome is a win that leaves an army to hold the land
+			var pv := g.combat_preview(n, p, q, 0)
+			var worst_ok: bool = bool((pv["range"] as Dictionary)["worst"]["win"])
+			if not bool(pv["win"]) or int(pv["hold"]) < 6 or (not worst_ok and g.rng.chance(0.5)): continue
+			cands.append([score - float(pv["lost"]) / maxf(1.0, float(pv["send"])), p, q])
+		elif atk > dfn * (1.1 if g.rules == 0 else float(D.AGGRESSION[g.aggr_level]["atk"])): cands.append([score, p, q])
 	cands.sort_custom(func(a, b):
 		if a[0] != b[0]: return a[0] > b[0]
 		if a[1] != b[1]: return a[1] < b[1]
@@ -239,6 +244,7 @@ static func _seek_peace(g: TBGame, n: int) -> void:
 				g.apply({"cmd": "peace", "n": n, "t": o, "kind": "white", "_force": true})
 			continue
 		var losing := theirs - mine
+		if g.rules >= 4: losing += (g.exh[n] - g.exh[o]) * 0.3                   # a worn-out government looks for peace sooner
 		if losing > 15 or (dur > (8 if g.rules == 0 else 14) and absi(losing) < 12 and g.rng.chance(0.3)):
 			var force: bool = (not accepts_peace(g, o, n, "white")) and losing > 35
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "cede" if mine >= 25 else "white", "_force": force})
@@ -345,5 +351,5 @@ static func _districts(g: TBGame, n: int, own: PackedInt32Array, pers: Dictionar
 
 ## rules 4: men the AI may raise from p without draining it (it keeps 40 % of the cap at home in peace, 15 % at war: a drained province sulks and grows slowly)
 static func _levy_spare(g: TBGame, p: int, at_war: bool) -> int:
-	var keep := int(float(g.levy_cap(p)) * (0.15 if at_war else 0.40))
+	var keep := int(float(g.levy_cap(p)) * (0.27 if at_war else 0.40))
 	return mini(g.recruit_range(p).y, g.levy[p] - keep)
