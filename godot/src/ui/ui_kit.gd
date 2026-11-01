@@ -1399,13 +1399,13 @@ class ToggleRow extends Button:
 	var on := false
 	var _word: Label
 	var _sw: Control
-	func _init(label_text: String, value: bool, cb: Callable) -> void:
+	func _init(label_text: String, value: bool, cb: Callable, inset: float = 12.0) -> void:
 		on = value
 		flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		custom_minimum_size = Vector2(0, TBKit.touch())
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		var row := TBKit.hbox(10); row.set_anchors_preset(Control.PRESET_FULL_RECT); row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.offset_left = 12; row.offset_right = -12
+		row.offset_left = inset; row.offset_right = -inset
 		add_child(row)
 		var l := TBKit.label(label_text, 15); l.add_theme_font_override("font", TBKit.body_b())
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -1459,8 +1459,9 @@ class ToggleRow extends Button:
 		if absf(custom_minimum_size.y - want) > 0.5: custom_minimum_size.y = want
 		if size.y > want + 0.5 and want <= float(TBKit.touch()) + 0.5: reset_size()
 
-static func toggle(text: String, value: bool, cb: Callable = Callable()) -> Button:
-	return ToggleRow.new(text, value, cb)
+## `inset`: the row's content sits this far from the row's own edges (12 in a list of rows; 0 where the row shares a column with plates and buttons, so its label and its switch land on the column's edges)
+static func toggle(text: String, value: bool, cb: Callable = Callable(), inset: float = 12.0) -> Button:
+	return ToggleRow.new(text, value, cb, inset)
 
 ## visual twin of a sound / alert (A11Y-AUD-006): an "Alert" glyph + word + the caption on a bar plate. kind: info | warn | neg
 static func alert_strip(text: String, kind: String = "info") -> Control:

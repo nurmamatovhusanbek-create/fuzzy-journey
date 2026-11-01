@@ -23,7 +23,7 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 	body.add_child(K.para_bz(T.call("terms_table_hint"), 15.0, 1.3))
 	var total := K.label("", 16)
 	var why := K.label("", 14, TBTokens.BZ_BAD_TXT); why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; why.visible = false
-	var offer: Button
+	var ui := {}                                                          # the Offer button, reached through a dictionary: a lambda copies plain variables when it is made
 	var refresh := func() -> void:
 		var cmd := {"cmd": "peaceDeal", "n": me, "t": enemy, "provs": st["provs"], "gold": st["gold"], "vassal": st["vassal"], "disarm": st["disarm"]}
 		var c := g.can(cmd)
@@ -33,7 +33,7 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 		total.text = T.call("terms_total", {"n": int(ceil(pts)), "m": int(floor(lim))})
 		total.add_theme_color_override("font_color", TBTokens.BZ_BAD_TXT if not bool(c.get("ok", false)) and pts > 0.0 else TBTokens.BZ_IVORY)
 		var empty: bool = (st["provs"] as Array).is_empty() and int(st["gold"]) == 0 and int(st["vassal"]) == 0 and int(st["disarm"]) == 0
-		offer.disabled = not bool(c.get("ok", false)) or empty
+		(ui["offer"] as Button).disabled = not bool(c.get("ok", false)) or empty
 		var rk: String = "err_" + String(c.get("reason", ""))
 		why.text = "" if (bool(c.get("ok", false)) or empty) else (T.call(rk) if TBI18n.has_key(rk) else String(c.get("reason", "")))
 		why.visible = why.text != ""
@@ -45,11 +45,12 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 	for o in offs:
 		var pv: int = int(o["p"])
 		var label := "%s · %s" % [TBI18n.place(g.world.name[pv]), T.call("pts_n", {"n": "%.1f" % float(o["cost"])})]
-		body.add_child(K.toggle(label, false, func(on: bool) -> void:
+		var pick := func(on: bool) -> void:
 			var arr: Array = st["provs"]
 			if on: arr.append(pv)
 			else: arr.erase(pv)
-			refresh.call()))
+			refresh.call()
+		body.add_child(K.toggle(label, false, pick, 0.0))
 	# ---- gold, a vassal, disarmament
 	var room: int = TBPeace.gold_room(g, enemy)
 	if room > 0:
@@ -58,16 +59,23 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 		body.add_child(K.slider_row(T.call("gold"), 0.0, float(room), 1.0, 0.0, func(v: float) -> void:
 			st["gold"] = int(v); refresh.call(),
 			func(v: float) -> String: return "%d" % int(round(v * per))))
-	body.add_child(K.toggle("%s · %s" % [T.call("terms_vassal"), T.call("pts_n", {"n": int(TBPeace.VASSAL_PTS)})], false, func(on: bool) -> void: st["vassal"] = 1 if on else 0; refresh.call()))
-	body.add_child(K.toggle("%s · %s" % [T.call("terms_disarm"), T.call("pts_n", {"n": int(TBPeace.DISARM_PTS)})], false, func(on: bool) -> void: st["disarm"] = 1 if on else 0; refresh.call()))
+	var set_vassal := func(on: bool) -> void:
+		st["vassal"] = 1 if on else 0
+		refresh.call()
+	var set_disarm := func(on: bool) -> void:
+		st["disarm"] = 1 if on else 0
+		refresh.call()
+	body.add_child(K.toggle("%s · %s" % [T.call("terms_vassal"), T.call("pts_n", {"n": int(TBPeace.VASSAL_PTS)})], false, set_vassal, 0.0))
+	body.add_child(K.toggle("%s · %s" % [T.call("terms_disarm"), T.call("pts_n", {"n": int(TBPeace.DISARM_PTS)})], false, set_disarm, 0.0))
 	var row := K.hbox(8)
 	var white := K.button(T.call("terms_white"), func() -> void:
 		if on_cmd.is_valid(): on_cmd.call({"cmd": "peaceDeal", "t": enemy})
 		h.close(), false, false, "flag")
-	offer = K.button(T.call("terms_offer"), func() -> void:
+	var offer: Button = K.button(T.call("terms_offer"), func() -> void:
 		var cmd := {"cmd": "peaceDeal", "t": enemy, "provs": (st["provs"] as Array).duplicate(), "gold": st["gold"], "vassal": st["vassal"], "disarm": st["disarm"]}
 		if on_cmd.is_valid(): on_cmd.call(cmd)
 		h.close(), true, false, "envoys")
+	ui["offer"] = offer
 	offer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(white); row.add_child(offer)
 	body.add_child(total); body.add_child(why); body.add_child(row)
