@@ -95,7 +95,18 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"spy":
 			if not involves(e, g.human_id): return ""
 			var op: String = T.call("spy_" + String(e["op"]))
-			return T.call("e_spy_hit", {"a": a, "op": op}) if e["ok"] else T.call("e_spy_caught", {"a": a})
+			var cutl := ""
+			for cx in e.get("cut", []): cutl += (", " if cutl != "" else "") + T.call("spy_cut_" + String(cx))
+			var other: String = g.dname(int(e["b"])) if int(e["a"]) == g.human_id else a
+			var tx: String
+			if int(e["a"]) == g.human_id:                                                   # your own agents
+				tx = T.call("e_spy_done", {"b": other, "op": op}) if e["ok"] else T.call("e_spy_lost", {"b": other})
+				if bool(e.get("caught", false)) or bool(e.get("traced", false)): tx += " " + T.call("e_spy_exposed")
+			else:                                                                           # somebody's agents in your land
+				tx = T.call("e_spy_hit", {"a": a, "op": op}) if e["ok"] else T.call("e_spy_caught", {"a": a})
+				if bool(e.get("traced", false)): tx += " " + T.call("e_spy_traced")
+			if cutl != "": tx += " " + T.call("e_spy_cut", {"a": other, "what": cutl})
+			return tx
 		"event":
 			var t: String = T.call("ev_%s_t" % e["id"]) if TBI18n.has_key("ev_%s_t" % e["id"]) else _loc(e.get("title", {}))
 			return t if a == "" or e.get("world", false) else "%s: %s" % [a, t]

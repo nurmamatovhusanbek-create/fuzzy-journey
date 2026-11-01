@@ -432,6 +432,7 @@ static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 	g.intel[n] -= cost
 	var tech_gap := g.tech_level[n] - g.tech_level[t]
 	var chance := clampf(0.60 + tech_gap * 0.08, 0.25, 0.9)
+	if g.rules >= 4: chance = TBSpy.chance(g, n, t, op)
 	var ok := g.rng.next() < chance
 	if ok and g.rules >= 1: g.see_until[n * g.N1 + t] = g.turn + TBVision.SPY_TURNS                # a report from their court: their armies stay in view for a while
 	var own := g.owned(t)
@@ -452,10 +453,12 @@ static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 				var best := own[0]
 				for p in own: if g.stab[p] < g.stab[best]: best = p
 				g.stab[best] = maxi(5, g.stab[best] - 30); g.touch(best)
-	else:
+	elif g.rules < 4:
 		TBDiplo.hurt(g, t, n, 25)
-	g.log.append({"turn": g.turn, "kind": "spy", "a": n, "b": t, "op": op, "ok": ok})
-	return {"ok": true, "success": ok}
+	var cons := {"caught": false, "traced": false, "cut": []}
+	if g.rules >= 4: cons = TBSpy.consequences(g, n, t, op, ok)
+	g.log.append({"turn": g.turn, "kind": "spy", "a": n, "b": t, "op": op, "ok": ok, "caught": bool(cons["caught"]), "traced": bool(cons["traced"]), "cut": cons["cut"]})
+	return {"ok": true, "success": ok, "caught": bool(cons["caught"]), "traced": bool(cons["traced"]), "cut": cons["cut"]}
 
 ## mercenaries: converts gold directly into troops (no manpower), pricey
 static func _c_hire(g: TBGame, c: Dictionary) -> Dictionary:
