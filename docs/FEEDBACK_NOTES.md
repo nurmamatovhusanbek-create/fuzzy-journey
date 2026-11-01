@@ -24,3 +24,12 @@
    player, or all attacks that can be seen.
 
 Also seen in the screenshots: the floating hover card (e.g. "RAJASTHAN · Rajastxon · Tinchlik", "MIN IMPERIYASI · Tinchlik") is still on the map — see item 3, remove it.
+
+## Batch 3 (turn 53 / 64 screenshots). Notes only until the player says go.
+
+9. **An open country card does not refresh.** Send a pact, press End Turn with the Nations / country card still open: the card keeps the old data (relation, the pact button state, answers). It has to update live
+   when the state changes (turn end, a command, an answer arriving), without closing or jumping back.
+10. **The Xalq (people) gauge shows 101 % / 103 %.** Its tooltip reads "1 689 fighters, +80 per turn · People 1 689 / 1 677 · Growth per turn +80 · one soldier costs 12 g · 18" — the levy pool is above its own cap, so the share passes
+    100 %. To fix: the display must never pass 100 %, and the pool should not sit above the cap (find why it gets there: the cap shrinking after growth, recruits returning, conquest). Check the wording of the "at the limit" line too.
+11. **Army counters appear too early when zoomed out.** At the scale of the second screenshot (the Caspian / Central Asia on a phone, about a hundred counters at once) the numbers are not needed. Raise the zoom at which counters appear
+    (the appearance distance "lower than that" view), calibrated on this phone screenshot, for both globe and flat. Today's gate is the same fit rule used for the province pills (`pills_fit`).
