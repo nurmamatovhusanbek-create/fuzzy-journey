@@ -120,7 +120,7 @@ static func _path(d: String) -> Array:
 		var ch: String = d[i]
 		if ch == " " or ch == ",":
 			i += 1; continue
-		if ch in "MmLlHhVvQqTtAaZz":
+		if ch in "MmLlHhVvQqTtAaCcSsZz":
 			cmd = ch; i += 1
 			if ch == "Z" or ch == "z":
 				if cur.size() > 0:
@@ -132,7 +132,7 @@ static func _path(d: String) -> Array:
 		var rel: bool = cmd == cmd.to_lower()
 		var up: String = cmd.to_upper()
 		var args: Array = []
-		var need: int = {"M": 2, "L": 2, "H": 1, "V": 1, "Q": 4, "T": 2, "A": 7}.get(up, 0)
+		var need: int = {"M": 2, "L": 2, "H": 1, "V": 1, "Q": 4, "T": 2, "A": 7, "C": 6, "S": 4}.get(up, 0)
 		var got_first: bool = true
 		while args.size() < need and i < n:
 			if d[i] == " " or d[i] == ",": i += 1; continue
@@ -156,6 +156,16 @@ static func _path(d: String) -> Array:
 				pos = Vector2(pos.x + args[0] if rel else args[0], pos.y); cur.append(pos)
 			"V":
 				pos = Vector2(pos.x, pos.y + args[0] if rel else args[0]); cur.append(pos)
+			"C":
+				var k1: Vector2 = (pos + Vector2(args[0], args[1])) if rel else Vector2(args[0], args[1])
+				var k2: Vector2 = (pos + Vector2(args[2], args[3])) if rel else Vector2(args[2], args[3])
+				var k3: Vector2 = (pos + Vector2(args[4], args[5])) if rel else Vector2(args[4], args[5])
+				_cubic(cur, pos, k1, k2, k3); pos = k3; last_ctrl = k2
+			"S":
+				var s1: Vector2 = pos * 2.0 - last_ctrl if (last_cmd == "C" or last_cmd == "S") else pos
+				var s2: Vector2 = (pos + Vector2(args[0], args[1])) if rel else Vector2(args[0], args[1])
+				var s3: Vector2 = (pos + Vector2(args[2], args[3])) if rel else Vector2(args[2], args[3])
+				_cubic(cur, pos, s1, s2, s3); pos = s3; last_ctrl = s2
 			"Q":
 				var c1: Vector2 = (pos + Vector2(args[0], args[1])) if rel else Vector2(args[0], args[1])
 				var e1: Vector2 = (pos + Vector2(args[2], args[3])) if rel else Vector2(args[2], args[3])
@@ -185,6 +195,12 @@ static func _num(d: String, i: int) -> Array:
 		else: break
 	if j == i or (j == i + 1 and not (d[i] >= "0" and d[i] <= "9")): return [0.0, i]
 	return [float(d.substr(i, j - i)), j]
+
+static func _cubic(out: PackedVector2Array, p0: Vector2, c1: Vector2, c2: Vector2, p1: Vector2) -> void:
+	for k in range(1, 17):
+		var t: float = k / 16.0
+		var u: float = 1.0 - t
+		out.append(p0 * (u * u * u) + c1 * (3.0 * u * u * t) + c2 * (3.0 * u * t * t) + p1 * (t * t * t))
 
 static func _quad(out: PackedVector2Array, p0: Vector2, c: Vector2, p1: Vector2) -> void:
 	for k in range(1, 13):
