@@ -32,7 +32,7 @@ static func fcz(heavy: bool = true) -> Font:
 	var k: String = "cz%d" % int(heavy)
 	if not _fv.has(k):
 		var v := FontVariation.new()
-		v.base_font = K._font("cinzel-latin-700-normal" if heavy else "cinzel-latin-500-normal", ["alegreya-sc-cyrillic-700-normal" if heavy else "alegreya-sc-cyrillic-500-normal"])
+		v.base_font = K._font("display-latin-700-normal" if heavy else "display-latin-500-normal", ["display-cyrillic-700-normal" if heavy else "display-cyrillic-500-normal"])
 		v.variation_embolden = EMBOLDEN
 		_fv[k] = v
 	return _fv[k]
@@ -40,8 +40,8 @@ static func fcz(heavy: bool = true) -> Font:
 static func fal(w: int = 700, italic: bool = false) -> Font:
 	var k: String = "al%d%d" % [w, int(italic)]
 	if not _fv.has(k):
-		var f: String = "alegreya-latin-400-italic" if italic else ("alegreya-latin-%d-normal" % w)
-		var fb: String = "alegreya-cyrillic-400-italic" if italic else ("alegreya-cyrillic-%d-normal" % w)
+		var f: String = "body-latin-400-italic" if italic else ("body-latin-%d-normal" % w)
+		var fb: String = "body-cyrillic-400-italic" if italic else ("body-cyrillic-%d-normal" % w)
 		var v := FontVariation.new(); v.base_font = K._font(f, [fb]); v.opentype_features = {"lnum": 1}; v.variation_embolden = EMBOLDEN
 		_fv[k] = v
 	return _fv[k]

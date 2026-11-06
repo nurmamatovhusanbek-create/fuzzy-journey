@@ -123,12 +123,14 @@ class Mark extends Control:
 		_lines = PackedStringArray()
 		var av: float = _avail()
 		if TBBz.tw(_f(), txt, _sz()) <= av: _lines.append(txt); return
-		var cur := ""
+		var rows: Array = [[]]
 		for wd in txt.split(" ", false):
-			var t: String = wd if cur == "" else cur + " " + wd
-			if cur != "" and TBBz.tw(_f(), t, _sz()) > av: _lines.append(cur); cur = wd
-			else: cur = t
-		if cur != "": _lines.append(cur)
+			var cand: Array = (rows[rows.size() - 1] as Array).duplicate(); cand.append(wd)
+			if not (rows[rows.size() - 1] as Array).is_empty() and TBBz.tw(_f(), " ".join(PackedStringArray(cand)), _sz()) > av: rows.append([wd])
+			else: rows[rows.size() - 1] = cand
+		rows = TBTypo.pull_tail(rows, func(ws: Array) -> float: return TBBz.tw(_f(), " ".join(PackedStringArray(ws)), _sz()), av)
+		for r in rows:
+			if not (r as Array).is_empty(): _lines.append(" ".join(PackedStringArray(r)))
 	func _msize() -> Vector2:
 		_wrap()
 		var w := 0.0
@@ -668,7 +670,7 @@ class Para extends Control:
 		size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		set_markup(m)
 	func set_markup(m: String) -> void:
-		markup = m; _pieces = _parse(m); _lay_w = -1.0
+		markup = m; _pieces = _parse(m); _lay_w = -1.0; _hw = -1.0; _hh = 0.0
 		update_minimum_size(); queue_redraw()
 	func _parse(m: String) -> Array:
 		var out: Array = []
@@ -743,20 +745,49 @@ class Para extends Control:
 		var sp: float = TBBz.tw(face_n, " ", _sz())
 		for w in _words():
 			if bool(w["nl"]):
-				_lines.append({"w": line, "x1": x}); line = []; x = 0.0; continue
+				_lines.append({"w": line, "x1": x}); _tail(sp, width); line = []; x = 0.0; continue
 			var ww: float = _wlen(w)
 			var need: float = ww + (sp if not line.is_empty() else 0.0)
 			if not line.is_empty() and x + need > width + 0.01:
-				_lines.append({"w": line, "x1": x}); line = []; x = 0.0; need = ww
+				_lines.append({"w": line, "x1": x, "soft": true}); line = []; x = 0.0; need = ww
 			var px0: float = x + (sp if not line.is_empty() else 0.0)
 			line.append({"w": w, "x": px0})
 			x = px0 + ww
-		if not line.is_empty(): _lines.append({"w": line, "x1": x})
+		if not line.is_empty(): _lines.append({"w": line, "x1": x}); _tail(sp, width)
+	## no widow: the last line of a paragraph holds three words at the least (it takes them from the soft-wrapped line above)
+	func _tail(sp: float, width: float) -> void:
+		var n: int = _lines.size()
+		if n < 2 or not bool((_lines[n - 2] as Dictionary).get("soft", false)): return
+		var last: Array = []; var prev: Array = []
+		for e in (_lines[n - 1]["w"] as Array): last.append(e["w"])
+		for e in (_lines[n - 2]["w"] as Array): prev.append(e["w"])
+		var wide := func(ws: Array) -> float:
+			var t := 0.0
+			for q in ws: t += _wlen(q)
+			return t + sp * float(maxi(ws.size() - 1, 0))
+		var res: Array = TBTypo.pull_tail([prev, last], wide, width)
+		_lines[n - 2] = _pack(res[0], sp, true); _lines[n - 1] = _pack(res[1], sp, false)
+	func _pack(ws: Array, sp: float, soft: bool) -> Dictionary:
+		var out: Array = []
+		var x := 0.0
+		for q in ws:
+			var px0: float = x + (sp if not out.is_empty() else 0.0)
+			out.append({"w": q, "x": px0}); x = px0 + _wlen(q)
+		var d := {"w": out, "x1": x}
+		if soft: d["soft"] = true
+		return d
+	var _hw := -1.0                   # the width and height this paragraph last asked for
+	var _hh := 0.0
 	func _get_minimum_size() -> Vector2:
 		var w: float = size.x if size.x > 1.0 else (minf(natural_w(), shrink_to) if shrink_to > 0.0 else maxf(natural_w(), 1.0))
 		if shrink_to > 0.0: w = minf(natural_w(), shrink_to)
 		_layout(maxf(w, 20.0))
-		return Vector2(w if shrink_to > 0.0 else 0.0, _lhu() * maxf(_lines.size(), 1))
+		var h: float = _lhu() * maxf(_lines.size(), 1)
+		# a scroll bar that appears takes ~8 units of width, the text then needs fewer lines, the bar goes, the width returns, the lines return ...: within that jitter the height never shrinks
+		var near: bool = _hw > 0.0 and absf(w - _hw) <= 14.0
+		if near and h < _hh: h = _hh
+		_hw = w; _hh = h
+		return Vector2(w if shrink_to > 0.0 else 0.0, h)
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_RESIZED:
 			if not is_equal_approx(size.x, _lay_w): _lay_w = -1.0; update_minimum_size()

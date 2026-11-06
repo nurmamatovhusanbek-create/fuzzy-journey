@@ -29,6 +29,7 @@ var _turn_t0 := 0
 
 func _ready() -> void:
 	theme = K.theme()
+	TBTypo.install(get_tree())
 	_load_cfg()
 	TBI18n.load_lang(cfg["lang"])
 	_apply_a11y()

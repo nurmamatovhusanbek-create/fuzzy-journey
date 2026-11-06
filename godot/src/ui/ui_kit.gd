@@ -230,14 +230,14 @@ static func _inter(w: int) -> Font:
 	return _font("inter-latin-%d-normal" % w, ["inter-cyrillic-%d-normal" % w])
 static func body() -> Font:
 	if serif and TBFrame.bezel: return alegreya(400)               # the demo's body face is Alegreya 400
-	return _font("alegreya-latin-500-normal", ["alegreya-cyrillic-500-normal"]) if serif else _inter(400)
-static func body_b() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _inter(600)
-static func body_m() -> Font: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"]) if serif else _inter(500)
-static func body_i() -> Font: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"]) if serif else _inter(400)
+	return _font("body-latin-500-normal", ["body-cyrillic-500-normal"]) if serif else _inter(400)
+static func body_b() -> Font: return _font("body-latin-700-normal", ["body-cyrillic-700-normal"]) if serif else _inter(600)
+static func body_m() -> Font: return _font("body-latin-700-normal", ["body-cyrillic-700-normal"]) if serif else _inter(500)
+static func body_i() -> Font: return _font("body-latin-400-italic", ["body-cyrillic-400-italic"]) if serif else _inter(400)
 ## Inter 600 is the heavy face for titles and figures; Barlow Condensed 600 for the map (Cyrillic falls back to Inter)
 static func heavy() -> Font: return _inter(600)
 static func map_font() -> Font:
-	if TBFrame.bezel and not readable_fonts: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"])
+	if TBFrame.bezel and not readable_fonts: return _font("body-latin-700-normal", ["body-cyrillic-700-normal"])
 	return _font("barlow-condensed-latin-600-normal", ["inter-cyrillic-600-normal", "inter-latin-600-normal"])
 ## tabular figures: a variation of the font with the `tnum` feature on (columns of numbers align)
 static var _tab := {}
@@ -249,21 +249,21 @@ static func tabular(base: Font) -> Font:
 	return v
 static func display() -> Font:
 	if readable_fonts or not serif: return body_b()
-	return _font("cinzel-latin-700-normal", ["alegreya-sc-cyrillic-700-normal"])
+	return _font("display-latin-700-normal", ["display-cyrillic-700-normal"])
 static func display_hi() -> Font: return display()
 static func display_lo() -> Font: return display()
-static func wordmark() -> Font: return _font("cinzel-latin-900-normal", ["alegreya-sc-cyrillic-900-normal"])
+static func wordmark() -> Font: return _font("display-latin-900-normal", ["display-cyrillic-900-normal"])
 ## JetBrains Mono: figures 700, deltas 400
 static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"]) if (serif and not TBFrame.bezel) else tabular(body())
 static func mono_b() -> Font: return _font("jetbrains-mono-latin-700-normal", ["jetbrains-mono-cyrillic-700-normal"]) if (serif and not TBFrame.bezel) else tabular(body_b())
 ## ---- the demo's faces (bezel.css): Cinzel 500 / 700 caps, Alegreya 400 / 500 / 700 and 400 italic, JetBrains Mono. Readable fonts swap Cinzel for Alegreya Bold.
 static func cinzel(w: int = 700) -> Font:
-	if readable_fonts: return _font("alegreya-latin-700-normal", ["alegreya-cyrillic-700-normal"])
-	return _font("cinzel-latin-%d-normal" % (500 if w < 600 else 700), ["alegreya-sc-cyrillic-%d-normal" % (500 if w < 600 else 700)])
+	if readable_fonts: return _font("body-latin-700-normal", ["body-cyrillic-700-normal"])
+	return _font("display-latin-%d-normal" % (500 if w < 600 else 700), ["display-cyrillic-%d-normal" % (500 if w < 600 else 700)])
 static func alegreya(w: int = 400, italic: bool = false) -> Font:
-	if italic: return _font("alegreya-latin-400-italic", ["alegreya-cyrillic-400-italic"])
+	if italic: return _font("body-latin-400-italic", ["body-cyrillic-400-italic"])
 	var ww: int = 400 if w < 450 else (500 if w < 600 else 700)
-	return _font("alegreya-latin-%d-normal" % ww, ["alegreya-cyrillic-%d-normal" % ww])
+	return _font("body-latin-%d-normal" % ww, ["body-cyrillic-%d-normal" % ww])
 static func jbm(bold: bool = false) -> Font:
 	var ww: int = 700 if bold else 400
 	return _font("jetbrains-mono-latin-%d-normal" % ww, ["jetbrains-mono-cyrillic-%d-normal" % ww])

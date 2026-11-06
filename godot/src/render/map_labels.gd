@@ -375,7 +375,7 @@ func _project_v(u: Vector3, c0: float, s0: float, sl: float, cl: float, R: float
 
 ## the demo's label face: Cinzel 500 with 2.4 tracking
 static func label_font() -> Font:
-	return TBKit.tracked(TBKit._font("cinzel-latin-500-normal", ["alegreya-sc-cyrillic-500-normal"]), 2)
+	return TBKit.tracked(TBKit._font("display-latin-500-normal", ["display-cyrillic-500-normal"]), 2)
 
 ## tests: every name drawn is recorded as [frame, kind, key, position, size] so the smoothness of the names while the camera moves can be measured
 static var force_cost_ms := 0.0          # tests: pretend a layout costs this much (a slow phone: the map throttles relayouts while the camera moves)

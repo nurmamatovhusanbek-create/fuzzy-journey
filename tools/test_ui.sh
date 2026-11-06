@@ -110,6 +110,12 @@ out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --pa
 echo "$out" | grep -q "REL_CARD OK" && echo "ok: rel_card" || { echo "FAIL: rel_card"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/build_stable.gd -- 1280 800 2>&1)
 echo "$out" | grep -q "BUILD_STABLE OK" && echo "ok: build_stable" || { echo "FAIL: build_stable"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+# no widows: no wrapped text ends on a line of one or two words (every language, desktop and phone sideways)
+for cfg in "en 1280 800 desktop" "ru 1280 800 desktop" "uz 1280 800 desktop" "en 852 393 compact" "ru 852 393 compact" "uz 852 393 compact"; do
+  set -- $cfg
+  out=$(TB_LANG=$1 TB_PHONE_UI=$4 TB_NOANIM=1 timeout 400 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/widow_scan.gd -- $2 $3 2>&1)
+  echo "$out" | grep -q "WIDOW_SCAN OK" && echo "ok: widow_scan $cfg" || { echo "FAIL: widow_scan $cfg"; echo "$out" | grep -E "^WIDOW:|SCRIPT" | head -6; fail=1; }
+done
 out=$(TB_DPR=2.66 TB_DPI=425 TB_PHONE_UI=compact TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 2400x1100x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/ring_clear.gd -- 2340 1080 2>&1)
 echo "$out" | grep -q "RING_CLEAR OK" && echo "ok: ring_clear (phone)" || { echo "FAIL: ring_clear (phone)"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/move_grid.gd -- 1280 800 1.0 2>&1)
