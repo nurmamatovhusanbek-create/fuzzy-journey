@@ -55,7 +55,7 @@ CSSB="""
 .bd-nm{font:700 12.5px/1.1 Cinzel;letter-spacing:.07em;color:var(--ivory);text-transform:uppercase;white-space:nowrap}
 .bd-sub{font:400 12.5px/1.1 Alegreya;color:var(--dim);white-space:nowrap}
 .bd-tag{font:600 12.5px/1 Alegreya;white-space:nowrap}
-.bd-tag.built{color:var(--good)} .bd-tag.busy{color:#e5c77a} .bd-tag.no{color:#ee8a68}
+.bd-tag.built{color:var(--good)} .bd-tag.busy{color:#e5c77a} .bd-tag.no{color:#9a7a66}
 .bd-price{font:700 13.5px/1 Alegreya;color:var(--ivory);white-space:nowrap;text-align:right}
 .bd-price small{display:block;font:400 11.5px/1 Alegreya;color:var(--dim);margin-top:3px}
 .bd-chk{display:flex;align-items:center;gap:8px;height:24px;font:400 14px/1.1 Alegreya;color:var(--dim);white-space:nowrap}
@@ -67,7 +67,7 @@ CSSB="""
 .bd-btn{display:flex;align-items:center;justify-content:center;height:34px;box-sizing:border-box;font:700 12px/1 Cinzel;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
 .bd-btn.pri{color:#1b1408;background:linear-gradient(180deg,#EBCF85,#B38F3E);clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)}
 .bd-btn.off{color:#6f5f3d;background:#17120c;box-shadow:inset 0 0 0 1px #3a2f1d}
-.bd-btn.sec{color:var(--hi);background:#100d09;box-shadow:inset 0 0 0 1px #7F6A33}
+.bd-btn.dm{color:var(--hi);background:#100d09;box-shadow:inset 0 0 0 1px #7F6A33}
 .bd-row{display:flex;align-items:center;gap:10px;height:46px;box-sizing:border-box;padding:0 8px;border-bottom:1px solid #2a2216;min-width:0}
 .bd-row.sel{background:rgba(201,162,75,.16);box-shadow:inset 3px 0 0 var(--hi)}
 .bd-row .tx{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px}
@@ -93,7 +93,7 @@ def page(b):
     led=''.join('<div class="bd-led"><span>%s</span><i></i><b class="%s">%s</b></div>'%(a,'bad' if bad else '',v) for a,v,bad in rows)
     chk=''.join('<div class="bd-chk %s">%s<span>%s</span></div>'%('y' if ok else 'n',CHECK if ok else CROSS,t) for ok,t in b['checks'])
     btn='<div class="bd-btn %s">%s</div>'%('pri' if b['ok'] else 'off','Build · %d gold'%b['cost'] if b['cur']==0 else 'Upgrade · %d gold'%b['cost'])
-    dem='<div class="bd-btn sec" style="margin-top:8px">Demolish</div>' if b['cur']>0 else '<div style="height:42px"></div>'
+    dem='<div class="bd-btn dm" style="margin-top:8px">Demolish</div>' if b['cur']>0 else '<div style="height:42px"></div>'
     return b,led,chk,btn,dem
 SEL='library'      # the chosen building in the mocks
 # ---- BB1: a named rail (icon, name, pips, price) and the page of the chosen one; both boxes keep one size
@@ -129,6 +129,62 @@ def bb3():
     pg=('<div class="bd-pg" style="width:330px"><div class="bd-top"><div class="bd-ic">%s</div><div><h3>%s</h3><div style="margin-top:6px">%s</div></div></div>'
         '<div class="bd-eff" style="height:42px;margin-top:10px">%s</div><div style="margin-top:2px">%s</div><div style="margin-top:8px">%s</div><div style="margin-top:12px">%s</div>%s</div>')%(svg(b['id'],26),b['name'],pips(b['lv'],b['cur']),b['eff'],led,chk,btn,dem)
     return '<div class="bd-card">'+plate(head()+tabs+'<div style="display:flex;gap:16px"><div style="width:250px">%s%s</div>%s</div>'%(rail,pad,pg),640,12)+'</div>'
+
+# ---- BB1b: the named rail made better: the slots shown as boxes with what stands in them, each row says its state in words, the page says what a level gives and what the next one costs,
+# and the failing requirement is the one thing in rust beside the button
+GIVES={'fortress':'Defenders fight harder; level 2 holds a siege longer.','armory':'Recruits here cost half (-50 %).','port':'Armies may sail from here.','market':'+2 gold a turn from this province.',
+ 'watchtower':'Sees armies three provinces out. +2 % guard against foreign agents (up to 12 %).','supplycamp':'Armies here do not starve; their upkeep is 20 % lower.','library':'+1 research per 750 people, for each level.',
+ 'farm':'+5 % people growth for each level.','workshop':'+5 % goods for each level.'}
+def slot_strip():
+    boxes=[]
+    for k in range(SLOTS):
+        items=[i for i in ORDER if STATE.get(i)]
+        if k<len(items):
+            i=items[k]; st=STATE[i]
+            lab=('Level %d'%st[1]) if st[0]=='built' else 'Building'
+            boxes.append('<div class="bd-slot f">%s<div class="tx"><span class="bd-nm">%s</span><span class="bd-sub">%s</span></div></div>'%(svg(i,18),B[i][0],lab))
+        else: boxes.append('<div class="bd-slot"><span class="bd-sub">Free slot</span></div>')
+    return '<div style="display:flex;gap:8px;margin:0 0 10px">%s</div>'%''.join(boxes)
+def rail_row2(b,sel):
+    usable=b['ok'] or b['cur']>0 or b['busy']
+    ic='<div class="bd-ic %s">%s</div>'%('' if usable else 'dim',svg(b['id'],20))
+    if b['busy']: state='<span class="bd-tag busy">Building · 1 turn</span>'
+    elif b['cur']>0 and b['cur']<b['lv']: state='<span class="bd-tag built">Level %d of %d</span>'%(b['cur'],b['lv'])
+    elif b['cur']>0: state='<span class="bd-tag built">Complete</span>'
+    elif b['tag'][1]=='no': state='<span class="bd-tag no">No free slot</span>'
+    else: state='<span class="bd-tag">Free to build</span>'
+    right='<div class="bd-price">%d<small>%d turn%s</small></div>'%(b['cost'],b['turns'],'' if b['turns']==1 else 's')
+    return '<div class="bd-row%s%s">%s<div class="tx"><span class="bd-nm">%s</span><span style="display:flex;align-items:center;gap:8px;height:12px">%s%s</span></div>%s</div>'%(' sel' if sel else '',' dim' if not usable else '',ic,b['name'],pips(b['lv'],b['cur']),state,right)
+def page2(b):
+    nxt=b['nxt']; lv=B[b['id']][2]
+    rows=[('Cost','%d gold'%b['cost'],False),('Time','%d turn%s'%(b['turns'],'' if b['turns']==1 else 's'),False),('Moves',str(b['mv']),False),('Treasury after','%d gold'%(GOLD-b['cost']),GOLD-b['cost']<0)]
+    led=''.join('<div class="bd-led"><span>%s</span><i></i><b class="%s">%s</b></div>'%(a,'bad' if bad else '',v) for a,v,bad in rows)
+    fails=[t for ok,t in b['checks'] if not ok]
+    chk=''.join('<div class="bd-chk %s">%s<span>%s</span></div>'%('y' if ok else 'n',CHECK if ok else CROSS,t) for ok,t in b['checks'])
+    nxt_txt=('Next: level %d'%(b['cur']+1) if b['cur']>0 and b['cur']<b['lv'] else ('Level 1' if b['cur']==0 else 'All levels built'))
+    lvl_row='<div class="bd-sub" style="height:18px;display:flex;align-items:center">%s</div>'%nxt_txt
+    verb='Upgrade' if b['cur']>0 else 'Build'
+    btn='<div class="bd-btn %s">%s · %d gold</div>'%('pri' if b['ok'] else 'off',verb,b['cost'])
+    why='<div class="bd-why">%s</div>'%(fails[0] if fails else '&nbsp;')
+    dem='<div class="bd-btn dm">Demolish</div>' if b['cur']>0 else '<div style="height:34px"></div>'
+    return ('<div class="bd-pg" style="width:330px"><div class="bd-top"><div class="bd-ic">%s</div><div><h3>%s</h3><div style="margin-top:6px;display:flex;align-items:center;gap:8px">%s%s</div></div></div>'
+        '<div class="bd-eff" style="height:42px;margin-top:10px">%s</div>%s<div style="margin-top:4px">%s</div><div style="margin-top:8px">%s</div><div style="margin-top:12px">%s</div><div style="margin-top:8px">%s</div></div>')%(svg(b['id'],26),b['name'],pips(b['lv'],b['cur']),'',GIVES[b['id']],lvl_row,led,chk,btn,dem)
+def bb1b(sel):
+    global SEL
+    bs=[info(i) for i in ORDER]
+    rail=''.join(rail_row2(x,x['id']==sel) for x in bs)
+    pg=page2(info(sel))
+    return '<div class="bd-card">'+plate(head()+slot_strip()+'<div style="display:flex;gap:16px"><div style="width:262px">%s</div>%s</div>'%(rail,pg),660,12)+'</div>'
+EXTRA_CSS_B="""
+.bd-slot{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;height:36px;box-sizing:border-box;background:#100d09;box-shadow:inset 0 0 0 1px #3a2f1d;min-width:0}
+.bd-slot.f{justify-content:flex-start;padding:0 10px;color:var(--hi);box-shadow:inset 0 0 0 1px #7F6A33}
+.bd-slot .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bd-why{height:22px;display:flex;align-items:center;font:600 13px/1 Alegreya;color:#ee8a68;white-space:nowrap}
+"""
+CSSB+=EXTRA_CSS_B
+
+for n,h in [('BB1b_library',bb1b('library')),('BB1b_farm',bb1b('farm'))]:
+    open(OUT+'bld_%s_desk.html'%n,'w').write(page8(n,h))
 for n,h in [('BB1_namedrail',bb1()),('BB2_grid',bb2()),('BB3_tabs',bb3())]:
     open(OUT+'bld_%s_desk.html'%n,'w').write(page8(n,h))
 print('ok')

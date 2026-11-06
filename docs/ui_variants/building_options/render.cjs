@@ -16,7 +16,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const path
       document.querySelectorAll('.bd-chk,.bd-led').forEach(x => { x.querySelectorAll('svg,span,b').forEach(c => { if (Math.abs(cy(c) - cy(x)) > 1.2) out.push('check/ledger part not on the line: ' + c.textContent.slice(0, 20)); }); });
       document.querySelectorAll('.bd-card *').forEach(e => { if (r(e).right > cr.right + 1 || r(e).left < cr.left - 1 || r(e).bottom > cr.bottom + 1) out.push('sticks out of the card: ' + (e.className || e.tagName)); });
       document.querySelectorAll('.bd-nm,.bd-sub,.bd-tag,.bd-chk span,.bd-eff').forEach(e => { if (e.scrollWidth > e.clientWidth + 1 && !e.classList.contains('bd-eff')) out.push('text cut: ' + e.textContent.slice(0, 30)); });
-      document.querySelectorAll('.bd-btn').forEach(e => { const t = e.getBoundingClientRect(); if (e.scrollWidth > e.clientWidth + 1) out.push('button text cut: ' + e.textContent); });
+      document.querySelectorAll('.bd-btn').forEach(e => { if (e.scrollWidth > e.clientWidth + 1) out.push('button text cut: ' + e.textContent); const rg = document.createRange(); rg.selectNodeContents(e); const tr = rg.getBoundingClientRect(); if (Math.abs(cx(e) - (tr.left + tr.right) / 2) > 1.0 || Math.abs(cy(e) - (tr.top + tr.bottom) / 2) > 1.5) out.push('button text not centred: ' + e.textContent + ' ' + (cx(e) - (tr.left + tr.right) / 2).toFixed(2) + ',' + (cy(e) - (tr.top + tr.bottom) / 2).toFixed(2)); });
       return out; });
     console.log(f, res.length ? res : 'aligned'); if (res.length) bad++;
     await p.screenshot({ path: path.join(__dirname, f.replace('.html', '.png')) }); await p.close(); }
