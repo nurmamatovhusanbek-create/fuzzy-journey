@@ -106,7 +106,7 @@ class Row extends Button:
 		set_on(false)
 	func set_on(v: bool) -> void:
 		on = v
-		_flag.modulate = Color(1, 1, 1, 1.0 if on else 0.5)
+		_flag.modulate = Color(Color.WHITE, 1.0 if on else 0.5)
 		_name.add_theme_color_override("font_color", TBTokens.c("cream") if on else TBKit.DIM)
 		_fig.add_theme_color_override("font_color", _fig_col if on else _fig_col.darkened(0.35))
 		queue_redraw()
@@ -114,6 +114,6 @@ class Row extends Button:
 		var r := Rect2(Vector2.ZERO, size)
 		var hot: bool = is_hovered() or has_focus()
 		if on: draw_rect(r, Color(TBTokens.c("brass"), 0.16))
-		elif hot: draw_rect(r, Color(1, 1, 1, 0.04))
+		elif hot: draw_rect(r, TBTokens.ca("cream", 0.05))
 		draw_line(Vector2(0, size.y - 0.5), Vector2(size.x, size.y - 0.5), Color(TBTokens.c("rule"), 0.6), 1.0)
 		if on: draw_rect(Rect2(0, 0, 3, size.y - 1), TBTokens.c("brass_lt"))

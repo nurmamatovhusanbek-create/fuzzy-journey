@@ -68,7 +68,7 @@ func _init() -> void:
 		if g.owner[p] == 0 and neutral_p < 0:
 			neutral_p = p
 	g.army[own_army] = 33; g.gen[own_army] = TBGenerals.pack(2, 5, 0)
-	g.army[own_small] = 1
+	g.army[own_small] = g.keep()          # too few men to march: one under the old rules, none under rules 4
 	g.army[enemy_src] = 119
 	g.army[enemy_p] = 32
 	g.army[peace_p] = 20
@@ -132,7 +132,7 @@ func _init() -> void:
 	main.flow.share_changed()
 	# the preview chip carries the troop picker: an exact number changes what the order sends and the odds
 	var chip = main.flow._chip
-	_check(chip.picker != null and chip.picker.hi == 118 and chip.picker.value == 118, "the preview chip offers every man but one (%s)" % str(chip.picker.hi if chip.picker != null else -1))
+	_check(chip.picker != null and chip.picker.hi == 119 - g.keep() and chip.picker.value == 119 - g.keep(), "the preview chip offers every man but one (%s)" % str(chip.picker.hi if chip.picker != null else -1))
 	var odds_all: float = main.flow._pv(enemy_p)["atk"]
 	chip.picker._slider.value = 40
 	_check(main.flow.troops_for(enemy_src) == 40 and main.flow.mode == TBOrderFlow.Mode.PREVIEW, "typing or sliding the number on the chip sets the men sent (%d)" % main.flow.troops_for(enemy_src))
@@ -140,7 +140,7 @@ func _init() -> void:
 	_check(chip.picker == main.flow._chip.picker and chip.picker.value == 40, "the picker is kept while it is dragged, not rebuilt")
 	main.panel.send_frac = 1.0
 	main.flow.share_changed()
-	_check(main.flow.troops_for(enemy_src) == 118 and chip.picker.value == 118, "the quick shares and the chip stay in step")
+	_check(main.flow.troops_for(enemy_src) == 119 - g.keep() and chip.picker.value == 119 - g.keep(), "the quick shares and the chip stay in step")
 	# Recruit asks how many first
 	var home: int = g.owned(me)[0]
 	g.gold[me] = 400.0; g.manpower[me] = 100.0; g.mp[me] = 6.0

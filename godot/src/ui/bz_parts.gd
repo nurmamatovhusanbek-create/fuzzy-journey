@@ -826,7 +826,7 @@ class Ledger extends Control:
 	func _msize() -> Vector2:
 		var w := 0.0
 		for r in rows: w = maxf(w, TBBz.tw(_lf(), String(r[0]), TBKit.fsf(16.0)) + 24.0 + TBBz.tw(_vf(), String(r[1]), TBKit.fsf(17.0)))
-		return Vector2(w, _rh() * rows.size())
+		return Vector2(minf(w, 260.0), _rh() * rows.size())          # a row too wide for its window is set a little smaller (see _draw), it never widens the window
 	func _draw() -> void:
 		var ci := get_canvas_item()
 		var rh: float = _rh()
@@ -835,13 +835,16 @@ class Ledger extends Control:
 			var r: Array = rows[i]
 			var y: float = i * rh
 			var bl: float = y + 4.0 + _asc()
-			TBBz.text(ci, _lf(), Vector2(0, bl), String(r[0]), TBKit.fsf(16.0), TBTokens.c("ink_1"))
+			var k: float = 1.0                                              # both texts at a common scale when the row is wider than the window
+			var lw0: float = TBBz.tw(_lf(), String(r[0]), TBKit.fsf(16.0)); var vw0: float = TBBz.tw(_vf(), String(r[1]), TBKit.fsf(17.0))
+			if lw0 + 14.0 + vw0 > size.x and size.x > 20.0: k = clampf((size.x - 14.0) / (lw0 + vw0), 0.7, 1.0)
+			TBBz.text(ci, _lf(), Vector2(0, bl), String(r[0]), TBKit.fsf(16.0) * k, TBTokens.c("ink_1"))
 			var vc: Color = TBTokens.c("ink_0")
 			if r.size() > 2:
 				if String(r[2]) == "pos": vc = TBTokens.c("pos")
 				elif String(r[2]) == "neg": vc = TBTokens.BZ_NEG_SOFT
-			var vw: float = TBBz.tw(_vf(), String(r[1]), TBKit.fsf(17.0))
-			TBBz.text(ci, _vf(), Vector2(size.x - vw, bl), String(r[1]), TBKit.fsf(17.0), vc)
+			var vw: float = TBBz.tw(_vf(), String(r[1]), TBKit.fsf(17.0) * k)
+			TBBz.text(ci, _vf(), Vector2(size.x - vw, bl), String(r[1]), TBKit.fsf(17.0) * k, vc)
 			var x := 0.0
 			while x < size.x:
 				draw_rect(Rect2(x, y + rh - 1.0, 1, 1), dots)

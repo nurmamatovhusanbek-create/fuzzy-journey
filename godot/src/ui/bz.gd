@@ -568,7 +568,8 @@ class TLabel extends Label:
 		while p2 > 9.0:
 			var worst := 0.0
 			var z: float = TBKit.fsf(p2)
-			for wd in words: worst = maxf(worst, TBBz.tw(face, wd, z, TBKit.trk(z, em)))
+			var nf: Font = get_theme_font("font")                      # the font the engine draws with (its letter spacing is rounded to whole pixels), measured as it is
+			for wd in words: worst = maxf(worst, nf.get_string_size(wd, HORIZONTAL_ALIGNMENT_LEFT, -1, roundi(z)).x)
 			if worst <= room - 2.0: break
 			p2 -= 1.0
 		if absf(p2 - px) > 0.1:

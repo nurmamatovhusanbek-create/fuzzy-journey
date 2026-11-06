@@ -15,6 +15,7 @@ var compact := false                   # no steppers: the slider and the number 
 var bar := false                       # the bottom bar's row: [-] slider with its preset marks [+] number; nothing else (no '/ n', no preset box)
 var caption := ""                       # what the number is ("Send", "Recruit"): the accessible name of the slider and the field
 var _slider: HSlider
+const FIG_DROP := 2.0                # units (measured by tests/recruit_grid.gd and move_grid.gd)
 var _edit: LineEdit
 var _of: Label
 var _seg: CC.ShareSeg
@@ -47,9 +48,11 @@ func setup(lo_: int, hi_: int, start: int, name_: String = "", compact_: bool = 
 	_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER if bar else HORIZONTAL_ALIGNMENT_RIGHT
 	_edit.custom_minimum_size = Vector2(maxf(64.0, TBKit.mono_b().get_string_size(str(hi), HORIZONTAL_ALIGNMENT_LEFT, -1, TBKit.fs(15)).x + 28.0), 34.0)          # the one control height of the card (the share buttons and the verbs are 34 too)
 	_edit.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
-	for sbn in ["normal", "focus", "read_only"]:                                    # the engine centres the line box, and a figure stands on the baseline: lift it so the figure itself is in the middle of the field
+	for sbn in ["normal", "focus", "read_only"]:                                    # Spectral's figures stand high in the line box: the margins move the figure down, the field keeps its height
 		var sb: StyleBox = _edit.get_theme_stylebox(sbn).duplicate()
-		sb.content_margin_bottom = maxf(sb.content_margin_bottom, 0.0) + 3.0 * maxf(1.0, TBKit.text_scale)
+		var dr: float = minf(FIG_DROP * maxf(1.0, TBKit.text_scale), maxf(sb.content_margin_bottom, 0.0))
+		sb.content_margin_bottom = maxf(sb.content_margin_bottom, 0.0) - dr
+		sb.content_margin_top = maxf(sb.content_margin_top, 0.0) + dr
 		_edit.add_theme_stylebox_override(sbn, sb)
 	_edit.select_all_on_focus = true
 	_edit.max_length = 6

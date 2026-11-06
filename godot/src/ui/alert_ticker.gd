@@ -227,8 +227,8 @@ class AlertRow extends P.Hit:
 			var yes_c := Vector2(size.x - 10.0 - d * 0.5, cy); var no_c := Vector2(yes_c.x - d - 6.0, cy)
 			draw_circle(no_c, d * 0.5, TBTokens.c("bar_0")); draw_arc(no_c, d * 0.5 - 0.75, 0.0, TAU, 40, TBTokens.c("rule"), 1.5, true)
 			TBBzIcons.draw(self, "close", no_c, 11.0 if compact else 12.0, TBTokens.c("cream"), 1.8)
-			BZ.grad_disc(self, yes_c, d * 0.5, [[0.0, Color("EBCF85")], [1.0, Color("B38F3E")]])
-			TBBzIcons.draw(self, "check", yes_c, 14.0 if compact else 16.0, TBTokens.c("on_act") if false else Color("1B1408"), 2.0)
+			BZ.grad_disc(self, yes_c, d * 0.5, [[0.0, TBTokens.BZ_PRI_A], [1.0, TBTokens.BZ_PRI_B]])
+			TBBzIcons.draw(self, "check", yes_c, 14.0 if compact else 16.0, TBTokens.BZ_PRI_TX, 2.0)
 		elif lines <= 1:
 			var s1: String = TBHudParts.fit(f, text, z, size.x - x - right)
 			draw_string(f, Vector2(x, bh * 0.5 + (f.get_ascent(z) - f.get_height(z) * 0.5)), s1, HORIZONTAL_ALIGNMENT_LEFT, -1, z, cream)

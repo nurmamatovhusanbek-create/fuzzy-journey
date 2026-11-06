@@ -4,6 +4,7 @@
 class_name TBTypo
 extends RefCounted
 
+static var TLABELS_OFF := false
 const NB := " "
 const MIN_TAIL := 3                    # words on the last line
 const SHORT := 0.5                     # ... unless the last line is already longer than this part of the width
@@ -25,10 +26,12 @@ static func _on_added(n: Node) -> void:
 		n.set_meta("typo", true)
 		var l: Label = n
 		l.draw.connect(func(): _check.call_deferred(l))
+		l.resized.connect(func(): _check.call_deferred(l))
 
 static func _check(l: Label) -> void:
-	if not is_instance_valid(l) or l.autowrap_mode == TextServer.AUTOWRAP_OFF or not l.is_visible_in_tree(): return
+	if not is_instance_valid(l) or l.autowrap_mode == TextServer.AUTOWRAP_OFF or not l.is_visible_in_tree() or l is TBBz.TLabel and TLABELS_OFF: return
 	var t: String = l.text
+	if t != "" and l.size.x >= 60.0 and not (l is TBBz.TLabel): TBKit.fit_label_words(l)      # a word wider than the room is set smaller, never broken in the middle
 	if t.length() < 20 or l.size.x < 50.0: return
 	var key: String = "%s|%d" % [t, int(l.size.x)]
 	if l.has_meta("typo_key") and l.get_meta("typo_key") == key: return
@@ -38,7 +41,14 @@ static func _check(l: Label) -> void:
 	if fixed != t:
 		l.set_meta("typo_n", n + 1)
 		if n == 5: print("TYPO: gave up on ", l.get_path(), " ", t.substr(0, 40))
+		var vc: int = l.visible_characters
 		l.text = fixed                                       # the label redraws and is looked at again with its new text
+		l.visible_characters = vc                            # assigning a text resets this (a wrapped TLabel then draws nothing)
+		var up: Node = l
+		for i in 6:                                          # the rows around it re-measure (their height followed the old wrapping)
+			if up is Control: (up as Control).update_minimum_size()
+			up = up.get_parent()
+			if up == null: break
 		key = "%s|%d" % [fixed, int(l.size.x)]
 	l.set_meta("typo_key", key)
 
@@ -66,18 +76,22 @@ static func _fix_para(p: String, font: Font, fs: int, width: float, flags: int) 
 	# bind the last MIN_TAIL words (counting the ones already on that line)
 	var words: PackedStringArray = p.split(" ")
 	var real := 0
-	for wd in words: if wd != "": real += 1
+	for wd in words: real += _wc(wd)
 	if real <= MIN_TAIL: return p
 	for take in [MIN_TAIL, MIN_TAIL - 1]:                  # three words, or two when three do not fit
 		var i: int = words.size(); var got := 0
 		while i > 0 and got < take:
 			i -= 1
-			if words[i] != "": got += 1
+			got += _wc(words[i])                           # a token already bound counts as the words it holds: fixing twice changes nothing
 		var chain_s: String = NB.join(words.slice(i))
 		if font.get_string_size(chain_s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > width * 0.92: continue
 		var head := words.slice(0, i)
 		return (" ".join(head) + " " + chain_s) if head.size() > 0 else chain_s
 	return p
+
+static func _wc(token: String) -> int:
+	if token == "": return 0
+	return token.split(NB, false).size()
 
 ## lines of words (Array of Array of String), measured by `wide(words) -> float`: the last line of a wrapped paragraph takes words from the line above until it holds MIN_TAIL
 ## (or the line above would be left with fewer than two, or the last line would not fit). Returns the same structure.

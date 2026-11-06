@@ -153,7 +153,7 @@ var _env: Dictionary = {}
 
 func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2, env: Dictionary = {}) -> void:
 	_g = g; _p = p; _items = items; _anchor = anchor; _env = env
-	_compact = TBKit.is_phone(self) or vp.y < 600.0
+	_compact = TBKit.is_phone(self) or vp.y < 820.0          # a small stage (a phone, a small window): the picker must fit between the HUD parts
 	_narrow = vp.x < 700.0
 	top_level = true; z_index = 60
 	custom_minimum_size.x = minf(vp.x - 16.0, 600.0 if _narrow else (640.0 if _compact else 790.0))

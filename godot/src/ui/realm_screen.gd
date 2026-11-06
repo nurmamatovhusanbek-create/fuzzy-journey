@@ -110,7 +110,7 @@ class RelRow extends Button:
 		pressed.connect(cb)
 		mouse_entered.connect(queue_redraw); mouse_exited.connect(queue_redraw); focus_entered.connect(queue_redraw); focus_exited.connect(queue_redraw)
 	func _draw() -> void:
-		if is_hovered() or has_focus(): draw_rect(Rect2(Vector2.ZERO, size), Color(1, 1, 1, 0.04))
+		if is_hovered() or has_focus(): draw_rect(Rect2(Vector2.ZERO, size), TBTokens.ca("cream", 0.05))
 		draw_line(Vector2(0, size.y - 0.5), Vector2(size.x, size.y - 0.5), Color(TBTokens.c("rule"), 0.6), 1.0)
 
 ## opts: on_nation(n)
