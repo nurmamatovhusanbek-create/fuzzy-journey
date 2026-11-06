@@ -21,7 +21,7 @@ EU4 ties building slots to a province's development; HOI4 limits buildings per s
   population is a poor buy; the panel says so ("only 78% of the new jobs can be filled") and farms become the way to grow.
 * Cost of a development step = `24 x (DEV_INCOME[d+1]-DEV_INCOME[d]) x 0.93` (about a 30-turn payback with 2%/turn inflation, *before* the pop limit);
   economy step = `24 x 0.4 x development x 0.93`. 2 turns, 1 move each.
-* **Building slots** = `1 + floor(development / 2)` (+1 in the capital). Several different buildings per province, each with its levels. A new building costs
+* **Building slots** = `1 + floor(development / 2)` (+1 in the capital); **rules 4: `2 + floor(development / 2)`** (+1 in the capital), so an ordinary province rarely meets the wall. Several different buildings per province, each with its levels. A new building costs
   `+20% per building already there`. One construction per province at a time. Demolish frees the slot (the level is lost).
 * **Movement points** are the per-turn brake (1 per project, +1.5 per turn up to 6) instead of a fixed project cap.
 * **Done (rules 2, docs/MODEL.md section 7).** Numbers differ from the demo's: game costs and pop scale (see MODEL.md). Notes from the original plan follow.

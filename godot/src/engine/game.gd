@@ -642,9 +642,10 @@ func b_used(p: int) -> int:
 		if b_lv[p * NB + i] != 0: k += 1
 	return k
 
-## building slots of a province: one, one more per two development levels, one more in the capital (rules < 2: a single slot)
+## building slots of a province: one, one more per two development levels, one more in the capital (rules < 2: a single slot; rules 4: two to start with)
 func b_slots(p: int) -> int:
 	if rules < 2: return 1
+	if rules >= 4: return 2 + int(dev[p] / 2) + (1 if capital[p] != 0 else 0)          # rules 4: one more than before, so an ordinary province rarely meets the wall
 	return 1 + int(dev[p] / 2) + (1 if capital[p] != 0 else 0)
 
 ## set the level of one building (rules >= 2) and keep the old single view (the highest level, the lowest type on a tie) in step
