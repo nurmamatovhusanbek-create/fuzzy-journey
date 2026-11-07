@@ -6,7 +6,7 @@ extends RefCounted
 const D = preload("res://src/engine/data.gd")
 
 # ---------------------------------------------------------------- the command schema (one list for the interface, the AI and the server)
-## field kinds: a list of up to 64 provinces | p province | pn province or -1 | t nation | q 0..65000 | b building type | r regime | u event uid | k choice index | v -1000..1000 | s short id string; "?name" is optional.
+## field kinds: a list of up to 64 provinces | p province | pn province or -1 | t nation | q 0..65000 (1,000,000,000 in rules 5) | b building type | r regime | u event uid | k choice index | v -1000..1000 | s short id string; "?name" is optional.
 ## `n` (the acting nation) is always required. Keys that are not listed are dropped, so a hostile client cannot smuggle a flag such as `_force` through; only a trusted caller keeps FLAGS.
 static var SCHEMA: Dictionary = {
 	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"},
@@ -51,7 +51,7 @@ static func _field(g: TBGame, kind: String, v: Variant) -> Variant:
 		"p": return i if i >= 0 and i < g.P else null
 		"pn": return i if i >= -1 and i < g.P else null
 		"t": return i if i >= 1 and i < g.N1 else null
-		"q": return clampi(i, 0, 1000000000)
+		"q": return clampi(i, 0, 65000 if g.rules < 5 else 1000000000)        # rules 5: armies of thousands are normal
 		"b": return i if i >= 0 and i <= 64 else null
 		"r": return i if i >= 0 and i <= 32 else null
 		"u": return i if i >= 0 else null
