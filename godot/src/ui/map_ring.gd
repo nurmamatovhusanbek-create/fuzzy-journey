@@ -123,7 +123,7 @@ func _nation_mode() -> bool:
 	return o != 0 and o != g.human_id
 
 func _want() -> bool:
-	if _nation_mode(): return not _is_armed()
+	if _nation_mode(): return false                                              # foreign land: no ring (its nation opens as the country plate); the ring is only where there is something to do
 	return subject >= 0 and (not verbs.is_empty() or _is_armed())
 
 func _drop_tag() -> void:
