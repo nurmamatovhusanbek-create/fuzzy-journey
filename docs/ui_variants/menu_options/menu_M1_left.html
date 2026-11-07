@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><title>M1</title><style>
+@font-face{font-family:Disp;font-weight:700;src:url(../../../godot/assets/fonts/display-latin-700-normal.woff2)}
+@font-face{font-family:Disp;font-weight:900;src:url(../../../godot/assets/fonts/display-latin-900-normal.woff2)}
+@font-face{font-family:Body;font-weight:400;src:url(../../../godot/assets/fonts/body-latin-400-normal.woff2)}
+@font-face{font-family:Body;font-weight:700;src:url(../../../godot/assets/fonts/body-latin-700-normal.woff2)}
+@font-face{font-family:Body;font-style:italic;font-weight:400;src:url(../../../godot/assets/fonts/body-latin-400-italic.woff2)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1280px;height:720px;overflow:hidden;background:#04070d;font-family:Body,Georgia,serif;color:#EFE6CF;position:relative}
+.stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 12% 22%,#8a93a8 50%,transparent 51%),radial-gradient(1px 1px at 33% 71%,#6d7588 50%,transparent 51%),radial-gradient(1.4px 1.4px at 47% 14%,#aab2c4 50%,transparent 51%),radial-gradient(1px 1px at 61% 38%,#6d7588 50%,transparent 51%),radial-gradient(1px 1px at 78% 8%,#8a93a8 50%,transparent 51%),radial-gradient(1px 1px at 88% 55%,#6d7588 50%,transparent 51%),radial-gradient(1.4px 1.4px at 7% 83%,#aab2c4 50%,transparent 51%),radial-gradient(1px 1px at 55% 92%,#6d7588 50%,transparent 51%),radial-gradient(1px 1px at 24% 46%,#6d7588 50%,transparent 51%),radial-gradient(1px 1px at 93% 88%,#8a93a8 50%,transparent 51%);background-size:640px 360px}
+.globe{position:absolute}
+.abs{position:absolute}
+.wm{font:900 54px/1.06 Disp;letter-spacing:.1em;color:#E5C77A;text-transform:uppercase}
+.rule{display:flex;align-items:center;gap:0;height:12px;width:270px}
+.rule i{flex:1;height:1px;background:#7F6A33} .rule b{width:7px;height:7px;transform:rotate(45deg);background:#E5C77A;margin:0 6px}
+.tag{font:700 11px/1.7 Disp;letter-spacing:.22em;color:#A89C80;text-transform:uppercase}
+.play{position:relative;display:flex;align-items:center;gap:18px;width:272px;height:64px;padding:0 22px;background:linear-gradient(#1d1710,#15100a);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);box-shadow:inset 0 0 0 1px #C9A24B}
+.play:before{content:"";position:absolute;inset:0;border:1.5px solid #E5C77A;clip-path:inherit}
+.play .t{font:700 22px Disp;letter-spacing:.16em;color:#EFE6CF;text-transform:uppercase;flex:1}
+.play svg{flex:none}
+.item{display:flex;align-items:center;gap:16px;height:40px;font:700 15px Disp;letter-spacing:.18em;color:#C9BFA2;text-transform:uppercase;white-space:nowrap}
+.item i{width:6px;height:6px;transform:rotate(45deg);background:#B38F3E;flex:none}
+.bar{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;align-items:center;gap:26px;font:700 12.5px Body;color:#C9BFA2;height:26px}
+.bar span{display:flex;align-items:center;gap:7px} .bar u{text-decoration:none;color:#E5C77A} .bar .sep{width:1px;height:14px;background:#3a3f4a}
+.ver{position:absolute;right:12px;top:8px;font:400 10px Body;color:#6d7588}
+.ring{position:absolute;pointer-events:none}
+</style></head><body><div class="stars"></div><img class="globe" src="globe_alpha.png" style="left:421px;top:-49px;width:1577px;height:1577px;"><div class="abs" style="left:54px;top:64px"><div class="wm">Terra<br>Bellum</div><div class="rule" style="margin-top:18px"><i></i><b></b><i></i></div><div class="tag" style="margin-top:14px">A turn-based chronicle<br>of the globe</div></div><div class="abs" style="left:54px;top:372px"><div class="play"><span class="t">Play</span><svg width="14" height="22" viewBox="0 0 14 22" fill="none" stroke="#E5C77A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l8 8-8 8"/></svg></div><div style="margin-top:26px;display:flex;flex-direction:column;gap:8px;padding-left:6px"><div class="item"><i></i>Settings</div><div class="item"><i></i>How to play</div></div></div><div class="bar"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E5C77A" stroke-width="1.8"><path d="M7 4h10v5a5 5 0 0 1-10 0zM5 5H3v2a3 3 0 0 0 3 3M19 5h2v2a3 3 0 0 1-3 3M12 14v4M8 20h8"/></svg>Honours <u>0/20</u></span><span class="sep"></span><span style="color:#EFE6CF;border-bottom:1.5px solid #E5C77A;padding-bottom:1px">EN</span><span class="sep"></span><span>RU</span><span class="sep"></span><span>UZ</span></div><div class="ver">v1.4.0</div></body></html>
