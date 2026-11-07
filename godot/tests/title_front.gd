@@ -52,7 +52,21 @@ func _run() -> void:
 	main._open_menu_hub("settings"); await _frames(20)
 	_check(main._front and TBPanel.any_open(main._overlay), "Settings opens over the first stage")
 	root.get_viewport().get_texture().get_image().save_png(pre + "_4settings.png")
-	main._clear_overlay(); main.show_menu(); await _frames(20)
+	main._clear_overlay(); main.show_front(); await _frames(8)
+	for hub in ["honours", "howto"]:
+		main._open_menu_hub(hub); await _frames(20)
+		_check(main._front and TBPanel.any_open(main._overlay), "%s opens over the first stage" % hub)
+		root.get_viewport().get_texture().get_image().save_png(pre + "_5" + hub + ".png")
+		main._on_back(); await _frames(8)
+		_check(main._front and not TBPanel.any_open(main._overlay), "Esc closes %s and stays on the first stage" % hub)
+	# Esc on the second stage backs out to the first
+	main.show_menu(); await _frames(20)
+	_check(not main._front, "the second stage is up")
+	main._on_back(); await _frames(12)
+	_check(main._front, "Esc on the second stage returns to the first")
+	# the title texture: memory it holds
+	var mem0 := Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED)
+	print("texture memory MB: ", snappedf(mem0 / 1048576.0, 0.1))
 	main.show_front(); await _frames(10)
 	_check(main._front, "show_front returns to the first stage")
 	print("TITLE_FRONT OK" if fails == 0 else "TITLE_FRONT FAIL %d" % fails)
