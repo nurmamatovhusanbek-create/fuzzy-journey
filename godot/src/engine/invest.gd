@@ -45,6 +45,8 @@ static var PROJECTS: Array = ["dev", "econ", "settle", "order"]          # kind 
 const PROJECT_MOVES := 1
 const ORDER_CALM := 80                                         # stability at which public order has nothing left to mend
 const ROOM_MAX := 2000
+## the most people a Settlement can still add to p (rules 5: what its land can feed)
+static func room_max(g: TBGame, p: int) -> int: return ROOM_MAX if g.rules < 5 else g.pop_cap(p)
 
 static func project_id(kind: int) -> String: return PROJECTS[kind - 1] if kind >= 1 and kind <= PROJECTS.size() else ""
 
@@ -84,7 +86,7 @@ static func project_needs(g: TBGame, n: int, p: int, kind: int) -> Array:
 			var fill: float = g.job_fill(p, g.dev[p] + 1) if g.dev[p] < 5 else 0.0
 			out.append([fill >= 0.9 or g.rules < 2, "proj_need_workers", {"n": int(roundf(minf(fill, 1.0) * 100.0))}])
 		2: out.append([g.econ[p] < 5, "proj_need_econ", {}])
-		3: out.append([g.pop[p] < ROOM_MAX, "proj_need_room", {"p": g.pop[p], "m": ROOM_MAX}])
+		3: out.append([g.pop[p] < room_max(g, p), "proj_need_room", {"p": g.pop[p], "m": room_max(g, p)}])
 		4: out.append([g.stab[p] < ORDER_CALM, "proj_need_calm", {"s": ORDER_CALM, "n": g.stab[p]}])
 	out.append([g.gold[n] >= float(cost), "colony_need_gold", {"g": cost, "h": int(g.gold[n])}])
 	out.append([g.mp[n] + 0.0001 >= float(PROJECT_MOVES), "colony_need_moves", {"m": PROJECT_MOVES, "h": snappedf(g.mp[n], 0.1)}])
@@ -100,7 +102,7 @@ static func project_why(g: TBGame, n: int, p: int, kind: int) -> String:
 			if g.dev[p] >= clampi(int(floor(g.tech_level[n])) + 1, 1, 5): return "max"
 			if g.job_fill(p, g.dev[p] + 1) < 0.9: return "workers"
 		2: if g.econ[p] >= 5: return "max"
-		3: if g.pop[p] >= ROOM_MAX: return "max"
+		3: if g.pop[p] >= room_max(g, p): return "max"
 		4: if g.stab[p] >= ORDER_CALM: return "calm"
 	if g.gold[n] < float(project_cost(g, p, kind)): return "gold"
 	if g.mp[n] + 0.0001 < float(PROJECT_MOVES): return "mp"
@@ -126,13 +128,13 @@ static func tick_project(g: TBGame, p: int) -> int:
 	if g.proj_left[p] > 0: return 0
 	match k:
 		1:
-			g.dev[p] = mini(5, g.dev[p] + 1); g.stab[p] = mini(100, g.stab[p] + 4); g.pop[p] = mini(ROOM_MAX, g.pop[p] + 20); g.inv_d[p] = 0.0
+			g.dev[p] = mini(5, g.dev[p] + 1); g.stab[p] = mini(100, g.stab[p] + 4); g.pop[p] = mini(room_max(g, p), g.pop[p] + g.pu(20.0)); g.inv_d[p] = 0.0
 		2:
 			if econ_eff(g, p) >= 1.0: g.econ[p] = mini(5, g.econ[p] + 1)
 			else:
 				g.inv_e[p] += 0.5                                           # beyond what the people can work a project buys half a level
 				if g.inv_e[p] >= 1.0: g.inv_e[p] -= 1.0; g.econ[p] = mini(5, g.econ[p] + 1)
-		3: g.pop[p] = mini(ROOM_MAX, g.pop[p] + maxi(20, int(round(float(g.pop[p]) * 0.12))))
+		3: g.pop[p] = mini(room_max(g, p), g.pop[p] + maxi(g.pu(20.0), int(round(float(g.pop[p]) * 0.12))))
 		4: g.stab[p] = mini(100, g.stab[p] + 12); g.happy[p] = mini(100, g.happy[p] + 5)
 	g.proj_kind[p] = 0
 	g.touch(p)

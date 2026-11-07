@@ -4,7 +4,7 @@ extends RefCounted
 
 const VERSION := 1
 static var FIELDS_PACKED: Array = ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "era", "regime", "personality", "alive", "human", "cap_lost", "tribute", "capital_of", "overlord", "last_war_turn", "color", "budget", "rel", "truce", "war_score", "war_turns", "grudge", "war_cnt", "ev_last_any", "trade_bonus", "combat_bonus", "combat_turns", "owner", "occupier", "occ_turns", "army", "pop", "dev", "econ", "stab", "happy", "defense", "gen", "terrain", "building", "b_level", "b_lv", "b_building", "b_turns", "capital", "discoverable", "nb_off", "nb", "nb_sea", "r_name", "r_num", "r_born", "r_since", "r_adm", "r_dip", "r_mil", "r_trait", "infamy", "coalition", "core", "dec_until", "trade", "trade_cnt", "realm_done", "doctrine", "reb_age", "reb_from", "own_since", "see_until", "offer_cd", "net_ema", "levy", "morale", "exh", "lost_turn", "siege", "war_pts", "inv_e", "inv_d", "worth_prev", "proj_kind", "proj_left"]
-static var FIELDS_SCALAR: Array = ["turn", "year", "month_idx", "era_id", "over", "winner", "victory_kind", "human_id", "rebel", "seed_value", "rules", "difficulty", "occ_rev", "nap_expiry", "log", "stats", "pending", "asks", "marches", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month", "infl", "world_y", "econ_goal", "tech_top", "tech_second", "tech_avg", "tech_start_top", "aggr_level", "vic_hold"]
+static var FIELDS_SCALAR: Array = ["turn", "year", "month_idx", "era_id", "over", "winner", "victory_kind", "human_id", "rebel", "seed_value", "rules", "difficulty", "occ_rev", "nap_expiry", "log", "stats", "pending", "asks", "marches", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month", "infl", "world_y", "econ_goal", "tech_top", "tech_second", "tech_avg", "tech_start_top", "aggr_level", "vic_hold", "scale", "pk"]
 
 ## file name safety: a slot is a short id of letters, digits, "_" and "-" (anything else is dropped), never a path
 static func slot_id(slot: String) -> String:
@@ -111,7 +111,7 @@ static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
 	if era_id != "modern" and (era_id.length() > 24 or not _plain_id(era_id) or not FileAccess.file_exists("res://data/eras/%s.json" % era_id)): return null
 	if not TBData.DIFFICULTY.has(d["difficulty"]): return null
 	var rules: int = int(d.get("rules", 0))
-	if rules < 0 or rules > 4: return null
+	if rules < 0 or rules > 5: return null
 	var era_pack := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	var g := TBGame.new(w, era_pack, {"seed": d["seed_value"], "difficulty": d["difficulty"], "rules": rules})
 	for k in FIELDS_PACKED:

@@ -494,7 +494,7 @@ static func _c_develop(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.gold[n] < cost: return _err("gold")
 	if _short_mp(g, n, mpc): return _err("mp")
 	g.gold[n] -= cost; g.mp[n] -= mpc
-	g.dev[p] += 1; g.stab[p] = mini(100, g.stab[p] + 4); g.pop[p] = mini(2000, g.pop[p] + 20); g.touch(p)
+	g.dev[p] += 1; g.stab[p] = mini(100, g.stab[p] + 4); g.pop[p] = mini(g.pop_hard(), g.pop[p] + g.pu(20.0)); g.touch(p)
 	if g.rules >= 4: g.inv_d[p] = 0.0                                          # the work was done by hand: the slow bar starts again
 	return {"ok": true}
 

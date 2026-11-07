@@ -11,6 +11,8 @@ var N: int
 var N1: int
 var rng: TBRng
 var seed_value: int
+var pk: float = 1.0              # rules 5: how many times bigger a province's people are than in the old tables (about 140 a province); amounts written for the old scale are multiplied by it
+var scale: int = 30             # rules 5: real people per game person (10 in the old eras, 20 gunpowder to Victorian, 30 from WW1; TBPopData)
 var rules: int = 3                # 0 = legacy behaviour (oracle-exact vs JS reference), 1 = tuned game rules, 2 = districts (several buildings per province, development limited by population)
 var difficulty: String
 var diff: Dictionary
@@ -280,6 +282,18 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		TBRulers.init(self)
 		TBRealms.init(self)
 		TBTurn.refresh_world(self)          # world income, tech stats and the era's economic goal
+	if rules >= 5:                          # rules 5: the real people of the era at its scale, jittered at random (docs/RULES5_REALISM.md)
+		scale = TBPopData.scale_for(era_id)
+		var drift := PackedFloat32Array(); drift.resize(N1)
+		for n in range(1, N1): drift[n] = 0.94 + 0.12 * rng.next()             # a nation's provinces drift together a little
+		for p in P:
+			var o: int = owner[p]
+			var d: float = drift[o] if o > 0 else 1.0
+			pop[p] = maxi(5, int(round(TBPopData.real(era_id, p) / float(scale) * (0.8 + 0.4 * rng.next()) * d)))
+		var tp := 0.0; var np := 0
+		for p in P:
+			if owner[p] != 0: tp += float(pop[p]); np += 1
+		pk = maxf(1.0, tp / (maxf(1.0, float(np)) * 140.0))
 	if rules >= 4:                          # every province starts with part of its levy ready; a nation's manpower is the sum
 		for p in P:
 			if owner[p] != 0: levy[p] = int(float(levy_cap(p)) * LEVY_START)
@@ -442,6 +456,22 @@ func levy_cap(p: int) -> int:
 	var c: float = float(pop[p]) * float(LEVY_RATE[e]) * (0.5 + float(stab[p]) / 200.0)
 	if bl(p, D.B_ARMORY) > 0: c *= 1.25
 	return maxi(4, int(floor(c)))
+
+## an amount written for the old scale (people, a province held about 140), as it is now
+func pu(x: float) -> int: return int(round(x * pk)) if rules >= 5 else int(x)
+## soldiers: an old army was 18 % of a province's people, a real one is about 1 %, so old army amounts shrink by that against the people
+func au(x: float) -> int: return maxi(1, int(round(x * pk * 0.06))) if rules >= 5 else int(x)
+## gold written for the old scale, in a nation's own terms: its income against the 400 of an average old nation
+func gu(n: int, x: float) -> float: return x * maxf(1.0, float(income(n)["gold"]) / 400.0) if rules >= 5 else x
+## the most people a province can ever hold
+func pop_hard() -> int: return 2000 if rules < 5 else 2000000000
+
+## rules 5: the people the land of p can feed. Today's people are the ceiling for modern technology; older technology feeds less, development and farms feed more.
+func pop_cap(p: int) -> int:
+	var n: int = owner[p]
+	var tl: float = tech_level[n] if n > 0 else 0.5
+	var f: float = (0.25 + 0.17 * tl) * (0.85 + 0.06 * dev[p]) * (1.0 + 0.05 * bl(p, D.B_FARM))
+	return maxi(10, int(TBPopData.modern(p) / float(scale) * f))
 
 func levy_gain(p: int) -> int:
 	return maxi(1, int(floor(float(levy_cap(p)) * LEVY_REFILL)))

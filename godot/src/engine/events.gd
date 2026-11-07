@@ -102,7 +102,7 @@ static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 	for e in effects:
 		var d: float = float(e.get("delta", 0))
 		match String(e.get("op", "")):
-			"nation.gold": g.gold[n] = maxf(0.0, g.gold[n] + d)
+			"nation.gold": g.gold[n] = maxf(0.0, g.gold[n] + g.gu(n, d))
 			"nation.manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + d)
 			"nation.mp": g.mp[n] += d
 			"nation.dp": g.dp[n] += d
@@ -116,7 +116,7 @@ static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 			"nation.army_pct":
 				for p in g.owned(n): g.army[p] = maxi(3, int(g.army[p] * (1.0 + d / 100.0))); g.touch(p)
 			"nation.pop_pct":
-				for p in g.owned(n): g.pop[p] = clampi(int(g.pop[p] * (1.0 + d / 100.0)), 10, 2000); g.touch(p)
+				for p in g.owned(n): g.pop[p] = clampi(int(g.pop[p] * (1.0 + d / 100.0)), 10, g.pop_hard()); g.touch(p)
 			"nation.dev":
 				var best := -1; var bs := -1
 				for p in g.owned(n):
@@ -248,7 +248,7 @@ static func apply_effects(g: TBGame, n: int, effects: Array) -> void:
 	for e in effects:
 		var d: float = float(e.get("d", 0))
 		match String(e.get("op", "")):
-			"gold": g.gold[n] = maxf(0.0, g.gold[n] + d)
+			"gold": g.gold[n] = maxf(0.0, g.gold[n] + g.gu(n, d))
 			"infamy": g.infamy[n] = clampf(g.infamy[n] + d, 0.0, 100.0)
 			"research": g.research[n] = maxf(0.0, g.research[n] + d)
 			"intel": g.intel[n] = clampf(g.intel[n] + d, 0.0, 20.0)
@@ -260,19 +260,19 @@ static func apply_effects(g: TBGame, n: int, effects: Array) -> void:
 					g.stab[p] = clampi(g.stab[p] + int(d), 5, 100); g.touch(p)
 			"pop":
 				for p in _provs(g, n, String(e.get("scope", "all"))):
-					if e.has("abs"): g.pop[p] = mini(2000, g.pop[p] + int(e["abs"]))
+					if e.has("abs"): g.pop[p] = mini(g.pop_hard(), g.pop[p] + g.pu(float(e["abs"])))
 					else: g.pop[p] = maxi(10, int(g.pop[p] * (1.0 + float(e.get("pct", 0)) / 100.0)))
 					g.touch(p)
 			"army":
 				for p in _provs(g, n, String(e.get("scope", "all"))):
 					if e.has("pct"): g.army[p] = maxi(5, int(g.army[p] * (1.0 + float(e["pct"]) / 100.0)))
-					else: g.army[p] = clampi(g.army[p] + int(d), 5, 65000)
+					else: g.army[p] = clampi(g.army[p] + (g.au(d) if d > 0.0 else -g.au(-d)), 5, TBGame.ARMY_CAP)
 					g.touch(p)
 			"dev":
 				var scope := String(e.get("scope", "best"))
 				for p in _provs(g, n, "best_dev" if scope == "best" else scope):
 					if g.dev[p] < 5:
-						g.dev[p] += 1; g.pop[p] = mini(2000, int(g.pop[p] * 1.06) + 25); g.touch(p)
+						g.dev[p] += 1; g.pop[p] = mini(g.pop_hard(), int(g.pop[p] * 1.06) + g.pu(25.0)); g.touch(p)
 			"bonus":
 				if String(e.get("kind", "")) == "trade": g.trade_bonus[n] += int(e.get("amount", 0))
 				else:

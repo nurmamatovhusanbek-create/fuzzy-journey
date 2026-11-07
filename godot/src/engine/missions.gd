@@ -60,7 +60,7 @@ const INTEL_MAX := 20.0
 static func settle_why(g: TBGame, n: int, p: int) -> String:
 	if g.rules < 3: return "rules"
 	if p < 0 or p >= g.P or g.owner[p] != n or g.occupier[p] != 0: return "notyours"
-	if g.pop[p] >= POP_MAX and g.stab[p] >= 100: return "nothing"
+	if g.pop[p] >= (POP_MAX if g.rules < 5 else g.pop_cap(p)) and g.stab[p] >= 100: return "nothing"
 	if g.manpower[n] < float(SETTLE_MEN): return "manpower"
 	if g.mp[n] + 0.0001 < SETTLE_MP: return "mp"
 	return ""
@@ -69,7 +69,7 @@ static func settle(g: TBGame, n: int, p: int) -> Dictionary:
 	var why := settle_why(g, n, p)
 	if why != "": return {"ok": false, "err": why}
 	g.manpower[n] -= float(SETTLE_MEN); g.mp[n] -= SETTLE_MP
-	g.pop[p] = mini(POP_MAX, g.pop[p] + SETTLE_POP)
+	g.pop[p] = mini(POP_MAX if g.rules < 5 else g.pop_cap(p), g.pop[p] + g.pu(float(SETTLE_POP)))
 	g.stab[p] = mini(100, g.stab[p] + SETTLE_STAB)
 	g.touch(p)
 	g.log.append({"turn": g.turn, "kind": "settle", "a": n, "p": p})

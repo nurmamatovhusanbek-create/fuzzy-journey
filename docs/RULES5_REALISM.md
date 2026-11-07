@@ -26,7 +26,7 @@ Per province per turn (half a year):
 
     growth = pop x r(tech) x happiness x order x farms x (1 - pop / K)
 
-* `r(tech)`: net natural growth per year, from the nation's technology: 0.06 % (tech 0, famine and plague keep it flat), 0.12 % (1), 0.3 % (2), 0.7 % (3), 1.3 % (3.7, the demographic transition), 1.0 % (5). Half of it per turn.
+* `r(year, tech)`: net natural growth per year, from the CALENDAR so the world's people follow history whatever the game does with technology (0.05 % in the ancient world, 0.1 % around 1000, 0.05 % in the plague and Mongol years around 1300, 0.25 % in 1500, 0.45 % in 1800, 0.6 % in 1850, 0.8 % in 1914, 1.7 % in 1950, 1.2 % in 2000, 0.9 % today, falling towards 0.2 % by 2100), times a technology factor `0.75 + 0.12 x tech` (0.75 to 1.35). Half of it per turn.
 * `K`, the ceiling the land can feed: `modern people x (0.25 + 0.17 x tech) x (0.85 + 0.06 x development) x (1 + 0.05 x farm levels)`. A province above its ceiling shrinks. Development and technology raise the ceiling; nothing else can.
 * A drained levy pool, a siege and an occupation cost people (famine, flight): 0.1-0.3 % a turn.
 * The old cap of 2,000 per province is gone; people are an integer in a 32-bit array (a Chinese province today is about 3 million game people).

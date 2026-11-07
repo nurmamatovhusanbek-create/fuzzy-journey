@@ -209,7 +209,7 @@ static func _tick(g: TBGame) -> void:
 		var tax: int = g.budget[bud]; var goods: int = g.budget[bud + 1]; var res_pct: int = g.budget[bud + 2]; var inv_pct: int = g.budget[bud + 3]
 		var happy_target := clampf(50.0 + (goods - 20) * 0.6 - maxf(0.0, tax - 50) * 0.5 - (8.0 if at_war else 0.0) - weary * 0.15 + (TBRulers.happy_add(g, n) if g.rules >= 1 else 0.0), 0.0, 100.0)
 		var invest_chance := inv_pct / 100.0 * 0.05 * (TBRulers.invest_mul(g, n) if g.rules >= 1 else 1.0)
-		g.research[n] += (D.tech_gain(inc["pop"], res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) * catchup(g, n) if g.rules >= 1 else 1.0)
+		g.research[n] += (D.tech_gain(float(inc["pop"]) * (float(g.scale) / 2500.0 if g.rules >= 5 else 1.0), res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) * catchup(g, n) if g.rules >= 1 else 1.0)
 		var need := _need(g, g.tech_level[n])
 		var era_before: int = g.era[n]
 		while g.research[n] >= need:
@@ -237,12 +237,16 @@ static func _tick(g: TBGame) -> void:
 			var stab_mod := 0.5 + g.stab[p] / 200.0
 			var farm := 1.0 + 0.05 * g.bl(p, D.B_FARM)
 			var growth := int(floor(g.pop[p] * 0.01 * (g.happy[p] / 100.0) * stab_mod * farm))
+			if g.rules >= 5:                                                      # real growth by technology, a ceiling the land can feed, famine above it (docs/RULES5_REALISM.md)
+				var cap_p: float = float(g.pop_cap(p))
+				growth = int(round(float(g.pop[p]) * TBPopData.growth_per_year(float(g.year), g.tech_level[n]) * 0.5 * (g.happy[p] / 100.0) * stab_mod * farm * (1.0 - float(g.pop[p]) / cap_p)))
 			if g.rules >= 4:                                                      # a province drained of its young men grows slowly and sulks; a held one does not refill
 				if g.levy_drained(p):
 					growth /= 2
 					g.happy[p] = maxi(0, g.happy[p] - 1)
 				if g.occupier[p] == 0: g.levy[p] = mini(g.levy_cap(p), g.levy[p] + g.levy_gain(p))
-			if growth > 0: g.pop[p] = mini(2000, g.pop[p] + growth)
+			if g.rules >= 5: g.pop[p] = maxi(5, g.pop[p] + growth)
+			elif growth > 0: g.pop[p] = mini(2000, g.pop[p] + growth)
 			if g.rules >= 4: TBInvest.tick_project(g, p)                                          # a running project moves one turn closer
 			if g.rules >= 4: TBInvest.step(g, p, invest_chance, dev_cap)                         # progress bars, shrinking returns (docs/PROVINCE_WORTH.md)
 			else:
