@@ -44,6 +44,7 @@ func _init() -> void:
 	main.hud.set_seal_pulse(false)
 	await _frames(25)
 	var mine: int = g.capital_of[fr]
+	main.map.fly_to(g.world.lon[mine], g.world.lat[mine], 9.0, 0.0); await _frames(70)          # province level: at country level a tap opens the country plate (rules 4)
 	var other: int = g.owned(fr)[1] if g.owned(fr).size() > 1 else mine
 	var foreign: int = g.capital_of[sp]
 	var cases := {

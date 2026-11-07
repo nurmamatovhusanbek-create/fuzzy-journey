@@ -988,8 +988,7 @@ func _draw_layout() -> void:
 				_stars[p]["rate"] = 0
 				if ztier == 1 and g.rules >= 4 and g.owner[p] > 0:                       # country level: the standing in five stars sits under the capital, where an army figure would stand (armies stay hidden until agents have looked)
 					var prr := Rect2(pos + Vector2(-32, 9), Vector2(64, 17))
-					if not _blocked(prr) and _claim(grid, prr):
-						_stars[p]["rate"] = TBStanding.stars(g, g.owner[p]); _frame_rects.append(prr)
+					_stars[p]["rate"] = TBStanding.stars(g, g.owner[p]); _frame_rects.append(prr)          # always there with its capital star, never claimed against neighbours: a rating that came and went made the names around it blink
 				_frame_rects.append(Rect2(pos - Vector2(8, 8), Vector2(16, 16)))          # names are placed after the markers and keep off them: a star is never printed over a name
 				drawn += 1
 			continue

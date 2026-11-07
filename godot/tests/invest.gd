@@ -37,8 +37,10 @@ func _init() -> void:
 	_check(wait == 0.0 or g.rules < 2, "no workers, no development progress (%.1f)" % wait)
 	# a hand-made development restarts the slow bar
 	g.pop[p] = 600; g.dev[p] = 1; g.inv_d[p] = 0.7; g.gold[me] = 5000.0; g.mp[me] = 10.0; g.tech_level[me] = 3.0
-	var r := g.apply({"cmd": "develop", "n": me, "p": p})
-	if bool(r["ok"]): _check(g.inv_d[p] == 0.0, "after the hand-made level the slow bar is empty")
+	var r := g.apply({"cmd": "develop", "n": me, "p": p, "k": 1})
+	if bool(r["ok"]):
+		if g.rules >= 4: for i in 4: TBTurn.end_turn(g)                              # a project: the level arrives when the work ends
+		_check(g.inv_d[p] < 0.2, "after the hand-made level the slow bar starts again (%.2f)" % g.inv_d[p])
 	# a save keeps the bars
 	g.inv_e[p] = 0.37
 	var d: Dictionary = TBSave.to_dict(g)
