@@ -18,6 +18,9 @@ var _items: Array = []                       # {b (1-based building index), can,
 var _sel := 0
 var _rail_btns: Array = []                   # the discs
 var _detail: VBoxContainer
+var _rule: Control                           # the rule under the title row: the window is dragged by everything above it
+var _drag := false
+var _drag_off := Vector2.ZERO
 var _compact := false                        # a phone in landscape (short screen): smaller discs and rows
 var _narrow := false                         # a portrait screen: two rows of discs, the page stacked
 
@@ -76,6 +79,22 @@ class DiscBtn extends Button:
 		var ssz: int = int(TBKit.fsf(11.0 if dia < 48.0 else 11.5))
 		TBBuildPicker.ctext(self, state_t, Vector2(w * 0.5, y0 + nom * 2.0 + 3.0), TBKit.body_b(), ssz, state_col)
 		if has_focus() and TBFrame.kbd_nav: draw_arc(c, dia * 0.5 + 6.0, 0.0, TAU, 64, TBTokens.BZ_HI, 1.5, true)
+
+## the window's close button: a ringed cross at the right of the title row
+class CloseBtn extends Button:
+	var _hov := false
+	func _init(sz: float) -> void:
+		flat = true; focus_mode = Control.FOCUS_ALL; mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		custom_minimum_size = Vector2(sz, sz); size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		mouse_entered.connect(func(): _hov = true; queue_redraw())
+		mouse_exited.connect(func(): _hov = false; queue_redraw())
+	func _draw() -> void:
+		var c := size * 0.5
+		var r: float = minf(size.x, size.y) * 0.5 - 1.0
+		if _hov: draw_circle(c, r, TBTokens.BZ_BTN_FILL_HOT)
+		draw_arc(c, r, 0.0, TAU, 40, TBTokens.BZ_HI if _hov else TBTokens.BZ_LO, 1.4, true)
+		TBBzIcons.draw(self, "close", c, r * 0.95, TBTokens.BZ_HI if _hov else TBTokens.BZ_DIM, 1.8)
+		if has_focus() and TBFrame.kbd_nav: draw_arc(c, r + 3.0, 0.0, TAU, 40, TBTokens.BZ_HI, 1.5, true)
 
 ## the chosen building's emblem: a face, a brass ring, the glyph
 class Emblem extends Control:
@@ -170,8 +189,14 @@ func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2, env: Dic
 		var sl := TBKit.caps(T.call("bp_slots", {"u": g.b_used(p), "s": g.b_slots(p)}), 12, TBTokens.BZ_DIM); sl.size_flags_horizontal = Control.SIZE_SHRINK_END; hd.add_child(sl)
 		var sp := Control.new(); sp.custom_minimum_size = Vector2(14, 0); hd.add_child(sp)
 	var gl := TBKit.caps(T.call("bp_gold_head", {"g": int(g.gold[g.human_id])}), 12, TBTokens.BZ_HI); hd.add_child(gl)
+	var sp2 := Control.new(); sp2.custom_minimum_size = Vector2(16, 0); hd.add_child(sp2)
+	var cb := CloseBtn.new(30.0 if _compact else 34.0)
+	TBKit.a11y(cb, String(T.call("close")), "button")
+	cb.pressed.connect(func(): closed.emit(); queue_free())
+	hd.add_child(cb)
 	v.add_child(hd)
-	v.add_child(TBKit.header_rule(0))
+	_rule = TBKit.header_rule(0)
+	v.add_child(_rule)
 	var row := GridContainer.new(); row.columns = 5 if _narrow else maxi(1, items.size())
 	row.add_theme_constant_override("h_separation", 2); row.add_theme_constant_override("v_separation", 4)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -255,6 +280,7 @@ func _pick(i: int) -> void:
 	var cur_lv: int = _g.bl(_p, int(it["b"]))
 	var lvl: int = int(cn.get("levels", cur_lv + 1))          # the level this build reaches
 	var me: int = _g.human_id
+	var maxed: bool = bool(it.get("maxed", false))
 	var gold: int = int(cn["gold"]); var moves: int = int(cn["moves"]); var turns: int = int(it["turns"])
 	var busy_here: bool = int(_g.b_building[_p]) == int(it["b"])
 	# ---- the page: the building on the left, its levels on the right
@@ -286,7 +312,7 @@ func _pick(i: int) -> void:
 	chips.add_child(Chip.new(str(gold), String(T.call("gold")), int(_g.gold[me]) < gold, ch_h))
 	chips.add_child(Chip.new(str(turns), String(T.call("bp_time")), false, ch_h))
 	chips.add_child(Chip.new(str(moves), String(T.call("bp_moves")), int(_g.mp[me]) < moves, ch_h))
-	if not _compact: left.add_child(chips)                  # on a short screen the figures are in the checks, the disc and the button
+	if not _compact and not maxed: left.add_child(chips)                  # on a short screen the figures are in the checks, the disc and the button
 	var rt := VBoxContainer.new(); rt.add_theme_constant_override("separation", 8); rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.add_child(rt)
 	var lc := HBoxContainer.new(); lc.add_theme_constant_override("separation", 12)
@@ -316,6 +342,7 @@ func _pick(i: int) -> void:
 		[_g.tech_level[me] >= need, T.call("bp_tech_y" if _g.tech_level[me] >= need else "bp_tech_n", {"t": "%.1f" % need})],
 		[int(_g.gold[me]) >= gold, T.call("bp_gold_y" if int(_g.gold[me]) >= gold else "bp_gold_n", {"g": gold})],
 		[int(_g.mp[me]) >= moves, T.call("bp_mp_y" if int(_g.mp[me]) >= moves else "bp_mp_n", {"m": moves})]]
+	if maxed: checks = [[true, T.call("bp_built_here")]]                  # a finished building: nothing more to check, only Demolish is left
 	var foot := BoxContainer.new(); foot.vertical = _narrow; foot.add_theme_constant_override("separation", 14 if _narrow else (16 if _compact else 26))
 	_detail.add_child(foot)
 	var grid := GridContainer.new(); grid.columns = 1 if _narrow else 2
@@ -337,9 +364,9 @@ func _pick(i: int) -> void:
 	acts.custom_minimum_size.x = 0.0 if _narrow else (240.0 if _compact else 340.0); acts.size_flags_horizontal = Control.SIZE_EXPAND_FILL if _narrow else Control.SIZE_SHRINK_END
 	if _g.rules >= 2 and cur_lv > 0:
 		var dm: Button = K.button(T.call("bp_demolish"), func(): _demolish(), false, true)
-		dm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; dm.size_stretch_ratio = 0.75
+		dm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; dm.size_flags_stretch_ratio = 0.75
 		acts.add_child(dm)
-	var go: Button = K.button(T.call("bp_upgrade_for" if cur_lv > 0 else "bp_build_for", {"g": gold}), func(): _do(), true)
+	var go: Button = K.button(String(T.call("err_max")) if maxed else T.call("bp_upgrade_for" if cur_lv > 0 else "bp_build_for", {"g": gold}), func(): _do(), true)
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not bool(cn["ok"]): K.disable(go, "")
 	acts.add_child(go)
@@ -408,6 +435,26 @@ func _demolish() -> void:
 	if _g.bl(_p, int(it["b"])) == 0: return
 	picked.emit({"cmd": "demolish", "p": _p, "b": it["b"]})
 	closed.emit(); queue_free()
+
+## the window moves when its title row is dragged (the mouse or a finger)
+func _head_bottom() -> float:
+	return (_rule.global_position.y + _rule.size.y - global_position.y) + 6.0 if _rule != null else 56.0
+
+func _gui_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		if e.pressed and e.position.y <= _head_bottom():
+			_drag = true; _drag_off = e.global_position - position
+			accept_event()
+		elif not e.pressed: _drag = false
+	elif e is InputEventMouseMotion:
+		if _drag:
+			var vp: Vector2 = get_viewport_rect().size
+			var bounds: Rect2 = _env.get("bounds", Rect2(Vector2.ZERO, vp))
+			var np: Vector2 = e.global_position - _drag_off
+			position = Vector2(clampf(np.x, bounds.position.x + 4.0, maxf(bounds.position.x + 4.0, bounds.end.x - size.x - 4.0)), clampf(np.y, bounds.position.y + 4.0, maxf(bounds.position.y + 4.0, bounds.end.y - size.y - 4.0)))
+			accept_event()
+		else:
+			mouse_default_cursor_shape = Control.CURSOR_DRAG if e.position.y <= _head_bottom() else Control.CURSOR_ARROW
 
 func _input(e: InputEvent) -> void:
 	if not visible: return

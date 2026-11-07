@@ -419,7 +419,7 @@ static func tip_box(title: String, body: String, max_w: float = 320.0, rows: Arr
 			var line := HBoxContainer.new(); line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var l := Label.new(); l.text = String(r[0]); l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			l.add_theme_font_override("font", fal(400)); l.add_theme_font_size_override("font_size", fu(14.5)); l.add_theme_color_override("font_color", tk("cream") if tone == "sum" else dim)
-			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.custom_minimum_size.x = maxf(40.0, width - 30.0)        # a long line wraps inside the tip (at the tip's own width, so its height is right from the start)
 			var vl := Label.new(); vl.text = String(r[1]); vl.mouse_filter = Control.MOUSE_FILTER_IGNORE; vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			vl.add_theme_font_override("font", fal(700)); vl.add_theme_font_size_override("font_size", fu(14.5))
 			var vt: String = String(r[1]); var sgn: String = vt.left(1)               # the demo's rows(): a leading + is green, a leading − red, the rest cream

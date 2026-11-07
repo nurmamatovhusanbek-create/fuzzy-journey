@@ -737,7 +737,7 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 		var from_name: String = g.dname(from_n) if g != null else ""
 		kicker = "%s · %s" % [T.call("ev_ultimatum") if ult else T.call("ev_proposal"), from_name]
 		title = T.call("prop_ult_title" if ult else "prop_title", {"a": from_name})
-		var place: String = TBI18n.place(g.world.name[int(e["p"])]) if ult and g != null else ""
+		var place: String = TBI18n.place(g.pname(int(e["p"]))) if ult and g != null else ""
 		flavor = T.call("prop_" + String(e["id"]), {"a": from_name, "p": place})
 		icon = "warn" if ult else ("pact" if e["id"] != "peace" else "flag")
 		bad = ult

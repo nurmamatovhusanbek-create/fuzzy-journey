@@ -390,17 +390,13 @@ static func _c_colonize(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var p: int = c["p"]
 	if g.owner[p] != 0: return _err("taken")
 	if g.discoverable[p] != 0 and g.tech_level[n] < 2: return _err("tech")
-	var adj := false
-	for i in range(g.nb_off[p], g.nb_off[p + 1]):
-		var q := g.nb[i]
-		if g.owner[q] == n and (g.nb_sea[i] == 0 or g.bl(q, D.B_PORT) > 0):
-			adj = true; break
-	if not adj: return _err("notadjacent")
-	var reg: Dictionary = D.REGIMES[g.regime[n]]
-	var cost: int = 0 if reg["colonyFree"] else 60 + g.own_count(n) * 2
-	if g.gold[n] < cost: return _err("gold")
-	if _short_mp(g, n, 2.0): return _err("mp")
-	g.gold[n] -= cost; g.mp[n] -= 2; g.set_owner(p, n); g.army[p] = maxi(g.army[p], 8); g.discoverable[p] = 0
+	if not TBMissions.colony_border(g, n, p): return _err("notadjacent")
+	var cost := TBMissions.colony_cost(g, n, p)
+	if g.gold[n] < float(cost["gold"]): return _err("gold")
+	if float(cost["men"]) > 0.0 and g.manpower[n] < float(cost["men"]): return _err("manpower")
+	if _short_mp(g, n, float(cost["moves"])): return _err("mp")
+	g.gold[n] -= float(cost["gold"]); g.mp[n] -= float(cost["moves"]); g.manpower[n] -= float(cost["men"])
+	g.set_owner(p, n); g.army[p] = maxi(g.army[p], 8 if g.rules < 4 else TBMissions.COLONY_GARRISON); g.discoverable[p] = 0
 	return {"ok": true}
 
 static func _c_relocate(g: TBGame, c: Dictionary) -> Dictionary:

@@ -16,7 +16,7 @@ static func rows(g: TBGame, query: String = "", armies: bool = false) -> Array:
 	for p in g.P:
 		var o := g.owner[p]
 		if armies and (g.controller(p) != me or g.army[p] <= 0): continue
-		var nm: String = TBI18n.place(g.world.name[p])
+		var nm: String = TBI18n.place(g.pname(p))
 		if q != "" and not (nm.to_lower().contains(q) or (o != 0 and g.dname(o).to_lower().contains(q))): continue
 		if not armies and q == "" and o != me: continue                 # no query: just the realm; searching reaches every province
 		out.append({"p": p, "name": nm, "owner": o, "army": g.army[p], "mine": o == me})

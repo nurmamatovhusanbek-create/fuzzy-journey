@@ -51,7 +51,7 @@ func show_for(g: TBGame, p: int, flow: TBOrderFlow, country_level: bool = false)
 	var o := g.owner[p]
 	var me := g.human_id
 	country_level = country_level and o != 0 and o != me
-	_name.text = TBKit._cap(g.dname(o) if country_level else TBI18n.place(g.world.name[p]))
+	_name.text = TBKit._cap(g.dname(o) if country_level else TBI18n.place(g.pname(p)))
 	_flag.visible = o != 0
 	if o != 0: _flag.texture = TBFlags.texture(g.nat_code[o], g.color[o])
 	_glyph_id = ""; _glyph_tok = "foreign_bar"

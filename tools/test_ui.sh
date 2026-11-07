@@ -82,7 +82,7 @@ echo "$out" | grep -q "LIGHT_CONTRAST OK" && echo "ok: light mode contrast" || {
 out=$(TB_DPR=2.66 TB_DPI=425 timeout 280 "$XV" -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/capital_stars.gd -- 2340 1080 expect 2>&1)
 echo "$out" | grep -q "CAPITAL_STARS OK" && echo "ok: capital stars by zoom" || { echo "FAIL: capital stars by zoom"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 # map names while the globe turns: a name follows the map, does not hop between places or sizes, and fades instead of blinking (nations at country scale, districts zoomed in)
-for cfgs in "1.6 0.5" "4.2 0.12"; do
+for cfgs in "1.6 0.5" "5.6 0.12"; do
   set -- $cfgs
   out=$(TB_STEP=$2 TB_DPR=2.66 TB_DPI=425 timeout 280 "$XV" -a -s "-screen 0 2340x1080x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 60 -s tests/label_stability.gd -- 2340 1080 $1 expect 2>&1)
   echo "$out" | grep -q "LABEL_STABILITY OK" && echo "ok: label_stability zoom $1" || { echo "FAIL: label_stability zoom $1"; echo "$out" | grep -E "^FAIL|SCRIPT|LABELS" | head -6; fail=1; }

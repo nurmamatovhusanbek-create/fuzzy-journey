@@ -46,6 +46,10 @@ static func place(name: String) -> String:
 		if FileAccess.file_exists(path):
 			var d = JSON.parse_string(FileAccess.get_file_as_string(path))
 			if d is Dictionary: _places = d
+		var hpath := "res://data/i18n/hist_%s.json" % lang                        # the names the provinces had in earlier eras (tools/hist)
+		if FileAccess.file_exists(hpath):
+			var hd = JSON.parse_string(FileAccess.get_file_as_string(hpath))
+			if hd is Dictionary: for k in hd: if not _places.has(k): _places[k] = hd[k]
 	return String(_places.get(name, name))
 
 static func T(key: String, vars: Dictionary = {}) -> String:

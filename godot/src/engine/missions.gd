@@ -12,6 +12,43 @@ const SETTLE_POP := 30          # people added to the province (half of the sett
 const SETTLE_STAB := 8
 const POP_MAX := 2000
 
+## Colonies (rules 4): a new province costs gold that grows with the realm, settlers taken from the people, and two moves; hard ground costs more; a horde pays less gold and fewer settlers
+## (it moves its whole camp). Every requirement is listed with its state, so a refused order always says what is missing.
+const COLONY_GOLD := 50
+const COLONY_GOLD_PER_PROVINCE := 3
+const COLONY_MEN := 40
+const COLONY_MOVES := 2.0
+const COLONY_GARRISON := 4
+const COLONY_TERRAIN_MUL := [1.0, 1.1, 1.3, 1.1, 1.2, 0.9]       # plains, hills, mountain, forest, marsh, steppe
+const COLONY_TECH := 2.0                                         # land across the sea ("discoverable") needs this technology
+
+static func colony_cost(g: TBGame, n: int, p: int) -> Dictionary:
+	var reg: Dictionary = TBData.REGIMES[g.regime[n]]
+	var free: bool = bool(reg["colonyFree"])
+	if g.rules < 4: return {"gold": 0 if free else 60 + g.own_count(n) * 2, "men": 0, "moves": 2}
+	var tm: float = COLONY_TERRAIN_MUL[clampi(g.terrain[p], 0, COLONY_TERRAIN_MUL.size() - 1)] if p >= 0 and p < g.P else 1.0
+	var gold: int = int(ceil(float(COLONY_GOLD + COLONY_GOLD_PER_PROVINCE * g.own_count(n)) * tm * (0.6 if free else 1.0)))
+	var men: int = int(round(float(COLONY_MEN) * (0.6 if free else 1.0)))
+	return {"gold": gold, "men": men, "moves": int(COLONY_MOVES)}
+
+## does one of n's provinces touch p by land (or by sea with a port)
+static func colony_border(g: TBGame, n: int, p: int) -> bool:
+	for i in range(g.nb_off[p], g.nb_off[p + 1]):
+		var q: int = g.nb[i]
+		if g.owner[q] == n and (g.nb_sea[i] == 0 or g.bl(q, TBData.B_PORT) > 0): return true
+	return false
+
+## every requirement of a colony, in the order the player reads them: [[met, key, vars]] (the texts are i18n keys colony_need_*)
+static func colony_needs(g: TBGame, n: int, p: int) -> Array:
+	var cost := colony_cost(g, n, p)
+	var out: Array = []
+	out.append([colony_border(g, n, p), "colony_need_border", {}])
+	if g.discoverable[p] != 0: out.append([g.tech_level[n] >= COLONY_TECH, "colony_need_tech", {"t": "%.1f" % COLONY_TECH}])
+	out.append([g.gold[n] >= float(cost["gold"]), "colony_need_gold", {"g": int(cost["gold"]), "h": int(g.gold[n])}])
+	if int(cost["men"]) > 0: out.append([g.manpower[n] >= float(cost["men"]), "colony_need_men", {"m": int(cost["men"]), "h": int(g.manpower[n])}])
+	out.append([g.mp[n] + 0.0001 >= float(cost["moves"]), "colony_need_moves", {"m": int(cost["moves"]), "h": snappedf(g.mp[n], 0.1)}])
+	return out
+
 const EMBASSY_DP := 2.0
 const EMBASSY_GOLD := 40
 const EMBASSY_GRUDGE := 12      # off the grudge the other court holds against you

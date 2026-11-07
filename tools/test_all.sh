@@ -12,6 +12,8 @@ run "diplomacy: casus belli, infamy, coalitions" tests/diplo.gd
 run "diplomacy view mirrors the engine (acceptance, peace, trade)" tests/dipview.gd
 run "rules 4: contact decides who offers what, far pacts weigh little" tests/diplo_logic.gd
 run "rules 4: covert operations (chance terms, caught agents, cut ties)" tests/spy_logic.gd
+run "rules 4: colonies cost gold, settlers and moves; every requirement is listed" tests/colony_rules.gd
+run "province names of the era (Khujand 1400, Petrograd 1914, ru/uz forms)" tests/hist_names.gd
 run "rules 4: investment bars, shrinking returns" tests/invest.gd
 run "rules 3: quarrels reach friends, trade routes need means, victories are held" tests/realism.gd
 run "eras: every era starts sanely (capitals, rulers, names, land)" tests/era_audit.gd

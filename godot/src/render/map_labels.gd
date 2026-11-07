@@ -136,6 +136,10 @@ var _nc := {}                      # nation -> a placed name {v: anchor (unit ve
 var _pc := {}                      # province -> a placed district name {p, txt, ff, fs, tw, ha, a, t}
 var _nstate := {}                  # nation -> {ci, vi, fs}: the place, wording and size chosen last time (tried first next time)
 const FADE_PER_S := 6.0
+## the zoom where country names give way to province names: zooming out, the province names leave early (they were still crowding the map at country level)
+const NAME_SWITCH_GLOBE := 5.2
+const NAME_SWITCH_FLAT := 6.9
+func name_switch() -> float: return NAME_SWITCH_GLOBE if map.mode == 0 else NAME_SWITCH_FLAT
 
 ## redraw the names at the camera's current place (cheap: no layout)
 func refresh_names() -> void:
@@ -508,7 +512,7 @@ func _place_nation_names() -> void:
 		var rp := map.project(g.world.lon[map.selected], g.world.lat[map.selected])
 		if rp.z > 0.0: ring_c = Vector2(rp.x, rp.y)
 	var seen := {}
-	if map.zoom > (4.0 if map.mode == 0 else 5.5): _fade_unseen(_nc, seen, false); return
+	if map.zoom > name_switch(): _fade_unseen(_nc, seen, false); return
 	_label_fonts()
 	var N1 := g.N1
 	_rebuild_cores()
@@ -650,7 +654,7 @@ func _rel_glyph(c: Vector2, rel: int, mine: bool, fs: int, ha: float, ci: Canvas
 ## province names when zoomed in far enough to read them (Alegreya 500 12+, cream, halo; no overlaps, capitals in Alegreya 700)
 func _place_province_names() -> void:
 	var seen := {}
-	if map.zoom < (4.0 if map.mode == 0 else 5.5): _fade_unseen(_pc, seen, false); return
+	if map.zoom < name_switch(): _fade_unseen(_pc, seen, false); return
 	var f: Font = TBKit.body()
 	var fb: Font = TBKit.body_b()
 	var fs := TBKit.fs(12.0)
@@ -678,7 +682,7 @@ func _place_province_names() -> void:
 			var pt := map.project(g.world.lon[p], g.world.lat[p])
 			pos = Vector2(pt.x, pt.y)
 		if pos.x < 20 or pos.y < 70 or pos.x > map.size.x - 20 or pos.y > map.size.y - 20: continue
-		var txt: String = TBI18n.place(g.world.name[p])
+		var txt: String = TBI18n.place(g.pname(p))
 		var cap := g.capital[p] != 0
 		var ff: Font = fb if cap else f
 		var tw := Vector2(_sw(ff, txt, fs), ff.get_height(fs))

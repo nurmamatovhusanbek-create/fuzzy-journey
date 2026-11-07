@@ -247,7 +247,7 @@ func rebuild() -> void:
 	var hdr := TBInspector.Header.new()
 	var o: int = int(cs["o"])
 	hdr.tex = TBFlags.texture(g.nat_code[o], g.color[o]) if o != 0 else null
-	hdr.title = TBI18n.place(g.world.name[subj])
+	hdr.title = TBI18n.place(g.pname(subj))
 	var tg := _tag_for(cs)
 	var oname: String = g.dname(o) if o != 0 else T.call("cc_tag_unclaimed")
 	hdr.subtitle = oname if int(cs["kind"]) == 5 else ("%s · %s" % [oname, String(tg[1])])
@@ -465,7 +465,7 @@ func _build_header(s: int, cs: Dictionary) -> HBoxContainer:
 		var fl := TBFlags.chip(g, o, 0.5)
 		fl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(fl)
-	var nm := CC.label(TBI18n.place(g.world.name[s]), 18 if profile == "D" else 17, "oxblood", _font_title())
+	var nm := CC.label(TBI18n.place(g.pname(s)), 18 if profile == "D" else 17, "oxblood", _font_title())
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	nm.max_lines_visible = 2
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -604,7 +604,7 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 				if ex > 0: list.append(CC.InfoChip.new("hourglass", "", T.call("cc_pact_left", {"n": ex}), "", T.call("cc_pact_left", {"n": ex})))
 		4:
 			var src := _source_for(cs)
-			if src >= 0: list.append(CC.InfoChip.new("men", "", T.call("cc_from", {"p": TBI18n.place(g.world.name[src]), "n": TBKit.fmt(g.army[src])}), "", T.call("cc_from_tip")))
+			if src >= 0: list.append(CC.InfoChip.new("men", "", T.call("cc_from", {"p": TBI18n.place(g.pname(src)), "n": TBKit.fmt(g.army[src])}), "", T.call("cc_from_tip")))
 			var en: int = cs["enemy"]
 			list.append(CC.InfoChip.new("swords", T.call("war_score"), "%d" % g.war_score[me * g.N1 + en]))
 			if cs["retake"] and g.occupier[s] != 0:
@@ -720,11 +720,22 @@ func reason_text(cn: Dictionary) -> String:
 	var key := "err_" + r
 	var base: String = T.call(key) if TBI18n.has_key(key) else r
 	var parts: Array = []
+	if cn.has("needs"):                                                  # an order with a list of requirements names every one that is not met
+		var unmet: Array = []
+		for nd in cn["needs"]: if not bool(nd[0]): unmet.append(String(T.call(String(nd[1]), nd[2])))
+		if not unmet.is_empty(): return "%s: %s" % [T.call("cc_requires"), " · ".join(PackedStringArray(unmet))]
 	var sh: Dictionary = cn["short"]
 	for k in ["gold", "moves", "men", "dp"]:
 		if sh.has(k): parts.append(_amount(k, int(sh[k])))
 	if parts.is_empty(): return base
 	return "%s, %s" % [base, T.call("cc_needs", {"x": ", ".join(parts)})]
+
+## the requirements of an order as lines with their state, for a tooltip: "✓ A border with your land" / "✕ 74 gold (you have 40)"
+func needs_lines(cn: Dictionary) -> String:
+	if not cn.has("needs"): return ""
+	var lines: Array = []
+	for nd in cn["needs"]: lines.append("%s %s" % ["✓" if bool(nd[0]) else "✕", String(T.call(String(nd[1]), nd[2]))])
+	return "\n".join(PackedStringArray(lines))
 
 func _cost_parts(head: String, cn: Dictionary, skip: Array = []) -> Array:
 	var out: Array = [{"t": head, "short": false}]
@@ -775,7 +786,7 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 					bcan = bi["best"]
 				var cheapest: Dictionary = bi["best"] if bi["best"] != null else bcan
 				var parts: Array = [{"t": T.call("build"), "short": false}]
-				if not bi["items"].is_empty(): parts.append({"t": " · " + T.call("cc_from_gold", {"n": int(bi["min_gold"])}), "short": false})
+				if int(bi["min_gold"]) > 0: parts.append({"t": " · " + T.call("cc_from_gold", {"n": int(bi["min_gold"])}), "short": false})
 				out.append(_mk("build", "hammer", "build", bcan, parts, false, false, {"items": bi["items"]}))
 			if not held and g.occupier[s] == 0 and g.owner[s] == me and g.dev[s] < 5:
 				var dc := g.can({"cmd": "develop", "p": s})
@@ -837,16 +848,19 @@ func _build_items(s: int) -> Dictionary:
 		for i in D.BUILDINGS.size():
 			var b: Dictionary = D.BUILDINGS[i]
 			var cn := g.can({"cmd": "build", "p": s, "b": i + 1})
-			if cn["reason"] in ["occupied", "max", "type", "busy", "notyours"]: continue
+			var maxed: bool = cn["reason"] == "max" and g.rules >= 2 and g.bl(s, i + 1) > 0        # a finished building stays on the list: it can still be demolished
+			if cn["reason"] in ["occupied", "type", "busy", "notyours"] or (cn["reason"] == "max" and not maxed): continue
 			if cn["reason"] == "slots" and g.bl(s, i + 1) > 0: continue
-			var lvl: int = int(cn.get("levels", 1))
+			var lvl: int = g.bl(s, i + 1) if maxed else int(cn.get("levels", 1))
 			var cur := lvl - 1
-			items.append({"b": i + 1, "can": cn, "label": "%s %s" % [T.call("b_" + b["id"]), "L%d" % lvl if int(b["maxLevel"]) > 1 else ""], "turns": int(b["buildTime"][cur]), "gold": int(cn["gold"])})
-		items.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return int(a["gold"]) < int(c["gold"]))
-		if not items.is_empty():
-			min_gold = int(items[0]["gold"])
-			for it in items: if it["can"]["ok"]: best = it["can"]; break
-			if best == null: best = items[0]["can"]
+			items.append({"b": i + 1, "can": cn, "maxed": maxed, "label": "%s %s" % [T.call("b_" + b["id"]), "L%d" % lvl if int(b["maxLevel"]) > 1 else ""], "turns": int(b["buildTime"][cur]), "gold": 0 if maxed else int(cn["gold"])})
+		items.sort_custom(func(a: Dictionary, c: Dictionary) -> bool: return (int(a["gold"]) + (100000 if a["maxed"] else 0)) < (int(c["gold"]) + (100000 if c["maxed"] else 0)))
+		var live: Array = items.filter(func(x): return not bool(x["maxed"]))
+		if not live.is_empty():
+			min_gold = int(live[0]["gold"])
+			for it in live: if it["can"]["ok"]: best = it["can"]; break
+			if best == null: best = live[0]["can"]
+		elif not items.is_empty(): best = items[0]["can"]
 	return {"items": items, "busy": busy, "best": best, "min_gold": min_gold}
 
 ## the buildings of a province as one line: "Market · Farm 2", what is being built last with its turns (rules < 2: the one building)
@@ -895,6 +909,8 @@ func _build_verb_rows(s: int, cs: Dictionary, src: int) -> Dictionary:
 		b.set_blocked(not bool(v["can"]["ok"]))
 		b.sub_text = String(v["why"]) if v["why"] != "" else _sub_text(v)
 		var tip: String = "%s. %s" % [v["label"], _plain(v["parts"])] if v["why"] == "" else "%s. %s: %s" % [v["label"], T.call("cc_unavailable"), v["why"]]
+		var nl: String = needs_lines(v["can"])
+		if nl != "": tip += "\n" + nl
 		b.tooltip_text = tip
 		var idx := _verbs.size()
 		b.pressed.connect(func(): _press(idx))

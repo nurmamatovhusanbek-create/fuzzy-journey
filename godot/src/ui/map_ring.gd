@@ -83,7 +83,13 @@ func _tip_show(i: int) -> void:
 	var key := "vt_" + id.trim_prefix("cmd:")
 	var body: String = TBI18n.T(key) if TBI18n.has_key(key) else ""
 	var hot: String = String(TBProvincePanel.HOT.get(id, ""))
-	_tip = TBHudParts.tip_box(String(v.get("label", "")).split("  ")[0], body, 190.0, [], hot)
+	var rows: Array = []                                                    # what the order needs, with its state; a refused order says why
+	var cn: Dictionary = v["can"]
+	if cn.has("needs"):
+		for nd in cn["needs"]: rows.append([String(TBI18n.T(String(nd[1]), nd[2])), "✓" if bool(nd[0]) else "✕", "pos" if bool(nd[0]) else "neg"])
+	elif not bool(cn["ok"]) and String(v.get("why", "")) != "":
+		rows.append([String(v["why"]), "✕", "neg"])
+	_tip = TBHudParts.tip_box(String(v.get("label", "")).split("  ")[0], body, 190.0 if rows.is_empty() else 300.0, rows, hot)
 	_tip.z_index = 20
 	add_child(_tip)
 	var sz: Vector2 = _tip.get_combined_minimum_size()
@@ -397,7 +403,7 @@ func _draw() -> void:
 	if grow > 0.5:                                                           # the centre says which province this is, and what stands in it
 		var nf: Font = K.tracked(K.display(), 1)
 		var nz: int = maxi(8, P.fs(10.0 * rs))
-		var nm: String = TBI18n.place(g.world.name[_subj()]) if (_subj() >= 0 and _subj() < g.P) else ""
+		var nm: String = TBI18n.place(g.pname(_subj())) if (_subj() >= 0 and _subj() < g.P) else ""
 		nm = nm.to_upper() if TBI18n.lang != "ru" else nm
 		var lines: PackedStringArray = _split_name(nf, nm, nz, 84.0 * rs)
 		while nz > 7 and (lines[0].ends_with("…") or (lines.size() > 1 and lines[1].ends_with("…"))):           # a long name is set smaller before it is cut

@@ -383,6 +383,15 @@ func rebuild_owned() -> void:
 		fill[o] += 1
 	own_dirty = false
 
+## the name of province p in the era the game started in (Khujand, Constantinople, Petrograd ...): see TBHistNames
+var _pn := PackedStringArray()
+var _pn_year := -999999
+func pname(p: int) -> String:
+	var yr: int = start_year if start_year != 0 else year
+	if _pn_year != yr or _pn.size() != P:
+		_pn = TBHistNames.names_for(world, yr); _pn_year = yr
+	return _pn[p] if p >= 0 and p < P else ""
+
 func own_count(n: int) -> int:
 	if own_dirty: rebuild_owned()
 	return own_start[n + 1] - own_start[n]

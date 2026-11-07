@@ -1099,11 +1099,11 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		sfx.play("coin")
 		var rp: int = int(cmd.get("p", -1))
 		if rp >= 0 and rp < g.P:
-			hud.toast(T.call("recruit_done", {"k": int(cmd.get("amount", 15)), "p": TBI18n.place(g.world.name[rp])}))
+			hud.toast(T.call("recruit_done", {"k": int(cmd.get("amount", 15)), "p": TBI18n.place(g.pname(rp))}))
 			map.labels.add_fx("cap", rp, rp, TBTokens.c("pos_bar"))
 	elif String(cmd.get("cmd", "")) == "settle":
 		sfx.play("coin")
-		hud.toast(T.call("settle_done", {"p": TBI18n.place(g.world.name[int(cmd["p"])]), "n": TBMissions.SETTLE_POP}))
+		hud.toast(T.call("settle_done", {"p": TBI18n.place(g.pname(int(cmd["p"]))), "n": TBMissions.SETTLE_POP}))
 	elif String(cmd.get("cmd", "")) == "embassy":
 		sfx.play("coin")
 		hud.toast(T.call("embassy_done", {"a": g.dname(int(cmd["t"])), "k": TBMissions.EMBASSY_GRUDGE}))
@@ -1179,7 +1179,7 @@ func _do_move(from: int, to: int) -> void:
 			map.labels.add_fx("atk", from, to, TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"))
 			map.labels.add_fx("cap", from, to, TBTokens.c("pos_bar") if win else TBTokens.c("neg_bar"), 450)
 			var send: int = maxi(1, mini(tr if tr != 0 else a0 - 1, a0 - 1))
-			var rep := {"win": win, "name": TBI18n.place(world.name[to]), "claimed": win and g.owner[to] == g.human_id,
+			var rep := {"win": win, "name": TBI18n.place(g.pname(to)), "claimed": win and g.owner[to] == g.human_id,
 				"my_loss": (send - g.army[to]) if win else (a0 - g.army[from]), "foe_loss": d0 if win else d0 - g.army[to], "left": g.army[to],
 				"my0": send, "foe0": d0, "me_n": g.human_id, "foe_n": foe_n, "g": g}
 			TBAudio.cue("clash")

@@ -327,7 +327,7 @@ func _show_preview() -> void:
 	var info := {}
 	if c["kind"] == "attack": info = _pv(tgt)
 	var cost := g.can({"cmd": "move", "from": src, "to": tgt, "troops": troops_for(src)})
-	_chip.setup(TBI18n.place(g.world.name[tgt]), c["kind"], info, int(cost["moves"]), troops_for(src))
+	_chip.setup(TBI18n.place(g.pname(tgt)), c["kind"], info, int(cost["moves"]), troops_for(src))
 	_chip.sync_picker(g.army[src] - g.keep(), troops_for(src))
 	_chip.visible = true
 	_place_chip()

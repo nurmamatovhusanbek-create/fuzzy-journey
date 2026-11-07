@@ -79,7 +79,7 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 	else:
 		for o in offs:
 			var pv: int = int(o["p"])
-			var label := "%s · %s" % [TBI18n.place(g.world.name[pv]), T.call("pts_n", {"n": "%.1f" % float(o["cost"])})]
+			var label := "%s · %s" % [TBI18n.place(g.pname(pv)), T.call("pts_n", {"n": "%.1f" % float(o["cost"])})]
 			var pick := func(_on: bool) -> void: flip.call(pv)
 			body.add_child(K.toggle(label, false, pick, 0.0))
 	# ---- gold, a vassal, disarmament

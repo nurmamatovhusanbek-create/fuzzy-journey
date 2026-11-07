@@ -31,14 +31,14 @@ static func date(g: TBGame, turn: int) -> String:
 static func ans_text(g: TBGame, what: String, op: String, ok: bool, court: int) -> String:
 	var key: String = op if what == "peace" and op in ["cede", "vassal"] else what
 	var cp: int = g.capital_of[court]
-	return T.call("ans_%s_%s" % [key, "y" if ok else "n"], {"a": g.dname(court), "c": TBI18n.place(g.world.name[cp]) if cp >= 0 else g.dname(court)})
+	return T.call("ans_%s_%s" % [key, "y" if ok else "n"], {"a": g.dname(court), "c": TBI18n.place(g.pname(cp)) if cp >= 0 else g.dname(court)})
 
 ## one-line description; empty string = not worth showing
 static func text(g: TBGame, e: Dictionary) -> String:
 	var a := String(g.dname(e["a"])) if int(e.get("a", 0)) > 0 else ""
 	var b := String(g.dname(e["b"])) if e.has("b") and int(e["b"]) > 0 else ""
 	var pn := ""
-	if e.has("p") and int(e["p"]) >= 0: pn = TBI18n.place(String(g.world.name[e["p"]]))
+	if e.has("p") and int(e["p"]) >= 0: pn = TBI18n.place(String(g.pname(e["p"])))
 	match String(e["kind"]):
 		"war":
 			var cbk := String(e.get("cb", ""))

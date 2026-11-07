@@ -85,7 +85,7 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 	var me: int = g.human_id
 	var o: int = g.owner[p]
 	var oname: String = g.dname(o) if o != 0 else T.call("cc_tag_unclaimed")
-	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, TBI18n.place(g.world.name[p]), "terrain", {"w": 420, "h": 560, "dock": "right", "sub": "%s · %s" % [T.call("dossier_sub"), oname]})
+	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, TBI18n.place(g.pname(p)), "terrain", {"w": 420, "h": 560, "dock": "right", "sub": "%s · %s" % [T.call("dossier_sub"), oname]})
 	var ph: bool = K.is_phone(parent)
 	var body: VBoxContainer = h.body
 	body.add_theme_constant_override("separation", 0)

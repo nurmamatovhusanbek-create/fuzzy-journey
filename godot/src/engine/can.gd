@@ -181,19 +181,15 @@ static func _develop(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dicti
 static func _colonize(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
 	if p < 0 or p >= g.P: return _fail(out, "taken")
-	var reg: Dictionary = D.REGIMES[g.regime[n]]
-	out["gold"] = 0 if reg["colonyFree"] else 60 + g.own_count(n) * 2
-	out["moves"] = 2
+	var cost := TBMissions.colony_cost(g, n, p)
+	out["gold"] = int(cost["gold"]); out["moves"] = int(cost["moves"]); out["men"] = int(cost["men"])
+	out["needs"] = TBMissions.colony_needs(g, n, p)
 	if g.owner[p] != 0: return _fail(out, "taken")
 	if g.discoverable[p] != 0 and g.tech_level[n] < 2: return _fail(out, "tech")
-	var adj := false
-	for i in range(g.nb_off[p], g.nb_off[p + 1]):
-		var q := g.nb[i]
-		if g.owner[q] == n and (g.nb_sea[i] == 0 or g.bl(q, D.B_PORT) > 0):
-			adj = true; break
-	if not adj: return _fail(out, "notadjacent")
+	if not TBMissions.colony_border(g, n, p): return _fail(out, "notadjacent")
 	_need(out, "gold", g.gold[n], out["gold"], "gold")
-	_need(out, "moves", g.mp[n], 2, "mp")
+	if int(cost["men"]) > 0: _need(out, "men", g.manpower[n], float(cost["men"]), "manpower")
+	_need(out, "moves", g.mp[n], float(cost["moves"]), "mp")
 	return out
 
 # ---------------------------------------------------------------- diplomacy
