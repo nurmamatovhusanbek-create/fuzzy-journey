@@ -226,6 +226,9 @@ static func pact_terms(g: TBGame, t: int, p: int, rel: int) -> Array:
 		var ally: bool = rel == D.REL_ALLY
 		var pen: float = {"border": 0.0, "near": -0.15 if ally else 0.0, "far": -0.7 if ally else -0.3, "none": -1.5 if ally else -0.9}[cc]
 		if pen != 0.0: out.append(["dv_far", pen])
+	if g.rules >= 4:                                                      # prestige: a country with high standing is a friend worth having, a weak one is not (TBStanding: worth, land, learning, income)
+		var sd: float = STANDING_PACT * float(TBStanding.stars(g, p) - 3)
+		if sd != 0.0: out.append(["dv_standing", sd])
 	var common := 0.0
 	for o in range(1, g.N1):
 		if o == t or o == p or g.alive[o] == 0 or o == g.rebel: continue
@@ -401,12 +404,19 @@ static func offers_turn(g: TBGame) -> void:
 # ---------------------------------------------------------------- ultimatums (rules >= 1)
 ## demand a border province without declaring war: yield and it changes hands quietly; refuse and the demander gets a free casus belli
 const DP_ULT := 2
+const STANDING_PACT := 0.10      # rules 4: each star above (below) three adds (takes) this from a court weighing a pact with you
+const STANDING_ULT := 0.35       # rules 4: a one-star country must be this much weaker to be pressed less hard; a five-star one this much stronger before it yields
 const ULT_RATIO := 2.4          # an AI target yields when the demander is this much stronger (allies of the target count)
 
 static func power(g: TBGame, n: int) -> float:
 	var s := 0.0
 	for p in g.owned(n): s += g.army[p]
 	return s * g.combat_mul(n)
+
+## the strength ratio at which t yields to a demand of n: a high-standing country holds out longer, a low-standing one folds sooner (rules 4)
+static func ult_need(g: TBGame, n: int, t: int, base: float) -> float:
+	if g.rules < 4: return base
+	return base + STANDING_ULT * float(TBStanding.stars(g, t) - 3) * 0.5 - STANDING_ULT * float(TBStanding.stars(g, n) - 3) * 0.25
 
 static func ult_ratio(g: TBGame, n: int, t: int) -> float:
 	var theirs := power(g, t)
@@ -449,7 +459,7 @@ static func ultimatum(g: TBGame, n: int, t: int, p: int) -> Dictionary:
 		g.ev_uid += 1
 		g.pending.append({"uid": g.ev_uid, "n": t, "kind": "prop", "id": "ultimatum", "from": n, "p": p, "icon": "📜", "cat": "", "count": 2})
 		return {"ok": true, "result": "pending"}
-	if ult_ratio(g, n, t) >= ULT_RATIO: return resolve_ultimatum(g, n, t, p, true)
+	if ult_ratio(g, n, t) >= ult_need(g, n, t, ULT_RATIO): return resolve_ultimatum(g, n, t, p, true)
 	return resolve_ultimatum(g, n, t, p, false)
 
 static func resolve_ultimatum(g: TBGame, n: int, t: int, p: int, yielded: bool) -> Dictionary:
@@ -475,7 +485,7 @@ static func ai_ultimatum(g: TBGame, n: int, aggr: float) -> void:
 			var q: int = g.nb[i]; var t := g.owner[q]
 			if t == 0 or t == n or seen.has(t): continue
 			seen[t] = true
-			var need := ULT_RATIO - 0.4 if g.human[t] != 0 else ULT_RATIO
+			var need := ult_need(g, n, t, ULT_RATIO - 0.4 if g.human[t] != 0 else ULT_RATIO)
 			var rr := ult_ratio(g, n, t)
 			if rr < need or rr < br: continue
 			var tp := ult_target(g, n, t)

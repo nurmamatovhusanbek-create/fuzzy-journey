@@ -50,6 +50,22 @@ func _init() -> void:
 	_check(s_me >= 1 and s_me <= 5, "standing is 1..5 (%d)" % s_me)
 	var weak := g.nat_code.find("corsica")
 	if weak > 0: _check(TBStanding.stars(g, weak) <= 2, "a one-province country is low (%d)" % TBStanding.stars(g, weak))
+	# ---- stars have effects: a pact with a high-standing country weighs more, a demand on a weak one yields sooner
+	var hi := -1; var lo := -1
+	for n in range(1, g.N1):
+		if g.alive[n] == 0 or n == g.rebel: continue
+		var sn := TBStanding.stars(g, n)
+		if sn >= 5 and hi < 0: hi = n
+		if sn <= 1 and lo < 0: lo = n
+	_check(hi > 0 and lo > 0, "there are five-star and one-star countries (%d, %d)" % [hi, lo])
+	if hi > 0 and lo > 0:
+		var tb := g.nat_code.find("france")
+		var t_hi := TBDiplo.pact_terms(g, tb, hi, TBData.REL_NAP); var t_lo := TBDiplo.pact_terms(g, tb, lo, TBData.REL_NAP)
+		var sh := 0.0; var sl := 0.0
+		for x in t_hi: if x[0] == "dv_standing": sh = float(x[1])
+		for x in t_lo: if x[0] == "dv_standing": sl = float(x[1])
+		_check(sh > 0.0 and sl < 0.0, "a five-star country draws pacts, a one-star one is weighed down (%.2f, %.2f)" % [sh, sl])
+		_check(TBDiplo.ult_need(g, lo, hi, 2.4) > TBDiplo.ult_need(g, hi, lo, 2.4), "a weak country is pressed sooner than a strong one")
 	# ---- old rules keep the old worth and verb
 	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "timurid"), {"seed": 3, "rules": 3})
 	var q3 := -1

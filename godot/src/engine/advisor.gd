@@ -97,7 +97,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 					seen[t] = true
 					if g.get_rel(n, t) != D.REL_PEACE or g.has_truce(n, t): continue
 					var rr := TBDiplo.ult_ratio(g, n, t)
-					if rr >= TBDiplo.ULT_RATIO + 0.2 and rr > ur:
+					if rr >= TBDiplo.ult_need(g, n, t, TBDiplo.ULT_RATIO) + 0.2 and rr > ur:
 						var tp := TBDiplo.ult_target(g, n, t)
 						if tp >= 0: ur = rr; up = tp
 			if up >= 0: out.append(_a("ult_chance", 0, up, int(ur * 10.0)))

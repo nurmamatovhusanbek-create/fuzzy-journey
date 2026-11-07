@@ -720,7 +720,7 @@ func reason_text(cn: Dictionary) -> String:
 	var key := "err_" + r
 	var base: String = T.call(key) if TBI18n.has_key(key) else r
 	var parts: Array = []
-	if cn.has("needs"):                                                  # an order with a list of requirements names every one that is not met
+	if cn.has("needs") and not bool(cn.get("needs_generic", false)):      # an order with a list of requirements names every one that is not met
 		var unmet: Array = []
 		for nd in cn["needs"]: if not bool(nd[0]): unmet.append(String(T.call(String(nd[1]), nd[2])))
 		if not unmet.is_empty(): return "%s: %s" % [T.call("cc_requires"), " · ".join(PackedStringArray(unmet))]
@@ -746,7 +746,22 @@ func _cost_parts(head: String, cn: Dictionary, skip: Array = []) -> Array:
 	if int(cn["dp"]) > 0: out.append({"t": " · %d %s" % [int(cn["dp"]), T.call("u_dp")], "short": sh.has("dp")})
 	return out
 
+## the requirements of any order as a list [[met, key, vars]]: what it costs, with what the player has, and the reason when something else stands in the way
+func generic_needs(cn: Dictionary) -> Array:
+	var me: int = g.human_id
+	var out: Array = []
+	if int(cn.get("gold", 0)) > 0: out.append([float(g.gold[me]) >= float(cn["gold"]), "colony_need_gold", {"g": int(cn["gold"]), "h": int(g.gold[me])}])
+	if int(cn.get("men", 0)) > 0: out.append([float(g.manpower[me]) >= float(cn["men"]), "need_men", {"m": int(cn["men"]), "h": int(g.manpower[me])}])
+	if int(cn.get("moves", 0)) > 0: out.append([float(g.mp[me]) + 0.0001 >= float(cn["moves"]), "colony_need_moves", {"m": int(cn["moves"]), "h": snappedf(g.mp[me], 0.1)}])
+	if int(cn.get("dp", 0)) > 0: out.append([float(g.dp[me]) + 0.0001 >= float(cn["dp"]), "need_dp", {"d": int(cn["dp"]), "h": snappedf(g.dp[me], 0.1)}])
+	var r: String = String(cn.get("reason", ""))
+	if not bool(cn.get("ok", true)) and r != "" and not (r in ["gold", "mp", "manpower", "men", "dp"]):
+		var key := "err_" + r
+		out.insert(0, [false, key if TBI18n.has_key(key) else "err_unknown", {"r": r}])
+	return out
+
 func _mk(id: String, glyph_id: String, label_key: String, cn: Dictionary, parts: Array, primary: bool = false, danger: bool = false, extra: Dictionary = {}) -> Dictionary:
+	if not cn.has("needs"): cn["needs"] = generic_needs(cn); cn["needs_generic"] = true
 	var v := {"id": id, "glyph": glyph_id, "label": T.call(label_key), "can": cn, "parts": parts, "primary": primary, "danger": danger, "hot": HOT.get(id, "")}
 	v["why"] = "" if cn["ok"] else reason_text(cn)
 	for k in extra: v[k] = extra[k]

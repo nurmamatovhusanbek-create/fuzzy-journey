@@ -111,7 +111,7 @@ echo "$out" | grep -q "REL_CARD OK" && echo "ok: rel_card" || { echo "FAIL: rel_
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/build_stable.gd -- 1280 800 2>&1)
 echo "$out" | grep -q "BUILD_STABLE OK" && echo "ok: build_stable" || { echo "FAIL: build_stable"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 # rules 4: the country plate at country level, the Develop choice
-for t in country_plate:COUNTRY_PLATE develop_modal:DEVELOP_MODAL build_move:BUILD_MOVE ruler_resize:RULER_RESIZE; do
+for t in country_plate:COUNTRY_PLATE needs_lists:NEEDS_LISTS develop_modal:DEVELOP_MODAL build_move:BUILD_MOVE ruler_resize:RULER_RESIZE; do
   out=$(TB_PHONE_UI=desktop TB_NOANIM=1 timeout 250 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/${t%%:*}.gd -- 1280 800 2>&1); mark=${t##*:}
   echo "$out" | grep -q "$mark OK" && echo "ok: tests/${t%%:*}.gd" || { echo "FAIL: tests/${t%%:*}.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 done
