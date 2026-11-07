@@ -216,9 +216,12 @@ static func _font(file: String, fallbacks: Array = []) -> FontFile:
 	var f: FontFile = load("res://assets/fonts/%s.woff2" % file)
 	if f != null:
 		f = f.duplicate()
+		f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED     # glyphs on whole pixels: the baked HUD pieces and the live text are then the same picture
 		for fb in fallbacks:
 			var ff: Font = load("res://assets/fonts/%s.woff2" % fb)
-			if ff != null: f.fallbacks.append(ff)
+			if ff != null:
+				ff = ff.duplicate(); ff.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+				f.fallbacks.append(ff)
 	_fonts[file] = f
 	return f
 
