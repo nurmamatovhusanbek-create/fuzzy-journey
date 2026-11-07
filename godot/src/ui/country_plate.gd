@@ -32,7 +32,7 @@ class Fact extends Control:
 func setup(g: TBGame, n: int, anchor: Vector2, env: Dictionary) -> void:
 	_g = g; _n = n; _env = env
 	top_level = true; z_index = 58
-	custom_minimum_size.x = 400.0 if not TBKit.is_phone(self) else 340.0
+	custom_minimum_size.x = minf(400.0 if not TBKit.is_phone(self) else 340.0, get_viewport_rect().size.x - 16.0)          # never wider than a portrait phone
 	add_theme_stylebox_override("panel", TBBz.plate_box(10.0, true))
 	var m := MarginContainer.new()
 	for side in ["left", "right"]: m.add_theme_constant_override("margin_" + side, 24)

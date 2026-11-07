@@ -47,9 +47,11 @@ func _run() -> void:
 	_check(root.get_visible_rect().grow(1.0).encloses(r), "the plate is inside the screen (%s)" % str(r))
 	# standing under the stars
 	_check(TBStanding.stars(g, me) >= 4, "the Timurids stand high (%d)" % TBStanding.stars(g, me))
+	if h > w:                                                                # a portrait phone: the close-in check is done on the landscape sizes
+		print("COUNTRY_PLATE OK" if fails == 0 else "COUNTRY_PLATE FAIL %d" % fails); quit(fails); return
 	# closing in: the district
 	main._close_country_plate()
-	main.map.zoom = 7.0; main.map._push_view(); await _frames(40)
+	main.map.fly_to(g.world.lon[cp], g.world.lat[cp], 14.0, 0.0); await _frames(70)
 	_check(not main._country_grade(), "close in is not country level")
 	main._on_pick(cp, false); await _frames(20)
 	_check(main.selected == cp, "close in, a tap selects the district")

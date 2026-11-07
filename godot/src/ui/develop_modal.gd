@@ -19,6 +19,7 @@ var _rows: Array = []                       # the list buttons
 var _detail: VBoxContainer
 var _env: Dictionary = {}
 var _compact := false
+var _narrow := false                        # a portrait screen: the list above the detail, the header on two rows
 var _drag := false
 var _drag_off := Vector2.ZERO
 var _rule: Control
@@ -63,6 +64,7 @@ class Row extends Button:
 func setup(g: TBGame, p: int, anchor: Rect2, vp: Vector2, env: Dictionary = {}) -> void:
 	_g = g; _p = p; _env = env
 	_compact = TBKit.is_phone(self) or vp.y < 820.0
+	_narrow = vp.x < 700.0
 	top_level = true; z_index = 60
 	custom_minimum_size.x = minf(vp.x - 16.0, 600.0 if _compact else 790.0)
 	add_theme_stylebox_override("panel", TBBz.plate_box(12.0, true))
@@ -77,21 +79,29 @@ func setup(g: TBGame, p: int, anchor: Rect2, vp: Vector2, env: Dictionary = {}) 
 	TBKit.wrappable(cap); hd.add_child(cap)
 	var running: int = g.proj_kind[p]
 	var st_txt: String = T.call("pj_none") if running == 0 else T.call("pj_running", {"k": T.call("pj_" + TBInvest.project_id(running)), "t": g.proj_left[p]})
-	hd.add_child(TBKit.caps(st_txt, 12, TBTokens.BZ_HI if running != 0 else TBTokens.BZ_DIM))
-	var sp := Control.new(); sp.custom_minimum_size = Vector2(14, 0); hd.add_child(sp)
-	hd.add_child(TBKit.caps(T.call("bp_gold_head", {"g": int(g.gold[g.human_id])}), 12, TBTokens.BZ_HI))
-	var sp2 := Control.new(); sp2.custom_minimum_size = Vector2(16, 0); hd.add_child(sp2)
+	var st_l := TBKit.caps(st_txt, 12, TBTokens.BZ_HI if running != 0 else TBTokens.BZ_DIM)
+	var gold_l := TBKit.caps(T.call("bp_gold_head", {"g": int(g.gold[g.human_id])}), 12, TBTokens.BZ_HI)
 	var cb := TBBuildPicker.CloseBtn.new(30.0 if _compact else 34.0)
 	TBKit.a11y(cb, String(T.call("close")), "button")
 	cb.pressed.connect(func(): closed.emit(); queue_free())
-	hd.add_child(cb)
-	v.add_child(hd)
+	if _narrow:                                                           # title and cross on the first row, the project and the gold under them
+		hd.add_child(cb); v.add_child(hd)
+		var hd2 := HBoxContainer.new(); hd2.add_theme_constant_override("separation", 16)
+		st_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; TBKit.wrappable(st_l)
+		hd2.add_child(st_l); hd2.add_child(gold_l); v.add_child(hd2)
+	else:
+		hd.add_child(st_l)
+		var sp := Control.new(); sp.custom_minimum_size = Vector2(14, 0); hd.add_child(sp)
+		hd.add_child(gold_l)
+		var sp2 := Control.new(); sp2.custom_minimum_size = Vector2(16, 0); hd.add_child(sp2)
+		hd.add_child(cb)
+		v.add_child(hd)
 	_rule = TBKit.header_rule(0)
 	v.add_child(_rule)
 	var stl: Label = K.label(T.call("pj_state", {"p": TBI18n.place(g.pname(p)), "pop": g.pop[p], "e": g.econ[p], "d": g.dev[p], "s": g.stab[p]}), 14 if _compact else 15, TBTokens.BZ_DIM)
 	stl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; stl.custom_minimum_size.x = 40; stl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(stl)
-	var split := HBoxContainer.new(); split.add_theme_constant_override("separation", 22 if _compact else 34)
+	var split := BoxContainer.new(); split.vertical = _narrow; split.add_theme_constant_override("separation", 14 if _narrow else (22 if _compact else 34))
 	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(split)
 	var list := VBoxContainer.new(); list.add_theme_constant_override("separation", 7); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL; list.size_flags_stretch_ratio = 1.0
@@ -100,7 +110,7 @@ func setup(g: TBGame, p: int, anchor: Rect2, vp: Vector2, env: Dictionary = {}) 
 	for k in range(1, TBInvest.PROJECTS.size() + 1):
 		var cn: Dictionary = g.can({"cmd": "develop", "p": p, "k": k})
 		_cans.append(cn)
-		var r := Row.new(54.0 if _compact else 80.0)
+		var r := Row.new(56.0 if (_compact or _narrow) else 80.0)
 		r.glyph = GLYPH[k]; r.name_t = String(T.call("pj_" + TBInvest.project_id(k))); r.ok_item = bool(cn["ok"])
 		r.sub_t = _effect(k, true) if bool(cn["ok"]) else _why(cn)
 		r.cost_t = str(int(cn["gold"])); r.turns_t = CC.unit(int(cn.get("turns", TBInvest.project_turns(g, p, k))), "u_turn")
