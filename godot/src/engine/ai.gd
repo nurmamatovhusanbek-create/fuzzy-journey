@@ -72,6 +72,23 @@ static func _nation(g: TBGame, n: int) -> void:
 			if sc2 > bsc:
 				bsc = sc2; bp = p
 		if bp >= 0: g.apply({"cmd": "develop", "n": n, "p": bp, "k": 1})
+	# 1c. rules 4: a nation with gold to spare starts projects (development, economy, settlement, public order), the kind by what the province lacks and the ruler's bent
+	if g.rules >= 4 and g.gold[n] > 220.0 and g.mp[n] >= 2.0 and g.rng.chance(0.35 + float(pers["econ"]) * 0.4):
+		var started := 0
+		var stepp := maxi(1, own.size() / 10)
+		var ii := int(g.rng.next() * float(stepp))
+		while ii < own.size() and started < (2 if g.gold[n] > 600.0 else 1):
+			var q := own[ii]
+			ii += stepp
+			if g.occupier[q] != 0 or g.proj_kind[q] != 0: continue
+			var kinds: Array = []
+			if g.stab[q] < 62: kinds.append(4)
+			if g.econ[q] < 5 and TBInvest.econ_eff(g, q) >= 1.0: kinds.append(2)
+			if g.dev[q] < 5: kinds.append(1)
+			if g.pop[q] < 500: kinds.append(3)
+			for k in kinds:
+				if bool(g.can({"cmd": "develop", "p": q, "k": k, "n": n})["ok"]) and g.gold[n] - float(TBInvest.project_cost(g, q, k)) > 120.0:
+					g.apply({"cmd": "develop", "n": n, "p": q, "k": k}); started += 1; break
 	# 2. colonize adjacent neutral land
 	if g.gold[n] > 90 and g.mp[n] >= 2:
 		var i := 0

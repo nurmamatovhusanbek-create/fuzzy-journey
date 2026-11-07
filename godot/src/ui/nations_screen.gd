@@ -676,7 +676,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		var sp := GridContainer.new(); sp.columns = 1 if narrow else 2
 		sp.add_theme_constant_override("h_separation", 8); sp.add_theme_constant_override("v_separation", 8); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		v.add_child(sp)
-		for op in ["steal", "sabotage", "incite"]:
+		for op in ["survey", "steal", "sabotage", "incite"]:
 			var cost: float = TBCommands.SPY_COST[op]
 			var reason := ""
 			if g.friendly(me, n): reason = T.call("err_ally")

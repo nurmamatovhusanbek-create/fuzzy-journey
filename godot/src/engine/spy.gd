@@ -6,10 +6,10 @@ extends RefCounted
 const D = preload("res://src/engine/data.gd")
 
 const BASE := 0.80
-const OP_COST := {"steal": 0.0, "sabotage": 0.05, "incite": 0.10}          # the nastier the work, the harder it is
-const GRUDGE := {"steal": 25, "sabotage": 40, "incite": 55}
-const INFAMY := {"steal": 1.0, "sabotage": 3.0, "incite": 5.0}
-const SEV := {"steal": 1, "sabotage": 2, "incite": 3}
+const OP_COST := {"survey": -0.05, "steal": 0.0, "sabotage": 0.05, "incite": 0.10}          # the nastier the work, the harder it is
+const GRUDGE := {"survey": 10, "steal": 25, "sabotage": 40, "incite": 55}
+const INFAMY := {"survey": 0.0, "steal": 1.0, "sabotage": 3.0, "incite": 5.0}
+const SEV := {"survey": 0, "steal": 1, "sabotage": 2, "incite": 3}
 
 ## how well a court watches its own house: learning and administration
 const TOWER_STEP := 0.02                       # each watchtower of a province: a watchful eye (six at most count)
@@ -44,6 +44,7 @@ static func terms(g: TBGame, n: int, t: int, op: String) -> Array:
 		if st / float(own.size()) < 55.0: out.append(["sp_unrest", 0.06])                         # a restless country watches its agents less
 	var oc: float = float(OP_COST.get(op, 0.0))
 	if oc > 0.0: out.append(["sp_hard", -oc])
+	elif oc < 0.0: out.append(["sp_easy", -oc])                                             # looking is easier than striking
 	return out
 
 static func chance(g: TBGame, n: int, t: int, op: String) -> float:
@@ -57,7 +58,7 @@ static func consequences(g: TBGame, n: int, t: int, op: String, ok: bool) -> Dic
 	var out := {"caught": false, "traced": false, "cut": []}
 	var gd := guard(g, t)
 	if not ok: out["caught"] = g.rng.next() < clampf(0.55 + gd * 0.6, 0.0, 0.9)
-	else: out["traced"] = op != "steal" and g.rng.next() < 0.10 + gd * 0.5
+	else: out["traced"] = op != "steal" and op != "survey" and g.rng.next() < 0.10 + gd * 0.5
 	if not (bool(out["caught"]) or bool(out["traced"])): return out
 	var scale := 1.0 if bool(out["caught"]) else 0.5
 	TBDiplo.hurt(g, t, n, int(round(float(GRUDGE[op]) * scale)))

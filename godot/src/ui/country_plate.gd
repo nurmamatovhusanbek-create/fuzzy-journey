@@ -55,8 +55,7 @@ func setup(g: TBGame, n: int, anchor: Vector2, env: Dictionary) -> void:
 	for p in g.P: if g.owner[p] == n: prov += 1
 	facts.add_child(Fact.new(T.call("cp_provinces", {"n": prov})))
 	var own: bool = n == g.human_id
-	var cp: int = g.capital_of[n]
-	var seen: bool = own or (cp >= 0 and TBVision.sees(g, cp))
+	var seen: bool = own or TBVision.nation_seen(g, g.human_id, n)               # a friend, a pact, or a report from their court (the Survey operation) shows the army
 	if seen:
 		var men := 0
 		for p in g.P: if g.controller(p) == n: men += g.army[p]

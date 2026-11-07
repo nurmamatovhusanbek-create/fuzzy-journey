@@ -421,7 +421,7 @@ static func _c_regime(g: TBGame, c: Dictionary) -> Dictionary:
 	return {"ok": true}
 
 ## covert operations (rules >= 1): steal | sabotage | incite
-const SPY_COST := {"steal": 6.0, "sabotage": 8.0, "incite": 10.0}
+const SPY_COST := {"survey": 3.0, "steal": 6.0, "sabotage": 8.0, "incite": 10.0}
 static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var t: int = c["t"]; var op: String = c.get("op", "")
 	if not SPY_COST.has(op): return _err("type")
