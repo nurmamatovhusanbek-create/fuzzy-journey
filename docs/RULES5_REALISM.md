@@ -1,6 +1,6 @@
 # Rules 5: a realistic scale (people, gold, armies)
 
-Status: design + data (R1). Everything below is gated on `rules >= 5`; rules 0-4 and saved games keep their numbers. Rules 5 becomes the default for new games only when every mechanism below is rebalanced (R6).
+Status: built and the default for new games (`NEW_GAME_RULES := 5`). Everything below is gated on `rules >= 5`; rules 0-4 and saved games keep their numbers (rules 0 is still oracle-exact).
 
 ## 1. The scale: how many real people one game person stands for
 
@@ -50,6 +50,12 @@ Per province per turn (half a year):
 
 Development staffing (`POP_NEED`), province worth (peace-table prices), victory thresholds, standing stars, war score and casualties are rewritten as ratios (to people, to income, to the world), so they hold at any scale. The formulas are listed as each lands, with the measured effect on the 13-era simulation (`tools/sim.sh`).
 
-## 7. Work order
+## 7. What was built, and what it measures (tests/pop5.gd, tests/rules5.gd, tools/sim.sh with TB_RULES=5)
 
-R1 data and this design (done) -> R2 people in the engine -> R3 gold and prices -> R4 soldiers -> R5 ratios -> R6 numbers on screen, tests, simulation of all 13 eras, default.
+* People: every era starts from `data/pop_real.json` at 10/20/30:1 with jitter; growth follows the calendar and technology under a ceiling; fifty years from 1804 give about +30 % (history +24 %).
+* Gold: output = people x 0.45 workers x wage(tech) x development x economy x order; the standing army costs 3-5 % of the income in peace; a development level pays back in about 30 turns in every era (the old design target), a decree costs about half a turn of income, a thousand recruits cost a fraction of a turn.
+* Soldiers: capital only at the start (0.4-1.3 % of the people by era), levy shares by era, upkeep two workers' turns a man, the AI keeps an army its people can bear (1.3 x the peace share, 3 x at war).
+* Research counts the square root of the people (a China of 300 million real does not learn fourteen times as fast as France).
+* Victory: the economic goal's ceiling is 0.9 for real giants (a third of the world's output is one nation's); gold goals are in turns of the nation's own output.
+* Simulation (13 eras, 250 turns, 2 seeds): no invariant breaks, wars and occupations as in rules 4, no economic win for any AI, tech wins only in the early-tech eras.
+* Known open points: an AI giant still hoards gold it cannot spend (the same as rules 4: gold has few sinks), and the national population figures are regional estimates spread by today's geography (see section 2).

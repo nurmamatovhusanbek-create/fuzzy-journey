@@ -23,7 +23,7 @@ func _run() -> void:
 	g.pending.clear(); main._clear_overlay()
 	await _frames(25)
 	var p := -1
-	for q in g.owned(me): if g.capital[q] == 0 and g.army[q] >= 1: p = q; break
+	for q in g.owned(me): if g.capital[q] == 0 and (g.army[q] >= 1 or g.rules >= 5): p = q; break      # rules 5: only a capital holds an army at the start
 	g.gold[me] = 3.0; g.mp[me] = 0.0; g.manpower[me] = 2.0
 	main.map.fly_to(g.world.lon[p], g.world.lat[p], 9.0, 0.0); await _frames(70)
 	main._select(p); await _frames(30)
