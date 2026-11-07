@@ -6,10 +6,10 @@ extends RefCounted
 const D = preload("res://src/engine/data.gd")
 
 const BASE := 0.80
-const OP_COST := {"survey": -0.05, "steal": 0.0, "sabotage": 0.05, "incite": 0.10}          # the nastier the work, the harder it is
-const GRUDGE := {"survey": 10, "steal": 25, "sabotage": 40, "incite": 55}
-const INFAMY := {"survey": 0.0, "steal": 1.0, "sabotage": 3.0, "incite": 5.0}
-const SEV := {"survey": 0, "steal": 1, "sabotage": 2, "incite": 3}
+static var OP_COST: Dictionary = {"survey": -0.05, "steal": 0.0, "sabotage": 0.05, "incite": 0.10}          # the nastier the work, the harder it is
+static var GRUDGE: Dictionary = {"survey": 10, "steal": 25, "sabotage": 40, "incite": 55}
+static var INFAMY: Dictionary = {"survey": 0.0, "steal": 1.0, "sabotage": 3.0, "incite": 5.0}
+static var SEV: Dictionary = {"survey": 0, "steal": 1, "sabotage": 2, "incite": 3}
 
 ## how well a court watches its own house: learning and administration
 const TOWER_STEP := 0.02                       # each watchtower of a province: a watchful eye (six at most count)

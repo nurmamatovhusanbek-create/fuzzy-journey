@@ -5,6 +5,11 @@ cd "$(dirname "$0")/.."
 fail=0
 run() { echo "== $1"; local out; out=$(cd godot && timeout ${TB_TEST_TIMEOUT:-900} "$GODOT" --headless --path . -s "$2" 2>&1); local rc=$?; echo "$out" | grep -vE "ALSA|audio|^$|Godot Engine"; [ $rc -eq 0 ] || { echo "!! FAILED: $1"; fail=1; }; }
 (cd godot && "$GODOT" --headless --path . --import >/dev/null 2>&1)
+# the turn runs on its own thread while the screen reads the same tables: a GDScript `const` Array / Dictionary is not safe to read from two threads
+# (a corrupted table, a double free), a `static var` is. Engine tables must be `static var`.
+bad=$(grep -rnE '^const [A-Z][A-Z0-9_]*\s*(:=|:\s*(Array|Dictionary)[^=]*=)\s*[\[{]' godot/src/engine --include=*.gd)
+if [ -n "$bad" ]; then echo "$bad"; echo "!! FAILED: engine const tables (use static var)"; fail=1; else echo "ok: no const tables in the engine"; fi
+run "engine tables are safe to read from several threads" tests/const_race.gd
 run "engine: determinism + basics" tests/run_all.gd
 run "save/load round trip (3 scenarios)" tests/saveload.gd
 run "rulers: historical seeds, succession, determinism" tests/rulers.gd

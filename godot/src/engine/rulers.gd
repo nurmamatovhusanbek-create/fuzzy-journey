@@ -5,11 +5,11 @@ extends RefCounted
 
 const D = preload("res://src/engine/data.gd")
 const NAME_POOL := 156                      # i18n keys rn_0 .. rn_155 (rn_0..51 were the one global pool; saves keep those indices)
-const TRAITS := ["none", "conqueror", "builder", "scholar", "merchant", "pious", "diplomat", "tyrant", "beloved"]
-const HEREDITARY := [0, 1, 2, 4, 8]         # regime ids that pass power by blood: tribal feudal monarchy empire horde
+static var TRAITS: Array = ["none", "conqueror", "builder", "scholar", "merchant", "pious", "diplomat", "tyrant", "beloved"]
+static var HEREDITARY: Array = [0, 1, 2, 4, 8]         # regime ids that pass power by blood: tribal feudal monarchy empire horde
 const TERM_TURNS := 16                      # elected leaders face replacement every 8 years
 ## rules 3: a throne is given a name of its own country, chosen by where its capital lies and in which age; each list holds indices into the rn_ names
-const SPHERE_NAMES := {
+static var SPHERE_NAMES: Dictionary = {
 	"west": [1, 2, 3, 4, 5, 8, 9, 10, 16, 17, 18, 19, 20, 24, 25, 14, 15, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65],
 	"iberia": [11, 20, 5, 10, 66, 67, 68, 69, 70, 71, 72, 73],
 	"slavic": [6, 7, 12, 13, 26, 27, 22, 23, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83],

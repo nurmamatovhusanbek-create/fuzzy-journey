@@ -19,7 +19,7 @@ const COLONY_GOLD_PER_PROVINCE := 3
 const COLONY_MEN := 40
 const COLONY_MOVES := 2.0
 const COLONY_GARRISON := 4
-const COLONY_TERRAIN_MUL := [1.0, 1.1, 1.3, 1.1, 1.2, 0.9]       # plains, hills, mountain, forest, marsh, steppe
+static var COLONY_TERRAIN_MUL: Array = [1.0, 1.1, 1.3, 1.1, 1.2, 0.9]       # plains, hills, mountain, forest, marsh, steppe
 const COLONY_TECH := 2.0                                         # land across the sea ("discoverable") needs this technology
 
 static func colony_cost(g: TBGame, n: int, p: int) -> Dictionary:

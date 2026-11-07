@@ -8,7 +8,7 @@ const D = preload("res://src/engine/data.gd")
 # ---------------------------------------------------------------- the command schema (one list for the interface, the AI and the server)
 ## field kinds: a list of up to 64 provinces | p province | pn province or -1 | t nation | q 0..65000 | b building type | r regime | u event uid | k choice index | v -1000..1000 | s short id string; "?name" is optional.
 ## `n` (the acting nation) is always required. Keys that are not listed are dropped, so a hostile client cannot smuggle a flag such as `_force` through; only a trusted caller keeps FLAGS.
-const SCHEMA := {
+static var SCHEMA: Dictionary = {
 	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"},
 	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "peaceDeal": {"t": "t", "?provs": "a", "?gold": "q", "?vassal": "q", "?disarm": "q"}, "callAlly": {"t": "t", "e": "t"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
 	"build": {"p": "p", "b": "b"}, "demolish": {"p": "p", "?b": "b"}, "budget": {"key": "s", "val": "v"},
@@ -18,8 +18,8 @@ const SCHEMA := {
 	"ask": {"kind": "s", "t": "t", "?op": "s", "?p": "pn"}, "noop": {},
 	"settle": {"p": "p"}, "embassy": {"t": "t"},
 }
-const FLAGS := ["_force", "_ult"]                       # engine-internal switches (the AI and the court answers use them); never accepted from a client
-const PACT_CMDS := ["ally", "nap", "marry", "trade", "ultimatum", "breakPact", "embassy"]
+static var FLAGS: Array = ["_force", "_ult"]                       # engine-internal switches (the AI and the court answers use them); never accepted from a client
+static var PACT_CMDS: Array = ["ally", "nap", "marry", "trade", "ultimatum", "breakPact", "embassy"]
 const MAX_ID_LEN := 24
 const MAX_LIST := 64
 
@@ -421,7 +421,7 @@ static func _c_regime(g: TBGame, c: Dictionary) -> Dictionary:
 	return {"ok": true}
 
 ## covert operations (rules >= 1): steal | sabotage | incite
-const SPY_COST := {"survey": 3.0, "steal": 6.0, "sabotage": 8.0, "incite": 10.0}
+static var SPY_COST: Dictionary = {"survey": 3.0, "steal": 6.0, "sabotage": 8.0, "incite": 10.0}
 static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var t: int = c["t"]; var op: String = c.get("op", "")
 	if not SPY_COST.has(op): return _err("type")

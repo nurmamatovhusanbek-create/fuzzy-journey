@@ -133,7 +133,7 @@ static func crisis_ids(al: Array) -> PackedStringArray:
 # ---------------------------------------------------------------- HUD support (read-only helpers; never mutate state)
 
 ## ticker classes, most urgent first (design/ux/hud.md section 8)
-const CLASSES := ["answer", "war", "revolt", "offer", "event", "treaty", "supply"]
+static var CLASSES: Array = ["answer", "war", "revolt", "offer", "event", "treaty", "supply"]
 const TREATY_WARN := 3                     # turns ahead a truce or a pact running out is announced
 
 ## alert id -> ticker class; "" = a tip / opportunity, which never enters the ticker

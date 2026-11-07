@@ -367,9 +367,9 @@ static func _rebel_lifecycle(g: TBGame, own: PackedInt32Array) -> void:
 ## Rules >= 3 (docs/MODEL.md section 9): a victory is a position HELD, not a moment: the condition must stay true for HOLD turns in a row (the chronicle of a hegemon is written
 ## over years); diplomatic hegemony is no longer an ending but an achievement (alliances are made in almost every turn of any game); and domination needs the people as well
 ## as the land (an empire of empty provinces rules nothing), counting a vassal's lands and people at half.
-const VICTORY_IDS := ["domination", "economic", "technological", "diplomatic", "conquest"]
-const WIN_IDS_3 := ["domination", "economic", "technological", "conquest"]
-const HOLD := {"domination": 8, "economic": 8, "technological": 6, "diplomatic": 20}          # turns (one turn = half a year); conquest ends the game at once
+static var VICTORY_IDS: Array = ["domination", "economic", "technological", "diplomatic", "conquest"]
+static var WIN_IDS_3: Array = ["domination", "economic", "technological", "conquest"]
+static var HOLD: Dictionary = {"domination": 8, "economic": 8, "technological": 6, "diplomatic": 20}          # turns (one turn = half a year); conquest ends the game at once
 const DOMINATION_SHARE := 0.25
 const DOMINATION_POP := 0.25               # rules >= 3: ...and this share of the world's people
 const VASSAL_WEIGHT := 0.5

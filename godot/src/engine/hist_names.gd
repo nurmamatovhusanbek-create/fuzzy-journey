@@ -4,7 +4,7 @@
 class_name TBHistNames
 extends RefCounted
 
-const ERA_CODES := {-218: "A", 117: "R", 1096: "M", 1300: "G", 1400: "T", 1492: "D", 1700: "U", 1804: "N", 1850: "V", 1914: "W", 1939: "X", 1947: "C"}
+static var ERA_CODES: Dictionary = {-218: "A", 117: "R", 1096: "M", 1300: "G", 1400: "T", 1492: "D", 1700: "U", 1804: "N", 1850: "V", 1914: "W", 1939: "X", 1947: "C"}
 static var _rules: Dictionary = {}
 static var _loaded := false
 

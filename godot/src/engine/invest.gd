@@ -41,7 +41,7 @@ static func progress(g: TBGame, p: int) -> Dictionary:
 	return {"econ": clampf(g.inv_e[p], 0.0, 1.0) if g.econ[p] < 5 else 1.0, "dev": clampf(g.inv_d[p], 0.0, 1.0)}
 
 # ---------------------------------------------------------------- projects (rules 4): the Develop verb opens a choice of work, each costing gold and a move, running some turns, paying off at the end
-const PROJECTS := ["dev", "econ", "settle", "order"]          # kind 1..4 (0 = none)
+static var PROJECTS: Array = ["dev", "econ", "settle", "order"]          # kind 1..4 (0 = none)
 const PROJECT_MOVES := 1
 const ORDER_CALM := 80                                         # stability at which public order has nothing left to mend
 const ROOM_MAX := 2000

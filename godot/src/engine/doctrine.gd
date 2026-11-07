@@ -3,7 +3,7 @@
 class_name TBDoctrine
 extends RefCounted
 
-const IDS := ["none", "martial", "mercantile", "administrative"]
+static var IDS: Array = ["none", "martial", "mercantile", "administrative"]
 const ADOPT_DP := 2
 const SWITCH_DP := 4
 

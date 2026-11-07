@@ -428,7 +428,7 @@ func controller(p: int) -> int:
 	return occupier[p] if occupier[p] != 0 else owner[p]
 
 # ---------------------------------------------------------------- levy pools (rules >= 4; docs/WAR_DESIGN.md section 3)
-const LEVY_RATE := [0.22, 0.28, 0.34, 0.42, 0.50]   # share of a province's people that can be under arms, by era: real states carried 1-3 % of their people for years, industrial ones 5-10 %
+static var LEVY_RATE: Array = [0.22, 0.28, 0.34, 0.42, 0.50]   # share of a province's people that can be under arms, by era: real states carried 1-3 % of their people for years, industrial ones 5-10 %
 const LEVY_REFILL := 0.06                            # of the cap, each turn
 const LEVY_START := 0.35                             # a new game starts with this share of the cap ready
 const LEVY_LOW := 0.25                               # below this share of the cap a province is drained
@@ -642,7 +642,7 @@ func income(n: int) -> Dictionary:
 
 # ---------------------------------------------------------------- districts: buildings per province (rules >= 2; rules < 2 keeps the single building)
 const NB := 9                                  # building types (data.gd BUILDINGS)
-const POP_NEED := [0, 40, 80, 130, 200, 300]   # people a province needs to staff each development level; below it the level's extra income is only partly earned
+static var POP_NEED: Array = [0, 40, 80, 130, 200, 300]   # people a province needs to staff each development level; below it the level's extra income is only partly earned
 const OVEREXTEND_FROM := 60                    # provinces a court rules without strain; beyond them administration costs 0.4% more for each one
 const OVEREXTEND_STEP := 0.004
 const SLOT_COST_STEP := 0.20                   # every building already in the province makes the next new one this much dearer

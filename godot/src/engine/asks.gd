@@ -7,7 +7,7 @@ class_name TBAsks
 extends RefCounted
 
 const D = preload("res://src/engine/data.gd")
-const KINDS := ["nap", "ally", "marry", "peace", "trade", "ult", "spy"]
+static var KINDS: Array = ["nap", "ally", "marry", "peace", "trade", "ult", "spy"]
 const REFUSAL_GRUDGE := 5
 
 static func _real(kind: String) -> String:

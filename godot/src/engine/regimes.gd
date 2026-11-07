@@ -4,10 +4,10 @@ class_name TBRegimes
 extends RefCounted
 
 # regime ids: 0 tribal 1 feudal 2 monarchy 3 republic 4 empire 5 democracy 6 communism 7 fascism 8 horde 9 citystate
-const MODERN_COMMUNIST := ["CHN", "PRK", "CUB", "LAO", "VNM"]
-const MODERN_MONARCHY := ["GBR", "SAU", "JOR", "MAR", "OMN", "QAT", "KWT", "BHR", "ARE", "BRN", "BTN", "THA", "NLD", "BEL", "SWE", "NOR", "DNK", "ESP", "LIE", "MCO", "LUX", "JPN", "SWZ", "LSO", "TON", "MYS", "KHM", "AUS", "CAN", "NZL"]
-const MODERN_DEMOCRACY := ["USA", "FRA", "DEU", "ITA", "IND", "BRA", "JPN", "AUS", "CAN", "NZL", "GBR", "ESP", "KOR", "TWN", "ISR", "CHE", "SWE", "NOR", "DNK", "FIN", "NLD", "BEL", "AUT", "IRL", "POL", "PRT", "GRC", "CZE", "CHL", "URY", "CRI", "ZAF", "ARG", "MEX", "IDN", "PHL", "HUN", "SVK", "SVN", "EST", "LVA", "LTU", "HRV", "ISL", "LUX", "MLT", "CYP", "BWA", "GHA", "SEN", "JAM", "TTO", "BRB", "BHS", "MUS", "CPV", "PAN", "COL", "PER", "ECU", "DOM", "SGP", "MNG", "LKA", "NPL", "BGD", "ROU", "BGR", "SRB", "UKR", "MDA", "GEO", "ARM", "KEN", "NAM", "ZMB", "MWI", "SLE", "LBR"]
-const EXPLICIT := {
+static var MODERN_COMMUNIST: Array = ["CHN", "PRK", "CUB", "LAO", "VNM"]
+static var MODERN_MONARCHY: Array = ["GBR", "SAU", "JOR", "MAR", "OMN", "QAT", "KWT", "BHR", "ARE", "BRN", "BTN", "THA", "NLD", "BEL", "SWE", "NOR", "DNK", "ESP", "LIE", "MCO", "LUX", "JPN", "SWZ", "LSO", "TON", "MYS", "KHM", "AUS", "CAN", "NZL"]
+static var MODERN_DEMOCRACY: Array = ["USA", "FRA", "DEU", "ITA", "IND", "BRA", "JPN", "AUS", "CAN", "NZL", "GBR", "ESP", "KOR", "TWN", "ISR", "CHE", "SWE", "NOR", "DNK", "FIN", "NLD", "BEL", "AUT", "IRL", "POL", "PRT", "GRC", "CZE", "CHL", "URY", "CRI", "ZAF", "ARG", "MEX", "IDN", "PHL", "HUN", "SVK", "SVN", "EST", "LVA", "LTU", "HRV", "ISL", "LUX", "MLT", "CYP", "BWA", "GHA", "SEN", "JAM", "TTO", "BRB", "BHS", "MUS", "CPV", "PAN", "COL", "PER", "ECU", "DOM", "SGP", "MNG", "LKA", "NPL", "BGD", "ROU", "BGR", "SRB", "UKR", "MDA", "GEO", "ARM", "KEN", "NAM", "ZMB", "MWI", "SLE", "LBR"]
+static var EXPLICIT: Dictionary = {
 	"ancient": {"rome": 3, "carthage": 3, "han_empire": 4, "seleucid_kingdom": 2, "xiongnu": 8, "scythians": 8, "celts": 0, "norsemen": 0, "mauryan_empire": 4},
 	"roman": {"roman_empire": 4, "parthian_empire": 4, "han": 4},
 	"medieval": {"byzantine_empire": 4, "holy_roman_empire": 1, "france": 1, "almoravid_dynasty": 2, "seljuk_empire": 4, "fatimid_caliphate": 2, "kievan_rus": 1},
@@ -21,7 +21,7 @@ const EXPLICIT := {
 	"ww2": {"france": 5, "british_empire": 5, "united_states": 5, "ussr": 6, "germany": 7, "italy": 7, "spain": 7, "empire_of_japan": 4, "turkey": 3, "netherlands": 2, "portugal": 7, "chinese_warlords": 3, "iran": 2, "brazil": 7, "mexico": 3},
 	"coldwar": {"france": 5, "british_empire": 5, "usa": 5, "ussr": 6, "turkey": 3, "portugal": 7, "iran": 2, "india": 5, "spain": 7, "china": 3, "italy": 5, "yugoslavia": 6, "indonesia": 3, "mongolia": 6, "argentina": 3, "brazil": 3, "mexico": 3},
 }
-const PRIMITIVE := ["hunter", "gatherer", "farmers", "pastoral", "nomads", "culture", "cultures", "chiefdom", "tribes", "tribal", "forager", "fisher", "shellfish", "minor", "bison", "reindeer", "manioc", "savanna", "bantou", "bantu", "khoiasan", "pampas", "papuan", "inuit", "aborigin", "polynes", "melanes"]
+static var PRIMITIVE: Array = ["hunter", "gatherer", "farmers", "pastoral", "nomads", "culture", "cultures", "chiefdom", "tribes", "tribal", "forager", "fisher", "shellfish", "minor", "bison", "reindeer", "manioc", "savanna", "bantou", "bantu", "khoiasan", "pampas", "papuan", "inuit", "aborigin", "polynes", "melanes"]
 
 static func assign(g: TBGame) -> void:
 	var modern := g.era_id == "modern"
