@@ -15,6 +15,7 @@ func _init() -> void:
 	main.show_menu(); main._spin = false
 	for i in 4: await process_frame
 	main._overlay.visible = false
+	main.map.grid_k = 0.38
 	main.map.zoom = float(a[2]); main.map.lon0 = deg_to_rad(float(a[3])); main.map.lat0 = deg_to_rad(float(a[4])); main.map._push_view()
 	for i in 12: await process_frame
 	root.get_viewport().get_texture().get_image().save_png(a[0])
