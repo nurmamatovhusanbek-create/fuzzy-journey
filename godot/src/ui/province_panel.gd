@@ -328,7 +328,7 @@ func _build_stats(s: int, cs: Dictionary) -> Control:
 	var cells: Array = [
 		{"label": T.call("army"), "value": armyc, "tip": ("%s: %d" % [T.call("army"), g.army[s]]) if seen else T.call("army_unknown")},
 		{"label": T.call("ins_defense"), "value": str(g.defense[s]) if seen else "?", "tip": T.call("ins_defense")},
-		{"label": T.call("pop"), "value": TBKit.fmt(g.pop[s]), "tip": "%s: %d" % [T.call("pop"), g.pop[s]]},
+		{"label": T.call("pop"), "value": TBKit.fmt(g.pop[s]), "tip": ("%s: %d" % [T.call("pop"), g.pop[s]]) + ((" (≈ %s, %d:1)" % [TBKit.fmt(float(g.pop[s]) * float(g.scale)), g.scale]) if g.rules >= 5 else "")},
 		{"label": T.call("dev"), "value": str(g.dev[s]), "tip": T.call("dev")},
 		{"label": T.call("stability"), "value": "%d%%" % stab, "col": scol, "bar": stab / 100.0, "tip": T.call("stability")},
 		{"label": T.call("happiness"), "value": "%d%%" % hap, "col": hcol, "bar": hap / 100.0, "tip": T.call("happiness")},
@@ -1275,7 +1275,7 @@ func _build_drawer(s: int, cs: Dictionary) -> Control:
 	if g.occupier[s] != 0: occ = TBDossier._occ_text(g, s)
 	var sup := dash
 	if g.rules >= 1: sup = "%s %d · %s %d" % [T.call("cc_limit"), g.supply_limit(s), T.call("attrition").to_lower(), g.attrition(s)]
-	grid.add_child(_ledger_row(T.call("pop"), TBKit.fmt(g.pop[s] * 1000), null))
+	grid.add_child(_ledger_row(T.call("pop"), TBKit.fmt(float(g.pop[s]) * (float(g.scale) if g.rules >= 5 else 1000.0)), null))
 	grid.add_child(_ledger_row(T.call("stability"), "%d" % g.stab[s], CC.Meter.new(g.stab[s])))
 	grid.add_child(_ledger_row(T.call("dev"), "%d/5" % g.dev[s], CC.Pips.new(g.dev[s])))
 	grid.add_child(_ledger_row(T.call("happiness"), "%d" % g.happy[s], CC.Meter.new(g.happy[s])))

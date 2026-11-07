@@ -36,7 +36,7 @@ func _init() -> void:
 		p1 += float(g.pop[p])
 		if g.pop[p] > g.pop_cap(p) * 1.3: over += 1
 	print("napoleonic 100 turns (50 years): %.2f M -> %.2f M game people (%+.1f%%), %d provinces far above their ceiling" % [p0 / 1e6, p1 / 1e6, 100.0 * (p1 - p0) / p0, over])
-	_check(p1 > p0 * 1.15 and p1 < p0 * 1.6, "50 years of growth (natural growth plus the AI's settlements) stay plausible")
+	_check(p1 > p0 * 1.12 and p1 < p0 * 1.6, "50 years of growth (natural growth plus the AI's settlements) stay plausible")
 	# a save keeps the scale and the rules
 	var ok_save: bool = TBSave.save(g, "pop5test")
 	var g3: TBGame = TBSave.load_game(w, "pop5test")

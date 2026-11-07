@@ -245,7 +245,7 @@ static func _tick(g: TBGame) -> void:
 			var growth := int(floor(g.pop[p] * 0.01 * (g.happy[p] / 100.0) * stab_mod * farm))
 			if g.rules >= 5:                                                      # real growth by technology, a ceiling the land can feed, famine above it (docs/RULES5_REALISM.md)
 				var cap_p: float = float(g.pop_cap(p))
-				growth = int(round(float(g.pop[p]) * TBPopData.growth_per_year(float(g.year), g.tech_level[n]) * 0.5 * (g.happy[p] / 100.0) * stab_mod * farm * (1.0 - float(g.pop[p]) / cap_p)))
+				growth = int(round(float(g.pop[p]) * TBPopData.growth_per_year(float(g.year), g.tech_level[n]) * 0.5 * (0.6 + 0.4 * g.happy[p] / 100.0) * stab_mod * farm * (1.0 - float(g.pop[p]) / cap_p)))
 			if g.rules >= 4:                                                      # a province drained of its young men grows slowly and sulks; a held one does not refill
 				if g.levy_drained(p):
 					growth /= 2

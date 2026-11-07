@@ -119,7 +119,7 @@ static func _nation(g: TBGame, n: int) -> void:
 			i += 2
 			if g.rules >= 4 and _levy_spare(g, p, at_war) < 1: continue               # a province keeps a reserve at home (more in peace); an empty pool raises nobody
 			var hostile: bool = g.owner[q] != 0 and g.get_rel(n, g.controller(q)) == D.REL_WAR
-			var s: float = (3.0 if hostile else 0.5) - g.army[p] / g.au(60.0) + g.rng.next() * 0.3
+			var s: float = (3.0 if hostile else 0.5) - float(g.army[p]) / float(g.au(60.0)) + g.rng.next() * 0.3
 			if s > bs2:
 				bs2 = s; best2 = p
 		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20 if g.rules < 4 else clampi(_levy_spare(g, best2, at_war), 1, g.au(20.0 + (10.0 if at_war else 0.0)))})
@@ -134,7 +134,7 @@ static func _nation(g: TBGame, n: int) -> void:
 			while j < fr.size():
 				var pp := fr[j]; var qq := fr[j + 1]
 				j += 2
-				var sc3: float = (2.0 if g.owner[qq] != 0 and g.get_rel(n, g.controller(qq)) == D.REL_WAR else 0.6) - g.army[pp] / g.au(80.0) + g.rng.next() * 0.2
+				var sc3: float = (2.0 if g.owner[qq] != 0 and g.get_rel(n, g.controller(qq)) == D.REL_WAR else 0.6) - float(g.army[pp]) / float(g.au(80.0)) + g.rng.next() * 0.2
 				if sc3 > hs:
 					hs = sc3; hb = pp
 			if hb < 0:

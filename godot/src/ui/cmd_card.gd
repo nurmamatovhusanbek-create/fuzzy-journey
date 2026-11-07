@@ -32,7 +32,7 @@ static func plural(n: int) -> String:
 		return "5"
 	return "1" if n == 1 else "5"
 
-static func gold(n: int) -> String: return "%d %s" % [n, TBI18n.T("u_gold")]
+static func gold(n: int) -> String: return "%s %s" % [TBKit.fmt(float(n)), TBI18n.T("u_gold")]
 
 static func unit(n: int, base: String) -> String:
 	var key := "%s_%s" % [base, plural(n)]

@@ -540,7 +540,7 @@ func levy_cap_total(n: int) -> int:
 func recruit_range(p: int) -> Vector3i:
 	if rules < 4: return Vector3i(5, 30, 15)
 	var hi := mini(mini(levy[p], levy_cap(p)), army_cap(p) - army[p])
-	return Vector3i(mini(1, hi), maxi(0, hi), mini(15, maxi(0, hi)))
+	return Vector3i(mini(1, hi), maxi(0, hi), mini(15, maxi(0, hi)) if rules < 5 else mini(maxi(1, hi / 10), maxi(0, hi)))
 
 func reassign_capital(n: int) -> void:
 	var own := owned(n)

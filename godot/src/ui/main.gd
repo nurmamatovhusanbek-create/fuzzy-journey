@@ -135,7 +135,7 @@ func _offer_comfort() -> void:
 
 ## The UI is laid out in the Bezel demo's design units: a stage 1180 units tall on a desktop (390 on a phone held in landscape), scaled to the window.
 ## So a number in the demo (a 46 unit medallion, a 22 unit title) is the same number here. cfg "ui" is the demo's S / M / L (taller stage = smaller UI).
-const NEW_GAME_RULES := 4                 # the rules a new game starts with (a save keeps the rules it was made with); 4 = levy pools (docs/WAR_DESIGN.md)
+const NEW_GAME_RULES := 5                 # the rules a new game starts with (a save keeps the rules it was made with); 5 = real people, gold and soldiers at 10-30:1 (docs/RULES5_REALISM.md); 4 = levy pools (docs/WAR_DESIGN.md)
 const PHONE_STAGE := 760.0
 const COMPACT_STAGE := 460.0          # the phone layout's stage height in units (a taller stage = smaller UI; the old 390 made everything twice the desktop size; below 560 the phone layouts apply, also with the "small" interface setting x1.18); tests: TB_COMPACT_STAGE
 static func compact_stage() -> float:
