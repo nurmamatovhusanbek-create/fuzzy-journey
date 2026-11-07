@@ -7,6 +7,8 @@ import gzip, json, math, sys, os
 import numpy as np, cv2
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "godot", "data")
+EQUI = len(sys.argv) > 1 and sys.argv[1] == "--equirect"          # tools/menu_globe.py --equirect OUT.png WIDTH [era_cols.json]: the whole world as a flat smooth map for the title shader
+if EQUI: sys.argv.pop(1)
 out = sys.argv[1]
 S = int(sys.argv[2]) if len(sys.argv) > 2 else 1578
 LON0 = float(sys.argv[3]) if len(sys.argv) > 3 else 35.0
@@ -23,10 +25,14 @@ owner = np.array(era["owner"], dtype=np.int32); color = era["color"]
 NN = len(color)
 prov_label = np.concatenate([[0], np.where(owner > 0, owner, NN)])           # province id (1-based) -> nation label; 0 ocean; NN = unclaimed land
 label = prov_label[ids].astype(np.int32)
-# the part of the map in view: lon0 +- 100 degrees, lat -45 .. 90
-x0 = int(((LON0 - 100.0 + 180.0) / 360.0) * W0); x1 = int(((LON0 + 100.0 + 180.0) / 360.0) * W0)
-assert x0 >= 0 and x1 <= W0, "keep lon0 between -80 and 80 for this crop"
-y0 = 0; y1 = int((90.0 + 45.0) / 180.0 * H0)
+# the part of the map in view: lon0 +- 100 degrees, lat -45 .. 90 (the flat map: all of it)
+if EQUI:
+    x0, x1, y0, y1 = 0, W0, 0, H0
+    UP = 2
+else:
+    x0 = int(((LON0 - 100.0 + 180.0) / 360.0) * W0); x1 = int(((LON0 + 100.0 + 180.0) / 360.0) * W0)
+    assert x0 >= 0 and x1 <= W0, "keep lon0 between -80 and 80 for this crop"
+    y0 = 0; y1 = int((90.0 + 45.0) / 180.0 * H0)
 crop = label[y0:y1, x0:x1]
 H, W = crop.shape
 best = np.full((H * UP, W * UP), -1.0, dtype=np.float32); arg = np.zeros((H * UP, W * UP), dtype=np.int32)
@@ -59,6 +65,11 @@ coast = ((a == 0) & (cv2.dilate((a > 0).astype(np.uint8), np.ones((3, 3), np.uin
 line = cv2.GaussianBlur(d.astype(np.float32), (0, 0), 0.7)
 tex = tex * (1.0 - 0.62 * line[..., None]) + np.array([8, 12, 20], np.float32) * 0.62 * line[..., None]
 tex = tex.astype(np.float32)
+if EQUI:                                                                                  # the flat map for the shader: smooth masks, resized to the wanted width
+    flat = cv2.resize(tex, (S, S // 2), interpolation=cv2.INTER_AREA)
+    cv2.imwrite(out, cv2.cvtColor(np.clip(flat, 0, 255).astype(np.uint8), cv2.COLOR_RGB2BGR), [cv2.IMWRITE_PNG_COMPRESSION, 9])
+    print("written", out, flat.shape, os.path.getsize(out) // 1024, "KB")
+    sys.exit(0)
 # the sphere
 N = S * SS
 R = N * DISC * 0.5

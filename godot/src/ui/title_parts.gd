@@ -361,3 +361,19 @@ class Campaign extends Control:
 		var sf := TBKit.body_i()
 		draw_string(sf, Vector2(tx, roundf(y0 + 70.0 * u)), line1, HORIZONTAL_ALIGNMENT_LEFT, maxw, TBTitleParts.fit(sf, line1, TBKit.fs(12.5 * u), maxw), TBTokens.c("smoke"), TextServer.JUSTIFICATION_NONE)
 		draw_string(sf, Vector2(tx, roundf(y0 + 88.0 * u)), line2, HORIZONTAL_ALIGNMENT_LEFT, maxw, TBTitleParts.fit(sf, line2, TBKit.fs(12.5 * u), maxw), TBTokens.c("brass_lt"), TextServer.JUSTIFICATION_NONE)
+
+## the first stage's sky: the dark ground and the fixed star field (the same stars as the second stage's)
+class TitleSky extends Control:
+	var stars := PackedVector2Array()
+	var star_a := PackedFloat32Array()
+	func _init() -> void:
+		set_anchors_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var r := RandomNumberGenerator.new(); r.seed = 20260611
+		for i in 170:
+			stars.append(Vector2(r.randf(), r.randf())); star_a.append(0.12 + r.randf() * r.randf() * 0.7)
+	func _draw() -> void:
+		draw_rect(Rect2(Vector2.ZERO, size), TBTokens.c("table"))
+		var sc: float = maxf(1.0, size.y / 720.0 * 0.8)
+		for i in stars.size():
+			var p := Vector2(stars[i].x * size.x, stars[i].y * size.y)
+			draw_rect(Rect2(p, Vector2(sc, sc) * (1.4 if star_a[i] > 0.6 else 1.0)), TBTokens.with_a(TBTokens.BZ_IVORY, star_a[i] * 0.8))

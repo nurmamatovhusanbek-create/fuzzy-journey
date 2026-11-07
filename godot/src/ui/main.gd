@@ -118,9 +118,13 @@ func _ready() -> void:
 	var touch_scroll := TBTouchScroll.new(); touch_scroll.root_ctl = self; add_child(touch_scroll)         # a finger drags every list
 	_apply_quality()
 	_new_demo_game()
-	show_menu()
+	if _scripted_run(): show_menu()
+	else: show_front()                                  # the first title stage; tests (script runs) start on the second one
 	panel.layout_for(size)
 	_offer_comfort.call_deferred()
+
+func _scripted_run() -> bool:
+	return ("-s" in OS.get_cmdline_args() or "--script" in OS.get_cmdline_args()) and OS.get_environment("TB_FRONT") == ""
 
 ## first run: one "Comfort and access" page (text size, contrast, motion), offered once. Not in script runs (tests) unless TB_COMFORT=1.
 func _offer_comfort() -> void:
@@ -316,8 +320,33 @@ func _title_layout(vs: Vector2) -> bool:
 
 ## the title: layout B "Orrery" (docs/screens/title_mocks): the globe in its instrument ring, the wordmark and menu at the left, your campaign at the right.
 ## Portrait and short windows keep the old composition (everything inside the ring) with the same parts.
+## the wordmark, the ornament and the tagline (both title stages): two lines at the left in the wide layout, one centred line otherwise
+func _title_wordmark(v: VBoxContainer, wide: bool, short: bool, portrait: bool, u: float, colw: float, vs: Vector2) -> void:
+	var wm: String = T.call("title")
+	var wm_font: Font = K.tracked(K.wordmark(), 6 if wide else (2 if (portrait or short) else 4))
+	var wm_avail: float = colw * 1.25 if wide else minf(vs.x - 32.0, maxf(220.0, map.radius_px() * 1.56))
+	var lines: PackedStringArray = wm.split(" ", false, 1) if wide else PackedStringArray([wm])
+	var wm_max: int = int(46.0 * u) if wide else (30 if short else (54 if not portrait else 40))
+	var wm_size: int = wm_max
+	for ln in lines:
+		while wm_size > 14 and wm_font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, K.fs(wm_size)).x > wm_avail: wm_size -= 1
+	var wm_box := VBoxContainer.new(); wm_box.add_theme_constant_override("separation", int(-6.0 * u) if wide else 0); wm_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for ln in lines:
+		var t := K.label(ln, wm_size, TBTokens.c("brass_lt"))
+		t.add_theme_font_override("font", wm_font)
+		t.add_theme_constant_override("outline_size", 4); t.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9))
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if wide else HORIZONTAL_ALIGNMENT_CENTER
+		t.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if wide else Control.SIZE_SHRINK_CENTER
+		wm_box.add_child(t)
+	wm_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if wide else Control.SIZE_SHRINK_CENTER
+	v.add_child(wm_box)
+	if not short:
+		var orn := K.ornament(); orn.col = TBTokens.ca("brass_lt", 0.7); v.add_child(orn)
+		var tag := K.caps(T.call("tagline"), int(11.0 * u) if wide else 12, TBTokens.c("smoke")); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if wide else HORIZONTAL_ALIGNMENT_CENTER; tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tag.custom_minimum_size.x = 40; tag.add_theme_constant_override("outline_size", 3); tag.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9)); v.add_child(tag)
+
 func show_menu() -> void:
-	mode = "menu"; _spin = true; _pick_flow = null; K.serif = true; TBTokens.legacy = false; TBFrame.rounded = false; TBFrame.bezel = true; theme = K.theme()
+	mode = "menu"; _front = false; map.visible = true; _spin = true; _pick_flow = null; K.serif = true; TBTokens.legacy = false; TBFrame.rounded = false; TBFrame.bezel = true; theme = K.theme()
 	TBFx.apply(cfg)
 	map.outline_nation(-1)
 	map.set_mode(0)                                           # the title is always the globe inside its ring, whatever view the game uses
@@ -366,29 +395,7 @@ func show_menu() -> void:
 	var v := K.vbox(int(2 * u) if short else int(8 * u))
 	if wide: v.custom_minimum_size.x = colw; v.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	holder.add_child(v)
-	# wordmark: two lines at the left (wide), one centred line otherwise
-	var wm: String = T.call("title")
-	var wm_font: Font = K.tracked(K.wordmark(), 6 if wide else (2 if (portrait or short) else 4))
-	var wm_avail: float = colw * 1.25 if wide else minf(vs.x - 32.0, maxf(220.0, map.radius_px() * 1.56))
-	var lines: PackedStringArray = wm.split(" ", false, 1) if wide else PackedStringArray([wm])
-	var wm_max: int = int(46.0 * u) if wide else (30 if short else (54 if not portrait else 40))
-	var wm_size: int = wm_max
-	for ln in lines:
-		while wm_size > 14 and wm_font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, K.fs(wm_size)).x > wm_avail: wm_size -= 1
-	var wm_box := VBoxContainer.new(); wm_box.add_theme_constant_override("separation", int(-6.0 * u) if wide else 0); wm_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for ln in lines:
-		var t := K.label(ln, wm_size, TBTokens.c("brass_lt"))
-		t.add_theme_font_override("font", wm_font)
-		t.add_theme_constant_override("outline_size", 4); t.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9))
-		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if wide else HORIZONTAL_ALIGNMENT_CENTER
-		t.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if wide else Control.SIZE_SHRINK_CENTER
-		wm_box.add_child(t)
-	wm_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if wide else Control.SIZE_SHRINK_CENTER
-	v.add_child(wm_box)
-	if not short:
-		var orn := K.ornament(); orn.col = TBTokens.ca("brass_lt", 0.7); v.add_child(orn)
-		var tag := K.caps(T.call("tagline"), int(11.0 * u) if wide else 12, TBTokens.c("smoke")); tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if wide else HORIZONTAL_ALIGNMENT_CENTER; tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		tag.custom_minimum_size.x = 40; tag.add_theme_constant_override("outline_size", 3); tag.add_theme_color_override("font_outline_color", TBTokens.ca("table", 0.9)); v.add_child(tag)
+	_title_wordmark(v, wide, short, portrait, u, colw, vs)
 	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, (88.0 if wide else 14.0) * u); v.add_child(gap)
 	# the menu: one big card (Continue, or New game when there is no save) and quiet rows
 	var items: Array = []
@@ -465,6 +472,9 @@ func show_menu() -> void:
 		cfg["lang"] = code; _save_cfg(); TBI18n.load_lang(code); show_menu())
 	tools.add_child(ls)
 	frame.add_child(tools)
+	if wide:                                                                                       # back to the first stage
+		var back := MP_.ToolChip.new("", "‹  " + String(T.call("back")), show_front)
+		back.position = Vector2(12.0, 6.0); _overlay.add_child(back)
 	var vtxt := str(ProjectSettings.get_setting("application/config/version", "")).strip_edges().trim_prefix("v")
 	var ver := K.label("v" + (vtxt if vtxt != "" else "dev"), 12, TBTokens.c("smoke"))
 	ver.set_anchors_preset(Control.PRESET_TOP_RIGHT); ver.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -473,6 +483,114 @@ func show_menu() -> void:
 	_overlay.add_child(ver)
 	if TBPanel.wants_focus() and _title_cur != null:         # keyboard / gamepad cold start: the first enabled entry has focus (Up / Down / Enter / Space)
 		_title_cur.grab_focus.call_deferred()
+
+# ================================================================================================================================ the first title stage
+var _front := false                               # the first stage is up
+var _front_globe: TBTitleGlobe
+var _morph: Tween
+
+## Stage 1: Play, Settings, How to play and Honours beside a big slowly turning globe in the lower right corner, with the golden era ring around it. Play morphs it into the second stage (show_menu).
+func show_front() -> void:
+	var vs: Vector2 = size if size.x > 2.0 else get_viewport_rect().size
+	if not _title_layout(vs) or TBFx.level < TBFx.LIGHT and false: show_menu(); return        # a window the wide layout does not fit goes straight to the second stage
+	mode = "menu"; _front = true; _spin = false; _pick_flow = null; K.serif = true; TBTokens.legacy = false; TBFrame.rounded = false; TBFrame.bezel = true; theme = K.theme()
+	TBFx.apply(cfg)
+	map.outline_nation(-1); map.visible = false
+	hud.visible = false; panel.visible = false; _clear_overlay(); map.labels.visible = false
+	var u: float = vs.y / 720.0
+	var sky := TP_.TitleSky.new(); _overlay.add_child(sky)
+	_front_globe = TBTitleGlobe.new(); _overlay.add_child(_front_globe)
+	_front_globe.set_pose(Vector2(vs.x * 0.945, vs.y * 1.028), vs.y * 0.958); _front_globe.ring_k = 1.2
+	var frame := VBoxContainer.new(); frame.set_anchors_preset(Control.PRESET_FULL_RECT); frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_theme_constant_override("separation", 0)
+	frame.offset_left = 12; frame.offset_right = -12; frame.offset_top = 6; frame.offset_bottom = -6
+	_overlay.add_child(frame)
+	var holder := MarginContainer.new(); holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_theme_constant_override("margin_left", int(44.0 * u)); holder.add_theme_constant_override("margin_top", int(56.0 * u))
+	holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	frame.add_child(holder)
+	var colw: float = 270.0 * u
+	var v := K.vbox(int(8 * u)); v.custom_minimum_size.x = colw; v.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	holder.add_child(v)
+	_title_wordmark(v, true, false, false, u, colw, vs)
+	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 88.0 * u); v.add_child(gap)
+	var items: Array = []
+	var flash := func(cb: Callable) -> Callable:
+		return func():
+			if _sel != null: _sel.flash()
+			cb.call()
+	var play := TP_.CardBtn.new(T.call("play"), "", null, "", u, flash.call(_front_play))
+	items.append(play); v.add_child(play)
+	var cg := Control.new(); cg.custom_minimum_size = Vector2(0, 14.0 * u); v.add_child(cg)
+	var rows: Array = []
+	rows.append(TP_.RowBtn.new(T.call("settings"), u, flash.call(func(): _open_menu_hub("settings"))))
+	rows.append(TP_.RowBtn.new(T.call("tut_help"), u, flash.call(func(): _open_menu_hub("howto"))))
+	rows.append(TP_.RowBtn.new(T.call("honours"), u, flash.call(func(): _open_menu_hub("honours")), "", "%d / %d" % [TBHonours.count(cfg), TBHonours.LIST.size()]))
+	for r in rows: items.append(r); v.add_child(r)
+	for it in items:
+		it.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		(it as Control).custom_minimum_size.x = colw
+	_sel = TP_.SelFrame.new(u); _overlay.add_child(_sel)
+	for it in items: it.chosen.connect(func(b: Control): _title_cur = b; _sel.go_to(Rect2(b.global_position, b.size)))
+	_title_cur = play
+	_title_sel_start.call_deferred()
+	var spacer := Control.new(); spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL; frame.add_child(spacer)
+	var ls := MP_.LangSwitch.new(String(cfg["lang"]))
+	ls.chosen.connect(func(code: String): cfg["lang"] = code; _save_cfg(); TBI18n.load_lang(code); show_front())
+	var tools := HFlowContainer.new(); tools.alignment = FlowContainer.ALIGNMENT_CENTER; tools.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tools.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tools.add_child(ls); frame.add_child(tools)
+	var vtxt := str(ProjectSettings.get_setting("application/config/version", "")).strip_edges().trim_prefix("v")
+	var ver := K.label("v" + (vtxt if vtxt != "" else "dev"), 12, TBTokens.c("smoke"))
+	ver.set_anchors_preset(Control.PRESET_TOP_RIGHT); ver.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	ver.offset_right = -10; ver.offset_top = 6; ver.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.add_child(ver)
+	if TBPanel.wants_focus(): play.grab_focus.call_deferred()
+
+## Play: the globe leaves the corner for the centre and shrinks into the second stage's ring, the menu slides away, the second stage rises under it and takes the globe over
+func _front_play() -> void:
+	if not _front or _morph != null: return
+	if not TBFx.on(TBFx.LIGHT) or _front_globe == null or not is_instance_valid(_front_globe): _front = false; show_menu(); return
+	var ghost := Control.new(); ghost.set_anchors_preset(Control.PRESET_FULL_RECT); ghost.mouse_filter = Control.MOUSE_FILTER_STOP; add_child(ghost)
+	var gl: TBTitleGlobe = _front_globe
+	var sky: Control = null; var ui: Array = []
+	for c in _overlay.get_children():
+		c.reparent(ghost)
+		if c is TP_.TitleSky: sky = c
+		elif c != gl and not (c is TP_.SelFrame): ui.append(c)
+		elif c is TP_.SelFrame: c.visible = false
+	_front = false
+	show_menu()                                                                # builds the second stage (and its globe) under the ghost
+	map.modulate.a = 0.0; _overlay.modulate.a = 0.0
+	var orr: TP_.Orrery = _bezel as TP_.Orrery
+	var c0: Vector2 = gl.centre; var r0: float = gl.radius; var k0: float = gl.ring_k
+	var turn0: float = gl.turn
+	var secs: float = 1.5 if TBFx.on(TBFx.FULL) else 1.0
+	var done := func():
+		ghost.queue_free(); _morph = null
+		map.modulate.a = 1.0; _overlay.modulate.a = 1.0
+		TBTitleGlobe.release()
+		if _title_cur != null and is_instance_valid(_title_cur): _sel_restart()
+	_morph = TBFx.run(self, secs, func(t: float):
+		var e: float = t                                                           # TBFx.run already eases the whole move
+		var tc: Vector2 = orr._globe_c() if orr != null else size * 0.5
+		var tr: float = map.radius_px()
+		gl.set_pose(c0.lerp(tc, e), lerpf(r0, tr, e))
+		gl.ring_k = lerpf(k0, orr.ring_scale() if orr != null else 1.34, e)
+		var dl: float = fposmod(map.lon0 - turn0 + PI, TAU) - PI
+		gl.turn = turn0 + dl * e; gl.spin = false
+		gl.queue_redraw()
+		if gl._ring != null: gl._ring.queue_redraw()
+		var out: float = clampf(1.0 - t / 0.35, 0.0, 1.0)                      # the menu column leaves first
+		for n in ui:
+			if is_instance_valid(n): (n as Control).modulate.a = out; (n as Control).position.x = -90.0 * (1.0 - out)
+		var swap: float = clampf((t - 0.62) / 0.38, 0.0, 1.0)                  # then the live globe and the second stage's interface rise
+		map.modulate.a = swap; _overlay.modulate.a = clampf((t - 0.45) / 0.55, 0.0, 1.0)
+		gl.fade = 1.0 - swap; gl.ring_a = 1.0 - swap
+		if sky != null: sky.modulate.a = 1.0 - swap
+		gl.material.set_shader_parameter("alpha", 1.0 - swap), done, TBFx.LIGHT)
+
+func _sel_restart() -> void: _title_sel_start.call_deferred()
 
 ## the bracket takes its place once the menu has been laid out (no glide on the first placement)
 func _title_sel_start() -> void:
@@ -599,7 +717,7 @@ func _title_panel_opened(h: TBPanel.Handle) -> void:
 	h.root.tree_exited.connect(func(): _title_restore.call_deferred())
 
 func _title_restore() -> void:
-	if mode != "menu" or TBPanel.any_open(_overlay): return
+	if mode != "menu" or _front or TBPanel.any_open(_overlay): return
 	_spin = true
 	if is_instance_valid(_bezel): _bezel.dim = 1.0
 
@@ -749,16 +867,17 @@ func _rebuild_screens() -> void:
 		if selected >= 0: panel.rebuild()
 	elif mode == "menu":
 		var keep := TBPanel.top(_overlay)
-		if keep == null: show_menu()
+		if keep == null: show_front() if _front else show_menu()
 		else:
 			# title behind an open panel: rebuild the title parts only, keep the panel
 			var panels: Array = []
 			for c in _overlay.get_children():
 				if c.has_meta("tb_handle"): panels.append(c)
 			for c in panels: _overlay.remove_child(c)
-			show_menu()
+			if _front: show_front()
+			else: show_menu()
 			for c in panels: _overlay.add_child(c)
-			_bezel.dim = 0.35
+			if is_instance_valid(_bezel) and not _front: _bezel.dim = 0.35
 
 # ---------------------------------------------------------------- end of UI entry points
 
@@ -1456,6 +1575,8 @@ func _on_back() -> void:
 	if has_method("_cancel_order_back") and bool(call("_cancel_order_back")): return
 	match mode:
 		"menu":
+			if not _front and _title_layout(get_viewport_rect().size) and _dive == null:
+				show_front(); return                                    # the second stage backs out to the first
 			if _exit_armed: get_tree().quit(); return
 			_exit_armed = true
 			_title_toast(T.call("press_back_again"))
