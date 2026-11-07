@@ -37,7 +37,14 @@ static func _nation(g: TBGame, n: int) -> void:
 	var aggr: float = float(pers["aggr"]) * float(g.diff["aiAggr"]) * (float(lvl["mul"]) if g.rules >= 1 else 1.0)
 	var fr := _frontier(g, n)
 	var at_war := g.at_war(n)
-	var gu: float = g.gu(n, 1.0)                                          # rules 5: a hundred gold is a hundred only in the old scale; thresholds are in the nation's own terms
+	var gu: float = g.gu(n, 1.0)
+	var army_full := false                                                # rules 5: a state keeps an army its people can bear: more than a peace-time share in a war, a little above it in peace
+	if g.rules >= 5:
+		var np := 0; var na := 0
+		for q in own: np += g.pop[q]; na += g.army[q]
+		var bent: float = 0.7 + 0.6 * float(pers["aggr"])
+		army_full = float(na) >= float(np) * float(TBGame.STANDING_SHARE[g.era[n]]) * bent * (3.0 if at_war else 1.3)
+	# rules 5: a hundred gold is a hundred only in the old scale; thresholds are in the nation's own terms
 
 	if g.rules >= 1:
 		TBDecisions.ai_steady(g, n)
@@ -104,7 +111,7 @@ static func _nation(g: TBGame, n: int) -> void:
 	var levies := 3 if g.gold[n] > 500.0 * gu else (2 if g.gold[n] > 250.0 * gu else 1)
 	if g.rules >= 1 and g.gold[n] > 900.0 * gu: levies = 5
 	var lv := 0
-	while lv < levies and g.gold[n] > 30.0 * gu and g.manpower[n] > au40(g) and g.mp[n] >= 1 and (lv > 0 or g.rng.chance(0.3 + aggr * 0.4 + (0.3 if at_war else 0.0))):
+	while lv < levies and not army_full and g.gold[n] > 30.0 * gu and g.manpower[n] > au40(g) and g.mp[n] >= 1 and (lv > 0 or g.rng.chance(0.3 + aggr * 0.4 + (0.3 if at_war else 0.0))):
 		var best2 := -1; var bs2 := -1e9
 		var i := 0
 		while i < fr.size():
@@ -112,13 +119,13 @@ static func _nation(g: TBGame, n: int) -> void:
 			i += 2
 			if g.rules >= 4 and _levy_spare(g, p, at_war) < 1: continue               # a province keeps a reserve at home (more in peace); an empty pool raises nobody
 			var hostile: bool = g.owner[q] != 0 and g.get_rel(n, g.controller(q)) == D.REL_WAR
-			var s: float = (3.0 if hostile else 0.5) - g.army[p] / 60.0 + g.rng.next() * 0.3
+			var s: float = (3.0 if hostile else 0.5) - g.army[p] / g.au(60.0) + g.rng.next() * 0.3
 			if s > bs2:
 				bs2 = s; best2 = p
-		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20 if g.rules < 4 else clampi(_levy_spare(g, best2, at_war), 1, 20 + (10 if at_war else 0))})
+		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20 if g.rules < 4 else clampi(_levy_spare(g, best2, at_war), 1, g.au(20.0 + (10.0 if at_war else 0.0)))})
 		lv += 1
 	# 3b. rules>=1: hoarded gold buys mercenaries (turns wealth into power; the game's main gold sink)
-	if g.rules >= 1 and g.gold[n] > 500.0 * gu:
+	if g.rules >= 1 and g.gold[n] > 500.0 * gu and not army_full:
 		var hires := mini(3, int(g.gold[n] / (400.0 * gu)))
 		for h in hires:
 			if g.mp[n] < 1: break
@@ -127,12 +134,12 @@ static func _nation(g: TBGame, n: int) -> void:
 			while j < fr.size():
 				var pp := fr[j]; var qq := fr[j + 1]
 				j += 2
-				var sc3: float = (2.0 if g.owner[qq] != 0 and g.get_rel(n, g.controller(qq)) == D.REL_WAR else 0.6) - g.army[pp] / 80.0 + g.rng.next() * 0.2
+				var sc3: float = (2.0 if g.owner[qq] != 0 and g.get_rel(n, g.controller(qq)) == D.REL_WAR else 0.6) - g.army[pp] / g.au(80.0) + g.rng.next() * 0.2
 				if sc3 > hs:
 					hs = sc3; hb = pp
 			if hb < 0:
 				hb = own[g.rng.randi_n(own.size())]
-			g.apply({"cmd": "hire", "n": n, "p": hb, "amount": 40})
+			g.apply({"cmd": "hire", "n": n, "p": hb, "amount": g.au(40.0)})
 	if g.rules >= 1:
 		TBGenerals.ai_step(g, n, own)
 		TBDecisions.ai_pick(g, n)
@@ -179,8 +186,8 @@ static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array)
 		var t := g.owner[q]
 		if t == 0 or t == n or seen.has(t) or g.alive[t] == 0 or g.friendly(n, t) or g.has_truce(n, t) or g.get_rel(n, t) == D.REL_NAP or g.get_rel(n, t) == D.REL_WAR: continue
 		seen[t] = true
-		if float(g.army[p]) / maxf(8.0, g.army[q] + 10.0) < (1.15 if g.rules == 0 else float(lvl["ratio"])): continue
-		var s: float = float(g.army[p]) / (g.army[q] + 10.0) + g.grudge[n * g.N1 + t] / 50.0 + g.rng.next() * 0.5
+		if float(g.army[p]) / maxf(g.au(8.0), g.army[q] + g.au(10.0)) < (1.15 if g.rules == 0 else float(lvl["ratio"])): continue
+		var s: float = float(g.army[p]) / (g.army[q] + g.au(10.0)) + g.grudge[n * g.N1 + t] / 50.0 + g.rng.next() * 0.5
 		if g.rules >= 1:
 			var share := float(g.own_count(t)) / maxf(1.0, total_owned)
 			if share > 0.04: s += (share - 0.04) * 25.0       # hegemon: everyone's favourite target
@@ -207,14 +214,14 @@ static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		i += 2
 		var c := g.controller(q)
 		if c == 0 or g.get_rel(n, c) != D.REL_WAR: continue
-		if g.army[p] < 12: continue
+		if g.army[p] < g.au(12.0): continue
 		var atk := g.army[p] * 0.9
 		var dfn := g.army[q] * g.def_mul(q) + 1.0
 		var score := atk / dfn + g.province_value(q) * (0.05 if g.rules < 4 else 0.03) + (1.0 if g.capital[q] != 0 else 0.0)
 		if g.rules >= 4:                                                      # the same three-round battle the player sees: attack only when the expected outcome is a win that leaves an army to hold the land
 			var pv := g.combat_preview(n, p, q, 0)
 			var worst_ok: bool = bool((pv["range"] as Dictionary)["worst"]["win"])
-			if not bool(pv["win"]) or int(pv["hold"]) < 6 or (not worst_ok and g.rng.chance(0.5)): continue
+			if not bool(pv["win"]) or int(pv["hold"]) < g.au(6.0) or (not worst_ok and g.rng.chance(0.5)): continue
 			cands.append([score - float(pv["lost"]) / maxf(1.0, float(pv["send"])), p, q])
 		elif atk > dfn * (1.1 if g.rules == 0 else float(D.AGGRESSION[g.aggr_level]["atk"])): cands.append([score, p, q])
 	cands.sort_custom(func(a, b):
@@ -236,7 +243,7 @@ static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		while oi < own.size() and g.mp[n] >= 1:
 			var p := own[oi]
 			oi += 1
-			if g.army[p] < 25 or g.controller(p) != n: continue
+			if g.army[p] < g.au(25.0) or g.controller(p) != n: continue
 			var has_front := false; var best := -1; var bs := -1.0
 			for e in range(g.nb_off[p], g.nb_off[p + 1]):
 				var q := g.nb[e]
@@ -251,7 +258,7 @@ static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 				if touches and g.nb_sea[e] == 0 and 1.0 / (1.0 + g.army[q]) > bs:
 					bs = 1.0 / (1.0 + g.army[q]); best = q
 			if not has_front and best >= 0 and g.rng.chance(0.5):
-				g.apply({"cmd": "move", "n": n, "from": p, "to": best, "troops": g.army[p] - 10})
+				g.apply({"cmd": "move", "n": n, "from": p, "to": best, "troops": g.army[p] - g.au(10.0)})
 
 static func _seek_peace(g: TBGame, n: int) -> void:
 	var N1 := g.N1

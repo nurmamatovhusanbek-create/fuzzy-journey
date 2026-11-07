@@ -156,7 +156,7 @@ static func _sane(g: TBGame) -> bool:
 	for p in g.P:
 		if g.nb_off[p + 1] < g.nb_off[p]: return false
 		if g.owner[p] >= g.N1 or g.occupier[p] >= g.N1: return false
-		if g.army[p] < 0 or g.army[p] > 65000: g.army[p] = clampi(g.army[p], 0, 65000)
+		if g.army[p] < 0 or (g.rules < 5 and g.army[p] > 65000): g.army[p] = clampi(g.army[p], 0, 65000 if g.rules < 5 else 2000000000)
 	for q in g.nb: if q < 0 or q >= g.P: return false
 	for n in range(1, g.N1):
 		var cp: int = g.capital_of[n]

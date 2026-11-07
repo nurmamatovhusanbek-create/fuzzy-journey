@@ -4,7 +4,7 @@ extends SceneTree
 ## Reports who wins and when, how concentrated power gets, wars / peaces, gold and army inflation, rebels, neutral land, runtime, and any engine invariant that breaks.
 func _inv(g: TBGame, bad: Dictionary) -> void:
 	for p in g.P:
-		if g.army[p] < 0 or g.army[p] > 65000: bad["army"] = int(bad.get("army", 0)) + 1
+		if g.army[p] < 0 or (g.rules < 5 and g.army[p] > 65000): bad["army"] = int(bad.get("army", 0)) + 1
 		if g.stab[p] > 100 or g.happy[p] > 100: bad["stab_happy"] = int(bad.get("stab_happy", 0)) + 1
 		if g.owner[p] < 0 or g.owner[p] >= g.N1: bad["owner"] = int(bad.get("owner", 0)) + 1
 	for n in range(1, g.N1):

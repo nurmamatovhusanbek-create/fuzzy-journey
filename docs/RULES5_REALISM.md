@@ -43,7 +43,7 @@ Per province per turn (half a year):
 * **Start**: every nation's whole standing army stands in its **capital province**, and nowhere else. The rest of its provinces are empty; the nation must recruit in provinces and march armies where it needs them (the AoC2 way).
 * **Standing army at the start** = people x a peacetime share by era (about 0.4 % ancient and medieval, 0.8 % gunpowder, 1.0 % Napoleonic, 1.5 % WW1, 2.0 % WW2, 1.2 % Cold War, 0.5 % today) x the ruler's bent (0.6 to 1.6).
 * **Levy pool of a province** = people x the share that can be raised in a war (8 % ancient, 6 % medieval, 5 % gunpowder, 8 % Napoleonic, 15 % WW1, 18 % WW2, 8 % today) x order; refills 6 % of its cap a turn; recruiting empties it (a drained province grows slowly and sulks, as in rules 4).
-* **Upkeep** of a soldier = 1.5 workers' output per turn; men under arms also stop working (the work-loss term of rules 4, unchanged).
+* **Upkeep** of a soldier = 2 workers' output per turn; men under arms also stop working (the work-loss term of rules 4, unchanged).
 * **Army cap per province** scales with the province's people instead of a fixed 65,000.
 
 ## 6. The rest follows (R5)

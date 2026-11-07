@@ -25,6 +25,7 @@ run "rules 3: quarrels reach friends, trade routes need means, victories are hel
 run "eras: every era starts sanely (capitals, rulers, names, land)" tests/era_audit.gd
 run "decisions" tests/decisions.gd
 run "rules 5: real people per era at 10/20/30:1, growth under a ceiling" tests/pop5.gd
+run "rules 5: armies in the capital only, incomes and prices at scale" tests/rules5.gd
 run "trade deals" tests/trade.gd
 run "royal marriages" tests/marriage.gd
 run "generals" tests/generals.gd

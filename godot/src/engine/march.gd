@@ -153,7 +153,7 @@ static func _stride(g: TBGame, m: Dictionary, pl: Dictionary) -> String:
 	while idx < limit and g.controller(path[idx]) != n: idx += 1
 	var nxt: int = path[idx]
 	var left: int = g.army[at] - k
-	g.army[at] = left; g.army[nxt] = mini(65000, g.army[nxt] + k); g.touch(at); g.touch(nxt)
+	g.army[at] = left; g.army[nxt] = mini(g.army_cap(nxt), g.army[nxt] + k); g.touch(at); g.touch(nxt)
 	if g.rules >= 1 and TBGenerals.follows(g, at, left): TBGenerals.transfer(g, at, nxt)
 	m["at"] = nxt
 	if nxt == to: m["done"] = true; return "move"

@@ -117,7 +117,7 @@ static func _tick(g: TBGame) -> void:
 		if g.rules >= 1:
 			var oc := g.occupier[p]
 			if oc != 0 and g.rules >= 4 and g.siege[p] > 0:                      # the garrison holds behind its walls: the siege ticks down, a strong host is quicker
-				var garrison: int = 20 * g.bl(p, D.B_FORTRESS) * maxi(1, g.dev[p])
+				var garrison: int = g.au(20.0) * g.bl(p, D.B_FORTRESS) * maxi(1, g.dev[p])
 				g.siege[p] -= 2 if g.army[p] >= 3 * garrison else 1
 				if g.siege[p] <= 0:
 					g.siege[p] = 0; g.occ_turns[p] = 0; g.occ_rev += 1
@@ -134,7 +134,7 @@ static func _tick(g: TBGame) -> void:
 					continue
 			else:
 				g.occ_turns[p] = 0
-		if g.rules >= 1 and g.army[p] > 20:
+		if g.rules >= 1 and g.army[p] > g.au(20.0):
 			var lost := g.attrition(p)
 			if g.rules >= 4:
 				var c := g.controller(p)
@@ -313,10 +313,12 @@ static func spawn_rebel(g: TBGame, p: int) -> void:
 	if former == 0: return
 	g.cede(p, g.rebel)
 	g.set_alive(g.rebel, 1)
-	g.army[p] = maxi(g.army[p], 8) if g.rules < 1 else clampi(g.army[p], 8, 30); g.stab[p] = 55; g.happy[p] = 50
+	if g.rules >= 5: g.army[p] = maxi(g.au(8.0), int(float(g.pop[p]) * 0.02))             # a militia of the province's own men
+	else: g.army[p] = maxi(g.army[p], 8) if g.rules < 1 else clampi(g.army[p], 8, 30)
+	g.stab[p] = 55; g.happy[p] = 50
 	g.set_rel(g.rebel, former, D.REL_WAR)
 	g.last_war_turn[g.rebel] = g.turn
-	g.gold[g.rebel] = 40; g.manpower[g.rebel] = 60
+	g.gold[g.rebel] = g.gu(g.rebel, 40.0); g.manpower[g.rebel] = 60
 	if g.capital_of[g.rebel] < 0: g.reassign_capital(g.rebel)
 	g.log.append({"turn": g.turn, "kind": "rebels", "a": former, "p": p})
 
@@ -329,7 +331,7 @@ static func rebel_turn(g: TBGame) -> void:
 	if g.rules >= 1: _rebel_lifecycle(g, own)
 	for p in own:
 		if g.owner[p] != r: continue
-		if g.army[p] < 4 or not g.rng.chance(0.35): continue
+		if g.army[p] < g.au(4.0) or not g.rng.chance(0.35): continue
 		if g.rules >= 1 and g.reb_age[p] > REB_MOMENTUM: continue          # an old uprising holds what it has instead of spreading
 		var tgt := -1; var weakest := 1000000000
 		for i in range(g.nb_off[p], g.nb_off[p + 1]):
@@ -351,11 +353,11 @@ static func _rebel_lifecycle(g: TBGame, own: PackedInt32Array) -> void:
 		if g.owner[p] != r: continue
 		if g.reb_age[p] < 255: g.reb_age[p] += 1
 		var former: int = g.reb_from[p]
-		var floor_n: int = 6 + g.pop[p] / 200                                   # a militia the land can feed
+		var floor_n: int = 6 + g.pop[p] / 200 if g.rules < 5 else g.au(6.0) + g.pop[p] / 200                                   # a militia the land can feed
 		if g.army[p] > floor_n:
 			g.army[p] -= int(ceil((g.army[p] - floor_n) * 0.04)); g.touch(p)     # no pay, no supply: rebel armies melt away
 		var gone: bool = former <= 0 or g.alive[former] == 0
-		if not gone and g.reb_age[p] >= 6 and g.army[p] < 20 and g.occupier[p] == 0:
+		if not gone and g.reb_age[p] >= 6 and g.army[p] < g.au(20.0) and g.occupier[p] == 0:
 			var cap := g.capital_of[former]
 			var calm: float = clampf((g.stab[cap] if cap >= 0 else 40) / 60.0, 0.0, 1.2)
 			if g.rng.chance(REB_RECON * calm * (2.0 if g.rules >= 4 else 1.0)):

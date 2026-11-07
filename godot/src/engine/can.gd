@@ -135,7 +135,7 @@ static func _appoint(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dicti
 	out["gold"] = TBGenerals.cost(g, n)
 	if g.owner[p] != n or g.controller(p) != n: return _fail(out, "notyours")
 	if g.gen[p] != 0: return _fail(out, "has")
-	if g.army[p] < TBGenerals.MIN_ARMY: return _fail(out, "army")
+	if g.army[p] < TBGenerals.min_army(g): return _fail(out, "army")
 	if TBGenerals.count(g, n) >= TBGenerals.cap(g, n): return _fail(out, "cap")
 	_need(out, "gold", g.gold[n], out["gold"], "gold")
 	return out

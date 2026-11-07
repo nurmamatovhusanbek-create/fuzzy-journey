@@ -207,6 +207,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 			discoverable[int(p)] = 1
 	for p in P:
 		army[p] = 15 + rng.randi_n(25)
+		if rules >= 5: army[p] = 0                                               # rules 5: armies are filled in below, in the capital only
 		pop[p] = 80 + rng.randi_n(120)
 		dev[p] = 1 + rng.randi_n(3)
 		econ[p] = 1 + rng.randi_n(3)
@@ -295,6 +296,13 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 			if owner[p] != 0: tp += float(pop[p]); np += 1
 		pk = maxf(1.0, tp / (maxf(1.0, float(np)) * 140.0))
 		for n in range(1, N1): gold[n] *= gu(n, 1.0)                  # the old start purse, in the nation's own terms
+		for n in range(1, N1):                                        # the standing army of every state stands in its capital and nowhere else (the Age of Civilizations way: the rest is recruited and marched)
+			var cp: int = capital_of[n]
+			if n == rebel or cp < 0 or alive[n] == 0: continue
+			var nat_pop := 0
+			for q in owned(n): nat_pop += pop[q]
+			var bent: float = 0.7 + 0.6 * float(D.PERSONALITIES[personality[n]]["aggr"])
+			army[cp] = maxi(au(8.0), int(float(nat_pop) * float(STANDING_SHARE[era[n]]) * bent))
 	if rules >= 4:                          # every province starts with part of its levy ready; a nation's manpower is the sum
 		for p in P:
 			if owner[p] != 0: levy[p] = int(float(levy_cap(p)) * LEVY_START)
@@ -443,18 +451,24 @@ func controller(p: int) -> int:
 	return occupier[p] if occupier[p] != 0 else owner[p]
 
 # ---------------------------------------------------------------- levy pools (rules >= 4; docs/WAR_DESIGN.md section 3)
-static var LEVY_RATE: Array = [0.22, 0.28, 0.34, 0.42, 0.50]   # share of a province's people that can be under arms, by era: real states carried 1-3 % of their people for years, industrial ones 5-10 %
+static var LEVY_RATE: Array = [0.22, 0.28, 0.34, 0.42, 0.50]       # rules 5 uses LEVY_SHARE below   # share of a province's people that can be under arms, by era: real states carried 1-3 % of their people for years, industrial ones 5-10 %
 const LEVY_REFILL := 0.06                            # of the cap, each turn
+## rules 5: the share of a province's people a state can call to arms in a war, by era: free men of the old world, the long peasant levy, conscription, total war, reserves
+static var LEVY_SHARE: Array = [0.06, 0.05, 0.05, 0.13, 0.10]
+## rules 5: the standing army a state keeps in peace, as a share of its people, by era
+static var STANDING_SHARE: Array = [0.004, 0.004, 0.009, 0.015, 0.008]
 const LEVY_START := 0.35                             # a new game starts with this share of the cap ready
 const LEVY_LOW := 0.25                               # below this share of the cap a province is drained
 const ARMY_CAP := 65000
+## the most men one province can hold (rules 5: a part of its people; before, a flat 65,000)
+func army_cap(p: int) -> int: return ARMY_CAP if rules < 5 else maxi(ARMY_CAP, int(float(pop[p]) * 0.6))
 const WORK_LOSS_K := 0.30                           # share of tax and production lost per share of the people under arms
 const WORK_LOSS_CAP := 0.35
 
 func levy_cap(p: int) -> int:
 	var n := owner[p]
 	var e: int = era[n] if n > 0 else 0
-	var c: float = float(pop[p]) * float(LEVY_RATE[e]) * (0.5 + float(stab[p]) / 200.0)
+	var c: float = float(pop[p]) * float(LEVY_RATE[e] if rules < 5 else LEVY_SHARE[e]) * (0.5 + float(stab[p]) / 200.0)
 	if bl(p, D.B_ARMORY) > 0: c *= 1.25
 	return maxi(4, int(floor(c)))
 
@@ -524,7 +538,7 @@ func levy_cap_total(n: int) -> int:
 ## (lowest, highest, first) number of men one Recruit may raise in p: rules < 4 the old 5..30; rules 4 whatever the province's pool holds
 func recruit_range(p: int) -> Vector3i:
 	if rules < 4: return Vector3i(5, 30, 15)
-	var hi := mini(mini(levy[p], levy_cap(p)), ARMY_CAP - army[p])
+	var hi := mini(mini(levy[p], levy_cap(p)), army_cap(p) - army[p])
 	return Vector3i(mini(1, hi), maxi(0, hi), mini(15, maxi(0, hi)))
 
 func reassign_capital(n: int) -> void:
@@ -684,7 +698,7 @@ func income(n: int) -> Dictionary:
 	if rules >= 2: admin = int(floor(admin * (1.0 + OVEREXTEND_STEP * maxf(0.0, float(own.size() - OVEREXTEND_FROM)))))       # the bigger the realm, the dearer every governor
 	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n)))
 	var upkeep := int(floor(up_base * (0.25 + era[n] * 0.05) * tech_up * float(reg["upkeep"])))
-	if rules >= 5: upkeep = int(floor(up_base * wage_n * 1.5 * float(reg["upkeep"])))                      # a soldier eats one and a half workers' turns
+	if rules >= 5: upkeep = int(floor(up_base * wage_n * 2.0 * float(reg["upkeep"])))                      # a soldier eats two workers' turns
 	if rules >= 1: man = int(floor(man * TBRulers.manpower_mul(self, n)))
 	out["gold"] = gld; out["manpower"] = man; out["upkeep"] = upkeep; out["tax"] = tax; out["production"] = prod; out["admin"] = admin
 	out["net"] = gld - admin - upkeep
@@ -813,6 +827,11 @@ func combat_mul(n: int) -> float:
 
 ## rules >= 1: how many soldiers a province can feed. Armies above this in foreign land waste away.
 func supply_limit(p: int) -> int:
+	if rules >= 5:                                                          # what the land can feed an army on campaign: a few in a hundred of its people, more with development, depots and farms
+		var k: float = 0.04 + 0.01 * float(dev[p]) + 0.05 * float(bl(p, D.B_SUPPLYCAMP) > 0) + 0.01 * float(bl(p, D.B_FARM))
+		var lim5 := int(float(pop[p]) * k)
+		if terrain[p] == 2 or terrain[p] == 4: lim5 = int(lim5 * 0.7)
+		return maxi(au(6.0), lim5)
 	var lim := 18 + 8 * dev[p] + int(pop[p] / 20.0)
 	if bl(p, D.B_SUPPLYCAMP) > 0: lim += 40
 	if bl(p, D.B_FARM) > 0: lim += 8 * bl(p, D.B_FARM)
@@ -911,7 +930,7 @@ func move_or_attack(n: int, from: int, to: int, troops: int) -> String:
 		var k := mini(troops if troops != 0 else army[from] - keep(), army[from] - keep())
 		if k <= 0: return "!noarmy"
 		var left := army[from] - k
-		army[from] = left; army[to] = mini(65000, army[to] + k); touch(from); touch(to)
+		army[from] = left; army[to] = mini(army_cap(to), army[to] + k); touch(from); touch(to)
 		if rules >= 1 and TBGenerals.follows(self, from, left): TBGenerals.transfer(self, from, to)
 		if rules >= 1 and human[n] == 0 and move_fx.size() < 160: move_fx.append([from, to, n])
 		return "move"
@@ -995,7 +1014,7 @@ func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int,
 		if rides:
 			TBGenerals.transfer(self, from, to); TBGenerals.win(self, to, atk_n)
 		return "win"
-	army[from] = mini(ARMY_CAP, maxi(0, avail - send) + a_left)                # the survivors come home
+	army[from] = mini(army_cap(from), maxi(0, avail - send) + a_left)                # the survivors come home
 	army[to] = maxi(1, d_left)
 	touch(from); touch(to)
 	if (human[atk_n] != 0 or human[def_n] != 0 or _seen_fight(to)) and battle_fx.size() < 60: battle_fx.append([from, to, 0, atk_n, def_n])
@@ -1016,7 +1035,7 @@ func _retreat(n: int, lost_p: int, attack_from: int, men: int) -> void:
 		if q == attack_from or controller(q) != n: continue
 		if best < 0 or army[q] > army[best]: best = q
 	if best >= 0:
-		army[best] = mini(ARMY_CAP, army[best] + men); touch(best)
+		army[best] = mini(army_cap(best), army[best] + men); touch(best)
 
 var _occ_rev_seen := -1
 var _occ_by := {}

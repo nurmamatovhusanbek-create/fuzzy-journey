@@ -114,7 +114,7 @@ static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 			"nation.research": g.research[n] = maxf(0.0, g.research[n] + d)
 			"nation.intel": g.intel[n] = clampf(g.intel[n] + d, 0.0, 20.0)
 			"nation.army_pct":
-				for p in g.owned(n): g.army[p] = maxi(3, int(g.army[p] * (1.0 + d / 100.0))); g.touch(p)
+				for p in g.owned(n): g.army[p] = maxi(g.au(3.0), int(g.army[p] * (1.0 + d / 100.0))); g.touch(p)
 			"nation.pop_pct":
 				for p in g.owned(n): g.pop[p] = clampi(int(g.pop[p] * (1.0 + d / 100.0)), 10, g.pop_hard()); g.touch(p)
 			"nation.dev":
@@ -265,8 +265,8 @@ static func apply_effects(g: TBGame, n: int, effects: Array) -> void:
 					g.touch(p)
 			"army":
 				for p in _provs(g, n, String(e.get("scope", "all"))):
-					if e.has("pct"): g.army[p] = maxi(5, int(g.army[p] * (1.0 + float(e["pct"]) / 100.0)))
-					else: g.army[p] = clampi(g.army[p] + (g.au(d) if d > 0.0 else -g.au(-d)), 5, TBGame.ARMY_CAP)
+					if e.has("pct"): g.army[p] = maxi(g.au(5.0), int(g.army[p] * (1.0 + float(e["pct"]) / 100.0)))
+					else: g.army[p] = clampi(g.army[p] + (g.au(d) if d > 0.0 else -g.au(-d)), g.au(5.0), g.army_cap(p))
 					g.touch(p)
 			"dev":
 				var scope := String(e.get("scope", "best"))

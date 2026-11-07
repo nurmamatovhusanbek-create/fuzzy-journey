@@ -32,7 +32,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 			if g.occupier[q] == n: continue
 			if g.nb_sea[i] != 0 and g.bl(q, D.B_PORT) == 0: continue
 			var r := float(g.army[q]) / float(maxi(1, g.army[p]))
-			if g.army[q] >= 6 and r > 1.3 and r > threat_ratio: threat_ratio = r; threat_p = p; threat_o = eo
+			if g.army[q] >= g.au(6.0) and r > 1.3 and r > threat_ratio: threat_ratio = r; threat_p = p; threat_o = eo
 	if threat_p >= 0: out.append(_a("threat", 2, threat_p, int(round(threat_ratio * 10.0)), threat_o))
 	if occ > 0: out.append(_a("occupied", 1, occ_p, occ, g.occupier[occ_p] if occ_p >= 0 else -1))
 	if unrest > 0:
@@ -85,7 +85,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 		if TBGenerals.count(g, n) < TBGenerals.cap(g, n) and g.gold[n] >= TBGenerals.cost(g, n) + g.gu(n, 60.0):
 			var gp := -1; var gbest := 0
 			for p in own:
-				if g.gen[p] == 0 and g.army[p] >= TBGenerals.MIN_ARMY and g.army[p] > gbest and g.controller(p) == n: gbest = g.army[p]; gp = p
+				if g.gen[p] == 0 and g.army[p] >= TBGenerals.min_army(g) and g.army[p] > gbest and g.controller(p) == n: gbest = g.army[p]; gp = p
 			if gp >= 0: out.append(_a("no_general", 0, gp))
 		if g.dp[n] >= TBDiplo.DP_ULT and g.infamy[n] < 12.0:
 			var seen := {}

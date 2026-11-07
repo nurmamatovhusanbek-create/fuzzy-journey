@@ -51,7 +51,7 @@ static func _field(g: TBGame, kind: String, v: Variant) -> Variant:
 		"p": return i if i >= 0 and i < g.P else null
 		"pn": return i if i >= -1 and i < g.P else null
 		"t": return i if i >= 1 and i < g.N1 else null
-		"q": return clampi(i, 0, 65000)
+		"q": return clampi(i, 0, 1000000000)
 		"b": return i if i >= 0 and i <= 64 else null
 		"r": return i if i >= 0 and i <= 32 else null
 		"u": return i if i >= 0 else null
@@ -171,7 +171,7 @@ static func _c_recruit(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.manpower[n] < man_cost: return _err("manpower")
 	if _short_mp(g, n, D.MP_RECRUIT): return _err("mp")
 	g.gold[n] -= gold_cost; g.manpower[n] -= man_cost; g.mp[n] -= D.MP_RECRUIT
-	g.army[p] = mini(65000, g.army[p] + amount); g.touch(p)
+	g.army[p] = mini(g.army_cap(p), g.army[p] + amount); g.touch(p)
 	return {"ok": true}
 
 ## rules 4: the men come out of the province's own levy pool, any number the pool holds; gold is a fixed fee plus a price per man
@@ -185,7 +185,7 @@ static func _recruit_levy(g: TBGame, c: Dictionary, reg: Dictionary) -> Dictiona
 	if _short_mp(g, n, D.MP_RECRUIT): return _err("mp")
 	g.gold[n] -= gold_cost; g.mp[n] -= D.MP_RECRUIT
 	g.levy[p] -= amount; g.manpower[n] = maxf(0.0, g.manpower[n] - amount)
-	g.army[p] = mini(TBGame.ARMY_CAP, g.army[p] + amount); g.touch(p)
+	g.army[p] = mini(g.army_cap(p), g.army[p] + amount); g.touch(p)
 	return {"ok": true}
 
 static func _c_declare_war(g: TBGame, c: Dictionary) -> Dictionary:
@@ -396,7 +396,7 @@ static func _c_colonize(g: TBGame, c: Dictionary) -> Dictionary:
 	if float(cost["men"]) > 0.0 and g.manpower[n] < float(cost["men"]): return _err("manpower")
 	if _short_mp(g, n, float(cost["moves"])): return _err("mp")
 	g.gold[n] -= float(cost["gold"]); g.mp[n] -= float(cost["moves"]); g.manpower[n] -= float(cost["men"])
-	g.set_owner(p, n); g.army[p] = maxi(g.army[p], 8 if g.rules < 4 else TBMissions.COLONY_GARRISON); g.discoverable[p] = 0
+	g.set_owner(p, n); g.army[p] = maxi(g.army[p], 8 if g.rules < 4 else g.au(float(TBMissions.COLONY_GARRISON))); g.discoverable[p] = 0
 	return {"ok": true}
 
 static func _c_relocate(g: TBGame, c: Dictionary) -> Dictionary:
@@ -466,13 +466,13 @@ static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 static func _c_hire(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var p: int = c["p"]
 	if g.controller(p) != n or g.owner[p] != n: return _err("notyours")
-	var amount := clampi(int(c.get("amount", 30)), 10, 60)
+	var amount := clampi(int(c.get("amount", 30)), 10, 60) if g.rules < 5 else clampi(int(c.get("amount", g.au(30.0))), g.au(10.0), g.au(60.0))
 	var cost := int(ceil(amount * 5.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))
 	if g.rules >= 5: cost = int(ceil(float(amount) * g.wage(n) * 45.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))      # mercenaries: forty-five worker-turns a man
 	if g.gold[n] < cost: return _err("gold")
 	if _short_mp(g, n, 1.0): return _err("mp")
 	g.gold[n] -= cost; g.mp[n] -= 1
-	g.army[p] = mini(65000, g.army[p] + amount); g.touch(p)
+	g.army[p] = mini(g.army_cap(p), g.army[p] + amount); g.touch(p)
 	return {"ok": true}
 
 ## rules >= 2: pull down one building to free its slot (no refund; the level is lost)
