@@ -9,6 +9,7 @@ const DEF_CAP := 50
 const INFL_K := 0.012                   # extra inflation per turn of world production sitting in treasuries above INFL_M0
 const INFL_M0 := 1.0
 const INFL_MAX := 0.05
+const ADMIN_PER_DEV := 0.25            # rules 4: administrative reach per development level held (a realm that develops can hold more land)
 const STAB_OVEREXT := 18.0              # stability lost by an empire 1.5x the size the era's administration can hold
 const STAB_SPEED_UP := 2.0              # a province's stability moves toward the nation's target by at most this per turn...
 const STAB_SPEED_DOWN := 1.5            # ...and at most this when falling
@@ -54,6 +55,10 @@ static func inflation(g: TBGame) -> float:
 static func stab_target(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil: int, lands: int) -> float:
 	var tax: int = g.budget[n * 4]
 	var s_era: float = 30.0 + 15.0 * g.era[n]
+	if g.rules >= 4:                                                      # administration grows with what the realm has built up: every development level across the provinces holds a quarter of a province more (docs/PROVINCE_WORTH.md)
+		var dv := 0
+		for q in g.owned(n): dv += g.dev[q]
+		s_era += ADMIN_PER_DEV * float(dv)
 	var over: float = clampf((lands - s_era) / s_era, 0.0, 1.5) * STAB_OVEREXT
 	var t: float = stab_ceil - weary * 0.5 - 0.4 * maxf(0.0, tax - 40.0) - over - (6.0 if at_war else 0.0) + TBRulers.stab_add(g, n) * 8.0
 	return clampf(t, 10.0, float(stab_ceil))
