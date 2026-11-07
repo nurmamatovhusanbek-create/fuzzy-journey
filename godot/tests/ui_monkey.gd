@@ -55,7 +55,7 @@ func _init() -> void:
 					main._clear_overlay(); g.pending.clear()
 					main.end_turn()
 					var guard := 0
-					while main._busy and guard < 400: await create_timer(0.05).timeout; guard += 1
+					while main._busy and guard < 2400: await create_timer(0.05).timeout; guard += 1        # a loaded machine can take long over a turn: never act on the game while its worker still runs
 					turns += 1
 		await process_frame
 	print("MONKEY done: iterations=%d turns=%d lang=%s nation=%s alive=%s" % [iters, turns, main.cfg["lang"], g.nat_name[me], g.alive[me]])
