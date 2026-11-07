@@ -263,7 +263,7 @@ class DecisionRow extends PanelContainer:
 			var left := TBDecisions.turns_left(g, me, i)
 			foot.add_child(TBKit.chip_icon(TBI18n.T("dec_forever") if left > 5000 else TBI18n.T("dec_left", {"n": left}), "check", "pos"))
 		else:
-			cf.add_child(TBKit.chip_icon(str(int(d["gold"])), "gold", "info" if g.gold[me] >= float(d["gold"]) else "neg"))
+			cf.add_child(TBKit.chip_icon(str(TBDecisions.cost(g, me, i)), "gold", "info" if g.gold[me] >= float(TBDecisions.cost(g, me, i)) else "neg"))
 			cf.add_child(TBKit.chip_icon(str(int(d["mp"])), "army", "info" if g.mp[me] >= float(d["mp"]) else "neg"))
 		var fs := Control.new(); fs.size_flags_horizontal = Control.SIZE_EXPAND_FILL; fs.mouse_filter = Control.MOUSE_FILTER_IGNORE; foot.add_child(fs); foot.move_child(fs, 1)
 		if not active:

@@ -68,7 +68,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 		wars += 1
 		if g.war_score[n * g.N1 + o] > best_ws: best_ws = g.war_score[n * g.N1 + o]; best_o = o
 	if best_ws >= 25: out.append(_a("war_winning", 0, g.capital_of[best_o], best_ws))
-	if g.gold[n] > 250.0 and net >= 0:
+	if g.gold[n] > g.gu(n, 250.0) and net >= 0:
 		var ig := -1                                                  # districts: point at the province where gold buys most (development the people can staff, else an empty slot)
 		if g.rules >= 2:
 			var igs := 0.0
@@ -82,7 +82,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 	var cap_mp := mp_cap(g, n)
 	if g.rules >= 1 and g.trade_cnt[n] == 0 and g.dp[n] >= 2.0 and g.turn > 4: out.append(_a("no_trade", 0, -1))
 	if g.rules >= 1 and g.turn > 2:
-		if TBGenerals.count(g, n) < TBGenerals.cap(g, n) and g.gold[n] >= TBGenerals.cost(g, n) + 60:
+		if TBGenerals.count(g, n) < TBGenerals.cap(g, n) and g.gold[n] >= TBGenerals.cost(g, n) + g.gu(n, 60.0):
 			var gp := -1; var gbest := 0
 			for p in own:
 				if g.gen[p] == 0 and g.army[p] >= TBGenerals.MIN_ARMY and g.army[p] > gbest and g.controller(p) == n: gbest = g.army[p]; gp = p
@@ -105,7 +105,7 @@ static func alerts(g: TBGame, n: int) -> Array:
 	if g.rules >= 3 and g.turn > 4 and g.dp[n] >= dp_cap(g, n) - 0.5: out.append(_a("idle_dp", 0, -1))
 	if g.manpower[n] >= inc["manCap"] * 0.95 and inc["manCap"] > 50: out.append(_a("idle_men", 0, -1))
 	if g.budget[n * 4 + 2] == 0: out.append(_a("no_research", 0, -1))
-	if wars == 0 and g.turn > 3 and g.gold[n] > 120.0: out.append(_a("peacetime", 0, -1))
+	if wars == 0 and g.turn > 3 and g.gold[n] > g.gu(n, 120.0): out.append(_a("peacetime", 0, -1))
 	out.sort_custom(func(a, b): return int(a["sev"]) > int(b["sev"]))
 	return out
 

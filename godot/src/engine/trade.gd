@@ -32,6 +32,8 @@ static func has(g: TBGame, a: int, b: int) -> bool: return g.rules >= 1 and g.tr
 ## the size of a nation's market: provinces times what an average province earns in its era (6 in the ancient world, 20 in the modern): cheap, and it does not depend on trade itself
 static func market(g: TBGame, n: int) -> float:
 	return float(g.own_count(n)) * (6.0 + 3.5 * float(g.era[n]))
+## rules 5: the yield in the nations' own gold: the old-scale figure times the price level of the two courts (their geometric mean)
+static func _lvl(g: TBGame, a: int, b: int) -> float: return sqrt(g.cm(a) * g.cm(b)) if g.rules >= 5 else 1.0
 
 ## 0..1: how well two capitals can reach each other (1 = next door, 0.5 at REACH_RAD, 0.2 across half the world)
 static func reach(g: TBGame, a: int, b: int) -> float:
@@ -44,15 +46,19 @@ static func reach(g: TBGame, a: int, b: int) -> float:
 static func yield_of(g: TBGame, a: int, b: int) -> int:
 	if g.rules < 3: return mini(40, 4 + int(g.own_count(b) * 0.35))
 	var s := sqrt(market(g, a) * market(g, b))
-	return clampi(int(roundf(2.0 + K_YIELD * sqrt(s) * reach(g, a, b))), 2, YIELD_CAP)
+	return int(ceil(float(clampi(int(roundf(2.0 + K_YIELD * sqrt(s) * reach(g, a, b))), 2, YIELD_CAP)) * _lvl(g, a, b)))
 
 ## gold per turn that a deal with `partner` is worth to n (the old signature kept for the interface: n = the viewing nation)
 static func value(g: TBGame, partner: int, n: int = -1) -> int:
 	if g.rules < 3 or n <= 0: return mini(40, 4 + int(g.own_count(partner) * 0.35))
 	return yield_of(g, n, partner)
 
-static func fee_gold(v: int) -> int: return int(ceil(FEE_BASE + FEE_PER * float(v)))
-static func fee_men(v: int) -> int: return int(ceil(MEN_BASE + float(v) * 0.5))
+static func fee_gold(v: int, g: TBGame = null, n: int = 0) -> int:
+	if g != null and g.rules >= 5 and n > 0: return int(ceil(FEE_BASE * g.cm(n) + FEE_PER * float(v)))
+	return int(ceil(FEE_BASE + FEE_PER * float(v)))
+static func fee_men(v: int, g: TBGame = null) -> int:
+	if g != null and g.rules >= 5: return maxi(1, int(ceil(float(v) * 0.03)))                      # the escorts: a few men for a route worth thousands
+	return int(ceil(MEN_BASE + float(v) * 0.5))
 
 ## net income smoothed over about seven turns; before the first turn has been recorded it is the current figure
 static func avg_net(g: TBGame, n: int) -> float:
@@ -62,8 +68,8 @@ static func avg_net(g: TBGame, n: int) -> float:
 ## what n can bring to a route worth v: {inc, gold, men} each 0..1, and m, their weighted geometric mean
 static func means(g: TBGame, n: int, v: int) -> Dictionary:
 	var fi := clampf(avg_net(g, n) / (2.0 * float(v)), 0.0, 1.0)                   # a surplus twice the route's takings is full marks
-	var fg := clampf(g.gold[n] / (1.5 * float(fee_gold(v))), 0.0, 1.0)             # a treasury of one and a half times the fee
-	var fm := clampf(g.manpower[n] / (4.0 * float(fee_men(v))), 0.0, 1.0)          # four times the people it takes
+	var fg := clampf(g.gold[n] / (1.5 * float(fee_gold(v, g, n))), 0.0, 1.0)             # a treasury of one and a half times the fee
+	var fm := clampf(g.manpower[n] / (4.0 * float(fee_men(v, g))), 0.0, 1.0)          # four times the people it takes
 	return {"inc": fi, "gold": fg, "men": fm, "m": pow(fi, W_INCOME) * pow(fg, W_GOLD) * pow(fm, W_MEN)}
 
 ## total trade income of n (no recursion into income())
@@ -129,13 +135,13 @@ static func propose(g: TBGame, n: int, t: int, force: bool = false) -> Dictionar
 	var v := 0
 	if g.rules >= 3:
 		v = yield_of(g, n, t)
-		if g.gold[n] < float(fee_gold(v)): return {"ok": false, "err": "gold"}
-		if g.manpower[n] < float(fee_men(v)): return {"ok": false, "err": "manpower"}
+		if g.gold[n] < float(fee_gold(v, g, n)): return {"ok": false, "err": "gold"}
+		if g.manpower[n] < float(fee_men(v, g)): return {"ok": false, "err": "manpower"}
 		if g.trade_cnt[t] >= max_deals(g, t) and g.human[t] != 0: return {"ok": false, "err": "tradefull"}
 	if g.human[t] == 0 and not force and not accepts(g, t, n): return {"ok": false, "err": "refused"}
 	g.dp[n] -= DP_COST
 	if g.rules >= 3:
-		g.gold[n] -= float(fee_gold(v)); g.manpower[n] -= float(fee_men(v))
+		g.gold[n] -= float(fee_gold(v, g, n)); g.manpower[n] -= float(fee_men(v, g))
 	set_deal(g, n, t, true)
 	g.log.append({"turn": g.turn, "kind": "trade", "a": n, "b": t})
 	return {"ok": true}
@@ -168,7 +174,7 @@ static func ai_step(g: TBGame, n: int) -> void:
 		if best > 0 and ub2 < best_v: break
 		var v2 := yield_of(g, n, o2)
 		if best > 0 and (v2 < best_v or (v2 == best_v and o2 > best)): continue            # the dearer route wins, the lower court number on a tie
-		if g.gold[n] < float(fee_gold(v2)) or g.manpower[n] < float(fee_men(v2)): continue
+		if g.gold[n] < float(fee_gold(v2, g, n)) or g.manpower[n] < float(fee_men(v2, g)): continue
 		if float(means(g, n, v2)["m"]) < 0.5: continue                                      # a court only opens a route it can carry
 		if accepts(g, o2, n): best = o2; best_v = v2
 	if best > 0: propose(g, n, best)

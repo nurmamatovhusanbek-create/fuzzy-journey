@@ -53,9 +53,9 @@ static func project_id(kind: int) -> String: return PROJECTS[kind - 1] if kind >
 static func project_cost(g: TBGame, p: int, kind: int) -> int:
 	match kind:
 		1: return g.develop_cost(p)
-		2: return 35 + 30 * g.econ[p]
-		3: return 50 + g.pop[p] / 10
-		4: return 30 + (100 - g.stab[p]) / 2
+		2: return int(ceil(float(35 + 30 * g.econ[p]) * (g.cm(g.owner[p]) if g.owner[p] > 0 else 1.0)))
+		3: return int(ceil((50.0 + (float(g.pop[p]) * float(g.scale) / 2500.0 if g.rules >= 5 else float(g.pop[p])) / 10.0) * (g.cm(g.owner[p]) if g.owner[p] > 0 else 1.0)))
+		4: return int(ceil(float(30 + (100 - g.stab[p]) / 2) * (g.cm(g.owner[p]) if g.owner[p] > 0 else 1.0)))
 	return 0
 
 static func project_turns(g: TBGame, p: int, kind: int) -> int:

@@ -27,7 +27,7 @@ static func colony_cost(g: TBGame, n: int, p: int) -> Dictionary:
 	var free: bool = bool(reg["colonyFree"])
 	if g.rules < 4: return {"gold": 0 if free else 60 + g.own_count(n) * 2, "men": 0, "moves": 2}
 	var tm: float = COLONY_TERRAIN_MUL[clampi(g.terrain[p], 0, COLONY_TERRAIN_MUL.size() - 1)] if p >= 0 and p < g.P else 1.0
-	var gold: int = int(ceil(float(COLONY_GOLD + COLONY_GOLD_PER_PROVINCE * g.own_count(n)) * tm * (0.6 if free else 1.0)))
+	var gold: int = int(ceil(float(COLONY_GOLD + COLONY_GOLD_PER_PROVINCE * g.own_count(n)) * tm * (0.6 if free else 1.0) * g.cm(n)))
 	var men: int = int(round(float(COLONY_MEN) * (0.6 if free else 1.0)))
 	return {"gold": gold, "men": men, "moves": int(COLONY_MOVES)}
 
@@ -51,6 +51,7 @@ static func colony_needs(g: TBGame, n: int, p: int) -> Array:
 
 const EMBASSY_DP := 2.0
 const EMBASSY_GOLD := 40
+static func embassy_gold(g: TBGame, n: int) -> int: return int(ceil(g.gu(n, float(EMBASSY_GOLD))))
 const EMBASSY_GRUDGE := 12      # off the grudge the other court holds against you
 const EMBASSY_RIPPLE := 6       # befriend() amount: the other court's friends warm up by a share of it
 const EMBASSY_INTEL := 5.0
@@ -81,13 +82,13 @@ static func embassy_why(g: TBGame, n: int, t: int) -> String:
 	if g.get_rel(n, t) == TBData.REL_WAR: return "war"
 	if g.grudge[t * g.N1 + n] == 0 and g.intel[n] >= INTEL_MAX - 0.5: return "nothing"
 	if g.dp[n] + 0.0001 < EMBASSY_DP: return "dp"
-	if g.gold[n] < float(EMBASSY_GOLD): return "gold"
+	if g.gold[n] < float(embassy_gold(g, n)): return "gold"
 	return ""
 
 static func embassy(g: TBGame, n: int, t: int) -> Dictionary:
 	var why := embassy_why(g, n, t)
 	if why != "": return {"ok": false, "err": why}
-	g.dp[n] = maxf(0.0, g.dp[n] - EMBASSY_DP); g.gold[n] -= float(EMBASSY_GOLD)
+	g.dp[n] = maxf(0.0, g.dp[n] - EMBASSY_DP); g.gold[n] -= float(embassy_gold(g, n))
 	var had := int(g.grudge[t * g.N1 + n])
 	TBDiplo._add_grudge(g, t, n, -EMBASSY_GRUDGE)
 	TBDiplo.befriend(g, n, t, EMBASSY_RIPPLE, false)

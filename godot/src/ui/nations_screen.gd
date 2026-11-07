@@ -41,7 +41,7 @@ static func compute(g: TBGame) -> Dictionary:
 ## the tooltip of the trade request (rules >= 3): its cost in envoys, gold and people, and, when the court's willingness is held down by your means, which ingredient is the weakest
 static func _trade_tip(g: TBGame, me: int, n: int, cost: int) -> String:
 	var v: int = TBTrade.yield_of(g, me, n)
-	var tip: String = TBI18n.T("ask_tip_trade", {"c": cost, "g": TBTrade.fee_gold(v), "m": TBTrade.fee_men(v)})
+	var tip: String = TBI18n.T("ask_tip_trade", {"c": cost, "g": TBTrade.fee_gold(v, g, me), "m": TBTrade.fee_men(v, g)})
 	var mm: Dictionary = TBTrade.means(g, me, v)
 	if float(mm["m"]) < 0.7:
 		var weak := "inc"

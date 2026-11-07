@@ -22,6 +22,9 @@ static func index_of(id: String) -> int:
 		if LIST[i]["id"] == id: return i
 	return -1
 
+## the gold a decision costs this nation: its old price in its own terms
+static func cost(g: TBGame, n: int, i: int) -> int: return int(ceil(g.gu(n, float(LIST[i]["gold"]))))
+
 static func is_active(g: TBGame, n: int, i: int) -> bool:
 	return g.dec_until[n * LIST.size() + i] > g.turn
 
@@ -40,7 +43,7 @@ static func why_not(g: TBGame, n: int, i: int) -> String:
 	var d: Dictionary = LIST[i]
 	if g.era[n] < int(d["era"]): return "era"
 	if is_active(g, n, i): return "active"
-	if g.gold[n] < float(d["gold"]): return "gold"
+	if g.gold[n] < float(cost(g, n, i)): return "gold"
 	if g.mp[n] + (0.0001 if g.rules >= 3 else 0.0) < float(d["mp"]): return "mp"
 	if d["id"] == "mil_academy" and (g.rules < 4 or graduated(g, n, "mil_academy")): return "rules" if g.rules < 4 else "active"
 	if d["id"] == "amnesty" and g.infamy[n] < 4.0: return "noinfamy"
@@ -53,7 +56,7 @@ static func apply(g: TBGame, n: int, id: String) -> Dictionary:
 	var why := why_not(g, n, i)
 	if why != "": return {"ok": false, "err": why}
 	var d: Dictionary = LIST[i]
-	g.gold[n] -= float(d["gold"]); g.mp[n] -= float(d["mp"])
+	g.gold[n] -= float(cost(g, n, i)); g.mp[n] -= float(d["mp"])
 	var dur: int = d["dur"]
 	var slot := n * LIST.size() + i
 	match String(d["id"]):
@@ -101,17 +104,17 @@ static func _restless(g: TBGame, n: int) -> bool:
 
 ## AI: a rich realm that is drifting towards revolt buys propaganda before spending its action points elsewhere (no RNG)
 static func ai_steady(g: TBGame, n: int) -> void:
-	if g.rules < 1 or g.gold[n] < 600.0 or g.mp[n] < 2.0 or _on(g, n, "propaganda"): return
+	if g.rules < 1 or g.gold[n] < g.gu(n, 600.0) or g.mp[n] < 2.0 or _on(g, n, "propaganda"): return
 	if _restless(g, n): apply(g, n, "propaganda")
 
 ## AI: occasionally spends spare gold on a sensible decision
 static func ai_pick(g: TBGame, n: int) -> void:
-	if g.gold[n] < 260.0 or g.mp[n] < 3.0 or g.rng.next() > (0.12 if g.gold[n] < 2000.0 else 0.4): return
+	if g.gold[n] < g.gu(n, 260.0) or g.mp[n] < 3.0 or g.rng.next() > (0.12 if g.gold[n] < g.gu(n, 2000.0) else 0.4): return
 	var at_war: bool = g.war_cnt[n] > 0
 	var order := ["mil_reform", "centralize", "mil_academy", "trade_fair", "patronage", "conscript", "amnesty", "fortify", "propaganda"]
 	if at_war: order = ["mil_reform", "conscript", "fortify", "propaganda", "centralize", "trade_fair", "patronage", "amnesty", "mil_academy"]
 	if _restless(g, n): order = ["propaganda"] + order        # a wobbling realm steadies itself first
 	for id in order:
 		var i := index_of(id)
-		if why_not(g, n, i) == "" and g.gold[n] >= float(LIST[i]["gold"]) + 100.0:
+		if why_not(g, n, i) == "" and g.gold[n] >= float(cost(g, n, i)) + g.gu(n, 100.0):
 			apply(g, n, id); return

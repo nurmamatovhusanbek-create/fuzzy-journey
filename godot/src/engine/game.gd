@@ -294,6 +294,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		for p in P:
 			if owner[p] != 0: tp += float(pop[p]); np += 1
 		pk = maxf(1.0, tp / (maxf(1.0, float(np)) * 140.0))
+		for n in range(1, N1): gold[n] *= gu(n, 1.0)                  # the old start purse, in the nation's own terms
 	if rules >= 4:                          # every province starts with part of its levy ready; a nation's manpower is the sum
 		for p in P:
 			if owner[p] != 0: levy[p] = int(float(levy_cap(p)) * LEVY_START)
@@ -304,13 +305,13 @@ func dname(n: int) -> String: return TBI18n.nation(nat_name[n])
 
 func set_human(n: int) -> void:
 	human.fill(0); human[n] = 1; human_id = n
-	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"] if rules < 4 else float(levy_total(n)); mp[n] = 10; dp[n] = 6
+	gold[n] = gu(n, float(diff["startGold"])); manpower[n] = diff["startManpower"] if rules < 4 else float(levy_total(n)); mp[n] = 10; dp[n] = 6
 
 ## multiplayer: several human nations (human_id stays the first one, used by SP-centric helpers)
 func add_human(n: int) -> void:
 	human[n] = 1
 	if human_id == 0: human_id = n
-	gold[n] = diff["startGold"]; manpower[n] = diff["startManpower"] if rules < 4 else float(levy_total(n)); mp[n] = 10; dp[n] = 6
+	gold[n] = gu(n, float(diff["startGold"])); manpower[n] = diff["startManpower"] if rules < 4 else float(levy_total(n)); mp[n] = 10; dp[n] = 6
 
 func humans() -> PackedInt32Array:
 	var out := PackedInt32Array()
@@ -462,9 +463,31 @@ func pu(x: float) -> int: return int(round(x * pk)) if rules >= 5 else int(x)
 ## soldiers: an old army was 18 % of a province's people, a real one is about 1 %, so old army amounts shrink by that against the people
 func au(x: float) -> int: return maxi(1, int(round(x * pk * 0.06))) if rules >= 5 else int(x)
 ## gold written for the old scale, in a nation's own terms: its income against the 400 of an average old nation
-func gu(n: int, x: float) -> float: return x * maxf(1.0, float(income(n)["gold"]) / 400.0) if rules >= 5 else x
+func gu(n: int, x: float) -> float: return x * maxf(0.02, labour(n) / 400.0) if rules >= 5 else x
 ## the most people a province can ever hold
 func pop_hard() -> int: return 2000 if rules < 5 else 2000000000
+
+## rules 5, gold. One gold is what 200 workers make in a turn at the lowest technology; a worker's turn grows with the nation's technology (0.35 a level: x2.4 at level 2.5, x5.8 at level 5).
+const GOLD_PER_WORKER := 0.005
+const WORKER_SHARE := 0.45                     # of a province's people who work for a living
+## output of a worker by development level: each level adds in proportion to the old table's step (1, 2, 3, 4, 5 income), so a level still pays back in about thirty turns
+func dev_f(dv: int) -> float: return 0.8 + 0.08 * float(D.DEV_INCOME[clampi(dv, 1, 5)])
+func wage(n: int) -> float: return GOLD_PER_WORKER * exp(0.35 * tech_level[n]) if n > 0 else GOLD_PER_WORKER
+## what the nation's workers make in a turn before any development, building or order (cached for the turn): the yardstick every price is measured in
+var _lab := PackedFloat32Array()
+var _lab_turn := -1
+func labour(n: int) -> float:
+	if _lab_turn != turn or _lab.size() != N1:
+		_lab.resize(N1); _lab.fill(-1.0); _lab_turn = turn
+	if _lab[n] < 0.0:
+		var t := 0.0
+		for p in owned(n): t += float(pop[p])
+		_lab[n] = t * WORKER_SHARE * wage(n)
+	return _lab[n]
+## price level of a province's works: what an average province of n makes in a turn against 12 for one in the old tables; an old price is multiplied by it
+func cm(n: int) -> float:
+	if rules < 5: return 1.0
+	return maxf(0.02, labour(n) / maxf(1.0, float(own_count(n))) / 12.0)
 
 ## rules 5: the people the land of p can feed. Today's people are the ceiling for modern technology; older technology feeds less, development and farms feed more.
 func pop_cap(p: int) -> int:
@@ -594,6 +617,7 @@ func income(n: int) -> Dictionary:
 	var tech_inc := 1.0 + tl * 0.03
 	var tech_admin := 1.0 / (1.0 + tl * 0.05)
 	var tech_up := 1.0 / (1.0 + tl * 0.04)
+	var wage_n: float = wage(n)
 	var cap := capital_of[n]
 	var cap_lost_now: bool = cap >= 0 and controller(cap) != n
 	out["capLost"] = cap_lost_now
@@ -626,19 +650,21 @@ func income(n: int) -> Dictionary:
 		if is_cap: pp += 3
 		var b_work: int = (b_lv[base_b + D.B_WORKSHOP - 1] if lv2 else bl(p, D.B_WORKSHOP))
 		if b_work > 0: pp = int(floor(pp * (1.0 + 0.05 * b_work)))
+		if rules >= 5:                                                       # rules 5: what the people make (docs/RULES5_REALISM.md section 4)
+			pp = int(float(pop_p) * WORKER_SHARE * wage_n * dev_f(dv) * (0.7 + 0.15 * ec) * stab_mod * inc_prod * (1.12 if b_market > 0 else 1.0) * (1.25 if is_cap else 1.0) * (1.0 + 0.05 * b_work))
 		prod += pp
-		tax += int(floor(pop_p / 20.0 * (tax_pct / 100.0) * (happy_p / 100.0) * inc_tax))
+		tax += int(floor(pop_p / 20.0 * (tax_pct / 100.0) * (happy_p / 100.0) * inc_tax)) if rules < 5 else int(float(pop_p) * WORKER_SHARE * wage_n * 0.2 * (tax_pct / 50.0) * (happy_p / 70.0) * inc_tax)
 		if not is_cap and cap >= 0:
 			var dd: float
 			if _dist_cap[p] == cap: dd = _dist_val[p]
 			else:
 				dd = gc_dist(cap_lon, cap_lat, world.lon[p], world.lat[p]); _dist_val[p] = dd; _dist_cap[p] = cap
-			admin += int(floor(dd * D.ADMIN_DIST_FACTOR * adm_cost))
+			admin += int(floor(dd * D.ADMIN_DIST_FACTOR * adm_cost)) if rules < 5 else int(floor(dd * D.ADMIN_DIST_FACTOR * adm_cost / 12.0 * float(pp)))
 		man += int(floor((2 + pop_p / 100 + era_mp) * stab_mod))
 		var b_camp: int = (b_lv[base_b + D.B_SUPPLYCAMP - 1] if lv2 else bl(p, D.B_SUPPLYCAMP))
 		up_base += army[p] * (0.8 if b_camp > 0 else 1.0)
 		var b_lib: int = (b_lv[base_b + D.B_LIBRARY - 1] if lv2 else bl(p, D.B_LIBRARY))
-		if b_lib > 0: rb += (pop_p / 750.0) * b_lib
+		if b_lib > 0: rb += ((pop_p * (float(scale) / 2500.0 if rules >= 5 else 1.0)) / 750.0) * b_lib
 	if rules >= 4:                                                          # men under arms are not at the plough: tax and production fall with their share of the people (docs/WAR_DESIGN.md section 3)
 		var under_arms := 0
 		for p in own:
@@ -647,7 +673,7 @@ func income(n: int) -> Dictionary:
 		tax = int(floor(tax * (1.0 - loss))); prod = int(floor(prod * (1.0 - loss)))
 		out["workLoss"] = loss
 		var occ_inc := 0                                                  # land held as occupier pays the occupier half of what it would pay its owner
-		for p in occupied_by(n): occ_inc += int(floor(float(pop[p]) / 20.0 * (tax_pct / 100.0) * (float(happy[p]) / 100.0) * inc_tax * TBWar.OCC_SHARE))
+		for p in occupied_by(n): occ_inc += int(floor(float(pop[p]) / 20.0 * (tax_pct / 100.0) * (float(happy[p]) / 100.0) * inc_tax * TBWar.OCC_SHARE)) if rules < 5 else int(float(pop[p]) * WORKER_SHARE * wage_n * 0.2 * (tax_pct / 50.0) * (float(happy[p]) / 70.0) * inc_tax * TBWar.OCC_SHARE)
 		tax += occ_inc; out["occTax"] = occ_inc
 	var gld: int = prod + tax
 	if rules >= 1: gld += TBTrade.income(self, n)
@@ -658,6 +684,7 @@ func income(n: int) -> Dictionary:
 	if rules >= 2: admin = int(floor(admin * (1.0 + OVEREXTEND_STEP * maxf(0.0, float(own.size() - OVEREXTEND_FROM)))))       # the bigger the realm, the dearer every governor
 	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n)))
 	var upkeep := int(floor(up_base * (0.25 + era[n] * 0.05) * tech_up * float(reg["upkeep"])))
+	if rules >= 5: upkeep = int(floor(up_base * wage_n * 1.5 * float(reg["upkeep"])))                      # a soldier eats one and a half workers' turns
 	if rules >= 1: man = int(floor(man * TBRulers.manpower_mul(self, n)))
 	out["gold"] = gld; out["manpower"] = man; out["upkeep"] = upkeep; out["tax"] = tax; out["production"] = prod; out["admin"] = admin
 	out["net"] = gld - admin - upkeep
@@ -733,6 +760,7 @@ func b_list(p: int) -> Array:
 func b_price(p: int, b: int, lvl: int) -> int:
 	var base: float = float(D.BUILDINGS[b - 1]["cost"][lvl - 1])
 	if rules >= 2 and bl(p, b) == 0: base *= 1.0 + SLOT_COST_STEP * b_used(p)
+	if rules >= 5 and owner[p] > 0: base *= cm(owner[p])                  # priced in the nation's own wages
 	return int(ceil(base))
 
 ## rules >= 2: income of development level dv in p when the people to staff it are short: the levels below are earned in full, the top level by the share staffed
@@ -750,6 +778,9 @@ func develop_gain(p: int, n: int) -> int:
 	if d >= 5: return 0
 	var reg: Dictionary = D.REGIMES[regime[n]]
 	var stab_mod := 0.5 + stab[p] / 200.0
+	if rules >= 5:                                                              # one more level lifts a worker's output by a fifth of the base
+		var o: float = float(pop[p]) * WORKER_SHARE * wage(n) * (dev_f(d + 1) - dev_f(d)) * (0.7 + 0.15 * clampi(econ[p], 1, 5)) * stab_mod * float(reg["incProd"]) * (1.12 if bl(p, D.B_MARKET) > 0 else 1.0) * (1.25 if capital[p] != 0 else 1.0) * (1.0 + 0.05 * bl(p, D.B_WORKSHOP))
+		return int(roundf(o * float(reg["incMul"]) * (1.0 + tech_level[n] * 0.03)))
 	var step: float = job_income(p, d + 1) - job_income(p, d)
 	var extra: float = clampi(econ[p], 1, 5) * 0.4 * stab_mod
 	return int(roundf((step * stab_mod * float(reg["incProd"]) + extra) * float(reg["incMul"]) * (1.0 + tech_level[n] * 0.03)))
@@ -758,7 +789,9 @@ func develop_gain(p: int, n: int) -> int:
 func develop_cost(p: int) -> int:
 	if rules < 2: return 80 + dev[p] * 80
 	var d := clampi(dev[p], 1, 4)
-	return int(ceil(28.0 * float(D.DEV_INCOME[d + 1] - D.DEV_INCOME[d]))) if dev[p] < 5 else 0
+	var c: float = 28.0 * float(D.DEV_INCOME[d + 1] - D.DEV_INCOME[d])
+	if rules >= 5 and owner[p] > 0: c *= cm(owner[p])
+	return int(ceil(c)) if dev[p] < 5 else 0
 
 # ---------------------------------------------------------------- combat / movement
 func def_mul(p: int) -> float:

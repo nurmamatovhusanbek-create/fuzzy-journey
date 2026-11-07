@@ -27,6 +27,8 @@ static func _frontier(g: TBGame, n: int) -> PackedInt32Array:
 			out.append(p); out.append(q)
 	return out
 
+static func au40(g: TBGame) -> float: return float(g.au(40.0)) if g.rules >= 5 else 40.0
+
 static func _nation(g: TBGame, n: int) -> void:
 	var pers: Dictionary = D.PERSONALITIES[g.personality[n]]
 	var own := g.owned(n)
@@ -35,6 +37,7 @@ static func _nation(g: TBGame, n: int) -> void:
 	var aggr: float = float(pers["aggr"]) * float(g.diff["aiAggr"]) * (float(lvl["mul"]) if g.rules >= 1 else 1.0)
 	var fr := _frontier(g, n)
 	var at_war := g.at_war(n)
+	var gu: float = g.gu(n, 1.0)                                          # rules 5: a hundred gold is a hundred only in the old scale; thresholds are in the nation's own terms
 
 	if g.rules >= 1:
 		TBDecisions.ai_steady(g, n)
@@ -45,7 +48,7 @@ static func _nation(g: TBGame, n: int) -> void:
 	# 1. economy
 	if g.rules >= 2:
 		_districts(g, n, own, pers, at_war)
-	elif g.gold[n] > 150 and g.mp[n] >= 2 and g.rng.chance(0.3 + float(pers["econ"]) * 0.2):
+	elif g.gold[n] > 150.0 * gu and g.mp[n] >= 2 and g.rng.chance(0.3 + float(pers["econ"]) * 0.2):
 		var best := -1; var bs := -1
 		var step := 1 + (2 if own.size() > 30 else 0)
 		var i := 0
@@ -64,7 +67,7 @@ static func _nation(g: TBGame, n: int) -> void:
 			else: choice = D.B_MARKET if g.rng.chance(0.5) else D.B_FARM
 			g.apply({"cmd": "build", "n": n, "p": best, "b": choice})
 	# 1b. rules 1: rich nations invest in development (gold sink, grows the economy)
-	if g.rules == 1 and g.gold[n] > 300 and g.mp[n] >= 2 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
+	if g.rules == 1 and g.gold[n] > 300.0 * gu and g.mp[n] >= 2 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
 		var bp := -1; var bsc := -1.0
 		for p in own:
 			if g.occupier[p] != 0: continue
@@ -73,11 +76,11 @@ static func _nation(g: TBGame, n: int) -> void:
 				bsc = sc2; bp = p
 		if bp >= 0: g.apply({"cmd": "develop", "n": n, "p": bp, "k": 1})
 	# 1c. rules 4: a nation with gold to spare starts projects (development, economy, settlement, public order), the kind by what the province lacks and the ruler's bent
-	if g.rules >= 4 and g.gold[n] > 220.0 and g.mp[n] >= 2.0 and g.rng.chance(0.35 + float(pers["econ"]) * 0.4):
+	if g.rules >= 4 and g.gold[n] > 220.0 * gu and g.mp[n] >= 2.0 and g.rng.chance(0.35 + float(pers["econ"]) * 0.4):
 		var started := 0
 		var stepp := maxi(1, own.size() / 10)
 		var ii := int(g.rng.next() * float(stepp))
-		while ii < own.size() and started < (2 if g.gold[n] > 600.0 else 1):
+		while ii < own.size() and started < (2 if g.gold[n] > 600.0 * gu else 1):
 			var q := own[ii]
 			ii += stepp
 			if g.occupier[q] != 0 or g.proj_kind[q] != 0: continue
@@ -87,10 +90,10 @@ static func _nation(g: TBGame, n: int) -> void:
 			if g.dev[q] < 5: kinds.append(1)
 			if g.pop[q] < 500: kinds.append(3)
 			for k in kinds:
-				if bool(g.can({"cmd": "develop", "p": q, "k": k, "n": n})["ok"]) and g.gold[n] - float(TBInvest.project_cost(g, q, k)) > 120.0:
+				if bool(g.can({"cmd": "develop", "p": q, "k": k, "n": n})["ok"]) and g.gold[n] - float(TBInvest.project_cost(g, q, k)) > 120.0 * gu:
 					g.apply({"cmd": "develop", "n": n, "p": q, "k": k}); started += 1; break
 	# 2. colonize adjacent neutral land
-	if g.gold[n] > 90 and g.mp[n] >= 2:
+	if g.gold[n] > 90.0 * gu and g.mp[n] >= 2:
 		var i := 0
 		while i < fr.size():
 			var q := fr[i + 1]
@@ -98,10 +101,10 @@ static func _nation(g: TBGame, n: int) -> void:
 			if g.owner[q] != 0: continue
 			if g.apply({"cmd": "colonize", "n": n, "p": q})["ok"]: break
 	# 3. recruit (rich nations raise several levies)
-	var levies := 3 if g.gold[n] > 500 else (2 if g.gold[n] > 250 else 1)
-	if g.rules >= 1 and g.gold[n] > 900: levies = 5
+	var levies := 3 if g.gold[n] > 500.0 * gu else (2 if g.gold[n] > 250.0 * gu else 1)
+	if g.rules >= 1 and g.gold[n] > 900.0 * gu: levies = 5
 	var lv := 0
-	while lv < levies and g.gold[n] > 30 and g.manpower[n] > 40 and g.mp[n] >= 1 and (lv > 0 or g.rng.chance(0.3 + aggr * 0.4 + (0.3 if at_war else 0.0))):
+	while lv < levies and g.gold[n] > 30.0 * gu and g.manpower[n] > au40(g) and g.mp[n] >= 1 and (lv > 0 or g.rng.chance(0.3 + aggr * 0.4 + (0.3 if at_war else 0.0))):
 		var best2 := -1; var bs2 := -1e9
 		var i := 0
 		while i < fr.size():
@@ -115,8 +118,8 @@ static func _nation(g: TBGame, n: int) -> void:
 		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20 if g.rules < 4 else clampi(_levy_spare(g, best2, at_war), 1, 20 + (10 if at_war else 0))})
 		lv += 1
 	# 3b. rules>=1: hoarded gold buys mercenaries (turns wealth into power; the game's main gold sink)
-	if g.rules >= 1 and g.gold[n] > 500:
-		var hires := mini(3, int(g.gold[n] / 400.0))
+	if g.rules >= 1 and g.gold[n] > 500.0 * gu:
+		var hires := mini(3, int(g.gold[n] / (400.0 * gu)))
 		for h in hires:
 			if g.mp[n] < 1: break
 			var hb := -1; var hs := -1e9
@@ -151,10 +154,11 @@ static func _nation(g: TBGame, n: int) -> void:
 
 static func _budget(g: TBGame, n: int, pers: Dictionary, at_war: bool) -> void:
 	var o := n * 4
+	var gu: float = g.gu(n, 1.0)
 	var tax: int; var goods: int; var res: int; var inv: int
-	if g.gold[n] > 800:       tax = 20; goods = 20; res = 40; inv = 20
-	elif g.gold[n] > 300:     tax = 35; goods = 20; res = 30; inv = 15
-	elif at_war or g.gold[n] < 80: tax = 60; goods = 15; res = 10; inv = 15
+	if g.gold[n] > 800.0 * gu:       tax = 20; goods = 20; res = 40; inv = 20
+	elif g.gold[n] > 300.0 * gu:     tax = 35; goods = 20; res = 30; inv = 15
+	elif at_war or g.gold[n] < 80.0 * gu: tax = 60; goods = 15; res = 10; inv = 15
 	else:                     tax = 45; goods = 20; res = 20; inv = 15
 	if float(pers["econ"]) > 0.8: res += 5; tax -= 5
 	g.budget[o] = tax; g.budget[o + 1] = goods; g.budget[o + 2] = res; g.budget[o + 3] = inv
@@ -323,9 +327,10 @@ static func accepts_pact(g: TBGame, t: int, p: int, rel: int) -> bool:
 ## rules >= 2: the AI fills its districts. Each turn it may raise one building (a new type if a slot is free, else a level) in its best province and, when rich,
 ## pay for a development step where the people are there to staff it. Rich courts do both twice, which keeps their gold in use.
 static func _districts(g: TBGame, n: int, own: PackedInt32Array, pers: Dictionary, at_war: bool) -> void:
-	var rounds := 1 + (1 if g.gold[n] > 700 else 0)
+	var gu: float = g.gu(n, 1.0)
+	var rounds := 1 + (1 if g.gold[n] > 700.0 * gu else 0)
 	for _r in rounds:
-		if g.gold[n] > 130 and g.mp[n] >= 1 and g.rng.chance(0.35 + float(pers["econ"]) * 0.25):
+		if g.gold[n] > 130.0 * gu and g.mp[n] >= 1 and g.rng.chance(0.35 + float(pers["econ"]) * 0.25):
 			var best := -1; var bs := -1.0
 			var step := 1 + (2 if own.size() > 30 else 0)
 			var i := g.rng.randi_n(step)
@@ -356,7 +361,7 @@ static func _districts(g: TBGame, n: int, own: PackedInt32Array, pers: Dictionar
 				order.sort_custom(func(a, c): return a[0] > c[0])
 				for o in order.slice(0, 3):
 					if bool(g.apply({"cmd": "build", "n": n, "p": best, "b": int(o[1])}).get("ok", false)): break
-		if g.gold[n] > 220 and g.mp[n] >= 1 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
+		if g.gold[n] > 220.0 * gu and g.mp[n] >= 1 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
 			var bp := -1; var bsc := 0.0
 			for p in own:
 				if g.occupier[p] != 0 or g.dev[p] >= 5: continue

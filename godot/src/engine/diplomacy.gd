@@ -305,7 +305,7 @@ static func _offer_valid(g: TBGame, from: int, to: int, what: String) -> bool:
 			if not (r != D.REL_WAR and not TBTrade.has(g, from, to) and g.trade_cnt[from] < TBTrade.max_deals(g, from) and g.trade_cnt[to] < TBTrade.max_deals(g, to)): return false
 			if g.rules >= 3 and g.human[from] == 0:                                    # the court that offers a route is the one that pays for it, so it must be able to
 				var v := TBTrade.yield_of(g, from, to)
-				return g.gold[from] >= float(TBTrade.fee_gold(v)) and g.manpower[from] >= float(TBTrade.fee_men(v)) and float(TBTrade.means(g, from, v)["m"]) >= 0.4
+				return g.gold[from] >= float(TBTrade.fee_gold(v, g, from)) and g.manpower[from] >= float(TBTrade.fee_men(v, g)) and float(TBTrade.means(g, from, v)["m"]) >= 0.4
 			return true
 		"marry": return can_marry(g, from, to)
 		"peace": return r == D.REL_WAR
@@ -315,7 +315,7 @@ static func _offer_valid(g: TBGame, from: int, to: int, what: String) -> bool:
 static func _pay_route(g: TBGame, from: int, to: int) -> void:
 	if g.rules < 3 or g.human[from] != 0: return
 	var v := TBTrade.yield_of(g, from, to)
-	g.gold[from] = maxf(0.0, g.gold[from] - float(TBTrade.fee_gold(v))); g.manpower[from] = maxf(0.0, g.manpower[from] - float(TBTrade.fee_men(v)))
+	g.gold[from] = maxf(0.0, g.gold[from] - float(TBTrade.fee_gold(v, g, from))); g.manpower[from] = maxf(0.0, g.manpower[from] - float(TBTrade.fee_men(v, g)))
 
 static func accept_offer(g: TBGame, from: int, to: int, what: String) -> void:
 	if not _offer_valid(g, from, to, what): return

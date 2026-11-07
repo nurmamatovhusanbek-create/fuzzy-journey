@@ -88,6 +88,9 @@ static func _move(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 
 ## gold for raising `amount` men in p (rules 4): a fixed fee plus a price per man, cheaper with an armoury, by the regime's recruiting cost
 static func recruit_gold(g: TBGame, p: int, amount: int, reg: Dictionary) -> int:
+	if g.rules >= 5:                                                         # a fee in the nation's wages, then seven turns of a worker's output a man for kit and training
+		var n: int = g.owner[p]
+		return int(ceil((float(D.COST_RECRUIT_GOLD) * g.cm(n) + float(amount) * g.wage(n) * 7.0) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
 	return int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
 
 static func _recruit(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
@@ -328,11 +331,11 @@ static func _settle(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictio
 
 static func _embassy(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var t: int = int(c.get("t", 0))
-	out["dp"] = int(TBMissions.EMBASSY_DP); out["gold"] = TBMissions.EMBASSY_GOLD
+	out["dp"] = int(TBMissions.EMBASSY_DP); out["gold"] = TBMissions.embassy_gold(g, n)
 	var why := TBMissions.embassy_why(g, n, t)
 	if why == "rules" or why == "target" or why == "war" or why == "nothing": return _fail(out, why)
 	_need(out, "dp", g.dp[n], TBMissions.EMBASSY_DP, "dp")
-	_need(out, "gold", g.gold[n], float(TBMissions.EMBASSY_GOLD), "gold")
+	_need(out, "gold", g.gold[n], float(TBMissions.embassy_gold(g, n)), "gold")
 	return out
 
 static func _trade(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
@@ -347,7 +350,7 @@ static func _trade(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	_need(out, "dp", g.dp[n], TBTrade.DP_COST, "dp")
 	if g.rules >= 3:                                                                       # a route is an expedition: gold for the caravans, men for the escorts
 		var v := TBTrade.yield_of(g, n, t)
-		out["gold"] = TBTrade.fee_gold(v); out["men"] = TBTrade.fee_men(v)
+		out["gold"] = TBTrade.fee_gold(v, g, n); out["men"] = TBTrade.fee_men(v, g)
 		_need(out, "gold", g.gold[n], float(out["gold"]), "gold")
 		_need(out, "men", g.manpower[n], float(out["men"]), "manpower")
 		if g.trade_cnt[t] >= TBTrade.max_deals(g, t) and g.human[t] != 0 and out["ok"]: return _fail(out, "tradefull")

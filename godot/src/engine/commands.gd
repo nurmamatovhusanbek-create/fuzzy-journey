@@ -402,8 +402,9 @@ static func _c_colonize(g: TBGame, c: Dictionary) -> Dictionary:
 static func _c_relocate(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var p: int = c["p"]
 	if g.owner[p] != n: return _err("notyours")
-	if g.gold[n] < 80: return _err("gold")
-	g.gold[n] -= 80
+	var rc: float = g.gu(n, 80.0)
+	if g.gold[n] < rc: return _err("gold")
+	g.gold[n] -= rc
 	var old := g.capital_of[n]
 	if old >= 0:
 		g.capital[old] = 0; g.touch(old)
@@ -414,8 +415,9 @@ static func _c_regime(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var r: int = int(c["r"])
 	if r < 0 or r >= D.REGIMES.size() or r == D.REGIME_REBELS: return _err("type")
 	if g.era[n] < int(D.REGIMES[r]["sinceEra"]): return _err("era")
-	if g.gold[n] < 120: return _err("gold")
-	g.gold[n] -= 120; g.regime[n] = r
+	var rg: float = g.gu(n, 120.0)
+	if g.gold[n] < rg: return _err("gold")
+	g.gold[n] -= rg; g.regime[n] = r
 	for p in g.owned(n):
 		g.stab[p] = maxi(5, g.stab[p] - 15)
 	return {"ok": true}
@@ -439,7 +441,7 @@ static func _c_spy(g: TBGame, c: Dictionary) -> Dictionary:
 	if ok and not own.is_empty():
 		match op:
 			"steal":
-				var amt := minf(g.gold[t] * 0.15, 150.0)
+				var amt := minf(g.gold[t] * 0.15, g.gu(n, 150.0))
 				g.gold[t] -= amt; g.gold[n] += amt
 			"sabotage":
 				for k in 3:
@@ -466,6 +468,7 @@ static func _c_hire(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.controller(p) != n or g.owner[p] != n: return _err("notyours")
 	var amount := clampi(int(c.get("amount", 30)), 10, 60)
 	var cost := int(ceil(amount * 5.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))
+	if g.rules >= 5: cost = int(ceil(float(amount) * g.wage(n) * 45.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))      # mercenaries: forty-five worker-turns a man
 	if g.gold[n] < cost: return _err("gold")
 	if _short_mp(g, n, 1.0): return _err("mp")
 	g.gold[n] -= cost; g.mp[n] -= 1

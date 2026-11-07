@@ -71,6 +71,6 @@ static func tick(g: TBGame) -> void:
 			if o == g.rebel or g.alive[o] == 0 or g.realm_done[o * R + i] != 0: continue
 			if float(cnt[o]) / m.size() >= NEED:
 				g.realm_done[o * R + i] = 1
-				g.gold[o] += 100.0
+				g.gold[o] += g.gu(o, 100.0)
 				for p in g.owned(o): g.stab[p] = mini(100, g.stab[p] + 5); g.touch(p)
 				g.log.append({"turn": g.turn, "kind": "realm", "a": o, "id": LIST[i][0]})

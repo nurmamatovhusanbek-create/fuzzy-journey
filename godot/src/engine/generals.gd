@@ -34,7 +34,7 @@ static func cap(g: TBGame, n: int) -> int:
 	var mil: int = g.r_mil[n] if g.r_name[n] != "" else 3
 	return clampi(1 + g.own_count(n) / 8 + (1 if mil >= 4 else 0), 1, 8)
 
-static func cost(g: TBGame, n: int) -> int: return 50 + 15 * count(g, n)
+static func cost(g: TBGame, n: int) -> int: return int(ceil(g.gu(n, float(50 + 15 * count(g, n)))))
 
 static func _h(g: TBGame, n: int, p: int, salt: int) -> TBRng:
 	var h: int = g.seed_value ^ TBRng.imul(n + 1, 0x9E3779B1) ^ TBRng.imul(p + 5, 0x85EBCA6B) ^ TBRng.imul(g.turn + 11, 0xC2B2AE35) ^ TBRng.imul(salt + 3, 0x27D4EB2F)
