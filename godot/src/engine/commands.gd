@@ -12,7 +12,7 @@ const SCHEMA := {
 	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"},
 	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "peaceDeal": {"t": "t", "?provs": "a", "?gold": "q", "?vassal": "q", "?disarm": "q"}, "callAlly": {"t": "t", "e": "t"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
 	"build": {"p": "p", "b": "b"}, "demolish": {"p": "p", "?b": "b"}, "budget": {"key": "s", "val": "v"},
-	"colonize": {"p": "p"}, "relocate": {"p": "p"}, "develop": {"p": "p"}, "regime": {"r": "r"},
+	"colonize": {"p": "p"}, "relocate": {"p": "p"}, "develop": {"p": "p", "?k": "k"}, "regime": {"r": "r"},
 	"spy": {"t": "t", "op": "s"}, "eventChoice": {"uid": "u", "i": "k"}, "decide": {"id": "s"}, "doctrine": {"id": "s"},
 	"trade": {"t": "t"}, "marry": {"t": "t"}, "cancelTrade": {"t": "t"}, "ultimatum": {"t": "t", "?p": "pn"}, "appoint": {"?p": "pn"},
 	"ask": {"kind": "s", "t": "t", "?op": "s", "?p": "pn"}, "noop": {},
@@ -484,6 +484,8 @@ static func _c_demolish(g: TBGame, c: Dictionary) -> Dictionary:
 
 static func _c_develop(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var p: int = c["p"]
+	if g.rules >= 4:                                                            # rules 4: development is a project of its own, picked from the Develop choice (docs/PROVINCE_WORTH.md)
+		return TBInvest.start(g, n, p, int(c.get("k", 1)))
 	if g.owner[p] != n or g.occupier[p] != 0: return _err("notyours")
 	var cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
 	if g.dev[p] >= cap: return _err("max")

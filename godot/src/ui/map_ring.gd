@@ -424,6 +424,14 @@ func _draw() -> void:
 		var gx: float = _c.x - (ic + 4.0 * rs + tw_) * 0.5
 		TBHudParts.icon(self, "coin", Vector2(gx + ic * 0.5, y0 + lines.size() * lh + gap + num_h * 0.5), ic, TBTokens.BZ_BRASS, 1.2)
 		draw_string(fb, Vector2(gx + ic + 4.0 * rs, y0 + lines.size() * lh + gap + num_h), wtx, HORIZONTAL_ALIGNMENT_LEFT, -1, z, TBTokens.c("cream"))
+		var tr: float = g.worth_trend(_subj()) if (_subj() >= 0 and _subj() < g.P) else 0.0       # rules 4: the worth moved since last turn: a small arrow after the figure
+		if absf(tr) >= 0.05:
+			var ax: float = gx + ic + 4.0 * rs + tw_ + 6.0 * rs
+			var ay: float = y0 + lines.size() * lh + gap + num_h * 0.5
+			var aw: float = 4.0 * rs
+			var up: bool = tr > 0.0
+			var tri := PackedVector2Array([Vector2(ax, ay - aw * (1.0 if up else -1.0)), Vector2(ax + aw, ay + aw * (1.0 if up else -1.0) * 0.8), Vector2(ax - aw, ay + aw * (1.0 if up else -1.0) * 0.8)])
+			draw_colored_polygon(tri, TBTokens.BZ_GOOD if up else TBTokens.BZ_BAD_TXT)
 	var tag_off: float = R + 30.0 * rs
 	_lab_l = 0.0; _lab_r = 0.0
 	if rs >= 1.0:                                                            # the verbs' names stand beside their medallions: the card starts clear of the longest one on either side

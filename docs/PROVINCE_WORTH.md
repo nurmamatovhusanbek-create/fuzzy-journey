@@ -26,3 +26,17 @@ Sources: the Age of Civilizations wiki (Economy), the Steam discussions of Age o
 ## What we have, and how it maps
 Our provinces have people, development (0–5), economy (0–5), districts with building levels (rules 2), stability and mood; the budget has research and "capital" sliders that spend on development; growth is organic and slow (`turn.gd`).
 Nothing here is changed yet. To decide with the player: whether worth should rise with *accumulated investment* shown over time (a small trend next to the number), and whether the budget's investment slider should follow the AoC2 rule that income per point shrinks as economy nears population.
+
+
+## Rating over time (rules 4, new)
+**Worth** = (1 + 1.2 × development + 0.8 × economy + people / 80 + 0.4 × building levels) × (0.8 + 0.2 × stability), the capital ×4. It now grows with everything the player does: people (organic growth, settlement projects), economy and
+development (the budget's investment bars, projects), buildings (the Build verb), and falls with unrest and when a province is lost or occupied. It also prices the province in the peace table and counts in the war score.
+The ring shows the figure with a small green or red arrow for what changed in the last turn (`TBGame.worth_trend`, from `worth_prev`).
+
+**Projects** (the Develop verb is a choice, `TBInvest`, `TBDevelopModal`): Development (+1 level, +20 people, +4 stability), Economy (+1 level, only half a level when the people cannot work it), Settlement (+12 % people),
+Public order (+12 stability). Each costs gold and one move, runs 2 to 4 turns and pays off at the end; one project at a time per province; every requirement is listed and a refused project says why.
+Measured over 60 turns with the budget on investment and three projects a turn, the Timurid average economy went from 1.98 to 3.03 and the average province worth from 6.6 to 7.2 while the empire lost provinces to rebels and neighbours;
+doing nothing, the average worth falls (rebels and wars) and economy stays near 2.
+
+**Standing** (`TBStanding`): 1 to 5 stars from four rankings, equal weight: total worth of the provinces, number of provinces, technology, income. Armies are not in it. At country level the stars stand under each capital on the map
+where the army figure stood; the army of a country nobody has looked at is "?" on its plate until agents have reported.

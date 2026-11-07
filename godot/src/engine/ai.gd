@@ -71,7 +71,7 @@ static func _nation(g: TBGame, n: int) -> void:
 			var sc2: float = g.pop[p] / 100.0 + g.stab[p] / 50.0 - g.dev[p]
 			if sc2 > bsc:
 				bsc = sc2; bp = p
-		if bp >= 0: g.apply({"cmd": "develop", "n": n, "p": bp})
+		if bp >= 0: g.apply({"cmd": "develop", "n": n, "p": bp, "k": 1})
 	# 2. colonize adjacent neutral land
 	if g.gold[n] > 90 and g.mp[n] >= 2:
 		var i := 0
@@ -189,7 +189,7 @@ static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		if g.army[p] < 12: continue
 		var atk := g.army[p] * 0.9
 		var dfn := g.army[q] * g.def_mul(q) + 1.0
-		var score := atk / dfn + g.province_value(q) * 0.05 + (1.0 if g.capital[q] != 0 else 0.0)
+		var score := atk / dfn + g.province_value(q) * (0.05 if g.rules < 4 else 0.03) + (1.0 if g.capital[q] != 0 else 0.0)
 		if g.rules >= 4:                                                      # the same three-round battle the player sees: attack only when the expected outcome is a win that leaves an army to hold the land
 			var pv := g.combat_preview(n, p, q, 0)
 			var worst_ok: bool = bool((pv["range"] as Dictionary)["worst"]["win"])

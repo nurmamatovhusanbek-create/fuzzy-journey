@@ -933,7 +933,40 @@ func _on_pick(p: int, secondary: bool) -> void:
 		else: _select(-1)
 		return
 	if flow.pick(p, secondary, map.last_pick_touch): return
+	if not secondary and _country_grade() and g.owner[p] > 0 and g.human_id != 0:                 # country level: the land is a country, its plate opens, the district waits until you close in
+		_open_country_plate(g.owner[p]); return
+	_close_country_plate()
 	if not secondary: _select(p)
+
+## zoomed out to country level (the province lines are not drawn yet): rules 4 gives the country a plate instead of a district ring
+func _country_grade() -> bool:
+	return g != null and g.rules >= 4 and map != null and not map.prov_lines_shown() and flow.mode == TBOrderFlow.Mode.IDLE
+
+var _country_plate: TBCountryPlate
+func _close_country_plate() -> void:
+	if _country_plate != null and is_instance_valid(_country_plate): _country_plate.queue_free()
+	_country_plate = null
+
+func _open_country_plate(n: int) -> void:
+	_close_country_plate()
+	_select(-1)
+	var cp: int = g.capital_of[n]
+	if cp < 0: return
+	var pt: Vector3 = map.project(g.world.lon[cp], g.world.lat[cp])
+	var anchor := Vector2(pt.x, pt.y) + map.get_global_rect().position
+	_country_plate = TBCountryPlate.new()
+	add_child(_country_plate)
+	_country_plate.setup(g, n, anchor, {"bounds": get_global_rect(), "keep": hud.keepouts()})
+	map.outline_nation(n)
+	_country_plate.act.connect(_on_country_act)
+	_country_plate.closed.connect(func(): _country_plate = null; map.outline_nation(-1))
+
+func _on_country_act(what: String, n: int) -> void:
+	match what:
+		"nation", "diplo", "trade": _open_nation(n)
+		"realm": _open_realm_page()
+		"budget": _open_budget()
+		"decrees": _open_decisions()
 
 ## the peace table: the land is chosen on the map. While it is open a tap on a province goes to the window (the province keeps no selection, no ring), each province you hold shows its price
 var _peace_flip := Callable()
@@ -1030,6 +1063,7 @@ func _dismiss_map_info() -> void:
 	if selected >= 0 or (ring != null and ring.visible): _select(-1)
 
 func _select(p: int) -> void:
+	_close_country_plate()
 	_clear_attack_marks()
 	_close_amount()
 	selected = p

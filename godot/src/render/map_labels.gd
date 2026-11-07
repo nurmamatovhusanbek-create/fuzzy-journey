@@ -985,6 +985,11 @@ func _draw_layout() -> void:
 			if not _blocked(rr) and _claim(grid, rr):
 				if not _stars.has(p): _stars[p] = {"a": 0.0, "t": 1.0}
 				_stars[p]["t"] = 1.0; _stars[p]["x"] = pos.x; _stars[p]["y"] = pos.y; _stars[p]["limb"] = v[4]
+				_stars[p]["rate"] = 0
+				if ztier == 1 and g.rules >= 4 and g.owner[p] > 0:                       # country level: the standing in five stars sits under the capital, where an army figure would stand (armies stay hidden until agents have looked)
+					var prr := Rect2(pos + Vector2(-32, 9), Vector2(64, 17))
+					if not _blocked(prr) and _claim(grid, prr):
+						_stars[p]["rate"] = TBStanding.stars(g, g.owner[p]); _frame_rects.append(prr)
 				_frame_rects.append(Rect2(pos - Vector2(8, 8), Vector2(16, 16)))          # names are placed after the markers and keep off them: a star is never printed over a name
 				drawn += 1
 			continue
@@ -1011,7 +1016,9 @@ func _draw_layout() -> void:
 	for i in range(chosen.size() - 1, -1, -1): order.append(chosen[i])
 	for p in _stars:
 		var ss: Dictionary = _stars[p]
-		if float(ss["a"]) > 0.01: _capital_mark(Vector2(ss["x"], ss["y"]), float(ss["a"]) * float(ss["limb"]), g.owner[p] == me)
+		if float(ss["a"]) > 0.01:
+			_capital_mark(Vector2(ss["x"], ss["y"]), float(ss["a"]) * float(ss["limb"]), g.owner[p] == me)
+			if int(ss.get("rate", 0)) > 0: _rating_pill(Vector2(ss["x"], ss["y"]) + Vector2(0, 18.0), int(ss["rate"]), float(ss["a"]) * float(ss["limb"]), g.owner[p] == me)
 	for p in order:
 		var st: Dictionary = _pl[p]
 		var al: float = float(st["a"]) * float(st["limb"])
@@ -1065,6 +1072,21 @@ func _ensure_star() -> void:
 	_star_line = _star_poly.duplicate(); _star_line.append(_star_poly[0])
 
 ## capital: a five-pointed star (brass for your own, cream for the others) on a dark casing. A general's stars are the small brass ones above its army badge.
+## the standing of a country: a dark capsule with five small stars, as many lit as it has
+func _rating_pill(c: Vector2, n: int, al: float, mine: bool) -> void:
+	_ensure_star()
+	var k: float = mk()
+	var w := 60.0 * k; var h := 15.0 * k
+	var r := h * 0.5
+	draw_rect(Rect2(c.x - w * 0.5 + r, c.y - r, w - 2.0 * r, h), _a(tk("table"), 0.88 * al))
+	draw_circle(Vector2(c.x - w * 0.5 + r, c.y), r, _a(tk("table"), 0.88 * al)); draw_circle(Vector2(c.x + w * 0.5 - r, c.y), r, _a(tk("table"), 0.88 * al))
+	var on: Color = tk("brass_lt") if mine else tk("cream")
+	var step := 10.6 * k
+	for i in 5:
+		draw_set_transform(Vector2(c.x + (float(i) - 2.0) * step, c.y), 0.0, Vector2(1.0, 1.0) * k)
+		draw_colored_polygon(_star_poly, _a(on, al) if i < n else _a(on, 0.28 * al))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
 func _capital_mark(pos: Vector2, al: float, mine: bool) -> void:
 	_ensure_star()
 	var k: float = 1.3 * mk()                                          # the star's outer radius is 4.5 units in _star_poly: about 5.8 px, small enough to sit beside a name

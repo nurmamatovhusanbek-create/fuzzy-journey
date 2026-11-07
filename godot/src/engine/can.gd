@@ -170,6 +170,15 @@ static func _demolish(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dict
 static func _develop(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
+	if g.rules >= 4:                                                         # a project: the kind given, or development
+		var k: int = int(c.get("k", 1))
+		out["gold"] = TBInvest.project_cost(g, maxi(p, 0), k); out["moves"] = TBInvest.PROJECT_MOVES; out["turns"] = TBInvest.project_turns(g, p, k)
+		out["needs"] = TBInvest.project_needs(g, n, p, k) if (g.owner[p] == n and g.occupier[p] == 0) else []
+		var why := TBInvest.project_why(g, n, p, k)
+		if why in ["type", "notyours", "project_busy", "max", "workers", "calm"]: return _fail(out, why)
+		_need(out, "gold", g.gold[n], out["gold"], "gold")
+		_need(out, "moves", g.mp[n], float(out["moves"]), "mp")
+		return out
 	out["gold"] = g.develop_cost(p); out["moves"] = 2 if g.rules < 2 else 1
 	if g.owner[p] != n or g.occupier[p] != 0: return _fail(out, "notyours")
 	var cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)

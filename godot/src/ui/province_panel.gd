@@ -790,12 +790,25 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				out.append(_mk("build", "hammer", "build", bcan, parts, false, false, {"items": bi["items"]}))
 			if not held and g.occupier[s] == 0 and g.owner[s] == me and g.dev[s] < 5:
 				var dc := g.can({"cmd": "develop", "p": s})
-				var dparts: Array = _cost_parts("%s %d→%d" % [T.call("cc_develop"), g.dev[s], g.dev[s] + 1], dc)
-				if g.rules >= 2:
-					var fill := int(roundf(g.job_fill(s, g.dev[s] + 1) * 100.0))
-					dparts.append({"t": " · " + T.call("cc_gain_turn", {"n": g.develop_gain(s, me)}), "short": false})
-					dparts.append({"t": " · " + T.call("cc_staffed", {"p": fill}), "short": fill < 70})
-				out.append(_mk("develop", "build", "cc_develop", dc, dparts))
+				if g.rules >= 4:                                                      # a choice of projects: the verb is open when any of them is, and says where the prices start
+					var any_ok := false; var cheapest := 1000000; var first_cn: Dictionary = dc
+					for kk in range(1, TBInvest.PROJECTS.size() + 1):
+						var ck := g.can({"cmd": "develop", "p": s, "k": kk})
+						if bool(ck["ok"]) and not any_ok: any_ok = true; first_cn = ck
+						if bool(ck["ok"]): cheapest = mini(cheapest, int(ck["gold"]))
+					if any_ok: dc = first_cn
+					var dp4: Array = [{"t": T.call("cc_develop"), "short": false}]
+					if g.proj_kind[s] != 0: dp4.append({"t": " · " + T.call("pj_running", {"k": T.call("pj_" + TBInvest.project_id(g.proj_kind[s])), "t": g.proj_left[s]}), "short": false})
+					elif any_ok: dp4.append({"t": " · " + T.call("cc_from_gold", {"n": cheapest}), "short": false})
+					out.append(_mk("develop", "build", "cc_develop", dc, dp4))
+				else:
+					var dparts: Array = _cost_parts("%s %d→%d" % [T.call("cc_develop"), g.dev[s], g.dev[s] + 1], dc)
+					if g.rules >= 2:
+						var fill := int(roundf(g.job_fill(s, g.dev[s] + 1) * 100.0))
+						dparts.append({"t": " · " + T.call("cc_gain_turn", {"n": g.develop_gain(s, me)}), "short": false})
+						dparts.append({"t": " · " + T.call("cc_staffed", {"p": fill}), "short": fill < 70})
+					out.append(_mk("develop", "build", "cc_develop", dc, dparts))
+
 			if g.rules >= 3 and not held and g.occupier[s] == 0 and g.owner[s] == me:
 				var vc := g.can({"cmd": "settle", "p": s})
 				if String(vc["reason"]) != "nothing":
@@ -1069,7 +1082,9 @@ func _press(i: int) -> void:
 		"recruit": amount_requested.emit("recruit", s)
 		"hire": amount_requested.emit("hire", s)
 		"general": command.emit({"cmd": "appoint", "p": s})
-		"develop": command.emit({"cmd": "develop", "p": s})
+		"develop":
+			if g.rules >= 4: _open_develop(v["btn"], s)
+			else: command.emit({"cmd": "develop", "p": s})
 		"settle": command.emit({"cmd": "settle", "p": s})
 		"colonize": command.emit({"cmd": "colonize", "p": s})
 		"peace": command.emit({"cmd": "peace", "t": int(_case["enemy"]), "kind": "white"})
@@ -1124,7 +1139,20 @@ func _open_build(anchor: Control, items: Array, s: int) -> void:
 	_bpicker.picked.connect(func(cmd: Dictionary): command.emit(cmd))
 	_bpicker.closed.connect(func(): _bpicker = null)
 
+## the Develop verb under rules 4: a choice of projects (TBDevelopModal)
+var _dmodal: TBDevelopModal
+func _open_develop(anchor: Control, s: int) -> void:
+	_close_popover()
+	_dmodal = TBDevelopModal.new()
+	add_child(_dmodal)
+	var env: Dictionary = picker_env.call() if picker_env.is_valid() else {}
+	_dmodal.setup(g, s, env.get("anchor", anchor.get_global_rect()), _vp, env)
+	_dmodal.picked.connect(func(cmd: Dictionary): command.emit(cmd))
+	_dmodal.closed.connect(func(): _dmodal = null)
+
 func _close_popover() -> void:
+	if _dmodal != null and is_instance_valid(_dmodal): _dmodal.queue_free()
+	_dmodal = null
 	if _popover != null and is_instance_valid(_popover): _popover.queue_free()
 	_popover = null
 	if _bpicker != null and is_instance_valid(_bpicker): _bpicker.queue_free()

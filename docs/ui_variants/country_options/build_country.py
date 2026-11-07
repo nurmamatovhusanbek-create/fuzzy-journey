@@ -50,23 +50,23 @@ html,body{width:1280px;height:800px;overflow:hidden;background:#0A0D12;font-fami
 .vm .d{width:46px;height:46px;border-radius:50%;background:#1B1610;box-shadow:inset 0 0 0 2px #B38F3E,0 0 0 3px #0f0c09;display:grid;place-items:center}
 .vm .l{font:700 10.5px Disp;letter-spacing:.14em;color:#EFE6CF;text-transform:uppercase;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap}
 .vm.off .d{box-shadow:inset 0 0 0 2px #4a3f28,0 0 0 3px #0f0c09} .vm.off svg{stroke:#6f5f3d}
-.pill{position:absolute;transform:translate(-50%,0);padding:2px 9px 3px;border-radius:11px;background:rgba(15,12,9,.82);box-shadow:inset 0 0 0 1px #7F6A33;font:700 13px Body;color:#EFE6CF}
+.pill{position:absolute;transform:translate(-50%,0);display:flex;align-items:center;justify-content:center;height:17px;padding:0 8px;border-radius:9px;background:rgba(15,12,9,.84);box-shadow:inset 0 0 0 1px #7F6A33}
 .star{position:absolute;transform:translate(-50%,-50%)}
 .plate{position:absolute;background:linear-gradient(#1b1610,#14100b);box-shadow:inset 0 0 0 1px #7F6A33,0 14px 40px #000b;padding:14px 16px}
-.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;background:#100d09;box-shadow:inset 0 0 0 1px #3a2f1d;font:400 13.5px Body;color:#EFE6CF}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 14px;background:#100d09;box-shadow:inset 0 0 0 1px #3a2f1d;font:400 13.5px Body;color:#EFE6CF}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;height:34px;font:700 11.5px Disp;letter-spacing:.14em;text-transform:uppercase;background:#17120c;box-shadow:inset 0 0 0 1px #7F6A33;color:#E5C77A}
 .btn.war{background:#4a1d12;box-shadow:inset 0 0 0 1px #b45a3e;color:#ee8a68}
 """
 def pos(c): return c['x'] * SC, c['y'] * SC
 def mapmarks(extra_skip=()):
-    """at country grade every big country shows its capital star and one army figure (the province army pills are gone)"""
+    """at country grade every big country shows its capital star and, under it, its standing in five small stars; armies stay hidden until agents have looked"""
     out = ''
     for code in ['timurid_empire', 'mongol_empire', 'sultanate_of_delhi', 'mamluke_sultanate', 'ottoman_empire', 'holy_roman_empire', 'hungary', 'byzantine_empire', 'poland_lithuania']:
         c = C.get(code)
         if not c or code in extra_skip: continue
         x, y = pos(c)
         out += '<svg class="star" style="left:%.0fpx;top:%.0fpx" width="22" height="22" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.7 5.9 21.1l1.4-6.8L2.2 9.6l6.9-.8z" fill="#EFE6CF" stroke="#0A0D12" stroke-width="1.2"/></svg>' % (x, y)
-        out += '<div class="pill" style="left:%.0fpx;top:%.0fpx">%s</div>' % (x, y + 12, '{:,}'.format(c['army']).replace(',', ' '))
+        out += '<div class="pill" style="left:%.0fpx;top:%.0fpx">%s</div>' % (x, y + 13, starrow(stars(c), 9))
     return out
 def ring_svg(cx, cy, r):
     ticks = ''
@@ -103,16 +103,17 @@ def ring_scene(code, own=False):
     h += '</body></html>'
     return h
 def plate_scene(code, own=False):
-    c = C[code]; x, y = pos(c); s = stars(c)
+    c = C[code]; x, y = pos(c)
     h = head('K2') + mapmarks((code,))
     h += '<svg class="star" style="left:%.0fpx;top:%.0fpx" width="30" height="30" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.7 5.9 21.1l1.4-6.8L2.2 9.6l6.9-.8z" fill="#E5C77A" stroke="#0A0D12" stroke-width="1.2"/></svg>' % (x, y)
-    px, py = x + 30, y - 120
-    h += '<div class="plate" style="left:%.0fpx;top:%.0fpx;width:330px">' % (px, py)
-    h += '<div style="display:flex;gap:14px;align-items:center"><div class="medal" style="width:56px;height:56px;background-image:url(%s)"></div><div><div class="nm">%s</div><div class="sm" style="margin-top:2px;font-style:italic">%s %s</div><div style="margin-top:6px">%s</div></div></div>' % (FL % code, c['name'], c['title'], c['ruler'], starrow(s, 16))
-    h += '<div style="display:flex;gap:8px;margin-top:12px"><span class="chip">%d provinces</span><span class="chip">%s men</span><span class="chip">%+d gold</span></div>' % (c['prov'], '{:,}'.format(c['army']).replace(',', ' '), c['gold'])
-    h += '<div style="display:flex;gap:8px;margin-top:12px">'
+    px, py = x + 34, y - 150
+    h += '<div class="plate" style="left:%.0fpx;top:%.0fpx;width:400px;padding:22px 24px 24px">' % (px, py)
+    h += '<div style="display:flex;gap:18px;align-items:center"><div class="medal" style="flex:none;width:64px;height:64px;background-image:url(%s)"></div><div style="min-width:0"><div class="nm" style="font-size:19px;line-height:1.15">%s</div><div class="sm" style="margin-top:7px;font-style:italic;font-size:15px">%s %s</div></div></div>' % (FL % code, c['name'], c['title'], c['ruler'])
+    army = '<span class="chip" style="color:#A89C80;font-style:italic">Army ?</span>' if not own else '<span class="chip">%s men</span>' % '{:,}'.format(c['army']).replace(',', ' ')
+    h += '<div style="display:flex;gap:10px;margin-top:20px;flex-wrap:nowrap"><span class="chip">%d provinces</span>%s<span class="chip">%+d gold</span></div>' % (c['prov'], army, c['gold'])
+    h += '<div style="display:flex;gap:10px;margin-top:20px">'
     for k, lab, ok in verbs(c, own)[:3]:
-        h += '<div class="btn" style="flex:1">%s%s</div>' % (ico(k, 16), lab)
+        h += '<div class="btn" style="flex:1;height:42px;padding:0 6px">%s%s</div>' % (ico(k, 17), lab)
     h += '</div></div></body></html>'
     return h
 def star_scene(code, own=False):

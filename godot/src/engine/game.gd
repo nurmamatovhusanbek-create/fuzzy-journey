@@ -80,6 +80,9 @@ var happy := PackedByteArray()
 var defense := PackedByteArray()
 var move_fx: Array = []                       # [from, to, nation] marches the AI made this turn (view only, not saved): the interface shows those in sight
 var battle_fx: Array = []                     # [from, to, attacker_won, attacker, defender] this turn, humans involved (view only, not saved)
+var worth_prev := PackedFloat32Array()            # rules >= 4: the worth of each province at the start of the last turn (the trend)
+var proj_kind := PackedByteArray()               # rules >= 4: the investment project running in each province (TBInvest.PROJECTS, 0 = none)
+var proj_left := PackedByteArray()               # ... and the turns it still has to run
 var inv_e := PackedFloat32Array()                 # rules >= 4: progress (0..1) of each province towards its next economy / development level (TBInvest)
 var inv_d := PackedFloat32Array()
 var war_pts := PackedFloat32Array()             # rules >= 4: score earned in the field against each enemy (battles, sieges, capitals), N1*N1; the war score adds the land held and the enemy's exhaustion
@@ -229,7 +232,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	own_start.resize(N1 + 1); own_list.resize(P); war_cnt.resize(N1)
 	intel.resize(N1); intel.fill(5.0)
 	trade.resize(N1 * N1); trade_cnt.resize(N1); doctrine.resize(N1); net_ema.resize(N1)
-	siege.resize(P); unrest.resize(P); war_pts.resize(N1 * N1); inv_e.resize(P); inv_d.resize(P)
+	siege.resize(P); unrest.resize(P); war_pts.resize(N1 * N1); inv_e.resize(P); inv_d.resize(P); worth_prev.resize(P); proj_kind.resize(P); proj_left.resize(P)
 	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
 	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
@@ -530,9 +533,25 @@ func friendly(a: int, b: int) -> bool:
 func province_value(p: int) -> float:
 	var e := clampi(econ[p], 1, 5)
 	var d := clampi(dev[p], 1, 5)
+	if rules >= 4:                                                # what a province is worth: its development, its economy, its people, what stands in it, and how calm it is (docs/PROVINCE_WORTH.md)
+		var v4: float = 1.0 + 1.2 * float(d) + 0.8 * float(e) + float(pop[p]) / 80.0 + 0.4 * float(b_levels(p))
+		v4 *= 0.8 + 0.2 * clampf(float(stab[p]) / 100.0, 0.0, 1.0)
+		if capital[p] != 0: v4 *= 4.0
+		return v4
 	var v := 1.0 + e * 0.1 + d * 2.0 + pop[p] * 0.001
 	if capital[p] != 0: v *= (10.0 if rules == 0 else 4.0)
 	return v
+
+## the sum of the building levels standing in province p (rules 2 and up)
+func b_levels(p: int) -> int:
+	if rules < 2: return 0
+	var t := 0
+	for b in NB: t += b_lv[p * NB + b]
+	return t
+
+## how much the worth moved in the last turn (rules 4): what the ring's arrow shows
+func worth_trend(p: int) -> float:
+	return province_value(p) - worth_prev[p] if rules >= 4 and worth_prev.size() == P and worth_prev[p] > 0.0 else 0.0
 
 func income(n: int) -> Dictionary:
 	var own := owned(n)

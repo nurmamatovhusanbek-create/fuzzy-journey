@@ -136,6 +136,7 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 		rows.append([T.call("supply"), str(g.supply_limit(p))])
 		if g.rules >= 4 and g.owner[p] == me:
 			var ip: Dictionary = TBInvest.progress(g, p)
+			if g.proj_kind[p] != 0: rows.append([T.call("pj_" + TBInvest.project_id(g.proj_kind[p])), T.call("pj_turns_n", {"n": g.proj_left[p]}) if g.proj_left[p] != 1 else T.call("pj_turn_1"), ""])
 			rows.append([T.call("invest_econ"), T.call("invest_pct", {"n": int(roundf(float(ip["econ"]) * 100.0))}), ""])
 			rows.append([T.call("invest_dev"), T.call("invest_pct", {"n": int(roundf(float(ip["dev"]) * 100.0))}), ""])
 			if g.econ[p] > TBInvest.econ_potential(g, p) + 0.01: rows.append([T.call("invest_limit"), T.call("invest_limit_v"), "neg"])
