@@ -5,7 +5,7 @@ extends RefCounted
 const D = preload("res://src/engine/data.gd")
 const FOREVER := 1000000
 # id (<= 12 chars, sent over the network) -> definition. dur 0 = instant effect, -1 = permanent
-const LIST := [
+static var LIST: Array = [
 	{"id": "mil_reform", "gold": 220, "mp": 3, "dur": -1, "era": 1, "icon": "⚔"},
 	{"id": "trade_fair", "gold": 120, "mp": 2, "dur": 20, "era": 0, "icon": "⚖"},
 	{"id": "centralize", "gold": 160, "mp": 3, "dur": -1, "era": 1, "icon": "🏛"},
