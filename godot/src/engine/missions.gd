@@ -28,7 +28,7 @@ static func colony_cost(g: TBGame, n: int, p: int) -> Dictionary:
 	if g.rules < 4: return {"gold": 0 if free else 60 + g.own_count(n) * 2, "men": 0, "moves": 2}
 	var tm: float = COLONY_TERRAIN_MUL[clampi(g.terrain[p], 0, COLONY_TERRAIN_MUL.size() - 1)] if p >= 0 and p < g.P else 1.0
 	var gold: int = int(ceil(float(COLONY_GOLD + COLONY_GOLD_PER_PROVINCE * g.own_count(n)) * tm * (0.6 if free else 1.0) * g.cm(n)))
-	var men: int = int(round(float(COLONY_MEN) * (0.6 if free else 1.0)))
+	var men: int = int(round(float(g.au(float(COLONY_MEN))) * (0.6 if free else 1.0)))
 	return {"gold": gold, "men": men, "moves": int(COLONY_MOVES)}
 
 ## does one of n's provinces touch p by land (or by sea with a port)

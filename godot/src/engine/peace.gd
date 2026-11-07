@@ -42,7 +42,7 @@ static func offers(g: TBGame, n: int, t: int) -> Array:
 
 ## gold that one point of the demand asks of t
 static func gold_per_point(g: TBGame, t: int) -> float:
-	return maxf(8.0, GOLD_SHARE * float(g.income(t)["gold"]))
+	return maxf(g.gu(t, 8.0), GOLD_SHARE * float(g.income(t)["gold"]))
 
 ## the most points of gold t can pay now
 static func gold_room(g: TBGame, t: int) -> int:

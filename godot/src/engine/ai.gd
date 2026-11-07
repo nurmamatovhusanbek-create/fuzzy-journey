@@ -354,7 +354,7 @@ static func _districts(g: TBGame, n: int, own: PackedInt32Array, pers: Dictionar
 					var w := 0.0
 					match b:
 						D.B_MARKET: w = 1.0
-						D.B_FARM: w = 1.1 if g.pop[best] < g.POP_NEED[mini(5, g.dev[best] + 1)] else 0.5
+						D.B_FARM: w = 1.1 if g.job_fill(best, mini(5, g.dev[best] + 1)) < 1.0 else 0.5
 						D.B_WORKSHOP: w = 0.9
 						D.B_LIBRARY: w = 0.9 if g.tech_level[n] > 0.6 else 0.0
 						D.B_FORTRESS: w = 1.4 if want_mil else 0.25

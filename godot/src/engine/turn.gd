@@ -39,7 +39,7 @@ static func refresh_world(g: TBGame) -> void:
 		elif t > second: second = t
 	g.world_y = y; g.tech_top = top; g.tech_second = second; g.tech_avg = sum / maxf(1.0, cnt)
 	if g.econ_goal <= 0.0 and y > 0.0:
-		g.econ_goal = clampf(1.8 * best / y, 0.10, 0.30)      # the era's biggest economy must grow by ~80% to count as supreme
+		g.econ_goal = clampf(1.8 * best / y, 0.10, 0.30 if g.rules < 5 else 0.90)      # the era's biggest economy must grow by ~80% to count as supreme (rules 5: real giants hold a third of the world's output, so the ceiling is higher)
 	if g.tech_start_top <= 0.0: g.tech_start_top = top
 
 ## per-turn share of every treasury lost to inflation: the era's base rate plus a money-supply term
@@ -67,6 +67,12 @@ static func stab_target(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil
 static func rebel_hazard(g: TBGame, p: int, base: float) -> float:
 	var short: float = clampf((REB_THRESHOLD - g.stab[p]) / 40.0, 0.0, 1.0)
 	return minf(REB_HAZARD_CAP, base * pow(short, 1.5) * (0.6 + 0.8 * (1.0 - g.happy[p] / 100.0)))
+
+## the people that count for research. Rules 5: a state of 22 million real people (8,800 in the old table) as before, but ideas do not grow in step with heads (a China of 300 million does not learn fourteen times as fast): the square root of the size
+static func _research_pop(g: TBGame, pop: float) -> float:
+	if g.rules < 5: return pop
+	var peq: float = pop * float(g.scale) / 2500.0
+	return 8800.0 * sqrt(peq / 8800.0)
 
 ## research multiplier: backward nations catch up, leaders slow down
 static func catchup(g: TBGame, n: int) -> float:
@@ -209,7 +215,7 @@ static func _tick(g: TBGame) -> void:
 		var tax: int = g.budget[bud]; var goods: int = g.budget[bud + 1]; var res_pct: int = g.budget[bud + 2]; var inv_pct: int = g.budget[bud + 3]
 		var happy_target := clampf(50.0 + (goods - 20) * 0.6 - maxf(0.0, tax - 50) * 0.5 - (8.0 if at_war else 0.0) - weary * 0.15 + (TBRulers.happy_add(g, n) if g.rules >= 1 else 0.0), 0.0, 100.0)
 		var invest_chance := inv_pct / 100.0 * 0.05 * (TBRulers.invest_mul(g, n) if g.rules >= 1 else 1.0)
-		g.research[n] += (D.tech_gain(float(inc["pop"]) * (float(g.scale) / 2500.0 if g.rules >= 5 else 1.0), res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) * catchup(g, n) if g.rules >= 1 else 1.0)
+		g.research[n] += (D.tech_gain(_research_pop(g, float(inc["pop"])), res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) * catchup(g, n) if g.rules >= 1 else 1.0)
 		var need := _need(g, g.tech_level[n])
 		var era_before: int = g.era[n]
 		while g.research[n] >= need:
@@ -419,7 +425,7 @@ static func raw_progress(g: TBGame, n: int) -> Dictionary:
 		if g.get_rel(n, o) == D.REL_ALLY: allies += 1
 	var deals: float = float(g.trade_cnt[n]) / maxf(1.0, float(TBTrade.max_deals(g, n)))
 	var share: float = float(g.income(n)["gold"]) / maxf(1.0, g.world_y)
-	var econ: float = minf(minf(share / maxf(0.05, g.econ_goal), g.gold[n] / ECONOMIC_GOLD), deals)
+	var econ: float = minf(minf(share / maxf(0.05, g.econ_goal), g.gold[n] / g.gu(n, ECONOMIC_GOLD)), deals)
 	var tech := 0.0
 	if 5.0 - g.tech_start_top >= TECH_ROOM:
 		var rival: float = g.tech_second if g.tech_level[n] >= g.tech_top else g.tech_top

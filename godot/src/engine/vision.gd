@@ -42,17 +42,18 @@ static func _signature(g: TBGame) -> int:
 static func sync(g: TBGame) -> void:
 	var sig: int = _signature(g)
 	if sig == _sig and _for_game == g.get_instance_id() and _mask.size() == g.P: return
-	_sig = sig; _for_game = g.get_instance_id()
-	_mask = PackedByteArray(); _mask.resize(g.P)
+	var m := PackedByteArray(); m.resize(g.P)                            # built aside and swapped in whole: the turn thread and the screen both call this
 	var n: int = g.human_id
-	if n <= 0: _mask.fill(1); return
-	for p in g.P:
-		if g.controller(p) != n: continue
-		var r: int = TOWER_SIGHT if g.bl(p, D.B_WATCHTOWER) > 0 else SIGHT
-		_mark(g, p, r)
+	if n <= 0: m.fill(1)
+	else:
+		for p in g.P:
+			if g.controller(p) != n: continue
+			var r: int = TOWER_SIGHT if g.bl(p, D.B_WATCHTOWER) > 0 else SIGHT
+			_mark(g, p, r, m)
+	_mask = m; _sig = sig; _for_game = g.get_instance_id()
 
-static func _mark(g: TBGame, src: int, radius: int) -> void:
-	_mask[src] = 1
+static func _mark(g: TBGame, src: int, radius: int, m: PackedByteArray) -> void:
+	m[src] = 1
 	var frontier: Array = [src]
 	var seen := {src: true}
 	for _d in radius:
@@ -61,7 +62,7 @@ static func _mark(g: TBGame, src: int, radius: int) -> void:
 			for i in range(g.nb_off[p], g.nb_off[p + 1]):
 				var q: int = g.nb[i]
 				if seen.has(q): continue
-				seen[q] = true; _mask[q] = 1; next.append(q)
+				seen[q] = true; m[q] = 1; next.append(q)
 		frontier = next
 
 ## may the human player see the army in province p? (without a prior sync call: syncs itself)

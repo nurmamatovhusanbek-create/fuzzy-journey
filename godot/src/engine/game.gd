@@ -303,6 +303,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 			for q in owned(n): nat_pop += pop[q]
 			var bent: float = 0.7 + 0.6 * float(D.PERSONALITIES[personality[n]]["aggr"])
 			army[cp] = maxi(au(8.0), int(float(nat_pop) * float(STANDING_SHARE[era[n]]) * bent))
+		econ_goal = 0.0; TBTurn.refresh_world(self)                  # the world's income and the era's economic goal, from the real people (they were first computed from the old table)
 	if rules >= 4:                          # every province starts with part of its levy ready; a nation's manpower is the sum
 		for p in P:
 			if owner[p] != 0: levy[p] = int(float(levy_cap(p)) * LEVY_START)
@@ -601,7 +602,7 @@ func province_value(p: int) -> float:
 	var e := clampi(econ[p], 1, 5)
 	var d := clampi(dev[p], 1, 5)
 	if rules >= 4:                                                # what a province is worth: its development, its economy, its people, what stands in it, and how calm it is (docs/PROVINCE_WORTH.md)
-		var v4: float = 1.0 + 1.2 * float(d) + 0.8 * float(e) + float(pop[p]) / 80.0 + 0.4 * float(b_levels(p))
+		var v4: float = 1.0 + 1.2 * float(d) + 0.8 * float(e) + float(pop[p]) * (float(scale) / 2500.0 if rules >= 5 else 1.0) / 80.0 + 0.4 * float(b_levels(p))
 		v4 *= 0.8 + 0.2 * clampf(float(stab[p]) / 100.0, 0.0, 1.0)
 		if capital[p] != 0: v4 *= 4.0
 		return v4
@@ -783,7 +784,10 @@ func job_income(p: int, dv: int) -> float:
 	var step: float = float(D.DEV_INCOME[dv]) - lo
 	return lo + step * job_fill(p, dv)
 
+## rules 5: a development level needs a share of what the land can feed to be filled with people before it is staffed (6, 12, 20, 32, 50 %)
+static var NEED_FRAC: Array = [0.0, 0.06, 0.12, 0.20, 0.32, 0.50]
 func job_fill(p: int, dv: int) -> float:
+	if rules >= 5: return minf(1.0, float(pop[p]) / maxf(1.0, float(pop_cap(p)) * float(NEED_FRAC[clampi(dv, 1, 5)])))
 	return minf(1.0, pop[p] / float(POP_NEED[clampi(dv, 1, 5)]))
 
 ## rules >= 2: roughly what the next development level earns each turn after the multipliers (shown on the Develop verb); 0 at the top
