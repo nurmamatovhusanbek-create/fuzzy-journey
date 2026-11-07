@@ -44,17 +44,25 @@ func _init() -> void:
 		var o_off := _objs()
 		var img_off: Image = root.get_viewport().get_texture().get_image()
 		var bad := 0; var worst := 0; var minx := 9999; var maxx := -1; var miny := 9999; var maxy := -1
-		for y in img_on.get_height():
-			for x in img_on.get_width():
-				var c1 := img_on.get_pixel(x, y); var c2 := img_off.get_pixel(x, y)
-				var d := maxi(maxi(absi(int(round((c1.r - c2.r) * 255.0))), absi(int(round((c1.g - c2.g) * 255.0)))), absi(int(round((c1.b - c2.b) * 255.0))))
+		# compared in 4x4 blocks (their mean colour): a glyph that sits half a pixel to one side (text goes to the screen at sub-pixel positions, a baked piece at whole
+		# pixels) changes the edge pixels but not the block; a missing piece, a wrong colour or a shifted block does
+		var bw := img_on.get_width() / 4; var bh := img_on.get_height() / 4
+		for by in bh:
+			for bx in bw:
+				var s1 := Vector3.ZERO; var s2 := Vector3.ZERO
+				for yy in 4:
+					for xx in 4:
+						var c1 := img_on.get_pixel(bx * 4 + xx, by * 4 + yy); var c2 := img_off.get_pixel(bx * 4 + xx, by * 4 + yy)
+						s1 += Vector3(c1.r, c1.g, c1.b); s2 += Vector3(c2.r, c2.g, c2.b)
+				var dv := (s1 - s2) / 16.0 * 255.0
+				var d := int(round(maxf(maxf(absf(dv.x), absf(dv.y)), absf(dv.z))))
 				if d > 0: worst = maxi(worst, d)
 				if d > 3:
-					bad += 1; minx = mini(minx, x); maxx = maxi(maxx, x); miny = mini(miny, y); maxy = maxi(maxy, y)
-		print("%-9s baked %d pieces, objects %d -> %d (live %d), pixels differing by >3: %d (worst %d)%s" % [st, nb, o_on, o_on, o_off, bad, worst, (" in x %d..%d y %d..%d" % [minx, maxx, miny, maxy]) if bad > 0 else ""])
+					bad += 1; minx = mini(minx, bx * 4); maxx = maxi(maxx, bx * 4 + 3); miny = mini(miny, by * 4); maxy = maxi(maxy, by * 4 + 3)
+		print("%-9s baked %d pieces, objects %d -> %d (live %d), 4x4 blocks differing by >3: %d (worst %d)%s" % [st, nb, o_on, o_on, o_off, bad, worst, (" in x %d..%d y %d..%d" % [minx, maxx, miny, maxy]) if bad > 0 else ""])
 		if dir != "":
 			img_on.save_png("%s/bake_%s_on.png" % [dir, st]); img_off.save_png("%s/bake_%s_off.png" % [dir, st])
-		if bad > 400 or worst > 60 or nb < 10: fails += 1
+		if bad > 120 or worst > 48 or nb < 10: fails += 1        # a label centred on a half pixel can sit one pixel over (about 45 blocks, worst ~25); a lost piece is hundreds of blocks and far brighter
 	# hover: a baked piece draws itself live while it is hovered, is the live picture, and is baked again when the pointer leaves
 	for i in 40: await process_frame
 	var inst: TBBake = TBBake._inst
