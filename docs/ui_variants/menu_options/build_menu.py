@@ -58,11 +58,11 @@ def menu_left(x, y):
     return ('<div class="abs" style="left:%dpx;top:%dpx"><div class="play"><span class="t">Play</span>%s</div>'
             '<div style="margin-top:26px;display:flex;flex-direction:column;gap:8px;padding-left:6px"><div class="item"><i></i>Settings</div><div class="item"><i></i>How to play</div><div class="item"><i></i>Honours <small>0 / 20</small></div></div></div>') % (x, y, CHEV)
 def m1():
-    h = head('M1') + globe(1210, 740, 690) + era_ring(1210, 740, 690 * 1.2)
+    h = head('M1') + globe(1210, 740, 690) + era_ring(1210, 740, 690 * 1.2, labels=False)
     h += title(54, 64) + menu_left(54, 372) + bar() + '<div class="ver">v1.4.0</div></body></html>'
     return h
 def m2():
-    h = head('M2') + globe(1230, 770, 700) + era_ring(1230, 770, 700 * 1.2)
+    h = head('M2') + globe(1230, 770, 700) + era_ring(1230, 770, 700 * 1.2, labels=False)
     h += ('<div class="abs" style="left:0;right:0;top:70px;text-align:center"><div class="wm" style="font-size:58px;display:inline-block">Terra Bellum</div><div class="rule" style="margin:20px auto 0;width:340px"><i></i><b></b><i></i></div><div class="tag" style="margin-top:14px">A turn-based chronicle of the globe</div></div>')
     h += ('<div class="abs" style="left:54px;bottom:78px;display:flex;align-items:center;gap:30px"><div class="play"><span class="t">Play</span>%s</div><div class="item"><i></i>Settings</div><div class="item"><i></i>How to play</div><div class="item"><i></i>Honours <small>0 / 20</small></div></div>') % CHEV
     h += bar() + '<div class="ver">v1.4.0</div></body></html>'
@@ -83,7 +83,7 @@ def frame(globe_xy_r, menu_op, menu_dx, ring_op, label):
     return h
 def t1():
     # three frames of the morph, stacked small in one sheet: 0 %, 50 %, the real stage 2
-    f1 = frame((1210, 740, 690), 1.0, 0, 0.0, '1  Press Play').replace('<div style="opacity:1.00', era_ring(1210, 740, 690 * 1.2) + '<div style="opacity:1.00')
+    f1 = frame((1210, 740, 690), 1.0, 0, 0.0, '1  Press Play').replace('<div style="opacity:1.00', era_ring(1210, 740, 690 * 1.2, labels=False) + '<div style="opacity:1.00')
     f2 = frame((700, 385, 245), 0.35, -70, 0.6, '2  The globe moves to the centre and shrinks, the ring draws in, the menu slides away')
     f3 = '<div style="position:relative;width:1280px;height:720px"><img src="stage2_current.png" style="width:1280px;height:720px"><div class="abs" style="left:14px;top:10px;font:700 13px Disp;letter-spacing:.14em;color:#E5C77A;background:rgba(4,7,13,.7);padding:4px 10px">3  Stage 2: the screen the game has now (Continue / New game / Load / Multiplayer)</div></div>'
     return ('<!doctype html><html><head><meta charset="utf-8"><title>T1</title><style>%s html,body{width:1280px;height:2200px;overflow:hidden}.frame{margin-bottom:20px}</style></head><body>%s<div style="height:20px"></div>%s<div style="height:20px"></div>%s</body></html>') % (CSS.replace('html,body{width:1280px;height:720px;overflow:hidden;background:#04070d;', 'html,body{background:#04070d;'), f1, f2, f3)
