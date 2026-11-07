@@ -62,3 +62,17 @@ which answers open item 2 (gold hoarding): the largest treasuries seen fell in m
 | roman | 150,419 | 79,570 | 266 -> 419 (still the one runaway world) |
 
 Diplomatic hegemony is still the AI's only reachable path (2 of 2 runs in five eras); the economic path stays out of reach.
+
+## Rules 4 audit (26 games x 250 turns, `TB_RULES=4 tools/sim.sh 250 "1 2"`)
+No invariant broke. Rebels are no longer a problem (0 rebel provinces at the end in every era; the admin-reach rule works). What the run shows:
+
+| Finding | Evidence |
+|---|---|
+| **One giant hoards gold the AI cannot spend.** | Gunpowder: the Ottomans hold 208 provinces and 19,400 gold at turn 30, 65,500 at turn 150, with no project, building or levy left worth buying. Max treasuries 50,000-90,000 in gunpowder, napoleonic, victorian, timurid. Average treasury is 200-2,000: it is one nation. |
+| **The Roman world is the runaway.** | Top nation 267 -> 386 provinces, HHI 0.13 (others 0.03-0.05), the only world where an AI would meet the economic path (turn 210). |
+| **Wars are many, results small.** | 14,700 wars and 7,500 occupations in 26 games, yet only 1-7 nations die per game; the map hardly changes after the first 100 turns. |
+| **Tech path** is still only a clock in late eras (tech 5.0 by turn 90 for the leaders). | tech wins possible in roman, ancient, timurid, mongol. |
+
+Tried and rejected: giving big AI realms the human's growing action points (half the human rate, `sqrt(provinces)`). Treasuries fell in some eras (victorian 70k -> 16k, mongol 32k -> 7k) but the Ottoman hoard stayed at 92k and Rome ran further away (386 -> 430 provinces, economic path at turn 130). The limit is not action points: the giants have nothing left that costs gold.
+
+Suggested next steps (design decisions): a real gold sink for large realms (upkeep that grows with realm size, or court / prestige projects), a cap on the Roman snowball (overextension: stability and levy cost by province count), decisive war goals for the AI (annex a nation, not one province), and a margin rule for the tech path.
