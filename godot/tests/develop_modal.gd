@@ -26,7 +26,7 @@ func _run() -> void:
 	main._start_game(me)
 	var g: TBGame = main.g
 	g.pending.clear(); main._clear_overlay()
-	g.gold[me] = 400.0; g.mp[me] = 6.0
+	g.gold[me] = 400.0 if g.rules < 5 else 5.0e6; g.mp[me] = 6.0
 	await _frames(25)
 	var p := -1
 	for q in g.owned(me): if g.world.id[q] == "uzb_samarkand": p = q
