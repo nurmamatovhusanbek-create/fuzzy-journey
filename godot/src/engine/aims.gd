@@ -11,7 +11,7 @@ const REGION := 2
 const VASSAL := 3
 const HUMBLE := 4
 const PATIENCE := 70                  # turns of war after which an unmet aim is dropped
-const IDS := ["none", "nation", "region", "vassal", "humble"]
+static var IDS: Array = ["none", "nation", "region", "vassal", "humble"]
 
 static func kind_of(g: TBGame, n: int, t: int) -> int:
 	if g.rules < 5 or n <= 0 or g.aim_kind.size() != g.N1: return NONE
