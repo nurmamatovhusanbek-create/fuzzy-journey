@@ -29,6 +29,7 @@ run "rules 5: armies in the capital only, incomes and prices at scale" tests/rul
 run "rules 5: spread and muster orders" tests/mass5.gd
 run "alerts: tips can be switched off, crises never" tests/alert_prefs.gd
 run "breakdown tooltips list the engine's own terms" tests/breakdown.gd
+run "undo takes orders back exactly" tests/undo.gd
 run "trade deals" tests/trade.gd
 run "royal marriages" tests/marriage.gd
 run "generals" tests/generals.gd

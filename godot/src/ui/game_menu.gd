@@ -32,7 +32,7 @@ func setup(ui_key: String, build_text: String) -> TBGameMenu:
 	var pad := MarginContainer.new(); for s in ["left", "right", "top", "bottom"]: pad.add_theme_constant_override("margin_" + s, 7)
 	_plate.add_child(pad)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); pad.add_child(v)
-	for it in [["check", "gm_resume", "resume", "Esc"], ["save", "gm_save", "save", "S"], ["load", "gm_load", "load", "L"], ["settings", "gm_settings", "settings", ""], ["flag", "gm_main", "main", ""]]:
+	for it in [["check", "gm_resume", "resume", "Esc"], ["load", "gm_undo", "undo", "Ctrl+Z"], ["save", "gm_save", "save", "S"], ["load", "gm_load", "load", "L"], ["settings", "gm_settings", "settings", ""], ["flag", "gm_main", "main", ""]]:
 		var id: String = it[2]
 		var row := K.row_box(12.0, 8.0 if ph else 10.0, func(): picked.emit(id), false)
 		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 14); hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(hb)

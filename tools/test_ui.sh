@@ -52,6 +52,9 @@ echo "$out" | grep -q "ALERT_CUES OK" && echo "ok: alert_cues" || { echo "FAIL: 
 # the two-stage title: Play / Settings / How to play / Honours beside the turning globe, Play morphs into the second stage
 out=$(TB_NOANIM= timeout 200 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/title_front.gd -- 1280 720 /tmp/tf/f 2>&1)
 echo "$out" | grep -q "TITLE_FRONT OK" && echo "ok: title_front" || { echo "FAIL: title_front"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+# Undo through the interface (Ctrl+Z, the end of the turn closes the stack)
+out=$(TB_NOANIM=1 timeout 200 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/undo_ui.gd -- 1280 720 2>&1)
+echo "$out" | grep -q "UNDO_UI OK" && echo "ok: undo_ui" || { echo "FAIL: undo_ui"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 # multiplayer is "coming soon" in a release: the tag, the note, no network; the Advisor's note never covers the title rows
 out=$(TB_NOANIM=1 timeout 150 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/mp_soon.gd -- 1920 1080 2>&1)
 echo "$out" | grep -q "MP_SOON OK" && echo "ok: mp_soon" || { echo "FAIL: mp_soon"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }

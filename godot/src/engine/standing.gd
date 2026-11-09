@@ -6,6 +6,8 @@ extends RefCounted
 static var _turn := -1
 static var _sig := -1
 static var _stars := PackedInt32Array()
+## forget the cached ranking (after Undo put an earlier state back)
+static func invalidate() -> void: _sig = -1
 static var _worth := PackedFloat32Array()
 
 static func _refresh(g: TBGame) -> void:

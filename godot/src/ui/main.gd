@@ -824,6 +824,7 @@ func _open_game_menu() -> void:
 func _on_game_menu_pick(id: String) -> void:
 	if is_instance_valid(_game_menu): _game_menu.queue_free()
 	_game_menu = null
+	if id == "undo": _undo_last(); return
 	if id == "save" or id == "load": _open_menu_hub("saves")
 	elif id == "settings": _open_menu_hub("settings")
 	elif id == "main": show_menu()
@@ -999,6 +1000,7 @@ const HOT_COLORS := [0xC63A4A, 0x3A7AC6, 0x3AA66A, 0xC6A23A]
 static func g_era(game: TBGame) -> String: return game.era_id if game != null and game.era_id != "modern" else ""
 
 func _start_game(n: int) -> void:
+	_undo.clear()
 	hud.seat_tag = ""
 	if _hot_n > 1:
 		g.set_human(_hot_list[0])
@@ -1239,12 +1241,35 @@ func _goto_nation(n: int) -> void:
 		_select(cp)
 
 # ---------------------------------------------------------------- commands
+var _undo := TBUndo.new()
+## an order of the human player: a snapshot first (Undo), dropped again when the order is refused or when something random happened
+func _human_apply(cmd: Dictionary) -> Dictionary:
+	if _is_hotseat(): return g.apply(cmd)
+	var rng0: int = g.rng.s
+	_undo.push(g)
+	var res := g.apply(cmd)
+	if not res["ok"]: _undo.drop_last()
+	elif g.rng.s != rng0: _undo.clear()
+	return res
+
+func _undo_last() -> void:
+	if mode != "game" or _busy or mp.in_game or not _undo.can():
+		if mode == "game" and hud != null: hud.toast(T.call("undo_none"), true)
+		return
+	_undo.undo(g)
+	flow.clear(); _clear_attack_marks()
+	map.lenses.refresh_nations(); map.repaint_all()
+	TBNationsScreen.refresh_live(); show_events(); hud.refresh()
+	if selected >= 0: _select(selected)
+	sfx.play("tap")
+	hud.toast(T.call("undo_done", {"k": _undo.size()}))
+
 func _on_command(c: Dictionary, from_card: bool = false) -> void:
 	_clear_attack_marks()
 	if mp.in_game:
 		mp.send_command(TBAsks.wrap(g, c)); return
 	var cmd := TBAsks.wrap(g, c.duplicate()); cmd["n"] = g.human_id
-	var res := g.apply(cmd)
+	var res := _human_apply(cmd)
 	if not res["ok"]:
 		if from_card and panel.visible: panel.reject(String(res["err"]))      # the card's reason line replaces the toast
 		else:
@@ -1318,7 +1343,7 @@ func _do_move(from: int, to: int) -> void:
 	if mp.in_game:
 		mp.send_command({"cmd": "move", "from": from, "to": to, "troops": tr}); _select(to); return
 	var a0: int = g.army[from]; var d0: int = g.army[to]; var foe_n: int = g.controller(to)
-	var res := g.apply({"cmd": "move", "n": g.human_id, "from": from, "to": to, "troops": tr})
+	var res := _human_apply({"cmd": "move", "n": g.human_id, "from": from, "to": to, "troops": tr})
 	if not res["ok"]:
 		panel.reject(String(res["err"]))
 		if g.controller(from) == g.human_id: _select(from)
@@ -1409,6 +1434,7 @@ func end_turn() -> void:
 		if nxt != 0:
 			_set_move_from(-1)
 			_hot_switch(nxt, false); return
+	_undo.clear()                                                       # the turn is over: what was ordered stands
 	_busy = true; hud.set_busy(true); _set_move_from(-1); hud.hide_preview(); _pv_to = -1
 	if tip != null: tip.visible = false
 	_turn_t0 = Time.get_ticks_msec()
@@ -1598,6 +1624,8 @@ func _on_back() -> void:
 			else: _open_game_menu()
 
 func _unhandled_key_input(e: InputEvent) -> void:
+	if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_Z and (e.ctrl_pressed or e.meta_pressed) and mode == "game":
+		_undo_last(); get_viewport().set_input_as_handled(); return
 	if e.is_action_pressed("ui_cancel") and not e.is_echo():
 		_on_back(); get_viewport().set_input_as_handled()
 

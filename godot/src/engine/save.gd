@@ -45,6 +45,34 @@ static func to_dict(g: TBGame) -> Dictionary:
 		if g.rules >= 1 and g.r_name[hn] != "": d["meta"]["rk"] = TBRulers.title_key(g, hn); d["meta"]["rn"] = g.r_name[hn]; d["meta"]["rnum"] = g.r_num[hn]
 	return d
 
+## the state of a running game, as plain values, for Undo: packed arrays are copied on write, lists and dictionaries are copied now
+static func snapshot(g: TBGame) -> Dictionary:
+	var d := {"rng": g.rng.s}
+	for f in FIELDS_PACKED: d[f] = g.get(f).duplicate()                      # packed arrays are shared, not copied, when assigned: copy them now
+	for f in FIELDS_SCALAR:
+		if f == "log": d["log_n"] = g.log.size(); continue                        # the log only ever grows: remember its length, not a copy of it
+		var v = g.get(f)
+		d[f] = v.duplicate(true) if (v is Array or v is Dictionary) else v
+	d["nat_name"] = g.nat_name.duplicate(); d["nat_code"] = g.nat_code.duplicate()
+	return d
+
+## put a snapshot back into the SAME game object (the screens keep their references to it)
+static func restore(g: TBGame, d: Dictionary) -> void:
+	for f in FIELDS_PACKED:
+		if d.has(f): g.set(f, d[f].duplicate())
+	for f in FIELDS_SCALAR:
+		if not d.has(f): continue
+		var v = d[f]
+		g.set(f, v.duplicate(true) if (v is Array or v is Dictionary) else v)
+	if d.has("log_n"): g.log.resize(int(d["log_n"]))
+	g.nat_name = d["nat_name"].duplicate(); g.nat_code = d["nat_code"].duplicate()
+	g.rng.s = int(d["rng"])
+	g.own_dirty = true
+	g.dirty_list = PackedInt32Array()
+	g.dirty_flag.fill(0)
+	g._lab_turn = -1
+	TBStanding.invalidate()
+
 ## a save is written beside the old one, read back and checked, and only then swapped in; the previous good file is kept as a .bak
 static func save(g: TBGame, slot: String) -> bool:
 	var path := path_for(slot)
