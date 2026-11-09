@@ -31,6 +31,7 @@ run "alerts: tips can be switched off, crises never" tests/alert_prefs.gd
 run "breakdown tooltips list the engine's own terms" tests/breakdown.gd
 run "undo takes orders back exactly" tests/undo.gd
 run "rules 5: state works cost, effects, AI buys them" tests/works.gd
+run "rules 5: AI states fight for aims" tests/aims.gd
 run "trade deals" tests/trade.gd
 run "royal marriages" tests/marriage.gd
 run "generals" tests/generals.gd

@@ -562,6 +562,9 @@ static func _facts(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dic
 		[T.call("tech"), "%s %.1f · #%d" % [T.call("era_name_%d" % g.era[n]), g.tech_level[n], int(st["rank_t"].get(n, 0))], 0]]
 	if g.rules >= 1 and g.r_name[n] != "":
 		rows.append([T.call("skill_adm") + " / " + T.call("skill_dip") + " / " + T.call("skill_mil"), "%d / %d / %d" % [g.r_adm[n], g.r_dip[n], g.r_mil[n]], 0])
+	if g.rules >= 5 and not pick and n != me and g.aim_kind[n] != 0 and (g.aim_t[n] == me or g.intel[me] >= 10.0):          # what a state fights for: known to its enemy, and to anyone with agents abroad
+		var ak: String = TBAims.key(g, n, g.aim_t[n])
+		if ak != "": rows.append([T.call("aim_label"), T.call(ak, {"a": T.call("aim_you") if g.aim_t[n] == me else g.dname(g.aim_t[n])}), -1 if g.aim_t[n] == me else 0])
 	if not pick:
 		if n == me: rows.append([T.call("income_net"), K.signed(float(g.income(n)["net"])), 1 if g.income(n)["net"] >= 0 else -1])
 		if g.rules >= 1 and g.infamy[n] >= 1.0: rows.append([T.call("infamy"), "%.0f%s" % [g.infamy[n], ("  " + T.call("coalition")) if g.coalition[n] != 0 else ""], -1])

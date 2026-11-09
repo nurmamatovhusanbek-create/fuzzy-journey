@@ -93,6 +93,9 @@ var siege := PackedInt32Array()                 # rules >= 4: turns left before 
 var morale := PackedFloat32Array()              # rules >= 4: how well each nation's armies hold (TBWar)
 var exh := PackedFloat32Array()                 # rules >= 4: war exhaustion of each nation, 0-100 (TBWar)
 var lost_turn := PackedInt32Array()             # rules >= 4: men each nation lost in battle this turn (feeds exhaustion)
+var aim_kind := PackedInt32Array()             # rules >= 5: what each AI state fights for (TBAims) and against whom, since when
+var aim_t := PackedInt32Array()
+var aim_since := PackedInt32Array()
 var works := PackedInt32Array()                 # rules >= 5: levels of every state work, N1 * TBWorks.COUNT (TBWorks)
 var levy := PackedInt32Array()                  # rules >= 4: the men each province can still raise (see levy_cap); the nation's manpower is their sum
 var gen := PackedInt32Array()                 # generals (rules >= 1): see TBGenerals
@@ -239,7 +242,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	siege.resize(P); unrest.resize(P); war_pts.resize(N1 * N1); inv_e.resize(P); inv_d.resize(P); worth_prev.resize(P); proj_kind.resize(P); proj_left.resize(P)
 	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
-	works.resize(N1 * TBWorks.COUNT); infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
+	works.resize(N1 * TBWorks.COUNT); aim_kind.resize(N1); aim_t.resize(N1); aim_since.resize(N1); infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
 	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:
 		a.resize(N1)

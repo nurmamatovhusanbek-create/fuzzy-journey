@@ -37,6 +37,7 @@ static func _nation(g: TBGame, n: int) -> void:
 	var aggr: float = float(pers["aggr"]) * float(g.diff["aiAggr"]) * (float(lvl["mul"]) if g.rules >= 1 else 1.0)
 	var fr := _frontier(g, n)
 	var at_war := g.at_war(n)
+	if g.rules >= 5 and g.aim_kind[n] != TBAims.NONE and g.get_rel(n, g.aim_t[n]) != D.REL_WAR: TBAims.clear(g, n)
 	var gu: float = g.gu(n, 1.0)
 	var army_full := false                                                # rules 5: a state keeps an army its people can bear: more than a peace-time share in a war, a little above it in peace
 	if g.rules >= 5:
@@ -206,10 +207,11 @@ static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array)
 		var cap := g.capital_of[n]
 		if g.stab[cap if cap >= 0 else 0] < 25: return
 		if g.rules >= 1 and aggr < 0.5 and TBDiplo.cb(g, n, tgt) == "" and g.rng.chance(0.6): return
-		g.apply({"cmd": "declareWar", "n": n, "t": tgt})
+		var dw := g.apply({"cmd": "declareWar", "n": n, "t": tgt})
+		if g.rules >= 5 and bool(dw.get("ok", false)): TBAims.set_aim(g, n, tgt, TBAims.pick(g, n, tgt))
 
 static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
-	var attacks := mini(3, int(floor(g.mp[n] / D.MP_ATTACK)))
+	var attacks := mini(3 + (2 if (g.rules >= 5 and g.aim_kind[n] != TBAims.NONE) else 0), int(floor(g.mp[n] / D.MP_ATTACK)))      # rules 5: a state with an aim presses it
 	if attacks <= 0: return
 	var cands: Array = []
 	var i := 0
@@ -221,7 +223,7 @@ static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		if g.army[p] < g.au(12.0): continue
 		var atk := g.army[p] * 0.9
 		var dfn := g.army[q] * g.def_mul(q) + 1.0
-		var score := atk / dfn + g.province_value(q) * (0.05 if g.rules < 4 else 0.03) + (1.0 if g.capital[q] != 0 else 0.0)
+		var score := atk / dfn + g.province_value(q) * (0.05 if g.rules < 4 else 0.03) + (1.0 if g.capital[q] != 0 else 0.0) + (1.5 if g.rules >= 5 and TBAims.is_wanted(g, n, c, q) else 0.0)
 		if g.rules >= 4:                                                      # the same three-round battle the player sees: attack only when the expected outcome is a win that leaves an army to hold the land
 			var pv := g.combat_preview(n, p, q, 0)
 			var worst_ok: bool = bool((pv["range"] as Dictionary)["worst"]["win"])
@@ -277,6 +279,16 @@ static func _seek_peace(g: TBGame, n: int) -> void:
 			continue
 		var losing := theirs - mine
 		if g.rules >= 4: losing += (g.exh[n] - g.exh[o]) * 0.3                   # a worn-out government looks for peace sooner
+		if g.rules >= 5:                                                         # rules 5: a state fights for its aim
+			var ak: int = TBAims.kind_of(g, n, o)
+			if ak == TBAims.NONE and g.aim_kind[n] == TBAims.NONE: TBAims.set_aim(g, n, o, TBAims.HUMBLE); ak = TBAims.HUMBLE          # attacked: it wants to humble the aggressor
+			if ak != TBAims.NONE and dur > TBAims.PATIENCE: TBAims.clear(g, n); ak = TBAims.NONE
+			if ak != TBAims.NONE and losing <= 15:
+				if TBAims.met(g, n, o):
+					var kind5: String = "vassal" if ak == TBAims.VASSAL else ("white" if (ak == TBAims.HUMBLE and mine < 25) else "cede")
+					g.apply({"cmd": "peace", "n": n, "t": o, "kind": kind5, "_force": ak != TBAims.HUMBLE})
+					TBAims.clear(g, n)
+				continue                                                          # aim not met yet: it fights on, it does not take a cheap peace
 		if losing > 15 or (dur > (8 if g.rules == 0 else 14) and absi(losing) < 12 and g.rng.chance(0.3)):
 			var force: bool = (not accepts_peace(g, o, n, "white")) and losing > 35
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "cede" if mine >= 25 else "white", "_force": force})
