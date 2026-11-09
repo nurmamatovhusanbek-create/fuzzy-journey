@@ -180,7 +180,7 @@ static func _group(title: String) -> VBoxContainer:
 	return g
 
 ## the categories of the Settings tab (a rail on the left, or a row of chips on a narrow or large-text window); one category at a time keeps the page calm
-const SET_CATS := [["display", "set_display"], ["map", "set_cat_map"], ["comfort", "set_cat_comfort"], ["sound", "set_audio"], ["language", "language"], ["advanced", "set_advanced"]]
+const SET_CATS := [["display", "set_display"], ["map", "set_cat_map"], ["comfort", "set_cat_comfort"], ["sound", "set_audio"], ["alerts", "set_alerts"], ["language", "language"], ["advanced", "set_advanced"]]
 
 ## the grammar of every settings row: the name (and a hint) on the left, ONE control on the right in a column of one fixed width and one height, a hairline under the row.
 ## Controls are only ever a segmented choice (two or three options, a switch is On / Off), a drop-down (four or more) or a slider: never a mix of shapes.
@@ -283,6 +283,14 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 				page.add_child(_srow(T.call(String(it[1])), _choice([["0", "0"], ["25", "25"], ["50", "50"], ["75", "75"], ["100", "100"]], str(near), func(v): set.call(key, int(v))), stacked))
 			page.add_child(_switch(T.call("set_vis_alerts"), bool(cfg.get("vis_alerts", false)) or not bool(cfg.get("sound", true)), func(v): set.call("vis_alerts", v), stacked))
 			if not bool(cfg.get("sound", true)): page.add_child(TBPanel.para(T.call("vis_alerts_muted"), 13, K.DIM))
+		"alerts":
+			page.add_child(TBPanel.para(T.call("set_alerts_hint"), 14, K.DIM))
+			for aid in TBAlertPrefs.MUTABLE:
+				var id_a: String = aid
+				page.add_child(_switch(T.call("alk_" + id_a), not TBAlertPrefs.is_muted(id_a), func(v): TBAlertPrefs.set_muted(cfg, id_a, not v); keep_scroll.call(); on_change.call("alert_mute"), stacked))
+			var rst := K.button(T.call("alerts_restore"), func(): cfg["alert_mute"] = []; TBAlertPrefs.sync(cfg); on_change.call("alert_mute"); rebuild.call())
+			rst.custom_minimum_size = Vector2(SLOT_W, _ctl_h())
+			page.add_child(_srow("", rst, stacked))
 		"language":
 			page.add_child(_srow(T.call("language"), _choice([["en", "English"], ["ru", "Русский"], ["uz", "O‘zbekcha"]], String(cfg["lang"]), func(v): set.call("lang", v, true)), stacked))
 		"advanced":

@@ -23,4 +23,8 @@ static func accept(key: String, value: Variant, default: Variant) -> Variant:
 		if ENUMS.has(key) and not (value in ENUMS[key]): return default
 		return value
 	if default is Dictionary: return value if (value is Dictionary and value.size() <= MAX_DICT) else default
+	if default is Array:                                                         # a short list of short strings (the muted alerts)
+		if not (value is Array) or (value as Array).size() > 64: return default
+		for e in value: if not (e is String) or String(e).length() > MAX_STR: return default
+		return value
 	return default

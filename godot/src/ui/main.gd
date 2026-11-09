@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "fx": "full", "era_ui": "ring", "phone_ui": "desktop", "tips": true, "win": {}}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "fx": "full", "era_ui": "ring", "phone_ui": "desktop", "tips": true, "alert_mute": [], "win": {}}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -227,6 +227,7 @@ func _load_cfg() -> void:
 		cfg["quality"] = _guess_quality()
 		cfg["fx"] = TBFx.default_for(cfg["quality"])
 		cfg["reduce_motion"] = K.os_prefers_reduced_motion()
+	TBAlertPrefs.sync(cfg)
 
 func _save_cfg() -> void:
 	cfg["win"] = TBPanel.win_mem
@@ -855,6 +856,7 @@ func _on_setting_changed(key: String) -> void:
 		"sound": sfx.enabled = cfg.get("sound", true); music.enabled = cfg.get("sound", true); _apply_a11y()
 		"vol_master", "vol_music", "vol_sfx", "vol_ui": TBAudio.apply_volumes(cfg)
 		"fx": TBFx.apply(cfg)
+		"alert_mute": TBAlertPrefs.sync(cfg); if mode == "game": hud.refresh()
 		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "tts", "confirm", "mirror", "vis_alerts", "navpad", "tips":
 			_apply_a11y(); _rebuild_screens()
 		"reset_access":

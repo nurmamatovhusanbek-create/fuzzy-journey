@@ -662,7 +662,7 @@ func refresh() -> void:
 	_date.turn_no = g.turn; _date.phase = float(g.month_idx + 6) / 12.0
 	_date.turn_cap = T.call("aoc_turn", {"k": g.turn}).replace(":", "")
 	# alerts
-	var al: Array = TBAdvisor.alerts(g, n)                              # worked out once for the ticker and the dock badge
+	var al: Array = TBAlertPrefs.filter(TBAdvisor.alerts(g, n))        # worked out once for the ticker and the dock badge (minus what Settings switched off)
 	_entries = TBAdvisor.ticker(g, n, al).filter(func(e: Dictionary) -> bool: return not _ans_gone.has(String(e["key"])))
 	for e in _entries: _describe(e)
 	_ticker.update(_entries, g.turn)

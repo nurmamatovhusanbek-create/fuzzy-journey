@@ -394,7 +394,7 @@ const MINISTERS := {
 static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String = "", on_screen: Callable = Callable()) -> TBPanel.Handle:
 	if tab == "goals": return goals(parent, g)
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("council"), "council", {"w": 600, "h": 560, "sub": T.call("council_sub")})
-	var al := TBAdvisor.alerts(g, g.human_id)
+	var al := TBAlertPrefs.filter(TBAdvisor.alerts(g, g.human_id))
 	if al.is_empty():
 		h.body.add_child(TBPanel.empty_state("council", T.call("al_quiet"), T.call("al_quiet_why"))); return h
 	al.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["sev"]) > int(b["sev"]))
