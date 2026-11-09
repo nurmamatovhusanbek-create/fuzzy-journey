@@ -328,9 +328,9 @@ func _build_stats(s: int, cs: Dictionary) -> Control:
 	var cells: Array = [
 		{"label": T.call("army"), "value": armyc, "tip": ("%s: %d" % [T.call("army"), g.army[s]]) if seen else T.call("army_unknown")},
 		{"label": T.call("ins_defense"), "value": str(g.defense[s]) if seen else "?", "tip": T.call("ins_defense")},
-		{"label": T.call("pop"), "value": TBKit.fmt(g.pop[s]), "tip": ("%s: %d" % [T.call("pop"), g.pop[s]]) + ((" (≈ %s, %d:1)" % [TBKit.fmt(float(g.pop[s]) * float(g.scale)), g.scale]) if g.rules >= 5 else "")},
+		{"label": T.call("pop"), "value": TBKit.fmt(g.pop[s]), "tip": TBBreakdown.people(g, s)},
 		{"label": T.call("dev"), "value": str(g.dev[s]), "tip": T.call("dev")},
-		{"label": T.call("stability"), "value": "%d%%" % stab, "col": scol, "bar": stab / 100.0, "tip": T.call("stability")},
+		{"label": T.call("stability"), "value": "%d%%" % stab, "col": scol, "bar": stab / 100.0, "tip": TBBreakdown.stability(g, s)},
 		{"label": T.call("happiness"), "value": "%d%%" % hap, "col": hcol, "bar": hap / 100.0, "tip": T.call("happiness")},
 		{"label": T.call("econ"), "value": str(g.econ[s]), "tip": T.call("econ")},
 		{"label": T.call("terrain"), "value": T.call("t_" + D.TERRAIN_ID[g.terrain[s]]), "tip": T.call("terrain")},

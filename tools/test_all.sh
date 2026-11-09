@@ -28,6 +28,7 @@ run "rules 5: real people per era at 10/20/30:1, growth under a ceiling" tests/p
 run "rules 5: armies in the capital only, incomes and prices at scale" tests/rules5.gd
 run "rules 5: spread and muster orders" tests/mass5.gd
 run "alerts: tips can be switched off, crises never" tests/alert_prefs.gd
+run "breakdown tooltips list the engine's own terms" tests/breakdown.gd
 run "trade deals" tests/trade.gd
 run "royal marriages" tests/marriage.gd
 run "generals" tests/generals.gd

@@ -52,15 +52,32 @@ static func inflation(g: TBGame) -> float:
 	return clampf(D.infl_base(g.era_id) + INFL_K * maxf(0.0, ratio - INFL_M0), 0.0, INFL_MAX)
 
 ## the stability a nation's provinces drift toward (rules >= 1): the regime's ceiling minus what war, taxes and overextension cost
-static func stab_target(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil: int, lands: int) -> float:
+## the terms the stability a nation's provinces drift toward is made of (their sum, kept between 10 and the ceiling, is stab_target; the breakdown tooltip lists them)
+## rules 5: what a province's people do this turn: the calendar's and the nation's rate, the mood, the order, the farms, and how much room the land has left (a negative room is famine)
+static func growth_parts(g: TBGame, p: int) -> Dictionary:
+	var n: int = g.owner[p]
+	var year_rate: float = TBPopData.growth_per_year(float(g.year), g.tech_level[n] if n > 0 else 0.5)
+	var mood: float = 0.6 + 0.4 * g.happy[p] / 100.0
+	var order: float = 0.5 + g.stab[p] / 200.0
+	var farm: float = 1.0 + 0.05 * g.bl(p, D.B_FARM)
+	var cap_p: float = float(g.pop_cap(p))
+	var room: float = 1.0 - float(g.pop[p]) / cap_p
+	return {"year_rate": year_rate, "mood": mood, "order": order, "farm": farm, "room": room, "cap": int(cap_p), "growth": int(round(float(g.pop[p]) * year_rate * 0.5 * mood * order * farm * room))}
+
+static func stab_parts(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil: int, lands: int) -> Dictionary:
 	var tax: int = g.budget[n * 4]
 	var s_era: float = 30.0 + 15.0 * g.era[n]
-	if g.rules >= 4:                                                      # administration grows with what the realm has built up: every development level across the provinces holds a quarter of a province more (docs/PROVINCE_WORTH.md)
+	if g.rules >= 4:
 		var dv := 0
 		for q in g.owned(n): dv += g.dev[q]
 		s_era += ADMIN_PER_DEV * float(dv)
 	var over: float = clampf((lands - s_era) / s_era, 0.0, 1.5) * STAB_OVEREXT
-	var t: float = stab_ceil - weary * 0.5 - 0.4 * maxf(0.0, tax - 40.0) - over - (6.0 if at_war else 0.0) + TBRulers.stab_add(g, n) * 8.0
+	return {"ceil": float(stab_ceil), "weary": -weary * 0.5, "tax": -0.4 * maxf(0.0, tax - 40.0), "over": -over, "war": -6.0 if at_war else 0.0, "ruler": TBRulers.stab_add(g, n) * 8.0}
+
+static func stab_target(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil: int, lands: int) -> float:
+	var pt := stab_parts(g, n, weary, at_war, stab_ceil, lands)
+	var t: float = 0.0
+	for k in pt: t += float(pt[k])
 	return clampf(t, 10.0, float(stab_ceil))
 
 ## the per-turn chance a province rises: zero above stability 45, rising with the 1.5 power of the shortfall, worse when the people are unhappy
@@ -243,9 +260,7 @@ static func _tick(g: TBGame) -> void:
 			var stab_mod := 0.5 + g.stab[p] / 200.0
 			var farm := 1.0 + 0.05 * g.bl(p, D.B_FARM)
 			var growth := int(floor(g.pop[p] * 0.01 * (g.happy[p] / 100.0) * stab_mod * farm))
-			if g.rules >= 5:                                                      # real growth by technology, a ceiling the land can feed, famine above it (docs/RULES5_REALISM.md)
-				var cap_p: float = float(g.pop_cap(p))
-				growth = int(round(float(g.pop[p]) * TBPopData.growth_per_year(float(g.year), g.tech_level[n]) * 0.5 * (0.6 + 0.4 * g.happy[p] / 100.0) * stab_mod * farm * (1.0 - float(g.pop[p]) / cap_p)))
+			if g.rules >= 5: growth = int(growth_parts(g, p)["growth"])           # real growth by technology, a ceiling the land can feed, famine above it (docs/RULES5_REALISM.md)
 			if g.rules >= 4:                                                      # a province drained of its young men grows slowly and sulks; a held one does not refill
 				if g.levy_drained(p):
 					growth /= 2
