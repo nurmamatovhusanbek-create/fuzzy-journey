@@ -9,6 +9,10 @@ Rules 5 (real people, gold and soldiers at 10/20/30:1, `docs/RULES5_REALISM.md`)
 * **State works**: six lasting works a full treasury can build, priced in turns of the realm's own output (player and AI).
 * **AI aims**: a state that declares war picks an aim (the enemy's whole land, its border provinces, a vassal, a humbling) and fights for it; the aim shows on the nation's card to its enemy and to anyone with agents.
 * **Release a vassal**, united historic regions become home land and pay 2 % more, three new lenses (growth room, levy pool, army per head, behind More), codex entries for all of it.
+* **Held land** (rules 5): land your army holds but has not annexed gets the same ring as your own (Move, Build), you can put a port, fortress, watchtower or supply camp up in it (a port there is a landing base for marches), and an army in it is drawn and ordered like one at home.
+* **War camera**: the globe draws out for the first battle of a war only; later battles leave your zoom alone and pan only when the fight is out of view.
+* **Beyond the horizon**: an attack from the far side of the globe shows a red curved arrow coming in from the rim, in the direction of the attacker.
+* **Title**: the Play morph is one continuous movement (the wordmark never leaves, the globe moves on one curve, the live globe dissolves in where it coincides with the title globe); both stages come in with an entrance and run at full frame rate while they move.
 * Fixes: a data race in the vision mask, const tables in the engine made safe for the turn thread (corrupted memory in a stress run), sub-pixel text positions off so baked and live text match.
 
 # Changes since 1.0.0 (proposed version 1.1.0, Android version code 3)
