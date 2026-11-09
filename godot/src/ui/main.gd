@@ -20,6 +20,8 @@ var _turn_thread: Thread
 var _busy := false
 var _log_idx := 0
 var _spin := true
+var _title_col: Control = null                  # the wordmark and menu column of the title stage on screen (its entrance)
+var _no_intro := false                          # the morph from the first stage brings the second one in itself
 var mp: TBMpController
 var sfx: TBAudio
 var _perf_label: Label
@@ -396,7 +398,7 @@ func show_menu() -> void:
 	var colw: float = 270.0 * u
 	var v := K.vbox(int(2 * u) if short else int(8 * u))
 	if wide: v.custom_minimum_size.x = colw; v.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	holder.add_child(v)
+	holder.add_child(v); _title_col = v
 	_title_wordmark(v, wide, short, portrait, u, colw, vs)
 	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, (88.0 if wide else 14.0) * u); v.add_child(gap)
 	# the menu: one big card (Continue, or New game when there is no save) and quiet rows
@@ -441,6 +443,7 @@ func show_menu() -> void:
 	for it in items:
 		if not (it as Button).disabled: _title_cur = it; break
 	_title_sel_start.call_deferred()
+	_title_intro.call_deferred()
 	# F2: the Advisor's note under the menu (wide layout only; the era ring hides it with the rest of the column, Settings > Display switches it off)
 	if wide and bool(cfg.get("tips", true)):
 		var tip := TBAdvisorNote.new()
@@ -513,7 +516,7 @@ func show_front() -> void:
 	frame.add_child(holder)
 	var colw: float = 270.0 * u
 	var v := K.vbox(int(8 * u)); v.custom_minimum_size.x = colw; v.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	holder.add_child(v)
+	holder.add_child(v); _title_col = v
 	_title_wordmark(v, true, false, false, u, colw, vs)
 	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 88.0 * u); v.add_child(gap)
 	var items: Array = []
@@ -536,6 +539,8 @@ func show_front() -> void:
 	for it in items: it.chosen.connect(func(b: Control): _title_cur = b; _sel.go_to(Rect2(b.global_position, b.size)))
 	_title_cur = play
 	_title_sel_start.call_deferred()
+	_title_intro.call_deferred()
+	if _front_globe != null: _front_globe.intro()
 	var spacer := Control.new(); spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL; frame.add_child(spacer)
 	var ls := MP_.LangSwitch.new(String(cfg["lang"]))
 	ls.chosen.connect(func(code: String): cfg["lang"] = code; _save_cfg(); TBI18n.load_lang(code); show_front())
@@ -548,6 +553,20 @@ func show_front() -> void:
 	ver.offset_right = -10; ver.offset_top = 6; ver.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.add_child(ver)
 	if TBPanel.wants_focus(): play.grab_focus.call_deferred()
+
+## the way into a title stage: the wordmark, the ornament, the tagline and every row come up one after another (0.45 s each, 70 ms apart); nothing when effects are off
+func _title_intro() -> void:
+	if _no_intro or not TBFx.on(TBFx.LIGHT) or _title_col == null or not is_instance_valid(_title_col): return
+	var i := 0
+	for c in _title_col.get_children():
+		if not (c is Control) or (c as Control).custom_minimum_size.y < 4.0 and not (c is Button): i += 1; continue
+		TBFx.tween(c, {"modulate:a": 1.0}, 0.45, TBFx.LIGHT, {"modulate:a": 0.0}, 0.08 + 0.07 * float(i))
+		i += 1
+
+## the title runs at full frame rate while it moves (the project sleeps between frames to save the battery: a title that only redraws when asked would stand still)
+func _title_power() -> void:
+	var moving: bool = mode == "menu" and (K.motion_ok() or _morph != null or _dive != null)
+	if OS.low_processor_usage_mode == moving: OS.low_processor_usage_mode = not moving
 
 ## Play: the globe leaves the corner for the centre and shrinks into the second stage's ring, the menu slides away, the second stage rises under it and takes the globe over
 func _front_play() -> void:
@@ -562,7 +581,9 @@ func _front_play() -> void:
 		elif c != gl and not (c is TP_.SelFrame): ui.append(c)
 		elif c is TP_.SelFrame: c.visible = false
 	_front = false
+	_no_intro = true
 	show_menu()                                                                # builds the second stage (and its globe) under the ghost
+	_no_intro = false
 	map.modulate.a = 0.0; _overlay.modulate.a = 0.0
 	var orr: TP_.Orrery = _bezel as TP_.Orrery
 	var c0: Vector2 = gl.centre; var r0: float = gl.radius; var k0: float = gl.ring_k
@@ -1660,6 +1681,7 @@ func _update_perf(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_update_perf(delta)
+	_title_power()
 	_music_t += delta
 	if _music_t >= 1.0: _music_t = 0.0; _music_tick()
 	_place_tip()

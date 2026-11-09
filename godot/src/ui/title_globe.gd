@@ -55,10 +55,20 @@ func _apply() -> void:
 	queue_redraw()
 	if _ring != null: _ring.queue_redraw()
 
+var boost := 0.0                                   # extra turn (radians a second) while the globe settles in at the start
 func _process(delta: float) -> void:
 	if spin and visible and is_visible_in_tree() and TBKit.motion_ok():
-		turn = fposmod(turn + delta * deg_to_rad(2.0), TAU)
+		turn = fposmod(turn + delta * (deg_to_rad(2.0) + boost), TAU)
 		_mat.set_shader_parameter("lon0", turn)
+		queue_redraw()                                  # something on screen changed: draw it (the project redraws only on request)
+
+## the way in: the globe fades up and spins fast, then slows to its quiet turn
+func intro() -> void:
+	if not TBFx.on(TBFx.LIGHT) or not is_inside_tree(): return
+	modulate.a = 0.0; boost = 1.1
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(self, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(self, "boost", 0.0, 2.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 ## the shader draws on a plain rectangle (a control with no draw call has nothing to put the shader on)
 func _draw() -> void:

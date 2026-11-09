@@ -58,6 +58,12 @@ echo "$out" | grep -q "UNDO_UI OK" && echo "ok: undo_ui" || { echo "FAIL: undo_u
 # the Outliner (F7): what is under way, armies and marches, pinned provinces
 out=$(TB_NOANIM=1 timeout 200 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/outliner.gd -- 1280 720 /tmp/outl 2>&1)
 echo "$out" | grep -q "OUTLINER OK" && echo "ok: outliner" || { echo "FAIL: outliner"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+# the title moves on screen at both stages (pixels differ a few seconds apart) at a desktop and a phone size
+for sz in "1280 720" "2340 1080"; do
+  set -- $sz
+  out=$(TB_FX=light timeout 150 "$XV" -a -s "-screen 0 2400x1200x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/title_motion.gd -- $1 $2 /tmp/tm$1 2>&1)
+  echo "$out" | grep -q "TITLE_MOTION OK" && echo "ok: title_motion $1x$2" || { echo "FAIL: title_motion $1x$2"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+done
 # multiplayer is "coming soon" in a release: the tag, the note, no network; the Advisor's note never covers the title rows
 out=$(TB_NOANIM=1 timeout 150 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/mp_soon.gd -- 1920 1080 2>&1)
 echo "$out" | grep -q "MP_SOON OK" && echo "ok: mp_soon" || { echo "FAIL: mp_soon"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
