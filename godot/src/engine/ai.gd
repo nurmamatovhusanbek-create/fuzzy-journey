@@ -140,6 +140,9 @@ static func _nation(g: TBGame, n: int) -> void:
 			if hb < 0:
 				hb = own[g.rng.randi_n(own.size())]
 			g.apply({"cmd": "hire", "n": n, "p": hb, "amount": g.au(40.0)})
+	if g.rules >= 5 and g.mp[n] >= 2.0 and (g.turn + n) % 2 == 0:                  # a state does not leave its whole army in the capital
+		var cap_p: int = g.capital_of[n]
+		if cap_p >= 0 and g.army[cap_p] >= g.au(40.0): g.apply({"cmd": "spread", "n": n, "p": cap_p})
 	if g.rules >= 1:
 		TBGenerals.ai_step(g, n, own)
 		TBDecisions.ai_pick(g, n)

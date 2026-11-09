@@ -17,6 +17,7 @@ static var SCHEMA: Dictionary = {
 	"trade": {"t": "t"}, "marry": {"t": "t"}, "cancelTrade": {"t": "t"}, "ultimatum": {"t": "t", "?p": "pn"}, "appoint": {"?p": "pn"},
 	"ask": {"kind": "s", "t": "t", "?op": "s", "?p": "pn"}, "noop": {},
 	"settle": {"p": "p"}, "embassy": {"t": "t"},
+	"spread": {"p": "p"}, "muster": {"?pct": "q"},
 }
 static var FLAGS: Array = ["_force", "_ult"]                       # engine-internal switches (the AI and the court answers use them); never accepted from a client
 static var PACT_CMDS: Array = ["ally", "nap", "marry", "trade", "ultimatum", "breakPact", "embassy"]
@@ -128,6 +129,8 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 		"eventChoice": return TBEvents.resolve_choice(g, n, int(c.get("uid", 0)), int(c.get("i", 0)))
 		"settle": return TBMissions.settle(g, n, int(c.get("p", -1)))
 		"embassy": return TBMissions.embassy(g, n, int(c.get("t", 0)))
+		"spread": return TBMass.spread(g, n, int(c.get("p", -1)))
+		"muster": return TBMass.muster(g, n, int(c.get("pct", TBMass.DEFAULT_PCT)))
 		"noop": return {"ok": true}
 	return {"ok": false, "err": "unknown"}
 

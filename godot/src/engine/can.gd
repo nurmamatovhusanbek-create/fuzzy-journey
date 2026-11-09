@@ -45,6 +45,8 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"trade": return _trade(g, n, c, out)
 		"settle": return _settle(g, n, c, out)
 		"embassy": return _embassy(g, n, c, out)
+		"spread": return _spread(g, n, c, out)
+		"muster": return _muster(g, n, c, out)
 	return _fail(out, "unknown")
 
 static func _fail(out: Dictionary, why: String) -> Dictionary:
@@ -354,4 +356,21 @@ static func _trade(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 		_need(out, "gold", g.gold[n], float(out["gold"]), "gold")
 		_need(out, "men", g.manpower[n], float(out["men"]), "manpower")
 		if g.trade_cnt[t] >= TBTrade.max_deals(g, t) and g.human[t] != 0 and out["ok"]: return _fail(out, "tradefull")
+	return out
+
+## rules 5: one province's army marches out to where it is needed
+static func _spread(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var pl := TBMass.spread_plan(g, n, int(c.get("p", -1)))
+	if not bool(pl["ok"]): return _fail(out, String(pl["err"]))
+	out["moves"] = int(ceil(float(pl["mp"]))); out["gain"] = int(pl["sent"]); out["kind"] = "spread"; out["n_targets"] = (pl["targets"] as Array).size()
+	_need(out, "moves", g.mp[n], float(pl["mp"]), "mp")
+	return out
+
+## rules 5: every front province raises a share of its levy pool
+static func _muster(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var pl := TBMass.muster_plan(g, n, int(c.get("pct", TBMass.DEFAULT_PCT)))
+	if not bool(pl["ok"]): return _fail(out, String(pl["err"]))
+	out["gold"] = int(pl["gold"]); out["moves"] = int(ceil(float(pl["mp"]))); out["gain"] = int(pl["men"]); out["kind"] = "muster"; out["n_targets"] = (pl["items"] as Array).size()
+	_need(out, "gold", g.gold[n], float(pl["gold"]), "gold")
+	_need(out, "moves", g.mp[n], float(pl["mp"]), "mp")
 	return out

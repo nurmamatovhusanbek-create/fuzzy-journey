@@ -104,6 +104,12 @@ static func alerts(g: TBGame, n: int) -> Array:
 	if g.mp[n] >= cap_mp - 0.5: out.append(_a("idle_mp", 0, -1))
 	if g.rules >= 3 and g.turn > 4 and g.dp[n] >= dp_cap(g, n) - 0.5: out.append(_a("idle_dp", 0, -1))
 	if g.manpower[n] >= inc["manCap"] * 0.95 and inc["manCap"] > 50: out.append(_a("idle_men", 0, -1))
+	if g.rules >= 5 and g.turn <= 40 and g.mp[n] >= 1.0:                          # the whole standing army begins in the capital; say so until it is spread
+		var cap_p: int = g.capital_of[n]
+		if cap_p >= 0 and g.controller(cap_p) == n and g.army[cap_p] >= g.au(40.0):
+			var all_men := 0
+			for q in own: all_men += g.army[q]
+			if float(g.army[cap_p]) >= 0.8 * float(all_men): out.append(_a("spread_army", 0, cap_p))
 	if g.budget[n * 4 + 2] == 0: out.append(_a("no_research", 0, -1))
 	if wars == 0 and g.turn > 3 and g.gold[n] > g.gu(n, 120.0): out.append(_a("peacetime", 0, -1))
 	out.sort_custom(func(a, b): return int(a["sev"]) > int(b["sev"]))

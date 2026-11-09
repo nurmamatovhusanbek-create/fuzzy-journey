@@ -24,8 +24,8 @@ const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 static var _title_font: Font
 
-const HOT := {"move": "M", "attack": "M", "recruit": "R", "hire": "H", "general": "G", "build": "B", "develop": "E", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
-const HOT_KEY := {KEY_M: "move", KEY_R: "recruit", KEY_H: "hire", KEY_G: "general", KEY_B: "build", KEY_E: "develop", KEY_C: "colonize", KEY_D: "diplo", KEY_U: "ult", KEY_W: "war", KEY_P: "peace", KEY_T: "terms"}
+const HOT := {"spread": "S", "muster": "N", "move": "M", "attack": "M", "recruit": "R", "hire": "H", "general": "G", "build": "B", "develop": "E", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
+const HOT_KEY := {KEY_S: "spread", KEY_N: "muster", KEY_M: "move", KEY_R: "recruit", KEY_H: "hire", KEY_G: "general", KEY_B: "build", KEY_E: "develop", KEY_C: "colonize", KEY_D: "diplo", KEY_U: "ult", KEY_W: "war", KEY_P: "peace", KEY_T: "terms"}
 
 var g: TBGame
 var p := -1
@@ -787,6 +787,16 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 			else:
 				out.append(_mk("recruit", "men", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), true))
 			out.append(_mk("hire", "coin", "cc_hire", hc, _cost_parts("%s +%d" % [T.call("cc_hire"), int(hc["gain"])], hc)))
+			if g.rules >= 5 and not held:                                              # orders for many provinces at once (TBMass)
+				if k == 1 and g.army[s] >= g.au(20.0):
+					var spc := g.can({"cmd": "spread", "p": s})
+					var spp: Array = _cost_parts(T.call("cc_spread"), spc)
+					if bool(spc["ok"]) or spc["reason"] == "mp": spp.append({"t": " · " + T.call("spread_detail", {"k": int(spc.get("n_targets", 0)), "m": int(spc["gain"])}), "short": false})
+					out.append(_mk("spread", "army", "cc_spread", spc, spp))
+				var muc := g.can({"cmd": "muster", "pct": TBMass.DEFAULT_PCT})
+				var mup: Array = _cost_parts(T.call("cc_muster"), muc)
+				if bool(muc["ok"]) or muc["reason"] in ["gold", "mp"]: mup.append({"t": " · " + T.call("muster_detail", {"k": int(muc.get("n_targets", 0)), "m": int(muc["gain"])}), "short": false})
+				out.append(_mk("muster", "men", "cc_muster", muc, mup))
 			if k == 1 and g.rules >= 1 and not held and g.gen[s] == 0 and g.army[s] >= TBGenerals.MIN_ARMY:
 				var gc := g.can({"cmd": "appoint", "p": s})
 				if gc["reason"] != "cap" or true:
@@ -1096,6 +1106,8 @@ func _press(i: int) -> void:
 		"ult": command.emit({"cmd": "ultimatum", "t": int(_case["o"]), "p": s})
 		"recruit": amount_requested.emit("recruit", s)
 		"hire": amount_requested.emit("hire", s)
+		"spread": command.emit({"cmd": "spread", "p": s})
+		"muster": command.emit({"cmd": "muster", "pct": TBMass.DEFAULT_PCT})
 		"general": command.emit({"cmd": "appoint", "p": s})
 		"develop":
 			if g.rules >= 4: _open_develop(v["btn"], s)

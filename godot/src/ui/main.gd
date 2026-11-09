@@ -1254,6 +1254,12 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		if rp >= 0 and rp < g.P:
 			hud.toast(T.call("recruit_done", {"k": int(cmd.get("amount", 15)), "p": TBI18n.place(g.pname(rp))}))
 			map.labels.add_fx("cap", rp, rp, TBTokens.c("pos_bar"))
+	elif String(cmd.get("cmd", "")) == "spread":
+		sfx.play("coin")
+		hud.toast(T.call("spread_done", {"m": TBKit.fmt(float(res.get("sent", 0))), "k": int(res.get("k", 0))}))
+	elif String(cmd.get("cmd", "")) == "muster":
+		sfx.play("coin")
+		hud.toast(T.call("muster_done", {"m": TBKit.fmt(float(res.get("men", 0))), "k": int(res.get("k", 0)), "g": TBKit.fmt(float(res.get("gold", 0)))}))
 	elif String(cmd.get("cmd", "")) == "settle":
 		sfx.play("coin")
 		hud.toast(T.call("settle_done", {"p": TBI18n.place(g.pname(int(cmd["p"]))), "n": TBMissions.SETTLE_POP}))
