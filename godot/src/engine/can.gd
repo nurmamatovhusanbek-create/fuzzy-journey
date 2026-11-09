@@ -48,6 +48,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"spread": return _spread(g, n, c, out)
 		"muster": return _muster(g, n, c, out)
 		"works": return _works(g, n, c, out)
+		"release": return _fail(out, "rules") if g.rules < 5 else (_fail(out, "notvassal") if g.overlord[int(c.get("t", 0))] != n else out)
 	return _fail(out, "unknown")
 
 static func _fail(out: Dictionary, why: String) -> Dictionary:

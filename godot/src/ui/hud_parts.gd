@@ -252,6 +252,9 @@ static func lens_glyph(lens: String) -> String:
 		"wars": return "skull"
 		"stability": return "scales"
 		"population": return "men"
+		"growth": return "men"
+		"levy": return "swords"
+		"burden": return "swords"
 		"buildings": return "gear"
 		"governments": return "crown"
 		"terrain": return "globe"
@@ -1221,7 +1224,8 @@ class Legend extends Control:
 		match lens:
 			"economic": ramp = L.ECON_RAMP
 			"military": ramp = L.ARMY_RAMP
-			"population": ramp = L.POP_RAMP
+			"population", "growth": ramp = L.POP_RAMP
+			"levy", "burden": ramp = L.ARMY_RAMP
 			"stability": ramp = L.STAB_RAMP
 			"diplomatic":
 				items = [[L.SELF_COL, T.call("leg_self")], [L.REL_COL[0], T.call("rel_peace")], [L.REL_COL[1], T.call("rel_war")], [L.REL_COL[2], T.call("rel_nap")], [L.REL_COL[3], T.call("rel_ally")], [L.REL_COL[4], T.call("rel_marriage")]]

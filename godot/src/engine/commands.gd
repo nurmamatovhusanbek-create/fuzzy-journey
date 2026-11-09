@@ -17,7 +17,7 @@ static var SCHEMA: Dictionary = {
 	"trade": {"t": "t"}, "marry": {"t": "t"}, "cancelTrade": {"t": "t"}, "ultimatum": {"t": "t", "?p": "pn"}, "appoint": {"?p": "pn"},
 	"ask": {"kind": "s", "t": "t", "?op": "s", "?p": "pn"}, "noop": {},
 	"settle": {"p": "p"}, "embassy": {"t": "t"},
-	"spread": {"p": "p"}, "muster": {"?pct": "q"}, "works": {"id": "s"},
+	"spread": {"p": "p"}, "muster": {"?pct": "q"}, "works": {"id": "s"}, "release": {"t": "t"},
 }
 static var FLAGS: Array = ["_force", "_ult"]                       # engine-internal switches (the AI and the court answers use them); never accepted from a client
 static var PACT_CMDS: Array = ["ally", "nap", "marry", "trade", "ultimatum", "breakPact", "embassy"]
@@ -132,6 +132,7 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 		"spread": return TBMass.spread(g, n, int(c.get("p", -1)))
 		"muster": return TBMass.muster(g, n, int(c.get("pct", TBMass.DEFAULT_PCT)))
 		"works": return TBWorks.buy(g, n, String(c.get("id", "")))
+		"release": return _c_release(g, c)
 		"noop": return {"ok": true}
 	return {"ok": false, "err": "unknown"}
 
@@ -505,3 +506,14 @@ static func _c_develop(g: TBGame, c: Dictionary) -> Dictionary:
 	if g.rules >= 4: g.inv_d[p] = 0.0                                          # the work was done by hand: the slow bar starts again
 	return {"ok": true}
 
+
+## rules 5: free a vassal on purpose
+static func _c_release(g: TBGame, c: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var t: int = c["t"]
+	if g.rules < 5: return _err("rules")
+	if g.overlord[t] != n: return _err("notvassal")
+	g.overlord[t] = 0; g.tribute[t] = 0; g.liberty[t] = 0.0
+	g.grudge[t * g.N1 + n] = 0; g.grudge[n * g.N1 + t] = 0
+	g.infamy[n] = maxf(0.0, g.infamy[n] - 3.0)
+	g.log.append({"turn": g.turn, "kind": "release", "a": n, "b": t})
+	return {"ok": true}

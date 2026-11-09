@@ -1291,6 +1291,8 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 	elif String(cmd.get("cmd", "")) == "settle":
 		sfx.play("coin")
 		hud.toast(T.call("settle_done", {"p": TBI18n.place(g.pname(int(cmd["p"]))), "n": TBMissions.SETTLE_POP}))
+	elif String(cmd.get("cmd", "")) == "release":
+		sfx.play("coin"); hud.toast(T.call("release_done", {"a": g.dname(int(cmd["t"]))}))
 	elif String(cmd.get("cmd", "")) == "embassy":
 		sfx.play("coin")
 		hud.toast(T.call("embassy_done", {"a": g.dname(int(cmd["t"])), "k": TBMissions.EMBASSY_GRUDGE}))

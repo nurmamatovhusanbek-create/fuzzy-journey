@@ -7,7 +7,7 @@ class_name TBLenses
 extends RefCounted
 
 const D = preload("res://src/engine/data.gd")
-const NAMES := ["political", "diplomatic", "routes", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]
+const NAMES := ["political", "diplomatic", "routes", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain", "growth", "levy", "burden"]      # the last three (rules 5) sit behind "more"
 const MODES := ["off", "deuter", "protan", "tritan"]
 
 ## in game the political colours are a little darker (Age-of-Civilizations muted palette); the title globe keeps the lifted colours
@@ -403,6 +403,9 @@ func color(p: int) -> int:
 			return war_col[o] if war_col[o] != 0 else lerp_rgb(nat_rgb[o], 0x000000, 0.35)
 		"stability": return ramp(STAB_RAMP, g.stab[p] / 100.0) if o != 0 else neutral()
 		"population": return ramp(POP_RAMP, sqrt(g.pop[p] / max_pop)) if o != 0 else neutral()
+		"growth": return ramp(POP_RAMP, clampf(1.0 - float(g.pop[p]) / float(maxi(1, g.pop_cap(p))), 0.0, 1.0)) if (o != 0 and g.rules >= 5) else neutral()
+		"levy": return ramp(ARMY_RAMP, clampf(float(mini(g.levy[p], g.levy_cap(p))) / float(maxi(1, g.levy_cap(p))), 0.0, 1.0)) if (o != 0 and g.rules >= 4) else neutral()
+		"burden": return ramp(ARMY_RAMP, clampf(sqrt(float(g.army[p]) / float(maxi(1, g.pop[p])) / 0.1), 0.0, 1.0)) if (o != 0 and (o == me or TBVision.sees_fast(g, p))) else neutral()
 		"buildings": return BUILD_COL[g.building[p]] if g.building[p] != 0 else neutral()
 		"governments": return REGIME_COL[g.regime[o]] if o != 0 else neutral()
 		"terrain": return TERRAIN_COL[g.terrain[p]]
@@ -484,6 +487,9 @@ func describe(p: int) -> String:
 		"military": return ("%s: %s" % [T.call("lens_military"), TBKit.fmt(g.army[p]) if (o == me or TBVision.sees_fast(g, p)) else "?"]) if o != 0 else ""
 		"stability": return "%s: %d" % [T.call("lens_stability"), int(g.stab[p])] if o != 0 else ""
 		"population": return "%s: %s" % [T.call("lens_population"), TBKit.fmt(g.pop[p])] if o != 0 else ""
+		"growth": return "%s: %d%%" % [T.call("lens_growth"), int(round(100.0 * clampf(1.0 - float(g.pop[p]) / float(maxi(1, g.pop_cap(p))), -1.0, 1.0)))] if (o != 0 and g.rules >= 5) else ""
+		"levy": return "%s: %s / %s" % [T.call("lens_levy"), TBKit.fmt(float(mini(g.levy[p], g.levy_cap(p)))), TBKit.fmt(float(g.levy_cap(p)))] if (o != 0 and g.rules >= 4) else ""
+		"burden": return "%s: %.2f%%" % [T.call("lens_burden"), 100.0 * float(g.army[p]) / float(maxi(1, g.pop[p]))] if (o != 0 and (o == me or TBVision.sees_fast(g, p))) else ""
 		"buildings":
 			if g.building[p] == 0: return ""
 			var names: PackedStringArray = []                                            # districts: every building that stands here, the main one first with its colour letter

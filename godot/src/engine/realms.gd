@@ -31,6 +31,13 @@ static func _build(w: TBWorld) -> void:
 
 static func count() -> int: return LIST.size()
 
+## rules 5: how many historic regions the nation has united
+static func done_count(g: TBGame, n: int) -> int:
+	var R := LIST.size(); var k := 0
+	if g.realm_done.size() != g.N1 * R: return 0
+	for i in R: k += 1 if g.realm_done[n * R + i] != 0 else 0
+	return k
+
 static func members(g: TBGame, i: int) -> PackedInt32Array:
 	_build(g.world)
 	return _members[i]
@@ -73,4 +80,7 @@ static func tick(g: TBGame) -> void:
 				g.realm_done[o * R + i] = 1
 				g.gold[o] += g.gu(o, 100.0)
 				for p in g.owned(o): g.stab[p] = mini(100, g.stab[p] + 5); g.touch(p)
+				if g.rules >= 5:                                                  # the unified region is home land from now on, and the realm pays a little more for good
+					for p in m:
+						if g.owner[p] == o: g.core[p] = o; g.touch(p)
 				g.log.append({"turn": g.turn, "kind": "realm", "a": o, "id": LIST[i][0]})

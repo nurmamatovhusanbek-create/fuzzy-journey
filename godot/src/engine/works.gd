@@ -55,7 +55,7 @@ static func research_mul(g: TBGame, n: int) -> float: return 1.0 + _pct(g, n, "a
 static func admin_mul(g: TBGame, n: int) -> float: return 1.0 - _pct(g, n, "roads")
 static func pop_cap_mul(g: TBGame, n: int) -> float: return 1.0 + _pct(g, n, "granaries")
 static func levy_mul(g: TBGame, n: int) -> float: return 1.0 + _pct(g, n, "guard")
-static func income_mul(g: TBGame, n: int) -> float: return 1.0 + _pct(g, n, "palace")
+static func income_mul(g: TBGame, n: int) -> float: return (1.0 + _pct(g, n, "palace")) * (1.0 + 0.02 * float(TBRealms.done_count(g, n)))        # a united region pays 2 % more for good
 static func stab_add(g: TBGame, n: int) -> float: return float(level(g, n, index_of("palace")))
 static func trade_mul(g: TBGame, n: int) -> float: return 1.0 + _pct(g, n, "canals")
 

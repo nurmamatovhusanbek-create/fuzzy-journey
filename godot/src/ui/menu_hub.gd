@@ -6,7 +6,7 @@ extends RefCounted
 
 const K = preload("res://src/ui/ui_kit.gd")
 static var T: Callable = TBI18n.T
-const CODEX := ["scale", "mass", "infamy", "cb", "ultimatum", "generals", "battle", "supply", "rulers", "doctrine", "trade", "realms", "victory", "projects", "colonies", "standing", "agents"]
+const CODEX := ["scale", "mass", "works", "undo", "aims", "infamy", "cb", "ultimatum", "generals", "battle", "supply", "rulers", "doctrine", "trade", "realms", "victory", "projects", "colonies", "standing", "agents"]
 const SAVE_SLOTS := ["1", "2", "3", "4", "5"]
 static var mem := {"tab": "saves", "mode": "save", "topic": "infamy"}
 

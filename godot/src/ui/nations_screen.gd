@@ -660,6 +660,9 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 			if not bool(ec["ok"]): eoff = T.call("err_" + String(ec["reason"])) if TBI18n.has_key("err_" + String(ec["reason"])) else String(ec["reason"])
 			add_btn.call(T.call("dip_embassy"), "eye", "%d ✉" % TBMissions.EMBASSY_DP, func(): done.call({"cmd": "embassy", "t": n}), eoff,
 				T.call("dip_embassy_tip", {"g": TBMissions.EMBASSY_GOLD, "k": TBMissions.EMBASSY_GRUDGE, "i": int(TBMissions.EMBASSY_INTEL)}))
+		if g.rules >= 5 and g.overlord[n] == me:
+			add_btn.call(T.call("dip_release"), "flag", "", func():
+				TBPanel.confirm(parent, T.call("confirm_release_t", {"a": g.dname(n)}), T.call("confirm_release_b"), T.call("release_do"), func(): done.call({"cmd": "release", "t": n}), false, "info"), "", T.call("dip_release_tip"))
 		if rel == 2 or rel == 3:
 			add_btn.call(T.call("dip_break"), "close", "", func():
 				TBPanel.confirm(parent, T.call("confirm_break_t", {"a": g.dname(n)}), T.call("confirm_break_b"), T.call("break_pact"), func(): done.call({"cmd": "breakPact", "t": n}), true, "warning", "",
