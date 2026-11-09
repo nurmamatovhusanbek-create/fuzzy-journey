@@ -36,7 +36,7 @@ func _init() -> void:
 	_check(TBWorks.level(g, n, 0) == int(TBWorks.LIST[0]["max"]), "a work stops at its top level (%d)" % TBWorks.level(g, n, 0))
 	var sv: Dictionary = TBSave.to_dict(g)
 	var g2: TBGame = TBSave.from_dict(w, sv)
-	_check(g2 != null and TBWorks.level(g2, n, 0) == 5, "levels survive a save")
+	_check(g2 != null and TBWorks.level(g2, n, 0) == TBWorks.level(g, n, 0), "levels survive a save")
 	# the AI buys them
 	var ga := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "difficulty": "normal", "rules": 5})
 	for t in 60: ga.end_turn()
