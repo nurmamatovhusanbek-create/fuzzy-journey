@@ -8,6 +8,7 @@ signal lens_selected(name: String)
 signal nations_pressed
 signal wars_pressed
 signal goals_pressed
+signal outliner_pressed
 signal decisions_pressed
 signal chronicle_pressed
 signal advisor_pressed
@@ -40,7 +41,7 @@ const MM_R_PHONE := 48.0                      # the minimap's bezel radius (layo
 ## id, glyph, label key, hotkey hint (the first 4 are the rail, the rest sit behind "More")
 const SCREENS := [
 	["nations", "globe", "dk_nations", "F1"], ["budget", "coins", "dk_budget", "F2"], ["decisions", "scales", "dk_decisions", "F3"], ["advisor", "lamp", "dk_advisor", "F4"],
-	["chronicle", "book", "dk_chronicle", "F5"], ["goals", "trophy", "dk_goals", "F6"], ["save", "save", "dk_save", ""], ["settings", "gear", "dk_settings", ""],
+	["chronicle", "book", "dk_chronicle", "F5"], ["goals", "trophy", "dk_goals", "F6"], ["outliner", "pin", "dk_outliner", "F7"], ["save", "save", "dk_save", ""], ["settings", "gear", "dk_settings", ""],
 ]
 const PRIMARY := 6
 const LENS_PINNED := ["political", "diplomatic", "routes", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain"]   # every lens sits on the tuner below the map (Alt+1..9 order); the phone keeps four and the "more" pop-up
@@ -1003,6 +1004,7 @@ func _screen(id: String) -> void:
 		"advisor": advisor_pressed.emit()
 		"chronicle": chronicle_pressed.emit()
 		"goals": goals_pressed.emit()
+		"outliner": outliner_pressed.emit()
 		"save": save_pressed.emit()
 		"settings": settings_pressed.emit()
 
@@ -1327,6 +1329,7 @@ func _unhandled_key_input(e: InputEvent) -> void:
 		KEY_F4: _screen("advisor")
 		KEY_F5: _screen("chronicle")
 		KEY_F6: _screen("goals")
+		KEY_F7: _screen("outliner")
 		KEY_ENTER, KEY_KP_ENTER:
 			if k.ctrl_pressed or k.meta_pressed: force_end_turn()
 			else: _seal_pressed()

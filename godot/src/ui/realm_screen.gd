@@ -142,6 +142,22 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		[T.call("happiness"), "%d%%" % (int(round(float(happy_sum) / maxf(1.0, float(n_own))))), 0]]
 	body.add_child(_cap(T.call("realm_standing"), 10.0, 6.0))
 	body.add_child(K.fxl(standing, 2))
+	# ---- people (rules 5): the size in real terms, growth, how much of the land's room is used, soldiers, the levy pool
+	if g.rules >= 5:
+		var pop_sum := 0; var cap_sum := 0; var grow_sum := 0.0; var army_sum := 0; var lev_a := 0; var lev_b := 0
+		for p in g.owned(me):
+			pop_sum += g.pop[p]; cap_sum += g.pop_cap(p); army_sum += g.army[p]
+			grow_sum += float(TBTurn.growth_parts(g, p)["growth"])
+			lev_a += mini(g.levy[p], g.levy_cap(p)); lev_b += g.levy_cap(p)
+		var per_year: float = grow_sum * 2.0 / maxf(1.0, float(pop_sum)) * 100.0
+		var ppl: Array = [
+			[T.call("rp_total"), T.call("rp_total_v", {"g": K.fmt(float(pop_sum)), "r": K.fmt(float(pop_sum) * float(g.scale)), "s": g.scale}), 0],
+			[T.call("rp_growth"), T.call("rp_growth_v", {"v": "%+.2f" % per_year}), 1 if per_year > 0.05 else (-1 if per_year < -0.05 else 0)],
+			[T.call("rp_room"), T.call("rp_room_v", {"v": int(round(100.0 * float(pop_sum) / maxf(1.0, float(cap_sum))))}), 0],
+			[T.call("rp_army_share"), T.call("rp_army_v", {"v": "%.2f" % (100.0 * float(army_sum) / maxf(1.0, float(pop_sum)))}), 0],
+			[T.call("rp_levy"), "%s / %s" % [K.fmt(float(lev_a)), K.fmt(float(lev_b))], 0]]
+		body.add_child(_cap(T.call("realm_people"), 14.0, 6.0))
+		body.add_child(K.fxl(ppl, 2))
 	# ---- progress toward the victories (the three nearest)
 	if g.rules >= 1:
 		var prog: Dictionary = TBTurn.victory_progress(g, me)

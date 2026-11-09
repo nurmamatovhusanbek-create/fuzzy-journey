@@ -321,6 +321,8 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			if not pick: ord = ord.filter(func(x: int) -> bool: return rows.has(x))
 			if key == "army": ord.sort_custom(func(a: int, b: int) -> bool: return st["army"][a] > st["army"][b] if st["army"][a] != st["army"][b] else a < b)
 			elif key == "name": ord.sort_custom(func(a: int, b: int) -> bool: return names_l[a] < names_l[b])
+			elif key == "tech": ord.sort_custom(func(a: int, b: int) -> bool: return g.tech_level[a] > g.tech_level[b] if g.tech_level[a] != g.tech_level[b] else a < b)
+			elif key == "stars": ord.sort_custom(func(a: int, b: int) -> bool: return TBStanding.stars(g, a) > TBStanding.stars(g, b) if TBStanding.stars(g, a) != TBStanding.stars(g, b) else a < b)
 			else: ord = st["by_p"].duplicate()
 			if not pick and key == "prov":                          # the neighbours first, then the rest by size
 				ord = ord.filter(func(x: int) -> bool: return rows.has(x))
@@ -360,8 +362,8 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			fl.add_child(cb); fchips[fid] = cb
 		search.text_changed.connect(func(t: String): S["q"] = t; apply.call())
 		sort_btn.pressed.connect(func():
-			var seq: Array = ["prov", "army", "name"]
-			S["sort"] = seq[(seq.find(String(S["sort"])) + 1) % 3]; mem["sort"] = S["sort"]
+			var seq: Array = ["prov", "army", "stars", "tech", "name"]
+			S["sort"] = seq[(maxi(0, seq.find(String(S["sort"]))) + 1) % seq.size()]; mem["sort"] = S["sort"]
 			sort_btn.text = T.call("sort_by", {"s": sort_label.call()}); apply.call())
 		apply.call()
 		# portrait: the detail is a second page
