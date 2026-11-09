@@ -565,7 +565,7 @@ func _title_intro() -> void:
 
 ## the title runs at full frame rate while it moves (the project sleeps between frames to save the battery: a title that only redraws when asked would stand still)
 func _title_power() -> void:
-	var moving: bool = mode == "menu" and (K.motion_ok() or _morph != null or _dive != null)
+	var moving: bool = mode == "menu" and ((K.motion_ok() and (_front or _spin)) or _morph != null or _dive != null)
 	if OS.low_processor_usage_mode == moving: OS.low_processor_usage_mode = not moving
 
 ## Play: the globe leaves the corner for the centre and shrinks into the second stage's ring, the menu slides away, the second stage rises under it and takes the globe over
