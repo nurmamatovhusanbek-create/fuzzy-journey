@@ -120,7 +120,7 @@ func set_selection(p: int) -> void:
 func _nation_mode() -> bool:
 	if g == null or sel < 0 or sel >= g.P or g.human_id <= 0: return false
 	var o: int = g.owner[sel]
-	return o != 0 and o != g.human_id
+	return o != 0 and o != g.human_id and g.controller(sel) != g.human_id         # land you hold (occupied) gets the verb ring like your own
 
 func _want() -> bool:
 	if _nation_mode(): return false                                              # foreign land: no ring (its nation opens as the country plate); the ring is only where there is something to do

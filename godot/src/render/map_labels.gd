@@ -236,7 +236,9 @@ func _draw_alerts() -> void:
 		var to2 := Vector2(pt.x, pt.y)
 		var pulse: float = 0.5 + 0.5 * sin(t * 4.0) if TBKit.motion_ok() else 0.6
 		draw_arc(to2, 20.0 + 4.0 * pulse, 0.0, TAU, 40, Color(red, 0.85), 2.5, true)
-		if pf.z <= 0.0: continue
+		if pf.z <= 0.0:                                                  # the attacker is beyond the horizon: the arrow comes in curving from the rim of the globe, where it lies
+			if map.mode == 0: _draw_horizon_arrow(to2, Vector2(pf.x, pf.y), red)
+			continue
 		var from2 := Vector2(pf.x, pf.y)
 		var dist: float = from2.distance_to(to2)
 		if dist < 2.0: continue
@@ -249,6 +251,34 @@ func _draw_alerts() -> void:
 		var head := PackedVector2Array([tip + d * 13.0, tip - d * 6.0 + side * 9.0, tip - d * 6.0 - side * 9.0])
 		draw_colored_polygon(head, Color(0, 0, 0, 0.55))
 		draw_colored_polygon(PackedVector2Array([tip + d * 11.0, tip - d * 4.0 + side * 7.0, tip - d * 4.0 - side * 7.0]), red)
+
+## a curved red arrow from the limb of the globe (in the direction of a place on the far side) to the target on the near side
+func _draw_horizon_arrow(to2: Vector2, far_xy: Vector2, red: Color) -> void:
+	var c := map.size * 0.5
+	var r: float = map.radius_px()
+	var v := far_xy - c
+	if v.length() < r * 0.12: v = c - to2                              # straight behind the centre: any rim point will do, away from the target
+	if v.length() < 1.0: v = Vector2(0.0, -1.0)
+	var rim := c + v.normalized() * (r * 0.985)
+	var span: float = rim.distance_to(to2)
+	if span < 40.0: return
+	var mid := rim.lerp(to2, 0.5)
+	var perp := (to2 - rim).normalized().orthogonal()
+	var ctrl := mid + perp * span * 0.30                                # the bow of the curve
+	var tan_end := (to2 - ctrl).normalized()
+	var end := to2 - tan_end * 26.0
+	var pts := PackedVector2Array()
+	var n := 28
+	for i in n + 1:
+		var t := float(i) / float(n)
+		pts.append(rim * (1.0 - t) * (1.0 - t) + ctrl * 2.0 * (1.0 - t) * t + end * t * t)
+	for i in range(n):
+		var al: float = clampf(float(i) / float(n) * 2.2, 0.15, 1.0)    # it fades in from the horizon
+		draw_line(pts[i], pts[i + 1], Color(0, 0, 0, 0.5 * al), 6.0, true)
+		draw_line(pts[i], pts[i + 1], Color(red, al), 3.5, true)
+	var side := tan_end.orthogonal()
+	draw_colored_polygon(PackedVector2Array([end + tan_end * 15.0, end - tan_end * 6.0 + side * 10.0, end - tan_end * 6.0 - side * 10.0]), Color(0, 0, 0, 0.55))
+	draw_colored_polygon(PackedVector2Array([end + tan_end * 12.0, end - tan_end * 4.0 + side * 7.5, end - tan_end * 4.0 - side * 7.5]), red)
 
 func add_fx(kind: String, from: int, to: int, col: Color, delay_ms: int = 0) -> void:
 	_fx.append({"kind": kind, "from": from, "to": to, "col": col, "t0": Time.get_ticks_msec() + delay_ms, "dur": 700 if kind == "atk" else (2600 if kind == "march" else 900)})
@@ -920,7 +950,7 @@ func _draw_layout() -> void:
 	TBVision.sync(g)                                                    # fog of war: a foreign army out of sight gets no marker
 	var army_lens: bool = armies_shown()
 	var routes_lens: bool = _routes_lens()
-	var own_a := g.owner; var arm_a := g.army; var cap_a := g.capital; var unit_a := _unit
+	var own_a := g.owner; var occ_a := g.occupier; var arm_a := g.army; var cap_a := g.capital; var unit_a := _unit
 	_fog_n = PackedByteArray(); _fog_n.resize(g.N1)
 	var relv := PackedInt32Array(); relv.resize(g.N1)                  # the relation to every nation, once (it was a call per province)
 	for n in range(1, g.N1): relv[n] = g.get_rel(me, n)
@@ -929,19 +959,20 @@ func _draw_layout() -> void:
 		if o == 0: continue
 		if not _marks_set.is_empty() and _marks_set.has(p): continue    # the peace table's price tag stands in the middle of this province: no army counter under it
 		var a := arm_a[p]
-		var rel := relv[o] if o != me else -1
+		var ctl: int = occ_a[p] if occ_a[p] != 0 else o                 # whose army stands there: the holder of the land (an occupier's men are not the owner's)
+		var rel := relv[ctl] if ctl != me else -1
 		var war := rel == 1
 		var want := false
 		if a > 0 and army_lens:                                         # decide on the cheap tests first; fog of war is asked only of a province that could get a marker
 			match atier:
 				0: want = false
-				1: want = o == me or war or rel == 3 or p == sel or p == hov
-				_: want = (not army_mine_only) or o == me or war or rel == 3 or p == sel or p == hov
+				1: want = ctl == me or o == me or war or rel == 3 or p == sel or p == hov
+				_: want = (not army_mine_only) or ctl == me or o == me or war or rel == 3 or p == sel or p == hov
 		var cap := cap_a[p] != 0
 		var ring := cap and (_capital_star_shown(o, me, ztier) or p == sel or routes_lens)
 		if routes_lens and ring: ring = _on_a_route(o)                  # Routes lens: the capitals the lines run between are marked, nothing else
 		if not want and not ring: continue
-		if a > 0 and (not army_lens or (o != me and not _sees(p, me))): a = 0
+		if a > 0 and (not army_lens or (ctl != me and o != me and not _sees(p, me))): a = 0
 		if a <= 0: want = false
 		if not want and not ring: continue
 		var pr: Vector3
@@ -960,7 +991,7 @@ func _draw_layout() -> void:
 		if p == _push_p: pr.x += _push_v.x; pr.y += _push_v.y
 		elif p == _push_sp: pr.x += _push_sv.x; pr.y += _push_sv.y
 		var shown_before := _pl.has(p) and float(_pl[p]["t"]) > 0.5
-		var pri := 0 if (o == me or p == sel) else (1 if war else (2 if cap else 3))
+		var pri := 0 if (ctl == me or o == me or p == sel) else (1 if war else (2 if cap else 3))
 		if not _order.is_empty() and (p == int(_order["from"]) or p == int(_order["to"])): pri = -1      # the order's two ends always get their markers
 		vis.append([p, pr.x, pr.y, pri * 4 + (0 if shown_before else 1), limb, a, want])
 	vis.sort_custom(func(a, b): return a[3] < b[3] if a[3] != b[3] else (a[5] > b[5] if a[5] != b[5] else a[0] < b[0]))

@@ -455,6 +455,15 @@ func set_owner(p: int, n: int) -> void:
 func controller(p: int) -> int:
 	return occupier[p] if occupier[p] != 0 else owner[p]
 
+## rules >= 5: land held by n's army but not annexed (its owner is someone else) may carry n's own military works: a port to land from, a fortress, a watchtower, a supply camp
+static var HELD_BUILD: Array = [3, 1, 5, 6]            # D.B_PORT, B_FORTRESS, B_WATCHTOWER, B_SUPPLYCAMP
+func held_by(n: int, p: int) -> bool:
+	return rules >= 5 and occupier[p] == n and owner[p] != n and n != 0
+## may n put building b up in p: its own land, or (rules 5) held land and a work from HELD_BUILD
+func build_land_ok(n: int, p: int, b: int) -> bool:
+	if owner[p] == n and occupier[p] == 0: return true
+	return held_by(n, p) and HELD_BUILD.has(b)
+
 # ---------------------------------------------------------------- levy pools (rules >= 4; docs/WAR_DESIGN.md section 3)
 static var LEVY_RATE: Array = [0.22, 0.28, 0.34, 0.42, 0.50]       # rules 5 uses LEVY_SHARE below   # share of a province's people that can be under arms, by era: real states carried 1-3 % of their people for years, industrial ones 5-10 %
 const LEVY_REFILL := 0.06                            # of the cap, each turn
@@ -781,7 +790,7 @@ func b_list(p: int) -> Array:
 func b_price(p: int, b: int, lvl: int) -> int:
 	var base: float = float(D.BUILDINGS[b - 1]["cost"][lvl - 1])
 	if rules >= 2 and bl(p, b) == 0: base *= 1.0 + SLOT_COST_STEP * b_used(p)
-	if rules >= 5 and owner[p] > 0: base *= cm(owner[p])                  # priced in the nation's own wages
+	if rules >= 5 and controller(p) > 0: base *= cm(controller(p))        # priced in the wages of whoever builds (the owner, or the army that holds the land)
 	return int(ceil(base))
 
 ## rules >= 2: income of development level dv in p when the people to staff it are short: the levels below are earned in full, the top level by the share staffed

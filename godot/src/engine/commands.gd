@@ -351,7 +351,7 @@ static func _c_build(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var p: int = c["p"]; var b: int = int(c["b"])
 	if b < 1 or b > D.BUILDINGS.size(): return _err("type")
 	var bt: Dictionary = D.BUILDINGS[b - 1]
-	if g.owner[p] != n or g.occupier[p] != 0: return _err("notyours")
+	if not g.build_land_ok(n, p, b): return _err("notyours")
 	if g.b_building[p] != 0: return _err("busy")
 	var cur: int = g.bl(p, b)
 	var site := g.site_error(p, b)

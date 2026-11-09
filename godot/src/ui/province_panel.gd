@@ -783,10 +783,10 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				if g.mp[me] < 1: mv["ok"] = false; mv["reason"] = "mp"; mv["short"] = {"moves": 1}
 				elif flow != null and targets_n == 0 and not _has_explicit_targets(s): mv["ok"] = false; mv["reason"] = "notargets"
 				out.append(_mk("move", "arrowhead", "move", mv, [{"t": T.call("cc_move_hint"), "short": false}, {"t": " · " + CC.unit(1, "u_move"), "short": mv["short"].has("moves")}], true))
-				out.append(_mk("recruit", "men", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), false))
-			else:
+				if not held: out.append(_mk("recruit", "men", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), false))
+			elif not held:
 				out.append(_mk("recruit", "men", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), true))
-			out.append(_mk("hire", "coin", "cc_hire", hc, _cost_parts("%s +%d" % [T.call("cc_hire"), int(hc["gain"])], hc)))
+			if not held: out.append(_mk("hire", "coin", "cc_hire", hc, _cost_parts("%s +%d" % [T.call("cc_hire"), int(hc["gain"])], hc)))
 			if g.rules >= 5 and not held:                                              # orders for many provinces at once (TBMass)
 				if k == 1 and g.army[s] >= g.au(20.0):
 					var spc := g.can({"cmd": "spread", "p": s})
@@ -805,7 +805,7 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 			var bi := _build_items(s)
 			if not bi["items"].is_empty() or bi["busy"] or held or g.occupier[s] != 0:
 				var bcan: Dictionary
-				if held or g.occupier[s] != 0 or g.owner[s] != me: bcan = g.can({"cmd": "build", "p": s, "b": 1})
+				if (held or g.occupier[s] != 0 or g.owner[s] != me) and bi["items"].is_empty(): bcan = g.can({"cmd": "build", "p": s, "b": 1})
 				elif bi["busy"]: bcan = g.can({"cmd": "build", "p": s, "b": 1})
 				else:
 					bcan = bi["best"]
@@ -882,7 +882,7 @@ func _build_items(s: int) -> Dictionary:
 	var best: Variant = null
 	var busy: bool = g.b_building[s] != 0
 	var min_gold := 0
-	if g.owner[s] == me and g.occupier[s] == 0 and not busy:
+	if ((g.owner[s] == me and g.occupier[s] == 0) or g.held_by(me, s)) and not busy:
 		for i in D.BUILDINGS.size():
 			var b: Dictionary = D.BUILDINGS[i]
 			var cn := g.can({"cmd": "build", "p": s, "b": i + 1})

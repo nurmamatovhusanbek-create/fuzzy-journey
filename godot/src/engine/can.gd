@@ -155,7 +155,7 @@ static func _build(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 		var reg: Dictionary = D.REGIMES[g.regime[n]]
 		out["gold"] = g.b_price(p, b, lvl); out["moves"] = maxi(1, int(round(float(bt["mp"][lvl - 1]) * float(reg["moveCost"]))))
 		out["levels"] = lvl
-	if g.owner[p] != n or g.occupier[p] != 0: return _fail(out, "notyours")
+	if not g.build_land_ok(n, p, b): return _fail(out, "notyours")
 	if g.b_building[p] != 0: return _fail(out, "busy")
 	var site := g.site_error(p, b)
 	if site != "" and cur == 0: return _fail(out, site)

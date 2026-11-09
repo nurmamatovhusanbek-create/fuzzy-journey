@@ -20,6 +20,7 @@ var _turn_thread: Thread
 var _busy := false
 var _log_idx := 0
 var _spin := true
+var _wars_seen := {}                              # wars (pairs of nations) whose first battle has already pulled the camera out: later battles of the same war leave the zoom alone
 var _title_col: Control = null                  # the wordmark and menu column of the title stage on screen (its entrance)
 var _no_intro := false                          # the morph from the first stage brings the second one in itself
 var mp: TBMpController
@@ -295,6 +296,10 @@ var ring: TBMapRing
 ## everything the game interface needs before it is shown: sans fonts, the Atlas Ledger palette with the player's accent, darker land colours
 func _enter_game_visuals() -> void:
 	map.grid_k = 1.0
+	_wars_seen = {}
+	if g != null and g.human_id > 0:                                    # wars already running when the game starts or loads have had their first battle
+		for n in range(1, g.N1):
+			if n != g.human_id and g.alive[n] != 0 and g.get_rel(g.human_id, n) == TBData.REL_WAR: _wars_seen[_war_key(g.human_id, n)] = true
 	K.serif = true; TBTokens.legacy = false; TBFrame.rounded = false; TBFrame.bezel = true; TBLenses.dark_land = true
 	if g != null and g.human_id > 0: TBTokens.set_accent(g.color[g.human_id])
 	theme = K.theme()
@@ -1509,25 +1514,34 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 	if g.over: TBModals.game_over(_overlay, g, show_menu)
 	else: _autosave_soon()
 
+func _war_key(a: int, b: int) -> String: return "%d:%d" % [mini(a, b), maxi(a, b)]
+
 ## replay this turn's battles that involved the player, so AI attacks on (or defences by) the realm are visible
 func _replay_battles() -> void:
 	var me := g.human_id
 	var i := 0
 	var focus := -1
+	var focus_war := ""
 	var alerts: Array = []
 	for b in g.battle_fx:
 		if int(b[3]) == me: continue                      # own attacks already play when ordered
 		var on_me: bool = int(b[4]) == me
 		var held: bool = int(b[2]) == 0
 		var col: Color = TBTokens.c("pos_bar") if held else TBTokens.c("neg_bar")
-		if focus < 0 or (on_me and not (alerts.size() > 0 and int(alerts[0][2]) == 1)): focus = int(b[1])      # the camera goes to the first attack on you, else the first one seen
+		if focus < 0 or (on_me and not (alerts.size() > 0 and int(alerts[0][2]) == 1)): focus = int(b[1]); focus_war = _war_key(int(b[3]), int(b[4]))      # the camera goes to the first attack on you, else the first one seen
 		if alerts.size() < 8: alerts.append([int(b[0]), int(b[1]), 1 if on_me else 0])
 		map.labels.add_fx("cap", int(b[0]), int(b[1]), col, i * 220 + 250)                      # the outcome shows where it ended
 		i += 1
 		if i >= 8: break
 	map.labels.set_alerts(alerts)                          # the red arrows stay until the player's next action
 	if focus >= 0 and g.world != null:
-		map.fly_to(g.world.lon[focus], g.world.lat[focus], 2.4 if map.mode == 0 else maxf(map.zoom, 3.0), 1.0 if TBFx.on(TBFx.FULL) else 0.0)
+		if not _wars_seen.has(focus_war):                              # the first battle of a war: the camera draws out to show it
+			_wars_seen[focus_war] = true
+			map.fly_to(g.world.lon[focus], g.world.lat[focus], 2.4 if map.mode == 0 else maxf(map.zoom, 3.0), 1.0 if TBFx.on(TBFx.FULL) else 0.0)
+		else:                                                          # later battles: the zoom stays; the camera only pans when the fight is out of view
+			var fp: Vector3 = map.project(g.world.lon[focus], g.world.lat[focus])
+			var inside: bool = fp.z > 0.25 and fp.x > 60.0 and fp.y > 60.0 and fp.x < map.size.x - 60.0 and fp.y < map.size.y - 60.0
+			if not inside: map.fly_to(g.world.lon[focus], g.world.lat[focus], -1.0, 0.6 if TBFx.on(TBFx.FULL) else 0.0)
 	g.battle_fx.clear()
 	# the strides of your own standing march orders: a march arrow for each, and the fight where one reached an enemy
 	var si := 0
