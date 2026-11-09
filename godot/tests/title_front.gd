@@ -38,7 +38,7 @@ func _run() -> void:
 	main._front_play()
 	_check(main._morph != null, "Play starts the morph")
 	var shots := [0.25, 0.5, 0.75]
-	var secs: float = 1.5 if TBFx.on(TBFx.FULL) else 1.0
+	var secs: float = 1.8 if TBFx.on(TBFx.FULL) else 1.1
 	for i in shots.size():
 		await create_timer(secs * (shots[i] - (shots[i - 1] if i > 0 else 0.0)) + 0.02).timeout
 		root.get_viewport().get_texture().get_image().save_png(pre + "_2morph%d.png" % (i + 1))

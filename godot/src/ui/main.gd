@@ -573,34 +573,54 @@ func _title_power() -> void:
 	var moving: bool = mode == "menu" and ((K.motion_ok() and (_front or _spin)) or _morph != null or _dive != null)
 	if OS.low_processor_usage_mode == moving: OS.low_processor_usage_mode = not moving
 
-## Play: the globe leaves the corner for the centre and shrinks into the second stage's ring, the menu slides away, the second stage rises under it and takes the globe over
+## the old stage's nodes split in two: the wordmark parts (the first three of the column: name, ornament, tagline) that stay put, and everything else that fades
+func _morph_split(n: Node, col: Node, keep: Array, fade: Array) -> void:
+	if n == col:
+		var i := 0
+		for c in n.get_children():
+			if i < 3: keep.append(c)
+			else: fade.append(c)
+			i += 1
+	elif n.is_ancestor_of(col):
+		for c in n.get_children(): _morph_split(c, col, keep, fade)
+	else: fade.append(n)
+
+## Play: ONE movement. The globe leaves the corner and grows into the second stage's ring on a single curve (it never waits); the old rows fade as the new ones rise;
+## the wordmark, which both stages carry in the same place, never leaves (the old one goes only when the new one is whole, pixel for pixel); the live globe takes over from the
+## title globe only once the two coincide, and the second stage's ring fades in exactly then. Linear time, each part eased on its own span.
 func _front_play() -> void:
 	if not _front or _morph != null: return
 	if not TBFx.on(TBFx.LIGHT) or _front_globe == null or not is_instance_valid(_front_globe): _front = false; show_menu(); return
 	var ghost := Control.new(); ghost.set_anchors_preset(Control.PRESET_FULL_RECT); ghost.mouse_filter = Control.MOUSE_FILTER_STOP; add_child(ghost)
 	var gl: TBTitleGlobe = _front_globe
+	var old_col: Control = _title_col
 	var sky: Control = null; var ui: Array = []
 	for c in _overlay.get_children():
 		c.reparent(ghost)
 		if c is TP_.TitleSky: sky = c
 		elif c != gl and not (c is TP_.SelFrame): ui.append(c)
 		elif c is TP_.SelFrame: c.visible = false
+	var wm_keep: Array = []; var fade_old: Array = []
+	for n in ui: _morph_split(n, old_col, wm_keep, fade_old)
 	_front = false
 	_no_intro = true
 	show_menu()                                                                # builds the second stage (and its globe) under the ghost
 	_no_intro = false
 	map.modulate.a = 0.0; _overlay.modulate.a = 0.0
 	var orr: TP_.Orrery = _bezel as TP_.Orrery
+	if orr != null: orr.modulate.a = 0.0
 	var c0: Vector2 = gl.centre; var r0: float = gl.radius; var k0: float = gl.ring_k
 	var turn0: float = gl.turn
-	var secs: float = 1.5 if TBFx.on(TBFx.FULL) else 1.0
+	var secs: float = 1.8 if TBFx.on(TBFx.FULL) else 1.1
 	var done := func():
 		ghost.queue_free(); _morph = null
 		map.modulate.a = 1.0; _overlay.modulate.a = 1.0
+		if orr != null and is_instance_valid(orr): orr.modulate.a = 1.0
 		TBTitleGlobe.release()
 		if _title_cur != null and is_instance_valid(_title_cur): _sel_restart()
-	_morph = TBFx.run(self, secs, func(t: float):
-		var e: float = t                                                           # TBFx.run already eases the whole move
+	_morph = create_tween()
+	_morph.tween_method(func(s: float):
+		var e: float = TBFx.smooth(s / 0.72)                                       # the globe: one eased curve over the first 72 %, then it simply rests in place
 		var tc: Vector2 = orr._globe_c() if orr != null else size * 0.5
 		var tr: float = map.radius_px()
 		gl.set_pose(c0.lerp(tc, e), lerpf(r0, tr, e))
@@ -609,14 +629,20 @@ func _front_play() -> void:
 		gl.turn = turn0 + dl * e; gl.spin = false
 		gl.queue_redraw()
 		if gl._ring != null: gl._ring.queue_redraw()
-		var out: float = clampf(1.0 - t / 0.35, 0.0, 1.0)                      # the menu column leaves first
-		for n in ui:
-			if is_instance_valid(n): (n as Control).modulate.a = out; (n as Control).position.x = -90.0 * (1.0 - out)
-		var swap: float = clampf((t - 0.62) / 0.38, 0.0, 1.0)                  # then the live globe and the second stage's interface rise
-		map.modulate.a = swap; _overlay.modulate.a = clampf((t - 0.45) / 0.55, 0.0, 1.0)
+		var out: float = 1.0 - TBFx.smooth(s / 0.36)                                # the old rows go while the globe is already on its way
+		for n in fade_old:
+			if is_instance_valid(n): (n as CanvasItem).modulate.a = out
+		var wm_a: float = 1.0 if s < 0.8 else 0.0                                  # the wordmark: the old one stays until the new one is whole
+		for n in wm_keep:
+			if is_instance_valid(n): (n as CanvasItem).modulate.a = wm_a
+		_overlay.modulate.a = TBFx.smooth((s - 0.26) / 0.52)                       # the second stage's words rise as the old ones go, complete at 78 %
+		var swap: float = TBFx.smooth((s - 0.62) / 0.33)                           # the live globe replaces the title globe where they coincide
+		map.modulate.a = 1.0 if s >= 0.6 else 0.0                                   # the live globe waits whole under the (still larger) title globe, which then dissolves over it: a straight blend, no dip
+		if orr != null: orr.modulate.a = swap
 		gl.fade = 1.0 - swap; gl.ring_a = 1.0 - swap
 		if sky != null: sky.modulate.a = 1.0 - swap
-		gl.material.set_shader_parameter("alpha", 1.0 - swap), done, TBFx.LIGHT)
+		gl.material.set_shader_parameter("alpha", 1.0 - swap), 0.0, 1.0, secs)
+	_morph.tween_callback(done)
 
 func _sel_restart() -> void: _title_sel_start.call_deferred()
 
