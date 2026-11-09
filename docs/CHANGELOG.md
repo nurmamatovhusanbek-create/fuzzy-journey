@@ -1,3 +1,16 @@
+# Version 1.6.0 (Android code 8): what the research asked for
+
+Rules 5 (real people, gold and soldiers at 10/20/30:1, `docs/RULES5_REALISM.md`) is the default. On top of it, from `docs/RESEARCH_2026_11.md`:
+* **Spread and Muster**: every nation starts with its army in the capital; one order marches it out to the front, another raises levies in every front province at once. The AI spreads its armies too, and an advisor alert says so until you do.
+* **Undo** (Ctrl+Z or the game menu): up to twelve orders back, closed by the end of the turn or anything that rolls the dice.
+* **Alert settings**: tips can be switched off one by one (Settings > Alerts); crises always show.
+* **Breakdown tooltips**: a province's stability and people list the engine's own terms.
+* **Outliner** (F7): what is under way, armies and marches, wars, pinned provinces. A People section on the Realm page. Nations list sorts by standing and technology.
+* **State works**: six lasting works a full treasury can build, priced in turns of the realm's own output (player and AI).
+* **AI aims**: a state that declares war picks an aim (the enemy's whole land, its border provinces, a vassal, a humbling) and fights for it; the aim shows on the nation's card to its enemy and to anyone with agents.
+* **Release a vassal**, united historic regions become home land and pay 2 % more, three new lenses (growth room, levy pool, army per head, behind More), codex entries for all of it.
+* Fixes: a data race in the vision mask, const tables in the engine made safe for the turn thread (corrupted memory in a stress run), sub-pixel text positions off so baked and live text match.
+
 # Changes since 1.0.0 (proposed version 1.1.0, Android version code 3)
 
 ## Rules 4 war systems (in progress)
