@@ -47,6 +47,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"embassy": return _embassy(g, n, c, out)
 		"spread": return _spread(g, n, c, out)
 		"muster": return _muster(g, n, c, out)
+		"works": return _works(g, n, c, out)
 	return _fail(out, "unknown")
 
 static func _fail(out: Dictionary, why: String) -> Dictionary:
@@ -373,4 +374,15 @@ static func _muster(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictio
 	out["gold"] = int(pl["gold"]); out["moves"] = int(ceil(float(pl["mp"]))); out["gain"] = int(pl["men"]); out["kind"] = "muster"; out["n_targets"] = (pl["items"] as Array).size()
 	_need(out, "gold", g.gold[n], float(pl["gold"]), "gold")
 	_need(out, "moves", g.mp[n], float(pl["mp"]), "mp")
+	return out
+
+## rules 5: a level of a state work
+static func _works(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var i := TBWorks.index_of(String(c.get("id", "")))
+	if i < 0: return _fail(out, "unknown")
+	if g.rules < 5: return _fail(out, "rules")
+	if TBWorks.level(g, n, i) >= int(TBWorks.LIST[i]["max"]): return _fail(out, "max")
+	out["gold"] = TBWorks.cost(g, n, i); out["moves"] = int(TBWorks.MP_COST)
+	_need(out, "gold", g.gold[n], float(out["gold"]), "gold")
+	_need(out, "moves", g.mp[n], TBWorks.MP_COST, "mp")
 	return out

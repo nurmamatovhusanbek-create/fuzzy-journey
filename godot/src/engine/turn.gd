@@ -72,7 +72,7 @@ static func stab_parts(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil:
 		for q in g.owned(n): dv += g.dev[q]
 		s_era += ADMIN_PER_DEV * float(dv)
 	var over: float = clampf((lands - s_era) / s_era, 0.0, 1.5) * STAB_OVEREXT
-	return {"ceil": float(stab_ceil), "weary": -weary * 0.5, "tax": -0.4 * maxf(0.0, tax - 40.0), "over": -over, "war": -6.0 if at_war else 0.0, "ruler": TBRulers.stab_add(g, n) * 8.0}
+	return {"ceil": float(stab_ceil), "weary": -weary * 0.5, "tax": -0.4 * maxf(0.0, tax - 40.0), "over": -over, "war": -6.0 if at_war else 0.0, "ruler": TBRulers.stab_add(g, n) * 8.0, "works": TBWorks.stab_add(g, n) if g.rules >= 5 else 0.0}
 
 static func stab_target(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil: int, lands: int) -> float:
 	var pt := stab_parts(g, n, weary, at_war, stab_ceil, lands)
@@ -232,7 +232,7 @@ static func _tick(g: TBGame) -> void:
 		var tax: int = g.budget[bud]; var goods: int = g.budget[bud + 1]; var res_pct: int = g.budget[bud + 2]; var inv_pct: int = g.budget[bud + 3]
 		var happy_target := clampf(50.0 + (goods - 20) * 0.6 - maxf(0.0, tax - 50) * 0.5 - (8.0 if at_war else 0.0) - weary * 0.15 + (TBRulers.happy_add(g, n) if g.rules >= 1 else 0.0), 0.0, 100.0)
 		var invest_chance := inv_pct / 100.0 * 0.05 * (TBRulers.invest_mul(g, n) if g.rules >= 1 else 1.0)
-		g.research[n] += (D.tech_gain(_research_pop(g, float(inc["pop"])), res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) * catchup(g, n) if g.rules >= 1 else 1.0)
+		g.research[n] += (D.tech_gain(_research_pop(g, float(inc["pop"])), res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) * catchup(g, n) * (TBWorks.research_mul(g, n) if g.rules >= 5 else 1.0) if g.rules >= 1 else 1.0)
 		var need := _need(g, g.tech_level[n])
 		var era_before: int = g.era[n]
 		while g.research[n] >= need:

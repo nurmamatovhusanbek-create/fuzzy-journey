@@ -321,6 +321,21 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 	for i in TBDecisions.LIST.size():
 		var i2: int = i
 		grid.add_child(DecisionRow.new(g, i2, me, func(): on_cmd.call({"cmd": "decide", "id": String(TBDecisions.LIST[i2]["id"])}); h.close()))
+	if g.rules >= 5:                                                                    # state works: the sink for a full treasury
+		body.add_child(K.caps(T.call("works_head")))
+		body.add_child(K.para_bz(T.call("works_hint"), 16.0, 1.3))
+		for wi in TBWorks.LIST.size():
+			var wi2: int = wi
+			var wd: Dictionary = TBWorks.LIST[wi]
+			var wid: String = wd["id"]
+			var lvl: int = TBWorks.level(g, me, wi)
+			var why: String = TBWorks.why_not(g, me, wi)
+			var left: String = "%s · %s · %s" % [T.call("works_" + wid + "_t"), T.call("works_level", {"l": lvl, "m": int(wd["max"])}), T.call("works_" + wid + "_d", {"v": int(wd["per"])})]
+			var right: String = ("%s ›" % K.fmt(float(TBWorks.cost(g, me, wi)))) if lvl < int(wd["max"]) else "✓"
+			var wrow := K.ListRow.new(left, right, func(): if TBWorks.why_not(g, me, wi2) == "": on_cmd.call({"cmd": "works", "id": wid}); h.close(), K.DIM if why != "" else Color.TRANSPARENT)
+			if why != "" and why != "gold": wrow.right_col = K.DIM
+			wrow.tooltip_text = T.call("err_" + why) if why != "" and TBI18n.has_key("err_" + why) else ""
+			body.add_child(wrow)
 	var vsd: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size            # fewer columns when the rows do not fit side by side
 	var cell_w := 0.0
 	for k in grid.get_children(): cell_w = maxf(cell_w, (k as Control).get_combined_minimum_size().x)

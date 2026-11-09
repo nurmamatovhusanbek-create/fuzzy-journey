@@ -1294,7 +1294,7 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 	elif String(cmd.get("cmd", "")) == "embassy":
 		sfx.play("coin")
 		hud.toast(T.call("embassy_done", {"a": g.dname(int(cmd["t"])), "k": TBMissions.EMBASSY_GRUDGE}))
-	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop", "demolish"]:
+	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop", "demolish", "works"]:
 		sfx.play("coin")
 	elif String(cmd.get("cmd", "")) == "ask":
 		hud.toast(T.call("ask_sent", {"a": g.dname(int(cmd["t"]))}))

@@ -93,6 +93,7 @@ var siege := PackedInt32Array()                 # rules >= 4: turns left before 
 var morale := PackedFloat32Array()              # rules >= 4: how well each nation's armies hold (TBWar)
 var exh := PackedFloat32Array()                 # rules >= 4: war exhaustion of each nation, 0-100 (TBWar)
 var lost_turn := PackedInt32Array()             # rules >= 4: men each nation lost in battle this turn (feeds exhaustion)
+var works := PackedInt32Array()                 # rules >= 5: levels of every state work, N1 * TBWorks.COUNT (TBWorks)
 var levy := PackedInt32Array()                  # rules >= 4: the men each province can still raise (see levy_cap); the nation's manpower is their sum
 var gen := PackedInt32Array()                 # generals (rules >= 1): see TBGenerals
 var terrain := PackedByteArray()
@@ -238,7 +239,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	siege.resize(P); unrest.resize(P); war_pts.resize(N1 * N1); inv_e.resize(P); inv_d.resize(P); worth_prev.resize(P); proj_kind.resize(P); proj_left.resize(P)
 	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
-	infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
+	works.resize(N1 * TBWorks.COUNT); infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
 	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:
 		a.resize(N1)
@@ -470,6 +471,7 @@ func levy_cap(p: int) -> int:
 	var n := owner[p]
 	var e: int = era[n] if n > 0 else 0
 	var c: float = float(pop[p]) * float(LEVY_RATE[e] if rules < 5 else LEVY_SHARE[e]) * (0.5 + float(stab[p]) / 200.0)
+	if rules >= 5 and n > 0: c *= TBWorks.levy_mul(self, n)
 	if bl(p, D.B_ARMORY) > 0: c *= 1.25
 	return maxi(4, int(floor(c)))
 
@@ -509,6 +511,7 @@ func pop_cap(p: int) -> int:
 	var n: int = owner[p]
 	var tl: float = tech_level[n] if n > 0 else 0.5
 	var f: float = (0.25 + 0.17 * tl) * (0.85 + 0.06 * dev[p]) * (1.0 + 0.05 * bl(p, D.B_FARM))
+	if n > 0: f *= TBWorks.pop_cap_mul(self, n)
 	return maxi(10, int(TBPopData.modern(p) / float(scale) * f))
 
 func levy_gain(p: int) -> int:
@@ -694,10 +697,10 @@ func income(n: int) -> Dictionary:
 	if rules >= 1: gld += TBTrade.income(self, n)
 	if cap_lost_now: gld = int(floor(gld * 0.5))
 	gld = int(floor(gld * float(reg["incMul"]) * tech_inc))
-	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n)))
+	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n) * (TBWorks.income_mul(self, n) if rules >= 5 else 1.0)))
 	admin = int(floor(admin * tech_admin))
 	if rules >= 2: admin = int(floor(admin * (1.0 + OVEREXTEND_STEP * maxf(0.0, float(own.size() - OVEREXTEND_FROM)))))       # the bigger the realm, the dearer every governor
-	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n)))
+	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n) * (TBWorks.admin_mul(self, n) if rules >= 5 else 1.0)))
 	var upkeep := int(floor(up_base * (0.25 + era[n] * 0.05) * tech_up * float(reg["upkeep"])))
 	if rules >= 5: upkeep = int(floor(up_base * wage_n * 2.0 * float(reg["upkeep"])))                      # a soldier eats two workers' turns
 	if rules >= 1: man = int(floor(man * TBRulers.manpower_mul(self, n)))

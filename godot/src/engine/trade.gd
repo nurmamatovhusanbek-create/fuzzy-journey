@@ -46,7 +46,8 @@ static func reach(g: TBGame, a: int, b: int) -> float:
 static func yield_of(g: TBGame, a: int, b: int) -> int:
 	if g.rules < 3: return mini(40, 4 + int(g.own_count(b) * 0.35))
 	var s := sqrt(market(g, a) * market(g, b))
-	return int(ceil(float(clampi(int(roundf(2.0 + K_YIELD * sqrt(s) * reach(g, a, b))), 2, YIELD_CAP)) * _lvl(g, a, b)))
+	var wm: float = (TBWorks.trade_mul(g, a) + TBWorks.trade_mul(g, b)) * 0.5 if g.rules >= 5 else 1.0
+	return int(ceil(float(clampi(int(roundf(2.0 + K_YIELD * sqrt(s) * reach(g, a, b))), 2, YIELD_CAP)) * _lvl(g, a, b) * wm))
 
 ## gold per turn that a deal with `partner` is worth to n (the old signature kept for the interface: n = the viewing nation)
 static func value(g: TBGame, partner: int, n: int = -1) -> int:
