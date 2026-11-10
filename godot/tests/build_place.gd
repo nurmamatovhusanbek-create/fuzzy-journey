@@ -25,9 +25,16 @@ func _init() -> void:
 	for q in g.owned(me): if g.capital[q] == 0 and g.army[q] <= 1: p = q; break
 	main._select(p); await _frames(25)
 	var vi := -1
-	for i in main.panel._verbs.size(): if String(main.panel._verbs[i]["id"]) == "build": vi = i
+	var via_improve := false
+	for i in main.panel._verbs.size():
+		if String(main.panel._verbs[i]["id"]) == "build": vi = i
+		if String(main.panel._verbs[i]["id"]) == "improve": vi = i; via_improve = true
 	print("build verb index ", vi)
 	main.panel._press(vi); await _frames(20)
+	if via_improve:                                                      # rules 5: Improve opens a list; its Buildings door is the Blueprint picker
+		var lab: Array = []
+		for r0 in main.panel._verbs[vi]["rows"]: lab.append(String(r0["label"]))
+		main.panel._popover.picked.emit(lab.find("Buildings")); await _frames(20)
 	var pk: Control = main.panel._bpicker
 	var dump := func(n: Node, d: int, f: Callable) -> void:
 		if n is Control and d < 4: print("  ".repeat(d), n.get_class(), " ", n.name, " min ", (n as Control).get_combined_minimum_size(), " size ", (n as Control).size)
