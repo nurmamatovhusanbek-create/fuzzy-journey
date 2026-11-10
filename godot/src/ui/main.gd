@@ -1328,7 +1328,7 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		else:
 			var key := "err_" + String(res["err"])
 			hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
-	elif String(cmd.get("cmd", "")) in ["hire", "recruit"]:                          # the men stand in the district where they were raised: say which, ready to be marched where you need them
+	elif String(cmd.get("cmd", "")) in ["hire", "recruit", "raise"]:                          # the men stand in the district where they were raised: say which, ready to be marched where you need them
 		sfx.play("coin")
 		var rp: int = int(cmd.get("p", -1))
 		if rp >= 0 and rp < g.P:

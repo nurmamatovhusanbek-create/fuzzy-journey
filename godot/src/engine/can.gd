@@ -28,6 +28,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"move": return _move(g, n, c, out)
 		"recruit": return _recruit(g, n, c, out)
 		"hire": return _hire(g, n, c, out)
+		"raise": return _raise(g, n, c, out)
 		"appoint": return _appoint(g, n, c, out)
 		"build": return _build(g, n, c, out)
 		"colonize": return _colonize(g, n, c, out)
@@ -119,6 +120,24 @@ static func _recruit(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dicti
 	_need(out, "gold", g.gold[n], gold_cost, "gold")
 	_need(out, "men", g.manpower[n], man_cost, "manpower")
 	_need(out, "moves", g.mp[n], D.MP_RECRUIT, "mp")
+	return out
+
+## rules >= 5: Raise troops. gain = the men added, "levy" / "hired" the two parts, "levy_gold" / "hire_gold" their prices, "saved" what hiring them all would have cost more
+static func _raise(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var p: int = int(c.get("p", -1))
+	if g.rules < 5: return _fail(out, "unknown")
+	if p < 0 or p >= g.P: return _fail(out, "notyours")
+	out["moves"] = D.MP_RECRUIT; out["pool"] = TBRaise.pool(g, p)
+	if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")
+	var hi: int = TBRaise.max_amount(g, p)
+	out["max"] = hi
+	if hi < 1: return _fail(out, "full")
+	var pl := TBRaise.plan(g, n, p, int(c.get("amount", TBRaise.default_amount(g, p))))
+	out["gold"] = int(pl["gold"]); out["gain"] = int(pl["amount"]); out["men"] = int(pl["levy"])
+	out["levy"] = int(pl["levy"]); out["hired"] = int(pl["hired"]); out["levy_gold"] = int(pl["levy_gold"]); out["hire_gold"] = int(pl["hire_gold"])
+	out["saved"] = maxi(0, TBRaise.all_hired_gold(g, n, int(pl["amount"])) - int(pl["gold"]))
+	_need(out, "gold", g.gold[n], float(out["gold"]), "gold")
+	_need(out, "moves", g.mp[n], float(D.MP_RECRUIT), "mp")
 	return out
 
 static func _hire(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:

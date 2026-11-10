@@ -31,7 +31,7 @@ static var ALIAS: Dictionary = {
 	"close": "close", "warn": "warning", "warning": "warning", "info": "info", "check": "check", "star": "star", "general_star": "general", "general": "general", "clock": "clock", "hourglass": "clock",
 	"research": "research", "flask": "research", "lamp": "lamp", "invest": "invest", "tax": "tax", "happy": "happy", "smile": "happy", "terrain": "terrain", "menu": "menu", "flag": "flag", "lock": "lock", "crown": "crown",
 	"skull": "skull", "heart": "heart", "ship": "colonize", "dots": "more", "pin": "pin", "scales": "terms", "dove": "peace", "filter": "filter", "supply": "supply", "back": "back", "chevrons": "chevrons",
-	"plus": "plus", "minus": "minus", "hire": "hire", "develop": "develop", "settle": "settle", "colonize": "colonize", "spread": "spread", "muster": "muster", "release": "release", "terms": "terms", "peace": "peace",
+	"plus": "plus", "minus": "minus", "hire": "hire", "raise": "recruit", "develop": "develop", "settle": "settle", "colonize": "colonize", "spread": "spread", "muster": "muster", "release": "release", "terms": "terms", "peace": "peace",
 	"fortress": "fortress", "market": "market", "port": "port", "library": "library", "farm": "farm", "watchtower": "watchtower", "workshop": "workshop", "supplycamp": "supplycamp", "armory": "armory",
 }
 

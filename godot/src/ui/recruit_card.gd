@@ -13,10 +13,11 @@ signal cancelled
 
 var g: TBGame
 var p := -1
-var kind := "recruit"                 # "recruit" | "hire"
+var kind := "recruit"                 # "recruit" | "hire" | "raise" (rules 5: the levy pool first, the rest hired)
 var picker: TBTroopPicker
 var _name: TBBz.TLabel
 var _price: Label
+var _split: Label
 var _army: Label
 var _ok: Button
 var _cancel: Button
@@ -34,6 +35,7 @@ func _init() -> void:
 	var left := VBoxContainer.new(); left.add_theme_constant_override("separation", 1); left.custom_minimum_size.x = 118; left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_name = K.title("", 14, TBTokens.c("ink_0"), 0.12, 14.0 * 1.1) as TBBz.TLabel; _name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; left.add_child(_name)
 	_price = K.label("", 14, TBTokens.c("brass_lt")); _price.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; left.add_child(_price)
+	_split = K.label("", 12.5, TBTokens.c("ink_1")); _split.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; left.add_child(_split)
 	_army = K.label("", 12.5, K.DIM); _army.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; left.add_child(_army)
 	row.add_child(left)
 	picker = TBTroopPicker.new(); picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL; picker.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -57,13 +59,13 @@ static func plate(glyph: String, variant: int, cb: Callable) -> Button:
 func open(game: TBGame, province: int, what: String = "recruit") -> void:
 	g = game; p = province; kind = what
 	var r := TBRecruitCard.range_for(g, p, kind)
-	var verb: String = T.call("recruit") if kind == "recruit" else T.call("cc_hire")
+	var verb: String = T.call("recruit") if kind == "recruit" else (T.call("cc_raise") if kind == "raise" else T.call("cc_hire"))
 	_name.text = TBI18n.place(g.pname(p)); _name.refit()
 	picker.setup(r.x, r.y, clampi(r.z, r.x, r.y), verb, false, true)
 	if not picker.changed.is_connected(_on_amount): picker.changed.connect(_on_amount)
 	TBKit.a11y(_ok, verb, "button"); TBKit.a11y(_cancel, T.call("pv_cancel"), "button")
 	_ok.tooltip_text = verb; _cancel.tooltip_text = T.call("pv_cancel")
-	picker.tooltip_text = T.call("rc_ready", {"k": g.levy[p], "c": g.levy_cap(p)}) if (g.rules >= 4 and kind == "recruit") else ""
+	picker.tooltip_text = T.call("rc_ready", {"k": g.levy[p], "c": g.levy_cap(p)}) if (g.rules >= 4 and kind in ["recruit", "raise"]) else ""
 	_on_amount(picker.value)
 	visible = true
 	reset_size()
@@ -71,6 +73,9 @@ func open(game: TBGame, province: int, what: String = "recruit") -> void:
 ## (lowest, highest, first) number of men the bar offers: the command's own limits; the first is what the old one-press button raised
 static func range_for(game: TBGame, province: int, what: String) -> Vector3i:
 	if what == "hire": return Vector3i(10, 60, 40)
+	if what == "raise":
+		var hi: int = TBRaise.max_amount(game, province)
+		return Vector3i(mini(1, hi), maxi(1, hi), clampi(TBRaise.default_amount(game, province), 1, maxi(1, hi)))
 	return game.recruit_range(province)
 
 func _cmd(n: int) -> Dictionary: return {"cmd": kind, "p": p, "amount": n}
@@ -82,6 +87,10 @@ func _on_amount(n: int) -> void:
 	if int(c.get("gold", 0)) > 0: parts.append(CC.gold(int(c["gold"])))
 	if int(c.get("men", 0)) > 0: parts.append(CC.unit(int(c["men"]), "u_man"))
 	_price.text = " · ".join(parts)
+	_split.text = ""
+	if kind == "raise" and c.has("levy"):                                   # where the men come from, and what the mix saves against hiring them all
+		_split.text = String(T.call("rc_split", {"l": TBKit.fmt(int(c["levy"])), "h": TBKit.fmt(int(c["hired"]))})) if int(c["hired"]) > 0 else String(T.call("rc_split_levy"))
+		if int(c.get("saved", 0)) > 0 and int(c["levy"]) > 0: _split.text += "  ·  " + String(T.call("rc_saved", {"g": CC.gold(int(c["saved"]))}))
 	var ok: bool = bool(c.get("ok", false))
 	_ok.disabled = not ok
 	if ok:

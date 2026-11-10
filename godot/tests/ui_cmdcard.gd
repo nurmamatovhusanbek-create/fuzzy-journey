@@ -85,7 +85,7 @@ func _init() -> void:
 	main.panel.set_drawer(false)
 	main._select(own_small)
 	await _shot("2_own_small")
-	_check(main.panel._verbs[0]["id"] == "recruit", "case 2 primary verb is Recruit")
+	_check(main.panel._verbs[0]["id"] == ("raise" if g.rules >= 5 else "recruit"), "case 2 primary verb is Raise troops (Recruit before rules 5)")
 	main._select(peace_p)
 	await _shot("3_foreign_peace")
 	_check(String(main.panel._verbs[0]["id"]).begins_with("f_") and main.panel._verbs.any(func(v): return v["id"] == "f_war"), "case 3 lists the nation actions (pact ... declare war) as rows")

@@ -24,7 +24,7 @@ const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 static var _title_font: Font
 
-const HOT := {"spread": "S", "muster": "N", "move": "M", "attack": "M", "recruit": "R", "hire": "H", "general": "G", "build": "B", "develop": "E", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
+const HOT := {"spread": "S", "muster": "N", "move": "M", "attack": "M", "recruit": "R", "raise": "R", "hire": "H", "general": "G", "build": "B", "develop": "E", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
 const HOT_KEY := {KEY_S: "spread", KEY_N: "muster", KEY_M: "move", KEY_R: "recruit", KEY_H: "hire", KEY_G: "general", KEY_B: "build", KEY_E: "develop", KEY_C: "colonize", KEY_D: "diplo", KEY_U: "ult", KEY_W: "war", KEY_P: "peace", KEY_T: "terms"}
 
 var g: TBGame
@@ -783,10 +783,14 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				if g.mp[me] < 1: mv["ok"] = false; mv["reason"] = "mp"; mv["short"] = {"moves": 1}
 				elif flow != null and targets_n == 0 and not _has_explicit_targets(s): mv["ok"] = false; mv["reason"] = "notargets"
 				out.append(_mk("move", "move", "move", mv, [{"t": T.call("cc_move_hint"), "short": false}, {"t": " · " + CC.unit(1, "u_move"), "short": mv["short"].has("moves")}], true))
-				if not held: out.append(_mk("recruit", "recruit", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), false))
-			elif not held:
+				if not held and g.rules < 5: out.append(_mk("recruit", "recruit", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), false))
+			elif not held and g.rules < 5:
 				out.append(_mk("recruit", "recruit", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), true))
-			if not held: out.append(_mk("hire", "hire", "cc_hire", hc, _cost_parts("%s +%d" % [T.call("cc_hire"), int(hc["gain"])], hc)))
+			if not held and g.rules < 5: out.append(_mk("hire", "hire", "cc_hire", hc, _cost_parts("%s +%d" % [T.call("cc_hire"), int(hc["gain"])], hc)))
+			if not held and g.rules >= 5:                                              # Recruit and Hire as one: the levy pool first, the rest hired (TBRaise)
+				var rac := g.can({"cmd": "raise", "p": s, "amount": TBRaise.default_amount(g, s)})
+				var rap: Array = _cost_parts("%s +%d" % [T.call("cc_raise"), int(rac["gain"])], rac)
+				out.append(_mk("raise", "recruit", "cc_raise", rac, rap, k == 2))
 			if g.rules >= 5 and not held:                                              # orders for many provinces at once (TBMass)
 				if k == 1 and g.army[s] >= g.au(20.0):
 					var spc := g.can({"cmd": "spread", "p": s})
@@ -1105,6 +1109,7 @@ func _press(i: int) -> void:
 			else: _war_target = int(_case["o"]); rebuild()
 		"ult": command.emit({"cmd": "ultimatum", "t": int(_case["o"]), "p": s})
 		"recruit": amount_requested.emit("recruit", s)
+		"raise": amount_requested.emit("raise", s)
 		"hire": amount_requested.emit("hire", s)
 		"spread": command.emit({"cmd": "spread", "p": s})
 		"muster": command.emit({"cmd": "muster", "pct": TBMass.DEFAULT_PCT})

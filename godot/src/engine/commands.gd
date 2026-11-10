@@ -9,7 +9,7 @@ const D = preload("res://src/engine/data.gd")
 ## field kinds: a list of up to 64 provinces | p province | pn province or -1 | t nation | q 0..65000 (1,000,000,000 in rules 5) | b building type | r regime | u event uid | k choice index | v -1000..1000 | s short id string; "?name" is optional.
 ## `n` (the acting nation) is always required. Keys that are not listed are dropped, so a hostile client cannot smuggle a flag such as `_force` through; only a trusted caller keeps FLAGS.
 static var SCHEMA: Dictionary = {
-	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"},
+	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"}, "raise": {"p": "p", "?amount": "q"},
 	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "peaceDeal": {"t": "t", "?provs": "a", "?gold": "q", "?vassal": "q", "?disarm": "q"}, "callAlly": {"t": "t", "e": "t"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
 	"build": {"p": "p", "b": "b"}, "demolish": {"p": "p", "?b": "b"}, "budget": {"key": "s", "val": "v"},
 	"colonize": {"p": "p"}, "relocate": {"p": "p"}, "develop": {"p": "p", "?k": "k"}, "regime": {"r": "r"},
@@ -122,6 +122,7 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 			TBTrade.set_deal(g, n, int(c.get("t", 0)), false)
 			return {"ok": true}
 		"hire": return _c_hire(g, c)
+		"raise": return _c_raise(g, c)
 		"ask": return TBAsks.send(g, c)
 		"appoint": return TBGenerals.appoint(g, n, int(c.get("p", -1)))
 		"doctrine": return TBDoctrine.adopt(g, n, String(c.get("id", "")))
@@ -191,6 +192,21 @@ static func _recruit_levy(g: TBGame, c: Dictionary, reg: Dictionary) -> Dictiona
 	g.gold[n] -= gold_cost; g.mp[n] -= D.MP_RECRUIT
 	g.levy[p] -= amount; g.manpower[n] = maxf(0.0, g.manpower[n] - amount)
 	g.army[p] = mini(g.army_cap(p), g.army[p] + amount); g.touch(p)
+	return {"ok": true}
+
+## rules >= 5: Raise troops (TBRaise): the levy pool first, the rest hired, one move point
+static func _c_raise(g: TBGame, c: Dictionary) -> Dictionary:
+	var n: int = c["n"]; var p: int = c["p"]
+	if g.rules < 5: return _err("unknown")
+	if g.controller(p) != n or g.owner[p] != n: return _err("notyours")
+	if TBRaise.max_amount(g, p) < 1: return _err("full")
+	var pl := TBRaise.plan(g, n, p, int(c.get("amount", TBRaise.default_amount(g, p))))
+	if g.gold[n] < float(pl["gold"]): return _err("gold")
+	if _short_mp(g, n, D.MP_RECRUIT): return _err("mp")
+	g.gold[n] -= float(pl["gold"]); g.mp[n] -= D.MP_RECRUIT
+	if int(pl["levy"]) > 0:
+		g.levy[p] -= int(pl["levy"]); g.manpower[n] = maxf(0.0, g.manpower[n] - float(pl["levy"]))
+	g.army[p] = mini(g.army_cap(p), g.army[p] + int(pl["amount"])); g.touch(p)
 	return {"ok": true}
 
 static func _c_declare_war(g: TBGame, c: Dictionary) -> Dictionary:
