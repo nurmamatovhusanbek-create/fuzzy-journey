@@ -68,6 +68,7 @@ static func apply_settings(cfg: Dictionary) -> Theme:
 	if hc == "off" and bool(cfg.get("contrast", false)): hc = "light"
 	TBTokens.mode = TBTokens.mode_from_setting(hc)
 	cvd = String(cfg.get("cvd", "off")) if String(cfg.get("cvd", "off")) in ["off", "deuter", "protan", "tritan"] else "off"
+	TBEmblem.mode = String(cfg.get("icons", "colour")) if String(cfg.get("icons", "colour")) in ["colour", "brass", "classic"] else "colour"
 	tts_on = bool(cfg.get("tts", false))
 	confirm = String(cfg.get("confirm", "risky")) if String(cfg.get("confirm", "risky")) in ["off", "risky", "all"] else "risky"
 	mirror = bool(cfg.get("mirror", false))

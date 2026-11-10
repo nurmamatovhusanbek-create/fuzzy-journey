@@ -237,6 +237,7 @@ static func _arc(out: PackedVector2Array, p0: Vector2, rx: float, ry: float, rot
 
 ## draw icon `name` centred at c, `size` px square (24 grid scaled), stroke width w in 24-grid units (the demo's 1.7), round caps
 static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, w: float = 1.7) -> void:
+	if TBEmblem.draw(ci, name, c, size, col): return
 	var k: float = size / 24.0
 	var sw: float = w * k
 	var aw: float = TBBezel.aw(sw)                          # Godot widens an antialiased stroke by ~0.8 screen px of feather

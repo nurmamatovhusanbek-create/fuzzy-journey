@@ -470,7 +470,8 @@ func _draw() -> void:
 		var ink: Color = TBTokens.MAP_ON_BRASS if (prim and ok) else (TBTokens.c("neg_bar") if danger else TBTokens.MAP_HI)
 		if not ok: ink = TBTokens.c("ink_off")
 		var ipx: float = 24.0 * (1.1 if prim else 0.95) * rs
-		if not _demo_icon(String(v["id"]), pp, ipx, ink, 2.0 * 1.0): P.icon(self, String(v["glyph"]), pp, ipx, ink, 2.0)
+		var ename: String = String(v["id"]) if TBEmblem.id_of(String(v["id"])) != "" else String(v["glyph"])      # the verb's own emblem (spread, muster, hire...), else its glyph
+		if not TBEmblem.draw(self, ename, pp, ipx, ink) and not _demo_icon(String(v["id"]), pp, ipx, ink, 2.0 * 1.0): P.icon(self, String(v["glyph"]), pp, ipx, ink, 2.0)
 		if hot or has_focus():
 			draw_arc(pp, rr + 5.5, 0.0, TAU, 36, TBTokens.c("cream"), 1.6, true)
 		if not ok: TBHudParts.icon(self, "lock", pp + Vector2(rr * 0.6, rr * 0.6), 11.0, TBTokens.c("neg_bar"), 1.4)

@@ -59,4 +59,5 @@ func _init() -> void:
 					turns += 1
 		await process_frame
 	print("MONKEY done: iterations=%d turns=%d lang=%s nation=%s alive=%s" % [iters, turns, main.cfg["lang"], g.nat_name[me], g.alive[me]])
+	print("EMBLEM_UNKNOWN ", TBEmblem.unknown.keys())
 	quit(0)

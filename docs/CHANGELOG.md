@@ -1,3 +1,8 @@
+# Version 1.6.1 (Android code 9): new icons
+
+* **Every icon redrawn** as an engraved plate emblem (67 drawings, `docs/ICONS.md`): period objects in brass, bone, vermilion and Tyrian purple by what they mean, none in the game's own status colours. Settings > Display > Icons: colour by meaning, all brass, or the classic line icons. Colour-vision and high-contrast modes always use brass.
+* The province ring, the left rail, the build picker, alerts, cards and the codex all use them; orders that had no icon of their own (hire, develop, settle, spread, muster, general, release) have one.
+
 # Version 1.6.0 (Android code 8): what the research asked for
 
 Rules 5 (real people, gold and soldiers at 10/20/30:1, `docs/RULES5_REALISM.md`) is the default. On top of it, from `docs/RESEARCH_2026_11.md`:

@@ -247,6 +247,7 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 		"display":
 			page.add_child(_srow(T.call("quality"), _choice([["auto", T.call("q_auto_s")], ["low", T.call("q_low")], ["medium", T.call("q_medium")], ["high", T.call("q_high")]], String(cfg["quality"]), func(v): set.call("quality", v)), stacked, T.call("q_auto")))
 			page.add_child(_srow(T.call("fx_title"), _choice([["off", T.call("fx_off")], ["light", T.call("fx_light")], ["full", T.call("fx_full")]], String(cfg.get("fx", "full")), func(v): set.call("fx", v)), stacked))
+			page.add_child(_srow(T.call("icons_title"), _choice([["colour", T.call("icons_colour")], ["brass", T.call("icons_brass")], ["classic", T.call("icons_classic")]], String(cfg.get("icons", "colour")), func(v): set.call("icons", v)), stacked, T.call("icons_note")))
 			page.add_child(_srow(T.call("ui_size"), _choice([["small", T.call("ui_small")], ["normal", T.call("ui_normal")], ["large", T.call("ui_large")]], String(cfg.get("ui", "normal")), func(v): set.call("ui", v)), stacked))
 			page.add_child(_srow(T.call("phone_layout"), _choice([["desktop", T.call("phone_desktop")], ["compact", T.call("phone_compact")]], String(cfg.get("phone_ui", "desktop")), func(v): set.call("phone_ui", v)), stacked))
 			page.add_child(_srow(T.call("era_ui_title"), _choice([["ring", T.call("era_ui_ring")], ["classic", T.call("era_ui_classic")]], String(cfg.get("era_ui", "ring")), func(v): set.call("era_ui", v)), stacked))

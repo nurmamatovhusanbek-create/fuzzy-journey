@@ -139,10 +139,12 @@ static func _star(r_out: float, r_in: float, filled: bool) -> void:
 	_ci.draw_polyline(_scratch, _knock if filled else _col, 1.0 if filled else _s, true)
 
 static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, _w: float = 1.6) -> void:
+	if TBEmblem.draw(ci, name, c, size, col): return
 	_run(ci, name, c, size, col, false, TBTokens.c("bar_0"))
 
 ## active / on state: closed shapes filled, marks knocked out in `knock` (default the bar colour; pass the plate colour on paper)
 static func draw_filled(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, knock: Color = Color.TRANSPARENT) -> void:
+	if TBEmblem.draw(ci, name, c, size, col): return
 	_run(ci, name, c, size, col, true, knock if knock.a > 0.0 else TBTokens.c("bar_0"))
 
 static func _run(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, filled: bool, knock: Color) -> void:
@@ -424,6 +426,7 @@ static func ic_shapes(name: String) -> Array:
 
 ## one demo icon: centre c, `size` units square (the 24 grid scaled), stroke `w` on the 24 grid (1.7 by default), round caps and joins
 static func draw_ic(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, w: float = 1.7) -> void:
+	if TBEmblem.draw(ci, name, c, size, col): return
 	var shapes := ic_shapes(name)
 	if shapes.is_empty():
 		ci.draw_arc(c, size * 0.3, 0.0, TAU, 20, col, w * size / 24.0, true)

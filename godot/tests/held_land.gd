@@ -36,6 +36,7 @@ func _init() -> void:
 	for i in 30: await process_frame
 	main._select(held)
 	for i in 30: await process_frame
+	root.get_viewport().get_texture().get_image().save_png("%s/held_0.png" % out)
 	var ring: TBMapRing = main.ring
 	_check(ring.visible, "the ring opens on land you hold")
 	_check(not ring._nation_mode(), "it is the verb ring, not the foreign-nation ring")
