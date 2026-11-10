@@ -791,7 +791,7 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				var rac := g.can({"cmd": "raise", "p": s, "amount": TBRaise.default_amount(g, s)})
 				var rap: Array = _cost_parts("%s +%d" % [T.call("cc_raise"), int(rac["gain"])], rac)
 				out.append(_mk("raise", "recruit", "cc_raise", rac, rap, k == 2))
-			if g.rules >= 5 and not held:                                              # orders for many provinces at once (TBMass)
+			if g.rules >= 5 and not held and false:                                    # (moved to the Host panel, F8: orders for many provinces at once are not about this province)
 				if k == 1 and g.army[s] >= g.au(20.0):
 					var spc := g.can({"cmd": "spread", "p": s})
 					var spp: Array = _cost_parts(T.call("cc_spread"), spc)
@@ -801,7 +801,7 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				var mup: Array = _cost_parts(T.call("cc_muster"), muc)
 				if bool(muc["ok"]) or muc["reason"] in ["gold", "mp"]: mup.append({"t": " · " + T.call("muster_detail", {"k": int(muc.get("n_targets", 0)), "m": int(muc["gain"])}), "short": false})
 				out.append(_mk("muster", "muster", "cc_muster", muc, mup))
-			if k == 1 and g.rules >= 1 and not held and g.gen[s] == 0 and g.army[s] >= TBGenerals.MIN_ARMY:
+			if k == 1 and g.rules >= 1 and g.rules < 5 and not held and g.gen[s] == 0 and g.army[s] >= TBGenerals.MIN_ARMY:
 				var gc := g.can({"cmd": "appoint", "p": s})
 				if gc["reason"] != "cap" or true:
 					var gparts := _cost_parts(T.call("appoint_general"), gc) + [{"t": " · " + T.call("gen_slots", {"n": TBGenerals.count(g, me), "c": TBGenerals.cap(g, me)}), "short": gc["reason"] == "cap"}]
