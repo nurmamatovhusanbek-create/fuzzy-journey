@@ -33,10 +33,17 @@ func _run() -> void:
 	g.pop[p] = 165; g.econ[p] = 3; g.dev[p] = 1; g.stab[p] = 84
 	main._select(p); await _frames(30)
 	var vi := -1
-	for i in main.panel._verbs.size(): if String(main.panel._verbs[i]["id"]) == "develop": vi = i
-	_check(vi >= 0, "the Develop verb is there")
+	var via_improve := false
+	for i in main.panel._verbs.size():
+		if String(main.panel._verbs[i]["id"]) == "develop": vi = i
+		if String(main.panel._verbs[i]["id"]) == "improve": vi = i; via_improve = true
+	_check(vi >= 0, "the Develop verb (rules 5: Improve) is there")
 	if vi < 0: print("DEVELOP_MODAL FAIL"); quit(1); return
 	main.panel._press(vi); await _frames(30)
+	if via_improve:                                                      # rules 5: Improve opens a list; its Projects door is the project window
+		var lab: Array = []
+		for r in main.panel._verbs[vi]["rows"]: lab.append(String(r["label"]))
+		main.panel._popover.picked.emit(lab.find("Projects")); await _frames(30)
 	var md: TBDevelopModal = main.panel._dmodal
 	_check(md != null, "Develop opens the choice")
 	if md == null: print("DEVELOP_MODAL FAIL"); quit(1); return

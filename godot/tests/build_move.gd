@@ -37,8 +37,15 @@ func _run() -> void:
 	g.b_lv[p * g.NB + TBData.B_MARKET - 1] = 1                      # a market stands here
 	main._select(p); await _frames(30)
 	var vi := -1
-	for i in main.panel._verbs.size(): if String(main.panel._verbs[i]["id"]) == "build": vi = i
+	var via_improve := false
+	for i in main.panel._verbs.size():
+		if String(main.panel._verbs[i]["id"]) == "build": vi = i
+		if String(main.panel._verbs[i]["id"]) == "improve": vi = i; via_improve = true
 	main.panel._press(vi); await _frames(25)
+	if via_improve:                                                      # rules 5: Improve opens a list; its Buildings door is the Blueprint picker
+		var lab: Array = []
+		for r in main.panel._verbs[vi]["rows"]: lab.append(String(r["label"]))
+		main.panel._popover.picked.emit(lab.find("Buildings")); await _frames(25)
 	var pk: TBBuildPicker = main.panel._bpicker
 	_check(pk != null, "the picker opens")
 	if pk == null: print("BUILD_MOVE FAIL"); quit(1); return

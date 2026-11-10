@@ -24,7 +24,7 @@ const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 static var _title_font: Font
 
-const HOT := {"spread": "S", "muster": "N", "move": "M", "attack": "M", "recruit": "R", "raise": "R", "hire": "H", "general": "G", "build": "B", "develop": "E", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
+const HOT := {"spread": "S", "muster": "N", "move": "M", "attack": "M", "recruit": "R", "raise": "R", "hire": "H", "general": "G", "build": "B", "improve": "B", "develop": "E", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
 const HOT_KEY := {KEY_S: "spread", KEY_N: "muster", KEY_M: "move", KEY_R: "recruit", KEY_H: "hire", KEY_G: "general", KEY_B: "build", KEY_E: "develop", KEY_C: "colonize", KEY_D: "diplo", KEY_U: "ult", KEY_W: "war", KEY_P: "peace", KEY_T: "terms"}
 
 var g: TBGame
@@ -807,7 +807,11 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 					var gparts := _cost_parts(T.call("appoint_general"), gc) + [{"t": " · " + T.call("gen_slots", {"n": TBGenerals.count(g, me), "c": TBGenerals.cap(g, me)}), "short": gc["reason"] == "cap"}]
 					out.append(_mk("general", "general", "cc_general", gc, gparts))
 			var bi := _build_items(s)
-			if not bi["items"].is_empty() or bi["busy"] or held or g.occupier[s] != 0:
+			var improve5: bool = g.rules >= 5 and not held and g.occupier[s] == 0 and g.owner[s] == me
+			if improve5:                                                                   # Build, Develop and Veteran colony as one: Improve
+				var imp := _improve_options(s, bi)
+				out.append(_mk("improve", "build", "cc_improve", imp["can"], imp["parts"], false, false, {"rows": imp["rows"]}))
+			elif not bi["items"].is_empty() or bi["busy"] or held or g.occupier[s] != 0:
 				var bcan: Dictionary
 				if (held or g.occupier[s] != 0 or g.owner[s] != me) and bi["items"].is_empty(): bcan = g.can({"cmd": "build", "p": s, "b": 1})
 				elif bi["busy"]: bcan = g.can({"cmd": "build", "p": s, "b": 1})
@@ -817,7 +821,7 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				var parts: Array = [{"t": T.call("build"), "short": false}]
 				if int(bi["min_gold"]) > 0: parts.append({"t": " · " + T.call("cc_from_gold", {"n": int(bi["min_gold"])}), "short": false})
 				out.append(_mk("build", "build", "build", bcan, parts, false, false, {"items": bi["items"]}))
-			if not held and g.occupier[s] == 0 and g.owner[s] == me and g.dev[s] < 5:
+			if not improve5 and not held and g.occupier[s] == 0 and g.owner[s] == me and g.dev[s] < 5:
 				var dc := g.can({"cmd": "develop", "p": s})
 				if g.rules >= 4:                                                      # a choice of projects: the verb is open when any of them is, and says where the prices start
 					var any_ok := false; var cheapest := 1000000; var first_cn: Dictionary = dc
@@ -838,7 +842,7 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 						dparts.append({"t": " · " + T.call("cc_staffed", {"p": fill}), "short": fill < 70})
 					out.append(_mk("develop", "develop", "cc_develop", dc, dparts))
 
-			if g.rules >= 3 and not held and g.occupier[s] == 0 and g.owner[s] == me:
+			if not improve5 and g.rules >= 3 and not held and g.occupier[s] == 0 and g.owner[s] == me:
 				var vc := g.can({"cmd": "settle", "p": s})
 				if String(vc["reason"]) != "nothing":
 					var vparts: Array = _cost_parts(T.call("cc_settle"), vc)
@@ -872,6 +876,53 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 			v["can"] = {"ok": false, "reason": "busy_turn", "gold": 0, "moves": 0, "men": 0, "dp": 0, "short": {}}
 			v["why"] = T.call("cc_resolving")
 	return out
+
+## Improve (rules 5): what a province can be given, in one place. Three doors: the buildings (the Blueprint picker), the projects (Development, Economy, Veteran colony, Order: the project window), and the Veteran colony as a quick order.
+func _improve_options(s: int, bi: Dictionary) -> Dictionary:
+	var rows: Array = []
+	var any_ok := false; var cheapest := 1000000; var first_why := ""; var first_bad: Dictionary = {}
+	# buildings
+	var b_ok := false; var b_min := 0
+	for it in bi["items"]:
+		var bc: Dictionary = it["can"]
+		if bool(bc["ok"]): b_ok = true
+	if bool(bi["busy"]): b_ok = false
+	if not bi["items"].is_empty(): b_min = int(bi["min_gold"])
+	var b_can: Dictionary = bi["best"] if bi["best"] != null else {"ok": false, "reason": "busy" if bi["busy"] else "none", "gold": 0, "moves": 1, "men": 0, "dp": 0, "short": {}}
+	var b_det: String = T.call("improve_buildings_d", {"n": bi["items"].size(), "g": CC.gold(b_min)}) if not bi["items"].is_empty() else ""
+	rows.append({"label": T.call("improve_buildings"), "detail": b_det, "costs": [], "ok": b_ok and not bi["items"].is_empty(), "why": reason_text(b_can) if not (b_ok and not bi["items"].is_empty()) else "", "action": func(): _open_build(_verb_anchor("improve"), bi["items"], s), "danger": false})
+	any_ok = any_ok or (b_ok and not bi["items"].is_empty())
+	if b_ok and b_min > 0: cheapest = mini(cheapest, b_min)
+	# projects
+	var p_ok := false; var p_min := 1000000; var p_bad: Dictionary = {}
+	for kk in range(1, TBInvest.PROJECTS.size() + 1):
+		var ck := g.can({"cmd": "develop", "p": s, "k": kk})
+		if bool(ck["ok"]): p_ok = true; p_min = mini(p_min, int(ck["gold"]))
+		elif p_bad.is_empty(): p_bad = ck
+	var p_why := ""
+	if not p_ok: p_why = reason_text(p_bad) if not p_bad.is_empty() else ""
+	var p_det: String = T.call("improve_projects_d", {"g": CC.gold(p_min)}) if p_ok else ""
+	rows.append({"label": T.call("improve_projects"), "detail": p_det, "costs": [], "ok": p_ok, "why": p_why, "action": func(): _open_develop(_verb_anchor("improve"), s), "danger": false})
+	any_ok = any_ok or p_ok
+	if p_ok: cheapest = mini(cheapest, p_min)
+	# the quick order: a veteran colony
+	var vc := g.can({"cmd": "settle", "p": s})
+	if g.rules >= 3 and String(vc["reason"]) != "nothing":
+		var vdet := "%s · %s" % [T.call("cc_settle_gain", {"p": TBMissions.SETTLE_POP, "s": TBMissions.SETTLE_STAB}), CC.gold(int(vc["gold"]))]
+		rows.append({"label": T.call("cc_settle"), "detail": vdet, "costs": [], "ok": bool(vc["ok"]), "why": reason_text(vc) if not bool(vc["ok"]) else "", "cmd": {"cmd": "settle", "p": s}, "danger": false})
+		if bool(vc["ok"]): any_ok = true; cheapest = mini(cheapest, int(vc["gold"]))
+	var cn := {"ok": any_ok, "reason": "", "gold": cheapest if cheapest < 1000000 else 0, "moves": 1, "men": 0, "dp": 0, "short": {}}
+	if not any_ok:
+		cn["reason"] = String(first_why) if first_why != "" else "none"
+		for r in rows: if String(r["why"]) != "": cn["reason"] = "improve_none"; break
+	var parts: Array = [{"t": T.call("cc_improve"), "short": false}]
+	if cheapest < 1000000: parts.append({"t": " · " + T.call("cc_from_gold", {"n": cheapest}), "short": false})
+	return {"can": cn, "parts": parts, "rows": rows}
+
+## the verb row's button for a verb id (where its pop-up opens from)
+func _verb_anchor(id: String) -> Control:
+	for v in _verbs: if String(v["id"]) == id and v.has("btn") and is_instance_valid(v["btn"]): return v["btn"]
+	return self
 
 func _has_explicit_targets(s: int) -> bool:
 	if flow == null: return true
@@ -964,7 +1015,7 @@ func _build_verb_rows(s: int, cs: Dictionary, src: int) -> Dictionary:
 		v["btn"] = b
 		_verbs.append(v)
 		var key: int = -1
-		for kc in HOT_KEY: if HOT_KEY[kc] == v["id"] or (v["id"] == "attack" and HOT_KEY[kc] == "move"): key = kc
+		for kc in HOT_KEY: if HOT_KEY[kc] == v["id"] or (v["id"] == "attack" and HOT_KEY[kc] == "move") or (v["id"] == "improve" and HOT_KEY[kc] == "build") or (v["id"] == "raise" and HOT_KEY[kc] == "recruit"): key = kc
 		if key >= 0: _hotkeys[key] = idx
 	return {"rows": rows, "primary": primary_btn}
 
@@ -1103,6 +1154,7 @@ func _press(i: int) -> void:
 		"move": move_requested.emit(s)
 		"attack": if flow != null: flow.preview_to(s, _source_for(_case))
 		"build": _open_build(v["btn"], v["items"], s)
+		"improve": _open_list(v["btn"], v["rows"], s, T.call("cc_improve"))
 		"diplo": _open_list(v["btn"], _diplo_rows(v["items"]), s, T.call("cc_diplomacy"))
 		"war":
 			if _confirm_mode() == "never": command.emit({"cmd": "declareWar", "t": int(_case["o"])})
@@ -1153,6 +1205,7 @@ func _open_list(anchor: Control, rows: Array, _s: int, title_text: String = "") 
 		var r: Dictionary = rows[i]
 		if not r["ok"]: flash(String(r["why"])); return
 		_close_popover()
+		if r.has("action"): (r["action"] as Callable).call(); return
 		if bool(r.get("danger", false)) and String(r["cmd"].get("cmd", "")) == "breakPact" and _confirm_mode() != "never":
 			_brk_target = int(r["cmd"]["t"]); rebuild(); return        # a destructive order asks first
 		command.emit(r["cmd"]))
