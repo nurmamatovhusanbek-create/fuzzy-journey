@@ -5,10 +5,11 @@ var fails := 0
 func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL ", what)
 class Pad extends Control:
-	var name_: String = "treasury"; var col := Color("D9B660")
+	var name_: String = "treasury"; var col := Color("D9B660"); var mono := false
 	func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color("101010"))
-		TBBzIcons.draw(self, name_, size * 0.5, 40.0, col)
+		if mono: TBEmblem.draw(self, name_, size * 0.5, 40.0, col, true)
+		else: TBBzIcons.draw(self, name_, size * 0.5, 40.0, col)
 func _px(img: Image, x: int, y: int) -> Color: return img.get_pixel(x, y)
 func _init() -> void:
 	TBEmblem.mode = "colour"; TBKit.cvd = "off"
@@ -53,6 +54,25 @@ func _init() -> void:
 	var lit := 0
 	for y in range(20, 100): for x in range(20, 100): if _px(img, x, y).get_luminance() > 0.3: lit += 1
 	_check(lit > 300, "an emblem is drawn (%d lit samples)" % lit)
+	# mono (the province ring): the caller's colour, whatever the emblem means
+	pad.name_ = "envoys"; pad.mono = true; pad.queue_redraw()
+	for i in 4: await process_frame
+	var img2 := vp.get_texture().get_image()
+	var warm := 0; var violet := 0
+	for y in range(20, 100): for x in range(20, 100):
+		var px := _px(img2, x, y)
+		if px.get_luminance() > 0.3:
+			if px.r > px.b: warm += 1
+			else: violet += 1
+	_check(warm > 200 and violet < warm / 10, "mono: envoys stays brass, not purple (%d warm, %d violet)" % [warm, violet])
+	pad.mono = false; pad.queue_redraw()
+	for i in 4: await process_frame
+	var img3 := vp.get_texture().get_image()
+	var violet3 := 0
+	for y in range(20, 100): for x in range(20, 100):
+		var px3 := _px(img3, x, y)
+		if px3.get_luminance() > 0.3 and px3.b > px3.g: violet3 += 1
+	_check(violet3 > 200, "colour: the same emblem is purple (%d violet)" % violet3)
 	TBEmblem.mode = "classic"
 	_check(not TBEmblem.draw(pad, "treasury", Vector2(10, 10), 24.0, brass), "classic mode: the old drawing")
 	TBEmblem.mode = "colour"

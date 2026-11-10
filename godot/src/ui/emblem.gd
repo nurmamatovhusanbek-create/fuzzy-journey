@@ -82,8 +82,8 @@ static func tint(id: String, col: Color) -> Color:
 	var k: float = clampf((lum - 0.2) / 0.5, 0.3, 1.0)                         # a disabled icon (dim ink) stays dim
 	return Color(m.r * k, m.g * k, m.b * k, col.a)
 
-## draw the emblem for `name` centred at c, size px square; false = no emblem (draw the old one)
-static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color) -> bool:
+## draw the emblem for `name` centred at c, size px square; false = no emblem (draw the old one). mono: in the colour the caller passes, no meaning colour (the province ring is one brass instrument)
+static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, mono: bool = false) -> bool:
 	if mode == "classic": return false
 	var id := id_of(name)
 	if id == "":
@@ -98,5 +98,5 @@ static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Col
 		rect = Rect2(xf.affine_inverse() * tl, Vector2(dpx, dpx) / sc)
 	var tex := _texture(id, dpx)
 	if tex == null: return false
-	ci.draw_texture_rect(tex, rect, false, tint(id, col))
+	ci.draw_texture_rect(tex, rect, false, col if mono else tint(id, col))
 	return true

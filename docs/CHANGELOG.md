@@ -1,6 +1,7 @@
 # Version 1.6.1 (Android code 9): new icons
 
 * **Every icon redrawn** as an engraved plate emblem (67 drawings, `docs/ICONS.md`): period objects in brass, bone, vermilion and Tyrian purple by what they mean, none in the game's own status colours. Settings > Display > Icons: colour by meaning, all brass, or the classic line icons. Colour-vision and high-contrast modes always use brass.
+* The province ring is one brass instrument: its verbs are drawn in the ring's own brass and ivory, never in the meaning colours (those belong to icons that stand alone: alerts, lists, cards, the rail).
 * The province ring, the left rail, the build picker, alerts, cards and the codex all use them; orders that had no icon of their own (hire, develop, settle, spread, muster, general, release) have one.
 
 # Version 1.6.0 (Android code 8): what the research asked for

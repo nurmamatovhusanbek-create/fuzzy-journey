@@ -11,7 +11,7 @@ Every icon of the game is one of 67 emblems: solid silhouettes of period objects
 | Tyrian purple `#BE8ADB` | diplomacy and knowledge (envoys, nations, pact, spy, research, library, info, release, claim) |
 | smoke `#A89C80` | controls, places, terrain (move, save, close, back, lock, filter, pin) |
 
-The game's own status colours (teal good, coral bad, blue information) are never used for meaning: an icon the code draws in one of them keeps it, a dim icon (disabled) stays dim, a dark icon on a brass plate (the ring's primary verb) stays dark. Modes: **Colour by meaning** (default), **All brass**, **Classic line icons** (the 1.6.0 set). Colour-vision modes and high contrast always use brass: every drawing differs by shape.
+The game's own status colours (teal good, coral bad, blue information) are never used for meaning: an icon the code draws in one of them keeps it, a dim icon (disabled) stays dim, a dark icon on a brass plate (the ring's primary verb) stays dark. The province ring is the exception: its verbs are one brass instrument and are drawn in the ring's own brass and ivory. Modes: **Colour by meaning** (default), **All brass**, **Classic line icons** (the 1.6.0 set). Colour-vision modes and high contrast always use brass: every drawing differs by shape.
 
 ## How it is built
 * `tools/emblems/emblems.svg` is the source (symbols on a 48 grid, the cuts in classes `k` / `kf` / `sep`). `tools/emblems/render.cjs` + `post.py` render each symbol to a 256 px white mask whose cuts are transparent: `assets/emblems/<id>.png`.
