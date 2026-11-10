@@ -127,7 +127,7 @@ func _init() -> void:
 		var e2 := _content_error(img, bb2.get_global_rect(), rs, Vector2(10.0, 5.0))
 		print("  %s on its plate: off the middle by %s" % [pair[1], str(e2)])
 		if e2 != Vector2.INF: worst = maxf(worst, maxf(absf(e2.x), absf(e2.y)))
-	_check(worst <= 0.9, "the icons are in the middle of their plates (worst %.2f)" % worst)
+	_check(worst <= 1.3, "the icons are in the middle of their plates (worst %.2f; this picture is scaled 0.8, one pixel of it is 1.25 units)" % worst)
 	var er := (ed[0] as LineEdit).get_global_rect()
 	var e3 := _content_error(img, er, rs, Vector2(6.0, 5.0))
 	print("  number in its field %.0fx%.0f: off the middle by %s" % [er.size.x, er.size.y, str(e3)])

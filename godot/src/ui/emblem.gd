@@ -9,7 +9,7 @@ static var mode := "colour"                   # "colour" | "brass" | "classic" (
 static var unknown: Dictionary = {}           # names that fell back to the old drawing (the tests read it)
 
 ## the five meaning colours: brass (state, money, building, land), bone (people, peace), vermilion (war, danger), Tyrian purple (diplomacy, knowledge), smoke (controls, places)
-static var PAL: Dictionary = {"b": Color("D6B05A"), "g": Color("EFE6CF"), "r": Color("E4573F"), "u": Color("BE8ADB"), "i": Color("A89C80")}
+static var PAL: Dictionary = TBTokens.ICON_PAL
 
 ## emblem id -> meaning colour
 static var KIND: Dictionary = {
@@ -89,9 +89,14 @@ static func draw(ci: CanvasItem, name: String, c: Vector2, size: float, col: Col
 	if id == "":
 		unknown[name] = true
 		return false
-	var sc: float = absf(ci.get_global_transform_with_canvas().get_scale().x)
-	var tex := _texture(id, size * maxf(sc, 1.0))
+	var xf: Transform2D = ci.get_global_transform_with_canvas()
+	var sc: float = maxf(absf(xf.get_scale().x), 0.01)
+	var rect := Rect2(c - Vector2(size, size) * 0.5, Vector2(size, size))
+	var dpx: float = maxf(roundf(size * sc), 2.0)
+	if absf(xf.x.y) < 0.001 and absf(xf.y.x) < 0.001:                         # no rotation: put the emblem on whole device pixels, so it is crisp and its middle is the plate's middle
+		var tl: Vector2 = ((xf * c) - Vector2(dpx, dpx) * 0.5).round()
+		rect = Rect2(xf.affine_inverse() * tl, Vector2(dpx, dpx) / sc)
+	var tex := _texture(id, dpx)
 	if tex == null: return false
-	var half := Vector2(size, size) * 0.5
-	ci.draw_texture_rect(tex, Rect2((c - half).round(), Vector2(size, size)), false, tint(id, col))
+	ci.draw_texture_rect(tex, rect, false, tint(id, col))
 	return true

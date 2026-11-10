@@ -7,7 +7,7 @@ const src = fs.readFileSync(path.join(dir, 'emblems.svg'), 'utf8'); const ids = 
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 300, height: 300 }, deviceScaleFactor: 1 });
   for (const id of ids) {
     const sym = src.match(new RegExp('id="[in]-' + id + '"'))[0].slice(4, -1);
-    const html = `<style>html,body{margin:0;background:transparent}.a2{color:#fff;fill:#fff;stroke:#fff;stroke-width:1.1;stroke-linejoin:round}.k{stroke:#000;fill:none;stroke-linecap:round;stroke-linejoin:round}.kf{fill:#000;stroke:none}.sep{stroke:#000;stroke-width:2.4;paint-order:stroke}</style>${src}<svg id="s" class="a2" width="256" height="256" viewBox="-3 -3 54 54" style="display:block"><use href="#${sym}"/></svg>`;
+    const html = `<style>html,body{margin:0;background:transparent}.a2{color:#fff;fill:#fff;stroke:#fff;stroke-width:1.1;stroke-linejoin:round}.k{stroke:#000;fill:none;stroke-linecap:round;stroke-linejoin:round}.kf{fill:#000;stroke:none}.sep{stroke:#000;stroke-width:2.4;paint-order:stroke}</style>${src}<svg id="s" class="a2" width="256" height="256" viewBox="-1 -1 50 50" style="display:block"><use href="#${sym}" width="48" height="48"/></svg>`;
     await pg.setContent(html);
     await pg.locator('#s').screenshot({ path: path.join(out, id + '.raw.png'), omitBackground: true });
   }

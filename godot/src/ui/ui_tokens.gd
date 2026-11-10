@@ -95,6 +95,9 @@ static func set_accent(player_rgb: int) -> void:
 static func _lighten(col: Color, k: float) -> Color: return col.lerp(Color.WHITE, k)
 static func _darken(col: Color, k: float) -> Color: return col.lerp(Color.BLACK, k)
 
+## the five icon colours (TBEmblem, docs/ICONS.md): brass = state, money, building, land; bone = people, peace; vermilion = war, danger; Tyrian purple = diplomacy, knowledge; smoke = controls, places
+static var ICON_PAL: Dictionary = {"b": Color("D6B05A"), "g": Color("EFE6CF"), "r": Color("E4573F"), "u": Color("BE8ADB"), "i": Color("A89C80")}
+
 static func atlas() -> Dictionary:
 	if not _atlas.is_empty(): return _atlas
 	## Bezel palette (docs/ui_variants/src/bezel.css): umber panels, brass bezels, ivory ink. The nation colour lives in flags only.

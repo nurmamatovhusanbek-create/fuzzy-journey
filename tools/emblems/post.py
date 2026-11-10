@@ -8,5 +8,9 @@ for f in sorted(glob.glob(os.path.join(d, '*.raw.png'))):
         for x in range(w):
             r, g, b, a = px[x, y]
             px[x, y] = (255, 255, 255, int(round(a * r / 255.0)))
+    bb = im.getchannel('A').point(lambda v: 255 if v > 96 else 0).getbbox()          # centre every emblem on its plate by its own outline
+    if bb:
+        dx = int(round(w / 2 - (bb[0] + bb[2]) / 2)); dy = int(round(h / 2 - (bb[1] + bb[3]) / 2))
+        out = Image.new('RGBA', im.size, (255, 255, 255, 0)); out.paste(im, (dx, dy)); im = out
     im.save(f.replace('.raw.png', '.png'), optimize=True); os.remove(f)
 print('ok')
