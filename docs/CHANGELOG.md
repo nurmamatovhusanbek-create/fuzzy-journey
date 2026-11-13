@@ -2,6 +2,7 @@
 
 * **Raise troops** (rules 5): Recruit and Hire are one order. You say how many men; they come from the levy pool first (cheap) and the rest are hired, one move point, and the card shows both parts and what the mix saves against hiring them all. The old commands stay underneath (saves, the AI, rules 0 to 4).
 * **Improve** (rules 5): Build, Develop and Veteran colony are one verb. It opens a short list: Buildings (the Blueprint picker), Projects (the project window), Veteran colony.
+* **Uzbek**: one apostrophe rule everywhere (oʻ gʻ = U+02BB, tutuq = U+02BC; 570 strings fixed, checked in the test suite), a style guide (`docs/UZ_STYLE.md`), a glossary of the 17 terms to decide first and a review sheet for native speakers (`tools/uz_review.py`, `tools/uz_import.py`).
 * **Loose ends** (rules 5): pressing End Turn with something still undone (the army standing in one province, gold piling up, manpower overflowing, a big army with no general) shows one card: Handle them, or End turn anyway. Once a turn; Settings > Comfort switches it off; muted tips are not nagged about.
 * **Disband** (rules 5): men leave the colours, half back to the province's levy pool and the nation's manpower, one move point, never below the garrison minimum. From the Host panel, an army row.
 * **Host panel** (F8, under More): Spread, Muster, the armies with their generals (Appoint) and the levy pools in one place. The province ring keeps only what is about that province: a capital shows Move, Raise troops and Improve instead of nine verbs.

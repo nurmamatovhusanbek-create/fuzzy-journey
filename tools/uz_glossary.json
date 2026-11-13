@@ -1,0 +1,19 @@
+[
+ {"term": "Turn", "keys": ["turn"], "now": "Yurish", "suggest": "Navbat", "why": "Yurish means a walk/march or a chess move; the game's turn (a round everyone plays) is navbat."},
+ {"term": "End turn", "keys": ["end_turn"], "now": "Tugatish", "suggest": "Navbatni tugatish", "why": "Tugatish alone says 'finish'; say what is finished."},
+ {"term": "Host (the gauge: move points)", "keys": ["hud_cap_mp"], "now": "Qo‘shin", "suggest": "Harakatlar", "why": "The gauge counts moves, not soldiers; the English word 'Host' is misleading too (we may rename it 'Moves' in English as well)."},
+ {"term": "Manpower", "keys": ["manpower"], "now": "Jonli kuch", "suggest": "Harbiy zaxira", "why": "'Jonli kuch' is a literal word-for-word calque; harbiy zaxira (military reserve) is how it reads in Uzbek."},
+ {"term": "Happiness", "keys": ["happiness"], "now": "Baxt", "suggest": "Mamnunlik", "why": "Baxt is personal happiness; the people's mood in a province is mamnunlik (contentment)."},
+ {"term": "Goals", "keys": ["dk_goals"], "now": "Maqsad", "suggest": "Maqsadlar", "why": "Plural: a list of goals."},
+ {"term": "Options / Settings", "keys": ["dk_settings"], "now": "Sozlama", "suggest": "Sozlamalar", "why": "Plural: the settings window."},
+ {"term": "Wars (the gauge)", "keys": ["hud_wars"], "now": "Urush", "suggest": "Urushlar", "why": "Plural, as the gauge counts wars."},
+ {"term": "Outliner", "keys": ["dk_outliner"], "now": "Ro‘yxat", "suggest": "Vaziyat", "why": "'Ro‘yxat' is just 'list'; the window shows what is under way: vaziyat (situation) or ishlar (tasks)."},
+ {"term": "Treasury", "keys": ["hud_cap_gold"], "now": "Xazina / g‘azna (both used)", "suggest": "Xazina", "why": "Two words for one thing: xazina 18 times, g‘azna 10 times. One of them everywhere; xazina is the modern financial word."},
+ {"term": "Army", "keys": ["dk_host"], "now": "qo‘shin (82) / armiya (14)", "suggest": "qo‘shin", "why": "Qo‘shin is the Uzbek word; armiya is a Russian loan. Pick one and keep it (armiya only inside official names)."},
+ {"term": "Peace", "keys": ["cc_peace"], "now": "Sulh (24) / tinchlik (15)", "suggest": "Tinchlik for the state, sulh for the treaty", "why": "Both exist; the split should follow meaning, not chance."},
+ {"term": "Envoy / diplomat", "keys": ["hud_cap_dp"], "now": "elchi (20) / diplomat (37)", "suggest": "elchi for the person and the point, diplomatiya for the field", "why": "Keep one word for the gauge and the order."},
+ {"term": "Spread (the army out to the front)", "keys": ["cc_spread"], "now": "Tarqatish", "suggest": "Frontga yo‘naltirish", "why": "Tarqatish means 'to disperse / hand out'; the order sends the army to the front."},
+ {"term": "Muster (raise levies everywhere)", "keys": ["cc_muster"], "now": "To‘plash", "suggest": "Safarbar qilish", "why": "To‘plash is 'to gather'; safarbarlik is the word for mobilisation."},
+ {"term": "Raise troops", "keys": ["cc_raise"], "now": "Qo‘shin to‘plash", "suggest": "Qo‘shin yig‘ish", "why": "Yig‘ish (to gather up) reads more natural next to qo‘shin; to‘plash is fine too. Native to choose."},
+ {"term": "Improve", "keys": ["cc_improve"], "now": "Yaxshilash", "suggest": "Obodonlashtirish", "why": "Yaxshilash is a general 'make better'; for a province it is obodonlashtirish (to develop and improve a place)."}
+]
