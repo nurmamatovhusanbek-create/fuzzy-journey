@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "icons": "colour", "fx": "full", "era_ui": "ring", "phone_ui": "desktop", "tips": true, "alert_mute": [], "pins": [], "win": {}}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "icons": "colour", "fx": "full", "era_ui": "ring", "phone_ui": "desktop", "tips": true, "turn_check": true, "alert_mute": [], "pins": [], "win": {}}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -87,6 +87,7 @@ func _ready() -> void:
 		_dismiss_map_info())      # a screen or dialog opens: the HUD tooltip / popover goes
 	mp = TBMpController.new(); add_child(mp); mp.setup(self)
 	hud.end_turn_pressed.connect(func():
+		if _loose_check(): return
 		sfx.play("turn"); _dismiss_map_info(); end_turn()
 		if not cfg.get("seal_seen", false): cfg["seal_seen"] = true; _save_cfg(); hud.set_seal_pulse(false))
 	hud.tapped.connect(func(): sfx.play("tap"); _dismiss_map_info())       # any button, gauge, menu or alert: what a district showed goes (the zoom buttons play the cue only: same map)
@@ -912,7 +913,7 @@ func _on_setting_changed(key: String) -> void:
 		"vol_master", "vol_music", "vol_sfx", "vol_ui": TBAudio.apply_volumes(cfg)
 		"fx": TBFx.apply(cfg)
 		"alert_mute": TBAlertPrefs.sync(cfg); if mode == "game": hud.refresh()
-		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "icons", "tts", "confirm", "mirror", "vis_alerts", "navpad", "tips":
+		"text_scale", "readable", "touch_large", "hc", "contrast", "reduce_motion", "cvd", "icons", "tts", "confirm", "mirror", "vis_alerts", "navpad", "tips", "turn_check":
 			_apply_a11y(); _rebuild_screens()
 		"reset_access":
 			sfx.enabled = cfg.get("sound", true); music.enabled = cfg.get("sound", true); _apply_a11y(); _rebuild_screens()
@@ -1479,6 +1480,20 @@ func _after_change(rebuild_card: bool = true) -> void:
 	if selected >= 0 and rebuild_card: flow.refresh(); panel.rebuild()                 # (a command that has just selected its target has built the card already)
 
 # ---------------------------------------------------------------- end turn (worker thread so the UI never freezes)
+## rules 5: before the turn ends, the loose ends in one card (once a turn; Settings > Comfort switches it off; never in hot-seat or online)
+var _loose_turn := -1
+func _loose_check() -> bool:
+	if g == null or mode != "game" or _busy or g.rules < 5 or mp.in_game or _is_hotseat(): return false
+	if not bool(cfg.get("turn_check", true)) or _loose_turn == g.turn: return false
+	var items := TBLoose.scan(g, g.human_id)
+	if items.is_empty(): return false
+	_loose_turn = g.turn
+	TBLooseCard.open(_overlay, items, func(it: Dictionary):
+		if TBLoose.target(it) == "province": _goto_province(int(it["p"]))
+		elif not _toggle_window("host"): TBHostPanel.open(_overlay, g, _goto_province, func(c: Dictionary): _on_command(c, false)),
+		func(): hud.force_end_turn())
+	return true
+
 func end_turn() -> void:
 	if mp.in_game:
 		mp.end_turn(); return

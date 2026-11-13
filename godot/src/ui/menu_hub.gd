@@ -252,6 +252,7 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 			page.add_child(_srow(T.call("phone_layout"), _choice([["desktop", T.call("phone_desktop")], ["compact", T.call("phone_compact")]], String(cfg.get("phone_ui", "desktop")), func(v): set.call("phone_ui", v)), stacked))
 			page.add_child(_srow(T.call("era_ui_title"), _choice([["ring", T.call("era_ui_ring")], ["classic", T.call("era_ui_classic")]], String(cfg.get("era_ui", "ring")), func(v): set.call("era_ui", v)), stacked))
 			page.add_child(_switch(T.call("tips_title"), bool(cfg.get("tips", true)), func(v): set.call("tips", v), stacked))
+			page.add_child(_switch(T.call("turn_check"), bool(cfg.get("turn_check", true)), func(v): set.call("turn_check", v), stacked))
 		"map":
 			page.add_child(_srow(T.call("map_view"), _choice([["globe", T.call("globe")], ["flat", T.call("flat")]], String(cfg["view"]), func(v): set.call("view", v)), stacked))
 			page.add_child(_srow(T.call("map_style"), _choice([["standard", T.call("style_standard")], ["parchment", T.call("style_parchment")], ["hc", T.call("style_hc")]], String(cfg.get("theme", "standard")), func(v): set.call("theme", v)), stacked))

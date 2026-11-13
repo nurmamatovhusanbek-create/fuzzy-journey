@@ -50,6 +50,8 @@ echo "$out" | grep -q "ARMY_RULE OK" && echo "ok: army_rule" || { echo "FAIL: ar
 out=$(TB_NOANIM= timeout 120 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/alert_cues.gd 2>&1)
 echo "$out" | grep -q "ALERT_CUES OK" && echo "ok: alert_cues" || { echo "FAIL: alert_cues"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 # the two-stage title: Play / Settings / How to play / Honours beside the turning globe, Play morphs into the second stage
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/loose.gd 2>&1)
+echo "$out" | grep -q "LOOSE OK" && echo "ok: tests/loose.gd" || { echo "FAIL: tests/loose.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 250 "$XV" -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/host_ui.gd 2>&1)
 echo "$out" | grep -q "HOST_UI OK" && echo "ok: tests/host_ui.gd" || { echo "FAIL: tests/host_ui.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 250 "$XV" -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/improve_ui.gd 2>&1)

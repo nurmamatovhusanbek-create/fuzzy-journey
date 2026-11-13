@@ -2,6 +2,7 @@
 
 * **Raise troops** (rules 5): Recruit and Hire are one order. You say how many men; they come from the levy pool first (cheap) and the rest are hired, one move point, and the card shows both parts and what the mix saves against hiring them all. The old commands stay underneath (saves, the AI, rules 0 to 4).
 * **Improve** (rules 5): Build, Develop and Veteran colony are one verb. It opens a short list: Buildings (the Blueprint picker), Projects (the project window), Veteran colony.
+* **Loose ends** (rules 5): pressing End Turn with something still undone (the army standing in one province, gold piling up, manpower overflowing, a big army with no general) shows one card: Handle them, or End turn anyway. Once a turn; Settings > Comfort switches it off; muted tips are not nagged about.
 * **Host panel** (F8, under More): Spread, Muster, the armies with their generals (Appoint) and the levy pools in one place. The province ring keeps only what is about that province: a capital shows Move, Raise troops and Improve instead of nine verbs.
 
 * **Every icon redrawn** as an engraved plate emblem (67 drawings, `docs/ICONS.md`): period objects in brass, bone, vermilion and Tyrian purple by what they mean, none in the game's own status colours. Settings > Display > Icons: colour by meaning, all brass, or the classic line icons. Colour-vision and high-contrast modes always use brass.
