@@ -13,7 +13,7 @@ signal cancelled
 
 var g: TBGame
 var p := -1
-var kind := "recruit"                 # "recruit" | "hire" | "raise" (rules 5: the levy pool first, the rest hired)
+var kind := "recruit"                 # "recruit" | "hire" | "raise" (rules 5: the levy pool first, the rest hired) | "disband" (rules 5: men go home, half back to the levy pool)
 var picker: TBTroopPicker
 var _name: TBBz.TLabel
 var _price: Label
@@ -59,7 +59,7 @@ static func plate(glyph: String, variant: int, cb: Callable) -> Button:
 func open(game: TBGame, province: int, what: String = "recruit") -> void:
 	g = game; p = province; kind = what
 	var r := TBRecruitCard.range_for(g, p, kind)
-	var verb: String = T.call("recruit") if kind == "recruit" else (T.call("cc_raise") if kind == "raise" else T.call("cc_hire"))
+	var verb: String = T.call("recruit") if kind == "recruit" else (T.call("cc_raise") if kind == "raise" else (T.call("cc_disband") if kind == "disband" else T.call("cc_hire")))
 	_name.text = TBI18n.place(g.pname(p)); _name.refit()
 	picker.setup(r.x, r.y, clampi(r.z, r.x, r.y), verb, false, true)
 	if not picker.changed.is_connected(_on_amount): picker.changed.connect(_on_amount)
@@ -73,6 +73,9 @@ func open(game: TBGame, province: int, what: String = "recruit") -> void:
 ## (lowest, highest, first) number of men the bar offers: the command's own limits; the first is what the old one-press button raised
 static func range_for(game: TBGame, province: int, what: String) -> Vector3i:
 	if what == "hire": return Vector3i(10, 60, 40)
+	if what == "disband":
+		var dh: int = TBRaise.disband_max(game, province)
+		return Vector3i(mini(1, dh), maxi(1, dh), clampi(dh / 2, 1, maxi(1, dh)))
 	if what == "raise":
 		var hi: int = TBRaise.max_amount(game, province)
 		return Vector3i(mini(1, hi), maxi(1, hi), clampi(TBRaise.default_amount(game, province), 1, maxi(1, hi)))
@@ -91,10 +94,11 @@ func _on_amount(n: int) -> void:
 	if kind == "raise" and c.has("levy"):                                   # where the men come from, and what the mix saves against hiring them all
 		_split.text = String(T.call("rc_split", {"l": TBKit.fmt(int(c["levy"])), "h": TBKit.fmt(int(c["hired"]))})) if int(c["hired"]) > 0 else String(T.call("rc_split_levy"))
 		if int(c.get("saved", 0)) > 0 and int(c["levy"]) > 0: _split.text += "  ·  " + String(T.call("rc_saved", {"g": CC.gold(int(c["saved"]))}))
+	if kind == "disband": _split.text = String(T.call("rc_disband_back", {"n": TBKit.fmt(int(c.get("levy", 0)))}))
 	var ok: bool = bool(c.get("ok", false))
 	_ok.disabled = not ok
 	if ok:
-		_army.text = T.call("rc_army", {"a": g.army[p], "b": mini(TBGame.ARMY_CAP, g.army[p] + n)})
+		_army.text = T.call("rc_army", {"a": g.army[p], "b": (g.army[p] - n) if kind == "disband" else mini(TBGame.ARMY_CAP, g.army[p] + n)})
 		_army.add_theme_color_override("font_color", K.DIM)
 	else:
 		var rk := "err_" + String(c.get("reason", ""))

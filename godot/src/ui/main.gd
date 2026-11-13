@@ -95,7 +95,7 @@ func _ready() -> void:
 	hud.lens_selected.connect(func(n): map.set_lens(n); hud.set_lens_legend(n))
 	hud.nations_pressed.connect(func(): if not _toggle_window("nations"): _open_nations())
 	hud.goals_pressed.connect(func(): if not _toggle_window("council"): _open_council("goals"))
-	hud.host_pressed.connect(func(): if not _toggle_window("host") and g != null: TBHostPanel.open(_overlay, g, _goto_province, func(c: Dictionary): _on_command(c, false)))
+	hud.host_pressed.connect(func(): if not _toggle_window("host") and g != null: TBHostPanel.open(_overlay, g, _goto_province, func(c: Dictionary): _on_command(c, false), func(pp: int): _open_amount("disband", pp)))
 	hud.outliner_pressed.connect(func(): if not _toggle_window("outliner") and g != null: TBOutliner.open(_overlay, g, cfg, selected, _goto_province, _save_cfg))
 	hud.decisions_pressed.connect(func(): if not _toggle_window("decrees"): _open_decisions())
 	hud.chronicle_pressed.connect(func(): if not _toggle_window("annals"): _open_annals())
@@ -1490,7 +1490,7 @@ func _loose_check() -> bool:
 	_loose_turn = g.turn
 	TBLooseCard.open(_overlay, items, func(it: Dictionary):
 		if TBLoose.target(it) == "province": _goto_province(int(it["p"]))
-		elif not _toggle_window("host"): TBHostPanel.open(_overlay, g, _goto_province, func(c: Dictionary): _on_command(c, false)),
+		elif not _toggle_window("host"): TBHostPanel.open(_overlay, g, _goto_province, func(c: Dictionary): _on_command(c, false), func(pp: int): _open_amount("disband", pp)),
 		func(): hud.force_end_turn())
 	return true
 

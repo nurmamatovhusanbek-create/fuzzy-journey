@@ -29,6 +29,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"recruit": return _recruit(g, n, c, out)
 		"hire": return _hire(g, n, c, out)
 		"raise": return _raise(g, n, c, out)
+		"disband": return _disband(g, n, c, out)
 		"appoint": return _appoint(g, n, c, out)
 		"build": return _build(g, n, c, out)
 		"colonize": return _colonize(g, n, c, out)
@@ -120,6 +121,19 @@ static func _recruit(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dicti
 	_need(out, "gold", g.gold[n], gold_cost, "gold")
 	_need(out, "men", g.manpower[n], man_cost, "manpower")
 	_need(out, "moves", g.mp[n], D.MP_RECRUIT, "mp")
+	return out
+
+## rules >= 5: Disband. gain = the men leaving the colours, "levy" = how many go back to the province's pool
+static func _disband(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
+	var p: int = int(c.get("p", -1))
+	if g.rules < 5: return _fail(out, "unknown")
+	if p < 0 or p >= g.P or g.controller(p) != n: return _fail(out, "notyours")
+	var hi: int = TBRaise.disband_max(g, p)
+	out["moves"] = D.MP_RECRUIT; out["max"] = hi
+	if hi < 1: return _fail(out, "noarmy")
+	var amount: int = clampi(int(c.get("amount", hi / 2)), 1, hi)
+	out["gain"] = amount; out["levy"] = TBRaise.disband_back(g, p, amount) if g.owner[p] == n else 0
+	_need(out, "moves", g.mp[n], float(D.MP_RECRUIT), "mp")
 	return out
 
 ## rules >= 5: Raise troops. gain = the men added, "levy" / "hired" the two parts, "levy_gold" / "hire_gold" their prices, "saved" what hiring them all would have cost more

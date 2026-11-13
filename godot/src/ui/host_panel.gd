@@ -30,12 +30,12 @@ static func data(g: TBGame, me: int) -> Dictionary:
 	var muster: Dictionary = g.can({"cmd": "muster", "pct": TBMass.DEFAULT_PCT})
 	return {"armies": armies, "men": men, "pool": pool, "cap": cap, "provs": provs, "src": src, "spread": spread, "muster": muster}
 
-static func open(parent: Control, g: TBGame, on_goto: Callable, on_command: Callable) -> TBPanel.Handle:
+static func open(parent: Control, g: TBGame, on_goto: Callable, on_command: Callable, on_disband: Callable = Callable()) -> TBPanel.Handle:
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_host"), "host", {"w": 520, "h": 600, "sub": T.call("host_sub")})
 	var me := g.human_id
 	var d := data(g, me)
 	var again := func(cmd: Dictionary):
-		h.close(); on_command.call(cmd); open(parent, g, on_goto, on_command)
+		h.close(); on_command.call(cmd); open(parent, g, on_goto, on_command, on_disband)
 	h.body.add_child(TBPanel.section(T.call("host_orders")))
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 10); row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sp: Dictionary = d["spread"]; var mu: Dictionary = d["muster"]
@@ -61,6 +61,9 @@ static func open(parent: Control, g: TBGame, on_goto: Callable, on_command: Call
 				var ab := K.button(T.call("host_appoint"), func(): again.call({"cmd": "appoint", "p": p}), false, true, "general", CC.gold(int(gc["gold"])))
 				ab.disabled = not bool(gc["ok"])
 				line.add_child(ab)
+		if on_disband.is_valid() and TBRaise.disband_max(g, p) >= 1:
+			var db := K.button(T.call("cc_disband"), func(): h.close(); on_disband.call(p), false, true, "close")
+			line.add_child(db)
 		h.body.add_child(line)
 	h.body.add_child(TBPanel.section(T.call("host_levy")))
 	h.body.add_child(TBPanel.para(T.call("host_levy_line", {"m": K.fmt(float(d["pool"])), "c": K.fmt(float(d["cap"])), "n": d["provs"]}), 14, K.DIM))

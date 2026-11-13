@@ -31,3 +31,12 @@ static func plan(g: TBGame, n: int, p: int, amount: int) -> Dictionary:
 ## the same men all hired: what the order saves
 static func all_hired_gold(g: TBGame, n: int, amount: int) -> int:
 	return int(ceil(float(amount) * g.wage(n) * 45.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))
+
+## Disband (rules >= 5): men leave the colours. Half of them go back to the province's levy pool (up to its cap) and to the nation's manpower; the rest are simply home. The upkeep stops.
+const DISBAND_BACK := 0.5
+
+static func disband_max(g: TBGame, p: int) -> int: return maxi(0, g.army[p] - g.keep())
+
+static func disband_back(g: TBGame, p: int, amount: int) -> int:
+	var back: int = int(floor(float(amount) * DISBAND_BACK))
+	return clampi(back, 0, maxi(0, g.levy_cap(p) - g.levy[p]))

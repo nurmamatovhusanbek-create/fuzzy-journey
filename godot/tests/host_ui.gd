@@ -37,7 +37,7 @@ func _init() -> void:
 	var d := TBHostPanel.data(g, me)
 	_check((d["armies"] as Array).size() >= 1 and int(d["men"]) > 0, "the data lists the army (%d men)" % int(d["men"]))
 	_check(bool(d["spread"]["ok"]), "Spread is open from the capital army")
-	var hp := TBHostPanel.open(main._overlay, g, main._goto_province, func(c: Dictionary): main._on_command(c, false))
+	var hp := TBHostPanel.open(main._overlay, g, main._goto_province, func(c: Dictionary): main._on_command(c, false), func(pp: int): main._open_amount("disband", pp))
 	for i in 10: await process_frame
 	_check(hp != null and hp.is_open(), "the Host panel opens")
 	if OS.get_environment("TB_SHOT") != "": root.get_viewport().get_texture().get_image().save_png(OS.get_environment("TB_SHOT") + "_host.png")
@@ -52,6 +52,24 @@ func _init() -> void:
 	if spread_btn != null: spread_btn.pressed.emit()
 	for i in 10: await process_frame
 	_check(g.army[cap] < army0, "Spread marched the army out (%d -> %d)" % [army0, g.army[cap]])
+	# Disband from the panel: the card opens for the army and sends the command
+	hp = TBHostPanel.open(main._overlay, g, main._goto_province, func(c: Dictionary): main._on_command(c, false), func(pp: int): main._open_amount("disband", pp))
+	for i in 6: await process_frame
+	var dis_btn: Button = null
+	for b in _find(hp.body, func(x): return x is Button): if String((b as Button).text).to_lower().contains("disband"): dis_btn = b
+	_check(dis_btn != null, "an army row has a Disband button")
+	if dis_btn != null:
+		dis_btn.pressed.emit()
+		for i in 8: await process_frame
+		var dcard: TBRecruitCard = main._amount_card
+		_check(dcard != null and dcard.visible and dcard.kind == "disband", "Disband opens the amount card")
+		g.mp[me] = 10.0
+		var dp: int = dcard.p
+		var a1: int = g.army[dp]
+		dcard.picker.set_value(500); dcard._on_amount(500)
+		dcard._confirm()
+		for i in 6: await process_frame
+		_check(g.army[dp] == a1 - 500, "500 men were disbanded (%d -> %d)" % [a1, g.army[dp]])
 	# F8 opens and closes it
 	main._overlay.get_children().map(func(c): if c.has_meta("tb_handle") and (c.get_meta("tb_handle") as TBPanel.Handle).is_open(): (c.get_meta("tb_handle") as TBPanel.Handle).close())
 	for i in 6: await process_frame
