@@ -24,8 +24,8 @@ UI: "war table" design system (see `docs/ARCHITECTURE.md`).
 | `godot/src/ui/` | Screens, HUD, panels, modals, multiplayer UI |
 | `godot/src/net/` | Authoritative multiplayer: shared `TBNet` node, rooms, delta protocol, dedicated server |
 | `godot/tests/` | Headless tests, screenshot/perf/multiplayer harnesses |
-| `reference/engine-js/` | JS reference engine — oracle the GDScript engine is verified against (bit-exact) |
-| `tools/` | `bake.mjs` (map → compact data), `oracle.sh`, `i18n.mjs` |
+| `reference/engine-js/` | The original JS engine; only the map bake (`tools/bake.mjs`) still reads it. It is no longer an oracle: the game plays rules 5 |
+| `tools/` | `bake.mjs` (map → compact data), `i18n.mjs` |
 | `docs/` | `REBUILD_PLAN.md`, `ARCHITECTURE.md` |
 
 ## Run / test
@@ -33,7 +33,6 @@ UI: "war table" design system (see `docs/ARCHITECTURE.md`).
 # Godot 4.4.1 required (https://godotengine.org)
 godot --path godot                                   # run the game
 godot --headless --path godot -s tests/run_all.gd    # engine tests
-npm ci && tools/oracle.sh                            # GDScript engine == JS reference (bit-exact checksums)
 # GPU rendering without a display (software GL):
 xvfb-run -a godot --path godot --rendering-driver opengl3 -s tests/playthrough.gd -- /tmp/shots
 ```

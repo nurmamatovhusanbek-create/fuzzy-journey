@@ -78,7 +78,6 @@ run "fuzz: random and hostile commands keep the invariants" tests/fuzz_commands.
 TB_FUZZ_RULES=4 run "fuzz (rules 4: levy, sieges, peace table)" tests/fuzz_commands.gd
 echo "== links: res paths, translation keys, language parity"; python3 tools/audit_links.py || fail=1
 echo "== uzbek apostrophes (oʻ gʻ = U+02BB, tutuq = U+02BC)"; python3 tools/uz_normalize.py --check || fail=1
-echo "== oracle: GDScript engine vs JS reference (rules 0)"; tools/oracle.sh "$GODOT" || fail=1
 echo "== multiplayer: server + 2 clients (lockstep of mirrored state)"; tools/test_mp.sh "$GODOT" 2>&1 | tail -3; [ "${PIPESTATUS[0]}" -eq 0 ] || fail=1
 [ $fail -eq 0 ] && echo "ALL PASS" || echo "FAILURES"
 exit $fail

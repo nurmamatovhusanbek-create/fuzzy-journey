@@ -23,3 +23,7 @@ What is still weak, said plainly:
 * **The compact phone layout is unreachable but not deleted**: the setting, the stage and the tests are gone; the `is_phone` branches in about twenty UI files are dead code. Cycle 4 removes them with the rules 0-4 paths.
 * **Uzbek and Russian text I wrote for all of this has not been read by a native speaker.** Glossary decisions are still open (`docs/UZ_STYLE.md`).
 * **The Treasury hub and the Chronicle** are not rebuilt yet; only the Realm page became two pages (Government / Ledger) and the Goals page gained its Ambitions.
+
+## Cycle 4, first step (done) and what is left
+Done: the JS oracle is gone from the suite, the CI workflow and the README (the game plays rules 5; `reference/engine-js` stays only because `tools/bake.mjs` reads it for the map bake).
+Left, deliberately not done in one go: the `rules < 5` branches (about 600 conditions in 60 files, 35 tests build games at rules 0 to 4, most others rely on the default of 3). Collapsing them is mechanical but touches every engine file and rewrites those tests; it should be its own change with the whole suite as the safety net, file by file (`game.gd`, `turn.gd`, `diplomacy.gd`, `ai.gd`, `commands.gd` hold two thirds). Until then new games are rules 5 and the lower rules only run in the tests that name them.

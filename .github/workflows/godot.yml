@@ -24,10 +24,6 @@ jobs:
         run: cd godot && godot --headless --import || true
       - name: Engine unit tests (GDScript)
         run: tools/test_all.sh "$(which godot)"
-      - name: "Oracle - GDScript engine matches JS reference (bit-exact)"
-        run: |
-          npm ci
-          tools/oracle.sh "$(which godot)"
 
   export:
     needs: test
