@@ -364,6 +364,7 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable, feed: Array
 		var col := K.vbox(0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; holder.add_child(col)
 		var shown := 0
 		var total := 0
+		var merged := {}
 		for i in range(g.log.size() - 1, -1, -1):
 			var e: Dictionary = g.log[i]
 			var cat := TBChron.category(e)
@@ -371,6 +372,14 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable, feed: Array
 			if S["cat"] in ["war", "diplo", "events"] and cat != S["cat"]: continue
 			var tx := TBChron.text(g, e)
 			if tx == "": continue
+			if String(e["kind"]) == "spy" and not bool(e.get("ok", true)) and int(e.get("b", -1)) == g.human_id and int(e.get("a", -1)) != g.human_id:       # several caught in one turn: one line
+				var mk := int(e["turn"])
+				if merged.has(mk): continue
+				merged[mk] = true
+				var who := PackedStringArray()
+				for q in g.log:
+					if String(q["kind"]) == "spy" and int(q["turn"]) == mk and not bool(q.get("ok", true)) and int(q.get("b", -1)) == g.human_id and int(q.get("a", -1)) != g.human_id: who.append(g.dname(int(q["a"])))
+				if who.size() > 1: tx = T.call("e_spy_caught", {"a": ", ".join(who)})
 			total += 1
 			if shown >= int(S["limit"]): continue
 			var jump := Callable()
