@@ -141,7 +141,7 @@ static func _nation(g: TBGame, n: int) -> void:
 			if hb < 0:
 				hb = own[g.rng.randi_n(own.size())]
 			g.apply({"cmd": "hire", "n": n, "p": hb, "amount": g.au(40.0)})
-	if g.rules >= 5: TBLineage.ai_step(g, n)
+	if g.rules >= 5: TBLineage.ai_step(g, n); TBInstitutions.ai_step(g, n)
 	if g.rules >= 5 and ((g.turn + n) % 3 == 0 or g.gold[n] > 25.0 * float(g.income(n)["gold"])): TBWorks.ai_buy(g, n, pers, at_war)
 	if g.rules >= 5 and g.mp[n] >= 2.0 and (g.turn + n) % 2 == 0:                  # a state does not leave its whole army in the capital
 		var cap_p: int = g.capital_of[n]

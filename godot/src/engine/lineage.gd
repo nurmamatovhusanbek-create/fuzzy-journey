@@ -58,7 +58,9 @@ static func options(g: TBGame, n: int) -> Array:
 	var out: Array = []
 	if g.rules < 5 or n <= 0 or g.alive[n] == 0 or n == g.rebel: return out
 	for si in STAGES.size():
-		if open_to(g, n, si): out.append(si)
+		if not open_to(g, n, si): continue
+		if bool(STAGES[si]["any"]) and core_held(g, n, si) * 10 < (STAGES[si]["core"] as Array).size() * 3: continue      # a stage open to anyone is on offer only to a state that already holds a third of its land
+		out.append(si)
 	return out
 
 static func core_held(g: TBGame, n: int, si: int) -> int:

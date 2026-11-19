@@ -7,7 +7,7 @@ class_name TBLenses
 extends RefCounted
 
 const D = preload("res://src/engine/data.gd")
-const NAMES := ["political", "diplomatic", "routes", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain", "growth", "levy", "burden"]      # the last three (rules 5) sit behind "more"
+const NAMES := ["political", "diplomatic", "routes", "economic", "military", "wars", "stability", "population", "buildings", "governments", "terrain", "growth", "levy", "burden", "institutions"]      # the last three (rules 5) sit behind "more"
 const MODES := ["off", "deuter", "protan", "tritan"]
 
 ## in game the political colours are a little darker (Age-of-Civilizations muted palette); the title globe keeps the lifted colours
@@ -405,6 +405,7 @@ func color(p: int) -> int:
 		"population": return ramp(POP_RAMP, sqrt(g.pop[p] / max_pop)) if o != 0 else neutral()
 		"growth": return ramp(POP_RAMP, clampf(1.0 - float(g.pop[p]) / float(maxi(1, g.pop_cap(p))), 0.0, 1.0)) if (o != 0 and g.rules >= 5) else neutral()
 		"levy": return ramp(ARMY_RAMP, clampf(float(mini(g.levy[p], g.levy_cap(p))) / float(maxi(1, g.levy_cap(p))), 0.0, 1.0)) if (o != 0 and g.rules >= 4) else neutral()
+		"institutions": return ramp(ECON_RAMP, clampf(float(_inst_count(g, p)) / float(maxi(1, TBInstitutions.count())), 0.0, 1.0)) if (o != 0 and g.rules >= 5) else neutral()
 		"burden": return ramp(ARMY_RAMP, clampf(sqrt(float(g.army[p]) / float(maxi(1, g.pop[p])) / 0.1), 0.0, 1.0)) if (o != 0 and (o == me or TBVision.sees_fast(g, p))) else neutral()
 		"buildings": return BUILD_COL[g.building[p]] if g.building[p] != 0 else neutral()
 		"governments": return REGIME_COL[g.regime[o]] if o != 0 else neutral()
@@ -443,6 +444,11 @@ static func lerp_rgb(a: int, b: int, t: float) -> int:
 	var ar := (a >> 16) & 255; var ag := (a >> 8) & 255; var ab := a & 255
 	var br := (b >> 16) & 255; var bg := (b >> 8) & 255; var bb := b & 255
 	return (int(ar + (br - ar) * t) << 16) | (int(ag + (bg - ag) * t) << 8) | int(ab + (bb - ab) * t)
+
+static func _inst_count(g: TBGame, p: int) -> int:
+	var k := 0; var b: int = g.inst[p]
+	while b != 0: k += b & 1; b >>= 1
+	return k
 
 static func ramp(stops: Array, t: float) -> int:
 	t = clampf(t, 0.0, 1.0)
@@ -489,6 +495,7 @@ func describe(p: int) -> String:
 		"population": return "%s: %s" % [T.call("lens_population"), TBKit.fmt(g.pop[p])] if o != 0 else ""
 		"growth": return "%s: %d%%" % [T.call("lens_growth"), int(round(100.0 * clampf(1.0 - float(g.pop[p]) / float(maxi(1, g.pop_cap(p))), -1.0, 1.0)))] if (o != 0 and g.rules >= 5) else ""
 		"levy": return "%s: %s / %s" % [T.call("lens_levy"), TBKit.fmt(float(mini(g.levy[p], g.levy_cap(p)))), TBKit.fmt(float(g.levy_cap(p)))] if (o != 0 and g.rules >= 4) else ""
+		"institutions": return "%s: %d / %d" % [T.call("lens_institutions"), _inst_count(g, p), TBInstitutions.count()] if (o != 0 and g.rules >= 5) else ""
 		"burden": return "%s: %.2f%%" % [T.call("lens_burden"), 100.0 * float(g.army[p]) / float(maxi(1, g.pop[p]))] if (o != 0 and (o == me or TBVision.sees_fast(g, p))) else ""
 		"buildings":
 			if g.building[p] == 0: return ""

@@ -54,6 +54,7 @@ run "rules 5: military works in held land" tests/held_build.gd
 run "rules 5: Raise troops (levy first, the rest hired)" tests/raise.gd
 run "rules 5: Disband (half back to the levy pool)" tests/disband.gd
 run "rules 5: lineages (stages, conditions, forming, claims, AI, saves)" tests/lineage.gd
+run "rules 5: institutions (spread, embrace, lag, AI, saves)" tests/institutions.gd
 run "rules 4: calls to arms weighed by trust, threat, border, distance, exhaustion" tests/calls.gd
 run "doctrine" tests/doctrine.gd
 run "economy / research / aggression / rebellion model" tests/model.gd

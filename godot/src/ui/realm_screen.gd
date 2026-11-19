@@ -133,6 +133,9 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	if g.rules >= 5 and (TBLineage.current(g, me) >= 0 or not TBLineage.options(g, me).is_empty()):     # rules 5: the lineage, and the names you could proclaim
 		body.add_child(_cap(T.call("lg_title"), 8.0, 6.0))
 		body.add_child(TBLineageView.build(g, me, opts.get("on_command", Callable())))
+	if g.rules >= 5:
+		body.add_child(_cap(T.call("in_title"), 14.0, 6.0))
+		body.add_child(TBInstitutionView.build(g, me, opts.get("on_command", Callable())))
 	# ---- standing
 	var stab_sum := 0; var happy_sum := 0; var n_own := 0
 	for p in g.owned(me):

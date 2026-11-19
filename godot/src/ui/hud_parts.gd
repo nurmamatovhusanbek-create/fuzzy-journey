@@ -255,6 +255,7 @@ static func lens_glyph(lens: String) -> String:
 		"growth": return "men"
 		"levy": return "swords"
 		"burden": return "swords"
+		"institutions": return "annals"
 		"buildings": return "gear"
 		"governments": return "crown"
 		"terrain": return "globe"
@@ -1222,7 +1223,7 @@ class Legend extends Control:
 		var T: Callable = TBI18n.T
 		var L = TBLenses
 		match lens:
-			"economic": ramp = L.ECON_RAMP
+			"economic", "institutions": ramp = L.ECON_RAMP
 			"military": ramp = L.ARMY_RAMP
 			"population", "growth": ramp = L.POP_RAMP
 			"levy", "burden": ramp = L.ARMY_RAMP

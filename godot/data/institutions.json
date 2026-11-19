@@ -1,0 +1,13 @@
+[
+ {"id": "banking", "year": 1300, "lat": 43.77, "lon": 11.25, "turns": 8, "fx": {"income": 0.05}},
+ {"id": "printing", "year": 1450, "lat": 50.0, "lon": 8.27, "turns": 9, "fx": {"research": 0.08}},
+ {"id": "navigation", "year": 1490, "lat": 38.72, "lon": -9.14, "turns": 10, "fx": {"income": 0.03, "pop": 0.03}},
+ {"id": "standing_armies", "year": 1530, "lat": 41.01, "lon": 28.98, "turns": 11, "fx": {"levy": 0.10, "stab": 0.5}},
+ {"id": "joint_stock", "year": 1600, "lat": 52.37, "lon": 4.9, "turns": 12, "fx": {"income": 0.06}},
+ {"id": "enlightenment", "year": 1700, "lat": 48.86, "lon": 2.35, "turns": 13, "fx": {"research": 0.08, "stab": 1.0}},
+ {"id": "industry", "year": 1780, "lat": 53.48, "lon": -2.24, "turns": 14, "fx": {"income": 0.08, "pop": 0.06}},
+ {"id": "railways", "year": 1830, "lat": 54.57, "lon": -1.31, "turns": 15, "fx": {"income": 0.05, "levy": 0.05, "pop": 0.04}},
+ {"id": "electricity", "year": 1880, "lat": 40.71, "lon": -74.0, "turns": 16, "fx": {"income": 0.06, "research": 0.06}},
+ {"id": "welfare", "year": 1925, "lat": 52.52, "lon": 13.4, "turns": 17, "fx": {"stab": 2.0, "pop": 0.05}},
+ {"id": "computing", "year": 1955, "lat": 37.4, "lon": -122.1, "turns": 18, "fx": {"research": 0.12, "income": 0.04}}
+]

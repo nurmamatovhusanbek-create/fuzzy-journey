@@ -9,7 +9,7 @@ const D = preload("res://src/engine/data.gd")
 ## field kinds: a list of up to 64 provinces | p province | pn province or -1 | t nation | q 0..65000 (1,000,000,000 in rules 5) | b building type | r regime | u event uid | k choice index | v -1000..1000 | s short id string; "?name" is optional.
 ## `n` (the acting nation) is always required. Keys that are not listed are dropped, so a hostile client cannot smuggle a flag such as `_force` through; only a trusted caller keeps FLAGS.
 static var SCHEMA: Dictionary = {
-	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"}, "raise": {"p": "p", "?amount": "q"}, "disband": {"p": "p", "?amount": "q"}, "form": {"i": "x"},
+	"move": {"from": "p", "to": "p", "?troops": "q"}, "recruit": {"p": "p", "?amount": "q"}, "hire": {"p": "p", "?amount": "q"}, "raise": {"p": "p", "?amount": "q"}, "disband": {"p": "p", "?amount": "q"}, "form": {"i": "x"}, "embrace": {"i": "x"},
 	"declareWar": {"t": "t"}, "peace": {"t": "t", "?kind": "s"}, "peaceDeal": {"t": "t", "?provs": "a", "?gold": "q", "?vassal": "q", "?disarm": "q"}, "callAlly": {"t": "t", "e": "t"}, "ally": {"t": "t"}, "nap": {"t": "t"}, "breakPact": {"t": "t"},
 	"build": {"p": "p", "b": "b"}, "demolish": {"p": "p", "?b": "b"}, "budget": {"key": "s", "val": "v"},
 	"colonize": {"p": "p"}, "relocate": {"p": "p"}, "develop": {"p": "p", "?k": "k"}, "regime": {"r": "r"},
@@ -126,6 +126,7 @@ static func apply(g: TBGame, c: Dictionary) -> Dictionary:
 		"raise": return _c_raise(g, c)
 		"disband": return _c_disband(g, c)
 		"form": return TBLineage.form(g, int(c["n"]), int(c.get("i", -1)))
+		"embrace": return TBInstitutions.embrace(g, int(c["n"]), int(c.get("i", -1)))
 		"ask": return TBAsks.send(g, c)
 		"appoint": return TBGenerals.appoint(g, n, int(c.get("p", -1)))
 		"doctrine": return TBDoctrine.adopt(g, n, String(c.get("id", "")))

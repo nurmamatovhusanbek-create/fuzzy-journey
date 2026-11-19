@@ -11,7 +11,7 @@ static func category(e: Dictionary) -> String:
 		"war", "peace", "occupied", "annexed", "liberated", "call_refused", "ceded", "eliminated", "rebels", "reconciled", "rebels_end", "independence", "ultimatum": return "war"
 		"coalition", "coalition_end", "resent": return "diplo"
 		"ally", "vassal", "spy", "trade", "marriage", "marriage_end", "union", "ans": return "diplo"
-		"realm", "formed": return "events"
+		"realm", "formed", "inst_born", "inst_embraced": return "events"
 		"event", "event_choice", "era", "bankrupt", "ruler", "decision", "doctrine", "general_up", "general_fell": return "events"
 	return "events"
 
@@ -58,6 +58,8 @@ static func text(g: TBGame, e: Dictionary) -> String:
 		"resent": return T.call("e_resent" if int(e.get("k", 0)) == 0 else "e_resent_more", {"a": a, "b": b, "c": g.dname(int(e.get("c", 0))), "n": int(e.get("n", 0)), "k": int(e.get("k", 0))}) if e.get("a", -1) == g.human_id else ""
 		"trade_end": return T.call("e_trade_end_" + String(e.get("why", "poor")), {"a": a, "b": b}) if involves(e, g.human_id) else ""
 		"vassal": return T.call("e_vassal", {"a": a, "b": b})
+		"inst_born": return T.call("e_inst_born", {"i": T.call("inst_" + String(TBInstitutions.LIST[int(e["i"])]["id"])), "p": TBI18n.place(g.pname(int(e["p"])))})
+		"inst_embraced": return T.call("e_inst_embraced", {"a": a, "i": T.call("inst_" + String(TBInstitutions.LIST[int(e["i"])]["id"]))}) if involves(e, g.human_id) else ""
 		"formed": return T.call("e_formed", {"a": a, "o": TBI18n.nation(String(e.get("name", "")))})
 		"ceded": return T.call("e_ceded", {"a": a, "b": b, "k": int(e.get("k", 0))}) if int(e.get("k", 0)) > 0 else ""
 		"independence": return T.call("e_indep", {"a": a, "b": b})
@@ -146,7 +148,8 @@ static func toast_worthy(g: TBGame, e: Dictionary, me: int) -> bool:
 		"war", "peace", "ally", "vassal", "ceded", "independence", "occupied", "annexed", "liberated", "ultimatum", "trade", "marriage", "marriage_end", "union": return involves(e, me)
 		"resent": return e.get("a", -1) == me
 		"rebels", "reconciled", "rebels_end", "bankrupt", "era", "ruler", "realm", "general_up", "general_fell": return e.get("a", -1) == me
-		"coalition", "coalition_end", "formed": return true
+		"coalition", "coalition_end", "formed", "inst_born": return true
+		"inst_embraced": return e.get("a", -1) == me
 		"eliminated": return true
 		"event": return e.get("a", 0) == me or e.get("a", 0) == 0
 		"spy": return e.get("b", -1) == me
