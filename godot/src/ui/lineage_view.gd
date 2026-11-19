@@ -17,7 +17,7 @@ class Chip extends Control:
 	func _draw() -> void:
 		var a: float = 1.0 if state <= 0 else 0.55
 		var fr := Rect2(Vector2((size.x - 60.0) * 0.5, 4.0), Vector2(60, 40))
-		if tex != null: draw_texture_rect(tex, fr, false, Color(1, 1, 1, a))
+		if tex != null: draw_texture_rect(tex, fr, false, Color(Color.WHITE, a))
 		draw_rect(fr.grow(1.0), Color(TBTokens.c("brass_lt"), 0.95 if state == 0 else 0.35), false, 2.0 if state == 0 else 1.0)
 		var f: Font = K.body_b()
 		var fs := 13

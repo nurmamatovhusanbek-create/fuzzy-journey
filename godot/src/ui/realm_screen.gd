@@ -217,8 +217,9 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			var c: Node = kids[i]
 			body.remove_child(c)
 			(gov if gov_from + i < ledger_from else led).add_child(c)
-		led.visible = false
-		var tabs := K.tabs([["gov", T.call("rs_tab_gov")], ["led", T.call("rs_tab_led")]], "gov", func(id: String): gov.visible = id == "gov"; led.visible = id == "led")
+		var first: String = String(opts.get("tab", "gov"))                        # "led" opens the ledger first
+		gov.visible = first != "led"; led.visible = first == "led"
+		var tabs := K.tabs([["gov", T.call("rs_tab_gov")], ["led", T.call("rs_tab_led")]], first, func(id: String): gov.visible = id == "gov"; led.visible = id == "led")
 		body.add_child(_pad(tabs, 4.0, 4.0))
 		body.add_child(gov); body.add_child(led)
 	return h

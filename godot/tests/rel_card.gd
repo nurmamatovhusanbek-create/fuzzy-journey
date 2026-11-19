@@ -28,7 +28,7 @@ func _run() -> void:
 	for id in nap: g.set_rel(me, g.nat_code.find(id), TBData.REL_NAP)
 	g.set_rel(me, g.nat_code.find("chagatai_khanate"), TBData.REL_MARRIAGE)
 	g.set_rel(me, g.nat_code.find("emirate_of_the_white_sheep_turks"), TBData.REL_WAR); g.set_rel(me, g.nat_code.find("sultanate_of_delhi"), TBData.REL_WAR)
-	main._open_realm_page()
+	TBRealmScreen.open(main._overlay, main.g, {"tab": "led", "on_nation": main._open_nation})                 # the treaties sit on the Ledger page
 	for i in 30: await process_frame
 	var rows: Array = []; _walk(main, rows, func(x): return x is TBRealmScreen.RelRow and (x as Control).is_visible_in_tree())
 	print("rows visible: ", rows.size())
