@@ -171,6 +171,10 @@ static func _conds_ok(g: TBGame, n: int, conds: Array) -> bool:
 				"broke":
 					inc = g.income(n)
 					if not (inc["net"] < 0 and g.gold[n] < inc["upkeep"]): return false
+				"inst_has":                                                                    # an institution of the age you have embraced (data/institutions.json id)
+					var ii := TBInstitutions.index_of(String(c[k]))
+					if ii < 0 or not TBInstitutions.embraced(g, n, ii): return false
+				"inst_behind": if TBInstitutions.lag(g, n) <= 0: return false              # the world has moved on and this nation has not followed
 				"has_neighbors":
 					var found := false
 					for p in g.owned(n):

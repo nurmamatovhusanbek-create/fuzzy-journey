@@ -107,10 +107,11 @@ static func _bud_effect(g: TBGame, n: int, i: int, v: float) -> String:
 		1: return T.call("bud_goods_fx", {"h": int(clampf(50.0 + (v - 20.0) * 0.6 - maxf(0.0, g.budget[n * 4] - 50.0) * 0.5, 0.0, 100.0))})
 		2:
 			var gain: float = D.tech_gain(int(inc["pop"]), int(v))
-			var line: String = T.call("bud_research_fx", {"r": "%.1f" % gain})
+			var line: String = T.call("bud_research_fx", {"r": ("%.1f" % gain) if gain < 10.0 else K.fmt(gain)})
 			if g.rules >= 3 and g.tech_level[n] < 5.0 and gain > 0.0:                    # how long the next level takes at this setting (the catch-up bonus is left out: "about")
 				var left: float = maxf(0.0, float(TBTurn.tech_need(g, g.tech_level[n])) - g.research[n])
-				line += " · " + T.call("bud_research_next", {"t": int(ceil(left / gain))})
+				var turns := int(ceil(left / gain))
+				line += " · " + (T.call("bud_research_next1") if turns <= 1 else T.call("bud_research_next", {"t": turns}))
 			return line
 	return T.call("bud_invest_fx", {"p": "%.1f" % (v * 0.05)})
 
@@ -137,10 +138,13 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		var gw := MarginContainer.new(); gw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		gw.add_child(K.gauge(24.0 if h.phone else 40.0, K.signed(float(net)), "" if h.phone else T.call("bud_per_turn").to_upper(), clampf(absf(float(net)) / maxf(1.0, float(inc["gold"])), 0.02, 1.0), TBTokens.c("pos") if net >= 0 else TBTokens.c("neg")))
 		net_slot.add_child(gw)
+		var trade_inc: float = float(TBTrade.income(g, n)) if g.rules >= 1 else 0.0
+		var mods: float = float(inc["gold"]) - float(inc["tax"]) - float(inc["production"]) - trade_inc       # regime, technology, ruler, works, lineage, institutions: so the cells add up to the net
 		var stats: Array = [[T.call("bud_taxes"), float(inc["tax"]), 1], [T.call("bud_provinces"), float(inc["production"]), 1]]
-		stats.append([T.call("trade"), float(TBTrade.income(g, n)), 1] if (g.rules >= 1 and TBTrade.income(g, n) > 0) else [T.call("gold"), float(g.gold[n]), 0])
+		if trade_inc > 0.0: stats.append([T.call("trade"), trade_inc, 1])
+		stats.append([T.call("bud_mods"), mods, 1 if mods >= 0.0 else -1])
 		stats.append([T.call("tkr_upkeep"), -float(inc["upkeep"]), -1]); stats.append([T.call("tkr_admin"), -float(inc["admin"]), -1])
-		stats.append([T.call("infl_row"), -g.gold[n] * g.infl if g.rules >= 1 else 0.0, -1])
+		if trade_inc <= 0.0: stats.append([T.call("infl_row"), -g.gold[n] * g.infl if g.rules >= 1 else 0.0, -1])
 		var grid_s := GridContainer.new(); grid_s.columns = 3 if h.phone and vsb.x >= 900.0 else (2 if h.phone else 3)
 		grid_s.add_theme_constant_override("h_separation", 8); grid_s.add_theme_constant_override("v_separation", 8); grid_s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for st in stats: grid_s.add_child(_stat_cell(String(st[0]), float(st[1]), int(st[2]), h.phone))
@@ -377,7 +381,7 @@ static func chronicle(parent: Control, g: TBGame, on_goto: Callable, feed: Array
 			col.add_child(TBBzScreens.TimelineItem.new(String(ik[0]), TBBzScreens.date_str(g, int(e["turn"])), T.call(String(ik[1])), tx, jump))
 			shown += 1
 		if total == 0:
-			list_slot.add_child(TBPanel.empty_state("annals", T.call("chron_empty"), T.call("chron_empty_why"), T.call("chron_all") if S["cat"] == "mine" else "", func(): S["cat"] = "events"; (S["draw"] as Callable).call()))
+			list_slot.add_child(TBPanel.empty_state("annals", T.call("chron_empty"), T.call("chron_empty_why")))
 			return
 		list_slot.add_child(holder)
 		if total > shown:
