@@ -71,7 +71,7 @@ static func target(g: TBGame, n: int, e: int) -> float:
 	var others := 0
 	for o in COUNT: if o != e: others += privileges(g, n, o)
 	t += PRIV_TARGET * float(mine) - PRIV_OTHERS * float(others)
-	if e != 3: t -= 0.3 * (g.budget[n * 4] - 50.0)                              # the taxes burden the three civil estates
+	if e != 3: t -= 0.5 * (g.budget[n * 4] - 50.0)                              # the taxes burden the three civil estates
 	var war := g.at_war(n)
 	if e == 3 and war: t += 6.0
 	if e == 2 and war: t -= 6.0
