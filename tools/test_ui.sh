@@ -36,12 +36,7 @@ for t in staging:STAGING war_moment:WAR_MOMENT event_shots:EVENT_SHOTS finale:FI
   echo "$out" | grep -q "$mark OK" && echo "ok: tests/${t%%:*}.gd" || { echo "FAIL: tests/${t%%:*}.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 done
 mkdir -p /tmp/tb_cc; run tests/mm_globe.gd -- /tmp/tb_cc
-# the minimap on a phone held sideways: shown, on screen, clear of the rail / tuner / End Turn / zoom / inspector, a tap turns the view
-for cfg in "844 390 1.0" "844 390 2.0" "800 360 1.0" "932 430 1.0"; do
-  out=$(TB_NOANIM=1 timeout 120 "$XV" -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/mm_phone.gd -- $cfg 2>&1)
-  echo "$out" | grep -q "MM_PHONE OK" && echo "ok: mm_phone $cfg" || { echo "FAIL: mm_phone $cfg"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
-done
-# a phone held sideways gets the desktop interface (density emulated with TB_DPR / TB_DPI), the army numbers follow the province borders
+# the army numbers follow the province borders
 out=$(TB_DPR=1.67 TB_DPI=420 TB_NOANIM=1 timeout 250 "$XV" -a -s "-screen 0 1700x800x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/phone_desktop.gd 2>&1)
 echo "$out" | grep -q "PHONE_DESKTOP OK" && echo "ok: phone_desktop" || { echo "FAIL: phone_desktop"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/army_rule.gd -- 1280 720 2>&1)
@@ -147,17 +142,17 @@ out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --pa
 echo "$out" | grep -q "BUILD_STABLE OK" && echo "ok: build_stable" || { echo "FAIL: build_stable"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 # rules 4: the country plate at country level, the Develop choice
 for t in country_plate:COUNTRY_PLATE needs_lists:NEEDS_LISTS develop_modal:DEVELOP_MODAL build_move:BUILD_MOVE ruler_resize:RULER_RESIZE; do
-  out=$(TB_PHONE_UI=desktop TB_NOANIM=1 timeout 250 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/${t%%:*}.gd -- 1280 800 2>&1); mark=${t##*:}
+  out=$(TB_NOANIM=1 timeout 250 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/${t%%:*}.gd -- 1280 800 2>&1); mark=${t##*:}
   echo "$out" | grep -q "$mark OK" && echo "ok: tests/${t%%:*}.gd" || { echo "FAIL: tests/${t%%:*}.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 done
-# no widows: no wrapped text ends on a line of one or two words (every language, desktop and phone sideways)
-for cfg in "en 1280 800 desktop" "ru 1280 800 desktop" "uz 1280 800 desktop" "en 852 393 compact" "ru 852 393 compact" "uz 852 393 compact"; do
+# no widows: no wrapped text ends on a line of one or two words (every language)
+for cfg in "en 1280 800" "ru 1280 800" "uz 1280 800"; do
   set -- $cfg
-  out=$(TB_LANG=$1 TB_PHONE_UI=$4 TB_NOANIM=1 timeout 400 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/widow_scan.gd -- $2 $3 2>&1)
+  out=$(TB_LANG=$1 TB_NOANIM=1 timeout 400 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/widow_scan.gd -- $2 $3 2>&1)
   echo "$out" | grep -q "WIDOW_SCAN OK" && echo "ok: widow_scan $cfg" || { echo "FAIL: widow_scan $cfg"; echo "$out" | grep -E "^WIDOW:|SCRIPT" | head -6; fail=1; }
 done
-out=$(TB_DPR=2.66 TB_DPI=425 TB_PHONE_UI=compact TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 2400x1100x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/ring_clear.gd -- 2340 1080 2>&1)
-echo "$out" | grep -q "RING_CLEAR OK" && echo "ok: ring_clear (phone)" || { echo "FAIL: ring_clear (phone)"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/ring_clear.gd -- 1280 800 2>&1)
+echo "$out" | grep -q "RING_CLEAR OK" && echo "ok: ring_clear" || { echo "FAIL: ring_clear"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/move_grid.gd -- 1280 800 1.0 2>&1)
 echo "$out" | grep -q "MOVE_GRID OK" && echo "ok: move_grid" || { echo "FAIL: move_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 run tests/ui_cmdcard.gd -- /tmp/tb_cc 1280 720

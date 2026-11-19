@@ -17,7 +17,6 @@ func _run() -> void:
 	root.add_child(main)
 	for i in 20: await process_frame
 	main.cfg["text_scale"] = sc; main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true; main.cfg["fx"] = "off"
-	if OS.get_environment("TB_PHONE_UI") != "": main.cfg["phone_ui"] = OS.get_environment("TB_PHONE_UI"); main._update_ui_scale()
 	main._begin_pick("discovery", "normal")
 	var me: int = TBGame.new(main.world, {}, {"seed": 1}).nat_code.find("timurid_emirates") if false else main.g.nat_code.find("timurid_emirates")
 	main._start_game(me)

@@ -14,7 +14,6 @@ func _run() -> void:
 	root.add_child(main)
 	for i in 20: await process_frame
 	main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true; main.cfg["fx"] = "off"
-	if OS.get_environment("TB_PHONE_UI") != "": main.cfg["phone_ui"] = OS.get_environment("TB_PHONE_UI"); main._update_ui_scale()
 	main._begin_pick("napoleonic", "normal")
 	main._start_game(main.g.nat_code.find("france"))
 	main.g.pending.clear(); main._clear_overlay(); main._select(-1)

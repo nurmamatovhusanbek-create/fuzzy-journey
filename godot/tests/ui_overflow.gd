@@ -108,7 +108,6 @@ func _init() -> void:
 	root.add_child(main)
 	for i in 20: await process_frame
 	main.cfg["text_scale"] = sc; main.cfg["lang"] = lang; main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true
-	if OS.get_environment("TB_PHONE_UI") != "": main.cfg["phone_ui"] = OS.get_environment("TB_PHONE_UI"); main._update_ui_scale()        # tests: "compact" = the 390 unit phone layout
 	if OS.get_environment("TB_PERF") != "": main.cfg["perf"] = true                                                          # tests: the performance line on
 	main._on_setting_changed("lang")                                              # main._ready read the language from the saved settings (en): apply the one under test
 	assert(TBI18n.lang == lang)

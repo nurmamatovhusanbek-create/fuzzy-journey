@@ -14,7 +14,7 @@ var tip: TBMapTip
 var mode := "boot"             # menu | pick | game
 var selected := -1
 var move_from := -1
-var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "icons": "colour", "fx": "full", "era_ui": "ring", "phone_ui": "desktop", "tips": true, "turn_check": true, "alert_mute": [], "pins": [], "win": {}}
+var cfg := {"perf": false, "seal_seen": false, "sound": true, "quality": "auto", "lang": "en", "view": "globe", "difficulty": "normal", "aggression": 1, "tutorial": false, "theme": "standard", "ui": "normal", "honours": {}, "era": "modern", "players": 1, "text_scale": 1.0, "readable": false, "reduce_motion": false, "touch_large": false, "hc": "off", "cvd": "off", "tts": false, "confirm": "risky", "mirror": false, "vis_alerts": false, "vol_master": 80, "vol_music": 80, "vol_sfx": 80, "vol_ui": 80, "comfort_seen": false, "navpad": "auto", "icons": "colour", "fx": "full", "era_ui": "ring", "tips": true, "turn_check": true, "alert_mute": [], "pins": [], "win": {}}
 var _overlay: Control          # screens/modals live here
 var _turn_thread: Thread
 var _busy := false
@@ -143,10 +143,6 @@ func _offer_comfort() -> void:
 ## So a number in the demo (a 46 unit medallion, a 22 unit title) is the same number here. cfg "ui" is the demo's S / M / L (taller stage = smaller UI).
 const NEW_GAME_RULES := 5                 # the rules a new game starts with (a save keeps the rules it was made with); 5 = real people, gold and soldiers at 10-30:1 (docs/RULES5_REALISM.md); 4 = levy pools (docs/WAR_DESIGN.md)
 const PHONE_STAGE := 760.0
-const COMPACT_STAGE := 460.0          # the phone layout's stage height in units (a taller stage = smaller UI; the old 390 made everything twice the desktop size; below 560 the phone layouts apply, also with the "small" interface setting x1.18); tests: TB_COMPACT_STAGE
-static func compact_stage() -> float:
-	var env := OS.get_environment("TB_COMPACT_STAGE")
-	return clampf(float(env), 360.0, 559.0) if env != "" else COMPACT_STAGE
 static func phone_stage() -> float:
 	var env := OS.get_environment("TB_PHONE_STAGE")                                  # tests: try another stage height
 	return clampf(float(env), 400.0, 1400.0) if env != "" else PHONE_STAGE
@@ -163,9 +159,7 @@ func _update_ui_scale() -> void:
 	else: TBHudParts.touch_phys = 0.0
 	_apply_safe_area()
 
-## A phone in landscape (css height < 560 and width < 1300) used the demo's compact 390 unit stage. The owner asked for the desktop interface there too: cfg "phone_ui" = "desktop" (default)
-## gives it a PHONE_STAGE unit stage, tall enough that the whole desktop layout fits (every `is_phone()` / HUD profile test reads the logical height, so they all take the desktop paths);
-## "compact" brings the 390 unit layout back.
+## One interface: a phone in landscape (css height < 560 and width < 1300) gets the desktop layout on a PHONE_STAGE unit stage, tall enough that the whole desktop layout fits.
 ## On Android the css size is the window in dp (dpi / 160). TB_UI_SCALE (px per unit) overrides it for tests that emulate a density.
 func _px_per_unit(s: Vector2i, k: float = 1.0) -> float:
 	var env := OS.get_environment("TB_UI_SCALE")
@@ -176,7 +170,7 @@ func _px_per_unit(s: Vector2i, k: float = 1.0) -> float:
 	var vw: float = s.x / dpr; var vh: float = s.y / dpr
 	if s.y > s.x: return clampf(s.x / 360.0, 1.0, 3.0) / k                    # portrait: 360 unit wide column
 	var phone: bool = vh < 560.0 and vw < 1300.0
-	var dh: float = ((phone_stage() if String(cfg.get("phone_ui", "desktop")) == "desktop" else compact_stage()) if phone else clampf(float(s.y) / 0.8, 760.0, 1180.0)) * k          # a small desktop window (a 1366 x 768 laptop) gets a shorter stage: no less than 0.8 px a unit, so the words stay readable
+	var dh: float = (phone_stage() if phone else clampf(float(s.y) / 0.8, 760.0, 1180.0)) * k          # a small desktop window (a 1366 x 768 laptop) gets a shorter stage: no less than 0.8 px a unit, so the words stay readable
 	return s.y / dh
 
 ## keep UI clear of notches / rounded corners / gesture bars on phones
@@ -905,7 +899,7 @@ func _on_setting_changed(key: String) -> void:
 	match key:
 		"lang":
 			TBI18n.load_lang(cfg["lang"]); _rebuild_screens()
-		"quality", "view", "theme", "ui", "phone_ui":
+		"quality", "view", "theme", "ui":
 			_apply_quality(); _update_ui_scale()
 			if mode == "menu": _fit_title_globe()                      # the title is always the globe in its ring: the view setting only counts in a game
 			else: map.set_mode(0 if cfg["view"] == "globe" else 1)

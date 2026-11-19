@@ -4,7 +4,7 @@ extends RefCounted
 
 static var ENUMS: Dictionary = {
 	"quality": ["auto", "low", "medium", "high"], "view": ["flat", "globe"], "difficulty": ["easy", "normal", "hard"], "hc": ["off", "light", "dark"], "fx": ["off", "light", "full"], "icons": ["colour", "brass", "classic"],
-	"lang": ["en", "ru", "uz"], "phone_ui": ["desktop", "compact"], "ui": ["small", "normal", "large"],
+	"lang": ["en", "ru", "uz"], "ui": ["small", "normal", "large"],
 }
 static var RANGES: Dictionary = {"text_scale": [0.8, 2.5], "vol_master": [0, 100], "vol_music": [0, 100], "vol_sfx": [0, 100], "vol_ui": [0, 100], "aggression": [0, 2], "players": [1, 8]}
 const MAX_STR := 32

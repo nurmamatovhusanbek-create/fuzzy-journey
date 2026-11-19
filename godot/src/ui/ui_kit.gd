@@ -382,6 +382,7 @@ static func color_chip(rgb: int) -> Control:
 ## +608 / −42 (true minus), the sign always shown
 static func signed(v: float) -> String:
 	var n := int(round(v))
+	if absi(n) >= 10000: return ("+" if n > 0 else "−") + fmt(absf(v))
 	return "+%d" % n if n > 0 else ("−%d" % -n if n < 0 else "0")
 
 static func fmt(v: float) -> String:

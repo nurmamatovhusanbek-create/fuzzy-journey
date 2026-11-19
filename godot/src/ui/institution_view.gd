@@ -48,10 +48,13 @@ static func build(g: TBGame, me: int, on_command: Callable) -> Control:
 	var behind: int = TBInstitutions.lag(g, me)
 	if behind > 0: col.add_child(K.para_bz(String(T.call("in_behind")), 14.0, 1.3))
 	var next := -1
+	var held: Array = []
 	for i in TBInstitutions.count():
 		if g.inst_seen[i] == 0:
 			if next < 0 or int(TBInstitutions.LIST[i]["year"]) < int(TBInstitutions.LIST[next]["year"]): next = i
 			continue
+		if TBInstitutions.embraced(g, me, i):                                   # what you already carry folds into one line: the page leads with choices, not with a ledger of finished things
+			held.append(i); continue
 		var line := HBoxContainer.new(); line.add_theme_constant_override("separation", 8); line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var row := Row.new(g, me, i); line.add_child(row)
 		var have := TBInstitutions.embraced(g, me, i)
@@ -63,5 +66,9 @@ static func build(g: TBGame, me: int, on_command: Callable) -> Control:
 		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		line.add_child(btn)
 		col.add_child(line)
+	if not held.is_empty():
+		var names: Array = []
+		for i in held: names.append(String(T.call("inst_" + String(TBInstitutions.LIST[i]["id"]))))
+		col.add_child(K.para_bz(String(T.call("in_held", {"l": ", ".join(names)})), 13.0, 1.3))
 	if next >= 0: col.add_child(K.para_bz(String(T.call("in_next", {"n": T.call("inst_" + String(TBInstitutions.LIST[next]["id"])), "y": int(TBInstitutions.LIST[next]["year"])})), 13.0, 1.3))
 	return col

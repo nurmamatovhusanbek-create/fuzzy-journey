@@ -13,7 +13,6 @@ func _run() -> void:
 	var lg: String = OS.get_environment("TB_LANG") if OS.get_environment("TB_LANG") != "" else "en"
 	main.cfg["lang"] = lg; TBI18n.load_lang(lg); main.cfg["seal_seen"] = true; main.cfg["tutorial"] = true; main.cfg["fx"] = "off"; main.cfg["quality"] = "medium"
 	main._apply_quality(); main._update_ui_scale()
-	if OS.get_environment("TB_PHONE_UI") != "": main.cfg["phone_ui"] = OS.get_environment("TB_PHONE_UI"); main._update_ui_scale()
 	main._begin_pick("discovery", "normal")
 	var g0: TBGame = main.g
 	var me: int = 1
