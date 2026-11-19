@@ -818,7 +818,7 @@ func _open_dossier(p: int) -> void:
 
 ## the crest: your own country's page (standing, treasury, court, treaties)
 func _open_realm_page() -> void:
-	if g != null: TBRealmScreen.open(_overlay, g, {"on_nation": _open_nation})
+	if g != null: TBRealmScreen.open(_overlay, g, {"on_nation": _open_nation, "on_command": func(c: Dictionary): _on_command(c, false)})
 
 func _open_budget() -> void:
 	if g != null: TBModals.budget(_overlay, g, func(): hud.refresh())
@@ -1319,6 +1319,15 @@ func _undo_last() -> void:
 	sfx.play("tap")
 	hud.toast(T.call("undo_done", {"k": _undo.size()}))
 
+var _ident_seen := 0
+## names, flags and colours are read again after a nation takes a new identity (the player's own proclamation, or an AI's during the turn)
+func _identity_changed() -> void:
+	_ident_seen = g.ident_rev
+	if map != null:
+		map.lenses.refresh_nations(); map.repaint_all()
+		if map.labels != null: map.labels.refresh_names()
+	if hud != null: hud.refresh()
+
 func _on_command(c: Dictionary, from_card: bool = false) -> void:
 	_clear_attack_marks()
 	if mp.in_game:
@@ -1330,6 +1339,12 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		else:
 			var key := "err_" + String(res["err"])
 			hud.toast(T.call(key) if TBI18n.has_key(key) else String(res["err"]), true)
+	elif String(cmd.get("cmd", "")) == "form":                                    # a new name: refresh the map's names and colours, then the ceremony
+		sfx.play("win")
+		_identity_changed()
+		var lg: Dictionary = g.log[g.log.size() - 1]
+		_toggle_window("realm")
+		TBLineageView.ceremony(_overlay, g, g.human_id, String(lg.get("name", "")), int(lg.get("k", 0)))
 	elif String(cmd.get("cmd", "")) in ["hire", "recruit", "raise"]:                          # the men stand in the district where they were raised: say which, ready to be marched where you need them
 		sfx.play("coin")
 		var rp: int = int(cmd.get("p", -1))
@@ -1546,6 +1561,7 @@ func _turn_done(dirty: PackedInt32Array) -> void:
 		for h in g.humans():
 			if g.alive[h] != 0: g.human_id = h; break
 	_flush_log()
+	if g.ident_rev != _ident_seen: _identity_changed()
 	_replay_battles()
 	hud.refresh()
 	TBNationsScreen.refresh_live()

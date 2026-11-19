@@ -30,6 +30,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"hire": return _hire(g, n, c, out)
 		"raise": return _raise(g, n, c, out)
 		"disband": return _disband(g, n, c, out)
+		"form": return TBLineage.can_form(g, n, int(c.get("i", -1)))
 		"appoint": return _appoint(g, n, c, out)
 		"build": return _build(g, n, c, out)
 		"colonize": return _colonize(g, n, c, out)

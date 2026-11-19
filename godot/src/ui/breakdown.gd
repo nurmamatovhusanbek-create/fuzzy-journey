@@ -24,6 +24,7 @@ static func stability(g: TBGame, p: int) -> String:
 	if absf(float(pt["weary"])) > 0.05: lines.append("  %s  %s" % [_t("bd_weary"), _sg(float(pt["weary"]))])
 	if absf(float(pt["ruler"])) > 0.05: lines.append("  %s  %s" % [_t("bd_ruler"), _sg(float(pt["ruler"]))])
 	if absf(float(pt.get("works", 0.0))) > 0.05: lines.append("  %s  %s" % [_t("bd_works"), _sg(float(pt["works"]))])
+	if absf(float(pt.get("identity", 0.0))) > 0.05: lines.append("  %s  %s" % [_t("bd_identity"), _sg(float(pt["identity"]))])
 	if core_term != 0.0: lines.append("  %s  %s" % [_t("bd_core"), _sg(core_term)])
 	return "\n".join(lines)
 

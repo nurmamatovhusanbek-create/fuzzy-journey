@@ -17,6 +17,7 @@ static func chron_kind(kind: String) -> Array:
 		"war", "occupied", "annexed", "liberated", "call_refused", "ceded", "eliminated", "independence", "ultimatum", "rebels", "reconciled", "rebels_end", "victory", "defeat": return ["war", "an_war"]
 		"peace", "ally", "vassal", "coalition", "coalition_end", "marriage", "marriage_end", "union", "spy": return ["pact", "an_dip"]
 		"trade": return ["trade", "an_dip"]
+		"formed": return ["crown", "an_dip"]
 		"bankrupt", "decision", "doctrine": return ["treasury", "an_econ"]
 		"era": return ["star", "an_age"]
 		"ruler", "realm": return ["crown", "an_crown"]

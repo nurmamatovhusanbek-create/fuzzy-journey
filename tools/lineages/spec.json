@@ -1,0 +1,56 @@
+{
+ "_doc": "Nation lineages (rules 6): a state can take a new identity (name, flag, historical claims, a lasting bonus) when it meets the stage's conditions. tag = the nation id in the era files (or a new tag with core_from); regimes = governments that may form it (0 tribal 1 feudal 2 monarchy 3 republic 4 empire 5 democracy 6 communism 7 fascism 8 horde 9 citystate); from = tags that may form it, any = anyone holding the core; w = weight 1..3 (size of the bonus); share = the part of the core that must be held; min = at least so many provinces.",
+ "lines": {
+  "russia": [
+   {"tag": "tsardom_of_muscovy", "year": 1547, "regimes": [2, 4], "from": ["grand_duchy_of_moscow"], "share": 0.45, "min": 6, "w": 1},
+   {"tag": "russian_empire", "year": 1721, "regimes": [4], "from": ["tsardom_of_muscovy", "grand_duchy_of_moscow"], "share": 0.55, "min": 12, "w": 2},
+   {"tag": "russia", "year": 1917, "regimes": [3, 5], "from": ["russian_empire"], "share": 0.55, "min": 15, "w": 2},
+   {"tag": "ussr", "year": 1922, "regimes": [6], "from": ["russia", "russian_empire", "tsardom_of_muscovy"], "share": 0.55, "min": 25, "w": 3},
+   {"tag": "russian_federation", "name": "Russian Federation", "core_from": "ussr", "year": 1991, "regimes": [3, 5], "from": ["ussr", "russia"], "share": 0.5, "min": 20, "w": 2}
+  ],
+  "germany": [
+   {"tag": "prussia", "year": 1701, "regimes": [2, 4], "from": ["prussians"], "share": 0.5, "min": 4, "w": 1},
+   {"tag": "germany", "year": 1815, "regimes": [2, 3, 4, 5, 7], "any": true, "share": 0.55, "min": 12, "w": 2},
+   {"tag": "german_empire", "year": 1871, "regimes": [4, 2], "from": ["prussia", "germany"], "share": 0.6, "min": 15, "w": 3}
+  ],
+  "italy": [
+   {"tag": "sardinia_piedmont", "year": 1720, "regimes": [2], "from": ["sardinia"], "share": 0.5, "min": 3, "w": 1},
+   {"tag": "italy", "year": 1861, "regimes": [2, 3, 5, 7, 4], "any": true, "share": 0.6, "min": 8, "w": 3}
+  ],
+  "britain": [
+   {"tag": "england_and_ireland", "year": 1541, "regimes": [2, 4], "from": ["england"], "share": 0.55, "min": 3, "w": 1},
+   {"tag": "uk", "year": 1707, "regimes": [2, 4], "from": ["england", "england_and_ireland"], "share": 0.5, "min": 4, "w": 2},
+   {"tag": "british_empire", "year": 1800, "regimes": [2, 4, 5], "from": ["uk", "england", "england_and_ireland"], "share": 0.45, "min": 20, "w": 3}
+  ],
+  "spain": [
+   {"tag": "spain", "year": 1479, "regimes": [2, 4], "from": ["castile", "castille", "castilla"], "share": 0.55, "min": 6, "w": 2}
+  ],
+  "austria": [
+   {"tag": "austrian_empire", "year": 1804, "regimes": [4], "from": ["holy_roman_empire", "habsburg_austria"], "share": 0.5, "min": 6, "w": 2},
+   {"tag": "austria_hungary", "year": 1867, "regimes": [2, 4], "from": ["austrian_empire", "habsburg_austria"], "share": 0.5, "min": 12, "w": 2},
+   {"tag": "austria", "year": 1918, "regimes": [3, 5], "from": ["austria_hungary"], "share": 0.4, "min": 3, "w": 1}
+  ],
+  "turkey": [
+   {"tag": "turkey", "year": 1923, "regimes": [3, 5, 7], "from": ["ottoman_empire"], "share": 0.45, "min": 8, "w": 2}
+  ],
+  "china": [
+   {"tag": "manchu_empire", "year": 1636, "regimes": [4], "from": ["ming_chinese_empire", "post_ming_warlords"], "share": 0.5, "min": 10, "w": 2},
+   {"tag": "china", "year": 1912, "regimes": [3, 5, 6], "from": ["qing_empire", "manchu_empire", "chinese_warlords", "ming_chinese_empire"], "share": 0.5, "min": 20, "w": 3}
+  ],
+  "japan": [
+   {"tag": "empire_of_japan", "year": 1868, "regimes": [4], "from": ["japan", "imperial_japan", "shogun_japan_kamakura", "tokugawa_shogunate"], "share": 0.6, "min": 6, "w": 2}
+  ],
+  "india": [
+   {"tag": "india", "year": 1947, "regimes": [3, 5], "from": ["mughal_empire", "british_empire"], "share": 0.5, "min": 20, "w": 3}
+  ],
+  "iran": [
+   {"tag": "iran", "year": 1925, "regimes": [2, 3, 4], "from": ["persia"], "share": 0.55, "min": 6, "w": 1}
+  ],
+  "yugoslavia": [
+   {"tag": "yugoslavia", "year": 1918, "regimes": [2, 3, 6], "any": true, "share": 0.5, "min": 6, "w": 2}
+  ],
+  "netherlands": [
+   {"tag": "netherlands", "year": 1581, "regimes": [3, 2], "from": ["dutch_republic"], "share": 0.5, "min": 3, "w": 1}
+  ]
+ }
+}

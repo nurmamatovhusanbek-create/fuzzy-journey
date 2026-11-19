@@ -19,6 +19,7 @@ static func cb(g: TBGame, n: int, t: int) -> String:
 	if g.coalition[t] != 0 and not g.friendly(n, t) and g.overlord[n] != t: return "coalition"
 	for p in g.owned(t):
 		if g.core[p] == n: return "reclaim"
+		if g.rules >= 5 and not g.claim.is_empty() and g.claim[p] == n: return "claim"
 	if g.grudge[n * g.N1 + t] >= 40: return "revenge"
 	for o in range(1, g.N1):
 		if g.alive[o] != 0 and g.get_rel(n, o) == D.REL_ALLY and g.get_rel(o, t) == D.REL_WAR: return "ally"
@@ -33,7 +34,7 @@ static func on_declare(g: TBGame, n: int, t: int, ult: bool = false) -> String:
 
 static func on_land_taken(g: TBGame, p: int, from: int, to: int) -> void:
 	if g.rules < 1 or from == 0 or to == 0 or from == g.rebel or to == g.rebel: return
-	if g.core[p] == to: return              # taking back your own land is not aggression
+	if g.core[p] == to or (g.rules >= 5 and not g.claim.is_empty() and g.claim[p] == to): return              # taking back your own (or claimed) land is not aggression
 	g.infamy[to] = minf(100.0, g.infamy[to] + LAND_INFAMY)
 	if g.rules >= 3: hurt(g, from, to, LAND_GRUDGE)
 

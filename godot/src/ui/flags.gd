@@ -8,6 +8,7 @@ static var _cache := {}
 ## the era whose flags are shown (set when a game starts or loads); an era with no art for a nation falls back to the procedural flag
 static var cur_era := ""
 const DIR := "res://assets/flags/"
+const ERAS_NEWEST_FIRST := ["coldwar", "ww2", "ww1", "victorian", "napoleonic", "gunpowder", "discovery", "timurid", "mongol", "medieval", "roman", "ancient"]
 
 ## the historical flag of `code` in `era` (res://assets/flags/<era>/<code>.png, rasterised from Wikimedia Commons: see flags/ATTRIBUTION.md), or null
 static func historical(code: String, era: String) -> Texture2D:
@@ -16,6 +17,10 @@ static func historical(code: String, era: String) -> Texture2D:
 	if _cache.has(key): return _cache[key]
 	var path := "%s%s/%s.png" % [DIR, era, code]
 	var t: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	if t == null:                                            # a nation that took a new name in play (TBLineage) has its flag in another era's folder: the newest one that has it
+		for e in ERAS_NEWEST_FIRST:
+			var p2 := "%s%s/%s.png" % [DIR, e, code]
+			if ResourceLoader.exists(p2): t = load(p2); break
 	_cache[key] = t
 	return t
 
@@ -27,6 +32,10 @@ static func medal(code: String, era: String = "") -> Texture2D:
 	if _cache.has(key): return _cache[key]
 	var path := "%s%s/%s_c.png" % [DIR, e, code]
 	var t: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	if t == null:
+		for e2 in ERAS_NEWEST_FIRST:
+			var p2 := "%s%s/%s_c.png" % [DIR, e2, code]
+			if ResourceLoader.exists(p2): t = load(p2); break
 	_cache[key] = t
 	return t
 
