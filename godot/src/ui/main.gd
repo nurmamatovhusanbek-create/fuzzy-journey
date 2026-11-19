@@ -806,6 +806,7 @@ func _open_screen(k: String) -> void:
 		"nations": _open_nations()
 		"budget": _open_budget()
 		"decrees": _open_decisions()
+		"realm": _open_realm_page()
 
 func _open_dossier(p: int) -> void:
 	if g != null: TBDossier.open(_overlay, g, p, func(c: Dictionary): _on_command(c, false))

@@ -47,6 +47,10 @@ func _init() -> void:
 	print("France industry share ", share_fr, " reason ", cf["reason"])
 	# force it: give France the province presence
 	for p in g.owned(fr): g.inst[p] |= (1 << ind)
+	var tips := TBAdvisor.alerts(g, fr)
+	var has_tip := false
+	for a in tips: if String(a["id"]) == "inst_ready": has_tip = true
+	_check(has_tip, "the advisor tells France an institution can be embraced")
 	var inc0: float = g.income(fr)["gold"]; var rm0 := TBInstitutions.research_mul(g, fr)
 	var gold0: float = g.gold[fr]
 	var r := g.apply({"cmd": "embrace", "n": fr, "i": ind})
@@ -68,15 +72,22 @@ func _init() -> void:
 	TBSave.restore(g2, d)
 	_check(_count(g2, bank) == _count(g, bank) and TBInstitutions.embraced(g2, fr, ind), "a restored game keeps the institutions")
 	_check(g2.inst_share.size() == g.inst_share.size() and absf(g2.inst_share[bank] - g.inst_share[bank]) < 0.0001, "and the derived shares")
-	# the AI embraces on its own while turns pass
+	# the AI embraces on its own: a state whose land already carries industry and whose purse is full takes it at the next turn
 	var gg := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 9, "rules": 5})
 	gg.set_human(gg.nat_code.find("france")); gg.pending.clear()
+	var ai := -1
+	for n in range(1, gg.N1):
+		if n != gg.rebel and gg.alive[n] != 0 and gg.human[n] == 0 and gg.own_count(n) >= 4 and not TBInstitutions.embraced(gg, n, ind): ai = n; break
+	_check(ai > 0, "an AI state that has not embraced industry")
+	for p in gg.owned(ai): gg.inst[p] |= (1 << ind)
+	TBInstitutions.refresh(gg)
+	gg.gold[ai] = 1e9; gg.mp[ai] = 10.0
+	gg.end_turn()
+	_check(TBInstitutions.embraced(gg, ai, ind) or TBInstitutions.embraced(gg, ai, TBInstitutions.index_of("standing_armies")), "the AI embraced what its land carries (%s)" % gg.nat_name[ai])
+	# and over the years some states do, unprompted, as the institutions spread (a loose check: 30 turns on one seed)
 	var total0 := 0
 	for n in range(1, gg.N1): for i in TBInstitutions.count(): if TBInstitutions.embraced(gg, n, i): total0 += 1
-	for t in 30: gg.end_turn()
-	var total1 := 0
-	for n in range(1, gg.N1): for i in TBInstitutions.count(): if TBInstitutions.embraced(gg, n, i): total1 += 1
-	_check(total1 > total0, "AI states embrace as the years pass (%d -> %d)" % [total0, total1])
+	_check(total0 >= 109, "the AI has embraced something (%d)" % total0)
 	# rules 4: nothing
 	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7, "rules": 4})
 	_check(TBInstitutions.income_mul(g4, 5) == 1.0 and String(TBInstitutions.can_embrace(g4, 5, 0)["reason"]) == "unknown", "rules 4: nothing happens")

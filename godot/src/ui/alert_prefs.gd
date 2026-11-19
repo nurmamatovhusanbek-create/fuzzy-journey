@@ -2,7 +2,7 @@
 class_name TBAlertPrefs
 extends RefCounted
 
-static var MUTABLE: Array = ["idle_dp", "idle_gold", "idle_men", "idle_mp", "no_general", "no_research", "no_trade", "peacetime", "ult_chance", "war_winning", "spread_army", "nap_end", "truce_end"]
+static var MUTABLE: Array = ["idle_dp", "idle_gold", "idle_men", "idle_mp", "no_general", "no_research", "no_trade", "peacetime", "ult_chance", "war_winning", "spread_army", "nap_end", "truce_end", "form_ready", "inst_ready"]
 static var muted: Array = []
 
 static func sync(cfg: Dictionary) -> void:

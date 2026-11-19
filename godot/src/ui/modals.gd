@@ -408,7 +408,14 @@ const MINISTERS := {
 	"no_general": ["army", "min_army", "", ""], "spread_army": ["army", "min_army", "min_show_map", "map"], "attrition": ["army", "min_army", "min_show_map", "map"], "idle_mp": ["army", "min_army", "", ""], "idle_dp": ["pact", "min_foreign", "min_open_nations", "nations"], "ult_chance": ["army", "min_army", "min_open_nations", "nations"],
 	"coalition": ["pact", "min_foreign", "min_open_nations", "nations"], "infamy": ["pact", "min_foreign", "min_open_nations", "nations"], "peacetime": ["pact", "min_foreign", "min_open_nations", "nations"], "no_trade": ["pact", "min_foreign", "min_open_nations", "nations"],
 	"bankrupt": ["treasury", "min_treasury", "min_open_budget", "budget"], "low_treasury": ["treasury", "min_treasury", "min_open_budget", "budget"], "idle_gold": ["treasury", "min_treasury", "min_open_budget", "budget"], "no_research": ["treasury", "min_treasury", "min_open_budget", "budget"],
-	"unrest": ["spy", "min_police", "min_open_decrees", "decrees"]}
+	"unrest": ["spy", "min_police", "min_open_decrees", "decrees"],
+	"form_ready": ["council", "min_realm", "min_open_realm", "realm"], "inst_ready": ["council", "min_realm", "min_open_realm", "realm"]}
+
+## the name an advisor tip speaks of: the stage that can be formed, the institution that can be embraced
+static func _alert_name(id: String, k: int) -> String:
+	if id == "form_ready" and k >= 0 and k < TBLineage.STAGES.size(): return TBI18n.nation(String(TBLineage.STAGES[k]["name"]))
+	if id == "inst_ready" and k >= 0 and k < TBInstitutions.count(): return T.call("inst_" + String(TBInstitutions.LIST[k]["id"]))
+	return ""
 
 static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String = "", on_screen: Callable = Callable()) -> TBPanel.Handle:
 	if tab == "goals": return goals(parent, g)
@@ -420,7 +427,7 @@ static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String =
 	for a in al:
 		var id: String = String(a["id"])
 		var m: Array = MINISTERS.get(id, ["info", "min_police", "", ""])
-		var quote: String = T.call("al_" + id, {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0), "a": g.dname(int(a["n"])) if int(a["n"]) > 0 else ""})
+		var quote: String = T.call("al_" + id, {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0), "a": g.dname(int(a["n"])) if int(a["n"]) > 0 else "", "x": _alert_name(id, int(a["k"]))})
 		var btn := ""
 		var cb := Callable()
 		if String(m[3]) == "map" and int(a["p"]) >= 0:
@@ -432,6 +439,30 @@ static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String =
 		h.body.add_child(TBBzScreens.minister_row(String(m[0]), T.call(String(m[1])), T.call(String(m[1]) + "_r"), quote, btn, cb))
 	return h
 
+## the nation's own next steps, as goal cards: [{t, s, f, tip}] (a stage of its line it could form, institutions it could embrace)
+static func _ambitions(g: TBGame, me: int) -> Array:
+	var out: Array = []
+	if g.rules < 5: return out
+	var opts: Array = TBLineage.options(g, me)
+	var cur := TBLineage.current(g, me)
+	opts.sort_custom(func(a: int, b: int) -> bool:
+		var la: bool = TBLineage.line_of(a) == TBLineage.line_of(cur); var lb: bool = TBLineage.line_of(b) == TBLineage.line_of(cur)
+		if la != lb: return la
+		return int(TBLineage.STAGES[a]["order"]) < int(TBLineage.STAGES[b]["order"]))
+	for si in opts.slice(0, 2):
+		var cs: Array = TBLineage.conditions(g, me, si)
+		var ok := 0
+		for c in cs: if bool(c["ok"]): ok += 1
+		var lines := PackedStringArray()
+		for r in TBLineageView.condition_lines(g, me, si): lines.append(("✓ " if bool(r[0]) else "✗ ") + String(r[1]))
+		out.append({"t": T.call("amb_form", {"n": TBI18n.nation(String(TBLineage.STAGES[si]["name"]))}), "s": T.call("amb_form_sub", {"a": ok, "b": cs.size()}), "f": float(ok) / maxf(1.0, float(cs.size())), "tip": "\n".join(lines)})
+	for i in TBInstitutions.count():
+		if g.inst_seen[i] == 0 or TBInstitutions.embraced(g, me, i): continue
+		var sh := TBInstitutions.share(g, me, i)
+		var id := String(TBInstitutions.LIST[i]["id"])
+		out.append({"t": T.call("amb_embrace", {"n": T.call("inst_" + id)}), "s": T.call("amb_embrace_sub", {"a": int(round(sh * 100.0))}), "f": minf(1.0, sh / TBInstitutions.EMBRACE_SHARE), "tip": T.call("inst_" + id + "_d")})
+	return out
+
 static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_goals"), "goals", {"w": 660, "h": 400, "sub": T.call("goals_sub")})
 	var me := g.human_id
@@ -439,6 +470,14 @@ static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 	var ids: Array = TBTurn.win_ids(g).duplicate()
 	ids.sort_custom(func(a: String, b: String) -> bool: return float(prog[a]) > float(prog[b]))
 	if g.rules >= 3: ids.append("diplomatic")                                  # an achievement, listed last
+	var amb := _ambitions(g, me)                                              # what the nation's own systems offer next: a name to claim, an institution to embrace
+	if g.rules >= 5 and not amb.is_empty():
+		h.body.add_child(K.caps(T.call("amb_title"), 12, K.GOLD))
+		var ag := GridContainer.new(); ag.columns = 2
+		ag.add_theme_constant_override("h_separation", 12); ag.add_theme_constant_override("v_separation", 12); ag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for c in amb: ag.add_child(TBBzScreens.GoalCard.new(String(c["t"]), String(c["s"]), float(c["f"]), String(c["tip"])))
+		h.body.add_child(ag)
+		h.body.add_child(K.caps(T.call("amb_victory"), 12, K.GOLD))
 	var grid := GridContainer.new(); grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 12); grid.add_theme_constant_override("v_separation", 12); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.body.add_child(grid)

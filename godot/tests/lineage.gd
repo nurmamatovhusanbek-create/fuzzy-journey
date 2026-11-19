@@ -38,6 +38,9 @@ func _init() -> void:
 	for i in core.size(): g.set_owner(int(core[i]), ru if i >= 3 else neighbour)
 	var cf := TBLineage.can_form(g, ru, ussr)
 	_check(bool(cf["ok"]), "with land, government, year and gold it can be formed (%s %s)" % [cf["reason"], str(TBLineage.conditions(g, ru, ussr))])
+	var ftip := false
+	for a in TBAdvisor.alerts(g, ru): if String(a["id"]) == "form_ready" and int(a["k"]) == ussr: ftip = true
+	_check(ftip, "the advisor tells Russia the USSR can be proclaimed")
 	var inc0: float = g.income(ru)["gold"]; var lev0: int = g.levy_cap(core[5])
 	var dp0: float = g.dp[ru]; var gold0: float = g.gold[ru]; var mp0: float = g.mp[ru]
 	var r := g.apply({"cmd": "form", "n": ru, "i": ussr})

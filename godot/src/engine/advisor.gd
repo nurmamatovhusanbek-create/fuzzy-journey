@@ -112,6 +112,11 @@ static func alerts(g: TBGame, n: int) -> Array:
 			if float(g.army[cap_p]) >= 0.8 * float(all_men): out.append(_a("spread_army", 0, cap_p))
 	if g.budget[n * 4 + 2] == 0: out.append(_a("no_research", 0, -1))
 	if wars == 0 and g.turn > 3 and g.gold[n] > g.gu(n, 120.0): out.append(_a("peacetime", 0, -1))
+	if g.rules >= 5:                                                                         # the nation's own systems: a name it could proclaim, an institution it could embrace
+		for si in TBLineage.options(g, n):
+			if bool(TBLineage.can_form(g, n, si)["ok"]): out.append(_a("form_ready", 0, -1, si)); break
+		for i in TBInstitutions.count():
+			if g.inst_seen[i] != 0 and not TBInstitutions.embraced(g, n, i) and bool(TBInstitutions.can_embrace(g, n, i)["ok"]): out.append(_a("inst_ready", 0, -1, i)); break
 	out.sort_custom(func(a, b): return int(a["sev"]) > int(b["sev"]))
 	return out
 
