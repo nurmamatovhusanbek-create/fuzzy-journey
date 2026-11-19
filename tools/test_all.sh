@@ -55,6 +55,7 @@ run "rules 5: Raise troops (levy first, the rest hired)" tests/raise.gd
 run "rules 5: Disband (half back to the levy pool)" tests/disband.gd
 run "rules 5: lineages (stages, conditions, forming, claims, AI, saves)" tests/lineage.gd
 run "rules 5: institutions (spread, embrace, lag, AI, saves)" tests/institutions.gd
+run "rules 5: reform of the government (cost, era, cooldown, estates, AI, USSR road)" tests/regime.gd
 run "rules 5: estates (loyalty, courting, effects, AI, events, saves)" tests/estates.gd
 run "rules 5: institution events (conditions, effects, three languages)" tests/inst_events.gd
 run "rules 4: calls to arms weighed by trust, threat, border, distance, exhaustion" tests/calls.gd

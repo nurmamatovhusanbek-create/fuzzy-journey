@@ -18,7 +18,7 @@ static func chron_kind(kind: String) -> Array:
 		"peace", "ally", "vassal", "coalition", "coalition_end", "marriage", "marriage_end", "union", "spy": return ["pact", "an_dip"]
 		"trade": return ["trade", "an_dip"]
 		"formed": return ["crown", "an_dip"]
-		"inst_born", "inst_embraced", "estate_courted": return ["annals", "an_econ"]
+		"inst_born", "inst_embraced", "estate_courted", "reform": return ["annals", "an_econ"]
 		"bankrupt", "decision", "doctrine": return ["treasury", "an_econ"]
 		"era": return ["star", "an_age"]
 		"ruler", "realm": return ["crown", "an_crown"]

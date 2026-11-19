@@ -1383,6 +1383,8 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		sfx.play("coin")
 	elif String(cmd.get("cmd", "")) in ["embrace", "court"]:
 		sfx.play("coin"); _refresh_realm()
+	elif String(cmd.get("cmd", "")) == "regime":
+		sfx.play("win"); _identity_changed(); _refresh_realm()
 	elif String(cmd.get("cmd", "")) == "ask":
 		hud.toast(T.call("ask_sent", {"a": g.dname(int(cmd["t"]))}))
 	elif String(cmd.get("cmd", "")) == "callAlly":

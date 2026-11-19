@@ -53,3 +53,74 @@ static func assign(g: TBGame) -> void:
 			elif year < 1914: r = [2, 2, 3, 2, 5][h % 5]
 			else: r = [3, 5, 5, 2, 3, 7][h % 6] if year < 1945 else [3, 5, 5, 2, 3, 6][h % 6]
 		g.regime[n] = r
+
+# ---------------------------------------------------------------------------------------------- reform of the government (rules >= 5)
+## A state can change its form of government: an order that costs two turns of income and two moves, shakes the land, and moves the estates (the order that gains from the new
+## form is pleased, the one that leads the old form is not). One reform in REFORM_COOLDOWN turns. It is what opens the next name of a line (Empire -> Russia, USSR).
+const REFORM_COOLDOWN := 10
+const REFORM_STAB := 12
+const REFORM_MOVES := 2.0
+const REFORM_SHIFT := 12.0
+static var TARGETS: Array = [2, 3, 4, 5, 6, 7]                    # monarchy republic empire democracy communism fascism
+static var YEAR_FROM: Dictionary = {5: 1776, 6: 1900, 7: 1919}   # democracy, communism, fascism: not before their time
+
+static func reform_cost(g: TBGame, n: int) -> int: return int(float(g.income(n)["gold"]) * 2.0)
+
+## the lineage stages (indices) a government would open for a nation that is otherwise ready for them
+static func opens(g: TBGame, n: int, r: int) -> Array:
+	var out: Array = []
+	TBLineage.ensure()
+	for si in TBLineage.options(g, n):
+		if (TBLineage.STAGES[si]["regimes"] as Array).has(r) and not (TBLineage.STAGES[si]["regimes"] as Array).has(g.regime[n]): out.append(si)
+	return out
+
+static func can_reform(g: TBGame, n: int, r: int) -> Dictionary:
+	var out := {"ok": true, "reason": "", "gold": 0, "moves": REFORM_MOVES, "short": {}}
+	if g.rules < 5 or n <= 0 or g.alive[n] == 0 or n == g.rebel or not TARGETS.has(r): out["ok"] = false; out["reason"] = "unknown"; return out
+	out["gold"] = reform_cost(g, n)
+	if g.regime[n] == r: out["ok"] = false; out["reason"] = "reg_same"
+	elif g.era[n] < int(TBData.REGIMES[r]["sinceEra"]) or g.year < int(YEAR_FROM.get(r, -9999)): out["ok"] = false; out["reason"] = "reg_era"
+	elif g.turn - g.reg_last[n] < REFORM_COOLDOWN: out["ok"] = false; out["reason"] = "reg_recent"
+	elif g.gold[n] < float(out["gold"]): out["ok"] = false; out["reason"] = "gold"; out["short"]["gold"] = int(out["gold"]) - int(g.gold[n])
+	elif g.mp[n] < REFORM_MOVES: out["ok"] = false; out["reason"] = "mp"; out["short"]["moves"] = 1
+	return out
+
+static func reform(g: TBGame, n: int, r: int) -> Dictionary:
+	var c := can_reform(g, n, r)
+	if not bool(c["ok"]): return {"ok": false, "err": String(c["reason"])}
+	var old_top := _top_estate(String(TBData.REGIME_ID[g.regime[n]]))
+	var new_top := _top_estate(String(TBData.REGIME_ID[r]))
+	g.gold[n] -= float(c["gold"]); g.mp[n] -= REFORM_MOVES
+	var old := g.regime[n]
+	g.regime[n] = r; g.reg_last[n] = g.turn
+	for p in g.owned(n): g.stab[p] = maxi(5, g.stab[p] - REFORM_STAB); g.touch(p)
+	if old_top != new_top:
+		TBEstates.shift(g, n, TBEstates.IDS[new_top], REFORM_SHIFT)
+		TBEstates.shift(g, n, TBEstates.IDS[old_top], -REFORM_SHIFT)
+	g.log.append({"turn": g.turn, "kind": "reform", "a": n, "r": r, "o": old})
+	g.occ_rev += 1
+	g.ident_rev += 1
+	return {"ok": true}
+
+static func _top_estate(regime_id: String) -> int:
+	TBEstates.ensure()
+	var w: Array = TBEstates._w.get(regime_id, [25, 25, 25, 25])
+	var best := 0
+	for e in 4: if float(w[e]) > float(w[best]): best = e
+	return best
+
+## the AI reforms when a name of its line is within reach but for the government, and it can pay twice over
+static func ai_step(g: TBGame, n: int) -> void:
+	if g.rules < 5 or g.human[n] != 0 or (g.turn + n) % 4 != 2: return
+	TBLineage.ensure()
+	var best := -1; var best_w := -1
+	for si in TBLineage.options(g, n):
+		if (TBLineage.STAGES[si]["regimes"] as Array).has(g.regime[n]): continue
+		var ready := true
+		for c in TBLineage.conditions(g, n, si):
+			if String(c["key"]) in ["year", "core"] and not bool(c["ok"]): ready = false
+		if ready and int(TBLineage.STAGES[si]["w"]) > best_w: best = si; best_w = int(TBLineage.STAGES[si]["w"])      # the strongest name first, as in forming
+	if best < 0: return
+	for r in (TBLineage.STAGES[best]["regimes"] as Array):
+		var cr := can_reform(g, n, int(r))
+		if bool(cr["ok"]) and g.gold[n] >= 2.0 * float(cr["gold"]): reform(g, n, int(r)); return

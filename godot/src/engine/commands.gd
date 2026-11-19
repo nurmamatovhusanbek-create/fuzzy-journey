@@ -456,6 +456,7 @@ static func _c_relocate(g: TBGame, c: Dictionary) -> Dictionary:
 
 static func _c_regime(g: TBGame, c: Dictionary) -> Dictionary:
 	var n: int = c["n"]; var r: int = int(c["r"])
+	if g.rules >= 5: return TBRegimes.reform(g, n, r)
 	if r < 0 or r >= D.REGIMES.size() or r == D.REGIME_REBELS: return _err("type")
 	if g.era[n] < int(D.REGIMES[r]["sinceEra"]): return _err("era")
 	var rg: float = g.gu(n, 120.0)

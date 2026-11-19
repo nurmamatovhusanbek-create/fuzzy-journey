@@ -33,6 +33,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"form": return TBLineage.can_form(g, n, int(c.get("i", -1)))
 		"embrace": return TBInstitutions.can_embrace(g, n, int(c.get("i", -1)))
 		"court": return TBEstates.can_court(g, n, int(c.get("e", -1)))
+		"regime": return TBRegimes.can_reform(g, n, int(c.get("r", -1))) if g.rules >= 5 else out
 		"appoint": return _appoint(g, n, c, out)
 		"build": return _build(g, n, c, out)
 		"colonize": return _colonize(g, n, c, out)

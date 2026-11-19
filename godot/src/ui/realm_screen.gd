@@ -135,6 +135,8 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		body.add_child(_cap(T.call("lg_title"), 8.0, 6.0))
 		body.add_child(TBLineageView.build(g, me, opts.get("on_command", Callable())))
 	if g.rules >= 5:
+		body.add_child(_cap(T.call("rg_title"), 14.0, 6.0))
+		body.add_child(TBRegimeView.build(g, me, opts.get("on_command", Callable())))
 		body.add_child(_cap(T.call("in_title"), 14.0, 6.0))
 		body.add_child(TBInstitutionView.build(g, me, opts.get("on_command", Callable())))
 		body.add_child(_cap(T.call("es_title"), 14.0, 6.0))
