@@ -208,6 +208,25 @@ func _toggle_window(key: String) -> bool:
 			h.close(); return true
 	return false
 
+## the Realm page is open and its state changed (an institution embraced, an estate courted): build it again in place, at the same scroll
+func _refresh_realm() -> void:
+	for c in _overlay.get_children():
+		if c.is_queued_for_deletion() or not c.has_meta("tb_handle"): continue
+		var h: TBPanel.Handle = c.get_meta("tb_handle")
+		if h.mem_key != "realm" or not h.is_open(): continue
+		var sv := 0
+		for sc in c.find_children("*", "ScrollContainer", true, false):
+			sv = (sc as ScrollContainer).scroll_vertical; break
+		h.close()
+		_open_realm_page()
+		for i in 3: await get_tree().process_frame
+		for c2 in _overlay.get_children():
+			if c2.is_queued_for_deletion() or not c2.has_meta("tb_handle"): continue
+			if (c2.get_meta("tb_handle") as TBPanel.Handle).mem_key != "realm": continue
+			for sc2 in c2.find_children("*", "ScrollContainer", true, false):
+				(sc2 as ScrollContainer).scroll_vertical = sv; break
+		return
+
 func _nations_window() -> TBPanel.Handle:
 	for c in _overlay.get_children():
 		if c.is_queued_for_deletion() or not c.has_meta("tb_handle"): continue
@@ -1362,6 +1381,8 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		hud.toast(T.call("embassy_done", {"a": g.dname(int(cmd["t"])), "k": TBMissions.EMBASSY_GRUDGE}))
 	elif String(cmd.get("cmd", "")) in ["decide", "trade", "build", "develop", "demolish", "works"]:
 		sfx.play("coin")
+	elif String(cmd.get("cmd", "")) in ["embrace", "court"]:
+		sfx.play("coin"); _refresh_realm()
 	elif String(cmd.get("cmd", "")) == "ask":
 		hud.toast(T.call("ask_sent", {"a": g.dname(int(cmd["t"]))}))
 	elif String(cmd.get("cmd", "")) == "callAlly":

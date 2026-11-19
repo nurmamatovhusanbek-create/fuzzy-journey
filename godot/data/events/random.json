@@ -1283,5 +1283,188 @@
     ]
    }
   ]
+ },
+ {
+  "id": "nobles_petition",
+  "cat": "DOMESTIC",
+  "icon": "crown",
+  "cooldown": 12,
+  "cond": [
+   {
+    "est_below": {
+     "estate": "nobility",
+     "v": 38
+    }
+   },
+   {
+    "chance": 0.5
+   }
+  ],
+  "choices": [
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -50
+     },
+     {
+      "op": "loyalty",
+      "estate": "nobility",
+      "d": 14
+     }
+    ]
+   },
+   {
+    "effects": [
+     {
+      "op": "stab",
+      "scope": "third",
+      "d": -6
+     },
+     {
+      "op": "loyalty",
+      "estate": "nobility",
+      "d": -4
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "clergy_sermons",
+  "cat": "DOMESTIC",
+  "icon": "dove",
+  "cooldown": 12,
+  "cond": [
+   {
+    "est_below": {
+     "estate": "clergy",
+     "v": 38
+    }
+   },
+   {
+    "chance": 0.5
+   }
+  ],
+  "choices": [
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -40
+     },
+     {
+      "op": "loyalty",
+      "estate": "clergy",
+      "d": 14
+     }
+    ]
+   },
+   {
+    "effects": [
+     {
+      "op": "stab",
+      "scope": "third",
+      "d": -6
+     },
+     {
+      "op": "loyalty",
+      "estate": "clergy",
+      "d": -4
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "merchants_demand",
+  "cat": "ECONOMY",
+  "icon": "coins",
+  "cooldown": 12,
+  "cond": [
+   {
+    "est_below": {
+     "estate": "merchants",
+     "v": 38
+    }
+   },
+   {
+    "chance": 0.5
+   }
+  ],
+  "choices": [
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -45
+     },
+     {
+      "op": "loyalty",
+      "estate": "merchants",
+      "d": 14
+     }
+    ]
+   },
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -30
+     },
+     {
+      "op": "loyalty",
+      "estate": "merchants",
+      "d": -4
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "officers_grumble",
+  "cat": "MILITARY",
+  "icon": "swords",
+  "cooldown": 12,
+  "cond": [
+   {
+    "est_below": {
+     "estate": "army",
+     "v": 38
+    }
+   },
+   {
+    "chance": 0.5
+   }
+  ],
+  "choices": [
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -45
+     },
+     {
+      "op": "loyalty",
+      "estate": "army",
+      "d": 14
+     }
+    ]
+   },
+   {
+    "effects": [
+     {
+      "op": "army",
+      "scope": "third",
+      "pct": -6
+     },
+     {
+      "op": "loyalty",
+      "estate": "army",
+      "d": -4
+     }
+    ]
+   }
+  ]
  }
 ]

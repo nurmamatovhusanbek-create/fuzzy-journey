@@ -130,12 +130,16 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	cells.add_child(TBNationParts.StatCell.new("gold", "%s  %s" % [K.fmt(g.gold[me]), K.signed(float(inc["net"]))], T.call("gold")))
 	cells.add_child(TBNationParts.StatCell.new("flag", str(int(st["prov"][me])), T.call("lands")))
 	body.add_child(_pad(cells, 0.0, 6.0))
+	var gov_from: int = body.get_child_count()
 	if g.rules >= 5 and (TBLineage.current(g, me) >= 0 or not TBLineage.options(g, me).is_empty()):     # rules 5: the lineage, and the names you could proclaim
 		body.add_child(_cap(T.call("lg_title"), 8.0, 6.0))
 		body.add_child(TBLineageView.build(g, me, opts.get("on_command", Callable())))
 	if g.rules >= 5:
 		body.add_child(_cap(T.call("in_title"), 14.0, 6.0))
 		body.add_child(TBInstitutionView.build(g, me, opts.get("on_command", Callable())))
+		body.add_child(_cap(T.call("es_title"), 14.0, 6.0))
+		body.add_child(TBEstateView.build(g, me, opts.get("on_command", Callable())))
+	var ledger_from: int = body.get_child_count()
 	# ---- standing
 	var stab_sum := 0; var happy_sum := 0; var n_own := 0
 	for p in g.owned(me):
@@ -203,4 +207,16 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	if not any_rel:
 		body.add_child(_cap(T.call("realm_treaties"), 14.0, 6.0))
 		body.add_child(K.para_bz(T.call("realm_no_treaties"), 16.0, 1.3))
+	if g.rules >= 5:                                                          # two pages: the government (names, institutions, estates) and the ledger (standing, people, money, court, treaties)
+		var gov := K.vbox(0); var led := K.vbox(0)
+		gov.size_flags_horizontal = Control.SIZE_EXPAND_FILL; led.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var kids: Array = body.get_children().slice(gov_from)
+		for i in kids.size():
+			var c: Node = kids[i]
+			body.remove_child(c)
+			(gov if gov_from + i < ledger_from else led).add_child(c)
+		led.visible = false
+		var tabs := K.tabs([["gov", T.call("rs_tab_gov")], ["led", T.call("rs_tab_led")]], "gov", func(id: String): gov.visible = id == "gov"; led.visible = id == "led")
+		body.add_child(_pad(tabs, 4.0, 4.0))
+		body.add_child(gov); body.add_child(led)
 	return h

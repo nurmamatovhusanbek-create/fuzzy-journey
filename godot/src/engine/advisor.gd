@@ -115,6 +115,8 @@ static func alerts(g: TBGame, n: int) -> Array:
 	if g.rules >= 5:                                                                         # the nation's own systems: a name it could proclaim, an institution it could embrace
 		for si in TBLineage.options(g, n):
 			if bool(TBLineage.can_form(g, n, si)["ok"]): out.append(_a("form_ready", 0, -1, si)); break
+		var ae := TBEstates.angriest(g, n)
+		if TBEstates.loyalty(g, n, ae) < TBEstates.LOW: out.append(_a("estate_low", 1, -1, ae))
 		for i in TBInstitutions.count():
 			if g.inst_seen[i] != 0 and not TBInstitutions.embraced(g, n, i) and bool(TBInstitutions.can_embrace(g, n, i)["ok"]): out.append(_a("inst_ready", 0, -1, i)); break
 	out.sort_custom(func(a, b): return int(a["sev"]) > int(b["sev"]))

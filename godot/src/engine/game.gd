@@ -104,6 +104,8 @@ var inst_ok := PackedInt32Array()               # nation -> bits of the institut
 var inst_seen := PackedByteArray()              # institution -> 1 once it has been born
 var inst_share := PackedFloat32Array()          # institution -> the world's share of provinces that carry it (derived)
 var inst_rev: int = 0
+var est_loy := PackedFloat32Array()            # rules >= 5: nation * 4 + estate -> loyalty 0..100 (TBEstates)
+var est_priv := PackedByteArray()              # nation * 4 + estate -> privileges granted
 var works := PackedInt32Array()                 # rules >= 5: levels of every state work, N1 * TBWorks.COUNT (TBWorks)
 var levy := PackedInt32Array()                  # rules >= 4: the men each province can still raise (see levy_cap); the nation's manpower is their sum
 var gen := PackedInt32Array()                 # generals (rules >= 1): see TBGenerals
@@ -250,7 +252,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	siege.resize(P); unrest.resize(P); war_pts.resize(N1 * N1); inv_e.resize(P); inv_d.resize(P); worth_prev.resize(P); proj_kind.resize(P); proj_left.resize(P)
 	morale.resize(N1); morale.fill(TBWar.MORALE_START); exh.resize(N1); lost_turn.resize(N1)
 	_dist_cap.resize(P); _dist_cap.fill(-1); _dist_val.resize(P)
-	stage.resize(N1); claim.resize(P); inst.resize(P); inst_ok.resize(N1); inst_seen.resize(16)
+	stage.resize(N1); claim.resize(P); inst.resize(P); inst_ok.resize(N1); inst_seen.resize(16); est_loy.resize(N1 * 4); est_priv.resize(N1 * 4)
 	works.resize(N1 * TBWorks.COUNT); aim_kind.resize(N1); aim_t.resize(N1); aim_since.resize(N1); infamy.resize(N1); coalition.resize(N1); dec_until.resize(N1 * TBDecisions.LIST.size())
 	r_name.resize(N1); r_born.resize(N1); r_since.resize(N1)
 	for a in [r_num, r_adm, r_dip, r_mil, r_trait]:
@@ -295,7 +297,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		TBRegimes.assign(self)
 		TBRulers.init(self)
 		TBRealms.init(self)
-		if rules >= 5: TBLineage.init_stages(self); TBInstitutions.init(self)
+		if rules >= 5: TBLineage.init_stages(self); TBInstitutions.init(self); TBEstates.init(self)
 		TBTurn.refresh_world(self)          # world income, tech stats and the era's economic goal
 	if rules >= 5:                          # rules 5: the real people of the era at its scale, jittered at random (docs/RULES5_REALISM.md)
 		scale = TBPopData.scale_for(era_id)
@@ -493,7 +495,7 @@ func levy_cap(p: int) -> int:
 	var n := owner[p]
 	var e: int = era[n] if n > 0 else 0
 	var c: float = float(pop[p]) * float(LEVY_RATE[e] if rules < 5 else LEVY_SHARE[e]) * (0.5 + float(stab[p]) / 200.0)
-	if rules >= 5 and n > 0: c *= TBWorks.levy_mul(self, n) * TBLineage.levy_mul(self, n) * TBInstitutions.levy_mul(self, n)
+	if rules >= 5 and n > 0: c *= TBWorks.levy_mul(self, n) * TBLineage.levy_mul(self, n) * TBInstitutions.levy_mul(self, n) * TBEstates.levy_mul(self, n)
 	if bl(p, D.B_ARMORY) > 0: c *= 1.25
 	return maxi(4, int(floor(c)))
 
@@ -719,7 +721,7 @@ func income(n: int) -> Dictionary:
 	if rules >= 1: gld += TBTrade.income(self, n)
 	if cap_lost_now: gld = int(floor(gld * 0.5))
 	gld = int(floor(gld * float(reg["incMul"]) * tech_inc))
-	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n) * ((TBWorks.income_mul(self, n) * TBLineage.income_mul(self, n) * TBInstitutions.income_mul(self, n)) if rules >= 5 else 1.0)))
+	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n) * ((TBWorks.income_mul(self, n) * TBLineage.income_mul(self, n) * TBInstitutions.income_mul(self, n) * TBEstates.income_mul(self, n)) if rules >= 5 else 1.0)))
 	admin = int(floor(admin * tech_admin))
 	if rules >= 2: admin = int(floor(admin * (1.0 + OVEREXTEND_STEP * maxf(0.0, float(own.size() - OVEREXTEND_FROM)))))       # the bigger the realm, the dearer every governor
 	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n) * (TBWorks.admin_mul(self, n) if rules >= 5 else 1.0)))

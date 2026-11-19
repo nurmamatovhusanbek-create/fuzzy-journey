@@ -409,11 +409,12 @@ const MINISTERS := {
 	"coalition": ["pact", "min_foreign", "min_open_nations", "nations"], "infamy": ["pact", "min_foreign", "min_open_nations", "nations"], "peacetime": ["pact", "min_foreign", "min_open_nations", "nations"], "no_trade": ["pact", "min_foreign", "min_open_nations", "nations"],
 	"bankrupt": ["treasury", "min_treasury", "min_open_budget", "budget"], "low_treasury": ["treasury", "min_treasury", "min_open_budget", "budget"], "idle_gold": ["treasury", "min_treasury", "min_open_budget", "budget"], "no_research": ["treasury", "min_treasury", "min_open_budget", "budget"],
 	"unrest": ["spy", "min_police", "min_open_decrees", "decrees"],
-	"form_ready": ["council", "min_realm", "min_open_realm", "realm"], "inst_ready": ["council", "min_realm", "min_open_realm", "realm"]}
+	"form_ready": ["council", "min_realm", "min_open_realm", "realm"], "inst_ready": ["council", "min_realm", "min_open_realm", "realm"], "estate_low": ["council", "min_realm", "min_open_realm", "realm"]}
 
 ## the name an advisor tip speaks of: the stage that can be formed, the institution that can be embraced
 static func _alert_name(id: String, k: int) -> String:
 	if id == "form_ready" and k >= 0 and k < TBLineage.STAGES.size(): return TBI18n.nation(String(TBLineage.STAGES[k]["name"]))
+	if id == "estate_low" and k >= 0 and k < TBEstates.COUNT: return T.call("est_" + String(TBEstates.IDS[k]))
 	if id == "inst_ready" and k >= 0 and k < TBInstitutions.count(): return T.call("inst_" + String(TBInstitutions.LIST[k]["id"]))
 	return ""
 

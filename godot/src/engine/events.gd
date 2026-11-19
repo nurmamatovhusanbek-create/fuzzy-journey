@@ -174,6 +174,9 @@ static func _conds_ok(g: TBGame, n: int, conds: Array) -> bool:
 				"inst_has":                                                                    # an institution of the age you have embraced (data/institutions.json id)
 					var ii := TBInstitutions.index_of(String(c[k]))
 					if ii < 0 or not TBInstitutions.embraced(g, n, ii): return false
+				"est_below":                                                                   # {"estate": id, "v": loyalty}: that estate is angrier than v
+					var ee := TBEstates.index_of(String((c[k] as Dictionary).get("estate", "")))
+					if ee < 0 or TBEstates.loyalty(g, n, ee) >= float((c[k] as Dictionary).get("v", 35)): return false
 				"inst_behind": if TBInstitutions.lag(g, n) <= 0: return false              # the world has moved on and this nation has not followed
 				"has_neighbors":
 					var found := false
@@ -256,6 +259,7 @@ static func apply_effects(g: TBGame, n: int, effects: Array) -> void:
 			"infamy": g.infamy[n] = clampf(g.infamy[n] + d, 0.0, 100.0)
 			"research": g.research[n] = maxf(0.0, g.research[n] + d)
 			"intel": g.intel[n] = clampf(g.intel[n] + d, 0.0, 20.0)
+			"loyalty": TBEstates.shift(g, n, String(e.get("estate", "")), d)
 			"manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + d)
 			"mp": g.mp[n] += d
 			"dp": g.dp[n] = maxf(0.0, g.dp[n] + d)
