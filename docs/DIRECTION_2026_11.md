@@ -13,3 +13,13 @@ One interface for computer and Android: the compact layout and its tests go. Reb
 
 ## Cycle 4: strip the legacy (planned)
 Rules 0-4 branches, old-save compatibility and the JS oracle go; the architecture stays: data files, headless engine, one `apply` for every change, events as data.
+
+## Where it stands (written after the third cycle, honestly)
+Built and tested: lineages, institutions, estates, reform of the government, ambitions on the Goals page, advisor tips, twelve events that read these systems (`inst_has`, `inst_behind`, `est_below`, op `loyalty`). They are stitched: embracing an institution moves the estates; an estate's loyalty moves income, levies, stability, research; the government form decides the estates' weights and what names of a line are open; a name formed gives a bonus and claims. Everything is data (`data/lineages.json`, `institutions.json`, `estates.json`, `events/random.json`) read by one engine module each, changed only through `apply`.
+
+What is still weak, said plainly:
+* **Balance is untested by play.** The effects are mild on purpose (a few percent); no run by hand has judged whether a player feels them. Numbers: `TBEstates` constants, `data/*.json`.
+* **The AI embraces institutions rarely** (one embrace in four seeds over fifteen years): the spread is slow and an AI that never reaches 25 % never embraces, so the lag penalty falls on it. Fine as history, but it makes the player's lead large.
+* **The compact phone layout is unreachable but not deleted**: the setting, the stage and the tests are gone; the `is_phone` branches in about twenty UI files are dead code. Cycle 4 removes them with the rules 0-4 paths.
+* **Uzbek and Russian text I wrote for all of this has not been read by a native speaker.** Glossary decisions are still open (`docs/UZ_STYLE.md`).
+* **The Treasury hub and the Chronicle** are not rebuilt yet; only the Realm page became two pages (Government / Ledger) and the Goals page gained its Ambitions.
