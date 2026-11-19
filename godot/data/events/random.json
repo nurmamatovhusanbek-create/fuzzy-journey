@@ -1466,5 +1466,245 @@
     ]
    }
   ]
+ },
+ {
+  "id": "nobles_rise",
+  "cat": "CRISIS",
+  "icon": "crown",
+  "cooldown": 16,
+  "cond": [
+   {
+    "est_below": {
+     "estate": "nobility",
+     "v": 18
+    }
+   },
+   {
+    "chance": 0.6
+   }
+  ],
+  "choices": [
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -110
+     },
+     {
+      "op": "loyalty",
+      "estate": "nobility",
+      "d": 32
+     },
+     {
+      "op": "stab",
+      "scope": "all",
+      "d": 3
+     }
+    ]
+   },
+   {
+    "effects": [
+     {
+      "op": "stab",
+      "scope": "half",
+      "d": -14
+     },
+     {
+      "op": "pop",
+      "scope": "third",
+      "pct": -5
+     },
+     {
+      "op": "infamy",
+      "d": 4
+     },
+     {
+      "op": "loyalty",
+      "estate": "nobility",
+      "d": 16
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "clergy_interdict",
+  "cat": "CRISIS",
+  "icon": "dove",
+  "cooldown": 16,
+  "cond": [
+   {
+    "est_below": {
+     "estate": "clergy",
+     "v": 18
+    }
+   },
+   {
+    "chance": 0.6
+   }
+  ],
+  "choices": [
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -110
+     },
+     {
+      "op": "loyalty",
+      "estate": "clergy",
+      "d": 32
+     },
+     {
+      "op": "stab",
+      "scope": "all",
+      "d": 3
+     }
+    ]
+   },
+   {
+    "effects": [
+     {
+      "op": "stab",
+      "scope": "half",
+      "d": -14
+     },
+     {
+      "op": "pop",
+      "scope": "third",
+      "pct": -5
+     },
+     {
+      "op": "infamy",
+      "d": 4
+     },
+     {
+      "op": "loyalty",
+      "estate": "clergy",
+      "d": 16
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "merchants_strike",
+  "cat": "CRISIS",
+  "icon": "coins",
+  "cooldown": 16,
+  "cond": [
+   {
+    "est_below": {
+     "estate": "merchants",
+     "v": 18
+    }
+   },
+   {
+    "chance": 0.6
+   }
+  ],
+  "choices": [
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -110
+     },
+     {
+      "op": "loyalty",
+      "estate": "merchants",
+      "d": 32
+     },
+     {
+      "op": "stab",
+      "scope": "all",
+      "d": 3
+     }
+    ]
+   },
+   {
+    "effects": [
+     {
+      "op": "stab",
+      "scope": "half",
+      "d": -14
+     },
+     {
+      "op": "pop",
+      "scope": "third",
+      "pct": -5
+     },
+     {
+      "op": "infamy",
+      "d": 4
+     },
+     {
+      "op": "loyalty",
+      "estate": "merchants",
+      "d": 16
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "army_mutinies",
+  "cat": "CRISIS",
+  "icon": "swords",
+  "cooldown": 16,
+  "cond": [
+   {
+    "est_below": {
+     "estate": "army",
+     "v": 18
+    }
+   },
+   {
+    "chance": 0.6
+   }
+  ],
+  "choices": [
+   {
+    "effects": [
+     {
+      "op": "gold",
+      "d": -110
+     },
+     {
+      "op": "loyalty",
+      "estate": "army",
+      "d": 32
+     },
+     {
+      "op": "stab",
+      "scope": "all",
+      "d": 3
+     }
+    ]
+   },
+   {
+    "effects": [
+     {
+      "op": "stab",
+      "scope": "half",
+      "d": -14
+     },
+     {
+      "op": "pop",
+      "scope": "third",
+      "pct": -5
+     },
+     {
+      "op": "infamy",
+      "d": 4
+     },
+     {
+      "op": "loyalty",
+      "estate": "army",
+      "d": 16
+     }
+    ]
+   }
+  ]
  }
 ]

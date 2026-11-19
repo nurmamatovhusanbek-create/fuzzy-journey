@@ -90,6 +90,17 @@ func _init() -> void:
 		g.gold[fr] = 1e9
 		TBEvents.apply_effects(g, fr, by_id[id]["choices"][0]["effects"])
 		_check(TBEstates.loyalty(g, fr, e) > 30.0, "%s: the first choice appeases (%.0f)" % [id, TBEstates.loyalty(g, fr, e)])
+	# the second rung: below 18 the estate rises, and conceding calms it
+	for pair in [["nobles_rise", 0], ["clergy_interdict", 1], ["merchants_strike", 2], ["army_mutinies", 3]]:
+		_check(by_id.has(pair[0]), "event %s exists" % pair[0])
+		var cond2: Array = []
+		for c in by_id[pair[0]]["cond"]: if not c.has("chance"): cond2.append(c)
+		g.est_loy[fr * 4 + int(pair[1])] = 30.0
+		_check(not TBEvents._conds_ok(g, fr, cond2), "%s: not at 30" % pair[0])
+		g.est_loy[fr * 4 + int(pair[1])] = 10.0
+		_check(TBEvents._conds_ok(g, fr, cond2), "%s: at 10" % pair[0])
+		TBEvents.apply_effects(g, fr, by_id[pair[0]]["choices"][0]["effects"])
+		_check(TBEstates.loyalty(g, fr, int(pair[1])) >= 40.0, "%s: conceding calms it" % pair[0])
 	# saves
 	var d := TBSave.snapshot(g)
 	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7, "rules": 5})
