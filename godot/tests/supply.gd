@@ -15,7 +15,8 @@ func _init() -> void:
 	print("enemy land: limit=%d loss=%d" % [lim, loss])
 	if loss <= 0 or loss >= 400: fails += 1
 	g.army[q] = lim
-	if g.attrition(q) != 0: fails += 1                                   # at the limit: fine
+	var far_loss := int(ceil(float(lim) * g.SUPPLY_FAR)) if g.supply_depth(q, a) >= g.SUPPLY_REACH else 0
+	if g.attrition(q) != far_loss: fails += 1                            # at the limit: only the culminating point (far from friendly land) costs men
 	g.army[q] = 400
 	var before := g.army[q]
 	g.end_turn()

@@ -24,7 +24,7 @@ func _init() -> void:
 					if g.owner[q] != me and g.owner[q] != 0 and g.nb_sea[i] == 0: g.set_owner(q, 0); target = q; break
 			if target >= 0: break
 	_check(target >= 0, "a free province next to the realm exists")
-	g.gold[me] = 1000.0; g.mp[me] = 6.0; g.manpower[me] = 500.0
+	g.gold[me] = 1e9; g.mp[me] = 6.0; g.manpower[me] = 1e9
 	var cn := g.can({"cmd": "colonize", "p": target})
 	print("cost gold ", cn["gold"], " men ", cn["men"], " moves ", cn["moves"], " ok ", cn["ok"], " needs ", cn.get("needs", []).size())
 	_check(int(cn["gold"]) > 0 and int(cn["men"]) > 0 and int(cn["moves"]) == 2, "a colony costs gold, settlers and two moves under every regime")
@@ -37,7 +37,7 @@ func _init() -> void:
 	for nd in bad["needs"]: if not bool(nd[0]): unmet += 1
 	_check(not bool(bad["ok"]) and unmet == 3, "gold, settlers and moves are all reported missing (%d)" % unmet)
 	# the command deducts all three
-	g.gold[me] = 1000.0; g.mp[me] = 6.0; g.manpower[me] = 500.0
+	g.gold[me] = 1e9; g.mp[me] = 6.0; g.manpower[me] = 1e9
 	var gold0: float = g.gold[me]; var men0: float = g.manpower[me]; var mp0: float = g.mp[me]
 	var r := g.apply({"cmd": "colonize", "p": target, "n": me})
 	print("apply result ", r)

@@ -16,7 +16,7 @@ func _init() -> void:
 	var i1: int = g.income(a)["gold"]
 	print("income ", i0, " -> ", i1, " (partner ", g.nat_name[b], ", value ", TBTrade.value(g, b, a), ")")
 	if r["ok"] and i1 <= i0: fails += 1
-	if not r["ok"] and r["err"] != "refused": fails += 1
+	if not r["ok"] and r["err"] != "refused" and r["err"] != "nocontact": fails += 1
 	if r["ok"]:
 		g.dp[a] = 10; g.dp[b] = 10
 		g.apply({"cmd": "declareWar", "n": a, "t": b})

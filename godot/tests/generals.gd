@@ -4,14 +4,14 @@ func _init() -> void:
 	var fails := 0
 	var g := TBGame.new(w, TBWorld.load_era("res://data", "gunpowder"), {"seed": 8})
 	var a := g.nat_code.find("france")
-	g.set_human(a); g.gold[a] = 1000
+	g.set_human(a); g.gold[a] = 1e9
 	var own := g.owned(a)
-	var p := own[0]; g.army[p] = 40
+	var p := own[0]; g.army[p] = g.au(40.0)
 	var r := g.apply({"cmd": "appoint", "n": a, "p": p})
 	print("appoint: ", r, " skill=", TBGenerals.skill(g, p), " name=", TBGenerals.name_idx(g, p))
 	if not r["ok"] or g.gen[p] == 0: fails += 1
 	if g.apply({"cmd": "appoint", "n": a, "p": p})["ok"]: fails += 1                       # already has one
-	g.army[own[1]] = 3
+	g.army[own[1]] = g.au(3.0)
 	if g.apply({"cmd": "appoint", "n": a, "p": own[1]})["ok"]: fails += 1                  # army too small
 	# strength multiplier and friendly move
 	if TBGenerals.mul(g, p) <= 1.0: fails += 1
@@ -19,7 +19,7 @@ func _init() -> void:
 	for i in range(g.nb_off[p], g.nb_off[p + 1]):
 		if g.owner[g.nb[i]] == a and g.nb_sea[i] == 0: q = g.nb[i]; break
 	if q >= 0:
-		g.mp[a] = 10; g.army[q] = 5
+		g.mp[a] = 10; g.army[q] = g.au(5.0)
 		g.apply({"cmd": "move", "n": a, "from": p, "to": q})
 		print("after full move: gen at from=", g.gen[p], " at to=", g.gen[q])
 		if g.gen[p] != 0 or g.gen[q] == 0: fails += 1

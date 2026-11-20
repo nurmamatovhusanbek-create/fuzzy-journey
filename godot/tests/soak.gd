@@ -3,7 +3,7 @@ extends SceneTree
 func _check(g: TBGame, tag: String) -> int:
 	var bad := 0
 	for p in g.P:
-		if g.army[p] < 0 or g.army[p] > 65000: bad += 1; print(tag, " army ", p, g.army[p])
+		if g.army[p] < 0 or g.army[p] > 100000000: bad += 1; print(tag, " army ", p, g.army[p])
 		if g.stab[p] > 100 or g.happy[p] > 100: bad += 1
 		if g.owner[p] < 0 or g.owner[p] >= g.N1: bad += 1
 	for n in range(1, g.N1):

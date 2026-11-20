@@ -147,7 +147,7 @@ static func _raise(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 static func _hire(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
-	var amount := clampi(int(c.get("amount", 30)), 10, 60)
+	var amount := clampi(int(c.get("amount", g.au(30.0))), g.au(10.0), g.au(60.0))
 	var cost := int(ceil(float(amount) * g.wage(n) * 45.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))      # mercenaries: forty-five worker-turns a man (as in _c_hire)
 	out["gold"] = cost; out["moves"] = 1; out["gain"] = amount
 	if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")

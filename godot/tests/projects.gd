@@ -10,10 +10,10 @@ func _init() -> void:
 	var me := g.nat_code.find("timurid_empire"); g.set_human(me); g.pending.clear()
 	var p := -1
 	for q in g.owned(me): if w.id[q] == "uzb_samarkand": p = q
-	g.gold[me] = 1000.0; g.mp[me] = 8.0
+	g.gold[me] = 1e9; g.mp[me] = 8.0
 	# ---- worth follows its parts
 	var v0 := g.province_value(p)
-	g.pop[p] += 80; var v1 := g.province_value(p)
+	g.pop[p] += g.pu(80.0); var v1 := g.province_value(p)
 	_check(v1 > v0 + 0.9, "80 more people raise the worth (%.2f -> %.2f)" % [v0, v1])
 	g.econ[p] = mini(5, g.econ[p] + 1); var v2 := g.province_value(p)
 	_check(v2 > v1 + 0.7, "an economy level raises it (%.2f -> %.2f)" % [v1, v2])
@@ -24,7 +24,7 @@ func _init() -> void:
 	g.stab[p] = st0
 	# ---- projects: cost, needs, effects
 	var base := g.gold[me]
-	g.pop[p] = 165; g.econ[p] = 3; g.dev[p] = 1; g.stab[p] = 60
+	g.pop[p] = g.pu(165.0); g.econ[p] = 3; g.dev[p] = 1; g.stab[p] = 60
 	var cn := g.can({"cmd": "develop", "p": p, "k": 1})
 	_check(bool(cn["ok"]) and int(cn["gold"]) > 0 and cn.has("needs") and (cn["needs"] as Array).size() >= 5, "a project lists its needs (%s)" % str(cn.get("reason", "")))
 	var d0: int = g.dev[p]
@@ -35,7 +35,7 @@ func _init() -> void:
 	for i in 4: TBTurn.end_turn(g)
 	_check(g.proj_kind[p] == 0 and g.dev[p] >= d0 + 1, "development arrives when the work ends (dev %d -> %d, left %d)" % [d0, g.dev[p], g.proj_left[p]])
 	# settlement and order
-	g.gold[me] = 1000.0; g.mp[me] = 8.0; g.stab[p] = 90
+	g.gold[me] = 1e9; g.mp[me] = 8.0; g.stab[p] = 90
 	_check(String(g.can({"cmd": "develop", "p": p, "k": 4})["reason"]) == "calm", "public order is refused where stability is high")
 	g.stab[p] = 50
 	var pop0: int = g.pop[p]

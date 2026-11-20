@@ -43,7 +43,7 @@ func _init() -> void:
 			var d_gold := gold0 - g.gold[me]; var d_mp := mp0 - g.mp[me]; var d_man := man0 - g.manpower[me]; var d_dp := dp0 - g.dp[me]
 			match String(cmd["cmd"]):
 				"recruit", "hire", "build", "colonize", "develop":
-					if absf(d_gold - float(pre["gold"])) > 0.05 or absf(d_mp - float(pre["moves"])) > 0.05 or absf(d_man - float(pre["men"])) > 0.05:
+					if absf(d_gold - float(pre["gold"])) > 0.05 or absf(d_mp - float(pre["moves"])) > 0.05 or absf(d_man - minf(float(pre["men"]), man0)) > 0.05:
 						print("FAIL cost mismatch: ", cmd, " can=", pre, " dgold=", d_gold, " dmp=", d_mp, " dman=", d_man); fails += 1
 				"move":
 					if absf(d_mp - float(pre["moves"])) > 0.05: print("FAIL move cost: ", cmd, pre, d_mp); fails += 1

@@ -17,10 +17,10 @@ func _init() -> void:
 	var g := TBGame.new(w, era, {"seed": 4})
 	var pr := _pair(g); var n: int = pr[0]; var t: int = pr[1]; var q: int = pr[2]
 	g.set_human(n); g.dp[n] = 10
-	for p in g.owned(n): g.army[p] = 400
-	for p in g.owned(t): g.army[p] = 5
+	for p in g.owned(n): g.army[p] = g.au(400.0)
+	for p in g.owned(t): g.army[p] = g.au(5.0)
 	var ids := []
-	g.turn = 5; g.gold[n] = 800.0
+	g.turn = 5; g.gold[n] = 1e9
 	for al in TBAdvisor.alerts(g, n): ids.append(al["id"])
 	g.turn = 0
 	print("advisor ids before ultimatum: ", ids)
