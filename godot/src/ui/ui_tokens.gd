@@ -273,12 +273,22 @@ const UI_STAGE_LAPTOP := 1.10       # on a screen 800 px tall or less the stage 
 const UI_STAGE_LAPTOP_PX := 800.0
 const UI_STAGE_DESKTOP_PX := 1080.0
 
+## a size asked for in layout units, on the type scale (ties go up)
+static func snap_fs(px: float) -> float:
+	var best: float = FS_SCALE[0]
+	var bd := absf(px - best)
+	for v in FS_SCALE:
+		var d := absf(px - float(v))
+		if d < bd or (is_equal_approx(d, bd) and float(v) > best): best = float(v); bd = d
+	return best
+
 # ---- type roles (px at 100 %); sizes are multiplied by the text scale elsewhere -----------------
 const FS_TITLE := 20
 const FS_BODY_PHONE := 15
 const FS_BODY := 14
 const FS_DETAIL := 13
 const FS_CAPTION := 12          # absolute floor at 100 %
+const FS_SCALE := [10.5, 12.0, 13.0, 14.0, 15.0, 16.0, 18.0, 20.0, 24.0, 28.0]     # the type scale: every size asked for snaps to the nearest step (K.fs, K.fsf), so the screens share ten sizes, not twenty-four
 const FS_FLOOR := 10.5          # no text is ever set smaller than this many layout units (K.fs / K.fsf): about 11.5 physical px on a 1080p screen at the standard interface size (tests/ui_type_floor.gd)
 const FS_FIGURE := 16
 const FS_DELTA := 12
