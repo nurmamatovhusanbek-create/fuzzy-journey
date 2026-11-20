@@ -504,6 +504,8 @@ func _on_view_changed() -> void:
 
 ## where drawers open: right of the rail, above the tuner
 func drawer_rect() -> Rect2: return _drawer
+## the lowest y a window docked at the right may reach: the top of the End Turn seal, with a gap
+func right_floor() -> float: return _seal_rect().position.y - 16.0 if _prof != Prof.PORTRAIT else _vp.y - 8.0
 ## phones show the inspector as a bottom sheet; true there
 func sheet_mode() -> bool: return _prof == Prof.PORTRAIT
 ## mid-width landscape (700-1099 px): drawer and inspector are mutually exclusive

@@ -19,6 +19,7 @@ static var win_mem: Dictionary = {}
 static var win_changed: Callable = Callable()
 const Z_WINDOW := 20             ## draw layer of a non-modal window: above the map and its labels, below the End Turn dial (40) and every modal (80)
 static var drawer_opened_fn: Callable           ## called when a side drawer opens (the HUD hides the inspector when the two cannot share the width)
+static var right_floor_fn: Callable            ## () -> float : the lowest y a window docked at the right may reach (the HUD: above the End Turn seal)
 static var drawer_rect_fn: Callable             ## () -> Rect2 : the HUD's drawer slot (right of the rail), null rect = use the legacy right-hand slot
 const SNAP_LOW := 0.56
 const SNAP_HIGH := 0.92
@@ -697,7 +698,9 @@ static func avail_h(h: Handle) -> float:
 	if h.phone: return vs.y - 16.0
 	var top_y: float = _top_y(h)
 	if h.movable and h.user_pos.y > -1.0: top_y = clampf(h.user_pos.y, 0.0, maxf(0.0, vs.y - 56.0))
-	return maxf(minf(vs.y - 186.0, vs.y - top_y - 8.0), 200.0)
+	var room: float = minf(vs.y - 186.0, vs.y - top_y - 8.0)
+	if h.dock == "right" and right_floor_fn.is_valid(): room = minf(room, float(right_floor_fn.call()) - top_y)      # beside the End Turn seal, not over it
+	return maxf(room, 200.0)
 
 ## bezel placement and size of a dialog / drawer / panel: the width of the screen (opts w), as tall as its content up to the demo's panel height,
 ## docked next to the rail (x 340, y 190), to the right (x = W - w - 28) or, for modals, at x centred / y = max(100, (H - h) / 2 - 20)
