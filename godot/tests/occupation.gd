@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var a := g.nat_code.find("france"); var b := -1
 	for n in range(1, g.N1):
 		if n != a and n != g.rebel and g.alive[n] != 0 and g.own_count(n) > 5: b = n; break
@@ -47,7 +47,7 @@ func _init() -> void:
 	for i in 3: g.end_turn()
 	_check(g.owner[q] == b, "land is not annexed by sitting on it (owner %d)" % g.owner[q])
 	# the older rules still annex
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	_check(g3.unrest.size() == g3.P and g3.income(1).get("occTax", 0) == 0, "rules 3 has no occupation income")
 	print("OCCUPATION OK" if fails == 0 else "OCCUPATION FAIL %d" % fails)
 	quit(fails)

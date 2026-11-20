@@ -336,10 +336,9 @@ func _build_stats(s: int, cs: Dictionary) -> Control:
 		{"label": T.call("terrain"), "value": T.call("t_" + D.TERRAIN_ID[g.terrain[s]]), "tip": T.call("terrain")},
 	]
 	var bname: String = _bnames(s, T.call("ins_none"), true)
-	var btip: String = T.call("building") if g.rules < 2 else "%s: %s" % [T.call("building"), T.call("bp_slots", {"u": g.b_used(s), "s": g.b_slots(s)})]
-	cells.append({"label": T.call("building"), "value": bname, "span": 2 if g.rules < 1 else 1, "tip": btip})
-	if g.rules >= 1:
-		cells.append({"label": T.call("supply"), "value": str(g.supply_limit(s)), "tip": T.call("supply_hint")})
+	var btip: String = "%s: %s" % [T.call("building"), T.call("bp_slots", {"u": g.b_used(s), "s": g.b_slots(s)})]
+	cells.append({"label": T.call("building"), "value": bname, "span": 1, "tip": btip})
+	cells.append({"label": T.call("supply"), "value": str(g.supply_limit(s)), "tip": T.call("supply_hint")})
 	gr.cells = cells
 	gr.custom_minimum_size = Vector2(0, 40)
 	gr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -362,7 +361,7 @@ func foreign_actions(o: int, s: int) -> Array:
 			var cn: Dictionary = it["can"]
 			var cmd: Dictionary = it["cmd"]
 			rows.append({"id": "cmd:" + String(cmd["cmd"]), "glyph": FOREIGN_GLYPH.get(String(cmd["cmd"]), "scroll"), "label": it["label"], "dp": ("%d" % int(cn["dp"])) if int(cn["dp"]) > 0 else "", "ok": cn["ok"], "why": reason_text(cn) if not cn["ok"] else "", "danger": bool(it.get("danger", false)), "cmd": cmd})
-	if g.rules >= 1 and rel == D.REL_PEACE:
+	if rel == D.REL_PEACE:
 		var uc := g.can({"cmd": "ultimatum", "t": o, "p": s})
 		if not (uc["reason"] in ["vassal", "target", "capital"]):
 			rows.append({"id": "ult", "glyph": "scales", "label": T.call("ultimatum"), "dp": ("%d" % int(uc["dp"])) if int(uc["dp"]) > 0 else "", "ok": uc["ok"], "why": reason_text(uc) if not uc["ok"] else "", "danger": false, "cmd": {"cmd": "ultimatum", "t": o, "p": s}})
@@ -375,7 +374,7 @@ func foreign_actions(o: int, s: int) -> Array:
 		var pc := g.can({"cmd": "peace", "t": en, "kind": "white"})
 		rows.append({"id": "peace", "glyph": "dove", "label": T.call("cc_peace"), "dp": "", "ok": pc["ok"], "why": reason_text(pc) if not pc["ok"] else "", "danger": false, "cmd": {"cmd": "peace", "t": en, "kind": "white"}})
 		var tc := g.can({"cmd": "peace", "t": en, "kind": "cede"})
-		if g.rules >= 1: rows.append({"id": "terms", "glyph": "scales", "label": T.call("cc_terms"), "dp": "", "ok": tc["ok"], "why": reason_text(tc) if not tc["ok"] else "", "danger": false, "cmd": {"cmd": "peace", "t": en, "kind": "cede"}})
+		rows.append({"id": "terms", "glyph": "scales", "label": T.call("cc_terms"), "dp": "", "ok": tc["ok"], "why": reason_text(tc) if not tc["ok"] else "", "danger": false, "cmd": {"cmd": "peace", "t": en, "kind": "cede"}})
 	return rows
 
 ## run an action chosen in the left panel
@@ -583,20 +582,19 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 	var terr: String = T.call("t_" + D.TERRAIN_ID[g.terrain[s]])
 	match int(cs["kind"]):
 		1, 2:
-			if g.rules >= 1 and g.gen[s] != 0:
+			if g.gen[s] != 0:
 				list.append(CC.InfoChip.new("",  "", "%s %s" % ["★".repeat(mini(5, TBGenerals.skill(g, s))), TBGenerals.display_name(g, s)], "", "%s: %s" % [T.call("general"), TBGenerals.display_name(g, s)]))
 			var outside: bool = g.owner[s] != me
 			var attr := g.attrition(s)
-			if g.rules >= 1 and g.army[s] > g.keep() and (outside or attr > 0):
+			if g.army[s] > g.keep() and (outside or attr > 0):
 				var cap_txt: String = T.call("supply") if attr == 0 else T.call("attrition")
 				list.append(CC.InfoChip.new("supply", T.call("cc_supply") if attr == 0 else T.call("attrition"), "%d" % g.supply_limit(s) if attr == 0 else "−%d" % attr, "neg" if attr > 0 else "", T.call("supply_hint")))
 			if g.occupier[s] != 0 and g.occupier[s] != me:
 				list.append(CC.InfoChip.new("warning", "", TBDossier._occ_text(g, s), "neg"))
 		3:
 			var o: int = cs["o"]
-			if g.rules >= 1:
-				var ratio := TBDiplo.ult_ratio(g, me, o)
-				list.append(CC.InfoChip.new("scales", T.call("cc_ratio"), "%.1f×" % ratio, "", T.call("ultimatum_hint", {"r": "%.1f" % ratio})))
+			var ratio := TBDiplo.ult_ratio(g, me, o)
+			list.append(CC.InfoChip.new("scales", T.call("cc_ratio"), "%.1f×" % ratio, "", T.call("ultimatum_hint", {"r": "%.1f" % ratio})))
 			if g.has_truce(me, o):
 				list.append(CC.InfoChip.new("hourglass", "", T.call("truce_left", {"n": g.truce[me * g.N1 + o] - g.turn}), "", T.call("truce_left", {"n": g.truce[me * g.N1 + o] - g.turn})))
 			elif int(cs["rel"]) == D.REL_NAP:
@@ -783,31 +781,12 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				if g.mp[me] < 1: mv["ok"] = false; mv["reason"] = "mp"; mv["short"] = {"moves": 1}
 				elif flow != null and targets_n == 0 and not _has_explicit_targets(s): mv["ok"] = false; mv["reason"] = "notargets"
 				out.append(_mk("move", "move", "move", mv, [{"t": T.call("cc_move_hint"), "short": false}, {"t": " · " + CC.unit(1, "u_move"), "short": mv["short"].has("moves")}], true))
-				if not held and g.rules < 5: out.append(_mk("recruit", "recruit", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), false))
-			elif not held and g.rules < 5:
-				out.append(_mk("recruit", "recruit", "recruit", rc, _cost_parts("%s +%d" % [T.call("recruit"), int(rc["gain"])], rc), true))
-			if not held and g.rules < 5: out.append(_mk("hire", "hire", "cc_hire", hc, _cost_parts("%s +%d" % [T.call("cc_hire"), int(hc["gain"])], hc)))
-			if not held and g.rules >= 5:                                              # Recruit and Hire as one: the levy pool first, the rest hired (TBRaise)
+			if not held:                                              # Recruit and Hire as one: the levy pool first, the rest hired (TBRaise)
 				var rac := g.can({"cmd": "raise", "p": s, "amount": TBRaise.default_amount(g, s)})
 				var rap: Array = _cost_parts("%s +%d" % [T.call("cc_raise"), int(rac["gain"])], rac)
 				out.append(_mk("raise", "recruit", "cc_raise", rac, rap, k == 2))
-			if g.rules >= 5 and not held and false:                                    # (moved to the Host panel, F8: orders for many provinces at once are not about this province)
-				if k == 1 and g.army[s] >= g.au(20.0):
-					var spc := g.can({"cmd": "spread", "p": s})
-					var spp: Array = _cost_parts(T.call("cc_spread"), spc)
-					if bool(spc["ok"]) or spc["reason"] == "mp": spp.append({"t": " · " + T.call("spread_detail", {"k": int(spc.get("n_targets", 0)), "m": int(spc["gain"])}), "short": false})
-					out.append(_mk("spread", "spread", "cc_spread", spc, spp))
-				var muc := g.can({"cmd": "muster", "pct": TBMass.DEFAULT_PCT})
-				var mup: Array = _cost_parts(T.call("cc_muster"), muc)
-				if bool(muc["ok"]) or muc["reason"] in ["gold", "mp"]: mup.append({"t": " · " + T.call("muster_detail", {"k": int(muc.get("n_targets", 0)), "m": int(muc["gain"])}), "short": false})
-				out.append(_mk("muster", "muster", "cc_muster", muc, mup))
-			if k == 1 and g.rules >= 1 and g.rules < 5 and not held and g.gen[s] == 0 and g.army[s] >= TBGenerals.MIN_ARMY:
-				var gc := g.can({"cmd": "appoint", "p": s})
-				if gc["reason"] != "cap" or true:
-					var gparts := _cost_parts(T.call("appoint_general"), gc) + [{"t": " · " + T.call("gen_slots", {"n": TBGenerals.count(g, me), "c": TBGenerals.cap(g, me)}), "short": gc["reason"] == "cap"}]
-					out.append(_mk("general", "general", "cc_general", gc, gparts))
 			var bi := _build_items(s)
-			var improve5: bool = g.rules >= 5 and not held and g.occupier[s] == 0 and g.owner[s] == me
+			var improve5: bool = not held and g.occupier[s] == 0 and g.owner[s] == me
 			if improve5:                                                                   # Build, Develop and Veteran colony as one: Improve
 				var imp := _improve_options(s, bi)
 				out.append(_mk("improve", "build", "cc_improve", imp["can"], imp["parts"], false, false, {"rows": imp["rows"]}))
@@ -823,26 +802,18 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 				out.append(_mk("build", "build", "build", bcan, parts, false, false, {"items": bi["items"]}))
 			if not improve5 and not held and g.occupier[s] == 0 and g.owner[s] == me and g.dev[s] < 5:
 				var dc := g.can({"cmd": "develop", "p": s})
-				if g.rules >= 4:                                                      # a choice of projects: the verb is open when any of them is, and says where the prices start
-					var any_ok := false; var cheapest := 1000000; var first_cn: Dictionary = dc
-					for kk in range(1, TBInvest.PROJECTS.size() + 1):
-						var ck := g.can({"cmd": "develop", "p": s, "k": kk})
-						if bool(ck["ok"]) and not any_ok: any_ok = true; first_cn = ck
-						if bool(ck["ok"]): cheapest = mini(cheapest, int(ck["gold"]))
-					if any_ok: dc = first_cn
-					var dp4: Array = [{"t": T.call("cc_develop"), "short": false}]
-					if g.proj_kind[s] != 0: dp4.append({"t": " · " + T.call("pj_running", {"k": T.call("pj_" + TBInvest.project_id(g.proj_kind[s])), "t": g.proj_left[s]}), "short": false})
-					elif any_ok: dp4.append({"t": " · " + T.call("cc_from_gold", {"n": cheapest}), "short": false})
-					out.append(_mk("develop", "develop", "cc_develop", dc, dp4))
-				else:
-					var dparts: Array = _cost_parts("%s %d→%d" % [T.call("cc_develop"), g.dev[s], g.dev[s] + 1], dc)
-					if g.rules >= 2:
-						var fill := int(roundf(g.job_fill(s, g.dev[s] + 1) * 100.0))
-						dparts.append({"t": " · " + T.call("cc_gain_turn", {"n": g.develop_gain(s, me)}), "short": false})
-						dparts.append({"t": " · " + T.call("cc_staffed", {"p": fill}), "short": fill < 70})
-					out.append(_mk("develop", "develop", "cc_develop", dc, dparts))
+				var any_ok := false; var cheapest := 1000000; var first_cn: Dictionary = dc
+				for kk in range(1, TBInvest.PROJECTS.size() + 1):
+					var ck := g.can({"cmd": "develop", "p": s, "k": kk})
+					if bool(ck["ok"]) and not any_ok: any_ok = true; first_cn = ck
+					if bool(ck["ok"]): cheapest = mini(cheapest, int(ck["gold"]))
+				if any_ok: dc = first_cn
+				var dp4: Array = [{"t": T.call("cc_develop"), "short": false}]
+				if g.proj_kind[s] != 0: dp4.append({"t": " · " + T.call("pj_running", {"k": T.call("pj_" + TBInvest.project_id(g.proj_kind[s])), "t": g.proj_left[s]}), "short": false})
+				elif any_ok: dp4.append({"t": " · " + T.call("cc_from_gold", {"n": cheapest}), "short": false})
+				out.append(_mk("develop", "develop", "cc_develop", dc, dp4))
 
-			if not improve5 and g.rules >= 3 and not held and g.occupier[s] == 0 and g.owner[s] == me:
+			if not improve5 and not held and g.occupier[s] == 0 and g.owner[s] == me:
 				var vc := g.can({"cmd": "settle", "p": s})
 				if String(vc["reason"]) != "nothing":
 					var vparts: Array = _cost_parts(T.call("cc_settle"), vc)
@@ -867,7 +838,7 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 			var pc := g.can({"cmd": "peace", "t": en, "kind": "white"})
 			out.append(_mk("peace", "peace", "cc_peace", pc, _cost_parts(T.call("white_peace"), pc)))
 			var tc := g.can({"cmd": "peace", "t": en, "kind": "cede"})
-			if g.rules >= 1: out.append(_mk("terms", "terms", "cc_terms", tc, _cost_parts(T.call("demand_land"), tc) + [{"t": " · %s %d/25" % [T.call("war_score"), g.war_score[me * g.N1 + en]], "short": tc["reason"] == "warscore"}]))
+			out.append(_mk("terms", "terms", "cc_terms", tc, _cost_parts(T.call("demand_land"), tc) + [{"t": " · %s %d/25" % [T.call("war_score"), g.war_score[me * g.N1 + en]], "short": tc["reason"] == "warscore"}]))
 		5:
 			var cc := g.can({"cmd": "colonize", "p": s})
 			out.append(_mk("colonize", "colonize", "colonize", cc, _cost_parts(T.call("colonize"), cc), true))
@@ -907,7 +878,7 @@ func _improve_options(s: int, bi: Dictionary) -> Dictionary:
 	if p_ok: cheapest = mini(cheapest, p_min)
 	# the quick order: a veteran colony
 	var vc := g.can({"cmd": "settle", "p": s})
-	if g.rules >= 3 and String(vc["reason"]) != "nothing":
+	if String(vc["reason"]) != "nothing":
 		var vdet := "%s · %s" % [T.call("cc_settle_gain", {"p": TBMissions.SETTLE_POP, "s": TBMissions.SETTLE_STAB}), CC.gold(int(vc["gold"]))]
 		rows.append({"label": T.call("cc_settle"), "detail": vdet, "costs": [], "ok": bool(vc["ok"]), "why": reason_text(vc) if not bool(vc["ok"]) else "", "cmd": {"cmd": "settle", "p": s}, "danger": false})
 		if bool(vc["ok"]): any_ok = true; cheapest = mini(cheapest, int(vc["gold"]))
@@ -941,7 +912,7 @@ func _build_items(s: int) -> Dictionary:
 		for i in D.BUILDINGS.size():
 			var b: Dictionary = D.BUILDINGS[i]
 			var cn := g.can({"cmd": "build", "p": s, "b": i + 1})
-			var maxed: bool = cn["reason"] == "max" and g.rules >= 2 and g.bl(s, i + 1) > 0        # a finished building stays on the list: it can still be demolished
+			var maxed: bool = cn["reason"] == "max" and g.bl(s, i + 1) > 0        # a finished building stays on the list: it can still be demolished
 			if cn["reason"] in ["occupied", "type", "busy", "notyours"] or (cn["reason"] == "max" and not maxed): continue
 			if cn["reason"] == "slots" and g.bl(s, i + 1) > 0: continue
 			var lvl: int = g.bl(s, i + 1) if maxed else int(cn.get("levels", 1))
@@ -976,11 +947,10 @@ func _diplo_items(o: int) -> Array:
 		out.append({"label": T.call("propose_ally"), "can": g.can({"cmd": "ally", "t": o}), "cmd": {"cmd": "ally", "t": o}})
 	if rel == D.REL_NAP:
 		out.append({"label": T.call("propose_ally"), "can": g.can({"cmd": "ally", "t": o}), "cmd": {"cmd": "ally", "t": o}})
-	if g.rules >= 1:
-		if rel != D.REL_WAR and not TBTrade.has(g, me, o):
-			out.append({"label": T.call("cc_trade"), "can": g.can({"cmd": "trade", "t": o}), "cmd": {"cmd": "trade", "t": o}})
-		if TBDiplo.can_marry(g, me, o):
-			out.append({"label": T.call("cc_marry"), "can": g.can({"cmd": "marry", "t": o}), "cmd": {"cmd": "marry", "t": o}})
+	if rel != D.REL_WAR and not TBTrade.has(g, me, o):
+		out.append({"label": T.call("cc_trade"), "can": g.can({"cmd": "trade", "t": o}), "cmd": {"cmd": "trade", "t": o}})
+	if TBDiplo.can_marry(g, me, o):
+		out.append({"label": T.call("cc_marry"), "can": g.can({"cmd": "marry", "t": o}), "cmd": {"cmd": "marry", "t": o}})
 	if rel == D.REL_NAP or rel == D.REL_ALLY:
 		out.append({"label": T.call("break_pact"), "can": g.can({"cmd": "breakPact", "t": o}), "cmd": {"cmd": "breakPact", "t": o}, "danger": true})
 	return out
@@ -1167,8 +1137,7 @@ func _press(i: int) -> void:
 		"muster": command.emit({"cmd": "muster", "pct": TBMass.DEFAULT_PCT})
 		"general": command.emit({"cmd": "appoint", "p": s})
 		"develop":
-			if g.rules >= 4: _open_develop(v["btn"], s)
-			else: command.emit({"cmd": "develop", "p": s})
+			_open_develop(v["btn"], s)
 		"settle": command.emit({"cmd": "settle", "p": s})
 		"colonize": command.emit({"cmd": "colonize", "p": s})
 		"peace": command.emit({"cmd": "peace", "t": int(_case["enemy"]), "kind": "white"})
@@ -1340,12 +1309,12 @@ func _build_drawer(s: int, cs: Dictionary) -> Control:
 	var dash := "—"
 	var bname := _bnames(s, dash, false)
 	var gen_txt := dash
-	if g.rules >= 1 and g.gen[s] != 0: gen_txt = "%s %s" % ["★".repeat(mini(5, TBGenerals.skill(g, s))), TBGenerals.display_name(g, s)]
+	if g.gen[s] != 0: gen_txt = "%s %s" % ["★".repeat(mini(5, TBGenerals.skill(g, s))), TBGenerals.display_name(g, s)]
 	var occ := dash
 	if g.occupier[s] != 0: occ = TBDossier._occ_text(g, s)
 	var sup := dash
-	if g.rules >= 1: sup = "%s %d · %s %d" % [T.call("cc_limit"), g.supply_limit(s), T.call("attrition").to_lower(), g.attrition(s)]
-	grid.add_child(_ledger_row(T.call("pop"), TBKit.fmt(float(g.pop[s]) * (float(g.scale) if g.rules >= 5 else 1000.0)), null))
+	sup = "%s %d · %s %d" % [T.call("cc_limit"), g.supply_limit(s), T.call("attrition").to_lower(), g.attrition(s)]
+	grid.add_child(_ledger_row(T.call("pop"), TBKit.fmt(float(g.pop[s]) * (float(g.scale))), null))
 	grid.add_child(_ledger_row(T.call("stability"), "%d" % g.stab[s], CC.Meter.new(g.stab[s])))
 	grid.add_child(_ledger_row(T.call("dev"), "%d/5" % g.dev[s], CC.Pips.new(g.dev[s])))
 	grid.add_child(_ledger_row(T.call("happiness"), "%d" % g.happy[s], CC.Meter.new(g.happy[s])))

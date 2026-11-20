@@ -16,7 +16,6 @@ static func _load() -> void:
 
 ## the province for nation n, or -1 (the caller falls back)
 static func pick(g: TBGame, n: int) -> int:
-	if g.rules < 1: return -1
 	if not _loaded: _load()
 	var id: String = g.nat_code[n]
 	if not _tab.has(id): return -1

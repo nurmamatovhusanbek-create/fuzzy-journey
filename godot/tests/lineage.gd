@@ -12,7 +12,7 @@ func _init() -> void:
 		_check((s["regimes"] as Array).size() > 0 and int(s["w"]) >= 1 and int(s["w"]) <= 3, "stage %s has regimes and a weight" % s["id"])
 		for p in s["core"]: _check(int(p) >= 0 and int(p) < 1788, "core province in range"); break
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5, "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
 	var ru := g.nat_code.find("russian_empire"); g.set_human(ru); g.pending.clear()
 	_check(TBLineage.current(g, ru) == TBLineage.index_of("russian_empire"), "Russia in 1804 stands in the Russian Empire stage")
 	var opts: Array = TBLineage.options(g, ru)
@@ -61,14 +61,14 @@ func _init() -> void:
 	_check(ids2.has("russian_federation") and not ids2.has("russia"), "now the Federation is open and the old Russia is not (%s)" % str(ids2))
 	# saves keep it
 	var d := TBSave.snapshot(g)
-	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5, "rules": 5})
+	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
 	TBSave.restore(g2, d)
 	_check(g2.nat_code[ru] == "ussr" and g2.stage[ru] == ussr + 1 and g2.claim[int(core[0])] == ru, "a restored game keeps the new identity and the claims")
 	# rules 4 knows nothing of it
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5, "rules": 4})
+	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
 	_check(TBLineage.options(g4, g4.nat_code.find("russian_empire")).is_empty(), "rules 4: no lineages")
 	# the AI forms when it can
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5, "rules": 5})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
 	var pr := g3.nat_code.find("prussia"); g3.set_human(g3.nat_code.find("france")); g3.pending.clear()
 	g3.year = 1880; g3.regime[pr] = 4; g3.gold[pr] = 1e9; g3.mp[pr] = 10.0
 	var ge := TBLineage.index_of("german_empire")

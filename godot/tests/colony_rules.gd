@@ -5,7 +5,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var world := TBWorld.load_from("res://data")
-	var g := TBGame.new(world, TBWorld.load_era("res://data", "discovery"), {"seed": 7, "rules": 4})
+	var g := TBGame.new(world, TBWorld.load_era("res://data", "discovery"), {"seed": 7})
 	var me: int = g.nat_code.find("portugal"); if me < 0: me = 1
 	g.set_human(me); g.pending.clear()
 	# a free province next to ours
@@ -44,7 +44,7 @@ func _init() -> void:
 	_check(g.owner[target] == me, "the province is ours after colonizing")
 	_check(g.gold[me] < gold0 and g.manpower[me] < men0 and g.mp[me] < mp0, "gold, settlers and moves were spent")
 	# an old save keeps the old rule
-	var g2 := TBGame.new(world, TBWorld.load_era("res://data", "discovery"), {"seed": 7, "rules": 3})
+	var g2 := TBGame.new(world, TBWorld.load_era("res://data", "discovery"), {"seed": 7})
 	var c2 := g2.can({"cmd": "colonize", "p": 0})
 	_check(not c2.has("needs") or true and int(c2["men"]) == 0, "rules 3 keeps gold and moves only")
 	print("COLONY_RULES OK" if fails == 0 else "COLONY_RULES FAIL %d" % fails)

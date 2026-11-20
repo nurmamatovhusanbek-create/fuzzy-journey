@@ -26,7 +26,7 @@ func _init() -> void:
 	for n in names: if not ru.has(n) or not uz.has(n): miss += 1; print("  no ru/uz form: ", n)
 	_check(miss == 0, "every historical name has a Russian and an Uzbek form (%d missing of %d)" % [miss, names.size()])
 	# the game shows the era's name
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "timurid"), {"seed": 1, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "timurid"), {"seed": 1})
 	_check(g.pname(l) == "Khujand", "TBGame.pname follows the era (%s)" % g.pname(l))
 	TBI18n.load_lang("ru")
 	_check(TBI18n.place("Khujand") == "Худжанд", "Russian: Худжанд (%s)" % TBI18n.place("Khujand"))

@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var me := g.nat_code.find("france"); g.set_human(me)
 	g.pending.clear()
 	var home: int = g.owned(me)[0]
@@ -47,7 +47,7 @@ func _init() -> void:
 	_check(float(inc1["workLoss"]) > float(inc0["workLoss"]) and int(inc1["tax"]) < int(inc0["tax"]), "a bigger host takes more men from the fields (loss %.2f -> %.2f)" % [float(inc0["workLoss"]), float(inc1["workLoss"])])
 	_check(float(inc1["workLoss"]) <= TBGame.WORK_LOSS_CAP + 0.0001, "the loss is capped")
 	# a pool above a fallen cap never counts for more than the cap, and the next turn brings it back under
-	var gp := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var gp := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var mep := gp.nat_code.find("france"); gp.set_human(mep)
 	var hp: int = gp.owned(mep)[0]
 	gp.levy[hp] = gp.levy_cap(hp) + 500
@@ -56,7 +56,7 @@ func _init() -> void:
 	gp.normalize_levy(mep)
 	_check(gp.levy[hp] == gp.levy_cap(hp), "normalising brings the pool to its cap")
 	# old rules are untouched
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var h3: int = g3.owned(g3.nat_code.find("france"))[0]
 	_check(g3.levy[h3] == 0 and g3.recruit_range(h3) == Vector3i(5, 30, 15), "rules 3 keeps the old 5 to 30 and no pools")
 	print("LEVY OK" if fails == 0 else "LEVY FAIL %d" % fails)

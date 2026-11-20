@@ -84,7 +84,7 @@ static func _card(title_text: String, body_text: String, pct: int, off: String, 
 
 ## opts: on_cmd(cmd) receives {"cmd": "ask", ...}; the window is rebuilt after a request is sent
 static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) -> TBPanel.Handle:
-	if g.rules >= 4 and g.human[enemy] == 0: return TBPeaceTable.open(parent, g, enemy, opts)          # rules 4: the peace table, answered at once
+	if g.human[enemy] == 0: return TBPeaceTable.open(parent, g, enemy, opts)          # rules 4: the peace table, answered at once
 	var me: int = g.human_id
 	var on_cmd: Callable = opts.get("on_cmd", Callable())
 	var ws_me: int = g.war_score[me * g.N1 + enemy]
@@ -100,7 +100,7 @@ static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) 
 	body.add_child(cells)
 	body.add_child(K.para_bz(T.call("terms_hint"), 15.0, 1.3))
 	var asked: Dictionary = TBAsks.find(g, me, enemy)
-	var live: bool = g.human[enemy] == 0 and g.rules >= 1
+	var live: bool = g.human[enemy] == 0
 	var options: Array = [["white", "terms_white", "terms_white_d", "peace", "dip_peace", TBData.DP_PEACE], ["cede", "terms_cede", "terms_cede_d", "peace", "dip_land", 0], ["vassal", "terms_vassal", "terms_vassal_d", "peace", "dip_vassal", 0]]
 	for o in options:
 		var op: String = o[0]

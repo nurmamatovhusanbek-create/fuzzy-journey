@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "timurid"), {"seed": 3, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "timurid"), {"seed": 3})
 	var me := g.nat_code.find("timurid_empire"); g.set_human(me); g.pending.clear()
 	var p := -1
 	for q in g.owned(me): if w.id[q] == "uzb_samarkand": p = q
@@ -67,7 +67,7 @@ func _init() -> void:
 		_check(sh > 0.0 and sl < 0.0, "a five-star country draws pacts, a one-star one is weighed down (%.2f, %.2f)" % [sh, sl])
 		_check(TBDiplo.ult_need(g, lo, hi, 2.4) > TBDiplo.ult_need(g, hi, lo, 2.4), "a weak country is pressed sooner than a strong one")
 	# ---- old rules keep the old worth and verb
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "timurid"), {"seed": 3, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "timurid"), {"seed": 3})
 	var q3 := -1
 	for q in g3.world.P: if w.id[q] == "uzb_samarkand": q3 = q
 	_check(absf(g3.province_value(q3) - (1.0 + clampi(g3.econ[q3], 1, 5) * 0.1 + clampi(g3.dev[q3], 1, 5) * 2.0 + g3.pop[q3] * 0.001) * (4.0 if g3.capital[q3] != 0 else 1.0)) < 0.01, "rules 3 keep the old worth formula")

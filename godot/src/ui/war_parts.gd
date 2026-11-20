@@ -14,7 +14,7 @@ static func year_text(y: int) -> String:
 	return ("%d BC" % -y) if y < 0 else ("%d AD" % y)
 
 static func ruler_line(g: TBGame, n: int) -> String:
-	if g.rules >= 1 and g.r_name[n] != "": return "%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)]
+	if g.r_name[n] != "": return "%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)]
 	return ""
 
 # ================================================================================================================================ face-off row

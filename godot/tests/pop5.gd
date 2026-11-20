@@ -10,7 +10,7 @@ func _init() -> void:
 	var sums := {}
 	for e in eras:
 		var pack := TBWorld.load_era("res://data", e) if e != "modern" else {}
-		var g := TBGame.new(w, pack, {"seed": 7, "difficulty": "normal", "rules": 5})
+		var g := TBGame.new(w, pack, {"seed": 7, "difficulty": "normal"})
 		var tot := 0.0; var real := 0.0
 		for p in g.P: tot += float(g.pop[p]); real += TBPopData.real(e, p)
 		var want: float = real / float(g.scale)
@@ -20,14 +20,14 @@ func _init() -> void:
 		sums[e] = tot
 		# two games of the same era never hold the same figures
 		if e == "ww1":
-			var g2 := TBGame.new(w, pack, {"seed": 8, "difficulty": "normal", "rules": 5})
+			var g2 := TBGame.new(w, pack, {"seed": 8, "difficulty": "normal"})
 			var same := 0
 			for p in g.P: if g.pop[p] == g2.pop[p]: same += 1
 			_check(same < g.P / 20, "ww1 twice: different figures (%d of %d equal)" % [same, g.P])
 	_check(float(sums["ww1"]) * 30.0 < float(sums["modern"]) * 30.0 * 0.3, "1914 holds a fraction of today's people")
 	# growth: 100 turns of an AI-only Napoleonic world
 	var pack := TBWorld.load_era("res://data", "napoleonic")
-	var g := TBGame.new(w, pack, {"seed": 3, "difficulty": "normal", "rules": 5})
+	var g := TBGame.new(w, pack, {"seed": 3, "difficulty": "normal"})
 	var p0 := 0.0; for p in g.P: p0 += float(g.pop[p])
 	var over := 0
 	for t in 100: g.end_turn()
@@ -40,6 +40,6 @@ func _init() -> void:
 	# a save keeps the scale and the rules
 	var ok_save: bool = TBSave.save(g, "pop5test")
 	var g3: TBGame = TBSave.load_game(w, "pop5test")
-	_check(g3 != null and g3.rules == 5 and g3.scale == 20 and g3.pop[100] == g.pop[100], "save and load keep rules 5, the scale and the people")
+	_check(g3 != null and g3.scale == 20 and g3.pop[100] == g.pop[100], "save and load keep rules 5, the scale and the people")
 	print("POP5 OK" if fails == 0 else "POP5 FAIL %d" % fails)
 	quit(fails)

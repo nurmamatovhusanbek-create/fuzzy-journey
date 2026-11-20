@@ -67,7 +67,7 @@ func _init() -> void:
 	print("40 seeds: yes ", yes, " of ", tot, " mean shown ", pct / maxf(1.0, tot))
 	# determinism: same position, same answer
 	# rules 0 refuses
-	var g0 := TBGame.new(w, era, {"seed": 7, "rules": 0}); g0.set_human(n); g0.dp[n] = 20
+	var g0 := TBGame.new(w, era, {"seed": 7}); g0.set_human(n); g0.dp[n] = 20
 	if g0.apply({"cmd": "ask", "n": n, "kind": "nap", "t": t})["ok"]: fails += 1
 	print("ASKS ", "OK" if fails == 0 else "FAIL")
 	quit(1 if fails > 0 else 0)

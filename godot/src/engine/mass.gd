@@ -32,7 +32,6 @@ static func _moves(k: int) -> float: return 1.0 + float(maxi(0, k - 1) / PER_MOV
 ## where p's army would go: {ok, err, targets: [[province, men]], mp, kept}
 static func spread_plan(g: TBGame, n: int, p: int) -> Dictionary:
 	var out := {"ok": false, "err": "", "targets": [], "mp": 0.0, "kept": 0, "sent": 0}
-	if g.rules < 5: out["err"] = "rules"; return out
 	if p < 0 or p >= g.P or g.controller(p) != n or g.owner[p] != n: out["err"] = "notyours"; return out
 	var a: int = g.army[p]
 	var floor_men: int = g.au(10.0)
@@ -80,7 +79,6 @@ static func spread(g: TBGame, n: int, p: int) -> Dictionary:
 ## what a muster would raise: {ok, err, items: [[province, men, gold]], gold, men, mp}
 static func muster_plan(g: TBGame, n: int, pct: int) -> Dictionary:
 	var out := {"ok": false, "err": "", "items": [], "gold": 0, "men": 0, "mp": 0.0}
-	if g.rules < 5: out["err"] = "rules"; return out
 	pct = clampi(pct, MIN_PCT, MAX_PCT)
 	var reg: Dictionary = TBData.REGIMES[g.regime[n]]
 	var items: Array = []

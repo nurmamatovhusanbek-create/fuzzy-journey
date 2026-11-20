@@ -5,7 +5,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11, "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11})
 	var me := g.nat_code.find("france"); g.set_human(me); g.pending.clear()
 	var p := -1
 	for q in g.P: if g.owner[q] == me and (p < 0 or g.levy[q] > g.levy[p]): p = q
@@ -47,7 +47,7 @@ func _init() -> void:
 	_check(g.can({"cmd": "raise", "p": full, "amount": 5})["reason"] == "full", "a full province says so")
 	# the old commands still work, and rules 4 does not know the new one
 	_check(bool(g.can({"cmd": "hire", "p": p, "amount": g.au(40.0)})["ok"]) or g.can({"cmd": "hire", "p": p, "amount": g.au(40.0)})["reason"] == "", "hire is still there")
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11, "rules": 4})
+	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11})
 	g4.set_human(g4.nat_code.find("france"))
 	_check(g4.can({"cmd": "raise", "p": 0, "amount": 5})["reason"] == "unknown", "rules 4: no raise")
 	print("RAISE ", "OK" if fails == 0 else "FAIL")

@@ -85,7 +85,7 @@ func _init() -> void:
 	main.panel.set_drawer(false)
 	main._select(own_small)
 	await _shot("2_own_small")
-	_check(main.panel._verbs[0]["id"] == ("raise" if g.rules >= 5 else "recruit"), "case 2 primary verb is Raise troops (Recruit before rules 5)")
+	_check(main.panel._verbs[0]["id"] == ("raise"), "case 2 primary verb is Raise troops (Recruit before rules 5)")
 	main._select(peace_p)
 	await _shot("3_foreign_peace")
 	_check(String(main.panel._verbs[0]["id"]).begins_with("f_") and main.panel._verbs.any(func(v): return v["id"] == "f_war"), "case 3 lists the nation actions (pact ... declare war) as rows")
@@ -144,7 +144,7 @@ func _init() -> void:
 	# Recruit asks how many first
 	var home: int = g.owned(me)[0]
 	g.gold[me] = 400.0; g.manpower[me] = 100.0; g.mp[me] = 6.0
-	if g.rules >= 4: g.levy[home] = 40
+	g.levy[home] = 40
 	var army0: int = g.army[home]; var man0: float = g.manpower[me]
 	main._open_amount("recruit", home)
 	var rcard = main._amount_card
@@ -157,7 +157,7 @@ func _init() -> void:
 	rcard._confirm()
 	await process_frame
 	_check(g.army[home] == army0 + want and not rcard.visible, "the recruits are the number chosen (%d)" % (g.army[home] - army0))
-	_check(int(man0 - g.manpower[me]) == (want if g.rules >= 4 else TBData.COST_RECRUIT_MAN + want), "the people paid follow the number (%d)" % int(man0 - g.manpower[me]))
+	_check(int(man0 - g.manpower[me]) == (want), "the people paid follow the number (%d)" % int(man0 - g.manpower[me]))
 	g.gold[me] = 0.0
 	main._open_amount("recruit", home)
 	_check(main._amount_card.visible and main._amount_card._ok.disabled, "with no gold the card says so and cannot confirm")

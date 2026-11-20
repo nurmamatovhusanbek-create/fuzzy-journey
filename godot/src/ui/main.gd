@@ -141,7 +141,6 @@ func _offer_comfort() -> void:
 
 ## The UI is laid out in the Bezel demo's design units: a stage 1180 units tall on a desktop (390 on a phone held in landscape), scaled to the window.
 ## So a number in the demo (a 46 unit medallion, a 22 unit title) is the same number here. cfg "ui" is the demo's S / M / L (taller stage = smaller UI).
-const NEW_GAME_RULES := 5                 # the rules a new game starts with (a save keeps the rules it was made with); 5 = real people, gold and soldiers at 10-30:1 (docs/RULES5_REALISM.md); 4 = levy pools (docs/WAR_DESIGN.md)
 const PHONE_STAGE := 760.0
 static func phone_stage() -> float:
 	var env := OS.get_environment("TB_PHONE_STAGE")                                  # tests: try another stage height
@@ -963,7 +962,7 @@ func _copy_diagnostics() -> void:
 	lines.append("screen=%s window=%s scale=%.2f touch=%s" % [DisplayServer.screen_get_size(), DisplayServer.window_get_size(), DisplayServer.screen_get_scale(), DisplayServer.is_touchscreen_available()])
 	lines.append("fps=%d frame_ms=%.1f quality=%s tier=%d render_scale=%.2f map_scale=%.2f map_buffer=%s last_turn_ms=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, cfg.get("quality", "auto"), map.quality, map.render_scale, map._rs(), str(map._vp.size), _turn_ms])
 	if g != null:
-		lines.append("game: era=%s turn=%d seed=%d rules=%d provinces=%d nations_alive=%d" % [g.era_id, g.turn, g.seed_value, g.rules, g.P, _alive_count()])
+		lines.append("game: era=%s turn=%d seed=%d provinces=%d nations_alive=%d" % [g.era_id, g.turn, g.seed_value, g.P, _alive_count()])
 	lines.append("lang=%s view=%s theme=%s ui=%s fx=%s reduce_motion=%s" % [cfg.get("lang", ""), cfg.get("view", ""), cfg.get("theme", ""), cfg.get("ui", ""), cfg.get("fx", ""), cfg.get("reduce_motion", false)])
 	_store_diagnostics(lines)
 	if mode == "game" and map != null and map.is_visible_in_tree(): _diag_bench(lines)       # a few seconds later the same text is copied again with the measurements
@@ -1029,7 +1028,7 @@ func _begin_pick(era_id: String, difficulty: String) -> void:
 	cfg["difficulty"] = difficulty; _save_cfg()
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	TBFlags.cur_era = String(era.get("id", ""))
-	g = TBGame.new(world, era, {"seed": (int(OS.get_environment("TB_SEED")) if OS.get_environment("TB_SEED") != "" else int(Time.get_unix_time_from_system()) & 0x7fffffff | 1), "difficulty": difficulty, "aggression": int(cfg.get("aggression", 1)), "rules": NEW_GAME_RULES if OS.get_environment("TB_RULES") == "" else int(OS.get_environment("TB_RULES"))})
+	g = TBGame.new(world, era, {"seed": (int(OS.get_environment("TB_SEED")) if OS.get_environment("TB_SEED") != "" else int(Time.get_unix_time_from_system()) & 0x7fffffff | 1), "difficulty": difficulty, "aggression": int(cfg.get("aggression", 1))})
 	TBLenses.dark_land = true
 	map.setup(g)
 	mode = "pick"; _spin = false; _enter_game_visuals()
@@ -1132,7 +1131,7 @@ func _on_pick(p: int, secondary: bool) -> void:
 
 ## zoomed out to country level (the province lines are not drawn yet): rules 4 gives the country a plate instead of a district ring
 func _country_grade() -> bool:
-	return g != null and g.rules >= 4 and map != null and not map.prov_lines_shown() and flow.mode == TBOrderFlow.Mode.IDLE
+	return g != null and map != null and not map.prov_lines_shown() and flow.mode == TBOrderFlow.Mode.IDLE
 
 var _country_plate: TBCountryPlate
 func _close_country_plate() -> void:
@@ -1170,7 +1169,7 @@ func _open_terms(e: int) -> void:
 		map.set_targets(PackedInt32Array(sel))
 	var reg := func(c: Callable) -> void: _peace_flip = c
 	var h: TBPanel.Handle = TBTermsScreen.open(_overlay, g, e, {"on_cmd": func(c: Dictionary): _on_command(c, false), "marks": marks, "register": reg})
-	if g.rules >= 4 and g.human[e] == 0 and h != null and not h.modal: _frame_land(h, e)
+	if g.human[e] == 0 and h != null and not h.modal: _frame_land(h, e)
 
 ## bring the provinces on the peace table into the part of the map the window leaves free: centre them there and zoom out until they all fit
 func _frame_land(h: TBPanel.Handle, e: int) -> void:
@@ -1397,7 +1396,7 @@ func _on_command(c: Dictionary, from_card: bool = false) -> void:
 		hud.toast(T.call("deal_done", {"a": g.dname(int(cmd["t"]))}))
 	elif res.has("success"):
 		hud.toast(T.call("spy_ok") if res["success"] else T.call("spy_fail"), not res["success"])
-	if res["ok"] and String(cmd.get("cmd", "")) == "declareWar" and g.rules >= 4 and mode == "game": _call_sheet_soon(int(cmd["t"]))
+	if res["ok"] and String(cmd.get("cmd", "")) == "declareWar" and mode == "game": _call_sheet_soon(int(cmd["t"]))
 	_after_change()
 
 ## rules 4: after you declare war, the sheet to call your allies in (after the "War" moment when it plays)
@@ -1516,7 +1515,7 @@ func _after_change(rebuild_card: bool = true) -> void:
 ## rules 5: before the turn ends, the loose ends in one card (once a turn; Settings > Comfort switches it off; never in hot-seat or online)
 var _loose_turn := -1
 func _loose_check() -> bool:
-	if g == null or mode != "game" or _busy or g.rules < 5 or mp.in_game or _is_hotseat(): return false
+	if g == null or mode != "game" or _busy or mp.in_game or _is_hotseat(): return false
 	if not bool(cfg.get("turn_check", true)) or _loose_turn == g.turn: return false
 	var items := TBLoose.scan(g, g.human_id)
 	if items.is_empty(): return false

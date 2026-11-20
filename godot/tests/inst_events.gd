@@ -7,7 +7,7 @@ const IDS := {"academy_charter": "printing", "merchant_charter": "joint_stock", 
 func _init() -> void:
 	TBEvents._load()
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7, "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7})
 	var fr := g.nat_code.find("france"); g.set_human(fr); g.pending.clear()
 	var by_id := {}
 	for e in TBEvents._random: by_id[String(e["id"])] = e

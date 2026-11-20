@@ -13,7 +13,6 @@ var rng: TBRng
 var seed_value: int
 var pk: float = 1.0              # rules 5: how many times bigger a province's people are than in the old tables (about 140 a province); amounts written for the old scale are multiplied by it
 var scale: int = 30             # rules 5: real people per game person (10 in the old eras, 20 gunpowder to Victorian, 30 from WW1; TBPopData)
-var rules: int = 5                # always 5 (real people, gold and soldiers at 10-30:1): the lower rule sets are gone; the field stays until the last branch on it is removed
 var difficulty: String
 var diff: Dictionary
 var turn: int = 1
@@ -178,7 +177,6 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	world = w
 	P = w.P
 	seed_value = int(opts.get("seed", 1))
-	rules = 5
 	aggr_level = clampi(int(opts.get("aggression", 1)), 0, D.AGGRESSION.size() - 1)
 	rng = TBRng.new(seed_value)
 	difficulty = String(opts.get("difficulty", "normal"))
@@ -222,7 +220,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 			discoverable[int(p)] = 1
 	for p in P:
 		army[p] = 15 + rng.randi_n(25)
-		if rules >= 5: army[p] = 0                                               # rules 5: armies are filled in below, in the capital only
+		army[p] = 0                                               # rules 5: armies are filled in below, in the capital only
 		pop[p] = 80 + rng.randi_n(120)
 		dev[p] = 1 + rng.randi_n(3)
 		econ[p] = 1 + rng.randi_n(3)
@@ -235,7 +233,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 			if h < 0:
 				break
 			t += 1
-		terrain[p] = int(w.terr[p]) if (rules >= 3 and w.terr.size() == P) else t           # rules 3: the lie of the land; older rules keep the hash the reference engine uses
+		terrain[p] = int(w.terr[p]) if (w.terr.size() == P) else t           # rules 3: the lie of the land; older rules keep the hash the reference engine uses
 
 	# ---- nation arrays ----
 	for a in [gold, manpower, mp, dp, tech_level, research, liberty]:
@@ -268,7 +266,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		regime[n] = D.REGIME_REBELS if n == rebel else D.REGIME_POOL[(n - 1) % D.REGIME_POOL.size()]
 		personality[n] = TBRng.hash_str(nat_code[n]) % D.PERSONALITIES.size()
 		budget[n * 4] = 50; budget[n * 4 + 1] = 20; budget[n * 4 + 2] = 15; budget[n * 4 + 3] = 15
-		color[n] = gen_color(n) if rules == 0 else gen_wash(n)
+		color[n] = gen_wash(n)
 	nb_off = w.nb_off.duplicate(); nb = w.nb.duplicate(); nb_sea.resize(w.nb.size())
 	var have_sea: bool = not w.nbx.is_empty()
 	rebuild_owned()
@@ -283,7 +281,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		for n in range(1, N1):
 			tech_level[n] = minf(5.0, base + rng.next() * 0.3)
 			era[n] = mini(4, int(floor(tech_level[n])))
-	elif rules >= 1:
+	else:
 		# the modern world starts technologically modern (rules 0 kept the legacy ancient-tech baseline)
 		for n in range(1, N1):
 			tech_level[n] = 3.6 + rng.next() * 0.9
@@ -293,51 +291,50 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 		nb_off = w.nbx_off.duplicate(); nb = w.nbx.duplicate(); nb_sea = w.nbx_sea.duplicate()
 	else:
 		add_sea_links()
-	if rules >= 1:
-		core = owner.duplicate()
-		TBRegimes.assign(self)
-		TBRulers.init(self)
-		TBRealms.init(self)
-		if rules >= 5: TBLineage.init_stages(self); TBInstitutions.init(self); TBEstates.init(self)
-		TBTurn.refresh_world(self)          # world income, tech stats and the era's economic goal
-	if rules >= 5:                          # rules 5: the real people of the era at its scale, jittered at random (docs/RULES5_REALISM.md)
-		scale = TBPopData.scale_for(era_id)
-		var drift := PackedFloat32Array(); drift.resize(N1)
-		for n in range(1, N1): drift[n] = 0.94 + 0.12 * rng.next()             # a nation's provinces drift together a little
-		for p in P:
-			var o: int = owner[p]
-			var d: float = drift[o] if o > 0 else 1.0
-			pop[p] = maxi(5, int(round(TBPopData.real(era_id, p) / float(scale) * (0.8 + 0.4 * rng.next()) * d)))
-		var tp := 0.0; var np := 0
-		for p in P:
-			if owner[p] != 0: tp += float(pop[p]); np += 1
-		pk = maxf(1.0, tp / (maxf(1.0, float(np)) * 140.0))
-		for n in range(1, N1): gold[n] *= gu(n, 1.0)                  # the old start purse, in the nation's own terms
-		for n in range(1, N1):                                        # the standing army of every state stands in its capital and nowhere else (the Age of Civilizations way: the rest is recruited and marched)
-			var cp: int = capital_of[n]
-			if n == rebel or cp < 0 or alive[n] == 0: continue
-			var nat_pop := 0
-			for q in owned(n): nat_pop += pop[q]
-			var bent: float = 0.7 + 0.6 * float(D.PERSONALITIES[personality[n]]["aggr"])
-			army[cp] = maxi(au(8.0), int(float(nat_pop) * float(STANDING_SHARE[era[n]]) * bent))
-		econ_goal = 0.0; TBTurn.refresh_world(self)                  # the world's income and the era's economic goal, from the real people (they were first computed from the old table)
-	if rules >= 4:                          # every province starts with part of its levy ready; a nation's manpower is the sum
-		for p in P:
-			if owner[p] != 0: levy[p] = int(float(levy_cap(p)) * LEVY_START)
-		for n in range(1, N1): manpower[n] = float(levy_total(n))
+	core = owner.duplicate()
+	TBRegimes.assign(self)
+	TBRulers.init(self)
+	TBRealms.init(self)
+	TBLineage.init_stages(self)
+	TBInstitutions.init(self)
+	TBEstates.init(self)
+	TBTurn.refresh_world(self)          # world income, tech stats and the era's economic goal
+	scale = TBPopData.scale_for(era_id)
+	var drift := PackedFloat32Array(); drift.resize(N1)
+	for n in range(1, N1): drift[n] = 0.94 + 0.12 * rng.next()             # a nation's provinces drift together a little
+	for p in P:
+		var o: int = owner[p]
+		var d: float = drift[o] if o > 0 else 1.0
+		pop[p] = maxi(5, int(round(TBPopData.real(era_id, p) / float(scale) * (0.8 + 0.4 * rng.next()) * d)))
+	var tp := 0.0; var np := 0
+	for p in P:
+		if owner[p] != 0: tp += float(pop[p]); np += 1
+	pk = maxf(1.0, tp / (maxf(1.0, float(np)) * 140.0))
+	for n in range(1, N1): gold[n] *= gu(n, 1.0)                  # the old start purse, in the nation's own terms
+	for n in range(1, N1):                                        # the standing army of every state stands in its capital and nowhere else (the Age of Civilizations way: the rest is recruited and marched)
+		var cp: int = capital_of[n]
+		if n == rebel or cp < 0 or alive[n] == 0: continue
+		var nat_pop := 0
+		for q in owned(n): nat_pop += pop[q]
+		var bent: float = 0.7 + 0.6 * float(D.PERSONALITIES[personality[n]]["aggr"])
+		army[cp] = maxi(au(8.0), int(float(nat_pop) * float(STANDING_SHARE[era[n]]) * bent))
+	econ_goal = 0.0; TBTurn.refresh_world(self)                  # the world's income and the era's economic goal, from the real people (they were first computed from the old table)
+	for p in P:
+		if owner[p] != 0: levy[p] = int(float(levy_cap(p)) * LEVY_START)
+	for n in range(1, N1): manpower[n] = float(levy_total(n))
 
 ## nation name for display (localised)
 func dname(n: int) -> String: return TBI18n.nation(nat_name[n])
 
 func set_human(n: int) -> void:
 	human.fill(0); human[n] = 1; human_id = n
-	gold[n] = gu(n, float(diff["startGold"])); manpower[n] = diff["startManpower"] if rules < 4 else float(levy_total(n)); mp[n] = 10; dp[n] = 6
+	gold[n] = gu(n, float(diff["startGold"])); manpower[n] = float(levy_total(n)); mp[n] = 10; dp[n] = 6
 
 ## multiplayer: several human nations (human_id stays the first one, used by SP-centric helpers)
 func add_human(n: int) -> void:
 	human[n] = 1
 	if human_id == 0: human_id = n
-	gold[n] = gu(n, float(diff["startGold"])); manpower[n] = diff["startManpower"] if rules < 4 else float(levy_total(n)); mp[n] = 10; dp[n] = 6
+	gold[n] = gu(n, float(diff["startGold"])); manpower[n] = float(levy_total(n)); mp[n] = 10; dp[n] = 6
 
 func humans() -> PackedInt32Array:
 	var out := PackedInt32Array()
@@ -461,7 +458,7 @@ func set_owner(p: int, n: int) -> void:
 	if n == rebel and rebel > 0: reb_from[p] = owner[p]; reb_age[p] = 0       # a rebel province remembers who it rose against
 	elif owner[p] == rebel: reb_from[p] = 0; reb_age[p] = 0
 	owner[p] = n; own_since[p] = turn; own_dirty = true; touch(p)
-	if rules >= 4: levy[p] = 0                                         # a conquered or settled land has to be won over before it gives men
+	levy[p] = 0                                         # a conquered or settled land has to be won over before it gives men
 	if gen[p] != 0: gen[p] = 0
 	if n != 0 and not core.is_empty() and core[p] == 0: core[p] = n      # first settlers make it home land
 
@@ -471,7 +468,7 @@ func controller(p: int) -> int:
 ## rules >= 5: land held by n's army but not annexed (its owner is someone else) may carry n's own military works: a port to land from, a fortress, a watchtower, a supply camp
 static var HELD_BUILD: Array = [3, 1, 5, 6]            # D.B_PORT, B_FORTRESS, B_WATCHTOWER, B_SUPPLYCAMP
 func held_by(n: int, p: int) -> bool:
-	return rules >= 5 and occupier[p] == n and owner[p] != n and n != 0
+	return occupier[p] == n and owner[p] != n and n != 0
 ## may n put building b up in p: its own land, or (rules 5) held land and a work from HELD_BUILD
 func build_land_ok(n: int, p: int, b: int) -> bool:
 	if owner[p] == n and occupier[p] == 0: return true
@@ -488,26 +485,26 @@ const LEVY_START := 0.35                             # a new game starts with th
 const LEVY_LOW := 0.25                               # below this share of the cap a province is drained
 const ARMY_CAP := 65000
 ## the most men one province can hold (rules 5: a part of its people; before, a flat 65,000)
-func army_cap(p: int) -> int: return ARMY_CAP if rules < 5 else maxi(ARMY_CAP, int(float(pop[p]) * 0.6))
+func army_cap(p: int) -> int: return maxi(ARMY_CAP, int(float(pop[p]) * 0.6))
 const WORK_LOSS_K := 0.30                           # share of tax and production lost per share of the people under arms
 const WORK_LOSS_CAP := 0.35
 
 func levy_cap(p: int) -> int:
 	var n := owner[p]
 	var e: int = era[n] if n > 0 else 0
-	var c: float = float(pop[p]) * float(LEVY_RATE[e] if rules < 5 else LEVY_SHARE[e]) * (0.5 + float(stab[p]) / 200.0)
-	if rules >= 5 and n > 0: c *= TBWorks.levy_mul(self, n) * TBLineage.levy_mul(self, n) * TBInstitutions.levy_mul(self, n) * TBEstates.levy_mul(self, n)
+	var c: float = float(pop[p]) * float(LEVY_SHARE[e]) * (0.5 + float(stab[p]) / 200.0)
+	if n > 0: c *= TBWorks.levy_mul(self, n) * TBLineage.levy_mul(self, n) * TBInstitutions.levy_mul(self, n) * TBEstates.levy_mul(self, n)
 	if bl(p, D.B_ARMORY) > 0: c *= 1.25
 	return maxi(4, int(floor(c)))
 
 ## an amount written for the old scale (people, a province held about 140), as it is now
-func pu(x: float) -> int: return int(round(x * pk)) if rules >= 5 else int(x)
+func pu(x: float) -> int: return int(round(x * pk))
 ## soldiers: an old army was 18 % of a province's people, a real one is about 1 %, so old army amounts shrink by that against the people
-func au(x: float) -> int: return maxi(1, int(round(x * pk * 0.06))) if rules >= 5 else int(x)
+func au(x: float) -> int: return maxi(1, int(round(x * pk * 0.06)))
 ## gold written for the old scale, in a nation's own terms: its income against the 400 of an average old nation
-func gu(n: int, x: float) -> float: return x * maxf(0.02, labour(n) / 400.0) if rules >= 5 else x
+func gu(n: int, x: float) -> float: return x * maxf(0.02, labour(n) / 400.0)
 ## the most people a province can ever hold
-func pop_hard() -> int: return 2000 if rules < 5 else 2000000000
+func pop_hard() -> int: return 2000000000
 
 ## rules 5, gold. One gold is what 200 workers make in a turn at the lowest technology; a worker's turn grows with the nation's technology (0.35 a level: x2.4 at level 2.5, x5.8 at level 5).
 const GOLD_PER_WORKER := 0.005
@@ -528,7 +525,6 @@ func labour(n: int) -> float:
 	return _lab[n]
 ## price level of a province's works: what an average province of n makes in a turn against 12 for one in the old tables; an old price is multiplied by it
 func cm(n: int) -> float:
-	if rules < 5: return 1.0
 	return maxf(0.02, labour(n) / maxf(1.0, float(own_count(n))) / 12.0)
 
 ## rules 5: the people the land of p can feed. Today's people are the ceiling for modern technology; older technology feeds less, development and farms feed more.
@@ -546,7 +542,7 @@ func levy_drained(p: int) -> bool:
 	return levy[p] * 4 < levy_cap(p) * int(LEVY_LOW * 4.0)
 
 ## the men an army must leave behind when it marches: one in the old rules, none in rules 4 (a province may be emptied)
-func keep() -> int: return 1 if rules < 4 else 0
+func keep() -> int: return 0
 
 func levy_total(n: int) -> int:
 	var t := 0
@@ -566,9 +562,8 @@ func levy_cap_total(n: int) -> int:
 
 ## (lowest, highest, first) number of men one Recruit may raise in p: rules < 4 the old 5..30; rules 4 whatever the province's pool holds
 func recruit_range(p: int) -> Vector3i:
-	if rules < 4: return Vector3i(5, 30, 15)
 	var hi := mini(mini(levy[p], levy_cap(p)), army_cap(p) - army[p])
-	return Vector3i(mini(1, hi), maxi(0, hi), mini(15, maxi(0, hi)) if rules < 5 else mini(maxi(1, hi / 10), maxi(0, hi)))
+	return Vector3i(mini(1, hi), maxi(0, hi), mini(maxi(1, hi / 10), maxi(0, hi)))
 
 func reassign_capital(n: int) -> void:
 	var own := owned(n)
@@ -601,7 +596,7 @@ func set_rel(a: int, b: int, v: int) -> void:
 		if alive[b] != 0: war_cnt[a] += 1
 		if alive[a] != 0: war_cnt[b] += 1
 	if v == D.REL_WAR:
-		if rules >= 1 and trade[a * N1 + b] != 0: TBTrade.set_deal(self, a, b, false)
+		if trade[a * N1 + b] != 0: TBTrade.set_deal(self, a, b, false)
 		war_score[a * N1 + b] = 0; war_score[b * N1 + a] = 0
 		war_pts[a * N1 + b] = 0.0; war_pts[b * N1 + a] = 0.0
 		war_turns[a * N1 + b] = 0; war_turns[b * N1 + a] = 0
@@ -629,25 +624,20 @@ func friendly(a: int, b: int) -> bool:
 func province_value(p: int) -> float:
 	var e := clampi(econ[p], 1, 5)
 	var d := clampi(dev[p], 1, 5)
-	if rules >= 4:                                                # what a province is worth: its development, its economy, its people, what stands in it, and how calm it is (docs/PROVINCE_WORTH.md)
-		var v4: float = 1.0 + 1.2 * float(d) + 0.8 * float(e) + float(pop[p]) * (float(scale) / 2500.0 if rules >= 5 else 1.0) / 80.0 + 0.4 * float(b_levels(p))
-		v4 *= 0.8 + 0.2 * clampf(float(stab[p]) / 100.0, 0.0, 1.0)
-		if capital[p] != 0: v4 *= 4.0
-		return v4
-	var v := 1.0 + e * 0.1 + d * 2.0 + pop[p] * 0.001
-	if capital[p] != 0: v *= (10.0 if rules == 0 else 4.0)
-	return v
+	var v4: float = 1.0 + 1.2 * float(d) + 0.8 * float(e) + float(pop[p]) * (float(scale) / 2500.0) / 80.0 + 0.4 * float(b_levels(p))
+	v4 *= 0.8 + 0.2 * clampf(float(stab[p]) / 100.0, 0.0, 1.0)
+	if capital[p] != 0: v4 *= 4.0
+	return v4
 
 ## the sum of the building levels standing in province p (rules 2 and up)
 func b_levels(p: int) -> int:
-	if rules < 2: return 0
 	var t := 0
 	for b in NB: t += b_lv[p * NB + b]
 	return t
 
 ## how much the worth moved in the last turn (rules 4): what the ring's arrow shows
 func worth_trend(p: int) -> float:
-	return province_value(p) - worth_prev[p] if rules >= 4 and worth_prev.size() == P and worth_prev[p] > 0.0 else 0.0
+	return province_value(p) - worth_prev[p] if worth_prev.size() == P and worth_prev[p] > 0.0 else 0.0
 
 func income(n: int) -> Dictionary:
 	var own := owned(n)
@@ -670,7 +660,7 @@ func income(n: int) -> Dictionary:
 	var cap_lat := world.lat[cap] if cap >= 0 else 0.0
 	var inc_prod: float = reg["incProd"]; var inc_tax: float = reg["incTax"]; var adm_cost: float = reg["adminCost"]
 	var era_inc: int = eraD["incomeBonus"]; var era_mp: int = eraD["mpBonus"]
-	var lv2: bool = rules >= 2                                   # the hot loop reads the building levels directly (bl() / job_income() / job_fill() called for every province cost more than the sums)
+	var lv2: bool = true                                   # the hot loop reads the building levels directly (bl() / job_income() / job_fill() called for every province cost more than the sums)
 	for p in own:
 		if occupier[p] != 0 and occupier[p] != n and siege[p] == 0:
 			tp += pop[p]; hs += happy[p]
@@ -693,50 +683,47 @@ func income(n: int) -> Dictionary:
 		if is_cap: pp += 3
 		var b_work: int = (b_lv[base_b + D.B_WORKSHOP - 1] if lv2 else bl(p, D.B_WORKSHOP))
 		if b_work > 0: pp = int(floor(pp * (1.0 + 0.05 * b_work)))
-		if rules >= 5:                                                       # rules 5: what the people make (docs/RULES5_REALISM.md section 4)
-			pp = int(float(pop_p) * WORKER_SHARE * wage_n * dev_f(dv) * (0.7 + 0.15 * ec) * stab_mod * inc_prod * (1.12 if b_market > 0 else 1.0) * (1.25 if is_cap else 1.0) * (1.0 + 0.05 * b_work))
+		pp = int(float(pop_p) * WORKER_SHARE * wage_n * dev_f(dv) * (0.7 + 0.15 * ec) * stab_mod * inc_prod * (1.12 if b_market > 0 else 1.0) * (1.25 if is_cap else 1.0) * (1.0 + 0.05 * b_work))
 		prod += pp
-		tax += int(floor(pop_p / 20.0 * (tax_pct / 100.0) * (happy_p / 100.0) * inc_tax)) if rules < 5 else int(float(pop_p) * WORKER_SHARE * wage_n * 0.2 * (tax_pct / 50.0) * (happy_p / 70.0) * inc_tax)
+		tax += int(float(pop_p) * WORKER_SHARE * wage_n * 0.2 * (tax_pct / 50.0) * (happy_p / 70.0) * inc_tax)
 		if not is_cap and cap >= 0:
 			var dd: float
 			if _dist_cap[p] == cap: dd = _dist_val[p]
 			else:
 				dd = gc_dist(cap_lon, cap_lat, world.lon[p], world.lat[p]); _dist_val[p] = dd; _dist_cap[p] = cap
-			admin += int(floor(dd * D.ADMIN_DIST_FACTOR * adm_cost)) if rules < 5 else int(floor(dd * D.ADMIN_DIST_FACTOR * adm_cost / 12.0 * float(pp)))
+			admin += int(floor(dd * D.ADMIN_DIST_FACTOR * adm_cost / 12.0 * float(pp)))
 		man += int(floor((2 + pop_p / 100 + era_mp) * stab_mod))
 		var b_camp: int = (b_lv[base_b + D.B_SUPPLYCAMP - 1] if lv2 else bl(p, D.B_SUPPLYCAMP))
 		up_base += army[p] * (0.8 if b_camp > 0 else 1.0)
 		var b_lib: int = (b_lv[base_b + D.B_LIBRARY - 1] if lv2 else bl(p, D.B_LIBRARY))
-		if b_lib > 0: rb += ((pop_p * (float(scale) / 2500.0 if rules >= 5 else 1.0)) / 750.0) * b_lib
-	if rules >= 4:                                                          # men under arms are not at the plough: tax and production fall with their share of the people (docs/WAR_DESIGN.md section 3)
-		var under_arms := 0
-		for p in own:
-			if occupier[p] == 0 or occupier[p] == n: under_arms += army[p]          # an enemy host standing in the province is not the owner's men
-		var loss := minf(WORK_LOSS_CAP, WORK_LOSS_K * float(under_arms) / maxf(1.0, float(tp)))
-		tax = int(floor(tax * (1.0 - loss))); prod = int(floor(prod * (1.0 - loss)))
-		out["workLoss"] = loss
-		var occ_inc := 0                                                  # land held as occupier pays the occupier half of what it would pay its owner
-		for p in occupied_by(n): occ_inc += int(floor(float(pop[p]) / 20.0 * (tax_pct / 100.0) * (float(happy[p]) / 100.0) * inc_tax * TBWar.OCC_SHARE)) if rules < 5 else int(float(pop[p]) * WORKER_SHARE * wage_n * 0.2 * (tax_pct / 50.0) * (float(happy[p]) / 70.0) * inc_tax * TBWar.OCC_SHARE)
-		tax += occ_inc; out["occTax"] = occ_inc
+		if b_lib > 0: rb += ((pop_p * (float(scale) / 2500.0)) / 750.0) * b_lib
+	var under_arms := 0
+	for p in own:
+		if occupier[p] == 0 or occupier[p] == n: under_arms += army[p]          # an enemy host standing in the province is not the owner's men
+	var loss := minf(WORK_LOSS_CAP, WORK_LOSS_K * float(under_arms) / maxf(1.0, float(tp)))
+	tax = int(floor(tax * (1.0 - loss))); prod = int(floor(prod * (1.0 - loss)))
+	out["workLoss"] = loss
+	var occ_inc := 0                                                  # land held as occupier pays the occupier half of what it would pay its owner
+	for p in occupied_by(n): occ_inc += int(float(pop[p]) * WORKER_SHARE * wage_n * 0.2 * (tax_pct / 50.0) * (float(happy[p]) / 70.0) * inc_tax * TBWar.OCC_SHARE)
+	tax += occ_inc; out["occTax"] = occ_inc
 	var gld: int = prod + tax
-	if rules >= 1: gld += TBTrade.income(self, n)
+	gld += TBTrade.income(self, n)
 	if cap_lost_now: gld = int(floor(gld * 0.5))
 	gld = int(floor(gld * float(reg["incMul"]) * tech_inc))
-	if rules >= 1: gld = int(floor(gld * TBRulers.gold_mul(self, n) * ((TBWorks.income_mul(self, n) * TBLineage.income_mul(self, n) * TBInstitutions.income_mul(self, n) * TBEstates.income_mul(self, n)) if rules >= 5 else 1.0)))
+	gld = int(floor(gld * TBRulers.gold_mul(self, n) * ((TBWorks.income_mul(self, n) * TBLineage.income_mul(self, n) * TBInstitutions.income_mul(self, n) * TBEstates.income_mul(self, n)))))
 	admin = int(floor(admin * tech_admin))
-	if rules >= 2: admin = int(floor(admin * (1.0 + OVEREXTEND_STEP * maxf(0.0, float(own.size() - OVEREXTEND_FROM)))))       # the bigger the realm, the dearer every governor
-	if rules >= 1: admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n) * (TBWorks.admin_mul(self, n) if rules >= 5 else 1.0)))
+	admin = int(floor(admin * (1.0 + OVEREXTEND_STEP * maxf(0.0, float(own.size() - OVEREXTEND_FROM)))))       # the bigger the realm, the dearer every governor
+	admin = int(floor(admin * TBDecisions.admin_mul(self, n) * TBDoctrine.admin_mul(self, n) * (TBWorks.admin_mul(self, n))))
 	var upkeep := int(floor(up_base * (0.25 + era[n] * 0.05) * tech_up * float(reg["upkeep"])))
-	if rules >= 5: upkeep = int(floor(up_base * wage_n * 2.0 * float(reg["upkeep"])))                      # a soldier eats two workers' turns
-	if rules >= 1: man = int(floor(man * TBRulers.manpower_mul(self, n)))
+	upkeep = int(floor(up_base * wage_n * 2.0 * float(reg["upkeep"])))                      # a soldier eats two workers' turns
+	man = int(floor(man * TBRulers.manpower_mul(self, n)))
 	out["gold"] = gld; out["manpower"] = man; out["upkeep"] = upkeep; out["tax"] = tax; out["production"] = prod; out["admin"] = admin
 	out["net"] = gld - admin - upkeep
 	out["manCap"] = maxi(120 + era[n] * 50, own.size() * 30 + era[n] * 35)
-	if rules >= 4:
-		var gain := 0
-		for p in own:
-			if occupier[p] == 0: gain += levy_gain(p)
-		out["manpower"] = gain; out["manCap"] = levy_cap_total(n)
+	var gain := 0
+	for p in own:
+		if occupier[p] == 0: gain += levy_gain(p)
+	out["manpower"] = gain; out["manCap"] = levy_cap_total(n)
 	out["pop"] = tp; out["happyAvg"] = int(round(hs / float(own.size()))); out["researchBonus"] = rb
 	return out
 
@@ -749,7 +736,7 @@ const SLOT_COST_STEP := 0.20                   # every building already in the p
 
 ## rules >= 3: where a building may stand: "" = anywhere; "coast" (a port needs the sea), "arid" / "polar" (a farm needs soil and rain: no farms in the great deserts or beyond 66 degrees)
 func site_error(p: int, b: int) -> String:
-	if rules < 3 or world.geo.size() != P: return ""
+	if world.geo.size() != P: return ""
 	var f: int = world.geo[p]
 	if b == D.B_PORT: return "" if (f & 1) != 0 else "coast"
 	if b == D.B_FARM:
@@ -759,12 +746,10 @@ func site_error(p: int, b: int) -> String:
 
 ## level of building type b (1..NB, data.gd B_*) in province p; 0 = none
 func bl(p: int, b: int) -> int:
-	if rules >= 2: return b_lv[p * NB + b - 1]
-	return b_level[p] if building[p] == b else 0
+	return b_lv[p * NB + b - 1]
 
 ## how many different buildings stand in p
 func b_used(p: int) -> int:
-	if rules < 2: return 1 if building[p] != 0 else 0
 	var k := 0
 	for i in NB:
 		if b_lv[p * NB + i] != 0: k += 1
@@ -772,14 +757,10 @@ func b_used(p: int) -> int:
 
 ## building slots of a province: one, one more per two development levels, one more in the capital (rules < 2: a single slot; rules 4: two to start with)
 func b_slots(p: int) -> int:
-	if rules < 2: return 1
-	if rules >= 4: return 2 + int(dev[p] / 2) + (1 if capital[p] != 0 else 0)          # rules 4: one more than before, so an ordinary province rarely meets the wall
-	return 1 + int(dev[p] / 2) + (1 if capital[p] != 0 else 0)
+	return 2 + int(dev[p] / 2) + (1 if capital[p] != 0 else 0)          # rules 4: one more than before, so an ordinary province rarely meets the wall
 
 ## set the level of one building (rules >= 2) and keep the old single view (the highest level, the lowest type on a tie) in step
 func set_bl(p: int, b: int, lv: int) -> void:
-	if rules < 2:
-		building[p] = b if lv > 0 else 0; b_level[p] = lv; touch(p); return
 	b_lv[p * NB + b - 1] = lv
 	var best := 0; var bv := 0
 	for i in NB:
@@ -791,9 +772,6 @@ func set_bl(p: int, b: int, lv: int) -> void:
 ## the buildings of p as [type, level] pairs
 func b_list(p: int) -> Array:
 	var out: Array = []
-	if rules < 2:
-		if building[p] != 0: out.append([int(building[p]), int(b_level[p])])
-		return out
 	for i in NB:
 		var v: int = b_lv[p * NB + i]
 		if v != 0: out.append([i + 1, v])
@@ -802,8 +780,8 @@ func b_list(p: int) -> Array:
 ## gold price of building type b to level lvl in p: a NEW type costs 20% more for each building already there (rules >= 2)
 func b_price(p: int, b: int, lvl: int) -> int:
 	var base: float = float(D.BUILDINGS[b - 1]["cost"][lvl - 1])
-	if rules >= 2 and bl(p, b) == 0: base *= 1.0 + SLOT_COST_STEP * b_used(p)
-	if rules >= 5 and controller(p) > 0: base *= cm(controller(p))        # priced in the wages of whoever builds (the owner, or the army that holds the land)
+	if bl(p, b) == 0: base *= 1.0 + SLOT_COST_STEP * b_used(p)
+	if controller(p) > 0: base *= cm(controller(p))        # priced in the wages of whoever builds (the owner, or the army that holds the land)
 	return int(ceil(base))
 
 ## rules >= 2: income of development level dv in p when the people to staff it are short: the levels below are earned in full, the top level by the share staffed
@@ -815,8 +793,7 @@ func job_income(p: int, dv: int) -> float:
 ## rules 5: a development level needs a share of what the land can feed to be filled with people before it is staffed (6, 12, 20, 32, 50 %)
 static var NEED_FRAC: Array = [0.0, 0.06, 0.12, 0.20, 0.32, 0.50]
 func job_fill(p: int, dv: int) -> float:
-	if rules >= 5: return minf(1.0, float(pop[p]) / maxf(1.0, float(pop_cap(p)) * float(NEED_FRAC[clampi(dv, 1, 5)])))
-	return minf(1.0, pop[p] / float(POP_NEED[clampi(dv, 1, 5)]))
+	return minf(1.0, float(pop[p]) / maxf(1.0, float(pop_cap(p)) * float(NEED_FRAC[clampi(dv, 1, 5)])))
 
 ## rules >= 2: roughly what the next development level earns each turn after the multipliers (shown on the Develop verb); 0 at the top
 func develop_gain(p: int, n: int) -> int:
@@ -824,19 +801,14 @@ func develop_gain(p: int, n: int) -> int:
 	if d >= 5: return 0
 	var reg: Dictionary = D.REGIMES[regime[n]]
 	var stab_mod := 0.5 + stab[p] / 200.0
-	if rules >= 5:                                                              # one more level lifts a worker's output by a fifth of the base
-		var o: float = float(pop[p]) * WORKER_SHARE * wage(n) * (dev_f(d + 1) - dev_f(d)) * (0.7 + 0.15 * clampi(econ[p], 1, 5)) * stab_mod * float(reg["incProd"]) * (1.12 if bl(p, D.B_MARKET) > 0 else 1.0) * (1.25 if capital[p] != 0 else 1.0) * (1.0 + 0.05 * bl(p, D.B_WORKSHOP))
-		return int(roundf(o * float(reg["incMul"]) * (1.0 + tech_level[n] * 0.03)))
-	var step: float = job_income(p, d + 1) - job_income(p, d)
-	var extra: float = clampi(econ[p], 1, 5) * 0.4 * stab_mod
-	return int(roundf((step * stab_mod * float(reg["incProd"]) + extra) * float(reg["incMul"]) * (1.0 + tech_level[n] * 0.03)))
+	var o: float = float(pop[p]) * WORKER_SHARE * wage(n) * (dev_f(d + 1) - dev_f(d)) * (0.7 + 0.15 * clampi(econ[p], 1, 5)) * stab_mod * float(reg["incProd"]) * (1.12 if bl(p, D.B_MARKET) > 0 else 1.0) * (1.25 if capital[p] != 0 else 1.0) * (1.0 + 0.05 * bl(p, D.B_WORKSHOP))
+	return int(roundf(o * float(reg["incMul"]) * (1.0 + tech_level[n] * 0.03)))
 
 ## price of the next development step (rules >= 2): about 30 turns to pay itself back
 func develop_cost(p: int) -> int:
-	if rules < 2: return 80 + dev[p] * 80
 	var d := clampi(dev[p], 1, 4)
 	var c: float = 28.0 * float(D.DEV_INCOME[d + 1] - D.DEV_INCOME[d])
-	if rules >= 5 and owner[p] > 0: c *= cm(owner[p])
+	if owner[p] > 0: c *= cm(owner[p])
 	return int(ceil(c)) if dev[p] < 5 else 0
 
 # ---------------------------------------------------------------- combat / movement
@@ -853,30 +825,23 @@ func combat_mul(n: int) -> float:
 	if n == 0: return 1.0
 	var m: float = D.ERAS[era[n]]["combatMul"]
 	if combat_turns[n] > 0: m += combat_bonus[n]
-	if rules >= 1: m *= TBRulers.combat_mul(self, n)
-	if rules >= 4: m *= TBWar.morale_mul(self, n)
+	m *= TBRulers.combat_mul(self, n)
+	m *= TBWar.morale_mul(self, n)
 	return m
 
 ## rules >= 1: how many soldiers a province can feed. Armies above this in foreign land waste away.
 func supply_limit(p: int) -> int:
-	if rules >= 5:                                                          # what the land can feed an army on campaign: a few in a hundred of its people, more with development, depots and farms
-		var k: float = 0.04 + 0.01 * float(dev[p]) + 0.05 * float(bl(p, D.B_SUPPLYCAMP) > 0) + 0.01 * float(bl(p, D.B_FARM))
-		var lim5 := int(float(pop[p]) * k)
-		if terrain[p] == 2 or terrain[p] == 4: lim5 = int(lim5 * 0.7)
-		return maxi(au(6.0), lim5)
-	var lim := 18 + 8 * dev[p] + int(pop[p] / 20.0)
-	if bl(p, D.B_SUPPLYCAMP) > 0: lim += 40
-	if bl(p, D.B_FARM) > 0: lim += 8 * bl(p, D.B_FARM)
-	if terrain[p] == 2 or terrain[p] == 4: lim = int(lim * 0.7)       # mountains and marsh
-	return lim
+	var k: float = 0.04 + 0.01 * float(dev[p]) + 0.05 * float(bl(p, D.B_SUPPLYCAMP) > 0) + 0.01 * float(bl(p, D.B_FARM))
+	var lim5 := int(float(pop[p]) * k)
+	if terrain[p] == 2 or terrain[p] == 4: lim5 = int(lim5 * 0.7)
+	return maxi(au(6.0), lim5)
 
 func attrition(p: int) -> int:
-	if rules < 1: return 0
 	var c := controller(p)
 	if c == 0 or owner[p] == c or c == rebel: return 0
 	var over := army[p] - supply_limit(p)
 	var lost := maxi(0, int(ceil(over * 0.07))) if over > 0 else 0
-	if rules >= 4 and supply_depth(p, c) >= SUPPLY_REACH: lost += int(ceil(float(army[p]) * SUPPLY_FAR))      # beyond the reach of the carts: the culminating point
+	if supply_depth(p, c) >= SUPPLY_REACH: lost += int(ceil(float(army[p]) * SUPPLY_FAR))      # beyond the reach of the carts: the culminating point
 	return lost
 
 const SUPPLY_REACH := 4                 # an army this many provinces from friendly land (or further) is out of reach of its depots
@@ -923,27 +888,18 @@ func combat_preview(n: int, from: int, to: int, troops: int) -> Dictionary:
 	var avail := army[from]
 	var send := maxi(1, mini(troops if troops != 0 else avail - keep(), avail - keep()))
 	var def_n := controller(to)
-	var rides := rules >= 1 and TBGenerals.follows(self, from, avail - send)
+	var rides := TBGenerals.follows(self, from, avail - send)
 	var atk: float = send * combat_mul(n) * float(D.TERRAIN_ATK[terrain[to]])
 	var dfn: float = army[to] * combat_mul(def_n) * def_mul(to)
 	if rides: atk *= TBGenerals.mul(self, from)
-	if rules >= 1: dfn *= TBGenerals.mul(self, to)
+	dfn *= TBGenerals.mul(self, to)
 	var out := {"send": send, "defenders": army[to], "atk": atk, "dfn": dfn, "win": atk > dfn, "rides": rides, "mp": D.MP_ATTACK}
-	if rules >= 4:                                                          # three rounds, a range instead of a verdict
-		var am: float = atk / float(send); var dm: float = dfn / float(maxi(1, army[to]))
-		var rg := TBBattle.ranged(send, am, army[to], dm)
-		var ex: Dictionary = rg["expected"]
-		out["win"] = bool(ex["win"]); out["range"] = rg
-		out["hold"] = int(ex["a_left"]); out["lost"] = int(ex["a_lost"]); out["enemy_lost"] = int(ex["d_lost"])
-		out["chance"] = 0.5 if (rg["best"]["win"] != rg["worst"]["win"]) else (1.0 if bool(ex["win"]) else 0.0)
-		return out
-	if atk > dfn:
-		var surv := maxi(1, int(round((atk - dfn) / maxf(0.01, combat_mul(n)))))
-		var occ := mini(send, surv)
-		out["hold"] = occ; out["lost"] = send - occ; out["enemy_lost"] = army[to]
-	else:
-		out["lost"] = int(round(send * minf(0.9, dfn / (atk + dfn))))
-		out["enemy_lost"] = int(round(army[to] * (atk / (atk + dfn)) * 0.55))
+	var am: float = atk / float(send); var dm: float = dfn / float(maxi(1, army[to]))
+	var rg := TBBattle.ranged(send, am, army[to], dm)
+	var ex: Dictionary = rg["expected"]
+	out["win"] = bool(ex["win"]); out["range"] = rg
+	out["hold"] = int(ex["a_left"]); out["lost"] = int(ex["a_lost"]); out["enemy_lost"] = int(ex["d_lost"])
+	out["chance"] = 0.5 if (rg["best"]["win"] != rg["worst"]["win"]) else (1.0 if bool(ex["win"]) else 0.0)
 	return out
 
 func sea_edge(from: int, to: int) -> int:
@@ -963,13 +919,13 @@ func move_or_attack(n: int, from: int, to: int, troops: int) -> String:
 		if k <= 0: return "!noarmy"
 		var left := army[from] - k
 		army[from] = left; army[to] = mini(army_cap(to), army[to] + k); touch(from); touch(to)
-		if rules >= 1 and TBGenerals.follows(self, from, left): TBGenerals.transfer(self, from, to)
-		if rules >= 1 and human[n] == 0 and move_fx.size() < 160: move_fx.append([from, to, n])
+		if TBGenerals.follows(self, from, left): TBGenerals.transfer(self, from, to)
+		if human[n] == 0 and move_fx.size() < 160: move_fx.append([from, to, n])
 		return "move"
 	if ctrl_to != 0 and friendly(n, ctrl_to): return "!friendly"
 	if ctrl_to != 0 and get_rel(n, ctrl_to) != D.REL_WAR: return "!nowar"
 	if discoverable[to] != 0 and tech_level[n] < 2 and owner[to] == 0: return "!undiscovered"
-	if rules >= 1 and human[n] == 0 and move_fx.size() < 160: move_fx.append([from, to, n])
+	if human[n] == 0 and move_fx.size() < 160: move_fx.append([from, to, n])
 	return resolve_combat(n, from, to, troops)
 
 func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
@@ -979,41 +935,10 @@ func resolve_combat(n: int, from: int, to: int, troops: int) -> String:
 	var def_n := controller(to)
 	var atk: float = send * combat_mul(atk_n) * float(D.TERRAIN_ATK[terrain[to]])
 	var dfn: float = army[to] * combat_mul(def_n) * def_mul(to)
-	var rides := rules >= 1 and TBGenerals.follows(self, from, avail - send)
+	var rides := TBGenerals.follows(self, from, avail - send)
 	if rides: atk *= TBGenerals.mul(self, from)
-	if rules >= 1: dfn *= TBGenerals.mul(self, to)
-	if rules >= 4: return _battle4(atk_n, def_n, from, to, send, avail, atk, dfn, rides)
-	if atk > dfn:
-		var surv := maxi(1, int(round((atk - dfn) / maxf(0.01, combat_mul(atk_n)))))
-		var occ := mini(send, surv)
-		if owner[to] == 0: set_owner(to, atk_n)
-		elif owner[to] == atk_n:
-			occupier[to] = 0; occ_rev += 1
-		elif atk_n == rebel or def_n == rebel: cede(to, atk_n)
-		else:
-			occupier[to] = atk_n; occ_turns[to] = 0; occ_rev += 1
-			if rules >= 1 and (human[atk_n] != 0 or human[def_n] != 0 or capital[to] != 0):
-				log.append({"turn": turn, "kind": "occupied", "a": atk_n, "b": def_n, "p": to})
-		army[to] = occ; defense[to] = 0
-		army[from] = maxi(0, avail - occ)
-		touch(from); touch(to)
-		if rules >= 1:
-			if (human[atk_n] != 0 or human[def_n] != 0 or _seen_fight(to)) and battle_fx.size() < 60: battle_fx.append([from, to, 1, atk_n, def_n])
-			if gen[to] != 0 and def_n != 0 and human[def_n] != 0: log.append({"turn": turn, "kind": "general_fell", "a": def_n, "p": to, "gn": TBGenerals.name_idx(self, to), "sk": TBGenerals.skill(self, to)})
-			gen[to] = 0
-			if rides:
-				TBGenerals.transfer(self, from, to); TBGenerals.win(self, to, atk_n)
-		return "win"
-	var atk_loss := int(round(send * minf(0.9, dfn / (atk + dfn))))
-	army[from] = maxi(0, avail - atk_loss)
-	army[to] = maxi(1, army[to] - int(round(army[to] * (atk / (atk + dfn)) * 0.55)))
-	touch(from); touch(to)
-	if rules >= 1:
-		if (human[atk_n] != 0 or human[def_n] != 0 or _seen_fight(to)) and battle_fx.size() < 60: battle_fx.append([from, to, 0, atk_n, def_n])
-		if rides: TBGenerals.lose(self, from, atk_n, atk_loss * 2 > send)
-		TBGenerals.win(self, to, def_n)
-	return "loss"
-
+	dfn *= TBGenerals.mul(self, to)
+	return _battle4(atk_n, def_n, from, to, send, avail, atk, dfn, rides)
 
 ## rules 4: the battle of three rounds. The winner keeps the field (the attacker occupies with the men that are left), the beaten army retreats with most of its survivors,
 ## an attacker who fails comes home with what is left of the men he sent
@@ -1057,7 +982,7 @@ func _battle4(atk_n: int, def_n: int, from: int, to: int, send: int, avail: int,
 ## a beaten army falls back to the strongest neighbour its nation still holds (not the one the attack came from); with nowhere to go the men are scattered
 ## rules >= 4: a fight the human player can see (in sight of his army or realm) is worth showing, whoever fights it
 func _seen_fight(p: int) -> bool:
-	return rules >= 4 and human_id > 0 and TBVision.sees(self, p)
+	return human_id > 0 and TBVision.sees(self, p)
 
 func _retreat(n: int, lost_p: int, attack_from: int, men: int) -> void:
 	if men <= 0 or n == 0: return
@@ -1100,7 +1025,7 @@ func cede(p: int, to: int) -> void:
 
 func eliminate(n: int) -> void:
 	set_alive(n, 0)
-	if rules >= 1: TBTrade.cancel_all(self, n)
+	TBTrade.cancel_all(self, n)
 	for o in range(1, N + 1):
 		if rel[n * N1 + o] == D.REL_WAR: set_rel(n, o, D.REL_PEACE)
 	log.append({"turn": turn, "kind": "eliminated", "a": n})
@@ -1127,6 +1052,7 @@ static func gen_wash(n: int) -> int:
 	return Color.from_hsv(h / 360.0, s, v).to_rgba32() >> 8
 
 func end_turn() -> PackedInt32Array:
+	_lab_turn = -1                                  # the labour cache is derived state: a game loaded from a save has none, so every turn starts without one in both
 	return TBTurn.end_turn(self)
 
 func state_checksum() -> int:

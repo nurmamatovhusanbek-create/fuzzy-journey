@@ -136,7 +136,6 @@ static func call_chance(g: TBGame, o: int, t: int, e: int) -> float:
 
 ## can `o` be asked to fight `e` for `t` at all: allied to t, not already at war with e, no truce, not bound to e
 static func call_why(g: TBGame, t: int, o: int, e: int) -> String:
-	if g.rules < 4: return "rules"
 	if o <= 0 or o >= g.N1 or e <= 0 or e >= g.N1 or t <= 0 or o == t or o == e or t == e: return "target"
 	if g.alive[o] == 0 or g.alive[e] == 0 or o == g.rebel or e == g.rebel: return "target"
 	if g.get_rel(t, o) != TBData.REL_ALLY: return "notally"

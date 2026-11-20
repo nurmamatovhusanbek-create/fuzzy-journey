@@ -39,7 +39,7 @@ static func _refresh(g: TBGame) -> void:
 
 ## 1..5, 0 for a nation with no land
 static func stars(g: TBGame, n: int) -> int:
-	if g.rules < 4 or n <= 0 or n >= g.N1: return 0
+	if n <= 0 or n >= g.N1: return 0
 	_refresh(g)
 	return _stars[n]
 

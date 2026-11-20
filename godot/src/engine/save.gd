@@ -2,9 +2,9 @@
 class_name TBSave
 extends RefCounted
 
-const VERSION := 1
-static var FIELDS_PACKED: Array = ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "era", "regime", "personality", "alive", "human", "cap_lost", "tribute", "capital_of", "overlord", "last_war_turn", "color", "budget", "rel", "truce", "war_score", "war_turns", "grudge", "war_cnt", "ev_last_any", "trade_bonus", "combat_bonus", "combat_turns", "owner", "occupier", "occ_turns", "army", "pop", "dev", "econ", "stab", "happy", "defense", "gen", "terrain", "building", "b_level", "b_lv", "b_building", "b_turns", "capital", "discoverable", "nb_off", "nb", "nb_sea", "r_name", "r_num", "r_born", "r_since", "r_adm", "r_dip", "r_mil", "r_trait", "infamy", "coalition", "core", "dec_until", "trade", "trade_cnt", "realm_done", "doctrine", "reb_age", "reb_from", "own_since", "see_until", "offer_cd", "net_ema", "levy", "morale", "exh", "lost_turn", "siege", "war_pts", "inv_e", "inv_d", "works", "aim_kind", "aim_t", "aim_since", "worth_prev", "proj_kind", "proj_left", "stage", "claim", "inst", "inst_ok", "inst_seen", "est_loy", "est_priv", "reg_last"]
-static var FIELDS_SCALAR: Array = ["turn", "year", "month_idx", "era_id", "over", "winner", "victory_kind", "human_id", "rebel", "seed_value", "rules", "difficulty", "occ_rev", "nap_expiry", "log", "stats", "pending", "asks", "marches", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month", "infl", "world_y", "econ_goal", "tech_top", "tech_second", "tech_avg", "tech_start_top", "aggr_level", "vic_hold", "scale", "pk"]
+const VERSION := 2
+static var FIELDS_PACKED: Array = ["gold", "manpower", "mp", "dp", "tech_level", "research", "intel", "liberty", "era", "regime", "personality", "alive", "human", "cap_lost", "tribute", "capital_of", "overlord", "last_war_turn", "color", "budget", "rel", "truce", "war_score", "war_turns", "grudge", "war_cnt", "ev_last_any", "trade_bonus", "combat_bonus", "combat_turns", "owner", "occupier", "occ_turns", "army", "pop", "dev", "econ", "stab", "happy", "defense", "gen", "terrain", "building", "b_level", "b_lv", "b_building", "b_turns", "capital", "discoverable", "nb_off", "nb", "nb_sea", "r_name", "r_num", "r_born", "r_since", "r_adm", "r_dip", "r_mil", "r_trait", "infamy", "coalition", "core", "dec_until", "trade", "trade_cnt", "realm_done", "doctrine", "reb_age", "reb_from", "own_since", "see_until", "offer_cd", "net_ema", "levy", "morale", "exh", "lost_turn", "siege", "war_pts", "inv_e", "inv_d", "works", "aim_kind", "aim_t", "aim_since", "worth_prev", "proj_kind", "proj_left", "stage", "claim", "inst", "inst_ok", "inst_seen", "est_loy", "est_priv", "reg_last", "unrest"]
+static var FIELDS_SCALAR: Array = ["turn", "year", "month_idx", "era_id", "over", "winner", "victory_kind", "human_id", "rebel", "seed_value", "difficulty", "occ_rev", "nap_expiry", "log", "stats", "pending", "asks", "marches", "ev_fired", "ev_last", "ev_uid", "start_year", "start_month", "infl", "world_y", "econ_goal", "tech_top", "tech_second", "tech_avg", "tech_start_top", "aggr_level", "vic_hold", "scale", "pk"]
 
 ## file name safety: a slot is a short id of letters, digits, "_" and "-" (anything else is dropped), never a path
 static func slot_id(slot: String) -> String:
@@ -42,7 +42,7 @@ static func to_dict(g: TBGame) -> Dictionary:
 	var hn: int = g.human_id
 	if hn > 0:                                                                  # what the title's Continue card shows: the flag and the ruler (names are composed in the player's language there)
 		d["meta"]["code"] = g.nat_code[hn]; d["meta"]["color"] = g.color[hn]; d["meta"]["cap"] = g.capital_of[hn]
-		if g.rules >= 1 and g.r_name[hn] != "": d["meta"]["rk"] = TBRulers.title_key(g, hn); d["meta"]["rn"] = g.r_name[hn]; d["meta"]["rnum"] = g.r_num[hn]
+		if g.r_name[hn] != "": d["meta"]["rk"] = TBRulers.title_key(g, hn); d["meta"]["rn"] = g.r_name[hn]; d["meta"]["rnum"] = g.r_num[hn]
 	return d
 
 ## the state of a running game, as plain values, for Undo: packed arrays are copied on write, lists and dictionaries are copied now
@@ -71,7 +71,7 @@ static func restore(g: TBGame, d: Dictionary) -> void:
 	g.dirty_list = PackedInt32Array()
 	g.dirty_flag.fill(0)
 	g._lab_turn = -1
-	if g.rules >= 5: TBInstitutions.refresh(g)
+	TBInstitutions.refresh(g)
 	TBStanding.invalidate()
 
 ## a save is written beside the old one, read back and checked, and only then swapped in; the previous good file is kept as a .bak
@@ -139,24 +139,16 @@ static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
 	var era_id: String = d["era_id"]
 	if era_id != "modern" and (era_id.length() > 24 or not _plain_id(era_id) or not FileAccess.file_exists("res://data/eras/%s.json" % era_id)): return null
 	if not TBData.DIFFICULTY.has(d["difficulty"]): return null
-	var rules: int = int(d.get("rules", 0))
-	if rules < 0 or rules > 5: return null
 	var era_pack := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
-	var g := TBGame.new(w, era_pack, {"seed": d["seed_value"], "difficulty": d["difficulty"], "rules": rules})
+	var g := TBGame.new(w, era_pack, {"seed": d["seed_value"], "difficulty": d["difficulty"]})
 	for k in FIELDS_PACKED:
-		if not d.has(k): continue                                                  # tolerate saves from before a field existed
+		if not d.has(k): return null                                               # a save written by another version: refused (VERSION)
 		var cur = g.get(k)
 		if typeof(d[k]) != typeof(cur): return null
-		if k == "dec_until" and d[k].size() != cur.size() and g.N1 > 0 and d[k].size() % g.N1 == 0 and d[k].size() < cur.size():        # a save from before a decree was added: every nation's row gains empty columns
-			var old_w: int = d[k].size() / g.N1; var new_w: int = cur.size() / g.N1
-			var grown: PackedInt32Array = PackedInt32Array(); grown.resize(cur.size())
-			for n in g.N1:
-				for c in old_w: grown[n * new_w + c] = d[k][n * old_w + c]
-			d[k] = grown
 		if k != "nb_off" and k != "nb" and k != "nb_sea" and d[k].size() != cur.size(): return null
 		g.set(k, d[k])
 	for k in FIELDS_SCALAR:
-		if not d.has(k): continue
+		if not d.has(k): return null
 		var cur = g.get(k)
 		var v = d[k]
 		if typeof(cur) != TYPE_NIL and typeof(v) != typeof(cur) and not ((v is int or v is float) and (cur is int or cur is float)): return null
@@ -170,6 +162,7 @@ static func from_dict(w: TBWorld, d: Dictionary) -> TBGame:
 	g.dirty_list = PackedInt32Array()
 	g.dirty_flag.fill(0)
 	g.diff = TBData.DIFFICULTY.get(g.difficulty, TBData.DIFFICULTY["normal"])
+	TBInstitutions.refresh(g)                                                      # the shares the lag penalty reads are derived, not saved
 	return g
 
 static func _plain_id(s: String) -> bool:
@@ -185,7 +178,7 @@ static func _sane(g: TBGame) -> bool:
 	for p in g.P:
 		if g.nb_off[p + 1] < g.nb_off[p]: return false
 		if g.owner[p] >= g.N1 or g.occupier[p] >= g.N1: return false
-		if g.army[p] < 0 or (g.rules < 5 and g.army[p] > 65000): g.army[p] = clampi(g.army[p], 0, 65000 if g.rules < 5 else 2000000000)
+		if g.army[p] < 0: g.army[p] = clampi(g.army[p], 0, 2000000000)
 	for q in g.nb: if q < 0 or q >= g.P: return false
 	for n in range(1, g.N1):
 		var cp: int = g.capital_of[n]

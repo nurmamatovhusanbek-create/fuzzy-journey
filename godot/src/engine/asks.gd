@@ -33,8 +33,7 @@ static func view(g: TBGame, n: int, kind: String, t: int, op: String) -> Diction
 ## the likelihood the button shows, 0 to 100 (0 = the court will not hear it)
 static func chance(g: TBGame, n: int, kind: String, t: int, op: String = "", p: int = -1) -> int:
 	if kind == "spy":
-		if g.rules >= 4: return int(roundf(TBSpy.chance(g, n, t, op if op != "" else "steal") * 100.0))
-		return int(roundf(clampf(0.60 + (g.tech_level[n] - g.tech_level[t]) * 0.08, 0.25, 0.9) * 100.0))
+		return int(roundf(TBSpy.chance(g, n, t, op if op != "" else "steal") * 100.0))
 	if kind == "ult":
 		return clampi(int(roundf(50.0 + (TBDiplo.ult_ratio(g, n, t) - TBDiplo.ult_need(g, n, t, TBDiplo.ULT_RATIO)) / TBDiplo.ULT_RATIO * 50.0)), 3, 97)
 	var v := view(g, n, kind, t, op)
@@ -66,7 +65,7 @@ static func pending_kind(g: TBGame, n: int, t: int) -> String:
 ## validation without the court's answer: {ok, reason, dp, intel}
 static func check(g: TBGame, n: int, kind: String, t: int, op: String = "", p: int = -1) -> Dictionary:
 	var out := {"ok": false, "reason": "", "dp": 0, "intel": 0.0}
-	if g.rules < 1 or not (kind in KINDS): out["reason"] = "rules"; return out
+	if not (kind in KINDS): out["reason"] = "rules"; return out
 	if t <= 0 or t >= g.N1 or t == n or g.alive[t] == 0 or t == g.rebel: out["reason"] = "target"; return out
 	if g.human[t] != 0: out["reason"] = "human"; return out
 	if pending(g, n, t, "spy" if kind == "spy" else ""): out["reason"] = "asked"; return out
@@ -85,7 +84,6 @@ static func check(g: TBGame, n: int, kind: String, t: int, op: String = "", p: i
 
 ## the interface sends every plain request to an AI court as an ask: nap / ally / marry / trade / ultimatum / peace terms / spy operations become {"cmd": "ask", ...}
 static func wrap(g: TBGame, c: Dictionary) -> Dictionary:
-	if g.rules < 1: return c
 	var t: int = int(c.get("t", 0))
 	if t <= 0 or t >= g.N1 or g.human[t] != 0: return c
 	var out := {"cmd": "ask", "n": c.get("n", g.human_id), "t": t, "op": "", "p": -1}
@@ -113,7 +111,7 @@ static func send(g: TBGame, c: Dictionary) -> Dictionary:
 
 ## the start of a turn: every ask sent before it is answered
 static func resolve(g: TBGame) -> void:
-	if g.rules < 1 or g.asks.is_empty(): return
+	if g.asks.is_empty(): return
 	var todo: Array = []
 	var keep: Array = []
 	for a in g.asks:

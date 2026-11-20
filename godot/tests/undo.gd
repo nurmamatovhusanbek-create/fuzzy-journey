@@ -8,7 +8,7 @@ func _digest(g: TBGame) -> int:
 func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal", "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal"})
 	var n: int = g.nat_code.find("france")
 	g.set_human(n); g.gold[n] = 100000.0; g.mp[n] = 20.0
 	var u := TBUndo.new()
@@ -29,7 +29,7 @@ func _init() -> void:
 	_check(not u.undo(g), "nothing left to undo")
 	_check(g == ref, "the same game object is still in use")
 	# the game goes on normally from a restored state, and matches a game that never had the orders
-	var gb := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal", "rules": 5})
+	var gb := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal"})
 	gb.set_human(n); gb.gold[n] = 100000.0; gb.mp[n] = 20.0
 	for t in 5: g.end_turn(); gb.end_turn()
 	_check(hash([g.gold, g.pop, g.army]) == hash([gb.gold, gb.pop, gb.army]), "five turns after an undo are the turns of a game that never had the orders")

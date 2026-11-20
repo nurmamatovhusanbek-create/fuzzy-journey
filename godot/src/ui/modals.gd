@@ -108,7 +108,7 @@ static func _bud_effect(g: TBGame, n: int, i: int, v: float) -> String:
 		2:
 			var gain: float = D.tech_gain(int(inc["pop"]), int(v))
 			var line: String = T.call("bud_research_fx", {"r": ("%.1f" % gain) if gain < 10.0 else K.fmt(gain)})
-			if g.rules >= 3 and g.tech_level[n] < 5.0 and gain > 0.0:                    # how long the next level takes at this setting (the catch-up bonus is left out: "about")
+			if g.tech_level[n] < 5.0 and gain > 0.0:                    # how long the next level takes at this setting (the catch-up bonus is left out: "about")
 				var left: float = maxf(0.0, float(TBTurn.tech_need(g, g.tech_level[n])) - g.research[n])
 				var turns := int(ceil(left / gain))
 				line += " · " + (T.call("bud_research_next1") if turns <= 1 else T.call("bud_research_next", {"t": turns}))
@@ -138,13 +138,13 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 		var gw := MarginContainer.new(); gw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		gw.add_child(K.gauge(24.0 if h.phone else 40.0, K.signed(float(net)), "" if h.phone else T.call("bud_per_turn").to_upper(), clampf(absf(float(net)) / maxf(1.0, float(inc["gold"])), 0.02, 1.0), TBTokens.c("pos") if net >= 0 else TBTokens.c("neg")))
 		net_slot.add_child(gw)
-		var trade_inc: float = float(TBTrade.income(g, n)) if g.rules >= 1 else 0.0
+		var trade_inc: float = float(TBTrade.income(g, n))
 		var mods: float = float(inc["gold"]) - float(inc["tax"]) - float(inc["production"]) - trade_inc       # regime, technology, ruler, works, lineage, institutions: so the cells add up to the net
 		var stats: Array = [[T.call("bud_taxes"), float(inc["tax"]), 1], [T.call("bud_provinces"), float(inc["production"]), 1]]
 		if trade_inc > 0.0: stats.append([T.call("trade"), trade_inc, 1])
 		stats.append([T.call("bud_mods"), mods, 1 if mods >= 0.0 else -1])
 		stats.append([T.call("tkr_upkeep"), -float(inc["upkeep"]), -1]); stats.append([T.call("tkr_admin"), -float(inc["admin"]), -1])
-		if trade_inc <= 0.0: stats.append([T.call("infl_row"), -g.gold[n] * g.infl if g.rules >= 1 else 0.0, -1])
+		if trade_inc <= 0.0: stats.append([T.call("infl_row"), -g.gold[n] * g.infl, -1])
 		var grid_s := GridContainer.new(); grid_s.columns = 3 if h.phone and vsb.x >= 900.0 else (2 if h.phone else 3)
 		grid_s.add_theme_constant_override("h_separation", 8); grid_s.add_theme_constant_override("v_separation", 8); grid_s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for st in stats: grid_s.add_child(_stat_cell(String(st[0]), float(st[1]), int(st[2]), h.phone))
@@ -281,42 +281,41 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_decisions"), "decrees", {"w": 740 if K.is_phone(parent) else 900, "h": 540, "sub": T.call("dec_sub", {"n": int(g.dp[me])})})
 	var body: VBoxContainer = h.body
 	# ---- doctrine (game rules >= 1)
-	if g.rules >= 1:
-		body.add_child(K.caps(T.call("doctrine")))
-		body.add_child(K.para_bz(T.call("doctrine_hint", {"c": TBDoctrine.cost(g, me)}), 16.0, 1.3))
-		var items: Array = []
-		for di in range(1, TBDoctrine.IDS.size()): items.append([TBDoctrine.IDS[di], T.call("doc_" + TBDoctrine.IDS[di])])
-		var cur_id: String = TBDoctrine.IDS[g.doctrine[me]] if g.doctrine[me] != 0 else ""
-		var fx_slot := K.vbox(0)
-		var say := func(txt: String, col: Color) -> void:
-			for c in fx_slot.get_children(): c.queue_free()
-			fx_slot.add_child(K.para_bz(txt, 16.0, 1.3, col))
-		var DS := {"sel": cur_id}
-		var adopt_slot := K.hbox(0); adopt_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var refresh_adopt := func() -> void:                                        # choosing a doctrine only selects it: the player adopts it with the button
-			for c in adopt_slot.get_children(): c.queue_free()
-			var sid: String = DS["sel"]
-			if sid == "": return
-			var cost: int = TBDoctrine.cost(g, me)
-			var same: bool = sid == cur_id
-			var ab := K.button(T.call("doc_in_force") if same else T.call("doc_adopt"), func():
-				if same or g.dp[me] < cost: return
-				on_cmd.call({"cmd": "doctrine", "id": sid})
-				h.close(), true, true, "", "" if same else "%d ✉" % cost)
-			if same: K.disable(ab, "")
-			elif g.dp[me] < cost: K.disable(ab, T.call("err_dp"))
-			var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			adopt_slot.add_child(sp); adopt_slot.add_child(ab)
-		var seg := K.segmented(items, cur_id, func(id: String):
-			DS["sel"] = id
-			say.call(T.call("doc_%s_d" % id), TBTokens.ink_for(TBTokens.c("brass_lt")))
-			refresh_adopt.call(), true)                                # the same segmented control as everywhere: equal cells
-		var sm := MarginContainer.new(); sm.add_theme_constant_override("margin_top", 8); sm.add_theme_constant_override("margin_bottom", 8); sm.add_child(seg)
-		body.add_child(sm)
-		say.call(T.call("doc_%s_d" % cur_id) if cur_id != "" else T.call("doc_none"), TBTokens.ink_for(TBTokens.c("brass_lt")))
-		body.add_child(fx_slot)
-		body.add_child(adopt_slot); refresh_adopt.call()
-		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 16); gap.mouse_filter = Control.MOUSE_FILTER_IGNORE; body.add_child(gap)
+	body.add_child(K.caps(T.call("doctrine")))
+	body.add_child(K.para_bz(T.call("doctrine_hint", {"c": TBDoctrine.cost(g, me)}), 16.0, 1.3))
+	var items: Array = []
+	for di in range(1, TBDoctrine.IDS.size()): items.append([TBDoctrine.IDS[di], T.call("doc_" + TBDoctrine.IDS[di])])
+	var cur_id: String = TBDoctrine.IDS[g.doctrine[me]] if g.doctrine[me] != 0 else ""
+	var fx_slot := K.vbox(0)
+	var say := func(txt: String, col: Color) -> void:
+		for c in fx_slot.get_children(): c.queue_free()
+		fx_slot.add_child(K.para_bz(txt, 16.0, 1.3, col))
+	var DS := {"sel": cur_id}
+	var adopt_slot := K.hbox(0); adopt_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var refresh_adopt := func() -> void:                                        # choosing a doctrine only selects it: the player adopts it with the button
+		for c in adopt_slot.get_children(): c.queue_free()
+		var sid: String = DS["sel"]
+		if sid == "": return
+		var cost: int = TBDoctrine.cost(g, me)
+		var same: bool = sid == cur_id
+		var ab := K.button(T.call("doc_in_force") if same else T.call("doc_adopt"), func():
+			if same or g.dp[me] < cost: return
+			on_cmd.call({"cmd": "doctrine", "id": sid})
+			h.close(), true, true, "", "" if same else "%d ✉" % cost)
+		if same: K.disable(ab, "")
+		elif g.dp[me] < cost: K.disable(ab, T.call("err_dp"))
+		var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		adopt_slot.add_child(sp); adopt_slot.add_child(ab)
+	var seg := K.segmented(items, cur_id, func(id: String):
+		DS["sel"] = id
+		say.call(T.call("doc_%s_d" % id), TBTokens.ink_for(TBTokens.c("brass_lt")))
+		refresh_adopt.call(), true)                                # the same segmented control as everywhere: equal cells
+	var sm := MarginContainer.new(); sm.add_theme_constant_override("margin_top", 8); sm.add_theme_constant_override("margin_bottom", 8); sm.add_child(seg)
+	body.add_child(sm)
+	say.call(T.call("doc_%s_d" % cur_id) if cur_id != "" else T.call("doc_none"), TBTokens.ink_for(TBTokens.c("brass_lt")))
+	body.add_child(fx_slot)
+	body.add_child(adopt_slot); refresh_adopt.call()
+	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 16); gap.mouse_filter = Control.MOUSE_FILTER_IGNORE; body.add_child(gap)
 	# ---- the decrees, in the game's order (the card carries the state: teal rule = in force, rust mark = why not)
 	var grid := GridContainer.new(); grid.columns = 3                                  # three columns on desktop too (a 900 wide panel): the whole list fits without scrolling
 	grid.add_theme_constant_override("h_separation", 10); grid.add_theme_constant_override("v_separation", 10)
@@ -325,21 +324,20 @@ static func decisions(parent: Control, g: TBGame, on_cmd: Callable) -> TBPanel.H
 	for i in TBDecisions.LIST.size():
 		var i2: int = i
 		grid.add_child(DecisionRow.new(g, i2, me, func(): on_cmd.call({"cmd": "decide", "id": String(TBDecisions.LIST[i2]["id"])}); h.close()))
-	if g.rules >= 5:                                                                    # state works: the sink for a full treasury
-		body.add_child(K.caps(T.call("works_head")))
-		body.add_child(K.para_bz(T.call("works_hint"), 16.0, 1.3))
-		for wi in TBWorks.LIST.size():
-			var wi2: int = wi
-			var wd: Dictionary = TBWorks.LIST[wi]
-			var wid: String = wd["id"]
-			var lvl: int = TBWorks.level(g, me, wi)
-			var why: String = TBWorks.why_not(g, me, wi)
-			var left: String = "%s · %s · %s" % [T.call("works_" + wid + "_t"), T.call("works_level", {"l": lvl, "m": int(wd["max"])}), T.call("works_" + wid + "_d", {"v": int(wd["per"])})]
-			var right: String = ("%s ›" % K.fmt(float(TBWorks.cost(g, me, wi)))) if lvl < int(wd["max"]) else "✓"
-			var wrow := K.ListRow.new(left, right, func(): if TBWorks.why_not(g, me, wi2) == "": on_cmd.call({"cmd": "works", "id": wid}); h.close(), K.DIM if why != "" else Color.TRANSPARENT)
-			if why != "" and why != "gold": wrow.right_col = K.DIM
-			wrow.tooltip_text = T.call("err_" + why) if why != "" and TBI18n.has_key("err_" + why) else ""
-			body.add_child(wrow)
+	body.add_child(K.caps(T.call("works_head")))
+	body.add_child(K.para_bz(T.call("works_hint"), 16.0, 1.3))
+	for wi in TBWorks.LIST.size():
+		var wi2: int = wi
+		var wd: Dictionary = TBWorks.LIST[wi]
+		var wid: String = wd["id"]
+		var lvl: int = TBWorks.level(g, me, wi)
+		var why: String = TBWorks.why_not(g, me, wi)
+		var left: String = "%s · %s · %s" % [T.call("works_" + wid + "_t"), T.call("works_level", {"l": lvl, "m": int(wd["max"])}), T.call("works_" + wid + "_d", {"v": int(wd["per"])})]
+		var right: String = ("%s ›" % K.fmt(float(TBWorks.cost(g, me, wi)))) if lvl < int(wd["max"]) else "✓"
+		var wrow := K.ListRow.new(left, right, func(): if TBWorks.why_not(g, me, wi2) == "": on_cmd.call({"cmd": "works", "id": wid}); h.close(), K.DIM if why != "" else Color.TRANSPARENT)
+		if why != "" and why != "gold": wrow.right_col = K.DIM
+		wrow.tooltip_text = T.call("err_" + why) if why != "" and TBI18n.has_key("err_" + why) else ""
+		body.add_child(wrow)
 	var vsd: Vector2 = parent.size if parent.size.x > 1.0 else parent.get_viewport_rect().size            # fewer columns when the rows do not fit side by side
 	var cell_w := 0.0
 	for k in grid.get_children(): cell_w = maxf(cell_w, (k as Control).get_combined_minimum_size().x)
@@ -452,7 +450,6 @@ static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String =
 ## the nation's own next steps, as goal cards: [{t, s, f, tip}] (a stage of its line it could form, institutions it could embrace)
 static func _ambitions(g: TBGame, me: int) -> Array:
 	var out: Array = []
-	if g.rules < 5: return out
 	var opts: Array = TBLineage.options(g, me)
 	var cur := TBLineage.current(g, me)
 	opts.sort_custom(func(a: int, b: int) -> bool:
@@ -479,9 +476,9 @@ static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 	var prog := TBTurn.victory_progress(g, me)
 	var ids: Array = TBTurn.win_ids(g).duplicate()
 	ids.sort_custom(func(a: String, b: String) -> bool: return float(prog[a]) > float(prog[b]))
-	if g.rules >= 3: ids.append("diplomatic")                                  # an achievement, listed last
+	ids.append("diplomatic")                                  # an achievement, listed last
 	var amb := _ambitions(g, me)                                              # what the nation's own systems offer next: a name to claim, an institution to embrace
-	if g.rules >= 5 and not amb.is_empty():
+	if not amb.is_empty():
 		h.body.add_child(K.caps(T.call("amb_title"), 12, K.GOLD))
 		var ag := GridContainer.new(); ag.columns = 2
 		ag.add_theme_constant_override("h_separation", 12); ag.add_theme_constant_override("v_separation", 12); ag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -509,8 +506,8 @@ static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 			_: a = own; b = g.P - g.own_count(0)
 		var tk: String = "vc_" + String(id)
 		var dk: String = tk + "_d"
-		if g.rules >= 3 and id == "diplomatic": tk += "_a"; dk = "vc_diplomatic_a_d"
-		elif g.rules >= 3 and id != "conquest": dk = tk + "_d3"
+		if id == "diplomatic": tk += "_a"; dk = "vc_diplomatic_a_d"
+		elif id != "conquest": dk = tk + "_d3"
 		var sub_t: String = T.call("vcs_" + String(id), {"a": a, "b": b})
 		var hold := TBTurn.hold_status(g, me, String(id))
 		if hold.x > 0 and hold.y > 0: sub_t += " · " + T.call("vc_hold", {"h": hold.x, "n": hold.y})
@@ -537,7 +534,7 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> TBPanel.H
 	h.body.add_child(host)
 	var lcol := K.vbox(8); lcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL; host.add_child(lcol)
 	var rcol := K.vbox(8); rcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL; host.add_child(rcol)
-	if g.rules >= 1 and g.r_name[me] != "":
+	if g.r_name[me] != "":
 		var hb := K.hbox(12)
 		hb.add_child(TBPortrait.new().setup(g, me, 72))
 		var rc := K.vbox(2); rc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; rc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -703,16 +700,15 @@ static func war_confirm(parent: Control, g: TBGame, n: int, on_yes: Callable) ->
 	var was: int = g.get_rel(me, n)
 	rows.append([T.call("war_fx_grudge"), "+%d" % (80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)), -1])
 	rows.append([T.call("war_fx_inf"), "+%d" % int(TBDiplo.NO_CB_INFAMY) if cbk == "" else T.call("war_fx_none"), -1 if cbk == "" else 0])
-	if g.rules >= 3:                                                                          # the quarrel reaches their friends (a share of the grudge, never as much)
-		var joining := 0; var kin := 0
-		var gr: int = 80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)
-		for o in range(1, g.N1):
-			if o == me or o == n or g.alive[o] == 0 or o == g.rebel or TBDiplo.tie(g, o, me) > 0.0: continue
-			if g.get_rel(n, o) == D.REL_ALLY:
-				if g.get_rel(me, o) != D.REL_WAR and not g.has_truce(me, o): joining += 1
-			elif TBDiplo.tie(g, o, n) >= TBDiplo.TIE_KIN: kin += 1
-		if joining > 0: rows.append([T.call("war_fx_join", {"k": joining}), str(joining), -1])
-		if kin > 0: rows.append([T.call("war_fx_friends", {"k": kin}), "+%d" % int(roundf(float(gr) * TBDiplo.TIE_KIN)), -1])
+	var joining := 0; var kin := 0
+	var gr: int = 80 if was == D.REL_ALLY else (60 if was == D.REL_NAP else 40)
+	for o in range(1, g.N1):
+		if o == me or o == n or g.alive[o] == 0 or o == g.rebel or TBDiplo.tie(g, o, me) > 0.0: continue
+		if g.get_rel(n, o) == D.REL_ALLY:
+			if g.get_rel(me, o) != D.REL_WAR and not g.has_truce(me, o): joining += 1
+		elif TBDiplo.tie(g, o, n) >= TBDiplo.TIE_KIN: kin += 1
+	if joining > 0: rows.append([T.call("war_fx_join", {"k": joining}), str(joining), -1])
+	if kin > 0: rows.append([T.call("war_fx_friends", {"k": kin}), "+%d" % int(roundf(float(gr) * TBDiplo.TIE_KIN)), -1])
 	if TBTrade.has(g, me, n): rows.append([T.call("war_fx_trade"), T.call("war_fx_ends"), 0])
 	col.add_child(K.fxl(rows))
 	var cancel := K.button(T.call("cancel"), func(): h.close())

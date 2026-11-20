@@ -7,7 +7,7 @@ func _check(ok: bool, what: String) -> void:
 func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal", "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal"})
 	var n: int = g.nat_code.find("france")
 	g.set_human(n)
 	var cap: int = g.capital_of[n]
@@ -43,10 +43,10 @@ func _init() -> void:
 	# refuses without moves, and in older rules
 	g.mp[n] = 0.0
 	_check(not bool(g.can({"cmd": "muster", "n": n, "pct": 25})["ok"]), "no moves, no muster")
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal", "rules": 4})
+	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal"})
 	_check(not bool(g4.can({"cmd": "spread", "n": 1, "p": 0})["ok"]), "rules 4 knows nothing of it")
 	# the AI spreads its own army
-	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 6, "difficulty": "normal", "rules": 5})
+	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 6, "difficulty": "normal"})
 	var spread_ais := 0
 	for t in 6: g2.end_turn()
 	for k in range(1, g2.N1):

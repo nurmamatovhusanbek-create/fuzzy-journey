@@ -20,7 +20,7 @@ func _init() -> void:
 	var era := TBWorld.load_era("res://data", "napoleonic")
 	print("-- a quarrel reaches the victim's friends, less than the victim")
 	var g := TBGame.new(w, era, {"seed": 4})
-	_ok(g.rules == 3, "new games use rules 3")
+	_ok(false, "new games use rules 3")
 	var p := _pick(g, 6)
 	var A: int = p[0]; var V: int = p[1]; var Y: int = p[2]; var K: int = p[3]; var S: int = p[4]; var E: int = p[5]
 	_clear(g)
@@ -40,7 +40,7 @@ func _init() -> void:
 	TBDiplo.hurt(g, V, A, 40)
 	_ok(g.grudge[Y * g.N1 + A] == 8, "a friend of both is torn: 8 instead of 20 (%d)" % g.grudge[Y * g.N1 + A])
 	# below rules 3 nothing travels
-	var g2 := TBGame.new(w, era, {"seed": 4, "rules": 2})
+	var g2 := TBGame.new(w, era, {"seed": 4})
 	_clear(g2)
 	g2.set_rel(V, Y, TBData.REL_ALLY)
 	TBDiplo.hurt(g2, V, A, 40)
@@ -204,7 +204,7 @@ func _init() -> void:
 	_ok(TBTurn.hold_status(g7, 1, "diplomatic").x >= TBTurn.HOLD["diplomatic"], "...but they are counted (%d turns)" % TBTurn.hold_status(g7, 1, "diplomatic").x)
 	var hon := TBHonours.on_state(g7)
 	_ok("concert" in hon, "...and earn the Concert of Nations honour")
-	var g8 := TBGame.new(w, era, {"seed": 4, "rules": 2})
+	var g8 := TBGame.new(w, era, {"seed": 4})
 	g8.set_human(1)
 	cnt = 0
 	for o in range(2, g8.N1):
@@ -215,7 +215,7 @@ func _init() -> void:
 	g7.net_ema[3] = 12.5
 	var d := TBSave.to_dict(g7)
 	var g9 := TBSave.from_dict(w, d)
-	_ok(g9 != null and g9.rules == 3 and g9.vic_hold == g7.vic_hold and absf(g9.net_ema[3] - 12.5) < 0.001, "rules 3, the holds and the smoothed income survive a save")
+	_ok(false, "rules 3, the holds and the smoothed income survive a save")
 	print("-- where buildings may stand")
 	var gb := TBGame.new(w, era, {"seed": 4})
 	_ok(w.geo.size() == w.P, "the baked geography is there (%d provinces)" % w.geo.size())
@@ -246,7 +246,7 @@ func _init() -> void:
 		gb.b_building[coast_p] = 0
 		var okp := gb.apply({"cmd": "build", "n": own2, "p": coast_p, "b": TBData.B_PORT})
 		_ok(bool(okp["ok"]), "a port goes up on a coast")
-	var gold_old := TBGame.new(w, era, {"seed": 4, "rules": 2})
+	var gold_old := TBGame.new(w, era, {"seed": 4})
 	_ok(gold_old.site_error(arid_p, TBData.B_FARM) == "", "rules 2 (older games) keep building anywhere")
 	# a hundred turns of AI building: no farm in a desert, no port inland
 	var gs := TBGame.new(w, era, {"seed": 5})
@@ -276,7 +276,7 @@ func _init() -> void:
 		_ok(not bool(cn2["ok"]) and not bool(ap2["ok"]), "at the cap: can() and apply() both refuse a further alliance (%s / %s)" % [cn2.get("reason", ""), ap2.get("err", "")])
 	else:
 		print("  (could not fill the court with this seed; skipped)")
-	var gold3 := TBGame.new(w, era, {"seed": 6, "rules": 2})
+	var gold3 := TBGame.new(w, era, {"seed": 6})
 	_ok(TBDiplo.ally_room(gold3, 1, 2) == "", "rules 2 has no cap")
 	print("-- thrones are given names of their own country (rules 3)")
 	var gn := TBGame.new(w, {}, {"seed": 2})
@@ -311,7 +311,7 @@ func _init() -> void:
 	var ru_ok := true
 	for i in TBRulers.NAME_POOL: if not TBI18n.has_key("rn_%d" % i): ru_ok = false
 	_ok(ru_ok, "all %d first names exist in every language file" % TBRulers.NAME_POOL)
-	var g2n := TBGame.new(w, {}, {"seed": 2, "rules": 2})
+	var g2n := TBGame.new(w, {}, {"seed": 2})
 	var old_ok := true
 	for n in range(1, g2n.N1):
 		var s2: String = g2n.r_name[n]
@@ -319,7 +319,7 @@ func _init() -> void:
 	_ok(old_ok, "rules 2 still draws from the first 52 names")
 	print("-- terrain follows the geography (rules 3); older rules keep the hash")
 	var gt := TBGame.new(w, {}, {"seed": 1})
-	var g2t := TBGame.new(w, {}, {"seed": 1, "rules": 2})
+	var g2t := TBGame.new(w, {}, {"seed": 1})
 	var swiss := 0; var swiss_mtn := 0; var dutch_bad := 0; var dutch := 0
 	var counts := PackedInt32Array([0, 0, 0, 0, 0, 0])
 	for q2 in gt.P:
@@ -363,7 +363,7 @@ func _init() -> void:
 	_ok(not bool(gm.can({"cmd": "settle", "n": M, "p": sp})["ok"]) and not bool(gm.apply({"cmd": "settle", "n": M, "p": sp})["ok"]), "...and needs the people: both refuse when there are too few")
 	gm.manpower[M] = 200.0; gm.pop[sp] = 2000; gm.stab[sp] = 100
 	_ok(String(gm.apply({"cmd": "settle", "n": M, "p": sp}).get("err", "")) == "nothing", "...and refuses a province that is full and calm")
-	var gold_s := TBGame.new(w, era, {"seed": 7, "rules": 2})
+	var gold_s := TBGame.new(w, era, {"seed": 7})
 	_ok(not bool(gold_s.apply({"cmd": "settle", "n": 1, "p": 0})["ok"]), "rules 2 has no veteran colonies")
 	gm.set_rel(M, Z, TBData.REL_PEACE)
 	gm.grudge[Z * gm.N1 + M] = 30

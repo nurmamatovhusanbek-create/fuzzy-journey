@@ -5,7 +5,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5, "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
 	var ru := g.nat_code.find("russian_empire"); g.set_human(ru); g.pending.clear()
 	_check(g.regime[ru] == 4, "the Russian Empire starts as an empire")
 	g.gold[ru] = 1e9; g.mp[ru] = 10.0
@@ -45,7 +45,7 @@ func _init() -> void:
 	_check(bool(g.apply({"cmd": "regime", "n": ru, "r": communism}).get("ok", false)), "the reform to communism goes through")
 	_check(String(TBLineage.can_form(g, ru, ussr)["reason"]) != "form_regime", "now the government is no longer the obstacle")
 	# the AI: a state that has the year and the land but the wrong government reforms by itself
-	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5, "rules": 5})
+	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
 	var fr := g2.nat_code.find("france"); g2.set_human(fr); g2.pending.clear()
 	var ai := g2.nat_code.find("russian_empire")
 	g2.year = 1925; g2.era[ai] = 3; g2.gold[ai] = 1e9; g2.mp[ai] = 10.0
@@ -61,7 +61,7 @@ func _init() -> void:
 	_check(did, "the AI reforms toward a name of its line when the land and the year are there")
 	# saves keep the date of the reform
 	var d := TBSave.snapshot(g)
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5, "rules": 5})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
 	TBSave.restore(g3, d)
 	_check(g3.reg_last == g.reg_last and g3.regime == g.regime, "a restored game keeps the reform")
 	print("REGIME OK" if fails == 0 else "REGIME FAIL %d" % fails)

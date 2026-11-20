@@ -57,7 +57,6 @@ static func limit(g: TBGame, n: int, t: int) -> float:
 ## deal = {"provs": [p...], "gold": points, "vassal": bool, "disarm": bool}  ->  {"pts", "ok", "why", "gold", "budget", "limit"}
 static func price(g: TBGame, n: int, t: int, deal: Dictionary) -> Dictionary:
 	var out := {"pts": 0.0, "ok": false, "why": "", "gold": 0, "budget": 0.0, "limit": 0.0}
-	if g.rules < 4: out["why"] = "rules"; return out
 	if g.get_rel(n, t) != D.REL_WAR: out["why"] = "notwar"; return out
 	var pts := 0.0
 	var by_p := {}

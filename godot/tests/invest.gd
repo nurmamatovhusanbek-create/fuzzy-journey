@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var me := g.nat_code.find("france"); g.set_human(me); g.pending.clear()
 	var p: int = g.owned(me)[0]
 	g.pop[p] = 400; g.econ[p] = 1; g.dev[p] = 1; g.inv_e[p] = 0.0; g.inv_d[p] = 0.0
@@ -34,12 +34,12 @@ func _init() -> void:
 	g.pop[p] = 20; g.dev[p] = 3; g.inv_d[p] = 0.0
 	var wait := TBInvest.dev_eff(g, p, 5)
 	print("dev eff with few people: ", wait)
-	_check(wait == 0.0 or g.rules < 2, "no workers, no development progress (%.1f)" % wait)
+	_check(wait == 0.0, "no workers, no development progress (%.1f)" % wait)
 	# a hand-made development restarts the slow bar
 	g.pop[p] = 600; g.dev[p] = 1; g.inv_d[p] = 0.7; g.gold[me] = 5000.0; g.mp[me] = 10.0; g.tech_level[me] = 3.0
 	var r := g.apply({"cmd": "develop", "n": me, "p": p, "k": 1})
 	if bool(r["ok"]):
-		if g.rules >= 4: for i in 4: TBTurn.end_turn(g)                              # a project: the level arrives when the work ends
+		for i in 4: TBTurn.end_turn(g)                              # a project: the level arrives when the work ends
 		_check(g.inv_d[p] < 0.2, "after the hand-made level the slow bar starts again (%.2f)" % g.inv_d[p])
 	# a save keeps the bars
 	g.inv_e[p] = 0.37
@@ -47,7 +47,7 @@ func _init() -> void:
 	var g2: TBGame = TBSave.from_dict(w, d)
 	_check(g2 != null and absf(g2.inv_e[p] - 0.37) < 0.001, "a save keeps the progress")
 	# the old rules keep the die
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	_check(g3.inv_e.size() == g3.P, "the arrays exist everywhere (empty)")
 	print("INVEST OK" if fails == 0 else "INVEST FAIL %d" % fails)
 	quit(fails)

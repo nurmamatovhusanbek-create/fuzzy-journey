@@ -10,7 +10,7 @@ func _pick(g: TBGame, skip: Array) -> int:
 	return -1
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var n := _pick(g, []); var t := _pick(g, [n]); var o := _pick(g, [n, t])
 	g.set_human(1 if n != 1 else 2); g.pending.clear()
 	g.grudge[o * g.N1 + t] = 0; g.exh[o] = 0.0
@@ -38,7 +38,7 @@ func _init() -> void:
 	for e in g.log: if String(e["kind"]) == "call_refused": logged = true
 	_check(logged, "the refusal is in the chronicle")
 	# a willing ally joins
-	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	g2.set_human(1 if n != 1 else 2); g2.pending.clear()
 	g2.grudge[o * g2.N1 + t] = 0; g2.exh[o] = 0.0
 	g2.set_rel(o, t, TBData.REL_ALLY)
@@ -52,7 +52,7 @@ func _init() -> void:
 	elif chance <= 0.0: _check(g2.get_rel(n, o) != TBData.REL_WAR, "an impossible ally (willingness %.2f) stays out" % will)
 	_check(TBWar.call_chance(g2, o, t, n) == clampf(0.5 + (will - TBWar.CALL_YES) / (2.0 * TBWar.CALL_SPREAD), 0.0, 1.0), "the chance is the willingness mapped around %.2f" % TBWar.CALL_YES)
 	# old rules: allies always join
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	g3.set_human(1 if n != 1 else 2); g3.pending.clear()
 	g3.set_rel(o, t, TBData.REL_ALLY); g3.set_rel(n, o, TBData.REL_PEACE); g3.set_rel(n, t, TBData.REL_PEACE)
 	g3.truce[n * g3.N1 + o] = 0; g3.truce[o * g3.N1 + n] = 0; g3.truce[n * g3.N1 + t] = 0; g3.truce[t * g3.N1 + n] = 0
@@ -60,7 +60,7 @@ func _init() -> void:
 	g3.apply({"cmd": "declareWar", "n": n, "t": t, "_force": true})
 	_check(g3.get_rel(n, o) == TBData.REL_WAR, "rules 3: an ally always joins")
 	# the player's own call (rules 4): costs envoys, answered at once by an AI, a prompt for a human
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var me4 := _pick(g4, []); var ally4 := _pick(g4, [me4]); var foe4 := _pick(g4, [me4, ally4])
 	g4.set_human(me4); g4.pending.clear()
 	g4.dp[me4] = 20.0
@@ -79,7 +79,7 @@ func _init() -> void:
 	g4.set_rel(ally4, foe4, TBData.REL_PEACE)
 	_check(String(g4.apply({"cmd": "callAlly", "n": me4, "t": ally4, "e": foe4}).get("err", "")) == "" or true, "a second call is allowed while at peace")
 	# a human ally gets a prompt and decides
-	var g5 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g5 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var a5 := _pick(g5, []); var b5 := _pick(g5, [a5]); var f5 := _pick(g5, [a5, b5])
 	g5.set_human(a5); g5.add_human(b5); g5.pending.clear()
 	g5.dp[a5] = 20.0

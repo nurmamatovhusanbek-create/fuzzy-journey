@@ -26,14 +26,14 @@ const LAPSE_BANKRUPT := 0.35            # per turn, while either side's treasury
 
 static func max_deals(g: TBGame, n: int) -> int: return 1 + g.era[n]
 
-static func has(g: TBGame, a: int, b: int) -> bool: return g.rules >= 1 and g.trade[a * g.N1 + b] != 0
+static func has(g: TBGame, a: int, b: int) -> bool: return g.trade[a * g.N1 + b] != 0
 
 # ---------------------------------------------------------------- the size of a route (rules >= 3)
 ## the size of a nation's market: provinces times what an average province earns in its era (6 in the ancient world, 20 in the modern): cheap, and it does not depend on trade itself
 static func market(g: TBGame, n: int) -> float:
 	return float(g.own_count(n)) * (6.0 + 3.5 * float(g.era[n]))
 ## rules 5: the yield in the nations' own gold: the old-scale figure times the price level of the two courts (their geometric mean)
-static func _lvl(g: TBGame, a: int, b: int) -> float: return sqrt(g.cm(a) * g.cm(b)) if g.rules >= 5 else 1.0
+static func _lvl(g: TBGame, a: int, b: int) -> float: return sqrt(g.cm(a) * g.cm(b))
 
 ## 0..1: how well two capitals can reach each other (1 = next door, 0.5 at REACH_RAD, 0.2 across half the world)
 static func reach(g: TBGame, a: int, b: int) -> float:
@@ -44,21 +44,20 @@ static func reach(g: TBGame, a: int, b: int) -> float:
 
 ## gold per turn that a deal between a and b is worth to EACH of them
 static func yield_of(g: TBGame, a: int, b: int) -> int:
-	if g.rules < 3: return mini(40, 4 + int(g.own_count(b) * 0.35))
 	var s := sqrt(market(g, a) * market(g, b))
-	var wm: float = (TBWorks.trade_mul(g, a) + TBWorks.trade_mul(g, b)) * 0.5 if g.rules >= 5 else 1.0
+	var wm: float = (TBWorks.trade_mul(g, a) + TBWorks.trade_mul(g, b)) * 0.5
 	return int(ceil(float(clampi(int(roundf(2.0 + K_YIELD * sqrt(s) * reach(g, a, b))), 2, YIELD_CAP)) * _lvl(g, a, b) * wm))
 
 ## gold per turn that a deal with `partner` is worth to n (the old signature kept for the interface: n = the viewing nation)
 static func value(g: TBGame, partner: int, n: int = -1) -> int:
-	if g.rules < 3 or n <= 0: return mini(40, 4 + int(g.own_count(partner) * 0.35))
+	if n <= 0: return mini(40, 4 + int(g.own_count(partner) * 0.35))
 	return yield_of(g, n, partner)
 
 static func fee_gold(v: int, g: TBGame = null, n: int = 0) -> int:
-	if g != null and g.rules >= 5 and n > 0: return int(ceil(FEE_BASE * g.cm(n) + FEE_PER * float(v)))
+	if g != null and n > 0: return int(ceil(FEE_BASE * g.cm(n) + FEE_PER * float(v)))
 	return int(ceil(FEE_BASE + FEE_PER * float(v)))
 static func fee_men(v: int, g: TBGame = null) -> int:
-	if g != null and g.rules >= 5: return maxi(1, int(ceil(float(v) * 0.03)))                      # the escorts: a few men for a route worth thousands
+	if g != null: return maxi(1, int(ceil(float(v) * 0.03)))                      # the escorts: a few men for a route worth thousands
 	return int(ceil(MEN_BASE + float(v) * 0.5))
 
 ## net income smoothed over about seven turns; before the first turn has been recorded it is the current figure
@@ -75,7 +74,7 @@ static func means(g: TBGame, n: int, v: int) -> Dictionary:
 
 ## total trade income of n (no recursion into income())
 static func income(g: TBGame, n: int) -> int:
-	if g.rules < 1 or g.trade_cnt[n] == 0: return 0
+	if g.trade_cnt[n] == 0: return 0
 	var s := 0
 	for o in range(1, g.N1):
 		if g.trade[n * g.N1 + o] != 0 and g.alive[o] != 0: s += value(g, o, n)
@@ -107,15 +106,14 @@ static func weigh(g: TBGame, t: int, p: int) -> Dictionary:
 	elif g.grudge[t * g.N1 + p] > 30: blocked = "grudge"
 	elif g.trade_cnt[t] >= max_deals(g, t): blocked = "full"
 	var terms: Array = [["dv_temper", float(pers["dipl"])], ["dv_commerce", float(pers["econ"]) * 0.6]]
-	if g.rules >= 3:
-		var v := yield_of(g, t, p)
-		var mp := means(g, p, v)
-		var mt := means(g, t, v)
-		if blocked == "" and float(mt["m"]) < MIN_MEANS: blocked = "poor"
-		terms.append(["dv_means", -1.0 * (1.0 - float(mp["m"]))])                           # you: can you carry it?
-		terms.append(["dv_theirmeans", -0.6 * (1.0 - float(mt["m"]))])                     # they: can they?
-		terms.append(["dv_reach", -0.4 * (1.0 - reach(g, t, p))])                          # the farther away, the less they care
-		for tm in TBDiplo.loyalty_terms(g, t, p): terms.append(tm)                          # you are at war with their friend
+	var v := yield_of(g, t, p)
+	var mp := means(g, p, v)
+	var mt := means(g, t, v)
+	if blocked == "" and float(mt["m"]) < MIN_MEANS: blocked = "poor"
+	terms.append(["dv_means", -1.0 * (1.0 - float(mp["m"]))])                           # you: can you carry it?
+	terms.append(["dv_theirmeans", -0.6 * (1.0 - float(mt["m"]))])                     # they: can they?
+	terms.append(["dv_reach", -0.4 * (1.0 - reach(g, t, p))])                          # the farther away, the less they care
+	for tm in TBDiplo.loyalty_terms(g, t, p): terms.append(tm)                          # you are at war with their friend
 	return {"blocked": blocked, "terms": terms}
 
 static func accepts(g: TBGame, t: int, p: int) -> bool:
@@ -126,7 +124,6 @@ static func accepts(g: TBGame, t: int, p: int) -> bool:
 	return s > 0.55
 
 static func propose(g: TBGame, n: int, t: int, force: bool = false) -> Dictionary:
-	if g.rules < 1: return {"ok": false, "err": "rules"}
 	if t <= 0 or t >= g.N1 or t == n or g.alive[t] == 0 or t == g.rebel: return {"ok": false, "err": "target"}
 	if g.get_rel(n, t) == D.REL_WAR: return {"ok": false, "err": "war"}
 	if TBDiplo.deal_why(g, n, t, "trade") != "": return {"ok": false, "err": "nocontact"}
@@ -134,22 +131,20 @@ static func propose(g: TBGame, n: int, t: int, force: bool = false) -> Dictionar
 	if g.trade_cnt[n] >= max_deals(g, n): return {"ok": false, "err": "tradefull"}
 	if g.dp[n] < DP_COST: return {"ok": false, "err": "dp"}
 	var v := 0
-	if g.rules >= 3:
-		v = yield_of(g, n, t)
-		if g.gold[n] < float(fee_gold(v, g, n)): return {"ok": false, "err": "gold"}
-		if g.manpower[n] < float(fee_men(v, g)): return {"ok": false, "err": "manpower"}
-		if g.trade_cnt[t] >= max_deals(g, t) and g.human[t] != 0: return {"ok": false, "err": "tradefull"}
+	v = yield_of(g, n, t)
+	if g.gold[n] < float(fee_gold(v, g, n)): return {"ok": false, "err": "gold"}
+	if g.manpower[n] < float(fee_men(v, g)): return {"ok": false, "err": "manpower"}
+	if g.trade_cnt[t] >= max_deals(g, t) and g.human[t] != 0: return {"ok": false, "err": "tradefull"}
 	if g.human[t] == 0 and not force and not accepts(g, t, n): return {"ok": false, "err": "refused"}
 	g.dp[n] -= DP_COST
-	if g.rules >= 3:
-		g.gold[n] -= float(fee_gold(v, g, n)); g.manpower[n] -= float(fee_men(v, g))
+	g.gold[n] -= float(fee_gold(v, g, n)); g.manpower[n] -= float(fee_men(v, g))
 	set_deal(g, n, t, true)
 	g.log.append({"turn": g.turn, "kind": "trade", "a": n, "b": t})
 	return {"ok": true}
 
 ## AI: occasionally sign a deal with a friendly neighbour. Rules >= 3: a court looks over its prospects and opens the most valuable route it can carry and that the other side will take.
 static func ai_step(g: TBGame, n: int) -> void:
-	if g.rules < 1 or g.trade_cnt[n] >= max_deals(g, n) or g.dp[n] < DP_COST or g.rng.next() > 0.08: return
+	if g.trade_cnt[n] >= max_deals(g, n) or g.dp[n] < DP_COST or g.rng.next() > 0.08: return
 	var best := -1
 	var ranked := PackedInt32Array()
 	var mn := market(g, n)
@@ -157,11 +152,6 @@ static func ai_step(g: TBGame, n: int) -> void:
 		if o == n or g.alive[o] == 0 or o == g.rebel or has(g, n, o): continue
 		var r := g.get_rel(n, o)
 		if r == D.REL_WAR or g.own_count(o) < 4: continue
-		if g.rules < 3:
-			if r == D.REL_PEACE and g.rng.next() > 0.3: continue
-			if g.human[o] == 0 and accepts(g, o, n) and g.trade_cnt[o] < max_deals(g, o):
-				propose(g, n, o); return
-			continue
 		if g.human[o] != 0 or g.trade_cnt[o] >= max_deals(g, o): continue
 		var ub := clampi(int(roundf(2.0 + K_YIELD * sqrt(sqrt(mn * market(g, o))))), 2, YIELD_CAP)      # what the route is worth at best: next door (reach 1)
 		ranked.append(ub * 4096 + (4095 - o))
@@ -182,14 +172,13 @@ static func ai_step(g: TBGame, n: int) -> void:
 
 ## rules >= 3: is the route between a and b about to lapse? "poor" = a treasury is empty (a 35 % chance a turn), "sour" = a grudge is within 15 of the breaking point; "" = safe
 static func risk(g: TBGame, a: int, b: int) -> String:
-	if g.rules < 3 or not has(g, a, b): return ""
+	if not has(g, a, b): return ""
 	if g.gold[a] < 1.0 or g.gold[b] < 1.0: return "poor"
 	if int(g.grudge[a * g.N1 + b]) >= SOUR_GRUDGE - 15 or int(g.grudge[b * g.N1 + a]) >= SOUR_GRUDGE - 15: return "sour"
 	return ""
 
 ## rules >= 3, once a turn: a route is not forever. It lapses when either side is bankrupt (chance per turn) or when the two courts have come to hate each other.
 static func maintain(g: TBGame) -> void:
-	if g.rules < 3: return
 	for a in range(1, g.N1):
 		if g.alive[a] == 0 or g.trade_cnt[a] == 0: continue
 		for b in range(a + 1, g.N1):

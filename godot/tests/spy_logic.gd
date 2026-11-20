@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var me := g.nat_code.find("france"); g.set_human(me); g.pending.clear()
 	var t := g.nat_code.find("spain")
 	g.set_rel(me, t, TBData.REL_PEACE)
@@ -55,7 +55,7 @@ func _init() -> void:
 	for tm in TBSpy.terms(g, me, t, "steal"): keys2.append(String(tm[0]))
 	_check(keys2.has("sp_academy"), "your own graduates show in your chance")
 	g.turn -= 212
-	g = TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4}); me = g.nat_code.find("france"); g.set_human(me); g.pending.clear(); t = g.nat_code.find("spain")
+	g = TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8}); me = g.nat_code.find("france"); g.set_human(me); g.pending.clear(); t = g.nat_code.find("spain")
 	g.set_rel(me, t, TBData.REL_PEACE); g.tech_level[me] = 2.0; g.tech_level[t] = 2.0
 	# consequences over many operations: caught ones cost relations, infamy and ties
 	var caught := 0; var traced := 0; var cut_nap := 0; var cut_trade := 0; var runs := 600
@@ -95,12 +95,12 @@ func _init() -> void:
 	_check(gl != null, "an older save with one decree fewer still loads")
 	if gl != null: _check(gl.dec_until[me * ndec + 0] == 77 and gl.dec_until[me * ndec + ndec - 1] == 0, "its decrees are where they were and the new one is empty")
 	# the old rules keep the flat chance
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var m3 := g3.nat_code.find("france"); var t3 := g3.nat_code.find("spain")
 	g3.set_human(m3); g3.set_rel(m3, t3, TBData.REL_PEACE); g3.tech_level[m3] = 2.0; g3.tech_level[t3] = 2.0
 	_check(TBAsks.chance(g3, m3, "spy", t3, "steal") == 60, "rules 3: 60 % at equal learning (%d)" % TBAsks.chance(g3, m3, "spy", t3, "steal"))
 	# survey: a quiet look that only shows their armies for a while, easier than any strike, never traced when it works
-	g = TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4}); me = g.nat_code.find("france"); g.set_human(me); g.pending.clear(); t = g.nat_code.find("spain")
+	g = TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8}); me = g.nat_code.find("france"); g.set_human(me); g.pending.clear(); t = g.nat_code.find("spain")
 	g.set_rel(me, t, TBData.REL_PEACE); g.intel[me] = 20.0
 	_check(TBSpy.chance(g, me, t, "survey") > TBSpy.chance(g, me, t, "steal"), "survey is easier than stealing (%.2f vs %.2f)" % [TBSpy.chance(g, me, t, "survey"), TBSpy.chance(g, me, t, "steal")])
 	g.see_until[me * g.N1 + t] = 0

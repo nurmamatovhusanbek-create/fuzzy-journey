@@ -12,7 +12,7 @@ func _pair(g: TBGame, me: int) -> Vector2i:
 	return Vector2i(-1, -1)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var me := g.nat_code.find("france"); g.set_human(me); g.pending.clear()
 	var pq := _pair(g, me)
 	var p := pq.x; var q := pq.y
@@ -58,7 +58,7 @@ func _init() -> void:
 				_check(bool(fwd["ok"]), "the lone survivor can attack on (%s)" % str(fwd.get("err", "ok")))
 				break
 	# the old rules keep one man behind
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var m3 := g3.nat_code.find("france"); g3.set_human(m3)
 	var pq3 := _pair(g3, m3)
 	_check(g3.keep() == 1, "rules 3 keeps one man behind")

@@ -28,7 +28,7 @@ func _init() -> void:
 	_check(int(rg["best"]["a_left"]) >= int(rg["expected"]["a_left"]) and int(rg["worst"]["a_left"]) <= int(rg["expected"]["a_left"]), "best case >= expected >= worst case")
 	# the game
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var me := g.nat_code.find("france"); g.set_human(me)
 	var foe := -1; var from := -1; var to := -1
 	for p in g.owned(me):
@@ -53,7 +53,7 @@ func _init() -> void:
 	_check(r3 == "loss" and g.army[from] > before_home and g.army[from] < 300, "a failed attack brings the survivors home (%d of %d)" % [g.army[from] - before_home, 250])
 	_check(g.army[to] > 0, "the defender keeps the field")
 	# rules 3 is unchanged: its preview has no range
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var m3 := g3.nat_code.find("france"); g3.set_human(m3)
 	var p3: int = g3.owned(m3)[0]
 	var q3 := -1

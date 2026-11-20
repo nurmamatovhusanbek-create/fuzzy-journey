@@ -19,7 +19,7 @@ static func friendliness(g: TBGame, n: int, o: int) -> int:
 	if r == D.REL_WAR: return 0
 	var f := 50
 	if r == D.REL_NAP: f += 25
-	if g.rules >= 1 and TBTrade.has(g, n, o): f += 15
+	if TBTrade.has(g, n, o): f += 15
 	f += 10 if g.grudge[o * g.N1 + n] == 0 else -int(g.grudge[o * g.N1 + n])
 	return clampi(f, 0, 100)
 
@@ -67,12 +67,12 @@ static func _mark(g: TBGame, src: int, radius: int, m: PackedByteArray) -> void:
 
 ## may the human player see the army in province p? (without a prior sync call: syncs itself)
 static func sees(g: TBGame, p: int) -> bool:
-	if g.rules < 1 or g.human_id <= 0 or p < 0: return true
+	if g.human_id <= 0 or p < 0: return true
 	sync(g)
 	return sees_fast(g, p)
 
 static func sees_fast(g: TBGame, p: int) -> bool:
-	if g.rules < 1 or g.human_id <= 0 or p < 0: return true
+	if g.human_id <= 0 or p < 0: return true
 	var c: int = g.controller(p)
 	if c == g.human_id or c == 0: return true
 	if nation_seen(g, g.human_id, c): return true

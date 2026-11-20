@@ -376,7 +376,7 @@ func set_route_kind(k: String) -> void:
 			"nap": has = g.get_rel(me, o) == 2
 			"ally": has = g.get_rel(me, o) == 3
 			"marry": has = g.get_rel(me, o) == 4
-			"trade": has = g.rules >= 1 and TBTrade.has(g, me, o)
+			"trade": has = TBTrade.has(g, me, o)
 		if has: _route_set[o] = 1
 func route_lit(o: int) -> bool: return route_kind == "" or o == g.human_id or (o < _route_set.size() and _route_set[o] != 0)
 
@@ -403,9 +403,9 @@ func color(p: int) -> int:
 			return war_col[o] if war_col[o] != 0 else lerp_rgb(nat_rgb[o], 0x000000, 0.35)
 		"stability": return ramp(STAB_RAMP, g.stab[p] / 100.0) if o != 0 else neutral()
 		"population": return ramp(POP_RAMP, sqrt(g.pop[p] / max_pop)) if o != 0 else neutral()
-		"growth": return ramp(POP_RAMP, clampf(1.0 - float(g.pop[p]) / float(maxi(1, g.pop_cap(p))), 0.0, 1.0)) if (o != 0 and g.rules >= 5) else neutral()
-		"levy": return ramp(ARMY_RAMP, clampf(float(mini(g.levy[p], g.levy_cap(p))) / float(maxi(1, g.levy_cap(p))), 0.0, 1.0)) if (o != 0 and g.rules >= 4) else neutral()
-		"institutions": return ramp(ECON_RAMP, clampf(float(_inst_count(g, p)) / float(maxi(1, TBInstitutions.count())), 0.0, 1.0)) if (o != 0 and g.rules >= 5) else neutral()
+		"growth": return ramp(POP_RAMP, clampf(1.0 - float(g.pop[p]) / float(maxi(1, g.pop_cap(p))), 0.0, 1.0)) if (o != 0) else neutral()
+		"levy": return ramp(ARMY_RAMP, clampf(float(mini(g.levy[p], g.levy_cap(p))) / float(maxi(1, g.levy_cap(p))), 0.0, 1.0)) if (o != 0) else neutral()
+		"institutions": return ramp(ECON_RAMP, clampf(float(_inst_count(g, p)) / float(maxi(1, TBInstitutions.count())), 0.0, 1.0)) if (o != 0) else neutral()
 		"burden": return ramp(ARMY_RAMP, clampf(sqrt(float(g.army[p]) / float(maxi(1, g.pop[p])) / 0.1), 0.0, 1.0)) if (o != 0 and (o == me or TBVision.sees_fast(g, p))) else neutral()
 		"buildings": return BUILD_COL[g.building[p]] if g.building[p] != 0 else neutral()
 		"governments": return REGIME_COL[g.regime[o]] if o != 0 else neutral()
@@ -493,9 +493,9 @@ func describe(p: int) -> String:
 		"military": return ("%s: %s" % [T.call("lens_military"), TBKit.fmt(g.army[p]) if (o == me or TBVision.sees_fast(g, p)) else "?"]) if o != 0 else ""
 		"stability": return "%s: %d" % [T.call("lens_stability"), int(g.stab[p])] if o != 0 else ""
 		"population": return "%s: %s" % [T.call("lens_population"), TBKit.fmt(g.pop[p])] if o != 0 else ""
-		"growth": return "%s: %d%%" % [T.call("lens_growth"), int(round(100.0 * clampf(1.0 - float(g.pop[p]) / float(maxi(1, g.pop_cap(p))), -1.0, 1.0)))] if (o != 0 and g.rules >= 5) else ""
-		"levy": return "%s: %s / %s" % [T.call("lens_levy"), TBKit.fmt(float(mini(g.levy[p], g.levy_cap(p)))), TBKit.fmt(float(g.levy_cap(p)))] if (o != 0 and g.rules >= 4) else ""
-		"institutions": return "%s: %d / %d" % [T.call("lens_institutions"), _inst_count(g, p), TBInstitutions.count()] if (o != 0 and g.rules >= 5) else ""
+		"growth": return "%s: %d%%" % [T.call("lens_growth"), int(round(100.0 * clampf(1.0 - float(g.pop[p]) / float(maxi(1, g.pop_cap(p))), -1.0, 1.0)))] if (o != 0) else ""
+		"levy": return "%s: %s / %s" % [T.call("lens_levy"), TBKit.fmt(float(mini(g.levy[p], g.levy_cap(p)))), TBKit.fmt(float(g.levy_cap(p)))] if (o != 0) else ""
+		"institutions": return "%s: %d / %d" % [T.call("lens_institutions"), _inst_count(g, p), TBInstitutions.count()] if (o != 0) else ""
 		"burden": return "%s: %.2f%%" % [T.call("lens_burden"), 100.0 * float(g.army[p]) / float(maxi(1, g.pop[p]))] if (o != 0 and (o == me or TBVision.sees_fast(g, p))) else ""
 		"buildings":
 			if g.building[p] == 0: return ""

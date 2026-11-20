@@ -27,7 +27,7 @@ func _init() -> void:
 	for it in items: ids.append(String(it["id"]))
 	print("loose ends at the start: ", ids)
 	_check(ids.has("spread_army"), "the whole army in the capital is a loose end")
-	var g4 := TBGame.new(TBWorld.load_from("res://data"), TBWorld.load_era("res://data", "napoleonic"), {"seed": 3, "rules": 4})
+	var g4 := TBGame.new(TBWorld.load_from("res://data"), TBWorld.load_era("res://data", "napoleonic"), {"seed": 3})
 	g4.set_human(g4.nat_code.find("france"))
 	_check(TBLoose.scan(g4, g4.human_id).is_empty(), "rules 4: no loose ends (the check is a rules 5 feature)")
 	# End turn raises the card, once

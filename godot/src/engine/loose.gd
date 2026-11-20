@@ -7,7 +7,7 @@ static var IDS: Array = ["spread_army", "idle_gold", "idle_men", "no_general"]
 
 static func scan(g: TBGame, n: int) -> Array:
 	var out: Array = []
-	if g.rules < 5 or n <= 0 or g.alive[n] == 0: return out
+	if n <= 0 or g.alive[n] == 0: return out
 	var seen := {}
 	for a in TBAlertPrefs.filter(TBAdvisor.alerts(g, n)):
 		var id: String = String(a["id"])

@@ -23,7 +23,7 @@ static func index_of(id: String) -> int:
 	return -1
 
 static func level(g: TBGame, n: int, i: int) -> int:
-	if g.rules < 5 or n <= 0 or g.works.size() != g.N1 * COUNT: return 0
+	if n <= 0 or g.works.size() != g.N1 * COUNT: return 0
 	return g.works[n * COUNT + i]
 
 static func cost(g: TBGame, n: int, i: int) -> int:
@@ -32,7 +32,6 @@ static func cost(g: TBGame, n: int, i: int) -> int:
 
 ## "" or why not
 static func why_not(g: TBGame, n: int, i: int) -> String:
-	if g.rules < 5: return "rules"
 	if level(g, n, i) >= int(LIST[i]["max"]): return "max"
 	if g.gold[n] < float(cost(g, n, i)): return "gold"
 	if g.mp[n] + 0.0001 < MP_COST: return "mp"
@@ -61,7 +60,7 @@ static func trade_mul(g: TBGame, n: int) -> float: return 1.0 + _pct(g, n, "cana
 
 ## the AI's turn at the treasury: the work it wants most that it can pay for with three turns of income to spare
 static func ai_buy(g: TBGame, n: int, pers: Dictionary, at_war: bool) -> void:
-	if g.rules < 5 or g.mp[n] < MP_COST + 1.0: return
+	if g.mp[n] < MP_COST + 1.0: return
 	var income: float = float(g.income(n)["gold"])
 	var reserve: float = 3.0 * income
 	var rounds: int = 1 + (2 if g.gold[n] > 25.0 * income else 0)           # a realm sitting on twenty-five turns of income spends it faster

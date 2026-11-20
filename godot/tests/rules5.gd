@@ -9,7 +9,7 @@ func _init() -> void:
 	var w := TBWorld.load_from("res://data")
 	for e in ["ancient", "medieval", "napoleonic", "ww1", "modern"]:
 		var pack := TBWorld.load_era("res://data", e) if e != "modern" else {}
-		var g := TBGame.new(w, pack, {"seed": 5, "difficulty": "normal", "rules": 5})
+		var g := TBGame.new(w, pack, {"seed": 5, "difficulty": "normal"})
 		var off_cap := 0; var caps_with := 0
 		for p in g.P:
 			if g.army[p] > 0 and g.capital[p] == 0: off_cap += 1

@@ -9,7 +9,7 @@ static var T: Callable = TBI18n.T
 
 ## "occupied by X", or while a fortress holds out "besieged by X: n turns"
 static func _occ_text(g: TBGame, p: int) -> String:
-	if g.rules >= 4 and g.siege[p] > 0: return T.call("besieged_by", {"nation": g.dname(g.occupier[p]), "n": g.siege[p]})
+	if g.siege[p] > 0: return T.call("besieged_by", {"nation": g.dname(g.occupier[p]), "n": g.siege[p]})
 	return T.call("occupied_by", {"nation": g.dname(g.occupier[p])})
 
 ## `.cap` with the dossier's own size: 9.5 under the gauges
@@ -132,21 +132,20 @@ static func open(parent: Control, g: TBGame, p: int, on_cmd: Callable) -> TBPane
 	var seen: bool = TBVision.sees(g, p)
 	var rows: Array = [[T.call("army"), str(g.army[p]) if seen else "?"], [T.call("ins_defense"), str(g.defense[p]) if seen else "?"], [T.call("dev"), str(g.dev[p])], [T.call("econ"), str(g.econ[p])],
 		[T.call("terrain"), T.call("t_" + D.TERRAIN_ID[g.terrain[p]])]]
-	if g.rules >= 1:
-		rows.append([T.call("supply"), str(g.supply_limit(p))])
-		if g.rules >= 4 and g.owner[p] == me:
-			var ip: Dictionary = TBInvest.progress(g, p)
-			if g.proj_kind[p] != 0: rows.append([T.call("pj_" + TBInvest.project_id(g.proj_kind[p])), T.call("pj_turns_n", {"n": g.proj_left[p]}) if g.proj_left[p] != 1 else T.call("pj_turn_1"), ""])
-			rows.append([T.call("invest_econ"), T.call("invest_pct", {"n": int(roundf(float(ip["econ"]) * 100.0))}), ""])
-			rows.append([T.call("invest_dev"), T.call("invest_pct", {"n": int(roundf(float(ip["dev"]) * 100.0))}), ""])
-			if g.econ[p] > TBInvest.econ_potential(g, p) + 0.01: rows.append([T.call("invest_limit"), T.call("invest_limit_v"), "neg"])
-		if g.rules >= 4 and g.owner[p] == me: rows.append([T.call("levy"), "%d / %d" % [g.levy[p], g.levy_cap(p)], "neg" if g.levy_drained(p) else ""])
-		if g.attrition(p) > 0: rows.append([T.call("attrition"), str(g.attrition(p)), "neg"])
-		if g.gen[p] != 0: rows.append([T.call("general"), TBGenerals.display_name(g, p)])
-	if g.rules >= 4 and g.army[p] > 0 and g.controller(p) == me and g.owner[p] != me:
+	rows.append([T.call("supply"), str(g.supply_limit(p))])
+	if g.owner[p] == me:
+		var ip: Dictionary = TBInvest.progress(g, p)
+		if g.proj_kind[p] != 0: rows.append([T.call("pj_" + TBInvest.project_id(g.proj_kind[p])), T.call("pj_turns_n", {"n": g.proj_left[p]}) if g.proj_left[p] != 1 else T.call("pj_turn_1"), ""])
+		rows.append([T.call("invest_econ"), T.call("invest_pct", {"n": int(roundf(float(ip["econ"]) * 100.0))}), ""])
+		rows.append([T.call("invest_dev"), T.call("invest_pct", {"n": int(roundf(float(ip["dev"]) * 100.0))}), ""])
+		if g.econ[p] > TBInvest.econ_potential(g, p) + 0.01: rows.append([T.call("invest_limit"), T.call("invest_limit_v"), "neg"])
+	if g.owner[p] == me: rows.append([T.call("levy"), "%d / %d" % [g.levy[p], g.levy_cap(p)], "neg" if g.levy_drained(p) else ""])
+	if g.attrition(p) > 0: rows.append([T.call("attrition"), str(g.attrition(p)), "neg"])
+	if g.gen[p] != 0: rows.append([T.call("general"), TBGenerals.display_name(g, p)])
+	if g.army[p] > 0 and g.controller(p) == me and g.owner[p] != me:
 		var sd := g.supply_depth(p, me)
 		rows.append([T.call("supply_line"), ("%d+" if sd >= TBGame.SUPPLY_REACH else "%d") % sd, "neg" if sd >= TBGame.SUPPLY_REACH else ""])
 	if g.occupier[p] != 0: rows.append([T.call("cc_occupation"), _occ_text(g, p), "neg"])
-	if g.rules >= 4 and g.occupier[p] != 0 and g.siege[p] == 0: rows.append([T.call("resistance"), "%d / 100" % g.unrest[p], "neg" if g.unrest[p] >= 70 else ""])
+	if g.occupier[p] != 0 and g.siege[p] == 0: rows.append([T.call("resistance"), "%d / 100" % g.unrest[p], "neg" if g.unrest[p] >= 70 else ""])
 	body.add_child(K.ledger(rows))
 	return h

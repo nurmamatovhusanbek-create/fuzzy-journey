@@ -27,7 +27,6 @@ const LEADER_DRAG := 0.25               # research malus of a nation 1.5 levels 
 
 ## a nation's gross income share, tech stats and the era's goals; cheap enough to call every turn
 static func refresh_world(g: TBGame) -> void:
-	if g.rules < 1: return
 	var y := 0.0; var top := 0.0; var second := 0.0; var sum := 0.0; var cnt := 0
 	var best := 0.0
 	for n in range(1, g.N1):
@@ -39,12 +38,11 @@ static func refresh_world(g: TBGame) -> void:
 		elif t > second: second = t
 	g.world_y = y; g.tech_top = top; g.tech_second = second; g.tech_avg = sum / maxf(1.0, cnt)
 	if g.econ_goal <= 0.0 and y > 0.0:
-		g.econ_goal = clampf(1.8 * best / y, 0.10, 0.30 if g.rules < 5 else 0.90)      # the era's biggest economy must grow by ~80% to count as supreme (rules 5: real giants hold a third of the world's output, so the ceiling is higher)
+		g.econ_goal = clampf(1.8 * best / y, 0.10, 0.90)      # the era's biggest economy must grow by ~80% to count as supreme (rules 5: real giants hold a third of the world's output, so the ceiling is higher)
 	if g.tech_start_top <= 0.0: g.tech_start_top = top
 
 ## per-turn share of every treasury lost to inflation: the era's base rate plus a money-supply term
 static func inflation(g: TBGame) -> float:
-	if g.rules < 1: return 0.0
 	var m := 0.0
 	for n in range(1, g.N1):
 		if g.alive[n] != 0 and n != g.rebel: m += g.gold[n]
@@ -67,12 +65,11 @@ static func growth_parts(g: TBGame, p: int) -> Dictionary:
 static func stab_parts(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil: int, lands: int) -> Dictionary:
 	var tax: int = g.budget[n * 4]
 	var s_era: float = 30.0 + 15.0 * g.era[n]
-	if g.rules >= 4:
-		var dv := 0
-		for q in g.owned(n): dv += g.dev[q]
-		s_era += ADMIN_PER_DEV * float(dv)
+	var dv := 0
+	for q in g.owned(n): dv += g.dev[q]
+	s_era += ADMIN_PER_DEV * float(dv)
 	var over: float = clampf((lands - s_era) / s_era, 0.0, 1.5) * STAB_OVEREXT
-	return {"ceil": float(stab_ceil), "weary": -weary * 0.5, "tax": -0.4 * maxf(0.0, tax - 40.0), "over": -over, "war": -6.0 if at_war else 0.0, "ruler": TBRulers.stab_add(g, n) * 8.0, "works": TBWorks.stab_add(g, n) if g.rules >= 5 else 0.0, "identity": TBLineage.stab_add(g, n) if g.rules >= 5 else 0.0, "inst": TBInstitutions.stab_add(g, n) if g.rules >= 5 else 0.0, "estates": TBEstates.stab_add(g, n) if g.rules >= 5 else 0.0}
+	return {"ceil": float(stab_ceil), "weary": -weary * 0.5, "tax": -0.4 * maxf(0.0, tax - 40.0), "over": -over, "war": -6.0 if at_war else 0.0, "ruler": TBRulers.stab_add(g, n) * 8.0, "works": TBWorks.stab_add(g, n), "identity": TBLineage.stab_add(g, n), "inst": TBInstitutions.stab_add(g, n), "estates": TBEstates.stab_add(g, n)}
 
 static func stab_target(g: TBGame, n: int, weary: float, at_war: bool, stab_ceil: int, lands: int) -> float:
 	var pt := stab_parts(g, n, weary, at_war, stab_ceil, lands)
@@ -87,7 +84,6 @@ static func rebel_hazard(g: TBGame, p: int, base: float) -> float:
 
 ## the people that count for research. Rules 5: a state of 22 million real people (8,800 in the old table) as before, but ideas do not grow in step with heads (a China of 300 million does not learn fourteen times as fast): the square root of the size
 static func _research_pop(g: TBGame, pop: float) -> float:
-	if g.rules < 5: return pop
 	var peq: float = pop * float(g.scale) / 2500.0
 	return 8800.0 * sqrt(peq / 8800.0)
 
@@ -97,7 +93,7 @@ static func catchup(g: TBGame, n: int) -> float:
 	return 1.0 + CATCHUP_MAX * clampf((g.tech_top - tl) / 2.0, 0.0, 1.0) - LEADER_DRAG * clampf((tl - g.tech_avg) / 1.5, 0.0, 1.0)
 
 static func end_turn(g: TBGame) -> PackedInt32Array:
-	if g.rules >= 1: TBMarch.advance(g)
+	TBMarch.advance(g)
 	TBAI.run(g)
 	_tick(g)
 	rebel_turn(g)
@@ -106,25 +102,23 @@ static func end_turn(g: TBGame) -> PackedInt32Array:
 	if g.month_idx >= 12:
 		g.month_idx -= 12
 		g.year += 1
-	if g.rules >= 1:
-		TBGenerals.tick(g)
-		TBRulers.tick(g)
-		TBDiplo.tick(g)
-		TBTrade.maintain(g)
-		TBAsks.resolve(g)
-		TBStats.record(g)
-		TBRealms.tick(g)
-		TBInstitutions.tick(g)
-		TBEstates.tick(g)
-		TBEvents.run(g)
+	TBGenerals.tick(g)
+	TBRulers.tick(g)
+	TBDiplo.tick(g)
+	TBTrade.maintain(g)
+	TBAsks.resolve(g)
+	TBStats.record(g)
+	TBRealms.tick(g)
+	TBInstitutions.tick(g)
+	TBEstates.tick(g)
+	TBEvents.run(g)
 	check_victory(g)
 	return g.take_dirty()
 
 static func _tick(g: TBGame) -> void:
 	var P := g.P
 	var N1 := g.N1
-	if g.rules >= 4:
-		for p in P: g.worth_prev[p] = g.province_value(p)                                # the worth before this turn's growth: the ring's arrow is the difference
+	for p in P: g.worth_prev[p] = g.province_value(p)                                # the worth before this turn's growth: the ring's arrow is the difference
 	# NAP expiry
 	for k in g.nap_expiry.keys():
 		if g.nap_expiry[k] <= g.turn:
@@ -139,32 +133,25 @@ static func _tick(g: TBGame) -> void:
 	# defence accrual + construction (+ rules>=1: long occupation annexes the province)
 	for p in P:
 		var o := g.owner[p]
-		if g.rules >= 1:
-			var oc := g.occupier[p]
-			if oc != 0 and g.rules >= 4 and g.siege[p] > 0:                      # the garrison holds behind its walls: the siege ticks down, a strong host is quicker
-				var garrison: int = g.au(20.0) * g.bl(p, D.B_FORTRESS) * maxi(1, g.dev[p])
-				g.siege[p] -= 2 if g.army[p] >= 3 * garrison else 1
-				if g.siege[p] <= 0:
-					g.siege[p] = 0; g.occ_turns[p] = 0; g.occ_rev += 1
-					TBWar.earn(g, oc, o, TBWar.SIEGE_PTS + (TBWar.CAPITAL_PTS if g.capital[p] != 0 else 0.0))
-					if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "occupied", "a": oc, "b": o, "p": p})
-				g.touch(p)
-			elif oc != 0:
-				if g.occ_turns[p] < 250: g.occ_turns[p] += 1
-				if g.rules >= 4:                                                # land is only ever transferred by a treaty; meanwhile the people resist
-					if o != 0: TBWar.resist(g, p)
-				elif o != 0 and g.occ_turns[p] >= (10 if g.capital[p] != 0 else 5) and g.get_rel(o, oc) == D.REL_WAR:
-					if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "annexed", "a": oc, "b": o, "p": p})
-					g.cede(p, oc); g.army[p] = maxi(g.army[p], 6); g.stab[p] = mini(g.stab[p], 50); g.touch(p)
-					continue
-			else:
-				g.occ_turns[p] = 0
-		if g.rules >= 1 and g.army[p] > g.au(20.0):
+		var oc := g.occupier[p]
+		if oc != 0 and g.siege[p] > 0:                      # the garrison holds behind its walls: the siege ticks down, a strong host is quicker
+			var garrison: int = g.au(20.0) * g.bl(p, D.B_FORTRESS) * maxi(1, g.dev[p])
+			g.siege[p] -= 2 if g.army[p] >= 3 * garrison else 1
+			if g.siege[p] <= 0:
+				g.siege[p] = 0; g.occ_turns[p] = 0; g.occ_rev += 1
+				TBWar.earn(g, oc, o, TBWar.SIEGE_PTS + (TBWar.CAPITAL_PTS if g.capital[p] != 0 else 0.0))
+				if g.human[o] != 0 or g.human[oc] != 0 or g.capital[p] != 0: g.log.append({"turn": g.turn, "kind": "occupied", "a": oc, "b": o, "p": p})
+			g.touch(p)
+		elif oc != 0:
+			if g.occ_turns[p] < 250: g.occ_turns[p] += 1
+			if o != 0: TBWar.resist(g, p)
+		else:
+			g.occ_turns[p] = 0
+		if g.army[p] > g.au(20.0):
 			var lost := g.attrition(p)
-			if g.rules >= 4:
-				var c := g.controller(p)
-				if lost > 0 and c != 0: g.morale[c] = maxf(0.0, g.morale[c] - 0.5)         # a hungry army loses heart
-				if c != 0 and g.morale[c] < TBWar.BROKEN: lost += maxi(1, int(float(g.army[p]) * TBWar.DESERT))      # a broken army melts away
+			var c := g.controller(p)
+			if lost > 0 and c != 0: g.morale[c] = maxf(0.0, g.morale[c] - 0.5)         # a hungry army loses heart
+			if c != 0 and g.morale[c] < TBWar.BROKEN: lost += maxi(1, int(float(g.army[p]) * TBWar.DESERT))      # a broken army melts away
 			if lost > 0:
 				g.army[p] -= lost; g.touch(p)
 		if o != 0 and warflag[o] == 0 and g.defense[p] < DEF_CAP:
@@ -172,11 +159,8 @@ static func _tick(g: TBGame) -> void:
 		if g.b_building[p] != 0:
 			g.b_turns[p] -= 1
 			if g.b_turns[p] <= 0:
-				if g.rules >= 2: g.set_bl(p, g.b_building[p], g.bl(p, g.b_building[p]) + 1)
-				elif g.building[p] == g.b_building[p]: g.b_level[p] += 1
-				else:
-					g.building[p] = g.b_building[p]; g.b_level[p] = 1
-				if g.rules >= 2 and g.controller(p) != 0 and g.human[g.controller(p)] != 0: g.log.append({"turn": g.turn, "kind": "built", "a": g.controller(p), "p": p, "b": int(g.b_building[p]), "lv": g.bl(p, g.b_building[p])})
+				g.set_bl(p, g.b_building[p], g.bl(p, g.b_building[p]) + 1)
+				if g.controller(p) != 0 and g.human[g.controller(p)] != 0: g.log.append({"turn": g.turn, "kind": "built", "a": g.controller(p), "p": p, "b": int(g.b_building[p]), "lv": g.bl(p, g.b_building[p])})
 				g.b_building[p] = 0; g.touch(p)
 	var rebels_to_spawn: Array = []
 	g.infl = inflation(g)
@@ -187,23 +171,21 @@ static func _tick(g: TBGame) -> void:
 		if own.is_empty():
 			g.eliminate(n); continue
 		var inc := g.income(n)
-		if g.rules >= 3:                                                                      # persistent income: the surplus smoothed over ~7 turns (trade routes need it)
-			var e0: float = g.net_ema[n]
-			g.net_ema[n] = float(inc["net"]) if e0 == 0.0 else e0 * TBTrade.EMA_KEEP + float(inc["net"]) * (1.0 - TBTrade.EMA_KEEP)
+		var e0: float = g.net_ema[n]
+		g.net_ema[n] = float(inc["net"]) if e0 == 0.0 else e0 * TBTrade.EMA_KEEP + float(inc["net"]) * (1.0 - TBTrade.EMA_KEEP)
 		var reg: Dictionary = D.REGIMES[g.regime[n]]
 		var era: int = g.era[n]
 		var gold_before: float = g.gold[n]
 		g.gold[n] = maxf(0.0, g.gold[n] + inc["net"])
-		if g.rules >= 1 and n != g.rebel:
+		if n != g.rebel:
 			g.gold[n] *= 1.0 - g.infl                          # idle money loses value
 			y_sum += float(inc["gold"])
-		if g.rules >= 1 and g.human[n] != 0 and gold_before > 0.0 and g.gold[n] <= 0.0: g.log.append({"turn": g.turn, "kind": "bankrupt", "a": n})
-		if g.rules < 4: g.manpower[n] = minf(inc["manCap"], g.manpower[n] + inc["manpower"])          # rules 4: the people to raise live in the provinces (levy pools), the nation figure is their sum (below)
-		if g.rules >= 3 and g.human[n] != 0: g.mp[n] = minf(TBAdvisor.mp_cap(g, n), g.mp[n] + TBAdvisor.mp_gain(g, n))      # a human ruler's clerks grow with the realm
+		if g.human[n] != 0 and gold_before > 0.0 and g.gold[n] <= 0.0: g.log.append({"turn": g.turn, "kind": "bankrupt", "a": n})
+		if g.human[n] != 0: g.mp[n] = minf(TBAdvisor.mp_cap(g, n), g.mp[n] + TBAdvisor.mp_gain(g, n))      # a human ruler's clerks grow with the realm
 		else: g.mp[n] = minf(6 + era * 2, g.mp[n] + 1 + era * 0.4)
-		if g.rules >= 1 and g.human[n] == 0: g.mp[n] = minf(8 + era * 2, g.mp[n] + 1.2)    # AI acts less cleverly: extra action points
-		g.dp[n] = minf(4 + era * 2, g.dp[n] + 1 + era * 0.3 + (TBRulers.dp_add(g, n) if g.rules >= 1 else 0.0))
-		if g.rules >= 1: g.intel[n] = minf(20.0, g.intel[n] + 0.8 + minf(1.5, own.size() / 40.0))
+		if g.human[n] == 0: g.mp[n] = minf(8 + era * 2, g.mp[n] + 1.2)    # AI acts less cleverly: extra action points
+		g.dp[n] = minf(4 + era * 2, g.dp[n] + 1 + era * 0.3 + (TBRulers.dp_add(g, n)))
+		g.intel[n] = minf(20.0, g.intel[n] + 0.8 + minf(1.5, own.size() / 40.0))
 		var cap_shock: bool = inc["capLost"] and g.cap_lost[n] == 0
 		g.cap_lost[n] = 1 if inc["capLost"] else 0
 		var weary := 0.0
@@ -221,20 +203,19 @@ static func _tick(g: TBGame) -> void:
 				tot += v
 				if g.occupier[q] == n and g.siege[q] == 0: occ += v
 			var occ_pct: float = occ / (tot if tot != 0.0 else 1.0) * 100.0
-			g.war_score[i] = TBWar.score(g, n, o, occ_pct) if g.rules >= 4 else clampi(int(round(occ_pct)), 0, 100)
-		if g.rules >= 4:
-			var tpop := 0
-			for p in own: tpop += g.pop[p]
-			TBWar.tick(g, n, at_war, tpop)
-			weary = maxf(weary, TBWar.weary(g, n))
-		var stab_delta: float = ((-0.5 - weary / 100.0) if g.rules == 0 else (-0.15 - weary / 250.0)) if at_war else 2.0
-		if g.rules >= 1: stab_delta += TBRulers.stab_add(g, n)
+			g.war_score[i] = TBWar.score(g, n, o, occ_pct)
+		var tpop := 0
+		for p in own: tpop += g.pop[p]
+		TBWar.tick(g, n, at_war, tpop)
+		weary = maxf(weary, TBWar.weary(g, n))
+		var stab_delta: float = ((-0.15 - weary / 250.0)) if at_war else 2.0
+		stab_delta += TBRulers.stab_add(g, n)
 		var stab_goal := 0.0
 		var bud := n * 4
 		var tax: int = g.budget[bud]; var goods: int = g.budget[bud + 1]; var res_pct: int = g.budget[bud + 2]; var inv_pct: int = g.budget[bud + 3]
-		var happy_target := clampf(50.0 + (goods - 20) * 0.6 - maxf(0.0, tax - 50) * 0.5 - (8.0 if at_war else 0.0) - weary * 0.15 + (TBRulers.happy_add(g, n) if g.rules >= 1 else 0.0), 0.0, 100.0)
-		var invest_chance := inv_pct / 100.0 * 0.05 * (TBRulers.invest_mul(g, n) if g.rules >= 1 else 1.0)
-		g.research[n] += (D.tech_gain(_research_pop(g, float(inc["pop"])), res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) * catchup(g, n) * ((TBWorks.research_mul(g, n) * TBLineage.research_mul(g, n) * TBInstitutions.research_mul(g, n) * TBEstates.research_mul(g, n)) if g.rules >= 5 else 1.0) if g.rules >= 1 else 1.0)
+		var happy_target := clampf(50.0 + (goods - 20) * 0.6 - maxf(0.0, tax - 50) * 0.5 - (8.0 if at_war else 0.0) - weary * 0.15 + (TBRulers.happy_add(g, n)), 0.0, 100.0)
+		var invest_chance := inv_pct / 100.0 * 0.05 * (TBRulers.invest_mul(g, n))
+		g.research[n] += (D.tech_gain(_research_pop(g, float(inc["pop"])), res_pct) + inc["researchBonus"]) * (TBRulers.research_mul(g, n) * catchup(g, n) * ((TBWorks.research_mul(g, n) * TBLineage.research_mul(g, n) * TBInstitutions.research_mul(g, n) * TBEstates.research_mul(g, n))))
 		var need := _need(g, g.tech_level[n])
 		var era_before: int = g.era[n]
 		while g.research[n] >= need:
@@ -242,61 +223,49 @@ static func _tick(g: TBGame) -> void:
 			g.tech_level[n] = minf(5.0, round((g.tech_level[n] + D.TECH_STEP) * 100.0) / 100.0)
 			g.era[n] = mini(D.ERAS.size() - 1, int(floor(g.tech_level[n])))
 			need = _need(g, g.tech_level[n])
-		if g.rules >= 1 and g.era[n] > era_before and (g.human[n] != 0 or g.era[n] >= 3): g.log.append({"turn": g.turn, "kind": "era", "a": n, "k": g.era[n]})
+		if g.era[n] > era_before and (g.human[n] != 0 or g.era[n] >= 3): g.log.append({"turn": g.turn, "kind": "era", "a": n, "k": g.era[n]})
 		var dev_cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
 		var stab_ceil: int = reg["stabCeil"]
-		var rebel_chance: float = (reg["rebelChance"] + (REB_BASE if g.rules >= 1 else 0.0)) * (TBRulers.rebel_mul(g, n) if g.rules >= 1 else 1.0)
-		if g.rules >= 1: stab_goal = stab_target(g, n, weary, at_war, stab_ceil, own.size())
+		var rebel_chance: float = (reg["rebelChance"] + (REB_BASE)) * (TBRulers.rebel_mul(g, n))
+		stab_goal = stab_target(g, n, weary, at_war, stab_ceil, own.size())
 		var spawned := 0
 		for p in own:
 			if cap_shock: g.stab[p] = maxi(5, g.stab[p] - 20)
 			if g.occupier[p] != 0: g.stab[p] = maxi(5, g.stab[p] - 1)
-			if g.rules >= 1:
-				if g.core[p] != n and g.core[p] != 0 and g.turn - g.own_since[p] >= ASSIMILATE_TURNS: g.core[p] = n; g.touch(p)           # time makes it home
-				var goal_p: float = stab_goal - (CONQUEST_UNREST if (g.core[p] != n and g.core[p] != 0) else 0.0)
-				g.stab[p] = clampi(g.stab[p] + int(round(clampf(goal_p - g.stab[p], -STAB_SPEED_DOWN, STAB_SPEED_UP))), 5, stab_ceil)
-			else: g.stab[p] = int(maxf(5.0, minf(stab_ceil, g.stab[p] + stab_delta)))
+			if g.core[p] != n and g.core[p] != 0 and g.turn - g.own_since[p] >= ASSIMILATE_TURNS: g.core[p] = n; g.touch(p)           # time makes it home
+			var goal_p: float = stab_goal - (CONQUEST_UNREST if (g.core[p] != n and g.core[p] != 0) else 0.0)
+			g.stab[p] = clampi(g.stab[p] + int(round(clampf(goal_p - g.stab[p], -STAB_SPEED_DOWN, STAB_SPEED_UP))), 5, stab_ceil)
 			var h: int = g.happy[p]
 			var diff := happy_target - h
 			g.happy[p] = int(maxf(0.0, minf(100.0, h + signf(diff) * minf(2.0, absf(diff)))))
 			var stab_mod := 0.5 + g.stab[p] / 200.0
 			var farm := 1.0 + 0.05 * g.bl(p, D.B_FARM)
 			var growth := int(floor(g.pop[p] * 0.01 * (g.happy[p] / 100.0) * stab_mod * farm))
-			if g.rules >= 5: growth = int(growth_parts(g, p)["growth"])           # real growth by technology, a ceiling the land can feed, famine above it (docs/RULES5_REALISM.md)
-			if g.rules >= 4:                                                      # a province drained of its young men grows slowly and sulks; a held one does not refill
-				if g.levy_drained(p):
-					growth /= 2
-					g.happy[p] = maxi(0, g.happy[p] - 1)
-				if g.occupier[p] == 0: g.levy[p] = mini(g.levy_cap(p), g.levy[p] + g.levy_gain(p))
-			if g.rules >= 5: g.pop[p] = maxi(5, g.pop[p] + growth)
-			elif growth > 0: g.pop[p] = mini(2000, g.pop[p] + growth)
-			if g.rules >= 4: TBInvest.tick_project(g, p)                                          # a running project moves one turn closer
-			if g.rules >= 4: TBInvest.step(g, p, invest_chance, dev_cap)                         # progress bars, shrinking returns (docs/PROVINCE_WORTH.md)
-			else:
-				if g.econ[p] < 5 and g.rng.next() < invest_chance: g.econ[p] += 1
-				if g.dev[p] < dev_cap and g.rng.next() < invest_chance * (0.5 if g.rules < 2 else 0.15) and (g.rules < 2 or g.job_fill(p, g.dev[p] + 1) >= 0.9): g.dev[p] += 1       # districts: slow organic growth, and only where the people are there to staff it
-			if g.rules >= 1:
-				if rebel_chance > 0.0 and g.capital[p] == 0 and (g.rules < 4 or g.occupier[p] == 0) and spawned < REB_MAX_PER_TURN and g.stab[p] < REB_THRESHOLD and g.rng.next() < rebel_hazard(g, p, rebel_chance):
-					rebels_to_spawn.append(p); spawned += 1
-			elif rebel_chance > 0.0 and g.capital[p] == 0 and g.stab[p] < 30 and g.rng.next() < rebel_chance:
-				rebels_to_spawn.append(p)
+			growth = int(growth_parts(g, p)["growth"])           # real growth by technology, a ceiling the land can feed, famine above it (docs/RULES5_REALISM.md)
+			if g.levy_drained(p):
+				growth /= 2
+				g.happy[p] = maxi(0, g.happy[p] - 1)
+			if g.occupier[p] == 0: g.levy[p] = mini(g.levy_cap(p), g.levy[p] + g.levy_gain(p))
+			g.pop[p] = maxi(5, g.pop[p] + growth)
+			TBInvest.tick_project(g, p)                                          # a running project moves one turn closer
+			TBInvest.step(g, p, invest_chance, dev_cap)                         # progress bars, shrinking returns (docs/PROVINCE_WORTH.md)
+			if rebel_chance > 0.0 and g.capital[p] == 0 and (g.occupier[p] == 0) and spawned < REB_MAX_PER_TURN and g.stab[p] < REB_THRESHOLD and g.rng.next() < rebel_hazard(g, p, rebel_chance):
+				rebels_to_spawn.append(p); spawned += 1
 		if g.gold[n] <= 0 and inc["net"] < 0:
 			for p in own:
 				if g.army[p] > 0: g.army[p] = maxi(1, int(floor(g.army[p] * 0.95)))
-		if g.rules >= 4:
-			g.normalize_levy(n)
-			g.manpower[n] = float(g.levy_total(n))
+		g.normalize_levy(n)
+		g.manpower[n] = float(g.levy_total(n))
 	for p in rebels_to_spawn:
 		spawn_rebel(g, p)
-	if g.rules >= 1:
-		g.world_y = y_sum
-		var top := 0.0; var second := 0.0; var sum := 0.0; var cnt := 0
-		for n in range(1, N1):
-			if g.alive[n] == 0 or n == g.rebel: continue
-			var t: float = g.tech_level[n]; sum += t; cnt += 1
-			if t > top: second = top; top = t
-			elif t > second: second = t
-		g.tech_top = top; g.tech_second = second; g.tech_avg = sum / maxf(1.0, cnt)
+	g.world_y = y_sum
+	var top := 0.0; var second := 0.0; var sum := 0.0; var cnt := 0
+	for n in range(1, N1):
+		if g.alive[n] == 0 or n == g.rebel: continue
+		var t: float = g.tech_level[n]; sum += t; cnt += 1
+		if t > top: second = top; top = t
+		elif t > second: second = t
+	g.tech_top = top; g.tech_second = second; g.tech_avg = sum / maxf(1.0, cnt)
 	# vassals
 	for n in range(1, N1):
 		var ov := g.overlord[n]
@@ -325,19 +294,15 @@ const TECH_LATE_GROWTH := 1.01
 static func tech_need(g: TBGame, lvl: float) -> int: return _need(g, lvl)
 
 static func _need(g: TBGame, lvl: float) -> int:
-	if g.rules >= 3:                                                      # rules 3: the early levels keep their cost, the late ones grow slowly (1 % a tenth of a level above level 2.5, not 8 %): research still buys something in the modern era
-		var low: float = minf(lvl, TECH_FLAT_FROM)
-		return maxi(1, int(float(D.tech_needed(low)) * 0.4 * pow(TECH_LATE_GROWTH, maxf(0.0, lvl - TECH_FLAT_FROM) * 10.0)))
-	var base := D.tech_needed(lvl)
-	return base if g.rules == 0 else maxi(1, int(base * 0.4))
+	var low: float = minf(lvl, TECH_FLAT_FROM)
+	return maxi(1, int(float(D.tech_needed(low)) * 0.4 * pow(TECH_LATE_GROWTH, maxf(0.0, lvl - TECH_FLAT_FROM) * 10.0)))
 
 static func spawn_rebel(g: TBGame, p: int) -> void:
 	var former := g.owner[p]
 	if former == 0: return
 	g.cede(p, g.rebel)
 	g.set_alive(g.rebel, 1)
-	if g.rules >= 5: g.army[p] = maxi(g.au(8.0), int(float(g.pop[p]) * 0.02))             # a militia of the province's own men
-	else: g.army[p] = maxi(g.army[p], 8) if g.rules < 1 else clampi(g.army[p], 8, 30)
+	g.army[p] = maxi(g.au(8.0), int(float(g.pop[p]) * 0.02))             # a militia of the province's own men
 	g.stab[p] = 55; g.happy[p] = 50
 	g.set_rel(g.rebel, former, D.REL_WAR)
 	g.last_war_turn[g.rebel] = g.turn
@@ -351,11 +316,11 @@ static func rebel_turn(g: TBGame) -> void:
 	var own := g.owned(r)
 	if own.is_empty():
 		g.set_alive(r, 0); return
-	if g.rules >= 1: _rebel_lifecycle(g, own)
+	_rebel_lifecycle(g, own)
 	for p in own:
 		if g.owner[p] != r: continue
 		if g.army[p] < g.au(4.0) or not g.rng.chance(0.35): continue
-		if g.rules >= 1 and g.reb_age[p] > REB_MOMENTUM: continue          # an old uprising holds what it has instead of spreading
+		if g.reb_age[p] > REB_MOMENTUM: continue          # an old uprising holds what it has instead of spreading
 		var tgt := -1; var weakest := 1000000000
 		for i in range(g.nb_off[p], g.nb_off[p + 1]):
 			var q := g.nb[i]
@@ -376,18 +341,18 @@ static func _rebel_lifecycle(g: TBGame, own: PackedInt32Array) -> void:
 		if g.owner[p] != r: continue
 		if g.reb_age[p] < 255: g.reb_age[p] += 1
 		var former: int = g.reb_from[p]
-		var floor_n: int = 6 + g.pop[p] / 200 if g.rules < 5 else g.au(6.0) + g.pop[p] / 200                                   # a militia the land can feed
+		var floor_n: int = g.au(6.0) + g.pop[p] / 200                                   # a militia the land can feed
 		if g.army[p] > floor_n:
 			g.army[p] -= int(ceil((g.army[p] - floor_n) * 0.04)); g.touch(p)     # no pay, no supply: rebel armies melt away
 		var gone: bool = former <= 0 or g.alive[former] == 0
 		if not gone and g.reb_age[p] >= 6 and g.army[p] < g.au(20.0) and g.occupier[p] == 0:
 			var cap := g.capital_of[former]
 			var calm: float = clampf((g.stab[cap] if cap >= 0 else 40) / 60.0, 0.0, 1.2)
-			if g.rng.chance(REB_RECON * calm * (2.0 if g.rules >= 4 else 1.0)):
+			if g.rng.chance(REB_RECON * calm * (2.0)):
 				g.cede(p, former); g.stab[p] = 45; g.happy[p] = mini(100, g.happy[p] + 10); g.army[p] = maxi(1, g.army[p] / 2); g.touch(p)
 				g.log.append({"turn": g.turn, "kind": "reconciled", "a": former, "p": p})
 				continue
-		if gone or g.reb_age[p] >= (REB_DISSOLVE if g.rules < 4 else REB_DISSOLVE * 2 / 3):
+		if gone or g.reb_age[p] >= (REB_DISSOLVE * 2 / 3):
 			var was := former
 			g.set_owner(p, 0); g.occupier[p] = 0; g.stab[p] = 50; g.army[p] = maxi(2, g.army[p] / 3); g.touch(p)
 			g.log.append({"turn": g.turn, "kind": "rebels_end", "a": was, "p": p})
@@ -412,13 +377,13 @@ const DIPLOMATIC_SHARE := 0.05            # in the largest eras (250 nations) 8 
 
 ## the paths that end the game (rules >= 3 leaves out the diplomatic one, which is an achievement)
 static func win_ids(g: TBGame) -> Array:
-	return WIN_IDS_3 if g.rules >= 3 else VICTORY_IDS
+	return WIN_IDS_3
 
 static func _hold_key(n: int, id: String) -> String: return "%d:%s" % [n, id]
 
 ## how many turns in a row n has held the condition of `id`, and how many it takes (rules >= 3; need 0 = no holding needed)
 static func hold_status(g: TBGame, n: int, id: String) -> Vector2i:
-	if g.rules < 3 or not HOLD.has(id): return Vector2i(0, 0)
+	if not HOLD.has(id): return Vector2i(0, 0)
 	return Vector2i(int(g.vic_hold.get(_hold_key(n, id), 0)), int(HOLD[id]))
 
 ## the share of the world's land and people that n commands (a vassal's counts at VASSAL_WEIGHT)
@@ -448,9 +413,8 @@ static func raw_progress(g: TBGame, n: int) -> Dictionary:
 		var rival: float = g.tech_second if g.tech_level[n] >= g.tech_top else g.tech_top
 		tech = clampf(minf(g.tech_level[n] / 5.0, (g.tech_level[n] - rival) / TECH_LEAD), 0.0, 1.0)
 	var dom: float = clampf(float(g.own_count(n)) / g.P / DOMINATION_SHARE, 0.0, 1.0)
-	if g.rules >= 3:
-		var sh := reach_shares(g, n)
-		dom = clampf(minf(sh.x / DOMINATION_SHARE, sh.y / DOMINATION_POP), 0.0, 1.0)
+	var sh := reach_shares(g, n)
+	dom = clampf(minf(sh.x / DOMINATION_SHARE, sh.y / DOMINATION_POP), 0.0, 1.0)
 	return {
 		"domination": dom,
 		"economic": clampf(econ, 0.0, 1.0 if g.turn >= ECONOMIC_MIN_TURN else 0.99),
@@ -462,10 +426,9 @@ static func raw_progress(g: TBGame, n: int) -> Dictionary:
 ## what the goals screen shows: the conditions, with a position that has not yet been held long enough kept just short of complete (rules >= 3)
 static func victory_progress(g: TBGame, n: int) -> Dictionary:
 	var pr := raw_progress(g, n)
-	if g.rules >= 3:
-		for id in HOLD.keys():
-			var hs := hold_status(g, n, id)
-			if float(pr[id]) >= 1.0 and hs.x < hs.y: pr[id] = 0.99
+	for id in HOLD.keys():
+		var hs := hold_status(g, n, id)
+		if float(pr[id]) >= 1.0 and hs.x < hs.y: pr[id] = 0.99
 	return pr
 
 ## once a turn, after the world has moved: count how long each condition has been held in a row
@@ -484,22 +447,13 @@ static func check_victory(g: TBGame) -> void:
 		if g.alive[h] != 0: alive_humans += 1
 	if alive_humans == 0:
 		g.over = true; g.winner = 0; g.victory_kind = ""; g.log.append({"turn": g.turn, "kind": "defeat", "a": hs[0]}); return
-	if g.rules == 0:
-		var total := 0
-		for p in g.P:
-			if g.owner[p] != 0: total += 1
-		for h in hs:
-			if g.alive[h] == 0: continue
-			if float(g.own_count(h)) / (total if total != 0 else 1) >= 0.6:
-				g.over = true; g.winner = h; g.victory_kind = "domination"; g.log.append({"turn": g.turn, "kind": "victory", "a": h}); return
-		return
 	for h in hs:
 		if g.alive[h] == 0: continue
 		var prog := raw_progress(g, h)
-		if g.rules >= 3: _count_holds(g, h, prog)
+		_count_holds(g, h, prog)
 		for id in win_ids(g):
 			var met: bool = prog[id] >= 1.0 and not (id == "technological" and g.tech_level[h] < 5.0)
-			if met and g.rules >= 3 and HOLD.has(id): met = hold_status(g, h, id).x >= int(HOLD[id])
+			if met and HOLD.has(id): met = hold_status(g, h, id).x >= int(HOLD[id])
 			if met:
 				g.over = true; g.winner = h; g.victory_kind = id
 				g.log.append({"turn": g.turn, "kind": "victory", "a": h, "id": id}); return

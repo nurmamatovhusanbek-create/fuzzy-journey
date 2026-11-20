@@ -14,7 +14,7 @@ const PATIENCE := 70                  # turns of war after which an unmet aim is
 static var IDS: Array = ["none", "nation", "region", "vassal", "humble"]
 
 static func kind_of(g: TBGame, n: int, t: int) -> int:
-	if g.rules < 5 or n <= 0 or g.aim_kind.size() != g.N1: return NONE
+	if n <= 0 or g.aim_kind.size() != g.N1: return NONE
 	return g.aim_kind[n] if g.aim_t[n] == t else NONE
 
 ## the aim a state declares war with
@@ -31,7 +31,7 @@ static func pick(g: TBGame, n: int, t: int) -> int:
 	return HUMBLE
 
 static func set_aim(g: TBGame, n: int, t: int, kind: int) -> void:
-	if g.rules < 5 or g.aim_kind.size() != g.N1: return
+	if g.aim_kind.size() != g.N1: return
 	g.aim_kind[n] = kind; g.aim_t[n] = t; g.aim_since[n] = g.turn
 
 static func clear(g: TBGame, n: int) -> void:

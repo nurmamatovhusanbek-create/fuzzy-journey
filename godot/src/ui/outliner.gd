@@ -24,7 +24,7 @@ static func rows(g: TBGame, me: int, cfg: Dictionary) -> Dictionary:
 	var out := {"projects": [], "armies": [], "wars": [], "pins": []}
 	for p in g.owned(me):
 		var pn: String = TBI18n.place(g.pname(p))
-		if g.rules >= 4 and g.proj_kind[p] != 0:
+		if g.proj_kind[p] != 0:
 			out["projects"].append([T.call("ol_project_row", {"p": pn, "k": T.call("pj_" + TBInvest.project_id(g.proj_kind[p])), "t": g.proj_left[p]}), p])
 		if g.b_building[p] != 0:
 			out["projects"].append([T.call("ol_build_row", {"p": pn, "b": T.call("b_" + TBData.BUILDINGS[g.b_building[p] - 1]["id"]), "t": g.b_turns[p]}), p])

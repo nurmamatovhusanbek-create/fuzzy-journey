@@ -10,7 +10,6 @@ static var T: Callable = TBI18n.T
 ## the allies of `me` that can be asked to fight `enemy` now
 static func callable_allies(g: TBGame, me: int, enemy: int) -> Array:
 	var out: Array = []
-	if g.rules < 4: return out
 	for o in range(1, g.N1):
 		if g.alive[o] != 0 and TBWar.call_why(g, me, o, enemy) == "": out.append(o)
 	return out

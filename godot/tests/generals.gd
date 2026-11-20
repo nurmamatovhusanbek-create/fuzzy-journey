@@ -29,7 +29,7 @@ func _init() -> void:
 	if g.gen[p] != 0: fails += 1
 	g.set_owner(p, o)
 	# rules 0 untouched
-	var g0 := TBGame.new(w, TBWorld.load_era("res://data", "gunpowder"), {"seed": 8, "rules": 0})
+	var g0 := TBGame.new(w, TBWorld.load_era("res://data", "gunpowder"), {"seed": 8})
 	g0.set_human(a); g0.gold[a] = 1000
 	if g0.apply({"cmd": "appoint", "n": a, "p": g0.owned(a)[0]})["ok"]: fails += 1
 	# long game: generals appear, rise, fall; counts never exceed the cap

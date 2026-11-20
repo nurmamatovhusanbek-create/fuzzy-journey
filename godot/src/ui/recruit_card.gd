@@ -65,7 +65,7 @@ func open(game: TBGame, province: int, what: String = "recruit") -> void:
 	if not picker.changed.is_connected(_on_amount): picker.changed.connect(_on_amount)
 	TBKit.a11y(_ok, verb, "button"); TBKit.a11y(_cancel, T.call("pv_cancel"), "button")
 	_ok.tooltip_text = verb; _cancel.tooltip_text = T.call("pv_cancel")
-	picker.tooltip_text = T.call("rc_ready", {"k": g.levy[p], "c": g.levy_cap(p)}) if (g.rules >= 4 and kind in ["recruit", "raise"]) else ""
+	picker.tooltip_text = T.call("rc_ready", {"k": g.levy[p], "c": g.levy_cap(p)}) if (kind in ["recruit", "raise"]) else ""
 	_on_amount(picker.value)
 	visible = true
 	reset_size()

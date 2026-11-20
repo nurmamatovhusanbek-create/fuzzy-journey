@@ -46,7 +46,7 @@ func setup(g: TBGame, n: int, anchor: Vector2, env: Dictionary) -> void:
 	var tv := VBoxContainer.new(); tv.add_theme_constant_override("separation", 6); tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var nl: Label = K.wrappable(K.title(g.dname(n), 19, TBTokens.c("ink_0"), 0.06, 19.0 * 1.15))
 	tv.add_child(nl)
-	if g.rules >= 1 and g.r_name[n] != "":
+	if g.r_name[n] != "":
 		tv.add_child(K.para_bz("[i]%s %s[/i]" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], 15.0, 1.25))
 	top.add_child(tv)
 	v.add_child(top)

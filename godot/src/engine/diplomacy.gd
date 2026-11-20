@@ -14,12 +14,11 @@ const DECAY := 0.45
 
 ## "" = no casus belli. Order matters: the cheapest justification wins.
 static func cb(g: TBGame, n: int, t: int) -> String:
-	if g.rules < 1: return ""
 	if t == g.rebel or n == g.rebel: return "rebels"
 	if g.coalition[t] != 0 and not g.friendly(n, t) and g.overlord[n] != t: return "coalition"
 	for p in g.owned(t):
 		if g.core[p] == n: return "reclaim"
-		if g.rules >= 5 and not g.claim.is_empty() and g.claim[p] == n: return "claim"
+		if not g.claim.is_empty() and g.claim[p] == n: return "claim"
 	if g.grudge[n * g.N1 + t] >= 40: return "revenge"
 	for o in range(1, g.N1):
 		if g.alive[o] != 0 and g.get_rel(n, o) == D.REL_ALLY and g.get_rel(o, t) == D.REL_WAR: return "ally"
@@ -29,14 +28,14 @@ static func cb(g: TBGame, n: int, t: int) -> String:
 static func on_declare(g: TBGame, n: int, t: int, ult: bool = false) -> String:
 	if ult: return "ultimatum"                # the demand itself was the justification
 	var k := cb(g, n, t)
-	if g.rules >= 1 and k == "": g.infamy[n] = minf(100.0, g.infamy[n] + NO_CB_INFAMY)
+	if k == "": g.infamy[n] = minf(100.0, g.infamy[n] + NO_CB_INFAMY)
 	return k
 
 static func on_land_taken(g: TBGame, p: int, from: int, to: int) -> void:
-	if g.rules < 1 or from == 0 or to == 0 or from == g.rebel or to == g.rebel: return
-	if g.core[p] == to or (g.rules >= 5 and not g.claim.is_empty() and g.claim[p] == to): return              # taking back your own (or claimed) land is not aggression
+	if from == 0 or to == 0 or from == g.rebel or to == g.rebel: return
+	if g.core[p] == to or (not g.claim.is_empty() and g.claim[p] == to): return              # taking back your own (or claimed) land is not aggression
 	g.infamy[to] = minf(100.0, g.infamy[to] + LAND_INFAMY)
-	if g.rules >= 3: hurt(g, from, to, LAND_GRUDGE)
+	hurt(g, from, to, LAND_GRUDGE)
 
 ## per turn: decay and coalition hysteresis
 static func tick(g: TBGame) -> void:
@@ -76,7 +75,7 @@ static func tie(g: TBGame, o: int, t: int) -> float:
 	if r == D.REL_ALLY: w = TIE_ALLY
 	elif r == D.REL_MARRIAGE: w = TIE_KIN
 	if g.overlord[o] == t or g.overlord[t] == o: w = maxf(w, TIE_LIEGE)
-	if w < TIE_TRADE and g.rules >= 1 and TBTrade.has(g, o, t): w = TIE_TRADE
+	if w < TIE_TRADE and TBTrade.has(g, o, t): w = TIE_TRADE
 	return w
 
 static func _add_grudge(g: TBGame, a: int, b: int, delta: int) -> void:
@@ -88,7 +87,7 @@ static func _add_grudge(g: TBGame, a: int, b: int, delta: int) -> void:
 ## and the victim's enemies take the other side by a quarter. Below rules 3 this is just the victim's grudge, as it always was.
 static func hurt(g: TBGame, victim: int, offender: int, amount: int) -> void:
 	_add_grudge(g, victim, offender, amount)
-	if g.rules < 3 or amount <= 0 or victim == offender: return
+	if amount <= 0 or victim == offender: return
 	var top := 0; var top_n := 0; var count := 0
 	for o in range(1, g.N1):
 		if o == victim or o == offender or g.alive[o] == 0 or o == g.rebel: continue
@@ -108,7 +107,7 @@ static func hurt(g: TBGame, victim: int, offender: int, amount: int) -> void:
 ## `actor` made friends with `partner` (amount = how much of a bond it is): the partner's friends warm to the actor; when the bond is military (an alliance or a marriage), the
 ## partner's enemies grow wary of the actor.
 static func befriend(g: TBGame, actor: int, partner: int, amount: int, military: bool) -> void:
-	if g.rules < 3 or amount <= 0 or actor == partner: return
+	if amount <= 0 or actor == partner: return
 	for o in range(1, g.N1):
 		if o == actor or o == partner or g.alive[o] == 0 or o == g.rebel: continue
 		var w := tie(g, o, partner)
@@ -130,14 +129,12 @@ static func ally_count(g: TBGame, n: int) -> int:
 
 ## "" = both courts have room for one more alliance; "mine" / "theirs" = whose court is full (rules >= 3)
 static func ally_room(g: TBGame, a: int, b: int) -> String:
-	if g.rules < 3: return ""
 	if ally_count(g, a) >= max_allies(g, a): return "mine"
 	if ally_count(g, b) >= max_allies(g, b): return "theirs"
 	return ""
 
 ## a broken oath costs standing with everyone (rules >= 3)
 static func oath_broken(g: TBGame, n: int, was: int) -> void:
-	if g.rules < 3: return
 	g.infamy[n] = minf(100.0, g.infamy[n] + (BREAK_ALLY_INFAMY if was == D.REL_ALLY else BREAK_NAP_INFAMY))
 
 # ---------------------------------------------------------------- contact (rules >= 4): who deals with whom
@@ -185,7 +182,6 @@ static func shared_concern(g: TBGame, a: int, b: int) -> bool:
 
 ## rules >= 4: may a and b deal at all? "" | "nocontact" (they do not know of each other) | "toofar" (a royal marriage needs a near court). Used by the commands, the previews and the offers.
 static func deal_why(g: TBGame, a: int, b: int, what: String) -> String:
-	if g.rules < 4: return ""
 	var c := contact(g, a, b)
 	if c == "none": return "nocontact"
 	if what == "marry" and c == "far": return "toofar"
@@ -210,7 +206,6 @@ static func offer_fit(g: TBGame, from: int, to: int, what: String) -> float:
 ##   dv_untried (an alliance or marriage only): no track record between them (no pact, no trade, no marriage and no common war): -0.45
 static func loyalty_terms(g: TBGame, t: int, p: int) -> Array:
 	var out: Array = []
-	if g.rules < 3: return out
 	var hit := 0.0
 	if g.war_cnt[p] == 0: return out                                   # at war with no one: nobody's friend is hit (and the courts ask this many times a turn)
 	for o in range(1, g.N1):
@@ -221,15 +216,12 @@ static func loyalty_terms(g: TBGame, t: int, p: int) -> Array:
 
 static func pact_terms(g: TBGame, t: int, p: int, rel: int) -> Array:
 	var out: Array = loyalty_terms(g, t, p)
-	if g.rules < 3: return out
-	if g.rules >= 4:                                                      # a pact with a country across the world means little to a court
-		var cc := contact(g, t, p)
-		var ally: bool = rel == D.REL_ALLY
-		var pen: float = {"border": 0.0, "near": -0.15 if ally else 0.0, "far": -0.7 if ally else -0.3, "none": -1.5 if ally else -0.9}[cc]
-		if pen != 0.0: out.append(["dv_far", pen])
-	if g.rules >= 4:                                                      # prestige: a country with high standing is a friend worth having, a weak one is not (TBStanding: worth, land, learning, income)
-		var sd: float = STANDING_PACT * float(TBStanding.stars(g, p) - 3)
-		if sd != 0.0: out.append(["dv_standing", sd])
+	var cc := contact(g, t, p)
+	var ally: bool = rel == D.REL_ALLY
+	var pen: float = {"border": 0.0, "near": -0.15 if ally else 0.0, "far": -0.7 if ally else -0.3, "none": -1.5 if ally else -0.9}[cc]
+	if pen != 0.0: out.append(["dv_far", pen])
+	var sd: float = STANDING_PACT * float(TBStanding.stars(g, p) - 3)
+	if sd != 0.0: out.append(["dv_standing", sd])
 	var common := 0.0
 	for o in range(1, g.N1):
 		if o == t or o == p or g.alive[o] == 0 or o == g.rebel: continue
@@ -249,19 +241,18 @@ static func pact_terms(g: TBGame, t: int, p: int, rel: int) -> Array:
 const DP_MARRY := 3
 
 static func can_marry(g: TBGame, a: int, b: int) -> bool:
-	if g.rules < 1 or a == b or a == g.rebel or b == g.rebel or g.alive[a] == 0 or g.alive[b] == 0: return false
+	if a == b or a == g.rebel or b == g.rebel or g.alive[a] == 0 or g.alive[b] == 0: return false
 	var r := g.get_rel(a, b)
-	if g.rules >= 4 and deal_why(g, a, b, "marry") != "": return false
+	if deal_why(g, a, b, "marry") != "": return false
 	return (r == D.REL_PEACE or r == D.REL_NAP) and TBRulers.is_hereditary(g, a) and TBRulers.is_hereditary(g, b) and g.overlord[a] == 0 and g.overlord[b] == 0
 
 ## the dynastic part of can_marry without the distance (for tests and previews)
 static func can_marry_ignoring_distance(g: TBGame, a: int, b: int) -> bool:
-	if g.rules < 1 or a == b or a == g.rebel or b == g.rebel or g.alive[a] == 0 or g.alive[b] == 0: return false
+	if a == b or a == g.rebel or b == g.rebel or g.alive[a] == 0 or g.alive[b] == 0: return false
 	var r := g.get_rel(a, b)
 	return (r == D.REL_PEACE or r == D.REL_NAP) and TBRulers.is_hereditary(g, a) and TBRulers.is_hereditary(g, b) and g.overlord[a] == 0 and g.overlord[b] == 0
 
 static func marry(g: TBGame, n: int, t: int, force: bool = false) -> Dictionary:
-	if g.rules < 1: return {"ok": false, "err": "rules"}
 	var dw := deal_why(g, n, t, "marry")
 	if dw != "": return {"ok": false, "err": dw}
 	if not can_marry(g, n, t): return {"ok": false, "err": "state"}
@@ -289,9 +280,9 @@ static func on_succession(g: TBGame, n: int, rng: TBRng) -> void:
 		return
 
 static func ai_marry(g: TBGame, n: int) -> void:
-	if g.rules < 1 or g.dp[n] < DP_MARRY + 1.0 or g.rng.next() > 0.04 or not TBRulers.is_hereditary(g, n): return
+	if g.dp[n] < DP_MARRY + 1.0 or g.rng.next() > 0.04 or not TBRulers.is_hereditary(g, n): return
 	for o in range(1, g.N1):
-		if o != n and can_marry(g, n, o) and g.human[o] == 0 and g.own_count(o) >= 6 and (g.rules < 4 or offer_fit(g, n, o, "marry") >= 0.5):
+		if o != n and can_marry(g, n, o) and g.human[o] == 0 and g.own_count(o) >= 6 and (offer_fit(g, n, o, "marry") >= 0.5):
 			marry(g, n, o); return
 
 
@@ -304,7 +295,7 @@ static func _offer_valid(g: TBGame, from: int, to: int, what: String) -> bool:
 		"ally": return (r == D.REL_NAP or (r == D.REL_PEACE and g.dp[from] >= D.DP_ALLY)) and ally_room(g, from, to) == ""
 		"trade":
 			if not (r != D.REL_WAR and not TBTrade.has(g, from, to) and g.trade_cnt[from] < TBTrade.max_deals(g, from) and g.trade_cnt[to] < TBTrade.max_deals(g, to)): return false
-			if g.rules >= 3 and g.human[from] == 0:                                    # the court that offers a route is the one that pays for it, so it must be able to
+			if g.human[from] == 0:                                    # the court that offers a route is the one that pays for it, so it must be able to
 				var v := TBTrade.yield_of(g, from, to)
 				return g.gold[from] >= float(TBTrade.fee_gold(v, g, from)) and g.manpower[from] >= float(TBTrade.fee_men(v, g)) and float(TBTrade.means(g, from, v)["m"]) >= 0.4
 			return true
@@ -314,7 +305,7 @@ static func _offer_valid(g: TBGame, from: int, to: int, what: String) -> bool:
 
 ## rules >= 3: the AI court that proposed a route pays for it
 static func _pay_route(g: TBGame, from: int, to: int) -> void:
-	if g.rules < 3 or g.human[from] != 0: return
+	if g.human[from] != 0: return
 	var v := TBTrade.yield_of(g, from, to)
 	g.gold[from] = maxf(0.0, g.gold[from] - float(TBTrade.fee_gold(v, g, from))); g.manpower[from] = maxf(0.0, g.manpower[from] - float(TBTrade.fee_men(v, g)))
 
@@ -342,7 +333,7 @@ const ASK_FRIEND := 50
 const PROMPT_GAP := 3
 
 static func ai_offer(g: TBGame, n: int) -> void:
-	if g.rules < 1 or g.human[n] != 0 or n == g.rebel or g.rng.next() > OFFER_P: return
+	if g.human[n] != 0 or n == g.rebel or g.rng.next() > OFFER_P: return
 	var pers: Dictionary = D.PERSONALITIES[g.personality[n]]
 	if float(pers["dipl"]) < 0.4: return
 	for h in g.humans():
@@ -354,18 +345,17 @@ static func ai_offer(g: TBGame, n: int) -> void:
 		var wts: Array = []
 		for w in ["nap", "ally", "trade", "marry"]:
 			if _offer_valid(g, n, h, w):
-				var wt: float = offer_fit(g, n, h, w) if g.rules >= 4 else 1.0           # rules 4: only what a court that knows of you would offer
+				var wt: float = offer_fit(g, n, h, w)           # rules 4: only what a court that knows of you would offer
 				if wt > 0.0: kinds.append(w); wts.append(wt)
 		if kinds.is_empty(): continue
 		var what: String = kinds[g.rng.randi_n(kinds.size())]
-		if g.rules >= 4:
-			var tot := 0.0
-			for x in wts: tot += float(x)
-			var roll: float = g.rng.next() * tot
-			what = kinds[kinds.size() - 1]
-			for i in kinds.size():
-				roll -= float(wts[i])
-				if roll <= 0.0: what = kinds[i]; break
+		var tot := 0.0
+		for x in wts: tot += float(x)
+		var roll: float = g.rng.next() * tot
+		what = kinds[kinds.size() - 1]
+		for i in kinds.size():
+			roll -= float(wts[i])
+			if roll <= 0.0: what = kinds[i]; break
 		var f: int = TBVision.friendliness(g, h, n)                       # how warmly n regards h
 		if what == "trade" and f > AUTO_FRIEND:
 			_pay_route(g, n, h)
@@ -380,7 +370,7 @@ static func ai_offer(g: TBGame, n: int) -> void:
 
 ## a nation that is losing a war against a human sues for white peace (hash roll: the main RNG stream is untouched)
 static func ai_peace_offer(g: TBGame, n: int) -> void:
-	if g.rules < 1 or g.human[n] != 0 or n == g.rebel: return
+	if g.human[n] != 0 or n == g.rebel: return
 	for h in g.humans():
 		if g.alive[h] == 0 or g.get_rel(n, h) != D.REL_WAR: continue
 		var losing: bool = g.war_score[h * g.N1 + n] >= 20 or g.war_turns[n * g.N1 + h] >= 14
@@ -395,7 +385,7 @@ static func ai_peace_offer(g: TBGame, n: int) -> void:
 
 ## once per turn, after unanswered prompts were cleared: AI nations may make offers to humans
 static func offers_turn(g: TBGame) -> void:
-	if g.rules < 1 or g.humans().is_empty(): return
+	if g.humans().is_empty(): return
 	for n in range(1, g.N1):
 		if g.alive[n] != 0 and g.human[n] == 0:
 			ai_offer(g, n)
@@ -416,7 +406,6 @@ static func power(g: TBGame, n: int) -> float:
 
 ## the strength ratio at which t yields to a demand of n: a high-standing country holds out longer, a low-standing one folds sooner (rules 4)
 static func ult_need(g: TBGame, n: int, t: int, base: float) -> float:
-	if g.rules < 4: return base
 	return base + STANDING_ULT * float(TBStanding.stars(g, t) - 3) * 0.5 - STANDING_ULT * float(TBStanding.stars(g, n) - 3) * 0.25
 
 static func ult_ratio(g: TBGame, n: int, t: int) -> float:
@@ -431,7 +420,7 @@ static func borders(g: TBGame, n: int, p: int) -> bool:
 	return false
 
 static func can_ultimatum(g: TBGame, n: int, t: int, p: int) -> String:
-	if g.rules < 1 or n == t or t <= 0 or t >= g.N1 or t == g.rebel or n == g.rebel: return "target"
+	if n == t or t <= 0 or t >= g.N1 or t == g.rebel or n == g.rebel: return "target"
 	if g.alive[t] == 0 or g.owner[p] != t or g.controller(p) != t: return "target"
 	if g.get_rel(n, t) != D.REL_PEACE: return "notpeace"
 	if g.has_truce(n, t): return "truce"
@@ -477,7 +466,7 @@ static func resolve_ultimatum(g: TBGame, n: int, t: int, p: int, yielded: bool) 
 
 ## an aggressive AI that is clearly stronger sometimes presents a demand before reaching for the sword
 static func ai_ultimatum(g: TBGame, n: int, aggr: float) -> void:
-	if g.rules < 1 or g.human[n] != 0 or n == g.rebel or aggr < 0.5 or g.mp[n] < 1: return
+	if g.human[n] != 0 or n == g.rebel or aggr < 0.5 or g.mp[n] < 1: return
 	if TBRulers._h(g, n, 61).next() > 0.04: return
 	var best := -1; var bt := 0; var br := 0.0
 	var seen := {}

@@ -5,7 +5,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11, "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11})
 	var me := g.nat_code.find("france"); g.set_human(me); g.pending.clear()
 	var cap: int = g.capital_of[me]
 	g.mp[me] = 10.0
@@ -28,7 +28,7 @@ func _init() -> void:
 	var other := -1
 	for q in g.P: if g.owner[q] != me and g.owner[q] != 0: other = q; break
 	_check(g.can({"cmd": "disband", "p": other, "amount": 5})["reason"] == "notyours", "not your army")
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11, "rules": 4})
+	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11})
 	g4.set_human(g4.nat_code.find("france"))
 	_check(g4.can({"cmd": "disband", "p": 0, "amount": 5})["reason"] == "unknown", "rules 4: unknown")
 	print("DISBAND ", "OK" if fails == 0 else "FAIL")

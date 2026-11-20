@@ -191,7 +191,7 @@ func _sync_tag() -> void:
 			if g.controller(q) == o: army += g.army[q]
 		var op: int = TBNationsScreen.opinion(g, me, o)
 		var ruler := ""
-		if g.rules >= 1 and g.r_name[o] != "": ruler = "%s %s" % [TBI18n.T(TBRulers.title_key(g, o)), TBRulers.display_name(g, o)]
+		if g.r_name[o] != "": ruler = "%s %s" % [TBI18n.T(TBRulers.title_key(g, o)), TBRulers.display_name(g, o)]
 		tag = TBTagCard.new().build_nation({"state": TBNationsScreen.rel_text(g, me, o, op), "name": g.dname(o), "ruler": ruler,
 			"army": K.fmt(float(army)), "rel": ("+%d" % op) if op > 0 else str(op), "rel_col": TBNationsScreen.rel_color(op)})
 		tag.link_pressed.connect(func(): nation_requested.emit(o))

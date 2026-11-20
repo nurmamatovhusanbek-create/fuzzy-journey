@@ -4,7 +4,7 @@ extends SceneTree
 ## Reports who wins and when, how concentrated power gets, wars / peaces, gold and army inflation, rebels, neutral land, runtime, and any engine invariant that breaks.
 func _inv(g: TBGame, bad: Dictionary) -> void:
 	for p in g.P:
-		if g.army[p] < 0 or (g.rules < 5 and g.army[p] > 65000): bad["army"] = int(bad.get("army", 0)) + 1
+		if g.army[p] < 0: bad["army"] = int(bad.get("army", 0)) + 1
 		if g.stab[p] > 100 or g.happy[p] > 100: bad["stab_happy"] = int(bad.get("stab_happy", 0)) + 1
 		if g.owner[p] < 0 or g.owner[p] >= g.N1: bad["owner"] = int(bad.get("owner", 0)) + 1
 	for n in range(1, g.N1):
@@ -25,7 +25,7 @@ func _init() -> void:
 	var w := TBWorld.load_from("res://data")
 	var era := TBWorld.load_era("res://data", era_id) if era_id != "modern" else {}
 	var t0 := Time.get_ticks_msec()
-	var g := TBGame.new(w, era, {"seed": seed_v, "difficulty": diff, "rules": int(OS.get_environment("TB_RULES")) if OS.get_environment("TB_RULES") != "" else 3})
+	var g := TBGame.new(w, era, {"seed": seed_v, "difficulty": diff})
 	var alive0 := 0
 	for n in range(1, g.N1):
 		if g.alive[n] != 0 and n != g.rebel: alive0 += 1
@@ -39,15 +39,14 @@ func _init() -> void:
 		end_t = t
 		if t % 10 == 0:
 			_inv(g, bad)
-			if g.rules >= 1:
-				for n in range(1, g.N1):
-					if g.alive[n] == 0 or n == g.rebel: continue
-					var pr: Dictionary = TBTurn.raw_progress(g, n)
-					for id in TBTurn.VICTORY_IDS:
-						var v: float = float(pr[id])
-						if id == "technological" and g.tech_level[n] < 5.0: v = minf(v, 0.99)
-						best[id] = maxf(float(best.get(id, 0.0)), v)
-						if v >= 1.0 and not first_win.has(id): first_win[id] = [t, g.dname(n)]
+			for n in range(1, g.N1):
+				if g.alive[n] == 0 or n == g.rebel: continue
+				var pr: Dictionary = TBTurn.raw_progress(g, n)
+				for id in TBTurn.VICTORY_IDS:
+					var v: float = float(pr[id])
+					if id == "technological" and g.tech_level[n] < 5.0: v = minf(v, 0.99)
+					best[id] = maxf(float(best.get(id, 0.0)), v)
+					if v >= 1.0 and not first_win.has(id): first_win[id] = [t, g.dname(n)]
 		if t % 25 == 0 or t == turns or g.over:
 			var sizes: Array = []; var gold_sum := 0.0; var gold_max := 0.0; var army_sum := 0; var alive := 0; var at_war := 0
 			for n in range(1, g.N1):

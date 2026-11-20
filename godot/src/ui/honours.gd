@@ -46,11 +46,10 @@ static func on_state(g: TBGame) -> PackedStringArray:
 	if n >= 60: out.append("empire_60")
 	if n >= 100: out.append("empire_100")
 	if g.gold[me] >= 5000.0: out.append("treasure")
-	if g.rules >= 1:
-		if g.coalition[me] != 0: out.append("infamous")
-		if g.trade_cnt[me] >= 3: out.append("merchant")
-		for p in g.owned(me):
-			if g.gen[p] != 0 and TBGenerals.skill(g, p) >= TBGenerals.MAX_SKILL: out.append("five_star"); break
+	if g.coalition[me] != 0: out.append("infamous")
+	if g.trade_cnt[me] >= 3: out.append("merchant")
+	for p in g.owned(me):
+		if g.gen[p] != 0 and TBGenerals.skill(g, p) >= TBGenerals.MAX_SKILL: out.append("five_star"); break
 	if g.era[me] >= 4: out.append("modern_age")
 	if g.turn >= 100: out.append("veteran")
 	var allies := 0; var vassals := 0
@@ -59,11 +58,10 @@ static func on_state(g: TBGame) -> PackedStringArray:
 		if g.get_rel(me, o) == D.REL_ALLY: allies += 1
 		if g.overlord[o] == me: vassals += 1
 	if allies >= 3: out.append("alliances")
-	if g.rules >= 3:
-		var hs := TBTurn.hold_status(g, me, "diplomatic")
-		if hs.y > 0 and hs.x >= hs.y: out.append("concert")           # the old "diplomatic hegemony", now an achievement
+	var hs := TBTurn.hold_status(g, me, "diplomatic")
+	if hs.y > 0 and hs.x >= hs.y: out.append("concert")           # the old "diplomatic hegemony", now an achievement
 	if vassals >= 1: out.append("suzerain")
-	if g.rules >= 1 and TBDecisions.active_count(g, me) >= 1: out.append("decreed")
+	if TBDecisions.active_count(g, me) >= 1: out.append("decreed")
 	if g.over and g.winner == me: out.append("victor")
 	return out
 

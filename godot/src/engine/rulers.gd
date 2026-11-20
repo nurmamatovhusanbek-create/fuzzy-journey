@@ -62,7 +62,6 @@ static func sphere_of(g: TBGame, n: int) -> String:
 	return "west"
 
 static func _name_index(g: TBGame, n: int, r: TBRng) -> int:
-	if g.rules < 3: return r.randi_n(52)                     # older rules keep the one global pool of 52 (same draws, same games)
 	var pool: Array = SPHERE_NAMES[sphere_of(g, n)]
 	return int(pool[r.randi_n(pool.size())])
 
@@ -156,15 +155,13 @@ static func _roman(v: int) -> String:
 
 # ---------------------------------------------------------------- effects (all neutral when skill == 3 and no trait)
 static func _has(g: TBGame, n: int, trait_id: String) -> bool:
-	return g.rules >= 1 and g.r_name[n] != "" and TRAITS[g.r_trait[n]] == trait_id
+	return g.r_name[n] != "" and TRAITS[g.r_trait[n]] == trait_id
 
 static func gold_mul(g: TBGame, n: int) -> float:
-	if g.rules < 1: return 1.0
 	if g.r_name[n] == "": return TBDecisions.gold_mul(g, n) * TBDoctrine.gold_mul(g, n)
 	return TBDecisions.gold_mul(g, n) * TBDoctrine.gold_mul(g, n) * (1.0 + 0.04 * (g.r_adm[n] - 3) + (0.06 if _has(g, n, "merchant") else 0.0))
 
 static func combat_mul(g: TBGame, n: int) -> float:
-	if g.rules < 1: return 1.0
 	if g.r_name[n] == "": return TBDecisions.combat_mul(g, n) * TBDoctrine.combat_mul(g, n)
 	return TBDecisions.combat_mul(g, n) * TBDoctrine.combat_mul(g, n) * (1.0 + 0.03 * (g.r_mil[n] - 3) + (0.06 if _has(g, n, "conqueror") else 0.0))
 
@@ -172,13 +169,13 @@ static func research_mul(g: TBGame, n: int) -> float:
 	return (1.0 + (0.15 if _has(g, n, "scholar") else 0.0)) * TBDecisions.research_mul(g, n) * TBDoctrine.research_mul(g, n)
 
 static func manpower_mul(g: TBGame, n: int) -> float:
-	return (1.0 + (0.12 if _has(g, n, "tyrant") else 0.0) + (0.02 * (g.r_mil[n] - 3) if g.rules >= 1 and g.r_name[n] != "" else 0.0)) * TBDecisions.manpower_mul(g, n) * TBDoctrine.manpower_mul(g, n)
+	return (1.0 + (0.12 if _has(g, n, "tyrant") else 0.0) + (0.02 * (g.r_mil[n] - 3) if g.r_name[n] != "" else 0.0)) * TBDecisions.manpower_mul(g, n) * TBDoctrine.manpower_mul(g, n)
 
 static func stab_add(g: TBGame, n: int) -> float:
 	return (0.3 if _has(g, n, "pious") else 0.0) + TBDecisions.stab_add(g, n)
 
 static func dp_add(g: TBGame, n: int) -> float:
-	if g.rules < 1 or g.r_name[n] == "": return 0.0
+	if g.r_name[n] == "": return 0.0
 	return 0.12 * (g.r_dip[n] - 3) + (0.4 if _has(g, n, "diplomat") else 0.0)
 
 static func happy_add(g: TBGame, n: int) -> float:

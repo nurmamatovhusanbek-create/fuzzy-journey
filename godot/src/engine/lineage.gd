@@ -56,7 +56,7 @@ static func open_to(g: TBGame, n: int, si: int) -> bool:
 static func options(g: TBGame, n: int) -> Array:
 	ensure()
 	var out: Array = []
-	if g.rules < 5 or n <= 0 or g.alive[n] == 0 or n == g.rebel: return out
+	if n <= 0 or g.alive[n] == 0 or n == g.rebel: return out
 	for si in STAGES.size():
 		if not open_to(g, n, si): continue
 		if bool(STAGES[si]["any"]) and core_held(g, n, si) * 10 < (STAGES[si]["core"] as Array).size() * 3: continue      # a stage open to anyone is on offer only to a state that already holds a third of its land
@@ -93,7 +93,7 @@ static func conditions(g: TBGame, n: int, si: int) -> Array:
 static func can_form(g: TBGame, n: int, si: int) -> Dictionary:
 	var out := {"ok": true, "reason": "", "gold": 0, "moves": MP_COST, "men": 0, "dp": 0, "short": {}, "gain": 0, "kind": "", "infamy": 0.0}
 	ensure()
-	if g.rules < 5 or si < 0 or si >= STAGES.size(): out["ok"] = false; out["reason"] = "unknown"; return out
+	if si < 0 or si >= STAGES.size(): out["ok"] = false; out["reason"] = "unknown"; return out
 	if n <= 0 or g.alive[n] == 0 or n == g.rebel or not open_to(g, n, si): out["ok"] = false; out["reason"] = "notopen"; return out
 	out["gold"] = gold_cost(g, n, si)
 	for c in conditions(g, n, si):
@@ -129,7 +129,7 @@ static func form(g: TBGame, n: int, si: int) -> Dictionary:
 # ---- the lasting bonus: grows with the stage's weight (1..3), read by the income, levy, research and stability code
 static func w(g: TBGame, n: int) -> int:
 	var si := current(g, n)
-	return int(STAGES[si]["w"]) if si >= 0 and g.rules >= 5 else 0
+	return int(STAGES[si]["w"]) if si >= 0 else 0
 
 static func income_mul(g: TBGame, n: int) -> float: return 1.0 + 0.02 * float(w(g, n))
 static func levy_mul(g: TBGame, n: int) -> float: return 1.0 + 0.04 * float(w(g, n))
@@ -145,7 +145,7 @@ static func init_stages(g: TBGame) -> void:
 
 ## AI: a nation that can form a stage does so (a few turns apart), the way history went: the strongest claim first
 static func ai_step(g: TBGame, n: int) -> void:
-	if g.rules < 5 or (g.turn + n) % 4 != 0 or g.human[n] != 0: return
+	if (g.turn + n) % 4 != 0 or g.human[n] != 0: return
 	var best := -1; var best_w := -1
 	for si in options(g, n):
 		if bool(can_form(g, n, si)["ok"]) and int(STAGES[si]["w"]) > best_w: best = si; best_w = int(STAGES[si]["w"])

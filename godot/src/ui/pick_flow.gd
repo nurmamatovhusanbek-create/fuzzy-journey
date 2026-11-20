@@ -152,7 +152,7 @@ func _build_hover(n: int) -> void:
 	top.add_child(TBFlags.chip(g, n, 1.0))
 	var tv := K.vbox(1); tv.mouse_filter = Control.MOUSE_FILTER_IGNORE; top.add_child(tv)
 	var nl := K.title(g.dname(n), 17); nl.autowrap_mode = TextServer.AUTOWRAP_OFF; tv.add_child(nl)
-	if g.rules >= 1 and g.r_name[n] != "":
+	if g.r_name[n] != "":
 		tv.add_child(K.label("%s %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], 13, K.DIM))
 	var rt := TBNationsScreen.start_rating(g, n, st)
 	var rows: Array = [
@@ -287,7 +287,7 @@ func _build_card(n: int) -> void:
 	top.add_child(nl)
 	nl.resized.connect(func(): _fit_longest_word(nl))                      # at a large text size the longest word is set smaller, never broken in the middle
 	var x := K.IconBtn.new("close", func(): pop(), 40); K.a11y(x, T.call("close"), "button"); top.add_child(x)
-	if g.rules >= 1 and g.r_name[n] != "":                       # ruler as one text line (the portrait lives in the Nation card only)
+	if g.r_name[n] != "":                       # ruler as one text line (the portrait lives in the Nation card only)
 		var rl := TBPanel.para("%s %s · %s" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n), T.call("ruler_age", {"a": TBRulers.age(g, n)})], 14, TBTokens.c("oxblood"))
 		_card_v.add_child(rl)
 	var count: int = st["ids"].size()
@@ -308,18 +308,17 @@ func _build_card(n: int) -> void:
 		_card_v.add_child(TBPanel.facts_grid(rows, 1))
 		cf.add_child(TBNationsScreen.rating_chip(rt)); _card_v.add_child(cf)
 	_card_v.add_child(TBPanel.para(TBNationsScreen.rating_reason(rt), 13, K.DIM))
-	if g.rules >= 1:                                              # how warlike the AI world is (chosen once per game, shown with the nation)
-		var ag := K.vbox(4)                                            # the label above the control: four cells need the whole width of the card
-		var al := K.label(T.call("aggr_title"), 13, K.DIM)
-		ag.add_child(al)
-		var items: Array = []
-		for i in TBData.AGGRESSION.size(): items.append([str(i), T.call("aggr_" + String(TBData.AGGRESSION[i]["id"]))])
-		var sg := TBPanel.seg(items, str(g.aggr_level), func(v: String): g.aggr_level = int(v); aggression_changed.emit(g.aggr_level); _agg_hint.text = T.call("aggr_%s_d" % TBData.AGGRESSION[g.aggr_level]["id"]))
-		sg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		ag.add_child(sg)
-		_card_v.add_child(ag)
-		_agg_hint = TBPanel.para(T.call("aggr_%s_d" % TBData.AGGRESSION[g.aggr_level]["id"]), 12, K.DIM)
-		_card_v.add_child(_agg_hint)
+	var ag := K.vbox(4)                                            # the label above the control: four cells need the whole width of the card
+	var al := K.label(T.call("aggr_title"), 13, K.DIM)
+	ag.add_child(al)
+	var items: Array = []
+	for i in TBData.AGGRESSION.size(): items.append([str(i), T.call("aggr_" + String(TBData.AGGRESSION[i]["id"]))])
+	var sg := TBPanel.seg(items, str(g.aggr_level), func(v: String): g.aggr_level = int(v); aggression_changed.emit(g.aggr_level); _agg_hint.text = T.call("aggr_%s_d" % TBData.AGGRESSION[g.aggr_level]["id"]))
+	sg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ag.add_child(sg)
+	_card_v.add_child(ag)
+	_agg_hint = TBPanel.para(T.call("aggr_%s_d" % TBData.AGGRESSION[g.aggr_level]["id"]), 12, K.DIM)
+	_card_v.add_child(_agg_hint)
 	var taken := hot_list.has(n)
 	if taken: cf.add_child(K.chip(T.call("taken_by_seat", {"p": "P%d" % (hot_list.find(n) + 1)}), "lock", "warn"))
 	# pinned footer: the one primary of the card, always on screen

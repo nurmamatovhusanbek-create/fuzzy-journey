@@ -93,7 +93,7 @@ func _init() -> void:
 	var w := TBWorld.load_from("res://data")
 	var pack := TBWorld.load_era("res://data", era) if era != "modern" else {}
 	var rules_n: int = int(a[3]) if a.size() > 3 else (int(OS.get_environment("TB_FUZZ_RULES")) if OS.get_environment("TB_FUZZ_RULES") != "" else 2)
-	g = TBGame.new(w, pack, {"seed": 5, "rules": rules_n})
+	g = TBGame.new(w, pack, {"seed": 5})
 	var fr := 1
 	for n in range(1, g.N1):
 		if g.alive[n] == 1: fr = n; break

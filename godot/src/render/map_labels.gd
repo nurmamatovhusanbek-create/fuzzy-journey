@@ -501,7 +501,7 @@ func _on_a_route(n: int) -> bool:
 	var me := g.human_id
 	if n == me: return true
 	if map.lenses.route_kind != "": return map.lenses.route_lit(n)                  # a picked kind: only its countries
-	return g.get_rel(me, n) != 0 or (g.rules >= 1 and TBTrade.has(g, me, n))
+	return g.get_rel(me, n) != 0 or (TBTrade.has(g, me, n))
 
 var _var_cache := {}
 func _name_variants(txt: String, atlas: bool) -> Array:
@@ -523,7 +523,7 @@ func _name_variants(txt: String, atlas: bool) -> Array:
 ## TBVision.sees_fast, with the answer for a whole nation (friendly, spied on, an ally...) worked out once per layout instead of once per province
 var _fog_n := PackedByteArray()
 func _sees(p: int, me: int) -> bool:
-	if g.rules < 1 or g.human_id <= 0: return true
+	if g.human_id <= 0: return true
 	var c: int = g.occupier[p] if g.occupier[p] != 0 else g.owner[p]
 	if c == me or c == 0: return true
 	var m: int = _fog_n[c]
@@ -1017,7 +1017,7 @@ func _draw_layout() -> void:
 				if not _stars.has(p): _stars[p] = {"a": 0.0, "t": 1.0}
 				_stars[p]["t"] = 1.0; _stars[p]["x"] = pos.x; _stars[p]["y"] = pos.y; _stars[p]["limb"] = v[4]
 				_stars[p]["rate"] = 0
-				if ztier == 1 and g.rules >= 4 and g.owner[p] > 0:                       # country level: the standing in five stars sits under the capital, where an army figure would stand (armies stay hidden until agents have looked)
+				if ztier == 1 and g.owner[p] > 0:                       # country level: the standing in five stars sits under the capital, where an army figure would stand (armies stay hidden until agents have looked)
 					var prr := Rect2(pos + Vector2(-32, 9), Vector2(64, 17))
 					_stars[p]["rate"] = TBStanding.stars(g, g.owner[p]); _frame_rects.append(prr)          # always there with its capital star, never claimed against neighbours: a rating that came and went made the names around it blink
 				_frame_rects.append(Rect2(pos - Vector2(8, 8), Vector2(16, 16)))          # names are placed after the markers and keep off them: a star is never printed over a name

@@ -5,17 +5,16 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _run_world(rules: int, era: String, seed_v: int, turns: int) -> Dictionary:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", era), {"seed": seed_v, "difficulty": "normal", "rules": rules})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", era), {"seed": seed_v, "difficulty": "normal"})
 	var aims := 0; var met := 0
 	var kinds := {}
 	var changes := 0
 	var owner0: PackedInt32Array = g.owner.duplicate()
 	for t in turns:
 		g.end_turn()
-		if rules >= 5:
-			for n in range(1, g.N1):
-				if g.alive[n] != 0 and g.aim_kind[n] != 0:
-					aims += 1; kinds[g.aim_kind[n]] = int(kinds.get(g.aim_kind[n], 0)) + 1
+		for n in range(1, g.N1):
+			if g.alive[n] != 0 and g.aim_kind[n] != 0:
+				aims += 1; kinds[g.aim_kind[n]] = int(kinds.get(g.aim_kind[n], 0)) + 1
 	for p in g.P: if g.owner[p] != owner0[p] and g.owner[p] != 0 and owner0[p] != 0: changes += 1
 	var alive := 0
 	for n in range(1, g.N1): if g.alive[n] != 0 and n != g.rebel: alive += 1

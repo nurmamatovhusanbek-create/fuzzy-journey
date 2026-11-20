@@ -79,7 +79,7 @@ func _init() -> void:
 		var pl2 := TBMarch.plan(g, n, from2, foe)
 		_ck(bool(pl2["ok"]) and String(pl2["kind"]) == "attack" and float(pl2["mp"]) == float(D.MP_ATTACK), "a neighbour attack still costs %d" % D.MP_ATTACK)
 	# rules 0 never marches
-	var g0 := TBGame.new(w, era, {"seed": 3, "rules": 0}); g0.set_human(n); g0.mp[n] = 12.0
+	var g0 := TBGame.new(w, era, {"seed": 3}); g0.set_human(n); g0.mp[n] = 12.0
 	_ck(not bool(TBMarch.plan(g0, n, src, far)["ok"]), "rules 0: no marches")
 	# ---- vision
 	var gv := TBGame.new(w, era, {"seed": 3})

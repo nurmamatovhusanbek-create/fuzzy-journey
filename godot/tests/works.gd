@@ -7,7 +7,7 @@ func _check(ok: bool, what: String) -> void:
 func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal", "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal"})
 	var n: int = g.nat_code.find("france")
 	g.set_human(n)
 	var inc: int = int(g.income(n)["gold"])
@@ -38,7 +38,7 @@ func _init() -> void:
 	var g2: TBGame = TBSave.from_dict(w, sv)
 	_check(g2 != null and TBWorks.level(g2, n, 0) == TBWorks.level(g, n, 0), "levels survive a save")
 	# the AI buys them
-	var ga := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "difficulty": "normal", "rules": 5})
+	var ga := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "difficulty": "normal"})
 	for t in 60: ga.end_turn()
 	var bought := 0
 	for k in range(1, ga.N1):
@@ -46,7 +46,7 @@ func _init() -> void:
 		for i in TBWorks.COUNT: bought += TBWorks.level(ga, k, i)
 	print("AI works bought in 60 turns: ", bought)
 	_check(bought >= 20, "the AI builds state works (%d levels)" % bought)
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "difficulty": "normal", "rules": 4})
+	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "difficulty": "normal"})
 	_check(not bool(g4.can({"cmd": "works", "n": 1, "id": "academy"})["ok"]), "rules 4 has none")
 	print("WORKS OK" if fails == 0 else "WORKS FAIL %d" % fails)
 	quit(fails)

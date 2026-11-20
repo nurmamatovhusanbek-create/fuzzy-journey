@@ -44,7 +44,7 @@ func share() -> float: return panel.send_frac if panel != null else 1.0
 ## the fight a march would start, as far as the player may know it: an enemy province out of sight shows no defenders and no outcome (TBVision)
 func _pv(q: int) -> Dictionary:
 	var pv := g.combat_preview(_me(), src, q, troops_for(src))
-	if g.rules >= 1 and not TBVision.sees(g, q):
+	if not TBVision.sees(g, q):
 		return {"unknown": true, "send": pv["send"], "defenders": -1, "win": false, "atk": 1.0, "dfn": 1.0, "hold": 0, "lost": 0, "enemy_lost": 0, "mp": pv.get("mp", 2)}
 	return pv
 
@@ -63,7 +63,7 @@ func check(q: int, from: int = -2) -> Dictionary:
 	var out := {"valid": false, "kind": "", "reason": "notadjacent", "preview": false, "explicit_only": false}
 	if s < 0 or q < 0 or q == s: return out
 	var chk := g.move_check(_me(), s, q)
-	if chk == "!notadjacent" and g.rules >= 1:                          # not a neighbour: a march over our land, allies' land and ports (TBMarch)
+	if chk == "!notadjacent":                          # not a neighbour: a march over our land, allies' land and ports (TBMarch)
 		var pl := TBMarch.plan(g, _me(), s, q, _reach_of(s))
 		if not bool(pl["ok"]):
 			out["reason"] = String(pl["err"]); return out
@@ -92,7 +92,7 @@ func _candidates(s: int) -> PackedInt32Array:
 func compute_targets() -> PackedInt32Array:
 	var t := PackedInt32Array()
 	if src < 0: return t
-	if explicit and g.rules >= 1:                                       # Move pressed: every province the army can reach with the move points it has
+	if explicit:                                       # Move pressed: every province the army can reach with the move points it has
 		var far: Dictionary = TBMarch.targets(g, _me(), src, _reach_of(src))
 		for q in far: t.append(int(q))
 		return t

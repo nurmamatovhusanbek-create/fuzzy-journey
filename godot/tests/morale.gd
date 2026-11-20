@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var a := g.nat_code.find("france"); var b := -1
 	for n in range(1, g.N1):
 		if n != a and n != g.rebel and g.alive[n] != 0 and g.own_count(n) > 2: b = n; break
@@ -61,7 +61,7 @@ func _init() -> void:
 	var w1 := float(TBDipView.peace(g, b, a, "white")["score"])
 	_check(w1 > w0, "an exhausted country is readier for peace (%.2f -> %.2f)" % [w0, w1])
 	# old rules are untouched
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var f3 := g3.nat_code.find("france")
 	g3.morale[f3] = 0.0
 	_check(absf(g3.combat_mul(f3) - TBData.ERAS[g3.era[f3]]["combatMul"] * TBRulers.combat_mul(g3, f3)) < 0.0001, "rules 3 ignores morale")

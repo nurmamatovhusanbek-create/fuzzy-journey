@@ -84,7 +84,7 @@ static func cost(g: TBGame, n: int, i: int) -> int:
 static func can_embrace(g: TBGame, n: int, i: int) -> Dictionary:
 	ensure()
 	var out := {"ok": true, "reason": "", "gold": 0, "moves": 2, "men": 0, "dp": 0, "short": {}, "gain": 0, "kind": "", "infamy": 0.0}
-	if g.rules < 5 or i < 0 or i >= LIST.size() or n <= 0 or g.alive[n] == 0: out["ok"] = false; out["reason"] = "unknown"; return out
+	if i < 0 or i >= LIST.size() or n <= 0 or g.alive[n] == 0: out["ok"] = false; out["reason"] = "unknown"; return out
 	if g.inst_seen[i] == 0: out["ok"] = false; out["reason"] = "inst_unborn"; return out
 	if embraced(g, n, i): out["ok"] = false; out["reason"] = "inst_have"; return out
 	var sh := share(g, n, i)
@@ -105,7 +105,7 @@ static func embrace(g: TBGame, n: int, i: int) -> Dictionary:
 # ---- the gains: summed over what the nation has embraced
 static func _sum(g: TBGame, n: int, key: String) -> float:
 	ensure()
-	if g.rules < 5 or n <= 0: return 0.0
+	if n <= 0: return 0.0
 	var s := 0.0
 	for i in LIST.size():
 		if embraced(g, n, i): s += float((LIST[i]["fx"] as Dictionary).get(key, 0.0))
@@ -114,7 +114,7 @@ static func _sum(g: TBGame, n: int, key: String) -> float:
 ## how many known institutions the nation has not embraced (capped)
 static func lag(g: TBGame, n: int) -> int:
 	ensure()
-	if g.rules < 5 or n <= 0: return 0
+	if n <= 0: return 0
 	var k := 0
 	for i in LIST.size():
 		if g.inst_seen[i] == 1 and not embraced(g, n, i) and i < g.inst_share.size() and g.inst_share[i] >= KNOWN_SHARE: k += 1
@@ -129,7 +129,6 @@ static func stab_add(g: TBGame, n: int) -> float: return _sum(g, n, "stab")
 ## per turn: births, then the spread
 static func tick(g: TBGame) -> void:
 	ensure()
-	if g.rules < 5: return
 	for i in LIST.size():
 		var s: Dictionary = LIST[i]
 		if g.inst_seen[i] == 0 and g.year >= int(s["year"]):
@@ -163,7 +162,7 @@ static func tick(g: TBGame) -> void:
 
 ## AI: embrace when it can afford it twice over; the oldest first
 static func ai_step(g: TBGame, n: int) -> void:
-	if g.rules < 5 or g.human[n] != 0: return
+	if g.human[n] != 0: return
 	for i in LIST.size():
 		var c := can_embrace(g, n, i)
 		if bool(c["ok"]) and g.gold[n] >= 2.0 * float(c["gold"]): embrace(g, n, i); return

@@ -28,7 +28,7 @@ static func add_relations(v: VBoxContainer, g: TBGame, n: int, on_nation: Callab
 	for o in range(1, g.N1):
 		if g.alive[o] == 0 or o == n or o == g.rebel: continue
 		if g.overlord[o] == n: vassals.append(o)
-		if g.rules >= 1 and TBTrade.has(g, n, o): trade_p.append(o)
+		if TBTrade.has(g, n, o): trade_p.append(o)
 	groups.append([T.call("vassals"), vassals, 0]); groups.append([T.call("trade_partners"), trade_p, 0])
 	if g.overlord[n] != 0: groups.append([T.call("overlord"), [g.overlord[n]], 0])
 	var any := false
@@ -64,7 +64,6 @@ const GROUP_SHOW := 6
 
 ## countries with the nearest first (border, near, far, none), then the larger army; rules < 4 keeps the order as it is
 static func _by_nearness(g: TBGame, n: int, ids: Array) -> Array:
-	if g.rules < 4: return ids
 	var out: Array = ids.duplicate()
 	var rank := {"border": 0, "near": 1, "far": 2, "none": 3}
 	out.sort_custom(func(a: int, b: int) -> bool:
@@ -101,11 +100,10 @@ class RelRow extends Button:
 		nm.add_theme_color_override("font_color", TBTokens.c("cream"))
 		hb.add_child(nm)
 		var ct := ""
-		if g.rules >= 4:
-			var c := TBDiplo.contact(g, me, o)
-			ct = TBI18n.T("contact_" + c)
-			var lb := TBKit.label(ct, 13, TBTokens.BZ_GOOD if c == "border" else (TBTokens.BZ_BAD_TXT if c == "none" else K.DIM))
-			lb.size_flags_vertical = Control.SIZE_SHRINK_CENTER; lb.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_child(lb)
+		var c := TBDiplo.contact(g, me, o)
+		ct = TBI18n.T("contact_" + c)
+		var lb := TBKit.label(ct, 13, TBTokens.BZ_GOOD if c == "border" else (TBTokens.BZ_BAD_TXT if c == "none" else K.DIM))
+		lb.size_flags_vertical = Control.SIZE_SHRINK_CENTER; lb.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_child(lb)
 		TBKit.a11y(self, "%s %s" % [g.dname(o), ct], "button")
 		pressed.connect(cb)
 		mouse_entered.connect(queue_redraw); mouse_exited.connect(queue_redraw); focus_entered.connect(queue_redraw); focus_exited.connect(queue_redraw)
@@ -117,7 +115,7 @@ class RelRow extends Button:
 static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.Handle:
 	var me: int = g.human_id
 	var on_nation: Callable = opts.get("on_nation", Callable())
-	var sub: String = (T.call(TBRulers.title_key(g, me)) + " " + TBRulers.display_name(g, me)) if (g.rules >= 1 and g.r_name[me] != "") else T.call("era_name_%d" % g.era[me])
+	var sub: String = (T.call(TBRulers.title_key(g, me)) + " " + TBRulers.display_name(g, me)) if (g.r_name[me] != "") else T.call("era_name_%d" % g.era[me])
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, g.dname(me), "crown", {"w": 760, "h": 900, "sub": sub, "key": "realm"})
 	var body: VBoxContainer = h.body
 	body.add_theme_constant_override("separation", 0)
@@ -131,16 +129,15 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	cells.add_child(TBNationParts.StatCell.new("flag", str(int(st["prov"][me])), T.call("lands")))
 	body.add_child(_pad(cells, 0.0, 6.0))
 	var gov_from: int = body.get_child_count()
-	if g.rules >= 5 and (TBLineage.current(g, me) >= 0 or not TBLineage.options(g, me).is_empty()):     # rules 5: the lineage, and the names you could proclaim
+	if (TBLineage.current(g, me) >= 0 or not TBLineage.options(g, me).is_empty()):     # rules 5: the lineage, and the names you could proclaim
 		body.add_child(_cap(T.call("lg_title"), 8.0, 6.0))
 		body.add_child(TBLineageView.build(g, me, opts.get("on_command", Callable())))
-	if g.rules >= 5:
-		body.add_child(_cap(T.call("rg_title"), 14.0, 6.0))
-		body.add_child(TBRegimeView.build(g, me, opts.get("on_command", Callable())))
-		body.add_child(_cap(T.call("in_title"), 14.0, 6.0))
-		body.add_child(TBInstitutionView.build(g, me, opts.get("on_command", Callable())))
-		body.add_child(_cap(T.call("es_title"), 14.0, 6.0))
-		body.add_child(TBEstateView.build(g, me, opts.get("on_command", Callable())))
+	body.add_child(_cap(T.call("rg_title"), 14.0, 6.0))
+	body.add_child(TBRegimeView.build(g, me, opts.get("on_command", Callable())))
+	body.add_child(_cap(T.call("in_title"), 14.0, 6.0))
+	body.add_child(TBInstitutionView.build(g, me, opts.get("on_command", Callable())))
+	body.add_child(_cap(T.call("es_title"), 14.0, 6.0))
+	body.add_child(TBEstateView.build(g, me, opts.get("on_command", Callable())))
 	var ledger_from: int = body.get_child_count()
 	# ---- standing
 	var stab_sum := 0; var happy_sum := 0; var n_own := 0
@@ -155,33 +152,31 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	body.add_child(_cap(T.call("realm_standing"), 10.0, 6.0))
 	body.add_child(K.fxl(standing, 2))
 	# ---- people (rules 5): the size in real terms, growth, how much of the land's room is used, soldiers, the levy pool
-	if g.rules >= 5:
-		var pop_sum := 0; var cap_sum := 0; var grow_sum := 0.0; var army_sum := 0; var lev_a := 0; var lev_b := 0
-		for p in g.owned(me):
-			pop_sum += g.pop[p]; cap_sum += g.pop_cap(p); army_sum += g.army[p]
-			grow_sum += float(TBTurn.growth_parts(g, p)["growth"])
-			lev_a += mini(g.levy[p], g.levy_cap(p)); lev_b += g.levy_cap(p)
-		var per_year: float = grow_sum * 2.0 / maxf(1.0, float(pop_sum)) * 100.0
-		var ppl: Array = [
-			[T.call("rp_total"), T.call("rp_total_v", {"g": K.fmt(float(pop_sum)), "r": K.fmt(float(pop_sum) * float(g.scale)), "s": g.scale}), 0],
-			[T.call("rp_growth"), T.call("rp_growth_v", {"v": "%+.2f" % per_year}), 1 if per_year > 0.05 else (-1 if per_year < -0.05 else 0)],
-			[T.call("rp_room"), T.call("rp_room_v", {"v": int(round(100.0 * float(pop_sum) / maxf(1.0, float(cap_sum))))}), 0],
-			[T.call("rp_army_share"), T.call("rp_army_v", {"v": "%.2f" % (100.0 * float(army_sum) / maxf(1.0, float(pop_sum)))}), 0],
-			[T.call("rp_levy"), "%s / %s" % [K.fmt(float(lev_a)), K.fmt(float(lev_b))], 0]]
-		body.add_child(_cap(T.call("realm_people"), 14.0, 6.0))
-		body.add_child(K.fxl(ppl, 2))
+	var pop_sum := 0; var cap_sum := 0; var grow_sum := 0.0; var army_sum := 0; var lev_a := 0; var lev_b := 0
+	for p in g.owned(me):
+		pop_sum += g.pop[p]; cap_sum += g.pop_cap(p); army_sum += g.army[p]
+		grow_sum += float(TBTurn.growth_parts(g, p)["growth"])
+		lev_a += mini(g.levy[p], g.levy_cap(p)); lev_b += g.levy_cap(p)
+	var per_year: float = grow_sum * 2.0 / maxf(1.0, float(pop_sum)) * 100.0
+	var ppl: Array = [
+		[T.call("rp_total"), T.call("rp_total_v", {"g": K.fmt(float(pop_sum)), "r": K.fmt(float(pop_sum) * float(g.scale)), "s": g.scale}), 0],
+		[T.call("rp_growth"), T.call("rp_growth_v", {"v": "%+.2f" % per_year}), 1 if per_year > 0.05 else (-1 if per_year < -0.05 else 0)],
+		[T.call("rp_room"), T.call("rp_room_v", {"v": int(round(100.0 * float(pop_sum) / maxf(1.0, float(cap_sum))))}), 0],
+		[T.call("rp_army_share"), T.call("rp_army_v", {"v": "%.2f" % (100.0 * float(army_sum) / maxf(1.0, float(pop_sum)))}), 0],
+		[T.call("rp_levy"), "%s / %s" % [K.fmt(float(lev_a)), K.fmt(float(lev_b))], 0]]
+	body.add_child(_cap(T.call("realm_people"), 14.0, 6.0))
+	body.add_child(K.fxl(ppl, 2))
 	# ---- progress toward the victories (the three nearest)
-	if g.rules >= 1:
-		var prog: Dictionary = TBTurn.victory_progress(g, me)
-		var ids: Array = TBTurn.win_ids(g).duplicate()
-		ids.sort_custom(func(a: String, b: String) -> bool: return float(prog[a]) > float(prog[b]))
-		var pr_rows: Array = []
-		for i in mini(4, ids.size()): pr_rows.append([T.call("vc_" + String(ids[i])), "%d%%" % int(roundf(float(prog[ids[i]]) * 100.0)), 0])
-		body.add_child(_cap(T.call("realm_progress"), 14.0, 6.0))
-		body.add_child(K.fxl(pr_rows, 2))
+	var prog: Dictionary = TBTurn.victory_progress(g, me)
+	var ids: Array = TBTurn.win_ids(g).duplicate()
+	ids.sort_custom(func(a: String, b: String) -> bool: return float(prog[a]) > float(prog[b]))
+	var pr_rows: Array = []
+	for i in mini(4, ids.size()): pr_rows.append([T.call("vc_" + String(ids[i])), "%d%%" % int(roundf(float(prog[ids[i]]) * 100.0)), 0])
+	body.add_child(_cap(T.call("realm_progress"), 14.0, 6.0))
+	body.add_child(K.fxl(pr_rows, 2))
 	# ---- treasury: taxes and the rest, then how the budget is split
 	var money: Array = [[T.call("bud_taxes"), K.signed(float(inc["tax"])), 1]]
-	if g.rules >= 1 and TBTrade.income(g, me) > 0: money.append([T.call("trade"), K.signed(float(TBTrade.income(g, me))), 1])
+	if TBTrade.income(g, me) > 0: money.append([T.call("trade"), K.signed(float(TBTrade.income(g, me))), 1])
 	money.append([T.call("bud_provinces"), K.signed(float(inc["production"])), 1 if int(inc["production"]) > 0 else 0])
 	money.append([T.call("realm_upkeep"), K.signed(-float(inc["upkeep"])), -1])
 	money.append([T.call("realm_admin"), K.signed(-float(inc["admin"])), -1])
@@ -197,11 +192,10 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 		[T.call("dp"), "%d  (+%.1f)" % [int(g.dp[me]), float(bd["dp_gain"])], 0],
 		[T.call("mp"), "%d  (+%.1f)" % [int(g.mp[me]), float(bd["mp_gain"])], 0],
 		[T.call("manpower"), "%s  (+%s)" % [K.fmt(g.manpower[me]), K.fmt(float(bd["man_gain"]))], 0]]
-	if g.rules >= 1:
-		if g.r_name[me] != "": court.append([T.call("skill_adm") + " / " + T.call("skill_dip") + " / " + T.call("skill_mil"), "%d / %d / %d" % [g.r_adm[me], g.r_dip[me], g.r_mil[me]], 0])
-		court.append([T.call("doctrine"), T.call("doc_" + TBDoctrine.IDS[g.doctrine[me]]) if g.doctrine[me] != 0 else T.call("doc_none_short"), 0])
-		if g.rules >= 4: court.append([T.call("spy_guard"), T.call("spy_guard_v", {"p": int(roundf(TBSpy.guard(g, me) * 100.0)), "t": TBSpy.towers(g, me)}), 0])
-		court.append([T.call("infamy"), "%.0f%s" % [g.infamy[me], ("  " + T.call("coalition")) if g.coalition[me] != 0 else ""], -1 if g.infamy[me] >= 12.0 else 0])
+	if g.r_name[me] != "": court.append([T.call("skill_adm") + " / " + T.call("skill_dip") + " / " + T.call("skill_mil"), "%d / %d / %d" % [g.r_adm[me], g.r_dip[me], g.r_mil[me]], 0])
+	court.append([T.call("doctrine"), T.call("doc_" + TBDoctrine.IDS[g.doctrine[me]]) if g.doctrine[me] != 0 else T.call("doc_none_short"), 0])
+	court.append([T.call("spy_guard"), T.call("spy_guard_v", {"p": int(roundf(TBSpy.guard(g, me) * 100.0)), "t": TBSpy.towers(g, me)}), 0])
+	court.append([T.call("infamy"), "%.0f%s" % [g.infamy[me], ("  " + T.call("coalition")) if g.coalition[me] != 0 else ""], -1 if g.infamy[me] >= 12.0 else 0])
 	body.add_child(_cap(T.call("realm_court"), 14.0, 6.0))
 	body.add_child(K.fxl(court, 2))
 	# ---- treaties and wars: a country per button (flag and name), opening its card
@@ -209,17 +203,16 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	if not any_rel:
 		body.add_child(_cap(T.call("realm_treaties"), 14.0, 6.0))
 		body.add_child(K.para_bz(T.call("realm_no_treaties"), 16.0, 1.3))
-	if g.rules >= 5:                                                          # two pages: the government (names, institutions, estates) and the ledger (standing, people, money, court, treaties)
-		var gov := K.vbox(0); var led := K.vbox(0)
-		gov.size_flags_horizontal = Control.SIZE_EXPAND_FILL; led.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var kids: Array = body.get_children().slice(gov_from)
-		for i in kids.size():
-			var c: Node = kids[i]
-			body.remove_child(c)
-			(gov if gov_from + i < ledger_from else led).add_child(c)
-		var first: String = String(opts.get("tab", "gov"))                        # "led" opens the ledger first
-		gov.visible = first != "led"; led.visible = first == "led"
-		var tabs := K.tabs([["gov", T.call("rs_tab_gov")], ["led", T.call("rs_tab_led")]], first, func(id: String): gov.visible = id == "gov"; led.visible = id == "led")
-		body.add_child(_pad(tabs, 4.0, 4.0))
-		body.add_child(gov); body.add_child(led)
+	var gov := K.vbox(0); var led := K.vbox(0)
+	gov.size_flags_horizontal = Control.SIZE_EXPAND_FILL; led.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var kids: Array = body.get_children().slice(gov_from)
+	for i in kids.size():
+		var c: Node = kids[i]
+		body.remove_child(c)
+		(gov if gov_from + i < ledger_from else led).add_child(c)
+	var first: String = String(opts.get("tab", "gov"))                        # "led" opens the ledger first
+	gov.visible = first != "led"; led.visible = first == "led"
+	var tabs := K.tabs([["gov", T.call("rs_tab_gov")], ["led", T.call("rs_tab_led")]], first, func(id: String): gov.visible = id == "gov"; led.visible = id == "led")
+	body.add_child(_pad(tabs, 4.0, 4.0))
+	body.add_child(gov); body.add_child(led)
 	return h

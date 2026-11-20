@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var a := g.nat_code.find("france"); var b := -1
 	for n in range(1, g.N1):
 		if n != a and n != g.rebel and g.alive[n] != 0 and g.own_count(n) > 3: b = n; break
@@ -80,7 +80,7 @@ func _init() -> void:
 	var home: int = -1
 	for q in g.owned(a): if g.occupier[q] == 0: home = q; break
 	_check(g.supply_depth(home, a) == 0, "own land is supplied")
-	var old := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var old := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	_check(old.attrition(0) == 0 and old.siege_len(0) >= 0, "rules 3 unchanged")
 	print("SIEGE OK" if fails == 0 else "SIEGE FAIL %d" % fails)
 	quit(fails)

@@ -39,13 +39,12 @@ static func turns_left(g: TBGame, n: int, i: int) -> int:
 
 ## null (ok) or an error key; used by the command and the UI
 static func why_not(g: TBGame, n: int, i: int) -> String:
-	if g.rules < 1: return "rules"
 	var d: Dictionary = LIST[i]
 	if g.era[n] < int(d["era"]): return "era"
 	if is_active(g, n, i): return "active"
 	if g.gold[n] < float(cost(g, n, i)): return "gold"
-	if g.mp[n] + (0.0001 if g.rules >= 3 else 0.0) < float(d["mp"]): return "mp"
-	if d["id"] == "mil_academy" and (g.rules < 4 or graduated(g, n, "mil_academy")): return "rules" if g.rules < 4 else "active"
+	if g.mp[n] + (0.0001) < float(d["mp"]): return "mp"
+	if d["id"] == "mil_academy" and (graduated(g, n, "mil_academy")): return "active"
 	if d["id"] == "amnesty" and g.infamy[n] < 4.0: return "noinfamy"
 	if d["id"] == "amnesty" and g.dec_until[n * LIST.size() + i] > g.turn - 20 and g.dec_until[n * LIST.size() + i] != 0: return "cooldown"
 	return ""
@@ -76,7 +75,7 @@ static func apply(g: TBGame, n: int, id: String) -> Dictionary:
 ## a course that has run its time: started (a turn is remembered) and no longer running. The military academy trains for `dur` turns, then its effects hold for good.
 static func graduated(g: TBGame, n: int, id: String) -> bool:
 	var i := index_of(id)
-	if i < 0 or g.rules < 4: return false
+	if i < 0: return false
 	var v: int = g.dec_until[n * LIST.size() + i]
 	return v > 0 and v <= g.turn
 
@@ -104,7 +103,7 @@ static func _restless(g: TBGame, n: int) -> bool:
 
 ## AI: a rich realm that is drifting towards revolt buys propaganda before spending its action points elsewhere (no RNG)
 static func ai_steady(g: TBGame, n: int) -> void:
-	if g.rules < 1 or g.gold[n] < g.gu(n, 600.0) or g.mp[n] < 2.0 or _on(g, n, "propaganda"): return
+	if g.gold[n] < g.gu(n, 600.0) or g.mp[n] < 2.0 or _on(g, n, "propaganda"): return
 	if _restless(g, n): apply(g, n, "propaganda")
 
 ## AI: occasionally spends spare gold on a sensible decision

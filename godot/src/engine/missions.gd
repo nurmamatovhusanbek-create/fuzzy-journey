@@ -25,7 +25,6 @@ const COLONY_TECH := 2.0                                         # land across t
 static func colony_cost(g: TBGame, n: int, p: int) -> Dictionary:
 	var reg: Dictionary = TBData.REGIMES[g.regime[n]]
 	var free: bool = bool(reg["colonyFree"])
-	if g.rules < 4: return {"gold": 0 if free else 60 + g.own_count(n) * 2, "men": 0, "moves": 2}
 	var tm: float = COLONY_TERRAIN_MUL[clampi(g.terrain[p], 0, COLONY_TERRAIN_MUL.size() - 1)] if p >= 0 and p < g.P else 1.0
 	var gold: int = int(ceil(float(COLONY_GOLD + COLONY_GOLD_PER_PROVINCE * g.own_count(n)) * tm * (0.6 if free else 1.0) * g.cm(n)))
 	var men: int = int(round(float(g.au(float(COLONY_MEN))) * (0.6 if free else 1.0)))
@@ -59,9 +58,8 @@ const INTEL_MAX := 20.0
 
 ## "" = possible, else an error key (the command and TBCan use it)
 static func settle_why(g: TBGame, n: int, p: int) -> String:
-	if g.rules < 3: return "rules"
 	if p < 0 or p >= g.P or g.owner[p] != n or g.occupier[p] != 0: return "notyours"
-	if g.pop[p] >= (POP_MAX if g.rules < 5 else g.pop_cap(p)) and g.stab[p] >= 100: return "nothing"
+	if g.pop[p] >= (g.pop_cap(p)) and g.stab[p] >= 100: return "nothing"
 	if g.manpower[n] < float(SETTLE_MEN): return "manpower"
 	if g.mp[n] + 0.0001 < SETTLE_MP: return "mp"
 	return ""
@@ -70,14 +68,13 @@ static func settle(g: TBGame, n: int, p: int) -> Dictionary:
 	var why := settle_why(g, n, p)
 	if why != "": return {"ok": false, "err": why}
 	g.manpower[n] -= float(SETTLE_MEN); g.mp[n] -= SETTLE_MP
-	g.pop[p] = mini(POP_MAX if g.rules < 5 else g.pop_cap(p), g.pop[p] + g.pu(float(SETTLE_POP)))
+	g.pop[p] = mini(g.pop_cap(p), g.pop[p] + g.pu(float(SETTLE_POP)))
 	g.stab[p] = mini(100, g.stab[p] + SETTLE_STAB)
 	g.touch(p)
 	g.log.append({"turn": g.turn, "kind": "settle", "a": n, "p": p})
 	return {"ok": true}
 
 static func embassy_why(g: TBGame, n: int, t: int) -> String:
-	if g.rules < 3: return "rules"
 	if t <= 0 or t >= g.N1 or t == n or g.alive[t] == 0 or t == g.rebel: return "target"
 	if g.get_rel(n, t) == TBData.REL_WAR: return "war"
 	if g.grudge[t * g.N1 + n] == 0 and g.intel[n] >= INTEL_MAX - 0.5: return "nothing"

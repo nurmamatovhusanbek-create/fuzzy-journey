@@ -111,9 +111,8 @@ static func opinion(g: TBGame, me: int, n: int) -> int:
 		4: v = 55.0
 		2: v = 28.0
 	v -= minf(60.0, float(g.grudge[n * g.N1 + me]) * 1.5)
-	if g.rules >= 1:
-		v -= maxf(0.0, g.infamy[me] - 10.0) * 0.6
-		if TBTrade.has(g, me, n): v += 10.0
+	v -= maxf(0.0, g.infamy[me] - 10.0) * 0.6
+	if TBTrade.has(g, me, n): v += 10.0
 	return clampi(int(roundf(v)), -100, 100)
 
 static func rel_color(v: int) -> Color:
@@ -518,7 +517,7 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 	var tv := K.vbox(0); tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER; top.add_child(tv)
 	var nsz: int = 17 if ph else 21
 	var nl := K.wrappable(K.title(g.dname(n), nsz, Color.TRANSPARENT, 0.06, nsz * 1.05)); tv.add_child(nl)
-	if g.rules >= 1 and g.r_name[n] != "":
+	if g.r_name[n] != "":
 		tv.add_child(_pad(K.para_bz("[i]%s %s[/i]" % [T.call(TBRulers.title_key(g, n)), TBRulers.display_name(g, n)], 15.0, 1.25), 3.0))
 	var chips := TBPanel.flow(6); tv.add_child(_pad(chips, 7.0))
 	if pick:
@@ -538,7 +537,7 @@ static func _card(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dict
 	cells.add_child(TBNationParts.StatCell.new("army", K.fmt(float(st["army"][n])), T.call("cap_army")))
 	cells.add_child(TBNationParts.StatCell.new("gold", K.fmt(float(g.income(n)["gold"])), T.call("cap_economy")))
 	var tr_txt := "—"
-	if n != me and me > 0 and g.rules >= 1 and TBTrade.has(g, me, n): tr_txt = "+%d" % TBTrade.value(g, n, me)
+	if n != me and me > 0 and TBTrade.has(g, me, n): tr_txt = "+%d" % TBTrade.value(g, n, me)
 	cells.add_child(TBNationParts.StatCell.new("trade", tr_txt, T.call("cap_trade")))
 	v.add_child(_pad(cells, 6.0 if (not pick and n != me) else 14.0, 10.0))
 	# the one-line note
@@ -560,16 +559,16 @@ static func _facts(v: VBoxContainer, g: TBGame, n: int, st: Dictionary, ctx: Dic
 		[T.call("total_army"), "%s · #%d" % [K.fmt(float(st["army"][n])), int(st["rank_a"].get(n, 0))], 0],
 		[T.call("govt"), T.call("g_" + TBData.REGIME_ID[g.regime[n]]), 0],
 		[T.call("tech"), "%s %.1f · #%d" % [T.call("era_name_%d" % g.era[n]), g.tech_level[n], int(st["rank_t"].get(n, 0))], 0]]
-	if g.rules >= 1 and g.r_name[n] != "":
+	if g.r_name[n] != "":
 		rows.append([T.call("skill_adm") + " / " + T.call("skill_dip") + " / " + T.call("skill_mil"), "%d / %d / %d" % [g.r_adm[n], g.r_dip[n], g.r_mil[n]], 0])
-	if g.rules >= 5 and not pick and n != me and g.aim_kind[n] != 0 and (g.aim_t[n] == me or g.intel[me] >= 10.0):          # what a state fights for: known to its enemy, and to anyone with agents abroad
+	if not pick and n != me and g.aim_kind[n] != 0 and (g.aim_t[n] == me or g.intel[me] >= 10.0):          # what a state fights for: known to its enemy, and to anyone with agents abroad
 		var ak: String = TBAims.key(g, n, g.aim_t[n])
 		if ak != "": rows.append([T.call("aim_label"), T.call(ak, {"a": T.call("aim_you") if g.aim_t[n] == me else g.dname(g.aim_t[n])}), -1 if g.aim_t[n] == me else 0])
 	if not pick:
 		if n == me: rows.append([T.call("income_net"), K.signed(float(g.income(n)["net"])), 1 if g.income(n)["net"] >= 0 else -1])
-		if g.rules >= 1 and g.infamy[n] >= 1.0: rows.append([T.call("infamy"), "%.0f%s" % [g.infamy[n], ("  " + T.call("coalition")) if g.coalition[n] != 0 else ""], -1])
+		if g.infamy[n] >= 1.0: rows.append([T.call("infamy"), "%.0f%s" % [g.infamy[n], ("  " + T.call("coalition")) if g.coalition[n] != 0 else ""], -1])
 		if n != me and me > 0:
-			if g.rules >= 1 and rel != 1:
+			if rel != 1:
 				var cbk := TBDiplo.cb(g, me, n)
 				rows.append([T.call("cb"), T.call("cb_" + cbk) if cbk != "" else "%s (+%d %s)" % [T.call("cb_none"), int(TBDiplo.NO_CB_INFAMY), T.call("infamy")], 1 if cbk != "" else 0])
 			rows.append([T.call("grudge"), "%d" % g.grudge[n * g.N1 + me], 0])
@@ -594,7 +593,7 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		vw = {"nap": TBDipView.pact(g, n, me, D.REL_NAP), "ally": TBDipView.pact(g, n, me, D.REL_ALLY), "trade": TBDipView.trade(g, n, me),
 			"white": TBDipView.peace(g, n, me, "white"), "cede": TBDipView.peace(g, n, me, "cede"), "vassal": TBDipView.peace(g, n, me, "vassal")}
 	# a request to an AI court (rules >= 1): one press sends it, the likelihood is on the button, the answer comes with the next turn (TBAsks)
-	var asking: bool = ai and g.rules >= 1
+	var asking: bool = ai
 	var pend: Dictionary = TBAsks.find(g, me, n) if asking else {}
 	var pend_spy: bool = not TBAsks.find(g, me, n, true).is_empty() if asking else false
 	# why they feel this way: the terms of the court's sum for the request that matters most right now
@@ -639,34 +638,32 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		var pc: int = TBAsks.chance(g, me, kind, n, op)
 		if reason == "" and pc == 0: reason = T.call("dvb_" + String(TBAsks.view(g, me, kind, n, op).get("blocked", "grudge")))
 		add_btn.call(T.call("ask_proposed") if mine else label, icon, T.call("ask_next") if mine else "%d%%" % pc,
-			func(): done.call({"cmd": "ask", "kind": kind, "t": n, "op": op}), reason, "" if reason != "" else (_trade_tip(g, me, n, cost) if kind == "trade" and g.rules >= 3 else T.call("ask_tip", {"c": cost})))
+			func(): done.call({"cmd": "ask", "kind": kind, "t": n, "op": op}), reason, "" if reason != "" else (_trade_tip(g, me, n, cost) if kind == "trade" else T.call("ask_tip", {"c": cost})))
 	if rel == 1:
 		var ws: int = g.war_score[me * g.N1 + n]
 		req.call(T.call("dip_peace"), "flag", "peace", "white", D.DP_PEACE, dpw.call(D.DP_PEACE), {"cmd": "peace", "t": n, "kind": "white"})
 		req.call(T.call("dip_land"), "flag", "peace", "cede", 0, "" if ws >= 25 else T.call("err_warscore") + " (25%)", {"cmd": "peace", "t": n, "kind": "cede"})
-		if g.rules >= 1: req.call(T.call("dip_vassal"), "crown", "peace", "vassal", 0, "" if ws >= 50 else T.call("err_warscore") + " (50%)", {"cmd": "peace", "t": n, "kind": "vassal"})
+		req.call(T.call("dip_vassal"), "crown", "peace", "vassal", 0, "" if ws >= 50 else T.call("err_warscore") + " (50%)", {"cmd": "peace", "t": n, "kind": "vassal"})
 	else:
 		if rel == 0:
 			req.call(T.call("dip_nap"), "pact", "nap", "", D.DP_NAP, dpw.call(D.DP_NAP), {"cmd": "nap", "t": n})
 			req.call(T.call("dip_ally"), "star", "ally", "", D.DP_ALLY, dpw.call(D.DP_ALLY), {"cmd": "ally", "t": n})
 		if TBDiplo.can_marry(g, me, n):
 			req.call(T.call("dip_marry"), "heart", "marry", "", TBDiplo.DP_MARRY, dpw.call(TBDiplo.DP_MARRY), {"cmd": "marry", "t": n})
-		if g.rules >= 1:
-			if TBTrade.has(g, me, n): add_btn.call(T.call("dip_close"), "trade", "", func(): done.call({"cmd": "cancelTrade", "t": n}))
-			else: req.call(T.call("dip_trade"), "trade", "trade", "", TBTrade.DP_COST, dpw.call(TBTrade.DP_COST), {"cmd": "trade", "t": n})
-		if g.rules >= 3:
-			var ec := g.can({"cmd": "embassy", "t": n})
-			var eoff := ""
-			if not bool(ec["ok"]): eoff = T.call("err_" + String(ec["reason"])) if TBI18n.has_key("err_" + String(ec["reason"])) else String(ec["reason"])
-			add_btn.call(T.call("dip_embassy"), "eye", "%d ✉" % TBMissions.EMBASSY_DP, func(): done.call({"cmd": "embassy", "t": n}), eoff,
-				T.call("dip_embassy_tip", {"g": TBMissions.EMBASSY_GOLD, "k": TBMissions.EMBASSY_GRUDGE, "i": int(TBMissions.EMBASSY_INTEL)}))
-		if g.rules >= 5 and g.overlord[n] == me:
+		if TBTrade.has(g, me, n): add_btn.call(T.call("dip_close"), "trade", "", func(): done.call({"cmd": "cancelTrade", "t": n}))
+		else: req.call(T.call("dip_trade"), "trade", "trade", "", TBTrade.DP_COST, dpw.call(TBTrade.DP_COST), {"cmd": "trade", "t": n})
+		var ec := g.can({"cmd": "embassy", "t": n})
+		var eoff := ""
+		if not bool(ec["ok"]): eoff = T.call("err_" + String(ec["reason"])) if TBI18n.has_key("err_" + String(ec["reason"])) else String(ec["reason"])
+		add_btn.call(T.call("dip_embassy"), "eye", "%d ✉" % TBMissions.EMBASSY_DP, func(): done.call({"cmd": "embassy", "t": n}), eoff,
+			T.call("dip_embassy_tip", {"g": TBMissions.EMBASSY_GOLD, "k": TBMissions.EMBASSY_GRUDGE, "i": int(TBMissions.EMBASSY_INTEL)}))
+		if g.overlord[n] == me:
 			add_btn.call(T.call("dip_release"), "flag", "", func():
 				TBPanel.confirm(parent, T.call("confirm_release_t", {"a": g.dname(n)}), T.call("confirm_release_b"), T.call("release_do"), func(): done.call({"cmd": "release", "t": n}), false, "info"), "", T.call("dip_release_tip"))
 		if rel == 2 or rel == 3:
 			add_btn.call(T.call("dip_break"), "close", "", func():
 				TBPanel.confirm(parent, T.call("confirm_break_t", {"a": g.dname(n)}), T.call("confirm_break_b"), T.call("break_pact"), func(): done.call({"cmd": "breakPact", "t": n}), true, "warning", "",
-					TBPanel.fact_row("warn", T.call("break_costs_h"), T.call("break_costs" if g.rules >= 3 else "break_costs_old", {"a": g.dname(n), "inf": int(TBDiplo.BREAK_ALLY_INFAMY if rel == 3 else TBDiplo.BREAK_NAP_INFAMY)}), "warn", K.is_phone(parent))))
+					TBPanel.fact_row("warn", T.call("break_costs_h"), T.call("break_costs", {"a": g.dname(n), "inf": int(TBDiplo.BREAK_ALLY_INFAMY if rel == 3 else TBDiplo.BREAK_NAP_INFAMY)}), "warn", K.is_phone(parent))))
 	if rel != 1:
 		var why: String = dpw.call(D.DP_WAR)
 		var wb: Button = K.danger(T.call("dip_war"), func():
@@ -679,25 +676,24 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 		v.add_child(_pad(wrap, 8.0))
 	v.set_meta("demo_end", v.get_child_count())                     # everything above is the demo's card; what follows (intel, facts, allies) scrolls below it
 	# intel
-	if g.rules >= 1:
-		v.add_child(_cap("%s  ·  %s %.0f" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]], 14.0, 6.0))
-		var sp := GridContainer.new(); sp.columns = 1 if narrow else 2
-		sp.add_theme_constant_override("h_separation", 8); sp.add_theme_constant_override("v_separation", 8); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		v.add_child(sp)
-		for op in ["survey", "steal", "sabotage", "incite"]:
-			var cost: float = TBCommands.SPY_COST[op]
-			var reason := ""
-			if g.friendly(me, n): reason = T.call("err_ally")
-			elif g.intel[me] < cost: reason = T.call("err_intel")
-			var o: String = op
-			var sub: String = "%d" % int(cost)
-			if asking:
-				sub += " · %d%%" % TBAsks.chance(g, me, "spy", n, o)
-				if pend_spy: reason = T.call("ask_spy_wait")
-			var sb: Button = K.button(T.call("spy_" + op), func(): done.call({"cmd": "ask", "kind": "spy", "t": n, "op": o} if asking else {"cmd": "spy", "t": n, "op": o}), false, false, "spy", sub)
-			sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			if reason != "": K.disable(sb, reason)
-			sp.add_child(sb)
+	v.add_child(_cap("%s  ·  %s %.0f" % [T.call("spy_title"), T.call("hud_intel"), g.intel[me]], 14.0, 6.0))
+	var sp := GridContainer.new(); sp.columns = 1 if narrow else 2
+	sp.add_theme_constant_override("h_separation", 8); sp.add_theme_constant_override("v_separation", 8); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(sp)
+	for op in ["survey", "steal", "sabotage", "incite"]:
+		var cost: float = TBCommands.SPY_COST[op]
+		var reason := ""
+		if g.friendly(me, n): reason = T.call("err_ally")
+		elif g.intel[me] < cost: reason = T.call("err_intel")
+		var o: String = op
+		var sub: String = "%d" % int(cost)
+		if asking:
+			sub += " · %d%%" % TBAsks.chance(g, me, "spy", n, o)
+			if pend_spy: reason = T.call("ask_spy_wait")
+		var sb: Button = K.button(T.call("spy_" + op), func(): done.call({"cmd": "ask", "kind": "spy", "t": n, "op": o} if asking else {"cmd": "spy", "t": n, "op": o}), false, false, "spy", sub)
+		sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if reason != "": K.disable(sb, reason)
+		sp.add_child(sb)
 
 
 # ---- rankings tab: chart or table of the leading powers ----------------------------------------------------------------------------------------

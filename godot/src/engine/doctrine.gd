@@ -14,12 +14,11 @@ static func admin_mul(g: TBGame, n: int) -> float: return 0.88 if _is(g, n, 3) e
 static func research_mul(g: TBGame, n: int) -> float: return 1.05 if _is(g, n, 3) else 1.0
 
 static func _is(g: TBGame, n: int, d: int) -> bool:
-	return g.rules >= 1 and g.doctrine[n] == d
+	return g.doctrine[n] == d
 
 static func cost(g: TBGame, n: int) -> int: return ADOPT_DP if g.doctrine[n] == 0 else SWITCH_DP
 
 static func adopt(g: TBGame, n: int, id: String) -> Dictionary:
-	if g.rules < 1: return {"ok": false, "err": "rules"}
 	var d := IDS.find(id)
 	if d < 1: return {"ok": false, "err": "decision"}
 	if g.doctrine[n] == d: return {"ok": false, "err": "active"}
@@ -32,7 +31,7 @@ static func adopt(g: TBGame, n: int, id: String) -> Dictionary:
 
 ## AI nations settle on a doctrine that suits their temperament the first time they can afford it (no RNG)
 static func ai_step(g: TBGame, n: int) -> void:
-	if g.rules < 1 or g.doctrine[n] != 0 or g.dp[n] < ADOPT_DP + 1: return
+	if g.doctrine[n] != 0 or g.dp[n] < ADOPT_DP + 1: return
 	var pid: String = TBData.PERSONALITIES[g.personality[n]]["id"]
 	var want := "martial"
 	match pid:

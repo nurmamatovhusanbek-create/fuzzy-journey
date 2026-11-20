@@ -16,22 +16,20 @@ static func pact(g: TBGame, t: int, p: int, rel: int) -> Dictionary:
 	var blocked := ""
 	if g.grudge[t * g.N1 + p] > 20: blocked = "grudge"
 	elif g.has_truce(t, p) and rel == D.REL_ALLY: blocked = "truce"
-	elif g.rules >= 3 and rel == D.REL_ALLY and TBDiplo.ally_count(g, t) >= TBDiplo.max_allies(g, t): blocked = "allies"
+	elif rel == D.REL_ALLY and TBDiplo.ally_count(g, t) >= TBDiplo.max_allies(g, t): blocked = "allies"
 	var terms: Array = []
 	var s: float = float(pers["dipl"]) * 0.6
 	terms.append(["dv_temper", s])
 	if rel == D.REL_NAP: s += 0.3; terms.append(["dv_nap", 0.3])
-	if g.rules >= 1:
-		var inf: float = -maxf(0.0, g.infamy[p] - 12.0) * 0.02
-		if inf != 0.0: s += inf; terms.append(["dv_infamy", inf])
+	var inf: float = -maxf(0.0, g.infamy[p] - 12.0) * 0.02
+	if inf != 0.0: s += inf; terms.append(["dv_infamy", inf])
 	var shared := 0
 	for o in range(1, g.N + 1):
 		if g.get_rel(t, o) == D.REL_WAR and g.get_rel(p, o) == D.REL_WAR: shared += 1
 	if shared > 0: s += 0.3 * shared; terms.append(["dv_shared", 0.3 * shared])
 	if g.own_count(p) > g.own_count(t) * 3: s -= 0.2; terms.append(["dv_size", -0.2])
-	if g.rules >= 3:
-		for tm in TBDiplo.pact_terms(g, t, p, rel):
-			s += float(tm[1]); terms.append(tm)
+	for tm in TBDiplo.pact_terms(g, t, p, rel):
+		s += float(tm[1]); terms.append(tm)
 	return _res(s, 0.45, terms, blocked)
 
 ## t weighing a trade deal with p (the sums are TBTrade.weigh: the AI decides with the very same terms)
@@ -52,9 +50,8 @@ static func peace(g: TBGame, t: int, p: int, kind: String) -> Dictionary:
 	terms.append(["dv_front", want])
 	var weary: float = minf(1.5, dur / 20.0)
 	want += weary; terms.append(["dv_weary", weary])
-	if g.rules >= 4:                                                   # a country worn out by the war wants it over; one whose enemy is worn out presses on
-		var ex: float = (g.exh[t] - g.exh[p]) * 0.03
-		want += ex; terms.append(["dv_exh", ex])
+	var ex: float = (g.exh[t] - g.exh[p]) * 0.03
+	want += ex; terms.append(["dv_exh", ex])
 	var gr: float = -float(g.grudge[t * N1 + p]) / 80.0
 	want += gr
 	if gr != 0.0: terms.append(["dv_grudge", gr])

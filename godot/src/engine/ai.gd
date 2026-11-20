@@ -27,64 +27,35 @@ static func _frontier(g: TBGame, n: int) -> PackedInt32Array:
 			out.append(p); out.append(q)
 	return out
 
-static func au40(g: TBGame) -> float: return float(g.au(40.0)) if g.rules >= 5 else 40.0
+static func au40(g: TBGame) -> float: return float(g.au(40.0))
 
 static func _nation(g: TBGame, n: int) -> void:
 	var pers: Dictionary = D.PERSONALITIES[g.personality[n]]
 	var own := g.owned(n)
 	if own.is_empty(): return
 	var lvl: Dictionary = D.AGGRESSION[g.aggr_level]
-	var aggr: float = float(pers["aggr"]) * float(g.diff["aiAggr"]) * (float(lvl["mul"]) if g.rules >= 1 else 1.0)
+	var aggr: float = float(pers["aggr"]) * float(g.diff["aiAggr"]) * (float(lvl["mul"]))
 	var fr := _frontier(g, n)
 	var at_war := g.at_war(n)
-	if g.rules >= 5 and g.aim_kind[n] != TBAims.NONE and g.get_rel(n, g.aim_t[n]) != D.REL_WAR: TBAims.clear(g, n)
+	if g.aim_kind[n] != TBAims.NONE and g.get_rel(n, g.aim_t[n]) != D.REL_WAR: TBAims.clear(g, n)
 	var gu: float = g.gu(n, 1.0)
 	var army_full := false                                                # rules 5: a state keeps an army its people can bear: more than a peace-time share in a war, a little above it in peace
-	if g.rules >= 5:
-		var np := 0; var na := 0
-		for q in own: np += g.pop[q]; na += g.army[q]
-		var bent: float = 0.7 + 0.6 * float(pers["aggr"])
-		army_full = float(na) >= float(np) * float(TBGame.STANDING_SHARE[g.era[n]]) * bent * (3.0 if at_war else 1.3)
+	var np := 0; var na := 0
+	for q in own: np += g.pop[q]; na += g.army[q]
+	var bent: float = 0.7 + 0.6 * float(pers["aggr"])
+	army_full = float(na) >= float(np) * float(TBGame.STANDING_SHARE[g.era[n]]) * bent * (3.0 if at_war else 1.3)
 	# rules 5: a hundred gold is a hundred only in the old scale; thresholds are in the nation's own terms
 
-	if g.rules >= 1:
-		TBDecisions.ai_steady(g, n)
-		TBDoctrine.ai_step(g, n)
+	TBDecisions.ai_steady(g, n)
+	TBDoctrine.ai_step(g, n)
 	# 0. rules>=1: AI manages its budget (rich nations convert tax into research/investment)
-	if g.rules >= 1 and (g.turn + n) % 4 == 0:
+	if (g.turn + n) % 4 == 0:
 		_budget(g, n, pers, at_war)
 	# 1. economy
-	if g.rules >= 2:
-		_districts(g, n, own, pers, at_war)
-	elif g.gold[n] > 150.0 * gu and g.mp[n] >= 2 and g.rng.chance(0.3 + float(pers["econ"]) * 0.2):
-		var best := -1; var bs := -1
-		var step := 1 + (2 if own.size() > 30 else 0)
-		var i := 0
-		while i < own.size():
-			var p := own[i]
-			i += step
-			if g.building[p] != 0 or g.b_building[p] != 0 or g.occupier[p] != 0: continue
-			var s: int = g.pop[p] + g.dev[p] * 20 + (100 if g.capital[p] != 0 else 0)
-			if s > bs:
-				bs = s; best = p
-		if best >= 0:
-			var want_mil: bool = at_war or float(pers["def"]) > 0.7
-			var choice: int
-			if want_mil: choice = D.B_FORTRESS
-			elif g.tech_level[n] > 0.8 and g.rng.chance(0.4): choice = D.B_LIBRARY
-			else: choice = D.B_MARKET if g.rng.chance(0.5) else D.B_FARM
-			g.apply({"cmd": "build", "n": n, "p": best, "b": choice})
+	_districts(g, n, own, pers, at_war)
 	# 1b. rules 1: rich nations invest in development (gold sink, grows the economy)
-	if g.rules == 1 and g.gold[n] > 300.0 * gu and g.mp[n] >= 2 and g.rng.chance(0.25 + float(pers["econ"]) * 0.3):
-		var bp := -1; var bsc := -1.0
-		for p in own:
-			if g.occupier[p] != 0: continue
-			var sc2: float = g.pop[p] / 100.0 + g.stab[p] / 50.0 - g.dev[p]
-			if sc2 > bsc:
-				bsc = sc2; bp = p
-		if bp >= 0: g.apply({"cmd": "develop", "n": n, "p": bp, "k": 1})
 	# 1c. rules 4: a nation with gold to spare starts projects (development, economy, settlement, public order), the kind by what the province lacks and the ruler's bent
-	if g.rules >= 4 and g.gold[n] > 220.0 * gu and g.mp[n] >= 2.0 and g.rng.chance(0.35 + float(pers["econ"]) * 0.4):
+	if g.gold[n] > 220.0 * gu and g.mp[n] >= 2.0 and g.rng.chance(0.35 + float(pers["econ"]) * 0.4):
 		var started := 0
 		var stepp := maxi(1, own.size() / 10)
 		var ii := int(g.rng.next() * float(stepp))
@@ -110,7 +81,7 @@ static func _nation(g: TBGame, n: int) -> void:
 			if g.apply({"cmd": "colonize", "n": n, "p": q})["ok"]: break
 	# 3. recruit (rich nations raise several levies)
 	var levies := 3 if g.gold[n] > 500.0 * gu else (2 if g.gold[n] > 250.0 * gu else 1)
-	if g.rules >= 1 and g.gold[n] > 900.0 * gu: levies = 5
+	if g.gold[n] > 900.0 * gu: levies = 5
 	var lv := 0
 	while lv < levies and not army_full and g.gold[n] > 30.0 * gu and g.manpower[n] > au40(g) and g.mp[n] >= 1 and (lv > 0 or g.rng.chance(0.3 + aggr * 0.4 + (0.3 if at_war else 0.0))):
 		var best2 := -1; var bs2 := -1e9
@@ -118,15 +89,15 @@ static func _nation(g: TBGame, n: int) -> void:
 		while i < fr.size():
 			var p := fr[i]; var q := fr[i + 1]
 			i += 2
-			if g.rules >= 4 and _levy_spare(g, p, at_war) < 1: continue               # a province keeps a reserve at home (more in peace); an empty pool raises nobody
+			if _levy_spare(g, p, at_war) < 1: continue               # a province keeps a reserve at home (more in peace); an empty pool raises nobody
 			var hostile: bool = g.owner[q] != 0 and g.get_rel(n, g.controller(q)) == D.REL_WAR
 			var s: float = (3.0 if hostile else 0.5) - float(g.army[p]) / float(g.au(60.0)) + g.rng.next() * 0.3
 			if s > bs2:
 				bs2 = s; best2 = p
-		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": 20 if g.rules < 4 else clampi(_levy_spare(g, best2, at_war), 1, g.au(20.0 + (10.0 if at_war else 0.0)))})
+		if best2 >= 0: g.apply({"cmd": "recruit", "n": n, "p": best2, "amount": clampi(_levy_spare(g, best2, at_war), 1, g.au(20.0 + (10.0 if at_war else 0.0)))})
 		lv += 1
 	# 3b. rules>=1: hoarded gold buys mercenaries (turns wealth into power; the game's main gold sink)
-	if g.rules >= 1 and g.gold[n] > 500.0 * gu and not army_full:
+	if g.gold[n] > 500.0 * gu and not army_full:
 		var hires := mini(3, int(g.gold[n] / (400.0 * gu)))
 		for h in hires:
 			if g.mp[n] < 1: break
@@ -141,24 +112,26 @@ static func _nation(g: TBGame, n: int) -> void:
 			if hb < 0:
 				hb = own[g.rng.randi_n(own.size())]
 			g.apply({"cmd": "hire", "n": n, "p": hb, "amount": g.au(40.0)})
-	if g.rules >= 5: TBLineage.ai_step(g, n); TBInstitutions.ai_step(g, n); TBEstates.ai_step(g, n); TBRegimes.ai_step(g, n)
-	if g.rules >= 5 and ((g.turn + n) % 3 == 0 or g.gold[n] > 25.0 * float(g.income(n)["gold"])): TBWorks.ai_buy(g, n, pers, at_war)
-	if g.rules >= 5 and g.mp[n] >= 2.0 and (g.turn + n) % 2 == 0:                  # a state does not leave its whole army in the capital
+	TBLineage.ai_step(g, n)
+	TBInstitutions.ai_step(g, n)
+	TBEstates.ai_step(g, n)
+	TBRegimes.ai_step(g, n)
+	if ((g.turn + n) % 3 == 0 or g.gold[n] > 25.0 * float(g.income(n)["gold"])): TBWorks.ai_buy(g, n, pers, at_war)
+	if g.mp[n] >= 2.0 and (g.turn + n) % 2 == 0:                  # a state does not leave its whole army in the capital
 		var cap_p: int = g.capital_of[n]
 		if cap_p >= 0 and g.army[cap_p] >= g.au(40.0): g.apply({"cmd": "spread", "n": n, "p": cap_p})
-	if g.rules >= 1:
-		TBGenerals.ai_step(g, n, own)
-		TBDecisions.ai_pick(g, n)
-		TBTrade.ai_step(g, n)
-		TBDiplo.ai_marry(g, n)
-		TBDiplo.ai_ultimatum(g, n, aggr)
+	TBGenerals.ai_step(g, n, own)
+	TBDecisions.ai_pick(g, n)
+	TBTrade.ai_step(g, n)
+	TBDiplo.ai_marry(g, n)
+	TBDiplo.ai_ultimatum(g, n, aggr)
 	# 4. war
 	if g.mp[n] >= D.MP_ATTACK: _maybe_declare(g, n, aggr, fr)
 	if at_war or g.at_war(n): _fight(g, n, fr)
 	# 5. peace when losing
 	if g.war_cnt[n] > 0: _seek_peace(g, n)
 	# 5b. rules>=1: spies strike current enemies
-	if g.rules >= 1 and at_war and g.intel[n] >= 10.0 and g.rng.chance(0.12 + float(pers["aggr"]) * 0.1):
+	if at_war and g.intel[n] >= 10.0 and g.rng.chance(0.12 + float(pers["aggr"]) * 0.1):
 		for o in range(1, g.N1):
 			if o != n and g.alive[o] != 0 and o != g.rebel and g.get_rel(n, o) == D.REL_WAR:
 				g.apply({"cmd": "spy", "n": n, "t": o, "op": ["steal", "sabotage", "incite"][g.rng.randi_n(3)]}); break
@@ -178,8 +151,8 @@ static func _budget(g: TBGame, n: int, pers: Dictionary, at_war: bool) -> void:
 
 static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array) -> void:
 	var lvl: Dictionary = D.AGGRESSION[g.aggr_level]
-	if g.turn < 6 or g.turn - g.last_war_turn[n] < (6 if g.rules == 0 else int(lvl["cd"])) or g.dp[n] < D.DP_WAR: return
-	if g.rules >= 1 and g.war_cnt[n] >= 2 + int(lvl["wars"]): return          # no endless multi-front wars
+	if g.turn < 6 or g.turn - g.last_war_turn[n] < (int(lvl["cd"])) or g.dp[n] < D.DP_WAR: return
+	if g.war_cnt[n] >= 2 + int(lvl["wars"]): return          # no endless multi-front wars
 	if not g.rng.chance(minf(1.0, aggr * 0.5)): return
 	var tgt := 0; var ts := -1.0
 	var seen := {}
@@ -192,27 +165,26 @@ static func _maybe_declare(g: TBGame, n: int, aggr: float, fr: PackedInt32Array)
 		var t := g.owner[q]
 		if t == 0 or t == n or seen.has(t) or g.alive[t] == 0 or g.friendly(n, t) or g.has_truce(n, t) or g.get_rel(n, t) == D.REL_NAP or g.get_rel(n, t) == D.REL_WAR: continue
 		seen[t] = true
-		if float(g.army[p]) / maxf(g.au(8.0), g.army[q] + g.au(10.0)) < (1.15 if g.rules == 0 else float(lvl["ratio"])): continue
+		if float(g.army[p]) / maxf(g.au(8.0), g.army[q] + g.au(10.0)) < (float(lvl["ratio"])): continue
 		var s: float = float(g.army[p]) / (g.army[q] + g.au(10.0)) + g.grudge[n * g.N1 + t] / 50.0 + g.rng.next() * 0.5
-		if g.rules >= 1:
-			var share := float(g.own_count(t)) / maxf(1.0, total_owned)
-			if share > 0.04: s += (share - 0.04) * 25.0       # hegemon: everyone's favourite target
-			s += g.infamy[t] / 15.0 + (2.0 if g.coalition[t] != 0 else 0.0)      # coalition against the notorious
-			var cbk := TBDiplo.cb(g, n, t)
-			if cbk != "": s += 0.8
-			elif aggr < 0.5: s -= 1.5                             # peaceful rulers avoid unjustified wars
-			if cbk == "" and g.infamy[n] >= 18.0: s -= 2.0
+		var share := float(g.own_count(t)) / maxf(1.0, total_owned)
+		if share > 0.04: s += (share - 0.04) * 25.0       # hegemon: everyone's favourite target
+		s += g.infamy[t] / 15.0 + (2.0 if g.coalition[t] != 0 else 0.0)      # coalition against the notorious
+		var cbk := TBDiplo.cb(g, n, t)
+		if cbk != "": s += 0.8
+		elif aggr < 0.5: s -= 1.5                             # peaceful rulers avoid unjustified wars
+		if cbk == "" and g.infamy[n] >= 18.0: s -= 2.0
 		if s > ts:
 			ts = s; tgt = t
 	if tgt != 0:
 		var cap := g.capital_of[n]
 		if g.stab[cap if cap >= 0 else 0] < 25: return
-		if g.rules >= 1 and aggr < 0.5 and TBDiplo.cb(g, n, tgt) == "" and g.rng.chance(0.6): return
+		if aggr < 0.5 and TBDiplo.cb(g, n, tgt) == "" and g.rng.chance(0.6): return
 		var dw := g.apply({"cmd": "declareWar", "n": n, "t": tgt})
-		if g.rules >= 5 and bool(dw.get("ok", false)): TBAims.set_aim(g, n, tgt, TBAims.pick(g, n, tgt))
+		if bool(dw.get("ok", false)): TBAims.set_aim(g, n, tgt, TBAims.pick(g, n, tgt))
 
 static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
-	var attacks := mini(3 + (2 if (g.rules >= 5 and g.aim_kind[n] != TBAims.NONE) else 0), int(floor(g.mp[n] / D.MP_ATTACK)))      # rules 5: a state with an aim presses it
+	var attacks := mini(3 + (2 if (g.aim_kind[n] != TBAims.NONE) else 0), int(floor(g.mp[n] / D.MP_ATTACK)))      # rules 5: a state with an aim presses it
 	if attacks <= 0: return
 	var cands: Array = []
 	var i := 0
@@ -224,13 +196,11 @@ static func _fight(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		if g.army[p] < g.au(12.0): continue
 		var atk := g.army[p] * 0.9
 		var dfn := g.army[q] * g.def_mul(q) + 1.0
-		var score := atk / dfn + g.province_value(q) * (0.05 if g.rules < 4 else 0.03) + (1.0 if g.capital[q] != 0 else 0.0) + (1.5 if g.rules >= 5 and TBAims.is_wanted(g, n, c, q) else 0.0)
-		if g.rules >= 4:                                                      # the same three-round battle the player sees: attack only when the expected outcome is a win that leaves an army to hold the land
-			var pv := g.combat_preview(n, p, q, 0)
-			var worst_ok: bool = bool((pv["range"] as Dictionary)["worst"]["win"])
-			if not bool(pv["win"]) or int(pv["hold"]) < g.au(6.0) or (not worst_ok and g.rng.chance(0.5)): continue
-			cands.append([score - float(pv["lost"]) / maxf(1.0, float(pv["send"])), p, q])
-		elif atk > dfn * (1.1 if g.rules == 0 else float(D.AGGRESSION[g.aggr_level]["atk"])): cands.append([score, p, q])
+		var score := atk / dfn + g.province_value(q) * (0.03) + (1.0 if g.capital[q] != 0 else 0.0) + (1.5 if TBAims.is_wanted(g, n, c, q) else 0.0)
+		var pv := g.combat_preview(n, p, q, 0)
+		var worst_ok: bool = bool((pv["range"] as Dictionary)["worst"]["win"])
+		if not bool(pv["win"]) or int(pv["hold"]) < g.au(6.0) or (not worst_ok and g.rng.chance(0.5)): continue
+		cands.append([score - float(pv["lost"]) / maxf(1.0, float(pv["send"])), p, q])
 	cands.sort_custom(func(a, b):
 		if a[0] != b[0]: return a[0] > b[0]
 		if a[1] != b[1]: return a[1] < b[1]
@@ -279,23 +249,22 @@ static func _seek_peace(g: TBGame, n: int) -> void:
 				g.apply({"cmd": "peace", "n": n, "t": o, "kind": "white", "_force": true})
 			continue
 		var losing := theirs - mine
-		if g.rules >= 4: losing += (g.exh[n] - g.exh[o]) * 0.3                   # a worn-out government looks for peace sooner
-		if g.rules >= 5:                                                         # rules 5: a state fights for its aim
-			var ak: int = TBAims.kind_of(g, n, o)
-			if ak == TBAims.NONE and g.aim_kind[n] == TBAims.NONE: TBAims.set_aim(g, n, o, TBAims.HUMBLE); ak = TBAims.HUMBLE          # attacked: it wants to humble the aggressor
-			if ak != TBAims.NONE and dur > TBAims.PATIENCE: TBAims.clear(g, n); ak = TBAims.NONE
-			if ak != TBAims.NONE and losing <= 15:
-				if TBAims.met(g, n, o):
-					var kind5: String = "vassal" if ak == TBAims.VASSAL else ("white" if (ak == TBAims.HUMBLE and mine < 25) else "cede")
-					g.apply({"cmd": "peace", "n": n, "t": o, "kind": kind5, "_force": ak != TBAims.HUMBLE})
-					TBAims.clear(g, n)
-				continue                                                          # aim not met yet: it fights on, it does not take a cheap peace
-		if losing > 15 or (dur > (8 if g.rules == 0 else 14) and absi(losing) < 12 and g.rng.chance(0.3)):
+		losing += (g.exh[n] - g.exh[o]) * 0.3                   # a worn-out government looks for peace sooner
+		var ak: int = TBAims.kind_of(g, n, o)
+		if ak == TBAims.NONE and g.aim_kind[n] == TBAims.NONE: TBAims.set_aim(g, n, o, TBAims.HUMBLE); ak = TBAims.HUMBLE          # attacked: it wants to humble the aggressor
+		if ak != TBAims.NONE and dur > TBAims.PATIENCE: TBAims.clear(g, n); ak = TBAims.NONE
+		if ak != TBAims.NONE and losing <= 15:
+			if TBAims.met(g, n, o):
+				var kind5: String = "vassal" if ak == TBAims.VASSAL else ("white" if (ak == TBAims.HUMBLE and mine < 25) else "cede")
+				g.apply({"cmd": "peace", "n": n, "t": o, "kind": kind5, "_force": ak != TBAims.HUMBLE})
+				TBAims.clear(g, n)
+			continue                                                          # aim not met yet: it fights on, it does not take a cheap peace
+		if losing > 15 or (dur > (14) and absi(losing) < 12 and g.rng.chance(0.3)):
 			var force: bool = (not accepts_peace(g, o, n, "white")) and losing > 35
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "cede" if mine >= 25 else "white", "_force": force})
-		elif g.rules >= 1 and mine >= 60 and g.overlord[o] == 0 and g.overlord[n] == 0 and g.rng.chance(0.4):
+		elif mine >= 60 and g.overlord[o] == 0 and g.overlord[n] == 0 and g.rng.chance(0.4):
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "vassal", "_force": true})
-		elif mine >= (40 if g.rules == 0 else 25) and g.rng.chance(0.3 if g.rules == 0 else 0.6):
+		elif mine >= (25) and g.rng.chance(0.6):
 			g.apply({"cmd": "peace", "n": n, "t": o, "kind": "cede"})
 
 static func _diplomacy(g: TBGame, n: int, fr: PackedInt32Array) -> void:
@@ -308,7 +277,7 @@ static func _diplomacy(g: TBGame, n: int, fr: PackedInt32Array) -> void:
 		var r := g.get_rel(n, t)
 		if r == D.REL_PEACE and g.grudge[t * g.N1 + n] < 20:
 			var k: String = "nap" if g.rng.chance(0.5) else "ally"
-			if k == "ally" and g.rules >= 3 and not accepts_pact(g, t, n, D.REL_ALLY): k = "nap"          # no alliance without a record of trust: a pact first
+			if k == "ally" and not accepts_pact(g, t, n, D.REL_ALLY): k = "nap"          # no alliance without a record of trust: a pact first
 			if k == "ally" and g.dp[n] >= D.DP_ALLY: g.apply({"cmd": "ally", "n": n, "t": t})
 			else: g.apply({"cmd": "nap", "n": n, "t": t})
 			return
@@ -323,28 +292,27 @@ static func accepts_peace(g: TBGame, t: int, p: int, kind: String) -> bool:
 	want += (their_ws - my_ws) * 0.04
 	want += minf(1.5, dur / 20.0)
 	want -= g.grudge[t * N1 + p] / 80.0
-	if g.rules >= 4: want += (g.exh[t] - g.exh[p]) * 0.03                      # worn out, he wants it over (the peace table's disposition shows the same term)
+	want += (g.exh[t] - g.exh[p]) * 0.03                      # worn out, he wants it over (the peace table's disposition shows the same term)
 	if kind == "cede": want -= 0.5 + their_ws * 0.02
 	if kind == "vassal": want -= 1.5 + their_ws * 0.03
 	return want > peace_bar(g)
 
 ## how convincing a peace offer must be: 0.2, higher in a warlike world (rules >= 1)
 static func peace_bar(g: TBGame) -> float:
-	return 0.2 + (float(D.AGGRESSION[g.aggr_level]["peace"]) if g.rules >= 1 else 0.0)
+	return 0.2 + (float(D.AGGRESSION[g.aggr_level]["peace"]))
 
 static func accepts_pact(g: TBGame, t: int, p: int, rel: int) -> bool:
 	var pers: Dictionary = D.PERSONALITIES[g.personality[t]]
 	if g.grudge[t * g.N1 + p] > 20 or (g.has_truce(t, p) and rel == D.REL_ALLY): return false
-	if g.rules >= 3 and rel == D.REL_ALLY and TBDiplo.ally_count(g, t) >= TBDiplo.max_allies(g, t): return false
+	if rel == D.REL_ALLY and TBDiplo.ally_count(g, t) >= TBDiplo.max_allies(g, t): return false
 	var s: float = float(pers["dipl"]) * 0.6 + (0.3 if rel == D.REL_NAP else 0.0)
-	if g.rules >= 1: s -= maxf(0.0, g.infamy[p] - 12.0) * 0.02
+	s -= maxf(0.0, g.infamy[p] - 12.0) * 0.02
 	for o in range(1, g.N + 1):
 		if g.get_rel(t, o) == D.REL_WAR and g.get_rel(p, o) == D.REL_WAR: s += 0.3
 	var mine := g.own_count(t)
 	var theirs := g.own_count(p)
 	if theirs > mine * 3: s -= 0.2
-	if g.rules >= 3:
-		for tm in TBDiplo.pact_terms(g, t, p, rel): s += float(tm[1])
+	for tm in TBDiplo.pact_terms(g, t, p, rel): s += float(tm[1])
 	return s > 0.45
 
 

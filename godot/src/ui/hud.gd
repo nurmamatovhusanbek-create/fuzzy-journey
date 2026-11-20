@@ -243,7 +243,7 @@ func layout_for(vp: Vector2) -> void:
 ## which resource gauges the bar shows, in order
 func _chip_order() -> Array:
 	var keys: Array = ["gold", "man", "mp", "dp"]
-	if g == null or g.rules < 1: keys.erase("dp")
+	if g == null: keys.erase("dp")
 	var extra: Array = []
 	if _wars > 0: extra.append("war")
 	if _inf_on: extra.append("inf")
@@ -653,11 +653,11 @@ func refresh() -> void:
 	for o in range(1, g.N1):
 		if g.alive[o] != 0 and g.get_rel(n, o) == 1: _wars += 1
 	_war.set_num(float(_wars), fmt); _war.glyph_col = P.tk("neg_bar"); _inf.glyph_col = P.tk("neg_bar")
-	_inf_on = g.rules >= 1 and (g.infamy[n] >= 5.0 or g.coalition[n] != 0)
+	_inf_on = (g.infamy[n] >= 5.0 or g.coalition[n] != 0)
 	_inf.set_num(floorf(g.infamy[n]), fmt); _inf.state = 2 if g.coalition[n] != 0 else 0
 	_war.frac = clampf(float(_wars) / 4.0, 0.0, 1.0); _inf.frac = clampf(g.infamy[n] / 100.0, 0.0, 1.0)
 	_nat.badge = 0
-	_nat.subtitle = (T.call(TBRulers.title_key(g, n)) + " " + TBRulers.display_name(g, n)) if (g.rules >= 1 and g.r_name[n] != "") else T.call("era_name_%d" % g.era[n])
+	_nat.subtitle = (T.call(TBRulers.title_key(g, n)) + " " + TBRulers.display_name(g, n)) if (g.r_name[n] != "") else T.call("era_name_%d" % g.era[n])
 	_seal.turn_no = g.turn
 	_seal.year_phase = float(g.month_idx + 6) / 12.0
 	_date.year = _year(g.year)
@@ -943,7 +943,7 @@ func _chip_text(key: String) -> Array:
 	var sg := func(v: float) -> String: return ("+" if v >= 0.0 else "−") + fmt.call(absf(v))
 	match key:
 		"gold":
-			var tr: int = int(TBTrade.income(g, n)) if g.rules >= 1 else 0
+			var tr: int = int(TBTrade.income(g, n))
 			var rows: Array = [[T.call("tkr_taxes", {"p": int(g.budget[n * 4])}), sg.call(float(bd["tax"])), ""], [T.call("tkr_trade_routes"), sg.call(float(tr)), ""], [T.call("tkr_provinces"), sg.call(float(bd["production"])), ""], [T.call("tkr_upkeep"), sg.call(-float(bd["upkeep"])), ""], [T.call("tkr_admin"), sg.call(-float(bd["admin"])), ""], [T.call("tkr_net"), sg.call(float(bd["net"])), "sum"]]
 			var hist: Array = []
 			for pt in TBStats.series(g, n, "g"): hist.append(float(pt[1]))
@@ -963,9 +963,8 @@ func _chip_text(key: String) -> Array:
 			for o in range(1, g.N1):
 				if g.alive[o] != 0 and g.get_rel(n, o) == 1: names.append(g.dname(o))
 			var rows_w: Array = []
-			if g.rules >= 4:                                              # how the war sits on the army and on the people (TBWar)
-				rows_w.append([T.call("mor_name"), "%d" % int(round(g.morale[n])), "neg" if g.morale[n] < TBWar.BROKEN else ("pos" if g.morale[n] >= 85.0 else "")])
-				rows_w.append([T.call("exh_name"), "%d / 100" % int(round(g.exh[n])), "neg" if g.exh[n] >= 60.0 else ""])
+			rows_w.append([T.call("mor_name"), "%d" % int(round(g.morale[n])), "neg" if g.morale[n] < TBWar.BROKEN else ("pos" if g.morale[n] >= 85.0 else "")])
+			rows_w.append([T.call("exh_name"), "%d / 100" % int(round(g.exh[n])), "neg" if g.exh[n] >= 60.0 else ""])
 			return [T.call("hud_wars"), T.call("tk_wars_with", {"l": ", ".join(names)}), rows_w, ""]
 		"infamy":
 			var rows5: Array = [[T.call("tkr_infamy"), str(int(g.infamy[n])), "neg" if g.infamy[n] >= 12.0 else ""]]
@@ -1133,7 +1132,7 @@ func _open_more_chips() -> void:
 	tapped.emit()
 	var lines: PackedStringArray = PackedStringArray()
 	for k in ["gold", "man", "mp", "dp"]:
-		if (_chips[k] as Control).visible or (k == "dp" and g.rules < 1): continue
+		if (_chips[k] as Control).visible: continue
 		var pair: Array = _chip_text(k)
 		lines.append("%s: %s" % [String(pair[0]), String(pair[1]).split("\n")[0]])
 	if _war.visible == false and _wars > 0: lines.append(_chip_text("wars")[0] + ": %d" % _wars)

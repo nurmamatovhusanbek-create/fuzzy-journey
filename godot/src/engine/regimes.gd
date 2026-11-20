@@ -76,7 +76,7 @@ static func opens(g: TBGame, n: int, r: int) -> Array:
 
 static func can_reform(g: TBGame, n: int, r: int) -> Dictionary:
 	var out := {"ok": true, "reason": "", "gold": 0, "moves": REFORM_MOVES, "short": {}}
-	if g.rules < 5 or n <= 0 or g.alive[n] == 0 or n == g.rebel or not TARGETS.has(r): out["ok"] = false; out["reason"] = "unknown"; return out
+	if n <= 0 or g.alive[n] == 0 or n == g.rebel or not TARGETS.has(r): out["ok"] = false; out["reason"] = "unknown"; return out
 	out["gold"] = reform_cost(g, n)
 	if g.regime[n] == r: out["ok"] = false; out["reason"] = "reg_same"
 	elif g.era[n] < int(TBData.REGIMES[r]["sinceEra"]) or g.year < int(YEAR_FROM.get(r, -9999)): out["ok"] = false; out["reason"] = "reg_era"
@@ -111,7 +111,7 @@ static func _top_estate(regime_id: String) -> int:
 
 ## the AI reforms when a name of its line is within reach but for the government, and it can pay twice over
 static func ai_step(g: TBGame, n: int) -> void:
-	if g.rules < 5 or g.human[n] != 0 or (g.turn + n) % 4 != 2: return
+	if g.human[n] != 0 or (g.turn + n) % 4 != 2: return
 	TBLineage.ensure()
 	var best := -1; var best_w := -1
 	for si in TBLineage.options(g, n):

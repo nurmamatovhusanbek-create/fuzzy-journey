@@ -33,7 +33,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"form": return TBLineage.can_form(g, n, int(c.get("i", -1)))
 		"embrace": return TBInstitutions.can_embrace(g, n, int(c.get("i", -1)))
 		"court": return TBEstates.can_court(g, n, int(c.get("e", -1)))
-		"regime": return TBRegimes.can_reform(g, n, int(c.get("r", -1))) if g.rules >= 5 else out
+		"regime": return TBRegimes.can_reform(g, n, int(c.get("r", -1)))
 		"appoint": return _appoint(g, n, c, out)
 		"build": return _build(g, n, c, out)
 		"colonize": return _colonize(g, n, c, out)
@@ -54,7 +54,7 @@ static func check(g: TBGame, c: Dictionary) -> Dictionary:
 		"spread": return _spread(g, n, c, out)
 		"muster": return _muster(g, n, c, out)
 		"works": return _works(g, n, c, out)
-		"release": return _fail(out, "rules") if g.rules < 5 else (_fail(out, "notvassal") if g.overlord[int(c.get("t", 0))] != n else out)
+		"release": return (_fail(out, "notvassal") if g.overlord[int(c.get("t", 0))] != n else out)
 	return _fail(out, "unknown")
 
 static func _fail(out: Dictionary, why: String) -> Dictionary:
@@ -79,7 +79,7 @@ static func _move(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 	out["kind"] = "attack" if att else "move"
 	var troops: int = int(c.get("troops", 0))
 	out["gain"] = mini(troops if troops != 0 else g.army[from] - g.keep(), g.army[from] - g.keep())
-	if g.rules >= 1 and g.sea_edge(from, to) < 0:                       # a march (TBMarch): the route decides the geometry and the move points
+	if g.sea_edge(from, to) < 0:                       # a march (TBMarch): the route decides the geometry and the move points
 		var pl := TBMarch.plan(g, n, from, to)
 		if not bool(pl["ok"]):
 			out["geometry"] = String(pl["err"]); out["ok"] = false; out["reason"] = String(pl["err"]); return out
@@ -98,39 +98,26 @@ static func _move(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 
 ## gold for raising `amount` men in p (rules 4): a fixed fee plus a price per man, cheaper with an armoury, by the regime's recruiting cost
 static func recruit_gold(g: TBGame, p: int, amount: int, reg: Dictionary) -> int:
-	if g.rules >= 5:                                                         # a fee in the nation's wages, then seven turns of a worker's output a man for kit and training
-		var n: int = g.owner[p]
-		return int(ceil((float(D.COST_RECRUIT_GOLD) * g.cm(n) + float(amount) * g.wage(n) * 7.0) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
-	return int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
+	var n: int = g.owner[p]
+	return int(ceil((float(D.COST_RECRUIT_GOLD) * g.cm(n) + float(amount) * g.wage(n) * 7.0) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
 
 static func _recruit(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
 	var reg: Dictionary = D.REGIMES[g.regime[n]]
-	var amount := clampi(int(c.get("amount", 15)), 5, 30)
-	var gold_cost := int(ceil((D.COST_RECRUIT_GOLD + amount * 0.6) * float(reg["recruitCost"]) * (0.5 if g.bl(p, D.B_ARMORY) > 0 else 1.0)))
-	var man_cost: int = D.COST_RECRUIT_MAN + amount
-	if g.rules >= 4:                                                         # the pool of this province, any number up to it
-		var r := g.recruit_range(p)
-		amount = clampi(int(c.get("amount", 15)), 1, maxi(1, r.y))
-		gold_cost = recruit_gold(g, p, amount, reg); man_cost = amount
-		out["gold"] = gold_cost; out["men"] = man_cost; out["moves"] = D.MP_RECRUIT; out["gain"] = amount; out["pool"] = g.levy[p]
-		if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")
-		if r.y < 1: return _fail(out, "manpower")
-		_need(out, "gold", g.gold[n], gold_cost, "gold")
-		_need(out, "moves", g.mp[n], D.MP_RECRUIT, "mp")
-		return out
-	out["gold"] = gold_cost; out["men"] = man_cost; out["moves"] = D.MP_RECRUIT; out["gain"] = amount
+	var r := g.recruit_range(p)
+	var amount := clampi(int(c.get("amount", 15)), 1, maxi(1, r.y))
+	var gold_cost := recruit_gold(g, p, amount, reg); var man_cost := amount
+	out["gold"] = gold_cost; out["men"] = man_cost; out["moves"] = D.MP_RECRUIT; out["gain"] = amount; out["pool"] = g.levy[p]
 	if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")
+	if r.y < 1: return _fail(out, "manpower")
 	_need(out, "gold", g.gold[n], gold_cost, "gold")
-	_need(out, "men", g.manpower[n], man_cost, "manpower")
 	_need(out, "moves", g.mp[n], D.MP_RECRUIT, "mp")
 	return out
 
 ## rules >= 5: Disband. gain = the men leaving the colours, "levy" = how many go back to the province's pool
 static func _disband(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
-	if g.rules < 5: return _fail(out, "unknown")
 	if p < 0 or p >= g.P or g.controller(p) != n: return _fail(out, "notyours")
 	var hi: int = TBRaise.disband_max(g, p)
 	out["moves"] = D.MP_RECRUIT; out["max"] = hi
@@ -143,7 +130,6 @@ static func _disband(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dicti
 ## rules >= 5: Raise troops. gain = the men added, "levy" / "hired" the two parts, "levy_gold" / "hire_gold" their prices, "saved" what hiring them all would have cost more
 static func _raise(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
-	if g.rules < 5: return _fail(out, "unknown")
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
 	out["moves"] = D.MP_RECRUIT; out["pool"] = TBRaise.pool(g, p)
 	if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")
@@ -162,7 +148,7 @@ static func _hire(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 	var p: int = int(c.get("p", -1))
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
 	var amount := clampi(int(c.get("amount", 30)), 10, 60)
-	var cost := int(ceil(amount * 5.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))
+	var cost := int(ceil(float(amount) * g.wage(n) * 45.0 * float(D.REGIMES[g.regime[n]]["recruitCost"])))      # mercenaries: forty-five worker-turns a man (as in _c_hire)
 	out["gold"] = cost; out["moves"] = 1; out["gain"] = amount
 	if g.controller(p) != n or g.owner[p] != n: return _fail(out, "notyours")
 	_need(out, "gold", g.gold[n], cost, "gold")
@@ -171,7 +157,6 @@ static func _hire(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictiona
 
 static func _appoint(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
-	if g.rules < 1: return _fail(out, "unknown")
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
 	out["gold"] = TBGenerals.cost(g, n)
 	if g.owner[p] != n or g.controller(p) != n: return _fail(out, "notyours")
@@ -196,7 +181,7 @@ static func _build(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	if g.b_building[p] != 0: return _fail(out, "busy")
 	var site := g.site_error(p, b)
 	if site != "" and cur == 0: return _fail(out, site)
-	if cur == 0 and g.b_used(p) >= g.b_slots(p): return _fail(out, "slots" if g.rules >= 2 else "occupied")
+	if cur == 0 and g.b_used(p) >= g.b_slots(p): return _fail(out, "slots")
 	if lvl > int(bt["maxLevel"]): return _fail(out, "max")
 	if g.tech_level[n] < float(bt["tech"][lvl - 1]): return _fail(out, "tech")
 	_need(out, "gold", g.gold[n], out["gold"], "gold")
@@ -205,7 +190,7 @@ static func _build(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 
 static func _demolish(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1)); var b: int = int(c.get("b", 0))
-	if g.rules < 2 or p < 0 or p >= g.P or b < 1 or b > g.NB: return _fail(out, "unknown")
+	if p < 0 or p >= g.P or b < 1 or b > g.NB: return _fail(out, "unknown")
 	if g.owner[p] != n or g.occupier[p] != 0: return _fail(out, "notyours")
 	if g.bl(p, b) == 0: return _fail(out, "none")
 	if g.b_building[p] == b: return _fail(out, "busy")
@@ -214,21 +199,13 @@ static func _demolish(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dict
 static func _develop(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var p: int = int(c.get("p", -1))
 	if p < 0 or p >= g.P: return _fail(out, "notyours")
-	if g.rules >= 4:                                                         # a project: the kind given, or development
-		var k: int = int(c.get("k", 1))
-		out["gold"] = TBInvest.project_cost(g, maxi(p, 0), k); out["moves"] = TBInvest.PROJECT_MOVES; out["turns"] = TBInvest.project_turns(g, p, k)
-		out["needs"] = TBInvest.project_needs(g, n, p, k) if (g.owner[p] == n and g.occupier[p] == 0) else []
-		var why := TBInvest.project_why(g, n, p, k)
-		if why in ["type", "notyours", "project_busy", "max", "workers", "calm"]: return _fail(out, why)
-		_need(out, "gold", g.gold[n], out["gold"], "gold")
-		_need(out, "moves", g.mp[n], float(out["moves"]), "mp")
-		return out
-	out["gold"] = g.develop_cost(p); out["moves"] = 2 if g.rules < 2 else 1
-	if g.owner[p] != n or g.occupier[p] != 0: return _fail(out, "notyours")
-	var cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
-	if g.dev[p] >= cap: return _fail(out, "max")
+	var k: int = int(c.get("k", 1))
+	out["gold"] = TBInvest.project_cost(g, maxi(p, 0), k); out["moves"] = TBInvest.PROJECT_MOVES; out["turns"] = TBInvest.project_turns(g, p, k)
+	out["needs"] = TBInvest.project_needs(g, n, p, k) if (g.owner[p] == n and g.occupier[p] == 0) else []
+	var why := TBInvest.project_why(g, n, p, k)
+	if why in ["type", "notyours", "project_busy", "max", "workers", "calm"]: return _fail(out, why)
 	_need(out, "gold", g.gold[n], out["gold"], "gold")
-	_need(out, "moves", g.mp[n], out["moves"], "mp")
+	_need(out, "moves", g.mp[n], float(out["moves"]), "mp")
 	return out
 
 static func _colonize(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
@@ -253,10 +230,10 @@ static func _declare_war(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> D
 	var t: int = int(c.get("t", 0))
 	out["dp"] = D.DP_WAR
 	if not _target_ok(g, n, t): return _fail(out, "target")
-	var ult: bool = g.rules >= 1 and bool(c.get("_ult", false))
+	var ult: bool = bool(c.get("_ult", false))
 	var cb := TBDiplo.cb(g, n, t)
 	out["kind"] = "ultimatum" if ult else cb
-	out["infamy"] = TBDiplo.NO_CB_INFAMY if (g.rules >= 1 and cb == "" and not ult) else 0.0
+	out["infamy"] = TBDiplo.NO_CB_INFAMY if (cb == "" and not ult) else 0.0
 	if ult: out["dp"] = 0
 	if g.get_rel(n, t) == D.REL_WAR: return _fail(out, "already")
 	if g.has_truce(n, t): return _fail(out, "truce")
@@ -274,7 +251,7 @@ static func _peace(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 	var kind: String = c.get("kind", "white")
 	out["kind"] = kind
 	out["dp"] = D.DP_PEACE                                     # charged (never refused for lack of it: the engine floors dp at 0)
-	if g.rules >= 4 and (kind == "cede" or kind == "vassal"):                  # the same table the command uses
+	if (kind == "cede" or kind == "vassal"):                  # the same table the command uses
 		var cap: float = TBPeace.limit(g, n, t) if g.human[t] == 0 else TBPeace.budget(g, n, t)
 		var deal: Dictionary = TBPeace.auto_deal(g, n, t, cap) if kind == "cede" else {"provs": [], "gold": 0, "vassal": true, "disarm": false}
 		if kind == "cede" and (deal["provs"] as Array).is_empty(): return _fail(out, "warscore")
@@ -282,7 +259,7 @@ static func _peace(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Diction
 		if not bool(pr["ok"]): return _fail(out, "refused" if String(pr["why"]) == "limit" else String(pr["why"]))
 		return out
 	if kind == "vassal":
-		if g.rules < 1 or ws < 50: return _fail(out, "warscore")
+		if ws < 50: return _fail(out, "warscore")
 		if g.overlord[t] != 0 or g.overlord[n] != 0: return _fail(out, "vassal")
 	if kind == "cede" and ws < 25: return _fail(out, "warscore")
 	return out
@@ -300,7 +277,6 @@ static func _call_ally(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dic
 ## rules 4: the peace table's deal, priced; `pts` / `budget` / `limit` tell the screen where it stands
 static func _peace_deal(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var t: int = int(c.get("t", 0))
-	if g.rules < 4: return _fail(out, "rules")
 	if t <= 0 or t >= g.N1 or g.get_rel(n, t) != D.REL_WAR: return _fail(out, "notwar")
 	out["kind"] = "deal"; out["dp"] = D.DP_PEACE
 	var deal := {"provs": c.get("provs", []), "gold": int(c.get("gold", 0)), "vassal": int(c.get("vassal", 0)) != 0, "disarm": int(c.get("disarm", 0)) != 0}
@@ -352,7 +328,6 @@ static func _ultimatum(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dic
 static func _marry(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var t: int = int(c.get("t", 0))
 	out["dp"] = TBDiplo.DP_MARRY
-	if g.rules < 1: return _fail(out, "rules")
 	if t <= 0 or t >= g.N1: return _fail(out, "state")
 	var dw := TBDiplo.deal_why(g, n, t, "marry")
 	if dw != "": return _fail(out, dw)
@@ -382,19 +357,17 @@ static func _embassy(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dicti
 static func _trade(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var t: int = int(c.get("t", 0))
 	out["dp"] = TBTrade.DP_COST
-	if g.rules < 1: return _fail(out, "rules")
 	if t <= 0 or t >= g.N1 or t == n or g.alive[t] == 0 or t == g.rebel: return _fail(out, "target")
 	if g.get_rel(n, t) == D.REL_WAR: return _fail(out, "war")
 	if TBDiplo.deal_why(g, n, t, "trade") != "": return _fail(out, "nocontact")
 	if TBTrade.has(g, n, t): return _fail(out, "active")
 	if g.trade_cnt[n] >= TBTrade.max_deals(g, n): return _fail(out, "tradefull")
 	_need(out, "dp", g.dp[n], TBTrade.DP_COST, "dp")
-	if g.rules >= 3:                                                                       # a route is an expedition: gold for the caravans, men for the escorts
-		var v := TBTrade.yield_of(g, n, t)
-		out["gold"] = TBTrade.fee_gold(v, g, n); out["men"] = TBTrade.fee_men(v, g)
-		_need(out, "gold", g.gold[n], float(out["gold"]), "gold")
-		_need(out, "men", g.manpower[n], float(out["men"]), "manpower")
-		if g.trade_cnt[t] >= TBTrade.max_deals(g, t) and g.human[t] != 0 and out["ok"]: return _fail(out, "tradefull")
+	var v := TBTrade.yield_of(g, n, t)
+	out["gold"] = TBTrade.fee_gold(v, g, n); out["men"] = TBTrade.fee_men(v, g)
+	_need(out, "gold", g.gold[n], float(out["gold"]), "gold")
+	_need(out, "men", g.manpower[n], float(out["men"]), "manpower")
+	if g.trade_cnt[t] >= TBTrade.max_deals(g, t) and g.human[t] != 0 and out["ok"]: return _fail(out, "tradefull")
 	return out
 
 ## rules 5: one province's army marches out to where it is needed
@@ -418,7 +391,6 @@ static func _muster(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictio
 static func _works(g: TBGame, n: int, c: Dictionary, out: Dictionary) -> Dictionary:
 	var i := TBWorks.index_of(String(c.get("id", "")))
 	if i < 0: return _fail(out, "unknown")
-	if g.rules < 5: return _fail(out, "rules")
 	if TBWorks.level(g, n, i) >= int(TBWorks.LIST[i]["max"]): return _fail(out, "max")
 	out["gold"] = TBWorks.cost(g, n, i); out["moves"] = int(TBWorks.MP_COST)
 	_need(out, "gold", g.gold[n], float(out["gold"]), "gold")

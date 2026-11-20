@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var a := g.nat_code.find("france"); var b := -1
 	for n in range(1, g.N1):
 		if n != a and n != g.rebel and g.alive[n] != 0 and g.own_count(n) > 5: b = n; break
@@ -104,7 +104,7 @@ func _init() -> void:
 	_check(TBCommands.normalize(g, {"cmd": "peaceDeal", "n": a, "t": b, "provs": ["x"]}).is_empty(), "a word is not a province")
 	_check(not TBCommands.normalize(g, {"cmd": "peaceDeal", "n": a, "t": b, "provs": [1, 2, 3]}).is_empty(), "a short list of real provinces passes")
 	# old rules refuse
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var r3 := g3.apply({"cmd": "peaceDeal", "n": 1, "t": 2})
 	_check(not bool(r3["ok"]), "rules 3 has no peace table")
 	print("PEACE OK" if fails == 0 else "PEACE FAIL %d" % fails)

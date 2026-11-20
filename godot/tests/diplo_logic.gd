@@ -6,7 +6,7 @@ func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "discovery"), {"seed": 8, "rules": 4})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "discovery"), {"seed": 8})
 	var me := g.nat_code.find("timurid_emirates"); g.set_human(me); g.pending.clear()
 	var far := g.nat_code.find("beothuk")
 	_check(me > 0 and far > 0, "the two nations exist (%d, %d)" % [me, far])
@@ -56,7 +56,7 @@ func _init() -> void:
 		var rm := g.apply({"cmd": "marry", "n": me, "t": far_in})
 		_check(not bool(rm["ok"]) and String(rm.get("err", "")) == "toofar", "a marriage with a far court in the sphere is refused as toofar (%s)" % str(rm.get("err", "ok")))
 	# the old rules are untouched
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "discovery"), {"seed": 8, "rules": 3})
+	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "discovery"), {"seed": 8})
 	var m3 := g3.nat_code.find("timurid_emirates"); g3.set_human(m3)
 	var terms3: Array = TBDiplo.pact_terms(g3, g3.nat_code.find("beothuk"), m3, TBData.REL_ALLY)
 	var far3 := false

@@ -185,9 +185,8 @@ func setup(g: TBGame, p: int, items: Array, anchor: Rect2, vp: Vector2, env: Dic
 	m.add_child(v)
 	var hd := HBoxContainer.new()
 	var cap := TBKit.caps(T.call("build"), 14 if not _compact else 12); cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hd.add_child(cap)
-	if g.rules >= 2:
-		var sl := TBKit.caps(T.call("bp_slots", {"u": g.b_used(p), "s": g.b_slots(p)}), 12, TBTokens.BZ_DIM); sl.size_flags_horizontal = Control.SIZE_SHRINK_END; hd.add_child(sl)
-		var sp := Control.new(); sp.custom_minimum_size = Vector2(14, 0); hd.add_child(sp)
+	var sl := TBKit.caps(T.call("bp_slots", {"u": g.b_used(p), "s": g.b_slots(p)}), 12, TBTokens.BZ_DIM); sl.size_flags_horizontal = Control.SIZE_SHRINK_END; hd.add_child(sl)
+	var sp := Control.new(); sp.custom_minimum_size = Vector2(14, 0); hd.add_child(sp)
 	var gl := TBKit.caps(T.call("bp_gold_head", {"g": int(g.gold[g.human_id])}), 12, TBTokens.BZ_HI); hd.add_child(gl)
 	var sp2 := Control.new(); sp2.custom_minimum_size = Vector2(16, 0); hd.add_child(sp2)
 	var cb := CloseBtn.new(30.0 if _compact else 34.0)
@@ -332,10 +331,9 @@ func _pick(i: int) -> void:
 	_detail.add_child(rule)
 	var need: float = float(bd["tech"][clampi(lvl - 1, 0, (bd["tech"] as Array).size() - 1)])
 	var slot_row: Array = [true, T.call("bp_slot")]
-	if _g.rules >= 2:
-		if cur_lv > 0: slot_row = [true, T.call("bp_slot_up")]
-		elif _g.b_used(_p) < _g.b_slots(_p): slot_row = [true, T.call("bp_slot_n", {"u": _g.b_used(_p), "s": _g.b_slots(_p)})]
-		else: slot_row = [false, T.call("err_slots")]
+	if cur_lv > 0: slot_row = [true, T.call("bp_slot_up")]
+	elif _g.b_used(_p) < _g.b_slots(_p): slot_row = [true, T.call("bp_slot_n", {"u": _g.b_used(_p), "s": _g.b_slots(_p)})]
+	else: slot_row = [false, T.call("err_slots")]
 	var why: String = String(cn.get("reason", ""))
 	if why in ["coast", "arid", "polar", "busy", "max"] and TBI18n.has_key("err_" + why): slot_row = [false, T.call("err_" + why)]          # the reason a building cannot go here replaces the slot line
 	var checks: Array = [slot_row,
@@ -362,7 +360,7 @@ func _pick(i: int) -> void:
 	foot.add_child(grid)
 	var acts := HBoxContainer.new(); acts.add_theme_constant_override("separation", 12); acts.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	acts.custom_minimum_size.x = 0.0 if _narrow else (240.0 if _compact else 340.0); acts.size_flags_horizontal = Control.SIZE_EXPAND_FILL if _narrow else Control.SIZE_SHRINK_END
-	if _g.rules >= 2 and cur_lv > 0:
+	if cur_lv > 0:
 		var dm: Button = K.button(T.call("bp_demolish"), func(): _demolish(), false, true)
 		dm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; dm.size_flags_stretch_ratio = 0.75
 		acts.add_child(dm)

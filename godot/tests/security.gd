@@ -8,7 +8,7 @@ func check(c: bool, what: String) -> void:
 func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, {}, {"seed": 5, "rules": 2})
+	var g := TBGame.new(w, {}, {"seed": 5})
 	var me := 1
 	for n in range(1, g.N1):
 		if g.alive[n] == 1: me = n; break

@@ -63,7 +63,7 @@ static func init(g: TBGame) -> void:
 			if o != 0 and float(cnt[o]) / m.size() >= NEED: g.realm_done[o * LIST.size() + i] = 1
 
 static func tick(g: TBGame) -> void:
-	if g.rules < 1 or g.turn % 2 != 0: return
+	if g.turn % 2 != 0: return
 	_build(g.world)
 	var R := LIST.size()
 	if g.realm_done.size() != g.N1 * R: g.realm_done.resize(g.N1 * R)
@@ -80,7 +80,6 @@ static func tick(g: TBGame) -> void:
 				g.realm_done[o * R + i] = 1
 				g.gold[o] += g.gu(o, 100.0)
 				for p in g.owned(o): g.stab[p] = mini(100, g.stab[p] + 5); g.touch(p)
-				if g.rules >= 5:                                                  # the unified region is home land from now on, and the realm pays a little more for good
-					for p in m:
-						if g.owner[p] == o: g.core[p] = o; g.touch(p)
+				for p in m:
+					if g.owner[p] == o: g.core[p] = o; g.touch(p)
 				g.log.append({"turn": g.turn, "kind": "realm", "a": o, "id": LIST[i][0]})

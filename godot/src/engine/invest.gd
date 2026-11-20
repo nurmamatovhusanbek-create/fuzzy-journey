@@ -46,7 +46,7 @@ const PROJECT_MOVES := 1
 const ORDER_CALM := 80                                         # stability at which public order has nothing left to mend
 const ROOM_MAX := 2000
 ## the most people a Settlement can still add to p (rules 5: what its land can feed)
-static func room_max(g: TBGame, p: int) -> int: return ROOM_MAX if g.rules < 5 else g.pop_cap(p)
+static func room_max(g: TBGame, p: int) -> int: return g.pop_cap(p)
 
 static func project_id(kind: int) -> String: return PROJECTS[kind - 1] if kind >= 1 and kind <= PROJECTS.size() else ""
 
@@ -54,7 +54,7 @@ static func project_cost(g: TBGame, p: int, kind: int) -> int:
 	match kind:
 		1: return g.develop_cost(p)
 		2: return int(ceil(float(35 + 30 * g.econ[p]) * (g.cm(g.owner[p]) if g.owner[p] > 0 else 1.0)))
-		3: return int(ceil((50.0 + (float(g.pop[p]) * float(g.scale) / 2500.0 if g.rules >= 5 else float(g.pop[p])) / 10.0) * (g.cm(g.owner[p]) if g.owner[p] > 0 else 1.0)))
+		3: return int(ceil((50.0 + (float(g.pop[p]) * float(g.scale) / 2500.0) / 10.0) * (g.cm(g.owner[p]) if g.owner[p] > 0 else 1.0)))
 		4: return int(ceil(float(30 + (100 - g.stab[p]) / 2) * (g.cm(g.owner[p]) if g.owner[p] > 0 else 1.0)))
 	return 0
 
@@ -84,7 +84,7 @@ static func project_needs(g: TBGame, n: int, p: int, kind: int) -> Array:
 			var cap := clampi(int(floor(g.tech_level[n])) + 1, 1, 5)
 			out.append([g.dev[p] < cap, "proj_need_level", {"t": cap}])
 			var fill: float = g.job_fill(p, g.dev[p] + 1) if g.dev[p] < 5 else 0.0
-			out.append([fill >= 0.9 or g.rules < 2, "proj_need_workers", {"n": int(roundf(minf(fill, 1.0) * 100.0))}])
+			out.append([fill >= 0.9, "proj_need_workers", {"n": int(roundf(minf(fill, 1.0) * 100.0))}])
 		2: out.append([g.econ[p] < 5, "proj_need_econ", {}])
 		3: out.append([g.pop[p] < room_max(g, p), "proj_need_room", {"p": g.pop[p], "m": room_max(g, p)}])
 		4: out.append([g.stab[p] < ORDER_CALM, "proj_need_calm", {"s": ORDER_CALM, "n": g.stab[p]}])
@@ -94,7 +94,7 @@ static func project_needs(g: TBGame, n: int, p: int, kind: int) -> Array:
 
 ## "" = possible, else the err_ key of the first requirement that fails
 static func project_why(g: TBGame, n: int, p: int, kind: int) -> String:
-	if g.rules < 4 or kind < 1 or kind > PROJECTS.size(): return "type"
+	if kind < 1 or kind > PROJECTS.size(): return "type"
 	if p < 0 or p >= g.P or g.owner[p] != n or g.occupier[p] != 0: return "notyours"
 	if g.proj_kind[p] != 0: return "project_busy"
 	match kind:

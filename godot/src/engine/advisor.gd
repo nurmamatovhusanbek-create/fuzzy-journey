@@ -39,27 +39,24 @@ static func alerts(g: TBGame, n: int) -> Array:
 		unrest_ps.sort_custom(func(a: int, b: int) -> bool: return g.stab[a] < g.stab[b])
 		var ua := _a("unrest", 1, unrest_p, unrest); ua["ps"] = unrest_ps; out.append(ua)
 	# read-only HUD additions: war declared on us during the last resolution, armies starving outside our land
-	if g.rules >= 1:
-		var wd := _war_declared(g, n)
-		if wd > 0: out.append(_a("war_declared", 2, g.capital_of[n], 0, wd))
-		var starving: Array = []
-		for q in g.P:
-			if g.army[q] > 0 and g.owner[q] != n and g.controller(q) == n and g.attrition(q) > 0: starving.append(q)
-		if not starving.is_empty():
-			starving.sort_custom(func(a: int, b: int) -> bool: return g.attrition(a) > g.attrition(b))
-			var sa := _a("attrition", 1, starving[0], starving.size()); sa["ps"] = starving; out.append(sa)
-	if g.rules >= 1:
-		if g.coalition[n] != 0: out.append(_a("coalition", 2, -1, int(g.infamy[n])))
-		elif g.infamy[n] >= 12.0: out.append(_a("infamy", 1, -1, int(g.infamy[n])))
+	var wd := _war_declared(g, n)
+	if wd > 0: out.append(_a("war_declared", 2, g.capital_of[n], 0, wd))
+	var starving: Array = []
+	for q in g.P:
+		if g.army[q] > 0 and g.owner[q] != n and g.controller(q) == n and g.attrition(q) > 0: starving.append(q)
+	if not starving.is_empty():
+		starving.sort_custom(func(a: int, b: int) -> bool: return g.attrition(a) > g.attrition(b))
+		var sa := _a("attrition", 1, starving[0], starving.size()); sa["ps"] = starving; out.append(sa)
+	if g.coalition[n] != 0: out.append(_a("coalition", 2, -1, int(g.infamy[n])))
+	elif g.infamy[n] >= 12.0: out.append(_a("infamy", 1, -1, int(g.infamy[n])))
 	# treaties about to end (a countdown): a truce is the last of the peace before the fighting may start again, a pact the last of its protection
-	if g.rules >= 1:
-		for o in range(1, g.N1):
-			if o == n or g.alive[o] == 0 or o == g.rebel: continue
-			var rel_o: int = g.get_rel(n, o)
-			var tl: int = g.truce[n * g.N1 + o] - g.turn
-			if rel_o != D.REL_WAR and tl >= 1 and tl <= TREATY_WARN: out.append(_a("truce_end", 1, -1, tl, o))
-			var nl: int = int(g.nap_expiry.get(mini(n, o) * g.N1 + maxi(n, o), 0)) - g.turn
-			if rel_o == D.REL_NAP and nl >= 1 and nl <= TREATY_WARN: out.append(_a("nap_end", 1, -1, nl, o))
+	for o in range(1, g.N1):
+		if o == n or g.alive[o] == 0 or o == g.rebel: continue
+		var rel_o: int = g.get_rel(n, o)
+		var tl: int = g.truce[n * g.N1 + o] - g.turn
+		if rel_o != D.REL_WAR and tl >= 1 and tl <= TREATY_WARN: out.append(_a("truce_end", 1, -1, tl, o))
+		var nl: int = int(g.nap_expiry.get(mini(n, o) * g.N1 + maxi(n, o), 0)) - g.turn
+		if rel_o == D.REL_NAP and nl >= 1 and nl <= TREATY_WARN: out.append(_a("nap_end", 1, -1, nl, o))
 	# opportunities
 	var best_ws := 0; var best_o := 0
 	var wars := 0
@@ -70,18 +67,17 @@ static func alerts(g: TBGame, n: int) -> Array:
 	if best_ws >= 25: out.append(_a("war_winning", 0, g.capital_of[best_o], best_ws))
 	if g.gold[n] > g.gu(n, 250.0) and net >= 0:
 		var ig := -1                                                  # districts: point at the province where gold buys most (development the people can staff, else an empty slot)
-		if g.rules >= 2:
-			var igs := 0.0
-			for p in own:
-				if g.occupier[p] != 0 or g.b_building[p] != 0: continue
-				var sc := 0.0
-				if g.dev[p] < clampi(int(floor(g.tech_level[n])) + 1, 1, 5): sc = g.job_fill(p, g.dev[p] + 1) * 2.0 + (1.0 if g.capital[p] != 0 else 0.0)
-				if g.b_used(p) < g.b_slots(p): sc += 0.5 + g.pop[p] / 600.0
-				if sc > igs: igs = sc; ig = p
+		var igs := 0.0
+		for p in own:
+			if g.occupier[p] != 0 or g.b_building[p] != 0: continue
+			var sc := 0.0
+			if g.dev[p] < clampi(int(floor(g.tech_level[n])) + 1, 1, 5): sc = g.job_fill(p, g.dev[p] + 1) * 2.0 + (1.0 if g.capital[p] != 0 else 0.0)
+			if g.b_used(p) < g.b_slots(p): sc += 0.5 + g.pop[p] / 600.0
+			if sc > igs: igs = sc; ig = p
 		out.append(_a("idle_gold", 0, ig, int(g.gold[n])))
 	var cap_mp := mp_cap(g, n)
-	if g.rules >= 1 and g.trade_cnt[n] == 0 and g.dp[n] >= 2.0 and g.turn > 4: out.append(_a("no_trade", 0, -1))
-	if g.rules >= 1 and g.turn > 2:
+	if g.trade_cnt[n] == 0 and g.dp[n] >= 2.0 and g.turn > 4: out.append(_a("no_trade", 0, -1))
+	if g.turn > 2:
 		if TBGenerals.count(g, n) < TBGenerals.cap(g, n) and g.gold[n] >= TBGenerals.cost(g, n) + g.gu(n, 60.0):
 			var gp := -1; var gbest := 0
 			for p in own:
@@ -102,9 +98,9 @@ static func alerts(g: TBGame, n: int) -> Array:
 						if tp >= 0: ur = rr; up = tp
 			if up >= 0: out.append(_a("ult_chance", 0, up, int(ur * 10.0)))
 	if g.mp[n] >= cap_mp - 0.5: out.append(_a("idle_mp", 0, -1))
-	if g.rules >= 3 and g.turn > 4 and g.dp[n] >= dp_cap(g, n) - 0.5: out.append(_a("idle_dp", 0, -1))
+	if g.turn > 4 and g.dp[n] >= dp_cap(g, n) - 0.5: out.append(_a("idle_dp", 0, -1))
 	if g.manpower[n] >= inc["manCap"] * 0.95 and inc["manCap"] > 50: out.append(_a("idle_men", 0, -1))
-	if g.rules >= 5 and g.turn <= 40 and g.mp[n] >= 1.0:                          # the whole standing army begins in the capital; say so until it is spread
+	if g.turn <= 40 and g.mp[n] >= 1.0:                          # the whole standing army begins in the capital; say so until it is spread
 		var cap_p: int = g.capital_of[n]
 		if cap_p >= 0 and g.controller(cap_p) == n and g.army[cap_p] >= g.au(40.0):
 			var all_men := 0
@@ -112,13 +108,12 @@ static func alerts(g: TBGame, n: int) -> Array:
 			if float(g.army[cap_p]) >= 0.8 * float(all_men): out.append(_a("spread_army", 0, cap_p))
 	if g.budget[n * 4 + 2] == 0: out.append(_a("no_research", 0, -1))
 	if wars == 0 and g.turn > 3 and g.gold[n] > g.gu(n, 120.0): out.append(_a("peacetime", 0, -1))
-	if g.rules >= 5:                                                                         # the nation's own systems: a name it could proclaim, an institution it could embrace
-		for si in TBLineage.options(g, n):
-			if bool(TBLineage.can_form(g, n, si)["ok"]): out.append(_a("form_ready", 0, -1, si)); break
-		var ae := TBEstates.angriest(g, n)
-		if TBEstates.loyalty(g, n, ae) < TBEstates.LOW: out.append(_a("estate_low", 1, -1, ae))
-		for i in TBInstitutions.count():
-			if g.inst_seen[i] != 0 and not TBInstitutions.embraced(g, n, i) and bool(TBInstitutions.can_embrace(g, n, i)["ok"]): out.append(_a("inst_ready", 0, -1, i)); break
+	for si in TBLineage.options(g, n):
+		if bool(TBLineage.can_form(g, n, si)["ok"]): out.append(_a("form_ready", 0, -1, si)); break
+	var ae := TBEstates.angriest(g, n)
+	if TBEstates.loyalty(g, n, ae) < TBEstates.LOW: out.append(_a("estate_low", 1, -1, ae))
+	for i in TBInstitutions.count():
+		if g.inst_seen[i] != 0 and not TBInstitutions.embraced(g, n, i) and bool(TBInstitutions.can_embrace(g, n, i)["ok"]): out.append(_a("inst_ready", 0, -1, i)); break
 	out.sort_custom(func(a, b): return int(a["sev"]) > int(b["sev"]))
 	return out
 
@@ -209,11 +204,11 @@ static func answers(g: TBGame, n: int) -> Array:
 ## (a bigger state has more clerks: +0.32 a turn and +0.8 in the cap for every square root of a province, at most +3.5 a turn); a 62 province realm refills 4.7 instead of 2.2.
 ## The AI's allowance is unchanged. This is what the game does at the end of every turn (TBTurn uses these two functions) and what the top bar shows.
 static func mp_cap(g: TBGame, n: int) -> float:
-	return 6.0 + g.era[n] * 2.0 + (sqrt(float(g.own_count(n))) * 0.8 if (g.rules >= 3 and g.human[n] != 0) else 0.0)
+	return 6.0 + g.era[n] * 2.0 + (sqrt(float(g.own_count(n))) * 0.8 if (g.human[n] != 0) else 0.0)
 static func mp_gain(g: TBGame, n: int) -> float:
-	return 1.0 + g.era[n] * 0.4 + (minf(3.5, sqrt(float(g.own_count(n))) * 0.32) if (g.rules >= 3 and g.human[n] != 0) else 0.0)
+	return 1.0 + g.era[n] * 0.4 + (minf(3.5, sqrt(float(g.own_count(n))) * 0.32) if (g.human[n] != 0) else 0.0)
 static func dp_cap(g: TBGame, n: int) -> float: return 4.0 + g.era[n] * 2.0
-static func dp_gain(g: TBGame, n: int) -> float: return 1.0 + g.era[n] * 0.3 + (TBRulers.dp_add(g, n) if g.rules >= 1 else 0.0)
+static func dp_gain(g: TBGame, n: int) -> float: return 1.0 + g.era[n] * 0.3 + (TBRulers.dp_add(g, n))
 
 ## resource breakdown for the HUD chips and their tooltips. `inc` may be passed to avoid recomputing g.income(n).
 static func breakdown(g: TBGame, n: int, inc: Dictionary = {}) -> Dictionary:

@@ -5,7 +5,7 @@ func _init() -> void:
 	var failed := 0
 	for cfg in [["", 3, 0], ["roman", 5, 0], ["ww2", 9, 0], ["napoleonic", 4, 4]]:      # the last runs rules 4 (levy pools, morale)
 		var era := TBWorld.load_era("res://data", cfg[0]) if cfg[0] != "" else {}
-		var g := TBGame.new(w, era, {"seed": cfg[1], "rules": cfg[2]})
+		var g := TBGame.new(w, era, {"seed": cfg[1]})
 		var hp := 0
 		for p in g.P: if g.owner[p] != 0: hp = p; break
 		g.set_human(g.owner[hp])

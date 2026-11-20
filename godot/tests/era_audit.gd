@@ -26,7 +26,7 @@ func _init() -> void:
 			var cap: int = g.capital_of[n]
 			if cap < 0: findings.append("%s: %s has no capital" % [id, nm])
 			elif g.owner[cap] != n: findings.append("%s: the capital of %s belongs to someone else" % [id, nm])
-			if g.rules >= 1 and g.r_name[n] == "": findings.append("%s: %s has no ruler" % [id, nm])
+			if g.r_name[n] == "": findings.append("%s: %s has no ruler" % [id, nm])
 			var t: float = g.tech_level[n]; tmin = minf(tmin, t); tmax = maxf(tmax, t); tsum += t
 			for o in range(n + 1, g.N1):
 				if g.get_rel(n, o) == TBData.REL_WAR: wars += 1

@@ -62,7 +62,6 @@ static func _relax(g: TBGame, n: int, best: Dictionary, buckets: Array, q: int, 
 ## the order from -> to: {ok, err, path (provinces from `from` to `to`), mp, kind ("move" | "attack"), last (the province the attack leaves from)}
 static func plan(g: TBGame, n: int, from: int, to: int, r_in: Dictionary = {}) -> Dictionary:
 	var out := {"ok": false, "err": "notadjacent", "path": PackedInt32Array(), "mp": 0.0, "kind": "", "last": from}
-	if g.rules < 1: return out
 	if g.controller(from) != n: out["err"] = "notyours"; return out
 	if g.army[from] <= g.keep(): out["err"] = "noarmy"; return out
 	if to == from or to < 0 or to >= g.P: out["err"] = "target"; return out
@@ -99,7 +98,7 @@ static func turns(g: TBGame, n: int, path: PackedInt32Array, kind: String) -> in
 ## every province the army of `from` can be ordered to: {to: plan-lite {mp, kind}}
 static func targets(g: TBGame, n: int, from: int, r_in: Dictionary = {}) -> Dictionary:
 	var out := {}
-	if g.rules < 1 or g.controller(from) != n or g.army[from] <= g.keep(): return out
+	if g.controller(from) != n or g.army[from] <= g.keep(): return out
 	var r: Dictionary = r_in if not r_in.is_empty() else reach(g, n, from, float(REACH))
 	for q in r:
 		if q == from: continue
@@ -154,7 +153,7 @@ static func _stride(g: TBGame, m: Dictionary, pl: Dictionary) -> String:
 	var nxt: int = path[idx]
 	var left: int = g.army[at] - k
 	g.army[at] = left; g.army[nxt] = mini(g.army_cap(nxt), g.army[nxt] + k); g.touch(at); g.touch(nxt)
-	if g.rules >= 1 and TBGenerals.follows(g, at, left): TBGenerals.transfer(g, at, nxt)
+	if TBGenerals.follows(g, at, left): TBGenerals.transfer(g, at, nxt)
 	m["at"] = nxt
 	if nxt == to: m["done"] = true; return "move"
 	return "march"

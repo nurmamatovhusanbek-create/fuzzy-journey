@@ -11,7 +11,8 @@ func _init() -> void:
 		var f := FileAccess.open(TBSave.path_for(slot), FileAccess.WRITE); f.store_buffer(bytes); f.close()
 		var g: TBGame = TBSave.load_game(w, slot)
 		if g == null: print("OLD_SAVES FAIL load ", era); bad += 1; continue
-		if g.rules != 2 or g.turn != 41: print("OLD_SAVES FAIL unexpected rules/turn ", era, " ", g.rules, " ", g.turn); bad += 1
+		print("OLD_SAVES FAIL unexpected rules/turn ", era, " ", g.rules, " ", g.turn)
+		bad += 1
 		for t in 100:
 			g.end_turn()
 			for pe in g.pending:                                                          # events added after the save was made must not fire years late

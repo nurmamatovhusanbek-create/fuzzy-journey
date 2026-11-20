@@ -6,7 +6,7 @@ extends RefCounted
 
 const MAX_SKILL := 5
 const MIN_ARMY := 12
-static func min_army(g: TBGame) -> int: return g.au(float(MIN_ARMY)) if g.rules >= 5 else MIN_ARMY
+static func min_army(g: TBGame) -> int: return g.au(float(MIN_ARMY))
 const WINS_PER_STAR := 3
 const POWER := 0.06            # +6 % combat strength per star
 
@@ -21,7 +21,7 @@ static func display_name(g: TBGame, p: int) -> String:
 
 ## strength multiplier of the general at p (1.0 when none, or on rules 0)
 static func mul(g: TBGame, p: int) -> float:
-	if g.rules < 1 or g.gen.is_empty() or g.gen[p] == 0: return 1.0
+	if g.gen.is_empty() or g.gen[p] == 0: return 1.0
 	return 1.0 + POWER * skill(g, p)
 
 static func count(g: TBGame, n: int) -> int:
@@ -44,7 +44,6 @@ static func _h(g: TBGame, n: int, p: int, salt: int) -> TBRng:
 	return r
 
 static func appoint(g: TBGame, n: int, p: int) -> Dictionary:
-	if g.rules < 1: return {"ok": false, "err": "unknown"}
 	if g.owner[p] != n or g.controller(p) != n: return {"ok": false, "err": "notyours"}
 	if g.gen[p] != 0: return {"ok": false, "err": "has"}
 	if g.army[p] < min_army(g): return {"ok": false, "err": "army"}
@@ -97,7 +96,7 @@ static func tick(g: TBGame) -> void:
 			g.gen[p] = 0; g.touch(p)
 
 static func ai_step(g: TBGame, n: int, own: PackedInt32Array) -> void:
-	if g.rules < 1 or count(g, n) >= cap(g, n) or g.gold[n] < cost(g, n) + 120: return
+	if count(g, n) >= cap(g, n) or g.gold[n] < cost(g, n) + 120: return
 	var best := -1; var bs := 0
 	for p in own:
 		if g.gen[p] == 0 and g.army[p] >= min_army(g) and g.army[p] > bs and g.controller(p) == n:

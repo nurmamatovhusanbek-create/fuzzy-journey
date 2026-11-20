@@ -85,16 +85,16 @@ static func strength(g: TBGame, n: int, e: int) -> float:
 	return (loyalty(g, n, e) - 50.0) / 50.0 * minf(1.0, share(g, n, e) * 4.0)
 
 static func income_mul(g: TBGame, n: int) -> float:
-	if g.rules < 5 or n <= 0: return 1.0
+	if n <= 0: return 1.0
 	return 1.0 + 0.06 * strength(g, n, 2)
 static func levy_mul(g: TBGame, n: int) -> float:
-	if g.rules < 5 or n <= 0: return 1.0
+	if n <= 0: return 1.0
 	return 1.0 + 0.08 * strength(g, n, 0) + 0.06 * strength(g, n, 3)
 static func research_mul(g: TBGame, n: int) -> float:
-	if g.rules < 5 or n <= 0: return 1.0
+	if n <= 0: return 1.0
 	return 1.0 - 0.03 * strength(g, n, 1)                                     # a devout court studies less
 static func stab_add(g: TBGame, n: int) -> float:
-	if g.rules < 5 or n <= 0: return 0.0
+	if n <= 0: return 0.0
 	return 2.0 * strength(g, n, 0) + 3.0 * strength(g, n, 1)
 
 ## the lowest estate and its loyalty
@@ -106,7 +106,6 @@ static func angriest(g: TBGame, n: int) -> int:
 	return worst
 
 static func tick(g: TBGame) -> void:
-	if g.rules < 5: return
 	ensure()
 	for n in range(1, g.N1):
 		if g.alive[n] == 0 or n == g.rebel: continue
@@ -120,7 +119,7 @@ static func cost(g: TBGame, n: int, e: int) -> int:
 static func can_court(g: TBGame, n: int, e: int) -> Dictionary:
 	ensure()
 	var out := {"ok": true, "reason": "", "gold": 0, "moves": 1, "short": {}}
-	if g.rules < 5 or e < 0 or e >= COUNT or n <= 0 or g.alive[n] == 0: out["ok"] = false; out["reason"] = "unknown"; return out
+	if e < 0 or e >= COUNT or n <= 0 or g.alive[n] == 0: out["ok"] = false; out["reason"] = "unknown"; return out
 	out["gold"] = cost(g, n, e)
 	if privileges(g, n, e) >= PRIV_MAX: out["ok"] = false; out["reason"] = "est_max"
 	elif g.gold[n] < float(out["gold"]): out["ok"] = false; out["reason"] = "gold"; out["short"]["gold"] = int(out["gold"]) - int(g.gold[n])
@@ -138,7 +137,7 @@ static func court(g: TBGame, n: int, e: int) -> Dictionary:
 
 ## the AI courts the angriest estate when it is angry and the treasury is full
 static func ai_step(g: TBGame, n: int) -> void:
-	if g.rules < 5 or g.human[n] != 0: return
+	if g.human[n] != 0: return
 	var e := angriest(g, n)
 	if loyalty(g, n, e) >= LOW: return
 	var c := can_court(g, n, e)

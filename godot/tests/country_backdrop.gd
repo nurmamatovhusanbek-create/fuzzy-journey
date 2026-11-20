@@ -33,9 +33,9 @@ func _run() -> void:
 		if c < 0: continue
 		var pt: Vector3 = main.map.project(g.world.lon[c], g.world.lat[c])
 		if pt.z <= 0.0 or pt.x < 60 or pt.x > w - 60 or pt.y < 120 or pt.y > h - 90: continue
-		out.append({"n": n, "code": g.nat_code[n], "name": g.dname(n), "x": pt.x, "y": pt.y, "army": int(st["army"][n]), "prov": int(st["prov"][n]), "rank_p": int(st["rank_p"].get(n, 0)), "rank_a": int(st["rank_a"].get(n, 0)), "rank_t": int(st["rank_t"].get(n, 0)), "of": nids, "tech": snappedf(g.tech_level[n], 0.1), "gold": int(g.income(n)["gold"]), "rel": g.get_rel(me, n) if n != me else -1, "ruler": TBRulers.display_name(g, n) if g.rules >= 1 else "", "title": T_title(g, n)})
+		out.append({"n": n, "code": g.nat_code[n], "name": g.dname(n), "x": pt.x, "y": pt.y, "army": int(st["army"][n]), "prov": int(st["prov"][n]), "rank_p": int(st["rank_p"].get(n, 0)), "rank_a": int(st["rank_a"].get(n, 0)), "rank_t": int(st["rank_t"].get(n, 0)), "of": nids, "tech": snappedf(g.tech_level[n], 0.1), "gold": int(g.income(n)["gold"]), "rel": g.get_rel(me, n) if n != me else -1, "ruler": TBRulers.display_name(g, n), "title": T_title(g, n)})
 	var f := FileAccess.open(a[3], FileAccess.WRITE); f.store_string(JSON.stringify({"me": me, "zoom": main.map.zoom, "countries": out}, "  ")); f.close()
 	print("countries in view: ", out.size())
 	quit(0)
 func T_title(g: TBGame, n: int) -> String:
-	return TBI18n.T(TBRulers.title_key(g, n)) if g.rules >= 1 else ""
+	return TBI18n.T(TBRulers.title_key(g, n))

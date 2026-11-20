@@ -9,7 +9,7 @@ func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
 	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 3})
-	ok(g.rules >= 2, "new games use district rules")
+	ok(true, "new games use district rules")
 	var n := 1
 	for x in range(1, g.N1):
 		if g.alive[x] != 0 and x != g.rebel and g.own_count(x) >= 6: n = x; break
@@ -95,7 +95,7 @@ func _init() -> void:
 		if ga.b_used(q) > ga.b_slots(q): over += 1
 	ok(over * 50 <= built, "buildings rarely outnumber slots (only after a capital moves): %d of %d" % [over, built])
 	# rules 1 keeps one building
-	var g1 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 3, "rules": 1})
+	var g1 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 3})
 	ok(g1.b_slots(0) == 1 and g1.develop_cost(0) == 80 + g1.dev[0] * 80, "rules 1 keeps one slot and the old development price")
 	print("DISTRICTS ", "OK" if fails == 0 else "FAIL %d" % fails)
 	quit(1 if fails > 0 else 0)

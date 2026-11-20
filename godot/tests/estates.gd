@@ -7,7 +7,7 @@ func _init() -> void:
 	TBEstates.ensure()
 	_check(TBEstates.IDS == ["nobility", "clergy", "merchants", "army"], "four estates")
 	var w := TBWorld.load_from("res://data")
-	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7, "rules": 5})
+	var g := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7})
 	var fr := g.nat_code.find("france"); g.set_human(fr); g.pending.clear()
 	var sum := 0.0
 	for e in 4: sum += TBEstates.share(g, fr, e)
@@ -103,11 +103,11 @@ func _init() -> void:
 		_check(TBEstates.loyalty(g, fr, int(pair[1])) >= 40.0, "%s: conceding calms it" % pair[0])
 	# saves
 	var d := TBSave.snapshot(g)
-	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7, "rules": 5})
+	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7})
 	TBSave.restore(g2, d)
 	_check(g2.est_loy == g.est_loy and g2.est_priv == g.est_priv, "a restored game keeps loyalty and privileges")
 	# some turns on: nothing leaves 0..100 and every nation keeps its four estates
-	var gg := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 3, "rules": 5})
+	var gg := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 3})
 	gg.set_human(gg.nat_code.find("france")); gg.pending.clear()
 	for i in 20: gg.end_turn()
 	var span_ok := true; var angry := 0; var n_all := 0
