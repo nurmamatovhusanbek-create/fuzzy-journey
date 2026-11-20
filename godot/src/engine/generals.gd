@@ -24,10 +24,12 @@ static func mul(g: TBGame, p: int) -> float:
 	if g.gen.is_empty() or g.gen[p] == 0: return 1.0
 	return 1.0 + POWER * skill(g, p)
 
+## the commanders a nation has: the ones standing where its own armies are (it controls the province). Counting by who owns the land gave a nation the commanders
+## of every army marching through it, and a big, much-visited realm ended with three times its cap.
 static func count(g: TBGame, n: int) -> int:
 	var c := 0
-	for p in g.owned(n):
-		if g.gen[p] != 0: c += 1
+	for p in g.P:
+		if g.gen[p] != 0 and g.controller(p) == n: c += 1
 	return c
 
 ## how many commanders a nation can field: grows with the size of the realm and the ruler's martial skill
@@ -89,11 +91,27 @@ static func lose(g: TBGame, p: int, n: int, heavy: bool) -> void:
 
 ## end of turn: a commander without an army, or in a province his nation no longer holds, is gone
 static func tick(g: TBGame) -> void:
+	var by: Dictionary = {}                                                   # nation -> the provinces where it has a commander
 	for p in g.P:
 		if g.gen[p] == 0: continue
 		var c := g.controller(p)
 		if c == 0 or g.army[p] < g.au(3.0) or g.alive[c] == 0:
 			g.gen[p] = 0; g.touch(p)
+		else:
+			if not by.has(c): by[c] = []
+			(by[c] as Array).append(p)
+	# no nation fields more commanders than its cap: a commander left in a province whose control changed (a lifted occupation, a peace) is not a free extra,
+	# and a commander who rides out of his own land must not let a new one be appointed in his place for ever. The least able go.
+	for c in by:
+		var list: Array = by[c]
+		var cp: int = cap(g, int(c))
+		if list.size() <= cp: continue
+		list.sort_custom(func(a: int, b: int) -> bool:
+			if skill(g, a) != skill(g, b): return skill(g, a) > skill(g, b)
+			if g.army[a] != g.army[b]: return g.army[a] > g.army[b]
+			return a < b)
+		for i in range(cp, list.size()):
+			g.gen[int(list[i])] = 0; g.touch(int(list[i]))
 
 static func ai_step(g: TBGame, n: int, own: PackedInt32Array) -> void:
 	if count(g, n) >= cap(g, n) or g.gold[n] < cost(g, n) + 120: return

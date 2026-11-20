@@ -42,7 +42,7 @@ func _init() -> void:
 					print("orphan general turn ", t, " p=", i, " ctrl=", g2.controller(i), " army=", g2.army[i]); fails += 1
 		peak = maxi(peak, tot)
 	for n in range(1, g2.N1):
-		if g2.alive[n] != 0 and TBGenerals.count(g2, n) > 2 * TBGenerals.cap(g2, n) + 2:   # a realm can shrink after appointing; it only blocks new ones
+		if g2.alive[n] != 0 and TBGenerals.count(g2, n) > TBGenerals.cap(g2, n):                  # the cap holds at the end of every turn (the least able commander goes when a realm is over it)
 			print("over cap ", n, " ", TBGenerals.count(g2, n), " ", TBGenerals.cap(g2, n)); fails += 1
 	var stars := 0
 	for i in g2.P:
