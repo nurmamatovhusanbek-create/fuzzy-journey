@@ -596,7 +596,7 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> TBPanel.H
 # =====================================================================================================================================================
 # Tutorial: 7 short steps in a small dialog. Skip leaves the whole first-turn intro (tutorial AND briefing) in one tap.
 # =====================================================================================================================================================
-static func tutorial(parent: Control, on_done: Callable, on_skip: Callable = Callable()) -> TBPanel.Handle:
+static func tutorial(parent: Control, on_done: Callable, on_skip: Callable = Callable(), on_target: Callable = Callable()) -> TBPanel.Handle:
 	var step := [1]
 	var h := TBPanel.open(parent, TBPanel.Kind.DIALOG, T.call("tut_title"), "book", {"width": 460})
 	var title := K.title("", 18, K.TEXT)
@@ -608,7 +608,9 @@ static func tutorial(parent: Control, on_done: Callable, on_skip: Callable = Cal
 	var next := K.button(T.call("tut_next"), Callable(), true)
 	h.actions(skip, next)
 	h.on_dismiss = skip_cb                               # Esc / X also skip the whole intro
+	var spot := TBSpotlight.new(); h.root.add_child(spot)                  # rings the controls a step talks about (the HUD supplies where they are)
 	var draw := func():
+		if on_target.is_valid(): spot.point_at(on_target.call(step[0]))
 		title.text = T.call("tut_%d_t" % step[0]); body.text = T.call("tut_%d_b" % step[0])
 		pips.n = step[0]; pips.queue_redraw()
 		next.text = T.call("tut_done") if step[0] == 7 else T.call("tut_next")
@@ -619,8 +621,8 @@ static func tutorial(parent: Control, on_done: Callable, on_skip: Callable = Cal
 	return h
 
 ## the first-turn sequence of a new campaign: tutorial (first game only) then the briefing; Skip on the tutorial (or Esc) skips both
-static func first_turn(parent: Control, g: TBGame, show_tutorial: bool) -> void:
-	if show_tutorial: tutorial(parent, func(): briefing(parent, g, func(): pass), func(): pass)
+static func first_turn(parent: Control, g: TBGame, show_tutorial: bool, on_target: Callable = Callable()) -> void:
+	if show_tutorial: tutorial(parent, func(): briefing(parent, g, func(): pass), func(): pass, on_target)
 	else: briefing(parent, g, func(): pass)
 
 # =====================================================================================================================================================

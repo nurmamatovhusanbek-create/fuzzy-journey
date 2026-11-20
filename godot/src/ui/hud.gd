@@ -504,6 +504,22 @@ func _on_view_changed() -> void:
 
 ## where drawers open: right of the rail, above the tuner
 func drawer_rect() -> Rect2: return _drawer
+## where the controls a tutorial step talks about are, as global rects: 1 the resource gauges and the dock, 4 Budget, 5 Nations, 6 Decrees, 7 the Council, Annals and Goals buttons
+func tutorial_targets(step: int) -> Array:
+	var want: Array = {1: ["chips", "nations", "budget", "decisions", "advisor", "chronicle", "goals"], 4: ["budget"], 5: ["nations"], 6: ["decisions"], 7: ["advisor", "chronicle", "goals"]}.get(step, [])
+	var out: Array = []
+	for k in want:
+		if String(k) == "chips":
+			var bb := Rect2(); var first := true
+			for c in _chips.values():
+				if not (c as Control).visible: continue
+				var r: Rect2 = (c as Control).get_global_rect()
+				bb = r if first else bb.merge(r); first = false
+			if not first: out.append(bb)
+			continue
+		for b in _dock:
+			if (b as Control).visible and String((b as Control).get_meta("screen", "")) == String(k): out.append((b as Control).get_global_rect())
+	return out
 ## the lowest y a window docked at the right may reach: the top of the End Turn seal, with a gap
 func right_floor() -> float: return _seal_rect().position.y - 16.0 if _prof != Prof.PORTRAIT else _vp.y - 8.0
 ## phones show the inspector as a bottom sheet; true there

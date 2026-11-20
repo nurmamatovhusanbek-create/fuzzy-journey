@@ -56,6 +56,8 @@ out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 2000x1200x24" "$GODOT" --pa
 echo "$out" | grep -q "UI_CYCLE1 OK" && echo "ok: tests/ui_cycle1.gd" || { echo "FAIL: tests/ui_cycle1.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_numbers.gd 2>&1)
 echo "$out" | grep -q "UI_NUMBERS OK" && echo "ok: tests/ui_numbers.gd" || { echo "FAIL: tests/ui_numbers.gd"; echo "$out" | grep -E "plain|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/tutorial_spot.gd -- /tmp 2>&1)
+echo "$out" | grep -q "TUTORIAL_SPOT OK" && echo "ok: tests/tutorial_spot.gd" || { echo "FAIL: tests/tutorial_spot.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 for cfg in "en 1.0" "ru 2.0"; do
   out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1920x1080x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/formable_ui.gd -- /tmp $cfg 2>&1)
   echo "$out" | grep -q "FORMABLE_UI OK" && echo "ok: tests/formable_ui.gd $cfg" || { echo "FAIL: tests/formable_ui.gd $cfg"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }

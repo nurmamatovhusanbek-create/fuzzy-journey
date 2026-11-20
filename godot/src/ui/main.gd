@@ -1104,7 +1104,7 @@ func _start_game(n: int) -> void:
 	var first_run: bool = not cfg.get("tutorial", false)
 	if first_run: cfg["tutorial"] = true; _save_cfg()
 	if not dive:
-		TBModals.first_turn(_overlay, g, first_run)                  # tutorial (first game) + briefing; Skip on the tutorial skips both in one tap
+		TBModals.first_turn(_overlay, g, first_run, hud.tutorial_targets)                  # tutorial (first game) + briefing; Skip on the tutorial skips both in one tap
 		return
 	# the interface fades in as the camera arrives, then the briefing opens (anything that clears the screen meanwhile cancels the briefing)
 	var fly_s: float = float(map._fly.get("dur", 0.4)) if not map._fly.is_empty() else 0.0
@@ -1113,7 +1113,7 @@ func _start_game(n: int) -> void:
 	var gen: int = _ft_gen
 	var gg: TBGame = g
 	get_tree().create_timer(fly_s + 0.15).timeout.connect(func():
-		if gen == _ft_gen and mode == "game" and g == gg: TBModals.first_turn(_overlay, g, first_run))
+		if gen == _ft_gen and mode == "game" and g == gg: TBModals.first_turn(_overlay, g, first_run, hud.tutorial_targets))
 
 # ---------------------------------------------------------------- input
 func _on_pick(p: int, secondary: bool) -> void:
