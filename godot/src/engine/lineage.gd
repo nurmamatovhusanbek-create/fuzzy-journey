@@ -73,6 +73,31 @@ static func core_need(si: int) -> int:
 	var s: Dictionary = STAGES[si]
 	return maxi(int(s["min"]), int(ceil(float(s["share"]) * float((s["core"] as Array).size()))))
 
+## which provinces of a stage's core, and who holds them: the data behind "hold N of its M provinces". Rows are grouped by the owner, the player's own first, then the biggest holder;
+## inside a row the provinces are by population, the largest first. A province of yours under enemy occupation is in your row and in "occ": it does not count as held.
+## {need, have, total, rows: [{o, ps, occ}], missing: [p] (every province not held, the ones still to win)}
+static func core_report(g: TBGame, n: int, si: int) -> Dictionary:
+	ensure()
+	var core: Array = STAGES[si]["core"]
+	var by: Dictionary = {}
+	var missing: Array = []
+	for p in core:
+		var pi: int = int(p)
+		var o: int = g.owner[pi]
+		if not by.has(o): by[o] = {"o": o, "ps": [], "occ": []}
+		(by[o]["ps"] as Array).append(pi)
+		var held: bool = o == n and g.occupier[pi] == 0
+		if o == n and not held: (by[o]["occ"] as Array).append(pi)
+		if not held: missing.append(pi)
+	var rows: Array = by.values()
+	for r in rows: (r["ps"] as Array).sort_custom(func(a: int, b: int) -> bool: return g.pop[a] > g.pop[b] if g.pop[a] != g.pop[b] else a < b)
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if (int(a["o"]) == n) != (int(b["o"]) == n): return int(a["o"]) == n
+		if (int(a["o"]) == 0) != (int(b["o"]) == 0): return int(b["o"]) == 0                    # land nobody holds last
+		var ka: int = (a["ps"] as Array).size(); var kb: int = (b["ps"] as Array).size()
+		return ka > kb if ka != kb else int(a["o"]) < int(b["o"]))
+	return {"need": core_need(si), "have": core_held(g, n, si), "total": core.size(), "rows": rows, "missing": missing}
+
 static func gold_cost(g: TBGame, n: int, si: int) -> int:
 	return int(ceil(g.labour(n) * float(COST_TURNS) * float(STAGES[si]["w"])))
 

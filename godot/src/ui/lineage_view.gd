@@ -46,7 +46,7 @@ static func condition_lines(g: TBGame, n: int, si: int) -> Array:
 	return rows
 
 ## the section: the path, then up to two stages to proclaim. on_command(cmd) sends the order.
-static func build(g: TBGame, me: int, on_command: Callable) -> Control:
+static func build(g: TBGame, me: int, on_command: Callable, ctx: Dictionary = {}) -> Control:
 	var col := K.vbox(8); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var cur := TBLineage.current(g, me)
 	if cur >= 0:
@@ -68,10 +68,10 @@ static func build(g: TBGame, me: int, on_command: Callable) -> Control:
 	if opts.is_empty():
 		col.add_child(K.para_bz(T.call("lg_none"), 15.0, 1.3))
 	for si in opts.slice(0, 2):
-		col.add_child(_card(g, me, si, on_command))
+		col.add_child(_card(g, me, si, on_command, ctx))
 	return col
 
-static func _card(g: TBGame, me: int, si: int, on_command: Callable) -> Control:
+static func _card(g: TBGame, me: int, si: int, on_command: Callable, ctx: Dictionary = {}) -> Control:
 	var s: Dictionary = TBLineage.STAGES[si]
 	var box := PanelContainer.new(); box.add_theme_stylebox_override("panel", TBBz.plate_box(8.0, false)); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var pad := MarginContainer.new()
@@ -92,11 +92,105 @@ static func _card(g: TBGame, me: int, si: int, on_command: Callable) -> Control:
 		var mark := Label.new(); mark.text = "✓" if bool(row[0]) else "✗"; mark.add_theme_color_override("font_color", TBTokens.c("pos_bar") if bool(row[0]) else TBTokens.c("neg_bar")); mark.custom_minimum_size.x = 18
 		var tx := K.label(String(row[1]), 14, TBTokens.c("ink_1") if bool(row[0]) else TBTokens.c("smoke")); tx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		line.add_child(mark); line.add_child(tx); v.add_child(line)
+	v.add_child(_core_block(g, me, si, ctx))
 	var btn := K.button(String(T.call("lg_do")), func(): on_command.call({"cmd": "form", "i": si}), true)
 	btn.disabled = not bool(cf["ok"])
 	if not bool(cf["ok"]): btn.tooltip_text = String(T.call("err_" + String(cf["reason"])))
 	var br := HBoxContainer.new(); br.alignment = BoxContainer.ALIGNMENT_END; br.add_child(btn); v.add_child(br)
 	return box
+
+
+## a province's name that can be pressed (the map turns to it) and lights it while the pointer is on it or it has the focus
+class NameLink extends Button:
+	func _init(txt: String) -> void:
+		text = txt; flat = true; focus_mode = Control.FOCUS_ALL; mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		add_theme_font_override("font", K.body())
+		add_theme_font_size_override("font_size", K.fs(13))
+		for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+			add_theme_color_override(st, TBTokens.c("brass_lt") if st != "font_color" else TBTokens.c("ink_1"))
+		var none := StyleBoxEmpty.new(); none.content_margin_left = 2; none.content_margin_right = 2; none.content_margin_top = 1; none.content_margin_bottom = 1
+		for sb in ["normal", "hover", "pressed", "disabled"]: add_theme_stylebox_override(sb, none)
+		var ring := StyleBoxFlat.new(); ring.draw_center = false; ring.border_width_bottom = 1; ring.border_color = TBTokens.c("brass"); ring.content_margin_left = 2; ring.content_margin_right = 2; ring.content_margin_top = 1; ring.content_margin_bottom = 1
+		add_theme_stylebox_override("focus", ring)
+
+static func _light(ctx: Dictionary, ps: Array) -> void:
+	var cb: Callable = ctx.get("on_light", Callable())
+	if cb.is_valid(): cb.call(ps)
+
+static func _frame(ctx: Dictionary, ps: Array) -> void:
+	var cb: Callable = ctx.get("on_frame", Callable())
+	if cb.is_valid(): cb.call(ps)
+
+## "hold N of its M provinces" made concrete (the formable screens of Age of Civilizations 2 do the same): which provinces, who holds them and how many each, with the land the map can show
+static func _core_block(g: TBGame, me: int, si: int, ctx: Dictionary) -> Control:
+	var rep: Dictionary = TBLineage.core_report(g, me, si)
+	var missing: Array = rep["missing"]
+	var box := K.vbox(6)
+	var body := K.vbox(10); body.visible = false
+	var state := {"open": false}
+	var tog: Button = K.button(String(T.call("lg_prov_show")), Callable(), false, true)
+	tog.tooltip_text = String(T.call("lg_prov_left", {"k": missing.size()}))
+	tog.pressed.connect(func():
+		state["open"] = not bool(state["open"])
+		body.visible = bool(state["open"])
+		tog.text = String(T.call("lg_prov_hide" if bool(state["open"]) else "lg_prov_show")); tog.update_minimum_size(); tog.queue_redraw()
+		_light(ctx, missing if bool(state["open"]) else [])
+		if bool(state["open"]): _frame(ctx, missing if not missing.is_empty() else (rep["rows"][0]["ps"] as Array)))
+	var hr := HBoxContainer.new(); hr.alignment = BoxContainer.ALIGNMENT_BEGIN; hr.add_child(tog); box.add_child(hr)
+	for row in rep["rows"]: body.add_child(_group(g, me, row, ctx, missing, state))
+	box.add_child(body)
+	box.tree_exiting.connect(func(): _light(ctx, []))                       # the window closes (or is rebuilt): the map is as it was
+	return box
+
+static func _group(g: TBGame, me: int, row: Dictionary, ctx: Dictionary, missing: Array, state: Dictionary) -> Control:
+	var o: int = int(row["o"])
+	var ps: Array = row["ps"]
+	var occ: Array = row["occ"]
+	var v := K.vbox(4)
+	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 8); head.mouse_filter = Control.MOUSE_FILTER_STOP
+	if o > 0:
+		var fl := TextureRect.new(); fl.texture = TBFlags.medal_of(g, o); fl.custom_minimum_size = Vector2(26, 26); fl.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; fl.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		head.add_child(fl)
+	var title: String
+	if o == me: title = String(T.call("lg_prov_yours", {"k": ps.size()}))
+	elif o == 0: title = String(T.call("lg_prov_nobody", {"k": ps.size()}))
+	else: title = "%s · %d" % [g.dname(o), ps.size()]
+	var tl := K.label(title, 14, TBTokens.c("ink_0")); tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(tl)
+	if o > 0 and o != me:
+		var rel: int = g.get_rel(me, o)
+		var tag := ""
+		var tone := "smoke"
+		if rel == TBData.REL_WAR: tag = "lg_prov_war"; tone = "neg"
+		elif rel == TBData.REL_ALLY: tag = "lg_prov_ally"; tone = "pos"
+		if tag != "": head.add_child(K.label(String(T.call(tag)), 12, TBTokens.c(tone)))
+	var onmap := K.button(String(T.call("lg_prov_onmap")), func(): _light(ctx, ps); _frame(ctx, ps), false, true)
+	head.add_child(onmap)
+	head.mouse_entered.connect(func(): _light(ctx, ps))
+	head.mouse_exited.connect(func(): _light(ctx, missing if bool(state.get("open", false)) else []))
+	v.add_child(head)
+	var names := HFlowContainer.new(); names.add_theme_constant_override("h_separation", 6); names.add_theme_constant_override("v_separation", 0)
+	var cap := 6
+	var more_links: Array = []
+	for i in ps.size():
+		var pi: int = int(ps[i])
+		var nm: String = TBI18n.place(g.pname(pi)) + ((" (" + String(T.call("lg_prov_occ")) + ")") if occ.has(pi) else "")
+		var lk := NameLink.new(nm + ("," if i < ps.size() - 1 else ""))
+		lk.pressed.connect(func(): _light(ctx, [pi]); _frame(ctx, [pi]))
+		lk.mouse_entered.connect(func(): _light(ctx, [pi]))
+		lk.mouse_exited.connect(func(): _light(ctx, missing if bool(state.get("open", false)) else []))
+		lk.focus_entered.connect(func(): _light(ctx, [pi]))
+		if i >= cap: lk.visible = false; more_links.append(lk)
+		names.add_child(lk)
+	if ps.size() > cap:
+		var tgl := NameLink.new(String(T.call("lg_prov_more", {"k": ps.size() - cap})))
+		tgl.pressed.connect(func():
+			var show: bool = not (more_links[0] as Control).visible
+			for lk2 in more_links: (lk2 as Control).visible = show
+			tgl.text = String(T.call("lg_prov_less")) if show else String(T.call("lg_prov_more", {"k": ps.size() - cap})))
+		names.add_child(tgl)
+	v.add_child(names)
+	return v
 
 ## the ceremony: the new flag and name, what it brings
 static func ceremony(parent: Control, g: TBGame, me: int, old_name: String, claimed: int) -> TBPanel.Handle:

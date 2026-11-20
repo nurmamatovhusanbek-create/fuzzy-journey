@@ -36,6 +36,22 @@ func _init() -> void:
 	for n in range(1, g.N1): if n != ru and n != g.rebel and g.alive[n] != 0: neighbour = n; break
 	var core: Array = TBLineage.STAGES[ussr]["core"]
 	for i in core.size(): g.set_owner(int(core[i]), ru if i >= 3 else neighbour)
+	# the report behind the Realm card: who holds the core, grouped, the player first
+	var rep := TBLineage.core_report(g, ru, ussr)
+	_check(int(rep["total"]) == core.size() and int(rep["have"]) == TBLineage.core_held(g, ru, ussr) and int(rep["need"]) == TBLineage.core_need(ussr), "the report carries need, have and total")
+	var rows: Array = rep["rows"]
+	var sum := 0
+	for r in rows: sum += (r["ps"] as Array).size()
+	_check(sum == core.size(), "every province of the core is in exactly one row (%d of %d)" % [sum, core.size()])
+	_check(int(rows[0]["o"]) == ru and (rows[0]["ps"] as Array).size() == core.size() - 3, "the player's row comes first with %d provinces" % (core.size() - 3))
+	_check(rows.size() == 2 and int(rows[1]["o"]) == neighbour and (rows[1]["ps"] as Array).size() == 3, "the neighbour holds the other three")
+	_check((rep["missing"] as Array).size() == 3, "three provinces are still to win (%d)" % (rep["missing"] as Array).size())
+	var big: int = int((rows[0]["ps"] as Array)[0])
+	_check(g.pop[big] >= g.pop[int((rows[0]["ps"] as Array)[(rows[0]["ps"] as Array).size() - 1])], "inside a row the largest province is first")
+	g.occupier[big] = neighbour
+	var rep2 := TBLineage.core_report(g, ru, ussr)
+	_check((rep2["missing"] as Array).has(big) and ((rep2["rows"] as Array)[0]["occ"] as Array).has(big) and int(rep2["have"]) == int(rep["have"]) - 1, "an occupied province is in the player's row, flagged, and not held")
+	g.occupier[big] = 0
 	var cf := TBLineage.can_form(g, ru, ussr)
 	_check(bool(cf["ok"]), "with land, government, year and gold it can be formed (%s %s)" % [cf["reason"], str(TBLineage.conditions(g, ru, ussr))])
 	var ftip := false

@@ -228,12 +228,7 @@ func _refresh_realm() -> void:
 				(sc2 as ScrollContainer).scroll_vertical = sv; break
 		return
 
-func _nations_window() -> TBPanel.Handle:
-	for c in _overlay.get_children():
-		if c.is_queued_for_deletion() or not c.has_meta("tb_handle"): continue
-		var h: TBPanel.Handle = c.get_meta("tb_handle")
-		if h.mem_key == "nations" and h.is_open(): return h
-	return null
+func _nations_window() -> TBPanel.Handle: return _window("nations")
 
 func _load_cfg() -> void:
 	var f := ConfigFile.new()
@@ -847,7 +842,7 @@ func _open_dossier(p: int) -> void:
 
 ## the crest: your own country's page (standing, treasury, court, treaties)
 func _open_realm_page() -> void:
-	if g != null: TBRealmScreen.open(_overlay, g, {"on_nation": _open_nation, "on_command": func(c: Dictionary): _on_command(c, false)})
+	if g != null: TBRealmScreen.open(_overlay, g, {"on_nation": _open_nation, "on_command": func(c: Dictionary): _on_command(c, false), "on_light": _light_provinces, "on_frame": _frame_realm_provinces})
 
 func _open_budget() -> void:
 	if g != null: TBModals.budget(_overlay, g, func(): hud.refresh())
@@ -1188,11 +1183,34 @@ func _open_terms(e: int) -> void:
 
 ## bring the provinces on the peace table into the part of the map the window leaves free: centre them there and zoom out until they all fit
 func _frame_land(h: TBPanel.Handle, e: int) -> void:
+	var ps: Array = []
+	for o in TBPeace.offers(g, g.human_id, e): ps.append(int(o["p"]))
+	await _frame_provinces(h, ps, true)
+
+## the open window with this key (a page of the Realm, the Outliner), or null
+func _window(key: String) -> TBPanel.Handle:
+	for c in _overlay.get_children():
+		if c.is_queued_for_deletion() or not c.has_meta("tb_handle"): continue
+		var h: TBPanel.Handle = c.get_meta("tb_handle")
+		if h.mem_key == key and h.is_open(): return h
+	return null
+
+## a window's list lights provinces on the map (a formable name's land) as if they were move targets; an empty list puts them out. Nothing is lit while an order is being given.
+func _light_provinces(ps: Array) -> void:
+	if g == null or mode != "game" or map == null: return
+	if flow != null and flow.mode != TBOrderFlow.Mode.IDLE: return
+	map.set_targets(PackedInt32Array(ps))
+
+## the Realm window asks to see some provinces: the map turns to them in the part the window leaves free
+func _frame_realm_provinces(ps: Array) -> void:
+	var h := _window("realm")
+	if h != null and not ps.is_empty(): _frame_provinces(h, ps)
+
+## pills: zoom in until a province can carry a price pill (the peace table); a formable's land is shown as wide as it is
+func _frame_provinces(h: TBPanel.Handle, ps: Array, pills: bool = false) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if g == null or map == null or h == null or not is_instance_valid(h.card): return
-	var ps: Array = []
-	for o in TBPeace.offers(g, g.human_id, e): ps.append(int(o["p"]))
 	if ps.is_empty(): return
 	var win: Rect2 = h.card.get_global_rect()
 	var mr: Rect2 = map.get_global_rect()
@@ -1222,7 +1240,7 @@ func _frame_land(h: TBPanel.Handle, e: int) -> void:
 		if first2: bb2 = Rect2(Vector2(pt2.x, pt2.y), Vector2.ZERO); first2 = false
 		else: bb2 = bb2.expand(Vector2(pt2.x, pt2.y))
 	var guard := 0
-	while map.labels != null and not map.labels.pills_fit() and map.zoom < 13.0 and guard < 12:       # the prices show like army counters: close enough for a province to carry one
+	while pills and map.labels != null and not map.labels.pills_fit() and map.zoom < 13.0 and guard < 12:       # the prices show like army counters: close enough for a province to carry one
 		map.zoom_by(1.25); guard += 1
 	bb2 = Rect2(); first2 = true
 	for p in ps:

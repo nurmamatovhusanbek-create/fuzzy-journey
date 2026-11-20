@@ -131,7 +131,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	var gov_from: int = body.get_child_count()
 	if (TBLineage.current(g, me) >= 0 or not TBLineage.options(g, me).is_empty()):     # rules 5: the lineage, and the names you could proclaim
 		body.add_child(_cap(T.call("lg_title"), 8.0, 6.0))
-		body.add_child(TBLineageView.build(g, me, opts.get("on_command", Callable())))
+		body.add_child(TBLineageView.build(g, me, opts.get("on_command", Callable()), opts))
 	body.add_child(_cap(T.call("rg_title"), 14.0, 6.0))
 	body.add_child(TBRegimeView.build(g, me, opts.get("on_command", Callable())))
 	body.add_child(_cap(T.call("in_title"), 14.0, 6.0))
