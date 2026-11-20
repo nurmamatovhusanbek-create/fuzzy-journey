@@ -38,13 +38,6 @@ static func poly(ci: RID, pts: PackedVector2Array, col: Color) -> void:
 static func poly_g(ci: RID, pts: PackedVector2Array, cols: PackedColorArray) -> void:
 	RenderingServer.canvas_item_add_polygon(ci, pts, cols)
 
-## 1 unit antialiased line along the diagonal (notch) edges of a notched rectangle: the polygon fill is aliased, this softens the chamfers
-static func aa_diag(ci: RID, pts: PackedVector2Array, col: Color) -> void:
-	var n := pts.size()
-	for i in n:
-		var a: Vector2 = pts[i]; var b: Vector2 = pts[(i + 1) % n]
-		if absf(a.x - b.x) > 0.01 and absf(a.y - b.y) > 0.01:
-			RenderingServer.canvas_item_add_line(ci, a, b, col, 1.0, true)
 
 static var _off := Vector2.ZERO            # the active shift(): TBBz.text() draws with its own scaled transform, so it adds this origin itself
 static func shift(ci: RID, off: Vector2) -> void:

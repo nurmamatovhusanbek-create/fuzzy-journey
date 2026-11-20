@@ -132,11 +132,6 @@ static func cancel_at(g: TBGame, n: int, p: int) -> void:
 		if int(m["n"]) == n and int(m["at"]) == p: g.marches.remove_at(i)
 		i -= 1
 
-## the standing order of the army standing in `p`, or {}
-static func order_at(g: TBGame, n: int, p: int) -> Dictionary:
-	for m in g.marches:
-		if int(m["n"]) == n and int(m["at"]) == p: return m
-	return {}
 
 ## one stride of a standing order along `pl` (its plan): over the provinces you hold up to the next one you hold (allies' land is crossed), or the attack when it is next door
 static func _stride(g: TBGame, m: Dictionary, pl: Dictionary) -> String:

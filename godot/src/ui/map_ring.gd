@@ -130,10 +130,6 @@ func _drop_tag() -> void:
 	if tag != null and is_instance_valid(tag): tag.queue_free()
 	tag = null; _tag_key = ""
 
-func set_armed(a: bool) -> void:
-	armed = a
-	visible = _want()
-	set_process(subject >= 0); queue_redraw()
 
 func _process(d: float) -> void:
 	var want: bool = _want()                                                        # while an order is previewed the panel sends no verbs: the armed medallion stays

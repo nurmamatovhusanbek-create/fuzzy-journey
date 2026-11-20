@@ -131,12 +131,6 @@ static func _war_declared(g: TBGame, n: int) -> int:
 		i -= 1
 	return 0
 
-## crisis ids, used to toast only what is *new* after a turn
-static func crisis_ids(al: Array) -> PackedStringArray:
-	var s := PackedStringArray()
-	for a in al:
-		if int(a["sev"]) >= 2: s.append(String(a["id"]))
-	return s
 
 # ---------------------------------------------------------------- HUD support (read-only helpers; never mutate state)
 

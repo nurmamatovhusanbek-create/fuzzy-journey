@@ -197,20 +197,3 @@ static func meter(view: Dictionary, nation_key: int) -> Meter:      # nation_key
 	m.need_label = T.call("dv_needs", {"n": _fmt(float(view["need"]))})
 	return m
 
-## "Why they feel this way": the terms of the sum as a leader list (label ..... +value), then the total against what is needed
-static func why_list(view: Dictionary) -> Control:
-	var v := K.vbox(0)
-	var cum := 0.0; var shown_cum := 0                      # each line is the change in the running rounded total: the lines always add up to the total
-	for term in view["terms"]:
-		var val: float = float(term[1])
-		cum += val
-		var cur: int = int(roundf(cum * 100.0))
-		var step: int = cur - shown_cum; shown_cum = cur
-		if step == 0: continue
-		var col: Color = TBTokens.c("pos") if step > 0 else TBTokens.c("neg")
-		v.add_child(K.row(T.call(String(term[0])), "%s%d" % ["+" if step > 0 else "−", absi(step)], col))
-	if String(view["blocked"]) != "":
-		v.add_child(K.row(T.call("dvb_" + String(view["blocked"])), "✕", TBTokens.c("neg")))
-	var total := K.row(T.call("dv_total"), "%s / %s" % [_fmt(float(view["score"]), float(view["need"])), _fmt(float(view["need"]))], TBTokens.c("pos") if bool(view["ok"]) else TBTokens.c("neg"))
-	v.add_child(total)
-	return v

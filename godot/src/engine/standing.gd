@@ -43,7 +43,3 @@ static func stars(g: TBGame, n: int) -> int:
 	_refresh(g)
 	return _stars[n]
 
-## the total worth of n's provinces
-static func total_worth(g: TBGame, n: int) -> float:
-	_refresh(g)
-	return _worth[n] if n > 0 and n < _worth.size() else 0.0

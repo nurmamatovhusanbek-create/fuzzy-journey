@@ -47,10 +47,6 @@ func set_marks(list: Array) -> void:
 	_marks_set = {}
 	for m in list: _marks_set[int(m["p"])] = true
 	queue_redraw()
-func clear_marks() -> void:
-	if _marks.is_empty(): return
-	_marks = []; _marks_set = {}
-	queue_redraw()
 func marks_count() -> int: return _marks.size()
 func _draw_marks(c0: float, s0: float, sl: float, cl: float, R: float, cx: float, cy: float) -> void:
 	mark_rects = []
@@ -105,8 +101,6 @@ func clear_order() -> void:
 	_push_p = -1; _order_box = Rect2()
 	queue_redraw()
 
-## screen bounds of the current order arrow (control-local); empty Rect2 when there is none
-func order_bounds() -> Rect2: return _order_box
 ## true while an order is previewed / committed (not a mere hover): the command ring becomes the armed medallion
 func order_from() -> int: return int(_order["from"]) if not _order.is_empty() else -1
 func order_committed() -> bool: return not _order.is_empty() and not bool(_order.get("hover", false))
@@ -1151,20 +1145,6 @@ func _is_big_nation(o: int) -> bool:
 			if i < BIG_NATIONS or int(order[i][0]) >= BIG_PROVINCES: _big[int(order[i][1])] = true
 	return _big.has(o)
 
-## far tier: an 8 px dot. Affiliation by outline: own = 2 px brass + ink outer, war = 2 px red outline, others 1 px ink
-func _draw_dot(pos: Vector2, al: float, own: bool, war: bool, hot: bool, nat: Color) -> void:
-	var m := mk()
-	var r := 4.0 * m
-	var ink := tk("table")
-	if hot: draw_circle(pos, r + 5.0, _a(ink, al)); draw_circle(pos, r + 4.0, _a(tk("cream"), al)); draw_circle(pos, r + 1.0, _a(ink, al))
-	if own:
-		draw_circle(pos, r + 3.0, _a(ink, al)); draw_circle(pos, r + 2.0, _a(tk("brass_lt"), al))
-	elif war:
-		draw_circle(pos, r + 3.0, _a(ink, al)); draw_circle(pos, r + 2.0, _a(tk("neg_bar"), al))
-	else:
-		draw_circle(pos, r + 1.0, _a(ink, al))
-	draw_circle(pos, r, _a(ink, al) if (own or war) else _a(nat, al))
-	draw_circle(pos, r - 1.0, _a(nat, al))
 
 ## one army marker for the current zoom tier: dot (far), pennant (mid) or gonfalon (near); affiliation by outline, never by colour alone
 func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, me: int, ztier: int) -> void:

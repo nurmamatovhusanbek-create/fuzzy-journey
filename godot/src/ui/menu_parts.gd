@@ -11,8 +11,6 @@ class Bezel extends Control:
 	var dim := 1.0                          # 0.35 while a panel is open
 	func _init() -> void:
 		set_anchors_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
-	func ring_radius() -> float:
-		return minf(size.x, size.y) * 0.44 * (map.zoom if map != null else 1.0)
 	func _draw() -> void:
 		if map == null: return
 		var c := map.global_position - global_position + map.size * 0.5      # the globe's own centre, whatever the overlay insets are

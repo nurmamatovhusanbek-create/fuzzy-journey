@@ -15,7 +15,6 @@ static func R(px: float) -> float: return px * u
 static func fr(px: float) -> int: return maxi(12, int(round(px * u)))
 ## panel opacity floor (88 - 100 %), the alpha of bar / rail / chip grounds
 static var opacity: float = 0.86
-static var _f_nat: Font
 
 ## a font size through the text scale; never below the 12 px caption floor (A11Y-TXT-002)
 static func fs(px: float) -> int: return maxi(12, int(round(px * text_scale)))
@@ -133,9 +132,6 @@ static func body_b() -> Font:
 	_fonts()
 	return _f_body_b
 
-static func f_nat() -> Font:
-	if _f_nat == null: _f_nat = K.tracked(K.display_hi(), 1)
-	return _f_nat
 
 # ---------------------------------------------------------------- drawing helpers
 ## rectangle with every corner cut by `cut` px (the interface's one shape)
@@ -168,11 +164,6 @@ static func txt(ci: CanvasItem, font: Font, pos: Vector2, s: String, size: int, 
 	ci.draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, col, TextServer.JUSTIFICATION_NONE)
 	return tw(font, s, size) if max_w < 0.0 else minf(tw(font, s, size), max_w)
 
-## text with a dark halo so it reads on the map
-static func txt_o(ci: CanvasItem, font: Font, pos: Vector2, s: String, size: int, col: Color, max_w: float = -1.0) -> float:
-	ci.draw_string_outline(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, 4, TBTokens.HALO)
-	ci.draw_string(font, pos, s, HORIZONTAL_ALIGNMENT_LEFT, max_w, size, col, TextServer.JUSTIFICATION_NONE)
-	return tw(font, s, size) if max_w < 0.0 else minf(tw(font, s, size), max_w)
 
 ## one line that fits max_w: trailing "…" when it does not
 static func fit(font: Font, s: String, size: int, max_w: float) -> String:
@@ -204,12 +195,6 @@ static func tick(ci: CanvasItem, c: Vector2, s: float, col: Color, w: float = 2.
 	var h: float = s * 0.5
 	ci.draw_polyline(PackedVector2Array([c + Vector2(-h * 0.8, 0.0), c + Vector2(-h * 0.2, h * 0.6), c + Vector2(h * 0.85, -h * 0.6)]), col, w, true)
 
-## "!" inside a warning triangle
-static func warn_mark(ci: CanvasItem, c: Vector2, s: float, col: Color, filled: bool = false) -> void:
-	tri(ci, c, s, col, true, filled, 1.5)
-	var ink: Color = tk("bar_0") if filled else col
-	ci.draw_line(c + Vector2(0, -s * 0.14), c + Vector2(0, s * 0.1), ink, 1.5)
-	ci.draw_rect(Rect2(c.x - 0.75, c.y + s * 0.2, 1.5, 1.5), ink)
 
 static func chev(ci: CanvasItem, c: Vector2, s: float, col: Color, w: float = 2.0) -> void:
 	var h: float = s * 0.5
@@ -261,8 +246,6 @@ static func lens_glyph(lens: String) -> String:
 		"terrain": return "globe"
 	return "globe"
 
-static func seat_index(g: TBGame, n: int) -> int:
-	return g.humans().find(n)
 
 # ---------------------------------------------------------------- styleboxes and small widgets
 ## a StyleBox drawing the flat plate (popovers, tooltips, toast rows, buttons)
@@ -331,11 +314,6 @@ static func bar_box(pad_x: float = 12.0, pad_y: float = 8.0, cut: float = 6.0, e
 	b.shadow = elevated
 	return b
 
-## pale document plate (realm sheet)
-static func paper_box(pad_x: float = 16.0, pad_y: float = 14.0) -> PlateBox:
-	var b: PlateBox = PlateBox.new().setup(tk("paper_0"), tk("rule"), 6.0, pad_x, pad_y)
-	b.elevation = 1
-	return b
 
 ## the demo's `.bt` button: a notched plate, Cinzel caps 11.5 letter-spaced .16em, 32 high. kind "primary" (brass face), "danger" (rust), anything else the dark plate with brass text
 static func btn(text: String, kind: String, cb: Callable, dark: bool = true, px: int = 14) -> Button:
@@ -535,7 +513,6 @@ static func sbox(fill: Color, edge: Color, radius: float, bw: int = 1) -> StyleB
 
 # ---------------------------------------------------------------- Atlas Ledger primitives
 static func sel_fill() -> Color: return TBTokens.INK_500 if not TBTokens.is_hc() else tk("bar_2")
-static func accent_soft() -> Color: return al(tk("brass_lt"), 0.18)
 ## a thin card: ink-800, hairline, radius 16 (panels) / 10 (small cards) / pill
 static func card_box(radius: float = 16.0, fill_a: float = 0.97) -> StyleBox:
 	return sbox(al(tk("bar_0"), fill_a), tk("rule"), radius, 1)

@@ -57,7 +57,6 @@ func _build() -> void:
 
 ## kept for callers: the minimap is a round globe whatever the main map's view mode
 func is_globe() -> bool: return true
-func want_w(h: float) -> float: return h
 
 ## the globe's centre (control coordinates) and radius: the bezel has 10 units of room round it for the shadow, the caption sits beneath
 func _globe_geom() -> Array:

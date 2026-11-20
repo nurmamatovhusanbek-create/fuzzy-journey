@@ -133,40 +133,9 @@ func refresh_nations() -> bool:
 
 # ---------------------------------------------------------------- Atlas land colours (OKLCH, chroma 0.06-0.12, lightness 0.42-0.62, neighbours dE >= 12)
 
-static func to_oklab(rgb: int) -> Vector3:
-	var r := _lin(((rgb >> 16) & 255) / 255.0); var gg := _lin(((rgb >> 8) & 255) / 255.0); var b := _lin((rgb & 255) / 255.0)
-	var l := pow(0.4122214708 * r + 0.5363325363 * gg + 0.0514459929 * b, 1.0 / 3.0)
-	var m := pow(0.2119034982 * r + 0.6806995451 * gg + 0.1073969566 * b, 1.0 / 3.0)
-	var s := pow(0.0883024619 * r + 0.2817188376 * gg + 0.6299787005 * b, 1.0 / 3.0)
-	return Vector3(0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s)
 
-## oklab -> rgb int; null-safe gamut check through `ok` (false when a channel left [0,1] before clamping)
-static func from_oklab(c: Vector3) -> Dictionary:
-	var l := c.x + 0.3963377774 * c.y + 0.2158037573 * c.z
-	var m := c.x - 0.1055613458 * c.y - 0.0638541728 * c.z
-	var s := c.x - 0.0894841775 * c.y - 1.2914855480 * c.z
-	l = l * l * l; m = m * m * m; s = s * s * s
-	var lin := [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]
-	var ok := true
-	var out := 0
-	for i in 3:
-		var v: float = lin[i]
-		if v < -0.0005 or v > 1.0005: ok = false
-		v = clampf(v, 0.0, 1.0)
-		var e: float = 12.92 * v if v <= 0.0031308 else 1.055 * pow(v, 1.0 / 2.4) - 0.055
-		out = (out << 8) | int(clampf(e, 0.0, 1.0) * 255.0 + 0.5)
-	return {"rgb": out, "ok": ok}
 
-static func oklch_rgb(L: float, C: float, h: float) -> int:
-	var c := C
-	for i in 12:
-		var r := from_oklab(Vector3(L, c * cos(h), c * sin(h)))
-		if r["ok"]: return r["rgb"]
-		c *= 0.9
-	return from_oklab(Vector3(L, c * cos(h), c * sin(h)))["rgb"]
 
-static func de_ok(a: int, b: int) -> float:
-	return (to_oklab(a) - to_oklab(b)).length() * 100.0
 
 var _dk_idx := PackedInt32Array()       # nation -> index into PAL (-1 none, -2 the player's own)
 
@@ -466,18 +435,6 @@ static func swatch_letter(lens: String, i: int) -> String:
 	if lens in ["diplomatic", "governments", "terrain", "buildings", "wars"]: return char(65 + clampi(i, 0, 25))
 	return ""
 
-## draws a legend swatch: the fill, a 1 px border and (categorical lenses) its letter in ink or cream, whichever reads on the fill.
-## Use a swatch of at least 16 px so the 12 px letter fits.
-static func draw_swatch(ci: CanvasItem, r: Rect2, lens: String, i: int, rgb: int) -> void:
-	ci.draw_rect(r, Color.hex((rgb << 8) | 0xFF))
-	ci.draw_rect(r, TBTokens.c("rule_dark"), false, 1.0)
-	var l := swatch_letter(lens, i)
-	if l == "": return
-	var f: Font = TBKit.mono_b()
-	var fs := 12
-	var tw := f.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
-	var col := TBTokens.c("ink_0") if lum(rgb) > 0.22 else TBTokens.c("cream")
-	ci.draw_string(f, r.get_center() + Vector2(-tw.x * 0.5, f.get_ascent(fs) * 0.5 - 1.0), l, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 ## one plain-language line about the active lens for province p (hover card, long-press peek, keyboard cursor readout)
 func describe(p: int) -> String:

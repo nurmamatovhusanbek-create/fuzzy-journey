@@ -353,5 +353,4 @@ func summary() -> Dictionary:
 		for k in ["win", "hold", "lost", "atk", "dfn", "defenders"]: out[k] = pv.get(k, out[k])
 	return out
 
-func is_previewing() -> bool: return mode == Mode.PREVIEW
 

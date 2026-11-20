@@ -14,7 +14,6 @@ enum Kind { DIALOG, DRAWER, PANEL }
 const DRAWER_TOP := 56            ## drawer top = bottom edge of the top bar (HUD may raise it)
 const DRAWER_BOTTOM := 108        ## drawer ends above End Turn (80 seal + 16 margin + 12 gap)
 const SHEET_BOTTOM := 88          ## portrait sheet rises above the dock rail and End Turn
-const DRAWER_W := 400
 ## windows the player moved or resized, by screen key: {key: {x, y, w, h}} (kept in the settings file by the interface)
 static var win_mem: Dictionary = {}
 static var win_changed: Callable = Callable()
@@ -111,7 +110,6 @@ class Handle extends RefCounted:
 		(func():
 			var tb := c as TBKit.Tabs
 			if tb != null and is_instance_valid(sc) and tb._btns.has(tb.current): sc.ensure_control_visible(tb._btns[tb.current])).call_deferred()
-	func inner_w() -> float: return card.size.x - 2.0 * pad
 	func clear_actions() -> void:
 		for c in footer.get_children(): c.queue_free()
 		if action_slot != null:
@@ -183,7 +181,6 @@ class Handle extends RefCounted:
 		var pc := TBPanel.fact_row(glyph_id, label_text, text, tone, phone)
 		body.add_child(pc)
 		return pc
-	func relayout() -> void: TBPanel._layout(self)
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 ## size profile of the viewport (logical px): P portrait, S short landscape, L landscape phone, D desktop / tablet
@@ -1340,14 +1337,6 @@ static func seg(items: Array, current: String, cb: Callable) -> Seg:
 static func chip_button(txt: String, selected: bool, cb: Callable) -> ChipBtn:
 	return ChipBtn.new(txt, selected, cb)
 
-## a nation as a small button: flag + name (jumps to that nation)
-static func nation_button(g: TBGame, n: int, cb: Callable) -> Button:
-	var b := K.button(g.dname(n), cb)
-	b.icon = TBFlags.texture(g.nat_code[n], g.color[n]); b.expand_icon = true
-	b.add_theme_constant_override("icon_max_width", 24)
-	b.custom_minimum_size = Vector2(b.custom_minimum_size.x, K.touch() - 8)         # keep the plate's own width (it was reset to 0: the labels piled up on each other)
-	b.clip_text = false
-	return b
 
 ## flag + name (+ a mono figure) as a static tag, e.g. the great powers of an era
 static func flag_tag(tex: Texture2D, text: String, figure: String = "") -> Control:

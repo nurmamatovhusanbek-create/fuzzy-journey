@@ -79,7 +79,6 @@ var _pal_tex: ImageTexture
 var _pal := PackedByteArray()
 var _touches := {}
 var _pinch_dist := 0.0
-var _dragging := false
 var _drag_moved := 0.0
 var _pressed := false
 
@@ -354,8 +353,6 @@ func _push_view() -> void:
 		labels.refresh_names()                                         # the names follow the camera every frame, whatever the layout's own pace
 	view_changed.emit()
 
-## zoomed in far enough that other countries' districts are worth telling apart (their names, armies and terrain appear); further out, a country is one thing
-func district_zoom() -> bool: return zoom >= (2.6 if mode == 0 else maxf(3.4, flat_fit() * 2.0))
 
 # ---------------------------------------------------------------- redraws: all of the map, or only the part a hover / selection changed
 ## A hover brightens a nation, a selection washes a province: nothing else on the map changes, so the shader is run again only over their screen area (a scissor on the
@@ -494,7 +491,6 @@ func _labels_relayout() -> void:
 func atlas_look() -> bool:
 	return TBLenses.dark_land and map_theme == 0 and not TBTokens.is_hc()
 
-var _anim_t := 0.0
 
 func set_mode(m: int) -> void:
 	mode = m

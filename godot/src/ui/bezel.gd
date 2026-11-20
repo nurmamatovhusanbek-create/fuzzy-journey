@@ -136,15 +136,6 @@ static func ruler_h(ci: CanvasItem, x0: float, x1: float, y: float, step: float,
 		x += step; i += 1
 	if pts.size() >= 2: ci.draw_multiline(pts, col, 1.0)
 
-static func ruler_v(ci: CanvasItem, y0: float, y1: float, x: float, step: float, major: int, col: Color, len_px: float = 4.0, left: bool = false) -> void:
-	var pts := PackedVector2Array()
-	var i: int = 0
-	var y: float = y0
-	while y <= y1 + 0.1:
-		var l: float = len_px * (1.8 if i % major == 0 else 1.0)
-		pts.append(Vector2(x, y)); pts.append(Vector2(x + (-l if left else l), y))
-		y += step; i += 1
-	if pts.size() >= 2: ci.draw_multiline(pts, col, 1.0)
 
 ## notched plate: 45 degree corners, brass hairline
 static func plate(ci: CanvasItem, r: Rect2, fill: Color, edge: Color = Color.TRANSPARENT, cut: float = 6.0, edge_w: float = 1.0) -> void:

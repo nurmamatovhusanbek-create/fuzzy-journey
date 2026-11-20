@@ -4,7 +4,6 @@ extends RefCounted
 
 static var T: Callable = TBI18n.T
 
-const CATS := ["mine", "all", "war", "diplo", "events"]
 
 static func category(e: Dictionary) -> String:
 	match String(e["kind"]):

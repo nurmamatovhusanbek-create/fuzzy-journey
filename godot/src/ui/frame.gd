@@ -20,9 +20,6 @@ const ALL := 15
 const _DIAG := 0.5857864             # 2 - sqrt(2): a 45 degree chamfer offset inwards by d shrinks by this fraction of d
 const _CACHE_MAX := 600
 
-## legacy colour names that older call sites still read (TBFrame.PAPER ...)
-static var PAPER: Color = TBTokens.INK_800
-static var INK: Color = TBTokens.PAPER_100
 static var BRASS: Color = TBTokens.accent
 
 ## true once the player navigates by keyboard / pad, false again on a mouse or touch press (a focus ring is drawn only while true)
@@ -102,16 +99,11 @@ static func make(fill_c: Color, rule_c: Color, _notch: float = 10.0, double: boo
 static func sheet(pad_x: float = 20.0, pad_y: float = 16.0, tint_c: Color = Color.TRANSPARENT) -> TBFrame:
 	return plate(tint_c if tint_c.a > 0.0 else TBTokens.c("paper_0"), TBTokens.c("rule"), TBTokens.CUT_PANEL, 1, pad_x, pad_y)
 
-## old "chit" = the secondary plate (paper-1, 1 px rule, cut 4)
-static func chit(tint_c: Color = Color.TRANSPARENT, pad_x: float = 14.0, pad_y: float = 8.0, is_alert: bool = false) -> TBFrame:
-	return plate(tint_c if tint_c.a > 0.0 else TBTokens.c("paper_1"), TBTokens.c("neg" if is_alert else "rule"), TBTokens.CUT, 0, pad_x, pad_y)
 
 ## old "wax" button = the flat danger plate
 static func wax(pad_x: float = 16.0, pad_y: float = 10.0, is_pressed: bool = false) -> TBFrame:
 	return plate(TBTokens.c("wax_press" if is_pressed else "wax"), TBTokens.c("wax_rim"), TBTokens.CUT, 0, pad_x, pad_y, is_pressed)
 
-static func leather(pad_x: float = 12.0, pad_y: float = 6.0) -> TBFrame:
-	return bar(pad_x, pad_y)
 
 func _margins(px: float, py: float) -> void:
 	set_content_margin(SIDE_LEFT, px); set_content_margin(SIDE_RIGHT, px)

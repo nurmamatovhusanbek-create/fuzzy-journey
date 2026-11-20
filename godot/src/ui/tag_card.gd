@@ -66,22 +66,6 @@ func _init() -> void:
 func _margin(v: Control, top: float, bottom: float) -> MarginContainer:
 	var m := MarginContainer.new(); m.add_theme_constant_override("margin_top", int(top)); m.add_theme_constant_override("margin_bottom", int(bottom)); m.mouse_filter = Control.MOUSE_FILTER_IGNORE; m.add_child(v); return m
 
-## prov: {name, owner_name, own (bool), pop, stab, happy, link}   nation: {state, name, ruler, army, rel, rel_col, link}
-func build_province(d: Dictionary) -> TBTagCard:
-	var pad := MarginContainer.new(); pad.add_theme_constant_override("margin_left", 15); pad.add_theme_constant_override("margin_right", 15)
-	pad.add_theme_constant_override("margin_top", 14); pad.add_theme_constant_override("margin_bottom", 12); add_child(pad)
-	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); pad.add_child(v)
-	var c := K.caps(T.call("tag_province"), 10, TBTokens.ink_for(TBTokens.c("brass"))); (c as TBBz.TLabel).px = 11.0; (c as TBBz.TLabel).refit(); v.add_child(c)
-	var t := K.title(String(d["name"]), 21, Color.TRANSPARENT, 0.05, 21.0 * 1.05); v.add_child(_margin(t, 3, 1))
-	var owner_col: String = "#D2A05A" if bool(d["own"]) else "#A89C80"
-	v.add_child(K.para_bz("[i][color=%s]%s[/color] · %s[/i]" % [owner_col, d["owner_name"], d["tag"]], 14.0, 1.2))
-	var cells := HBoxContainer.new(); cells.add_theme_constant_override("separation", 5); cells.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cells.add_child(Cell.new(String(d["pop"]), T.call("tag_pop"), 0.0, Color.WHITE, TBTokens.BZ_IVORY))
-	cells.add_child(Cell.new("%d%%" % int(d["stab"]), T.call("tag_stable"), float(d["stab"]) / 100.0, TBTokens.BZ_GOOD, TBTokens.BZ_IVORY))
-	cells.add_child(Cell.new("%d%%" % int(d["happy"]), T.call("tag_happy"), float(d["happy"]) / 100.0, TBTokens.c("brass"), TBTokens.BZ_IVORY))
-	v.add_child(_margin(cells, 9, 8))
-	var l := Link.new(T.call("tag_dossier")); l.pressed.connect(func(): link_pressed.emit()); v.add_child(l)
-	return self
 
 func build_nation(d: Dictionary) -> TBTagCard:
 	var pad := MarginContainer.new(); pad.add_theme_constant_override("margin_left", 15); pad.add_theme_constant_override("margin_right", 15)

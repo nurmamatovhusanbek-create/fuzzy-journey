@@ -91,7 +91,6 @@ var _minimap_ok: bool = false
 var _mm_globe: bool = false                  # the minimap's shape when the layout last ran (it follows the map's view mode)
 var _insp: Rect2 = Rect2()                    # where the inspector (province card) goes, hud coordinates
 var _drawer: Rect2 = Rect2()                  # where drawers open (right of the rail)
-var _strip_rows_h: float = 72.0
 var _catcher: Control
 var _pop: Control
 var _pop_kind: String = ""
@@ -206,7 +205,6 @@ static func profile_for(vp: Vector2) -> int:
 	if vp.y < 560.0: return Prof.PHONE_L
 	return Prof.DESKTOP
 
-func _chip_h() -> float: return 60.0
 
 ## the demo's layout object `L` (b_demo.html layout()): every size of the HUD chrome in design units, for a desktop or a phone in landscape
 static func demo_layout(vp: Vector2, phone: bool) -> Dictionary:
@@ -510,7 +508,6 @@ func drawer_rect() -> Rect2: return _drawer
 func sheet_mode() -> bool: return _prof == Prof.PORTRAIT
 ## mid-width landscape (700-1099 px): drawer and inspector are mutually exclusive
 func exclusive_panels() -> bool: return _vp.x < 1100.0
-func foreign_enabled() -> bool: return false
 
 ## space the phone sheet keeps free at the bottom (tab bar + turn button + its label)
 func bottom_reserve() -> float:
@@ -926,9 +923,6 @@ func is_popover_open() -> bool: return _pop != null
 func _tip_text(title: String, key_hint: String) -> Array:
 	return [title, ""]                                   # no key letters in the tooltips either (the shortcuts keep working)
 
-func _tip_lens(lens: String) -> Array:
-	var i: int = TBLenses.NAMES.find(lens)
-	return [T.call("lens_" + lens), T.call("tk_key", {"k": "Alt+%d" % (i + 1)})]
 
 func _tip_nation() -> Array:
 	return [T.call("tk_realm"), T.call("tk_realm_hint")]
@@ -1124,7 +1118,6 @@ func _open_realm() -> void:
 
 ## kept API: nothing to close any more (the realm panel is gone)
 func close_realm() -> bool: return false
-func show_foreign(_o: int, _rows: Array) -> void: pass
 
 ## the "+N" chip: every resource figure that did not fit the bar, as one popover
 func _open_more_chips() -> void:
@@ -1146,11 +1139,6 @@ func _round_text() -> String:
 	var hs: PackedInt32Array = g.humans()
 	return T.call("tk_round_seat", {"k": g.turn, "p": hs.find(g.human_id) + 1, "n": hs.size()})
 
-func _sheet_row(cap: String, val: String) -> HBoxContainer:
-	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 8)
-	var l: Label = K.label(cap, P.fs(13.0), P.tk("ink_1")); l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.add_child(l)
-	var vl: Label = K.label(val, P.fs(14.0), P.tk("ink_0")); vl.add_theme_font_override("font", K.mono_b()); vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; h.add_child(vl)
-	return h
 
 # ================================================================== alert drawer ("+n")
 func _open_drawer() -> void:
@@ -1355,48 +1343,6 @@ func hide_preview() -> void:
 	if is_instance_valid(_preview): _preview.queue_free()
 	_preview = null
 
-## the exact outcome of an attack before it is committed: strengths with both numbers, the result in words, Attack / Cancel
-func show_preview(info: Dictionary, place: String, on_ok: Callable, on_cancel: Callable) -> void:
-	hide_preview()
-	var win: bool = info["win"]
-	_preview = PanelContainer.new()
-	_preview.add_theme_stylebox_override("panel", P.paper_box(14, 12))
-	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 8); _preview.add_child(v)
-	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 8); v.add_child(head)
-	var ic := Control.new(); ic.custom_minimum_size = Vector2(24, 24); ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER; ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ic.draw.connect(func(): TBGlyph.draw(ic, "swords", ic.size * 0.5, 22.0, P.tk("oxblood"), 1.8))
-	head.add_child(ic)
-	var tl: Label = K.label(T.call("pv_title", {"p": place}), P.fs(15.0), P.tk("ink_0")); tl.add_theme_font_override("font", P.body_b()); head.add_child(tl)
-	var a: float = info["atk"]; var d: float = info["dfn"]
-	var share: float = a / maxf(0.01, a + d)
-	var bar := Control.new(); bar.custom_minimum_size = Vector2(250, 20); bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var own_n: String = K.fmt(float(int(info["send"]))); var def_n: String = K.fmt(float(int(info["defenders"])))
-	bar.draw.connect(func():
-		var w: float = bar.size.x
-		bar.draw_rect(Rect2(0, 0, w, 20), P.tk("neg"))
-		bar.draw_rect(Rect2(0, 0, w * share, 20), P.tk("brass_ink"))
-		bar.draw_rect(Rect2(w * 0.5 - 1.0, 0, 2.0, 20), P.tk("paper_0"))
-		var fm: Font = K.mono_b()
-		bar.draw_string(fm, Vector2(6, P.base(fm, 13, 10.0)), own_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, P.tk("paper_0"))
-		bar.draw_string(fm, Vector2(w - 6.0 - P.tw(fm, def_n, 13), P.base(fm, 13, 10.0)), def_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, P.tk("paper_0")))
-	v.add_child(bar)
-	var res: String
-	if win: res = T.call("pv_win", {"k": int(info.get("hold", 0)), "l": int(info.get("lost", 0))})
-	else: res = T.call("pv_lose", {"a": int(info.get("lost", 0)), "d": int(info["enemy_lost"])})
-	var rrow := HBoxContainer.new(); rrow.add_theme_constant_override("separation", 6); v.add_child(rrow)
-	var mk := Control.new(); mk.custom_minimum_size = Vector2(16, 18); mk.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; mk.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mk.draw.connect(func(): P.tri(mk, Vector2(8, 10), 12.0, P.tk("pos") if win else P.tk("neg"), win))
-	rrow.add_child(mk)
-	var rl: Label = K.label(res, P.fs(14.0), P.tk("ink_0")); rl.add_theme_font_override("font", P.body_b()); rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; rl.custom_minimum_size = Vector2(230, 0); rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; rrow.add_child(rl)
-	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); v.add_child(row)
-	row.add_child(P.btn(T.call("pv_cancel"), "secondary", func(): hide_preview(); on_cancel.call(), false, 15))
-	var ok: Button = P.btn(T.call("pv_attack"), "danger", func(): hide_preview(); on_ok.call(), false, 15)
-	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(ok)
-	_preview.z_index = 40
-	add_child(_preview)
-	var sz: Vector2 = _preview.get_combined_minimum_size()
-	_preview.size = sz
-	_preview.position = Vector2(clampf((_vp.x - sz.x) * 0.5, 8.0, _vp.x - sz.x - 8.0), clampf(_vp.y * 0.3, ribbon_height() + 40.0, _vp.y - sz.y - 120.0))
 
 # ================================================================== small classes
 ## flat row button: glyph, label, hotkey hint, optional count badge; active = brass bar + tick

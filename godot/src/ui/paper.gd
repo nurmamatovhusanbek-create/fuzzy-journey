@@ -64,15 +64,6 @@ static func ragged(r: Rect2, amp: float, step: float, seed_v: int, cut: float = 
 	pts.append(Vector2(x0 + (h2(seed_v, 12) - 0.5) * amp, y0 + cut))
 	return pts
 
-## a roundish blob (wax): radius wobbles with a few harmonics
-static func blob(c: Vector2, rx: float, ry: float, seed_v: int, wobble: float = 0.06, n: int = 36) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	var p1 := h2(seed_v, 21) * TAU; var p2 := h2(seed_v, 22) * TAU; var p3 := h2(seed_v, 23) * TAU
-	for i in n:
-		var a := TAU * i / n
-		var k := 1.0 + wobble * (sin(a * 3.0 + p1) * 0.6 + sin(a * 5.0 + p2) * 0.3 + sin(a * 9.0 + p3) * 0.2)
-		pts.append(c + Vector2(cos(a) * rx * k, sin(a) * ry * k))
-	return pts
 
 ## a rounded-rectangle outline with a soft, hand-pressed wobble (wax stamp): corners of radius `rad`, edge jitter `amp` px
 static func stamp(r: Rect2, rad: float, amp: float, seed_v: int, step: float = 7.0) -> PackedVector2Array:

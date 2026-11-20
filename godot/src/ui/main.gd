@@ -871,7 +871,6 @@ func _open_menu_hub(tab: String = "") -> void:
 	if tab != "": ctx["tab"] = tab
 	TBModals.menu_hub(_overlay, ctx)
 
-func _open_settings() -> void: _open_menu_hub("settings")
 
 var _game_menu: TBGameMenu
 ## the gear: the demo's popover (resume / save / load / settings / main menu / interface size); the full screens open from it
@@ -1422,9 +1421,6 @@ func _try_move(from: int, to: int) -> void:
 	if c["preview"]: flow.preview_to(to)
 	else: _do_move(from, to)
 
-func _commit_move(from: int, to: int) -> void:
-	flow.clear()
-	_do_move(from, to)
 
 func _do_move(from: int, to: int) -> void:
 	var tr := _troops_for(from)
@@ -1642,7 +1638,6 @@ func _replay_battles() -> void:
 		k += 1
 	g.move_fx.clear()
 
-var _crisis := PackedStringArray()
 
 func _flush_log() -> void:
 	var me := g.human_id

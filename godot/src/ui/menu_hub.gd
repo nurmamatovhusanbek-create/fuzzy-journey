@@ -173,11 +173,6 @@ static func _seg(col: VBoxContainer, title: String, items: Array, cur: String, c
 	col.add_child(K.section(title))
 	col.add_child(K.segmented(items, cur, cb, compact))
 
-## a group: caption + its rows; returns the VBox so the jump chips can scroll to it
-static func _group(title: String) -> VBoxContainer:
-	var g := K.vbox(8); g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	g.add_child(K.caps(title, 12, K.GOLD))
-	return g
 
 ## the categories of the Settings tab (a rail on the left, or a row of chips on a narrow or large-text window); one category at a time keeps the page calm
 const SET_CATS := [["display", "set_display"], ["map", "set_cat_map"], ["comfort", "set_cat_comfort"], ["sound", "set_audio"], ["alerts", "set_alerts"], ["language", "language"], ["advanced", "set_advanced"]]

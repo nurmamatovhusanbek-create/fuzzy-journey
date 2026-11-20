@@ -609,7 +609,6 @@ static func first_turn(parent: Control, g: TBGame, show_tutorial: bool) -> void:
 # Event / ultimatum prompt: the hero sheet. Narrative left (scrolls), the choice cards right and PINNED (beneath the narrative in a single column), so
 # an answer is always on screen. "Decide later" (not for ultimatums) leaves an Event chip in the HUD ticker. Unanswered: Back, Esc and backdrop are swallowed.
 # =====================================================================================================================================================
-const CAT_GLYPH := {"military": "swords", "crisis": "warning", "domestic": "crown", "trade": "coins", "enlightenment": "book", "diplomacy": "dove", "disaster": "warning", "golden age": "trophy"}
 
 ## tertiary text button ("Decide later"): flat, underlined on hover / focus, hourglass glyph
 class LinkBtn extends Button:

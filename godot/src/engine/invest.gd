@@ -44,7 +44,6 @@ static func progress(g: TBGame, p: int) -> Dictionary:
 static var PROJECTS: Array = ["dev", "econ", "settle", "order"]          # kind 1..4 (0 = none)
 const PROJECT_MOVES := 1
 const ORDER_CALM := 80                                         # stability at which public order has nothing left to mend
-const ROOM_MAX := 2000
 ## the most people a Settlement can still add to p (rules 5: what its land can feed)
 static func room_max(g: TBGame, p: int) -> int: return g.pop_cap(p)
 

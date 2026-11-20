@@ -113,6 +113,5 @@ const DP_PEACE := 2
 const DP_CALL := 1                   # rules >= 4: asking an ally to join a war
 const DP_ALLY := 4
 const DP_NAP := 2
-const TRUCE_TURNS := 8
 
 static var ERA_TECH_BASE: Dictionary = {"ancient": 0.0, "roman": 0.8, "medieval": 1.7, "mongol": 1.9, "timurid": 2.2, "discovery": 2.5, "gunpowder": 2.9, "napoleonic": 3.2, "victorian": 3.6, "ww1": 4.0, "ww2": 4.4, "coldwar": 4.6}

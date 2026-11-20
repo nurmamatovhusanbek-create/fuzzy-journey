@@ -45,7 +45,6 @@ static var allow_shake := false        # A11Y-MOT-002 bans shake; kept false, sh
 class _Bus extends RefCounted:
 	signal changed(cfg: Dictionary)
 static var _bus: _Bus = _Bus.new()
-static var settings_changed: Signal = _bus.changed
 
 static func _static_init() -> void:
 	sync_palette()
@@ -90,9 +89,6 @@ static func os_prefers_reduced_motion() -> bool:
 	if OS.get_environment("TB_REDUCE_MOTION") != "": return OS.get_environment("TB_REDUCE_MOTION") != "0"
 	return false
 
-## true when the confirm setting wants a confirmation for this action ("risky" = irreversible / costly, "all" = every order)
-static func need_confirm(risky: bool) -> bool:
-	return confirm == "all" or (confirm == "risky" and risky)
 
 static func fs(px: float) -> int:                       ## a font size through the text scale (the demo's captions go down to 8.5 units; the 12 unit floor is for map labels, min_font())
 	return maxi(roundi(px * text_scale), roundi(7.0 * dp_scale))
@@ -104,8 +100,6 @@ static func contrast(a: Color, b: Color) -> float: return TBTokens.contrast(a, b
 # ---- motion (A11Y-MOT-001/002): every tween, spin, pulse and fade asks motion_ok() first --------------------------------------------------
 ## false when the player chose Reduce motion (or the TB_NOANIM test override is set): skip the tween, cut instantly
 static func motion_ok() -> bool: return TBMapView.animate and not reduce_motion
-## 1.0 or 0.0: multiply any looping / easing amount by it (shader `motion` uniform, title spin speed, pulse amplitude)
-static func motion_factor() -> float: return 1.0 if motion_ok() else 0.0
 ## the title globe may auto-spin only when this is true
 static func spin_ok() -> bool: return motion_ok()
 ## duration through the setting: 0.0 when motion is reduced (tweens of 0 s finish at once)
@@ -118,9 +112,6 @@ static func tween(node: Node, prop: String, to: Variant, seconds: float, from: V
 	var tp := tw.tween_property(node, prop, to, minf(seconds, 0.25))
 	if from != null: tp.from(from)
 	return tw
-## number roll helper (A11Y-MOT-002 allows none): sets the text at once; kept so callers have one place to ask
-static func roll_number(set_text: Callable, _from: float, to: float, fmt_fn: Callable = Callable()) -> void:
-	set_text.call(fmt_fn.call(to) if fmt_fn.is_valid() else str(int(round(to))))
 ## shake is banned (A11Y-MOT-002): a no-op unless allow_shake is flipped by a test. Show the reason inline instead.
 static func shake(ctrl: Control, px: float = 4.0) -> void:
 	if not allow_shake or not motion_ok() or not ctrl.is_inside_tree(): return
@@ -240,9 +231,6 @@ static func body_m() -> Font: return _font("body-latin-700-normal", ["body-cyril
 static func body_i() -> Font: return _font("body-latin-400-italic", ["body-cyrillic-400-italic"]) if serif else _inter(400)
 ## Inter 600 is the heavy face for titles and figures; Barlow Condensed 600 for the map (Cyrillic falls back to Inter)
 static func heavy() -> Font: return _inter(600)
-static func map_font() -> Font:
-	if TBFrame.bezel and not readable_fonts: return _font("body-latin-700-normal", ["body-cyrillic-700-normal"])
-	return _font("barlow-condensed-latin-600-normal", ["inter-cyrillic-600-normal", "inter-latin-600-normal"])
 ## tabular figures: a variation of the font with the `tnum` feature on (columns of numbers align)
 static var _tab := {}
 static func tabular(base: Font) -> Font:
@@ -254,8 +242,6 @@ static func tabular(base: Font) -> Font:
 static func display() -> Font:
 	if readable_fonts or not serif: return body_b()
 	return _font("display-latin-700-normal", ["display-cyrillic-700-normal"])
-static func display_hi() -> Font: return display()
-static func display_lo() -> Font: return display()
 static func wordmark() -> Font: return _font("display-latin-900-normal", ["display-cyrillic-900-normal"])
 ## JetBrains Mono: figures 700, deltas 400
 static func mono() -> Font: return _font("jetbrains-mono-latin-400-normal", ["jetbrains-mono-cyrillic-400-normal"]) if (serif and not TBFrame.bezel) else tabular(body())
@@ -402,13 +388,6 @@ class VecTex extends Texture2D:
 	var c2 := Color.BLACK
 	func _init(k: String, size_px: int, a: Color, b: Color) -> void:
 		kind = k; px = size_px; c1 = a; c2 = b
-	func _get_width() -> int: return px if kind != "tick" else 1
-	func _get_height() -> int: return px
-	func _has_alpha() -> bool: return true
-	func _draw_rect(to_canvas_item: RID, rect: Rect2, _tile: bool, _modulate: Color, _transpose: bool) -> void:
-		_draw(to_canvas_item, rect.position + ((rect.size - Vector2(_get_width(), _get_height())) * 0.5).floor(), _modulate, false)
-	func _draw_rect_region(to_canvas_item: RID, rect: Rect2, _src: Rect2, _modulate: Color, _transpose: bool, _clip: bool) -> void:
-		_draw(to_canvas_item, rect.position + ((rect.size - Vector2(_get_width(), _get_height())) * 0.5).floor(), _modulate, false)
 	func _draw(to_canvas_item: RID, pos: Vector2, _modulate: Color, _transpose: bool) -> void:
 		match kind:
 			"thumb":
@@ -1493,20 +1472,6 @@ static func ink_box(f: Font, size: int, txt: String) -> Rect2:
 static func toggle(text: String, value: bool, cb: Callable = Callable(), inset: float = 12.0) -> Button:
 	return ToggleRow.new(text, value, cb, inset)
 
-## visual twin of a sound / alert (A11Y-AUD-006): an "Alert" glyph + word + the caption on a bar plate. kind: info | warn | neg
-static func alert_strip(text: String, kind: String = "info") -> Control:
-	var tone := "info" if kind == "info" else ("warn" if kind == "warn" else "neg")
-	var pc := PanelContainer.new()
-	pc.add_theme_stylebox_override("panel", _pl("bar_0", "rule_dark", 4, 0, 10, 6, false, 0.96))
-	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var h := hbox(8); h.mouse_filter = Control.MOUSE_FILTER_IGNORE; pc.add_child(h)
-	var col: Color = TBTokens.c({"info": "info_bar", "warn": "warn_bar", "neg": "neg_bar"}[tone])
-	h.add_child(glyph({"info": "info", "warn": "warning", "neg": "warning"}[tone], 20, col))
-	var wd := caps(TBI18n.T("a11y_alert"), 12, col); h.add_child(wd)
-	var l := label(text, 14, TBTokens.c("cream")); l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL; l.custom_minimum_size.x = 40
-	h.add_child(l)
-	a11y(pc, "%s: %s" % [TBI18n.T("a11y_alert"), text], "")
-	return pc
 
 # ---- command card, chip, glyph label -------------------------------------------------------------------------------------------------------------------
 static var _card_styles := {}
@@ -1780,37 +1745,7 @@ static func _focus_first(back: Control) -> void:
 	if pick != null: pick.grab_focus()
 
 
-## AoC dialog footer button: a flat square cell filling its half of the footer (primary in brass text, danger in wax)
-static func style_footer_button(b: Button) -> void:
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size.y = maxf(b.custom_minimum_size.y, 44.0)
-	var pr: bool = b.theme_type_variation == "PrimaryButton"
-	var dg: bool = b.theme_type_variation == "DangerButton" or b.theme_type_variation == "DangerGlyphButton"
-	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
-		var bs := StyleBoxFlat.new()
-		bs.set_corner_radius_all(0)
-		bs.bg_color = TBTokens.c("paper_1")
-		if st == "hover": bs.bg_color = TBTokens.c("paper_hover")
-		elif st == "pressed" or st == "hover_pressed": bs.bg_color = TBTokens.c("paper_2")
-		if dg and st != "disabled": bs.bg_color = TBTokens.c("wax")
-		if st == "focus":
-			bs.bg_color = Color.TRANSPARENT; bs.set_border_width_all(2 if TBFrame.kbd_nav else 0); bs.border_color = TBTokens.c("cream")
-		bs.content_margin_left = 44 if b.theme_type_variation == "DangerGlyphButton" else 12; bs.content_margin_right = 12; bs.content_margin_top = 10; bs.content_margin_bottom = 10
-		b.add_theme_stylebox_override(st, bs)
-	var fc: Color = TBTokens.c("on_wax") if dg else (TBTokens.c("brass_lt") if pr else TBTokens.c("ink_0"))
-	for cn in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]: b.add_theme_color_override(cn, fc)
-	b.add_theme_color_override("font_disabled_color", TBTokens.c("ink_off"))
 
-## the dialog header strip (AoC): a darker bar with a rule under it, carrying `content`
-static func header_strip(content: Control, left: int = 14, right: int = 6) -> PanelContainer:
-	var strip := PanelContainer.new()
-	var ssb := StyleBoxFlat.new()
-	ssb.bg_color = TBTokens.ca("bar_2", 0.95); ssb.border_color = TBTokens.ca("brass", 0.7); ssb.border_width_bottom = 2
-	ssb.set_corner_radius_all(0)
-	ssb.content_margin_left = left; ssb.content_margin_right = right; ssb.content_margin_top = 4; ssb.content_margin_bottom = 4
-	strip.add_theme_stylebox_override("panel", ssb)
-	strip.add_child(content)
-	return strip
 
 ## centred modal card over the scrim; returns [backdrop, body_vbox, footer_hbox].
 ## Landscape: card up to 920 wide. Portrait: full-width bottom sheet <= 92 %. Header bar = title (Cinzel 700 22 oxblood) + close (48 hit).

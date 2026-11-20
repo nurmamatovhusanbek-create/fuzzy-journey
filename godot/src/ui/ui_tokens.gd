@@ -92,8 +92,6 @@ static func set_accent(player_rgb: int) -> void:
 	_atlas = {}
 	ver += 1
 
-static func _lighten(col: Color, k: float) -> Color: return col.lerp(Color.WHITE, k)
-static func _darken(col: Color, k: float) -> Color: return col.lerp(Color.BLACK, k)
 
 ## the five icon colours (TBEmblem, docs/ICONS.md): brass = state, money, building, land; bone = people, peace; vermilion = war, danger; Tyrian purple = diplomacy, knowledge; smoke = controls, places
 static var ICON_PAL: Dictionary = {"b": Color("D6B05A"), "g": Color("EFE6CF"), "r": Color("E4573F"), "u": Color("BE8ADB"), "i": Color("A89C80")}
@@ -172,8 +170,6 @@ static func with_a(col: Color, a: float) -> Color:
 static func is_hc() -> bool:
 	return mode != Mode.NORMAL
 
-static func is_dark_hc() -> bool:
-	return mode == Mode.HC_DARK
 
 ## High contrast light: panels, dialogs and cards are paper. A text or icon colour made for a dark Bezel plate (ivory, dim, brass, the light semantic tints) turns into its paper ink there;
 ## in every other mode the colour is returned as it is. Use it where a Bezel colour is drawn on a surface that is paper in HC light.

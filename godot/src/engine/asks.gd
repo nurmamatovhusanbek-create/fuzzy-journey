@@ -57,10 +57,6 @@ static func find(g: TBGame, n: int, t: int, spy: bool = false) -> Dictionary:
 		if int(a["n"]) == n and int(a["t"]) == t and (String(a["kind"]) == "spy") == spy: return a
 	return {}
 
-static func pending_kind(g: TBGame, n: int, t: int) -> String:
-	for a in g.asks:
-		if int(a["n"]) == n and int(a["t"]) == t and String(a["kind"]) != "spy": return String(a["kind"])
-	return ""
 
 ## validation without the court's answer: {ok, reason, dp, intel}
 static func check(g: TBGame, n: int, kind: String, t: int, op: String = "", p: int = -1) -> Dictionary:

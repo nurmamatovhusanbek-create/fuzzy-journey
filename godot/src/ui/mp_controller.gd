@@ -16,7 +16,6 @@ var _pending := {}            # seq -> cmd
 var _lobby: Control
 var _deadline_at := 0
 var _timer_label: Label
-var _chat_box: VBoxContainer
 var _last_turn := 0
 var turn_secs := 0            # A11Y-TIM-002: host option. 0 = Off (the accessible default), else 120 / 240 / 360; the server enforces it
 var _room_secs := 0           # what the room reports; 0 hides the clock

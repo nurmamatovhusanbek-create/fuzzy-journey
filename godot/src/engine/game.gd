@@ -1037,12 +1037,6 @@ func apply(c: Dictionary) -> Dictionary: return TBCommands.apply(self, c)
 func can(c: Dictionary) -> Dictionary: return TBCan.check(self, c)
 
 # ---------------------------------------------------------------- misc
-static func gen_color(n: int) -> int:
-	var h := fposmod(n * 137.508, 360.0)
-	var s := 0.55 + (n % 3) * 0.1
-	var l := 0.45 + (n % 4) * 0.05
-	var col := Color.from_hsv(h / 360.0, minf(1.0, s), minf(1.0, l + 0.35))
-	return col.to_rgba32() >> 8   # 0xRRGGBB
 
 ## rules >= 1: muted inks, like hand-tinted washes on an old chart (still distinct neighbours via the golden angle)
 static func gen_wash(n: int) -> int:

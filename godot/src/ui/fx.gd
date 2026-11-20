@@ -4,7 +4,6 @@
 class_name TBFx
 extends RefCounted
 
-const OFF := 0
 const LIGHT := 1
 const FULL := 2
 const NAMES := ["off", "light", "full"]

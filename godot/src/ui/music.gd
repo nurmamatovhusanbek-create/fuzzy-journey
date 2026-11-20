@@ -21,8 +21,6 @@ var _duck := 0.0                        # 0..1, how far the music is ducked righ
 var _duck_tw: Tween
 var _sea_on := false
 
-static func set_mood_of(m: String) -> void:
-	if inst != null and is_instance_valid(inst): inst.set_mood(m)
 
 static func duck_for(seconds: float) -> void:
 	if inst != null and is_instance_valid(inst): inst.duck(seconds)

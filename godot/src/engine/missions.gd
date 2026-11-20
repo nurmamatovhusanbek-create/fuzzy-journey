@@ -10,7 +10,6 @@ const SETTLE_MEN := 60          # people taken from the pool
 const SETTLE_MP := 1.0
 const SETTLE_POP := 30          # people added to the province (half of the settlers remain as farmers, the rest are lost on the road and to the first hard winters)
 const SETTLE_STAB := 8
-const POP_MAX := 2000
 
 ## Colonies (rules 4): a new province costs gold that grows with the realm, settlers taken from the people, and two moves; hard ground costs more; a horde pays less gold and fewer settlers
 ## (it moves its whole camp). Every requirement is listed with its state, so a refused order always says what is missing.

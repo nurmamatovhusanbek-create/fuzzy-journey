@@ -22,7 +22,6 @@ signal foreign_changed(o: int, rows: Array)
 const CC = preload("res://src/ui/cmd_card.gd")
 const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
-static var _title_font: Font
 
 const HOT := {"spread": "S", "muster": "N", "move": "M", "attack": "M", "recruit": "R", "raise": "R", "hire": "H", "general": "G", "build": "B", "improve": "B", "develop": "E", "colonize": "C", "diplo": "D", "ult": "U", "war": "W", "peace": "P", "terms": "T"}
 const HOT_KEY := {KEY_S: "spread", KEY_N: "muster", KEY_M: "move", KEY_R: "recruit", KEY_H: "hire", KEY_G: "general", KEY_B: "build", KEY_E: "develop", KEY_C: "colonize", KEY_D: "diplo", KEY_U: "ult", KEY_W: "war", KEY_P: "peace", KEY_T: "terms"}
@@ -54,7 +53,6 @@ var _share: CC.ShareSeg
 var _count: Label
 var _popover: Popover
 var _war_target := -1
-var _head2: HBoxContainer                 # second header row at large text sizes
 var _brk_target := -1                     # a nation whose pact the player is about to break (confirm row)
 var _card_w := 480.0
 var _atk_src := -1                        # attacker chosen for an enemy province by tapping an own army
@@ -64,14 +62,11 @@ var _case := {}
 var _rise := 0.0
 var _hotkeys := {}
 var _handle: Control
-var _drag_y := 0.0
-var _name_label: Label
 var insp_fn: Callable                     # () -> Rect2 : where the inspector sits (hud.inspector_rect)
 var sheet_fn: Callable                    # () -> bool : phones show a bottom sheet (hud.sheet_mode)
 var _scroll: ScrollContainer
 var _body: VBoxContainer
 var _footer_box: VBoxContainer
-var _px0 := 0.0
 var stealth := true                       # the demo has no inspector: the card keeps computing verbs / hotkeys / orders for the ring, but is kept off screen
 var _act_node: Control                    # the idle verb row: AoC action buttons floating above the minimap (top level)
 
@@ -127,8 +122,6 @@ func _refit() -> void:
 	else:
 		position = Vector2(rc.position.x, rc.position.y + _rise); size = Vector2(rc.size.x, h)
 
-## the radius of space the card must keep clear of the selected province (the map pans if it would cover it)
-func card_rect() -> Rect2: return get_global_rect()
 
 # ---------------------------------------------------------------- public state
 func show_province(game: TBGame, province: int) -> void:
@@ -345,12 +338,6 @@ func _build_stats(s: int, cs: Dictionary) -> Control:
 	return gr
 
 const FOREIGN_GLYPH := {"nap": "pact", "ally": "pact", "trade": "trade", "marry": "crown", "breakPact": "release"}
-func _emit_foreign(subj: int, cs: Dictionary) -> void:
-	var o: int = int(cs["o"])
-	if int(cs["kind"]) in [3, 4] and o != 0 and o != int(cs["me"]):
-		foreign_changed.emit(o, foreign_actions(o, subj))
-	else:
-		foreign_changed.emit(-1, [])
 
 func foreign_actions(o: int, s: int) -> Array:
 	var rows: Array = []
@@ -410,9 +397,6 @@ func _source_for(cs: Dictionary) -> int:
 	return -1
 
 # ---------------------------------------------------------------- header
-static func _font_title() -> Font:
-	if _title_font == null: _title_font = TBKit.tracked(TBKit.display_hi(), 1)
-	return _title_font
 
 ## the sheet's drag handle: a 4 px bar, but a 48 x 48 hit area (it reaches up over the sheet's top edge)
 class _Handle extends Control:
@@ -420,20 +404,6 @@ class _Handle extends Control:
 		var t: float = TBCmdCard.touch()
 		return Rect2(Vector2(0.0, size.y - t), Vector2(size.x, t)).has_point(p)
 
-func _build_handle() -> Control:
-	var h := _Handle.new()
-	h.custom_minimum_size = Vector2(0, 20); h.mouse_filter = Control.MOUSE_FILTER_STOP
-	h.draw.connect(func(): h.draw_rect(Rect2(h.size.x * 0.5 - 24.0, 8.0, 48.0, 4.0), CC.tk("ink_off")))
-	h.gui_input.connect(func(e: InputEvent):
-		if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
-			if e.pressed: _drag_y = e.position.y
-			else:
-				var dy: float = e.position.y - _drag_y
-				if dy < -18.0: set_drawer(true)
-				elif dy > 18.0: (set_drawer(false) if drawer_open else closed.emit())
-				else: set_drawer(not drawer_open))
-	_handle = h
-	return h
 
 func _tag_for(cs: Dictionary) -> Array:        # [glyph, text, token]
 	var k: int = cs["kind"]
@@ -449,71 +419,8 @@ func _tag_for(cs: Dictionary) -> Array:        # [glyph, text, token]
 	if g.overlord[o] != 0: return ["crown", T.call("vassal"), "foreign"]
 	return ["dove", T.call("peace"), "foreign"]
 
-func _build_header(s: int, cs: Dictionary) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 6)
-	h.custom_minimum_size = Vector2(0, 36 if profile != "P" else int(CC.touch()))
-	_head2 = null
-	var split := CC.text_scale >= 1.4                  # large text: identity + close on row 1, relation tag / owner link / Details on row 2
-	if split:
-		_head2 = HBoxContainer.new(); _head2.add_theme_constant_override("separation", 6)
-		_head2.custom_minimum_size = Vector2(0, int(CC.touch()))
-	var r2: HBoxContainer = _head2 if split else h
-	var o: int = cs["o"]
-	if o != 0:
-		var fl := TBFlags.chip(g, o, 0.5)
-		fl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		h.add_child(fl)
-	var nm := CC.label(TBI18n.place(g.pname(s)), 18 if profile == "D" else 17, "oxblood", _font_title())
-	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	nm.max_lines_visible = 2
-	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	nm.size_flags_vertical = Control.SIZE_FILL
-	nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	var nlh: float = ceilf(_font_title().get_height(CC.fs(18 if profile == "D" else 17)))
-	nm.custom_minimum_size = Vector2(70, nlh)
-	h.custom_minimum_size.y = maxf(h.custom_minimum_size.y, nlh + 6.0)
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	h.add_child(nm)
-	_name_label = nm
-	if g.capital[s] != 0:
-		var cap := Control.new()
-		cap.custom_minimum_size = Vector2(18, 18); cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER; cap.mouse_filter = Control.MOUSE_FILTER_PASS
-		cap.tooltip_text = T.call("capital")
-		cap.draw.connect(func(): CC.glyph(cap, "capital", cap.size * 0.5, 14.0, CC.tk("brass_ink"), 1.6))
-		h.add_child(cap)
-	if o != 0 and o != cs["me"] and profile != "L":
-		var nb := _link_button("%s ›" % g.dname(o), func(): nation_requested.emit(o))
-		r2.add_child(nb)
-	var tg := _tag_for(cs)
-	r2.add_child(_RelTag.new(tg[0], tg[1], tg[2]))
-	# Details + close
-	var det := _text_button(T.call("cc_details"), "tri_up" if not drawer_open else "tri_down", func(): set_drawer(not drawer_open))
-	det.tooltip_text = T.call("cc_details") + " (I)"
-	if split:
-		var sp := Control.new(); sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sp.mouse_filter = Control.MOUSE_FILTER_IGNORE; r2.add_child(sp)
-	r2.add_child(det)
-	var cl := _CloseBtn.new(48.0 if profile == "P" else 36.0)
-	cl.pressed.connect(func(): closed.emit())
-	cl.tooltip_text = T.call("cc_close")
-	TBKit.a11y(cl, T.call("cc_close"), "button")
-	h.add_child(cl)
-	return h
 
-func _link_button(text: String, cb: Callable) -> Button:
-	var b := Button.new(); b.text = text; b.flat = true; b.focus_mode = Control.FOCUS_ALL
-	for st in ["normal", "hover", "pressed", "focus", "disabled"]: b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	b.add_theme_font_override("font", TBKit.body_b())
-	b.add_theme_font_size_override("font_size", CC.fs(14))
-	b.add_theme_color_override("font_color", CC.tk("ink_0")); b.add_theme_color_override("font_hover_color", CC.tk("oxblood")); b.add_theme_color_override("font_pressed_color", CC.tk("oxblood"))
-	b.custom_minimum_size = Vector2(0, 36 if profile != "P" else int(CC.touch()))
-	b.pressed.connect(cb)
-	return b
 
-func _text_button(text: String, glyph_id: String, cb: Callable) -> Button:
-	var b := _GlyphText.new(text, glyph_id)
-	b.pressed.connect(cb)
-	return b
 
 ## relation tag: glyph + word, in the semantic colour (never colour alone)
 class _RelTag extends Control:
@@ -642,16 +549,6 @@ func _row_need(kids: Array) -> float:
 		if (c as Control).visible: need += (c as Control).get_combined_minimum_size().x + 4.0
 	return need - 4.0
 
-## landscape strip: the chips share the header row with name, tag, Details and close; fit them to what is left
-func _fit_header_chips(head: HBoxContainer, chips: HBoxContainer) -> void:
-	if not is_instance_valid(head) or not is_instance_valid(chips): return
-	var others := 0.0
-	var n := 0
-	for c in head.get_children():
-		if c == chips or not (c as Control).visible: continue
-		others += (c as Control).get_combined_minimum_size().x; n += 1
-	var avail := head.size.x - others - 6.0 * (n + 1) - 8.0
-	_fit_chip_row(chips, avail)
 
 func _reach(s: int) -> String:
 	var me := g.human_id
@@ -696,12 +593,6 @@ func _build_share_row(s: int, cs: Dictionary, src: int) -> Control:
 		row.add_child(hint)
 	return row
 
-func _refresh_count() -> void:
-	if _count == null: return
-	var src := _source_for(_case)
-	if src < 0: return
-	var n := flow.troops_for(src) if flow != null else maxi(1, g.army[src] - g.keep())
-	_count.text = "→ %d" % n
 
 # ---------------------------------------------------------------- verbs
 func _amount(key: String, n: int) -> String:

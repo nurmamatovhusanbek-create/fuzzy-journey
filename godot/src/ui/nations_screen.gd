@@ -87,15 +87,6 @@ static func rating_reason(r: Dictionary) -> String:
 static func tier_of(rank: int) -> String:
 	return "powers" if rank <= 8 else ("regional" if rank <= 40 else "minor")
 
-static func relation_chip(g: TBGame, me: int, n: int) -> Control:
-	if n == me: return K.chip(T.call("you"), "flag", "own")
-	var r := g.get_rel(me, n)
-	match r:
-		1: return K.chip(T.call("rel_war"), "swords", "neg")
-		3: return K.chip(T.call("rel_ally"), "link", "info")
-		2: return K.chip(T.call("rel_nap"), "shield", "neutral")
-		4: return K.chip(T.call("rel_marriage"), "crown", "info")
-	return K.chip(T.call("rel_peace"), "dove", "neutral")
 
 static func row_h(portrait: bool = false) -> int:
 	return 62                                                     # natRow: 46 unit ring + 8 unit padding above and below

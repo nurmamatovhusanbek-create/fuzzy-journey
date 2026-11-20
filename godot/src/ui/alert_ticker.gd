@@ -66,7 +66,6 @@ static func kind_icon(e: Dictionary) -> String:
 	if String(e["cls"]) == "event": return "info"
 	return "warn"
 
-static func bar_color(e: Dictionary) -> Color: return kind_color(kind_of(e))
 
 ## the notice's plate (outer notched hairline plate #7F6A33 / hover #C9A24B, inner #15110d, notch 7 / 6) with its drop shadow; `r` is the plate rect
 static func draw_plate(ci: CanvasItem, r: Rect2, hot: bool, edge_col: Color = Color.TRANSPARENT) -> void:
@@ -550,11 +549,6 @@ func _layout() -> void:
 	size = Vector2(row_w, h_total)
 	layout_changed.emit()
 
-## live notice count (notices that are not ticking off)
-func live_count() -> int:
-	var n: int = 0
-	for k in rows: if not rows[k].done: n += 1
-	return n
 
 ## bounds of everything the ticker currently draws (global), for map-label keep-outs
 func occupied_rect() -> Rect2:
