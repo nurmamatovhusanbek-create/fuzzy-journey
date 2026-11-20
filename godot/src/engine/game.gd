@@ -13,7 +13,7 @@ var rng: TBRng
 var seed_value: int
 var pk: float = 1.0              # rules 5: how many times bigger a province's people are than in the old tables (about 140 a province); amounts written for the old scale are multiplied by it
 var scale: int = 30             # rules 5: real people per game person (10 in the old eras, 20 gunpowder to Victorian, 30 from WW1; TBPopData)
-var rules: int = 3                # 0 = legacy behaviour (oracle-exact vs JS reference), 1 = tuned game rules, 2 = districts (several buildings per province, development limited by population)
+var rules: int = 5                # always 5 (real people, gold and soldiers at 10-30:1): the lower rule sets are gone; the field stays until the last branch on it is removed
 var difficulty: String
 var diff: Dictionary
 var turn: int = 1
@@ -178,7 +178,7 @@ func _init(w: TBWorld, era_pack: Dictionary, opts: Dictionary = {}) -> void:
 	world = w
 	P = w.P
 	seed_value = int(opts.get("seed", 1))
-	rules = int(opts.get("rules", 3))
+	rules = 5
 	aggr_level = clampi(int(opts.get("aggression", 1)), 0, D.AGGRESSION.size() - 1)
 	rng = TBRng.new(seed_value)
 	difficulty = String(opts.get("difficulty", "normal"))
