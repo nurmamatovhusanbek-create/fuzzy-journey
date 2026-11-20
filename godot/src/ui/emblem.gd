@@ -72,6 +72,25 @@ static func _texture(id: String, px: float) -> Texture2D:
 	_tex[key] = tex
 	return tex
 
+## where an emblem's artwork sits inside its box, as fractions of the box (the artwork is not edge to edge and not always symmetric); a plate that centres what you see needs it
+static var _ink: Dictionary = {}
+static func ink_box(name: String) -> Rect2:
+	var id := id_of(name)
+	if id == "" or _texture(id, 64.0) == null: return Rect2(0.0, 0.0, 1.0, 1.0)
+	if _ink.has(id): return _ink[id]
+	var img: Image = _master.get(id)
+	var r := Rect2(0.0, 0.0, 1.0, 1.0)
+	if img != null:
+		var w: int = img.get_width(); var hh: int = img.get_height()
+		var x0 := w; var x1 := -1; var y0 := hh; var y1 := -1
+		for y in hh:
+			for x in w:
+				if img.get_pixel(x, y).a > 0.25:
+					x0 = mini(x0, x); x1 = maxi(x1, x); y0 = mini(y0, y); y1 = maxi(y1, y)
+		if x1 >= 0: r = Rect2(float(x0) / w, float(y0) / hh, float(x1 + 1 - x0) / w, float(y1 + 1 - y0) / hh)
+	_ink[id] = r
+	return r
+
 ## the colour an emblem is drawn in: the colour passed by the call keeps its alpha and its dimness (a disabled icon stays dim), and the game's own status colours (teal, coral, blue) pass through
 static func tint(id: String, col: Color) -> Color:
 	if mode != "colour" or TBKit.cvd != "off" or TBTokens.is_hc(): return col

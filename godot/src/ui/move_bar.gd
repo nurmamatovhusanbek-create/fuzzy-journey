@@ -73,7 +73,6 @@ func setup(place: String, kind: String, info: Dictionary, moves: int, send: int)
 	var v: int = TBBz.V.DNG if _is_attack else TBBz.V.PRI
 	var okb := _ok as TBBz.Btn
 	okb.variant = v; okb.glyph = "attack" if _is_attack else "move"
-	okb.ink_nudge = Vector2(0.1, -1.4) if _is_attack else Vector2(0.75, -0.1)             # measured: these two icons' artwork sits off the middle of its box
 	okb.queue_redraw()
 	var verb: String = T.call("pv_attack") if _is_attack else T.call("move")
 	_ok.tooltip_text = verb; TBKit.a11y(_ok, verb, "button")
