@@ -91,6 +91,10 @@ static func minister_group(icon: String, name_text: String, role: String, items:
 ## a goal: the progress medal (a ring, a 6 unit track and arc, the percentage) beside the title and the italic line, in a well
 class GoalCard extends PanelContainer:
 	var frac := 0.0
+	var on_press := Callable()                                  # a card that leads somewhere (an ambition to form a name opens the Realm page)
+	func _gui_input(ev: InputEvent) -> void:
+		if on_press.is_valid() and ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			accept_event(); on_press.call()
 	func _init(title: String, sub: String, f: float, tip: String = "") -> void:
 		if not TBTokens.on_paper(): set_meta("tb_dark", true)           # a dark well keeps its cream text; in high contrast light the card is paper
 		frac = clampf(f, 0.0, 1.0)

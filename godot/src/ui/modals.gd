@@ -431,7 +431,7 @@ static func _alert_name(id: String, k: int) -> String:
 	return ""
 
 static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String = "", on_screen: Callable = Callable()) -> TBPanel.Handle:
-	if tab == "goals": return goals(parent, g)
+	if tab == "goals": return goals(parent, g, on_screen)
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("council"), "council", {"w": 600, "h": 560, "sub": T.call("council_sub")})
 	var al := TBAlertPrefs.filter(TBAdvisor.alerts(g, g.human_id))
 	if al.is_empty():
@@ -473,7 +473,7 @@ static func _ambitions(g: TBGame, me: int) -> Array:
 		for c in cs: if bool(c["ok"]): ok += 1
 		var lines := PackedStringArray()
 		for r in TBLineageView.condition_lines(g, me, si): lines.append(("✓ " if bool(r[0]) else "✗ ") + String(r[1]))
-		out.append({"t": T.call("amb_form", {"n": TBI18n.nation(String(TBLineage.STAGES[si]["name"]))}), "s": T.call("amb_form_sub", {"a": ok, "b": cs.size()}), "f": float(ok) / maxf(1.0, float(cs.size())), "tip": "\n".join(lines)})
+		out.append({"form": true, "t": T.call("amb_form", {"n": TBI18n.nation(String(TBLineage.STAGES[si]["name"]))}), "s": T.call("amb_form_sub", {"a": ok, "b": cs.size()}), "f": float(ok) / maxf(1.0, float(cs.size())), "tip": "\n".join(lines)})
 	for i in TBInstitutions.count():
 		if g.inst_seen[i] == 0 or TBInstitutions.embraced(g, me, i): continue
 		var sh := TBInstitutions.share(g, me, i)
@@ -481,7 +481,7 @@ static func _ambitions(g: TBGame, me: int) -> Array:
 		out.append({"t": T.call("amb_embrace", {"n": T.call("inst_" + id)}), "s": T.call("amb_embrace_sub", {"a": int(round(sh * 100.0))}), "f": minf(1.0, sh / TBInstitutions.EMBRACE_SHARE), "tip": T.call("inst_" + id + "_d")})
 	return out
 
-static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
+static func goals(parent: Control, g: TBGame, on_screen: Callable = Callable()) -> TBPanel.Handle:
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_goals"), "goals", {"w": 660, "h": 400, "sub": T.call("goals_sub")})
 	var me := g.human_id
 	var prog := TBTurn.victory_progress(g, me)
@@ -494,7 +494,13 @@ static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 		var ag := GridContainer.new(); ag.columns = 2
 		if TBKit.text_scale >= 1.4: ag.columns = 1                                  # the same rule as the victory cards below: two cards need room a large text size does not leave
 		ag.add_theme_constant_override("h_separation", 12); ag.add_theme_constant_override("v_separation", 12); ag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		for c in amb: ag.add_child(TBBzScreens.GoalCard.new(String(c["t"]), String(c["s"]), float(c["f"]), String(c["tip"])))
+		for c in amb:
+			var gc := TBBzScreens.GoalCard.new(String(c["t"]), String(c["s"]), float(c["f"]), String(c["tip"]))
+			if on_screen.is_valid() and bool(c.get("form", false)):                       # a name to proclaim: the card leads to the Realm page, where its provinces and their holders are
+				gc.tooltip_text += "\n" + String(T.call("amb_open_realm"))
+				gc.on_press = func(): h.close(); on_screen.call("realm")
+				gc.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			ag.add_child(gc)
 		h.body.add_child(ag)
 		h.body.add_child(K.caps(T.call("amb_victory"), 12, K.GOLD))
 	var grid := GridContainer.new(); grid.columns = 2

@@ -86,5 +86,15 @@ func _init() -> void:
 	main._toggle_window("realm")
 	for i in 10: await process_frame
 	_check(main.map._targets.size() == 0, "closing the Realm page clears the map (%d)" % main.map._targets.size())
+	# the Goals page's ambition to form a name leads to the Realm page
+	main._open_council("goals")
+	for i in 20: await process_frame
+	var cards := _find(main._overlay, func(x): return x is TBBzScreens.GoalCard and (x as TBBzScreens.GoalCard).on_press.is_valid())
+	_check(cards.size() >= 1, "an ambition to form a name is a card that leads on (%d)" % cards.size())
+	if cards.size() >= 1:
+		(cards[0] as TBBzScreens.GoalCard).on_press.call()
+		for i in 25: await process_frame
+		_check(main._window("realm") != null, "pressing it opens the Realm page")
+		_check(main._window("council") == null, "and the Goals page is closed")
 	print("FORMABLE_UI ", "OK" if fails == 0 else "FAIL %d" % fails)
 	quit(fails)
