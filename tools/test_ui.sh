@@ -54,8 +54,10 @@ echo "$out" | grep -q "ESTATES_UI OK" && echo "ok: tests/estates_ui.gd" || { ech
 # UI cycle 1: hover lights a country on the map, the Council by minister with severity bars, the Raise bar text in two lines
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 2000x1200x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_cycle1.gd 2>&1)
 echo "$out" | grep -q "UI_CYCLE1 OK" && echo "ok: tests/ui_cycle1.gd" || { echo "FAIL: tests/ui_cycle1.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
-out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 2560x1440x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_drawer_seal.gd 2>&1)
-echo "$out" | grep -q "UI_DRAWER_SEAL OK" && echo "ok: tests/ui_drawer_seal.gd" || { echo "FAIL: tests/ui_drawer_seal.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+for sz in "1280 800" "1920 1080" "2560 1440"; do
+  out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 ${sz// /x}x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_drawer_seal.gd -- $sz 2>&1)
+  echo "$out" | grep -q "UI_DRAWER_SEAL OK" && echo "ok: tests/ui_drawer_seal.gd $sz" || { echo "FAIL: tests/ui_drawer_seal.gd $sz"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+done
 # the type floor: no text smaller than the token floor, at a 1080p screen and a small laptop
 for sz in "1920 1080 11" "1280 800 9" "2560 1440 14"; do
   set -- $sz

@@ -62,7 +62,7 @@ func _ready() -> void:
 	panel.busy_fn = func() -> bool: return _busy
 	panel.blocked_fn = func() -> bool: return mode != "game" or _modal_open()
 	panel.command.connect(func(c: Dictionary): _on_command(c, true)); panel.amount_requested.connect(_open_amount); panel.move_requested.connect(_on_move_requested); panel.closed.connect(func(): _select(-1))
-	panel.insp_fn = hud.inspector_rect; panel.sheet_fn = hud.sheet_mode; TBPanel.drawer_rect_fn = hud.drawer_rect; TBPanel.right_floor_fn = hud.right_floor
+	panel.insp_fn = hud.inspector_rect; panel.sheet_fn = hud.sheet_mode; TBPanel.drawer_rect_fn = hud.drawer_rect; TBPanel.right_floor_fn = hud.right_floor; TBPanel.seal_rect_fn = hud.end_turn_rect
 	TBPanel.drawer_opened_fn = func() -> void:
 		if hud.exclusive_panels() and panel != null: panel.show_province(g, -1)
 	panel.select_requested.connect(func(q: int): _select(q))

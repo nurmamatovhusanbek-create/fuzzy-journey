@@ -19,6 +19,8 @@ static var win_mem: Dictionary = {}
 static var win_changed: Callable = Callable()
 const Z_WINDOW := 20             ## draw layer of a non-modal window: above the map and its labels, below the End Turn dial (40) and every modal (80)
 static var drawer_opened_fn: Callable           ## called when a side drawer opens (the HUD hides the inspector when the two cannot share the width)
+const RAIL_CLEAR := 210.0         ## a window never starts left of this: the left rail and its words
+static var seal_rect_fn: Callable             ## () -> Rect2 : the End Turn dial with its label (the HUD)
 static var right_floor_fn: Callable            ## () -> float : the lowest y a window docked at the right may reach (the HUD: above the End Turn seal)
 static var drawer_rect_fn: Callable             ## () -> Rect2 : the HUD's drawer slot (right of the rail), null rect = use the legacy right-hand slot
 const SNAP_LOW := 0.56
@@ -760,6 +762,11 @@ static func _fit_bz(h: Handle) -> void:
 			if dr.size.x > 100.0:
 				x = dr.position.x; y = dr.position.y
 	if x + w > vs.x - 4.0: x = maxf(4.0, vs.x - w - 4.0)
+	if h.bz_pos.x < 0.0 and not phone and not h.announce and h.dock != "right" and seal_rect_fn.is_valid():
+		var sr: Rect2 = seal_rect_fn.call()                                     # a wide window at a small screen would hide the End Turn dial: slide it left, clear of the rail, when that is enough
+		if sr.size.x > 0.0 and y + c.size.y > sr.position.y and x + c.size.x > sr.position.x - 12.0:
+			var nx: float = sr.position.x - 12.0 - c.size.x
+			if nx >= RAIL_CLEAR: x = nx
 	if h.bz_pos.x >= 0.0: x = h.bz_pos.x; y = h.bz_pos.y
 	if h.movable and h.user_pos.x > -1.0:                                      # where the player left it, kept so that the header stays reachable
 		x = clampf(h.user_pos.x, 120.0 - c.size.x, vs.x - 120.0); y = clampf(h.user_pos.y, 0.0, maxf(0.0, vs.y - 56.0))
