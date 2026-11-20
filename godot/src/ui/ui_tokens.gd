@@ -266,11 +266,15 @@ const FOCUS_RING := 2           # focus ring: 2 px ring + 2 px gap + 1 px contra
 const FOCUS_GAP := 2
 const FOCUS_OUT := 1
 
+# ---- interface size: the layout stage is divided by this (a smaller number = a bigger interface). "normal" is what "small" used to be plus 19 %: at 1080p the body text is 14 px, not 12
+const UI_STAGE_K := {"small": 1.0, "normal": 0.84, "large": 0.72}
+
 # ---- type roles (px at 100 %); sizes are multiplied by the text scale elsewhere -----------------
 const FS_TITLE := 20
 const FS_BODY_PHONE := 15
 const FS_BODY := 14
 const FS_DETAIL := 13
 const FS_CAPTION := 12          # absolute floor at 100 %
+const FS_FLOOR := 10.5          # no text is ever set smaller than this many layout units (K.fs / K.fsf): about 11.5 physical px on a 1080p screen at the standard interface size (tests/ui_type_floor.gd)
 const FS_FIGURE := 16
 const FS_DELTA := 12

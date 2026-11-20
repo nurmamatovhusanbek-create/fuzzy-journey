@@ -419,6 +419,11 @@ const MINISTERS := {
 	"form_ready": ["council", "min_realm", "min_open_realm", "realm"], "inst_ready": ["council", "min_realm", "min_open_realm", "realm"], "estate_low": ["council", "min_realm", "min_open_realm", "realm"]}
 
 ## the name an advisor tip speaks of: the stage that can be formed, the institution that can be embraced
+## a strength ratio kept in tenths (k = 10 x the ratio): one decimal below ten, none above
+static func _ratio(k: int) -> String:
+	var r := float(k) / 10.0
+	return ("%.1f" % r) if r < 10.0 else ("%d" % int(round(r)))
+
 static func _alert_name(id: String, k: int) -> String:
 	if id == "form_ready" and k >= 0 and k < TBLineage.STAGES.size(): return TBI18n.nation(String(TBLineage.STAGES[k]["name"]))
 	if id == "estate_low" and k >= 0 and k < TBEstates.COUNT: return T.call("est_" + String(TBEstates.IDS[k]))
@@ -432,10 +437,12 @@ static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String =
 	if al.is_empty():
 		h.body.add_child(TBPanel.empty_state("council", T.call("al_quiet"), T.call("al_quiet_why"))); return h
 	al.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["sev"]) > int(b["sev"]))
+	var order: Array = []                                                       # the ministers, the one with the gravest matter first; each keeps its own matters in severity order
+	var by_min := {}
 	for a in al:
 		var id: String = String(a["id"])
 		var m: Array = MINISTERS.get(id, ["info", "min_police", "", ""])
-		var quote: String = T.call("al_" + id, {"k": int(a["k"]), "r": "%.1f" % (int(a["k"]) / 10.0), "a": g.dname(int(a["n"])) if int(a["n"]) > 0 else "", "x": _alert_name(id, int(a["k"]))})
+		var quote: String = T.call("al_" + id, {"k": int(a["k"]), "r": _ratio(int(a["k"])), "a": g.dname(int(a["n"])) if int(a["n"]) > 0 else "", "x": _alert_name(id, int(a["k"]))})
 		var btn := ""
 		var cb := Callable()
 		if String(m[3]) == "map" and int(a["p"]) >= 0:
@@ -444,7 +451,11 @@ static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String =
 		elif String(m[3]) != "map" and String(m[3]) != "" and on_screen.is_valid():
 			var sc: String = String(m[3])
 			btn = T.call(String(m[2])); cb = func(): h.close(); on_screen.call(sc)
-		h.body.add_child(TBBzScreens.minister_row(String(m[0]), T.call(String(m[1])), T.call(String(m[1]) + "_r"), quote, btn, cb))
+		var key := String(m[1])
+		if not by_min.has(key): by_min[key] = {"icon": String(m[0]), "items": []}; order.append(key)
+		(by_min[key]["items"] as Array).append({"sev": int(a["sev"]), "quote": quote, "btn": btn, "cb": cb})
+	for key in order:
+		h.body.add_child(TBBzScreens.minister_group(String(by_min[key]["icon"]), T.call(key), T.call(key + "_r"), by_min[key]["items"]))
 	return h
 
 ## the nation's own next steps, as goal cards: [{t, s, f, tip}] (a stage of its line it could form, institutions it could embrace)
@@ -570,7 +581,7 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> TBPanel.H
 	if not al.is_empty():
 		lcol.add_child(TBPanel.section(T.call("advisor")))
 		for i in mini(2, al.size()):
-			lcol.add_child(TBPanel.para(T.call("al_" + String(al[i]["id"]), {"k": int(al[i]["k"]), "r": "%.1f" % (int(al[i]["k"]) / 10.0), "a": g.dname(int(al[i]["n"])) if int(al[i]["n"]) > 0 else ""}), 13, K.TEXT))
+			lcol.add_child(TBPanel.para(T.call("al_" + String(al[i]["id"]), {"k": int(al[i]["k"]), "r": _ratio(int(al[i]["k"])), "a": g.dname(int(al[i]["n"])) if int(al[i]["n"]) > 0 else ""}), 13, K.TEXT))
 	var go := K.button(T.call("brief_begin"), func(): h.close(); on_done.call(), true)
 	h.actions(null, go)
 	return h

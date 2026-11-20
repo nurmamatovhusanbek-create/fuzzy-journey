@@ -142,14 +142,15 @@ class NationRow extends Button:
 	var selected := false:
 		set(v): selected = v; queue_redraw()
 	var _hover := false
+	signal hovered(n: int)               # the pointer is on this row (n) or has left it (-1): the window lights the country's border on the map without opening anything over it
 	func _init(nation: int, name_text: String, flag: Texture2D, cb: Callable) -> void:
 		n = nation; nm = name_text; tex = flag
 		flat = true; focus_mode = Control.FOCUS_ALL; action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		custom_minimum_size = Vector2(0, TBNationsScreen.row_h())
 		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]: add_theme_stylebox_override(st, TBKit._empty)
 		pressed.connect(cb)
-		mouse_entered.connect(func(): _hover = true; queue_redraw())
-		mouse_exited.connect(func(): _hover = false; queue_redraw())
+		mouse_entered.connect(func(): _hover = true; queue_redraw(); hovered.emit(n))
+		mouse_exited.connect(func(): _hover = false; queue_redraw(); hovered.emit(-1))
 	func set_figure(t: String, c: String = "") -> void:
 		figure = t; cap_text = c; queue_redraw()
 	func _draw() -> void:
@@ -207,6 +208,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 	var pick: bool = bool(opts.get("pick", false))
 	var on_cmd: Callable = opts.get("on_cmd", Callable())
 	var on_goto: Callable = opts.get("on_goto", Callable())
+	var on_hover: Callable = opts.get("on_hover", Callable())               # a row hovered: that country's border lights up on the map (-1: back to what was pinned)
 	var on_fly: Callable = opts.get("on_fly", Callable())                   # a country name pressed: the map turns to that country (the window stays)
 	var on_play: Callable = opts.get("on_play", Callable())
 	var taken: Array = opts.get("taken", [])
@@ -281,6 +283,7 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 			r.st_text = "" if pick else rel_text(g, me, nn, r.op)
 			if seats.has(nn): r.seat = String(seats[nn])
 			r.selected = nn == int(S["sel"])
+			if on_hover.is_valid() and not pick: r.hovered.connect(on_hover)
 			rows[nn] = r; names_l[nn] = g.dname(nn).to_lower()
 			list.add_child(r)
 			K.a11y(r, "%s, %d %s, #%d" % [g.dname(nn), int(st["prov"][nn]), T.call("lands").to_lower(), r.rank], "button")

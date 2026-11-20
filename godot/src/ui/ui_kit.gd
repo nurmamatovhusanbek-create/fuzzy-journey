@@ -90,8 +90,8 @@ static func os_prefers_reduced_motion() -> bool:
 	return false
 
 
-static func fs(px: float) -> int:                       ## a font size through the text scale (the demo's captions go down to 8.5 units; the 12 unit floor is for map labels, min_font())
-	return maxi(roundi(px * text_scale), roundi(7.0 * dp_scale))
+static func fs(px: float) -> int:                       ## a font size through the text scale, never below the type floor (TBTokens.FS_FLOOR; the 12 unit floor is for map labels, min_font())
+	return maxi(roundi(px * text_scale), roundi(TBTokens.FS_FLOOR * dp_scale))
 static func min_font() -> int: return roundi(12.0 * dp_scale)
 static func dp(n: float) -> int: return roundi(n * dp_scale)
 static func touch() -> int: return TBTokens.TOUCH_LARGE if touch_large else TBTokens.TOUCH
@@ -265,8 +265,8 @@ static func is_phone(n: Node = null) -> bool:
 	if n == null or not n.is_inside_tree(): return false
 	var vs: Vector2 = n.get_viewport().get_visible_rect().size
 	return vs.y < 560.0 and vs.x > vs.y
-## fractional font size through the text scale (the demo uses 11.5, 15.5 ...); the old 12 unit floor is gone: the demo's captions are 8.5 to 11 units
-static func fsf(px: float) -> float: return maxf(px * text_scale, 7.0)
+## fractional font size through the text scale (the demo uses 11.5, 15.5 ...), never below the type floor (TBTokens.FS_FLOOR)
+static func fsf(px: float) -> float: return maxf(px * text_scale, TBTokens.FS_FLOOR)
 ## letter-spacing in units for a tracked face (`em` of the size, e.g. .16); none for Readable fonts
 static func trk(size: float, em: float) -> float: return 0.0 if readable_fonts else size * em
 

@@ -32,7 +32,7 @@ func _init() -> void:
 	for side in ["top", "bottom"]: pad.add_theme_constant_override("margin_" + side, 10)
 	add_child(pad)
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 10); row.alignment = BoxContainer.ALIGNMENT_CENTER; pad.add_child(row)
-	var left := VBoxContainer.new(); left.add_theme_constant_override("separation", 1); left.custom_minimum_size.x = 118; left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var left := VBoxContainer.new(); left.add_theme_constant_override("separation", 1); left.custom_minimum_size.x = 250; left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_name = K.title("", 14, TBTokens.c("ink_0"), 0.12, 14.0 * 1.1) as TBBz.TLabel; _name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; left.add_child(_name)
 	_price = K.label("", 14, TBTokens.c("brass_lt")); _price.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; left.add_child(_price)
 	_split = K.label("", 12.5, TBTokens.c("ink_1")); _split.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; left.add_child(_split)

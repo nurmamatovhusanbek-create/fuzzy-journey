@@ -61,22 +61,31 @@ class TimelineHolder extends MarginContainer:
 		draw_rect(Rect2(23, 6, 1, size.y - 12.0), TBTokens.c("rule"))
 
 ## a minister: a 50 unit ring with the icon, the name (Cinzel 14.5), the role in brass caps, the advice in italic, an optional small button
-static func minister_row(icon: String, name_text: String, role: String, quote: String, btn_text: String, cb: Callable) -> Control:
-	var box := PanelContainer.new(); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new(); sb.bg_color = Color.TRANSPARENT; sb.border_color = TBTokens.BZ_ROW_LINE; sb.border_width_bottom = 1
-	sb.content_margin_top = 12; sb.content_margin_bottom = 13; sb.content_margin_left = 0; sb.content_margin_right = 0
-	box.add_theme_stylebox_override("panel", sb)
-	var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 14); box.add_child(hb)
-	var ring := K.ring_icon(icon, 50); ring.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; hb.add_child(ring)
-	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hb.add_child(v)
-	var t := K.title(name_text, 15, Color.TRANSPARENT, 0.08, 0.0); (t as TBBz.TLabel).px = 14.5; (t as TBBz.TLabel).refit(); v.add_child(t)
-	var c := K.caps(role, 10, TBTokens.c("brass")); (c as TBBz.TLabel).px = 10.5; (c as TBBz.TLabel).refit()
-	var cm := MarginContainer.new(); cm.add_theme_constant_override("margin_top", 2); cm.add_theme_constant_override("margin_bottom", 5); cm.add_child(c); v.add_child(cm)
-	v.add_child(K.para_bz('[i]"%s"[/i]' % quote, 16.5, 1.35, TBTokens.BZ_IVORY))
-	if btn_text != "" and cb.is_valid():
-		var bm := MarginContainer.new(); bm.add_theme_constant_override("margin_top", 8)
-		var b: Button = K.button(btn_text, cb, false, true); b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		bm.add_child(b); v.add_child(bm)
+## the council, one minister at a time: a heading (ring icon, name, role, how many matters) and under it one row per matter: a severity bar (crisis / warning / tip: the status tokens), the quote, the action.
+## items: [{sev: 0..2, quote, btn, cb}]
+static func minister_group(icon: String, name_text: String, role: String, items: Array) -> Control:
+	var box := VBoxContainer.new(); box.size_flags_horizontal = Control.SIZE_EXPAND_FILL; box.add_theme_constant_override("separation", 0)
+	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 12)
+	var ring := K.ring_icon(icon, 40); ring.size_flags_vertical = Control.SIZE_SHRINK_CENTER; head.add_child(ring)
+	var hv := VBoxContainer.new(); hv.add_theme_constant_override("separation", 0); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.size_flags_vertical = Control.SIZE_SHRINK_CENTER; head.add_child(hv)
+	var t := K.title(name_text, 15, Color.TRANSPARENT, 0.08, 0.0); (t as TBBz.TLabel).px = 14.5; (t as TBBz.TLabel).refit(); hv.add_child(t)
+	var c := K.caps("%s  ·  %d" % [role, items.size()], 10, TBTokens.c("brass")); (c as TBBz.TLabel).px = 10.5; (c as TBBz.TLabel).refit(); hv.add_child(c)
+	var hm := MarginContainer.new(); hm.add_theme_constant_override("margin_top", 14); hm.add_theme_constant_override("margin_bottom", 6); hm.add_child(head); box.add_child(hm)
+	for it in items:
+		var sev: int = int(it["sev"])
+		var tone: Color = TBTokens.c("neg") if sev >= 2 else (TBTokens.c("warn") if sev == 1 else TBTokens.c("hair"))
+		var row := PanelContainer.new(); row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var sb := StyleBoxFlat.new(); sb.bg_color = Color.TRANSPARENT; sb.border_color = tone; sb.border_width_left = 3
+		sb.content_margin_left = 14; sb.content_margin_right = 4; sb.content_margin_top = 6; sb.content_margin_bottom = 8
+		row.add_theme_stylebox_override("panel", sb)
+		var rv := VBoxContainer.new(); rv.add_theme_constant_override("separation", 0); row.add_child(rv)
+		rv.add_child(K.para_bz('[i]"%s"[/i]' % String(it["quote"]), 16.5, 1.35, TBTokens.BZ_IVORY))
+		var cb: Callable = it["cb"]
+		if String(it["btn"]) != "" and cb.is_valid():
+			var bm := MarginContainer.new(); bm.add_theme_constant_override("margin_top", 6)
+			var b: Button = K.button(String(it["btn"]), cb, false, true); b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			bm.add_child(b); rv.add_child(bm)
+		var gap := MarginContainer.new(); gap.add_theme_constant_override("margin_bottom", 4); gap.add_child(row); box.add_child(gap)
 	return box
 
 ## a goal: the progress medal (a ring, a 6 unit track and arc, the percentage) beside the title and the italic line, in a well

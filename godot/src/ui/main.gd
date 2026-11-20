@@ -148,7 +148,7 @@ static func phone_stage() -> float:
 func _update_ui_scale() -> void:
 	var w := get_window()
 	var s := w.size
-	var k: float = {"small": 1.18, "normal": 1.0, "large": 0.86}.get(cfg.get("ui", "normal"), 1.0)
+	var k: float = float(TBTokens.UI_STAGE_K.get(cfg.get("ui", "normal"), 1.0))
 	var ppu: float = _px_per_unit(s, k)
 	w.content_scale_size = Vector2i(maxi(320, int(round(s.x / ppu))), maxi(240, int(round(s.y / ppu))))
 	var dpi_env := OS.get_environment("TB_DPI")
@@ -797,7 +797,7 @@ var _nations_filter := ""                  # what the Nations window was last op
 func _open_nations(select: int = -1, filter: String = "", tab: String = "") -> void:
 	if g == null: return
 	_nations_filter = filter
-	var o := {"on_cmd": _on_command, "on_goto": _goto_nation, "on_fly": _fly_to_nation}
+	var o := {"on_cmd": _on_command, "on_goto": _goto_nation, "on_fly": _fly_to_nation, "on_hover": _hover_nation}
 	if select > 0: o["select"] = select
 	if filter != "": o["filter"] = filter
 	if tab != "": o["tab"] = tab
@@ -807,12 +807,22 @@ func _open_nation(n: int) -> void:
 	_open_nations(n)
 	_fly_to_nation(n)
 
+## the brass border that stays (the selected district's owner, the country a name was pressed for) and the one that shows only while a list row is under the pointer
+var _pinned_outline := -1
+func _pin_outline(n: int) -> void:
+	_pinned_outline = n
+	map.outline_nation(n)
+
+func _hover_nation(n: int) -> void:
+	if g == null or mode != "game" or map == null: return
+	map.outline_nation(n if n > 0 else _pinned_outline)
+
 ## a country's name was pressed (a list, a card, a notice): the map turns to it and lights its border, without picking a district
 func _fly_to_nation(n: int) -> void:
 	if g == null or n <= 0 or n >= g.N1 or mode != "game": return
 	var cp: int = g.capital_of[n]
 	if cp < 0: return
-	map.outline_nation(n)
+	_pin_outline(n)
 	map.fly_to(world.lon[cp], world.lat[cp])
 
 func _open_council(tab: String = "") -> void:
@@ -1258,7 +1268,7 @@ func _select(p: int) -> void:
 	_close_amount()
 	selected = p
 	map.select(p)
-	map.outline_nation(g.owner[p] if (p >= 0 and g != null and g.human_id != 0 and g.owner[p] != 0) else -1)       # AoC: the owner's border lights up in brass
+	_pin_outline(g.owner[p] if (p >= 0 and g != null and g.human_id != 0 and g.owner[p] != 0) else -1)       # AoC: the owner's border lights up in brass
 	flow.g = g
 	flow.on_select(p)
 	if p >= 0 and hud.exclusive_panels() and not hud.sheet_mode(): TBPanel.close_drawers(_overlay)       # 700-1099 px: the drawer and the inspector never share the width
