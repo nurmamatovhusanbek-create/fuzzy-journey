@@ -54,6 +54,7 @@ run "military works in held land" tests/held_build.gd
 run "Raise troops (levy first, the rest hired)" tests/raise.gd
 run "Disband (half back to the levy pool)" tests/disband.gd
 run "lineages (stages, conditions, forming, claims, AI, saves)" tests/lineage.gd
+run "event cards say what happens (previews = applied amounts, scaled by the nation)" tests/event_amounts.gd
 run "institutions (spread, embrace, lag, AI, saves)" tests/institutions.gd
 run "reform of the government (cost, era, cooldown, estates, AI, USSR road)" tests/regime.gd
 run "every icon a window asks for has a drawing" tests/ui_icon_names.gd

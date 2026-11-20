@@ -14,6 +14,14 @@ func _scan(n: Node) -> void:
 		var m := re.search(txt)
 		if m != null: bad[txt.substr(0, 60)] = m.get_string()
 	for c in n.get_children(): _scan(c)
+const K = preload("res://src/ui/ui_kit.gd")
+func _check(ok: bool, what: String) -> void:
+	if not ok: fails += 1; print("FAIL: ", what)
+func _collect(n: Node, out: PackedStringArray) -> void:
+	if n is CanvasItem and not (n as CanvasItem).is_visible_in_tree(): return
+	if n is TBBz.TLabel: out.append((n as Label).text)
+	elif n is Label: out.append((n as Label).text)
+	for c in n.get_children(): _collect(c, out)
 func _init() -> void:
 	var sz := Vector2i(1920, 1080)
 	DisplayServer.window_set_size(sz); root.size = sz
@@ -37,6 +45,17 @@ func _init() -> void:
 		var before := bad.size()
 		_scan(main)
 		if bad.size() > before: print("  page ", k)
+	# an event card says what will happen: the gold on it is the gold the engine takes from this nation, not the number in the data
+	main._clear_overlay()
+	g.pending.append({"uid": 9001, "n": g.human_id, "kind": "rand", "id": "noble_revolt", "icon": "swords", "cat": "CRISIS", "count": 2})
+	main.show_events()
+	for i in 30: await process_frame
+	var texts := PackedStringArray()
+	_collect(main._overlay, texts)
+	var all := " ".join(texts)
+	var want: String = K.signed(TBEvents.amount(g, g.human_id, "gold", -60.0)).replace("-", "−")
+	_check(all.contains(want) and all.to_lower().contains("gold"), "the event card shows the gold really taken (%s) in: %s" % [want, all.substr(0, 200)])
+	_check(not all.contains("−60 gold"), "and not the number of the data")
 	for t in bad: print("  plain number ", bad[t], " in '", t, "'"); fails += 1
 	print("UI_NUMBERS ", "OK" if fails == 0 else "FAIL %d" % fails)
 	quit(fails)

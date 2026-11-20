@@ -58,6 +58,28 @@ static func fx_chips(effects: Array) -> Array:
 		out.append([txt, "tri_up" if d > 0.0 else "tri_down", delta_tone(d > 0.0, op == "infamy")])
 	return out
 
+## chips for the previewed effects of a choice (TBEvents.preview): the numbers are what the engine will add to this nation, in its own units, abbreviated for reading
+static func chips_from_preview(rows: Array) -> Array:
+	var out: Array = []
+	for r in rows:
+		var op := String(r["op"])
+		var v: float = float(r["v"])
+		if op == "dev": out.append([_scoped(T.call("fx_dev"), String(r.get("scope", ""))), "tri_up", "pos"]); continue
+		if v == 0.0 or not TBI18n.has_key("fx_" + op): continue
+		var ds: String
+		match op:
+			"army_pct", "pop_pct", "combat": ds = "%+d%%" % int(round(v))
+			_: ds = K.signed(v)
+		ds = ds.replace("-", "−")
+		var txt: String = String(T.call("fx_" + op, {"d": ds, "t": int(r.get("turns", 6)), "e": T.call("est_" + String(r.get("estate", "nobility"))) if r.has("estate") else ""}))
+		out.append([_scoped(txt, String(r.get("scope", ""))), "tri_up" if v > 0.0 else "tri_down", delta_tone(v > 0.0, op == "infamy")])
+	return out
+
+## " (the capital)" after an effect that touches only some provinces; nothing for all of them
+static func _scoped(txt: String, scope: String) -> String:
+	if scope == "" or scope == "all" or not TBI18n.has_key("sc_" + scope): return txt
+	return "%s (%s)" % [txt, T.call("sc_" + scope)]
+
 ## tone of a change: `up` = the number rises; `bad_when_up` = a rising number hurts (infamy)
 static func delta_tone(up: bool, bad_when_up: bool = false) -> String:
 	return "pos" if (up != bad_when_up) else "neg"
@@ -848,11 +870,12 @@ static func event_prompt(parent: Control, e: Dictionary, on_choose: Callable, g:
 			var ttl: String
 			var chips: Array = []
 			if rand:
-				ttl = T.call("ev_%s_c%d" % [id, i]); chips = chips_from_text(T.call("ev_%s_d%d" % [id, i]))
+				ttl = T.call("ev_%s_c%d" % [id, i])
+				chips = chips_from_preview(TBEvents.preview(g, g.human_id, TBEvents.random_effects(id, i))) if g != null else chips_from_text(T.call("ev_%s_d%d" % [id, i]))
 			elif i < labels.size():
 				ttl = _loc(labels[i])
 				var fx: Array = e.get("fx", [])
-				if i < fx.size(): chips = fx_chips(fx[i])
+				if i < fx.size(): chips = chips_from_preview(TBEvents.preview(g, g.human_id, fx[i])) if g != null else fx_chips(fx[i])
 			else: ttl = T.call("ev_ack")
 			var raw: String = " ".join(chips.map(func(c): return String(c[0])))
 			choices.append([choice_icon(raw, "check" if chips.is_empty() else "move"), ttl, chips, i])

@@ -22,6 +22,7 @@ Done in this round:
 1. **Which provinces, and who holds them** (the request that started it): `TBLineage.core_report`, the disclosure on the Realm card, the land lit on the map, names that turn the map to them, the Goals ambition card that leads to it, tests (`tests/lineage.gd`, `tests/formable_ui.gd`).
 2. **Why the estates feel what they feel**: the drift of an estate's loyalty is a sum of terms; the tooltip lists the same terms (one function, two readers).
 3. **The tutorial points at the real controls.**
+4. **An event card says what happens.** Found by looking at the card, not by research: it printed the data's "−60 gold" while the engine took 1,500 (the same lesson as the Victoria 3 tooltip that disagreed with its rule). The card now reads the same amounts the rule applies; two effects (manpower, research) turned out never to have been scaled and are fixed.
 
 Not done on purpose:
 * A settings-wide "event pace": the event count is small; revisit with the content.

@@ -31,6 +31,13 @@ static func scheduled_for(era_id: String) -> Array:
 	_sched_cache[era_id] = out
 	return out
 
+## the effects of choice i of a random event, or []
+static func random_effects(id: String, i: int) -> Array:
+	_load()
+	for ev in _random:
+		if String(ev["id"]) == id: return (ev["choices"][i]["effects"] as Array) if i >= 0 and i < (ev["choices"] as Array).size() else []
+	return []
+
 static func random_defs() -> Array:
 	_load()
 	return _random
@@ -102,8 +109,8 @@ static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 	for e in effects:
 		var d: float = float(e.get("delta", 0))
 		match String(e.get("op", "")):
-			"nation.gold": g.gold[n] = maxf(0.0, g.gold[n] + g.gu(n, d))
-			"nation.manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + d)
+			"nation.gold": g.gold[n] = maxf(0.0, g.gold[n] + amount(g, n, "gold", d))
+			"nation.manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + amount(g, n, "manpower", d))
 			"nation.mp": g.mp[n] += d
 			"nation.dp": g.dp[n] += d
 			"nation.stability":
@@ -111,7 +118,7 @@ static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 			"nation.happy":
 				for p in g.owned(n): g.happy[p] = clampi(g.happy[p] + int(d), 0, 100)
 			"nation.infamy": g.infamy[n] = clampf(g.infamy[n] + d, 0.0, 100.0)
-			"nation.research": g.research[n] = maxf(0.0, g.research[n] + d)
+			"nation.research": g.research[n] = maxf(0.0, g.research[n] + amount(g, n, "research", d))
 			"nation.intel": g.intel[n] = clampf(g.intel[n] + d, 0.0, 20.0)
 			"nation.army_pct":
 				for p in g.owned(n): g.army[p] = maxi(g.au(3.0), int(g.army[p] * (1.0 + d / 100.0))); g.touch(p)
@@ -122,7 +129,7 @@ static func _apply_sched_effects(g: TBGame, n: int, effects: Array) -> void:
 				for p in g.owned(n):
 					if g.dev[p] < 5 and g.pop[p] > bs: bs = g.pop[p]; best = p
 				if best >= 0: g.dev[best] += 1; g.touch(best)
-			"nation.trade": g.trade_bonus[n] += int(d)
+			"nation.trade": g.trade_bonus[n] += int(amount(g, n, "trade", d))
 			"nation.combat":
 				g.combat_bonus[n] += d / 100.0; g.combat_turns[n] = maxi(int(g.combat_turns[n]), int(e.get("turns", 6)))
 
@@ -251,16 +258,59 @@ static func _provs(g: TBGame, n: int, scope: String) -> PackedInt32Array:
 		"random": out.append(own[g.rng.randi_n(own.size())])
 	return out
 
+## What an effect really adds for this nation, in the game's own units. The appliers use it and so do the event cards, so a card says what will happen.
+## Gold and a trade windfall are in the nation's gold (the data's numbers are for a nation of 400 workers), manpower in men, research as tenths of a turn of its research.
+static func amount(g: TBGame, n: int, op: String, d: float) -> float:
+	match op:
+		"gold", "trade": return g.gu(n, d)
+		"manpower": return float(g.au(d)) if d >= 0.0 else -float(g.au(-d))
+		"research": return d / 10.0 * research_unit(g, n)
+	return d
+
+## one turn of the nation's research at its present budget (at least a tenth of its income goes to it, so a nation that spends nothing still gains from a windfall)
+static func research_unit(g: TBGame, n: int) -> float:
+	var inc: Dictionary = g.income(n)
+	return maxf(1.0, D.tech_gain(TBTurn._research_pop(g, float(inc["pop"])), float(maxi(10, g.budget[n * 4 + 2]))))
+
+## the effects of a choice as rows a card can print: [{op, v, scope, estate, turns}] with v already in the nation's units. Reads both data shapes (random events: op/d,
+## scheduled events: nation.op/delta).
+static func preview(g: TBGame, n: int, effects: Array) -> Array:
+	var out: Array = []
+	for e in effects:
+		var op := String(e.get("op", "")).trim_prefix("nation.")
+		var d: float = float(e.get("d", e.get("delta", 0)))
+		var scope := String(e.get("scope", ""))
+		match op:
+			"gold", "manpower", "research": out.append({"op": op, "v": amount(g, n, op, d)})
+			"trade": out.append({"op": "trade", "v": amount(g, n, "trade", d)})
+			"stab", "stability": out.append({"op": "stability", "v": d, "scope": scope})
+			"happy", "infamy", "intel", "dp", "mp": out.append({"op": op, "v": d})
+			"loyalty": out.append({"op": "loyalty", "v": d, "estate": String(e.get("estate", ""))})
+			"dev": out.append({"op": "dev", "v": 1.0, "scope": scope})
+			"army_pct": out.append({"op": "army_pct", "v": d})
+			"pop_pct": out.append({"op": "pop_pct", "v": d})
+			"army":
+				if e.has("pct"): out.append({"op": "army_pct", "v": float(e["pct"]), "scope": scope})
+				else: out.append({"op": "army", "v": float(g.au(d)) if d >= 0.0 else -float(g.au(-d)), "scope": scope})
+			"pop":
+				if e.has("abs"): out.append({"op": "pop", "v": float(g.pu(float(e["abs"]))), "scope": scope})
+				else: out.append({"op": "pop_pct", "v": float(e.get("pct", 0)), "scope": scope})
+			"bonus":
+				if String(e.get("kind", "")) == "trade": out.append({"op": "trade", "v": amount(g, n, "trade", float(e.get("amount", 0)))})
+				else: out.append({"op": "combat", "v": float(e.get("amount", 0)), "turns": int(e.get("turns", 1))})
+			"combat": out.append({"op": "combat", "v": d, "turns": int(e.get("turns", 6))})
+	return out
+
 static func apply_effects(g: TBGame, n: int, effects: Array) -> void:
 	for e in effects:
 		var d: float = float(e.get("d", 0))
 		match String(e.get("op", "")):
-			"gold": g.gold[n] = maxf(0.0, g.gold[n] + g.gu(n, d))
+			"gold": g.gold[n] = maxf(0.0, g.gold[n] + amount(g, n, "gold", d))
 			"infamy": g.infamy[n] = clampf(g.infamy[n] + d, 0.0, 100.0)
-			"research": g.research[n] = maxf(0.0, g.research[n] + d)
+			"research": g.research[n] = maxf(0.0, g.research[n] + amount(g, n, "research", d))
 			"intel": g.intel[n] = clampf(g.intel[n] + d, 0.0, 20.0)
 			"loyalty": TBEstates.shift(g, n, String(e.get("estate", "")), d)
-			"manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + d)
+			"manpower": g.manpower[n] = maxf(0.0, g.manpower[n] + amount(g, n, "manpower", d))
 			"mp": g.mp[n] += d
 			"dp": g.dp[n] = maxf(0.0, g.dp[n] + d)
 			"stab":
@@ -282,6 +332,6 @@ static func apply_effects(g: TBGame, n: int, effects: Array) -> void:
 					if g.dev[p] < 5:
 						g.dev[p] += 1; g.pop[p] = mini(g.pop_hard(), int(g.pop[p] * 1.06) + g.pu(25.0)); g.touch(p)
 			"bonus":
-				if String(e.get("kind", "")) == "trade": g.trade_bonus[n] += int(e.get("amount", 0))
+				if String(e.get("kind", "")) == "trade": g.trade_bonus[n] += int(amount(g, n, "trade", float(e.get("amount", 0))))
 				else:
 					g.combat_bonus[n] += float(e.get("amount", 0)) / 100.0; g.combat_turns[n] += int(e.get("turns", 1))
