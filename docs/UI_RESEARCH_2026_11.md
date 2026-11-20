@@ -47,7 +47,7 @@ What did not:
 
 ## 5. Next cycles (each ends with screenshots and the suite)
 
-1. Map linkage: hovering a nation in the Nations list and a row in the Outliner highlights it on the map without opening anything over it.
+1. Map linkage (done): hovering a nation in the Nations list lights its border, a row in the Outliner lights its province, without opening anything over the map.
 2. Settings: an "auto" interface size that reads the display (1080p, 1440p, 4K) and a one-time prompt when the screen is large.
 3. Tile and card pattern: Realm, Nations and Budget use the same summary tile component (one height, one label role).
 4. Tests: `ui_type_floor` at 1280 x 800, 1920 x 1080 and 2560 x 1440 in every language; the council grouping; the raise bar width.

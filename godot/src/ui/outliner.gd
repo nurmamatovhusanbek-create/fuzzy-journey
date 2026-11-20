@@ -43,7 +43,11 @@ static func rows(g: TBGame, me: int, cfg: Dictionary) -> Dictionary:
 		if p >= 0 and p < g.P: out["pins"].append([TBI18n.place(g.pname(p)) + ("" if g.owner[p] == me else " · " + (g.dname(g.owner[p]) if g.owner[p] > 0 else "")), p])
 	return out
 
-static func open(parent: Control, g: TBGame, cfg: Dictionary, selected: int, on_goto: Callable, on_change: Callable) -> TBPanel.Handle:
+## the map lights a province while its row is hovered (a Callable(p) or Callable(-1)); nothing when there is none
+static func _hover(cb: Callable, p: int) -> void:
+	if cb.is_valid(): cb.call(p)
+
+static func open(parent: Control, g: TBGame, cfg: Dictionary, selected: int, on_goto: Callable, on_change: Callable, on_hover: Callable = Callable()) -> TBPanel.Handle:
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("dk_outliner"), "outliner", {"w": 520, "h": 560, "sub": T.call("outliner_sub")})
 	var me := g.human_id
 	var data := rows(g, me, cfg)
@@ -53,9 +57,12 @@ static func open(parent: Control, g: TBGame, cfg: Dictionary, selected: int, on_
 		if list.is_empty() and String(sec[0]) != "pins": h.body.add_child(TBPanel.para(T.call("ol_none"), 14, K.DIM)); continue
 		for r in list:
 			var pv: int = int(r[1])
-			var row := K.ListRow.new(String(r[0]), "›", func(): h.close(); on_goto.call(pv))
+			var row := K.ListRow.new(String(r[0]), "›", func(): _hover(on_hover, -1); h.close(); on_goto.call(pv))
+			if on_hover.is_valid():                                           # the row lights its province on the map (the window stays open, the map stays uncovered)
+				row.mouse_entered.connect(func(): _hover(on_hover, pv))
+				row.mouse_exited.connect(func(): _hover(on_hover, -1))
 			h.body.add_child(row)
 	if selected >= 0 and selected < g.P:
-		var pin_btn := K.button(T.call("ol_pin_sel"), func(): toggle_pin(cfg, selected); on_change.call(); h.close(); open(parent, g, cfg, selected, on_goto, on_change))
+		var pin_btn := K.button(T.call("ol_pin_sel"), func(): toggle_pin(cfg, selected); on_change.call(); h.close(); open(parent, g, cfg, selected, on_goto, on_change, on_hover))
 		h.body.add_child(pin_btn)
 	return h

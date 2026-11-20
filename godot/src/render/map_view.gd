@@ -509,6 +509,9 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_MOUSE_EXIT and hover != -1:
 		_set_hover(-1); province_hovered.emit(-1)
 
+## a list in a window lights a province as if the pointer were on it (-1 puts it out)
+func light_province(p: int) -> void: _set_hover(p if p >= 0 and g != null and p < g.P else -1)
+
 func _set_hover(h: int) -> void:
 	if h == hover: return
 	if TBKit.motion_ok():

@@ -1,6 +1,7 @@
 extends SceneTree
 ## UI cycle 1: the Nations list lights a country's border on the map while a row is hovered and goes back to the pinned one; the Council groups matters by minister with a severity bar;
 ## the Raise bar keeps its text in at most two lines. Usage: -s tests/ui_cycle1.gd (xvfb, TB_NOANIM=1)
+const K = preload("res://src/ui/ui_kit.gd")
 var fails := 0
 func _check(ok: bool, what: String) -> void:
 	if not ok: fails += 1; print("FAIL: ", what)
@@ -33,6 +34,19 @@ func _init() -> void:
 	_check(main.map._outline_owner == r.n, "hovering a row outlines its country (%d)" % main.map._outline_owner)
 	r.hovered.emit(-1)
 	_check(main.map._outline_owner == pinned, "leaving it restores the pinned outline (%d vs %d)" % [main.map._outline_owner, pinned])
+	main._clear_overlay()
+	# ---- outliner: hovering a row lights its province on the map, leaving puts it out
+	var capp: int = g.capital_of[g.human_id]
+	g.proj_kind[capp] = 1; g.proj_left[capp] = 3                              # something under way, so the list has a row
+	main.hud.outliner_pressed.emit()
+	for i in 20: await process_frame
+	var orows := _find(main._overlay, func(x): return x is K.ListRow)
+	_check(orows.size() >= 1, "the Outliner has rows (%d)" % orows.size())
+	if orows.size() >= 1:
+		(orows[0] as Control).mouse_entered.emit()
+		_check(main.map.hover >= 0, "hovering an Outliner row lights a province (%d)" % main.map.hover)
+		(orows[0] as Control).mouse_exited.emit()
+		_check(main.map.hover == -1, "leaving the row puts it out (%d)" % main.map.hover)
 	main._clear_overlay()
 	# ---- council: one heading per minister
 	main._open_council()

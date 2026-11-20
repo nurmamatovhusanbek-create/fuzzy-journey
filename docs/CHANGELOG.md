@@ -12,6 +12,7 @@
 * **Council** is grouped by minister (one heading with the number of matters, one row per matter with a severity bar, the gravest minister first); the Raise troops bar no longer breaks a sentence into four lines; the Nations list lights a country's border on the map while a row is hovered.
 * **Map key**: a lens with a colour code shows its key above the lens bar again; economic, military and population lenses are scaled by the 92nd percentile so one giant province no longer flattens the rest.
 * **Rows**: government forms, institutions and estates share one row component (icon, name, one line of effect, meters, control).
+* The Outliner lights a row's province on the map while the pointer is on it.
 * A window docked at the right (the province dossier) ends above the End Turn seal instead of covering its top.
 * Budget: the cells now add up to the net (a new Modifiers cell holds regime, technology, institutions and works); the empty Annals page no longer shows a button that did nothing; "next level by next turn"; large signed numbers abbreviate.
 

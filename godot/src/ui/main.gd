@@ -96,7 +96,7 @@ func _ready() -> void:
 	hud.nations_pressed.connect(func(): if not _toggle_window("nations"): _open_nations())
 	hud.goals_pressed.connect(func(): if not _toggle_window("council"): _open_council("goals"))
 	hud.host_pressed.connect(func(): if not _toggle_window("host") and g != null: TBHostPanel.open(_overlay, g, _goto_province, func(c: Dictionary): _on_command(c, false), func(pp: int): _open_amount("disband", pp)))
-	hud.outliner_pressed.connect(func(): if not _toggle_window("outliner") and g != null: TBOutliner.open(_overlay, g, cfg, selected, _goto_province, _save_cfg))
+	hud.outliner_pressed.connect(func(): if not _toggle_window("outliner") and g != null: TBOutliner.open(_overlay, g, cfg, selected, _goto_province, _save_cfg, _light_province))
 	hud.decisions_pressed.connect(func(): if not _toggle_window("decrees"): _open_decisions())
 	hud.chronicle_pressed.connect(func(): if not _toggle_window("annals"): _open_annals())
 	hud.advisor_pressed.connect(func(): if not _toggle_window("council"): _open_council("advice"))
@@ -814,6 +814,10 @@ var _pinned_outline := -1
 func _pin_outline(n: int) -> void:
 	_pinned_outline = n
 	map.outline_nation(n)
+
+## a window's list lights a province on the map while one of its rows is hovered
+func _light_province(p: int) -> void:
+	if g != null and mode == "game" and map != null: map.light_province(p)
 
 func _hover_nation(n: int) -> void:
 	if g == null or mode != "game" or map == null: return
