@@ -59,25 +59,33 @@ static func share(g: TBGame, n: int, e: int) -> float:
 static func loyalty(g: TBGame, n: int, e: int) -> float: return g.est_loy[n * COUNT + e]
 static func privileges(g: TBGame, n: int, e: int) -> int: return g.est_priv[n * COUNT + e]
 
-## what the estate is drifting toward this turn
-static func target(g: TBGame, n: int, e: int) -> float:
+## what the estate is drifting toward this turn, as the terms that add up to it: [[key, value]] (the order is the order the tooltip reads in; the tooltip leaves out the zero ones).
+## target() is their sum, so the explanation and the rule can never disagree.
+static func target_terms(g: TBGame, n: int, e: int) -> Array:
 	ensure()
-	var t := 50.0 + (share(g, n, e) - 0.25) * 40.0
+	var out: Array = [["base", 50.0]]
+	out.append(["weight", (share(g, n, e) - 0.25) * 40.0])
+	var inst := 0.0
 	for i in TBInstitutions.count():
 		if not TBInstitutions.embraced(g, n, i): continue
 		var row: Variant = _inst.get(String(TBInstitutions.LIST[i]["id"]), null)
-		if row != null: t += float((row["t"] as Array)[e])
+		if row != null: inst += float((row["t"] as Array)[e])
+	out.append(["inst", inst])
 	var mine := privileges(g, n, e)
 	var others := 0
 	for o in COUNT: if o != e: others += privileges(g, n, o)
-	t += PRIV_TARGET * float(mine) - PRIV_OTHERS * float(others)
-	if e != 3: t -= 0.5 * (g.budget[n * 4] - 50.0)                              # the taxes burden the three civil estates
+	out.append(["priv", PRIV_TARGET * float(mine) - PRIV_OTHERS * float(others)])
+	out.append(["tax", (-0.5 * (g.budget[n * 4] - 50.0)) if e != 3 else 0.0])                        # the taxes burden the three civil estates
 	var war := g.at_war(n)
-	if e == 3 and war: t += 6.0
-	if e == 2 and war: t -= 6.0
+	out.append(["war", 6.0 if (e == 3 and war) else (-6.0 if (e == 2 and war) else 0.0)])
 	var sa := 0.0; var k := 0
 	for p in g.owned(n): sa += float(g.stab[p]); k += 1
-	if k > 0: t += 0.15 * (sa / float(k) - 60.0)
+	out.append(["stab", (0.15 * (sa / float(k) - 60.0)) if k > 0 else 0.0])
+	return out
+
+static func target(g: TBGame, n: int, e: int) -> float:
+	var t := 0.0
+	for term in target_terms(g, n, e): t += float(term[1])
 	return clampf(t, 0.0, 100.0)
 
 ## the strength of what an estate gives (negative when it is angry): -1 .. 1 at a quarter's weight

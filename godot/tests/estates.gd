@@ -121,5 +121,18 @@ func _init() -> void:
 	_check(span_ok, "loyalty stays in range for 20 turns")
 	print("after 20 turns: ", angry, " of ", n_all, " estates below ", TBEstates.LOW)
 	_check(angry < n_all / 2, "most estates are not in revolt (%d of %d)" % [angry, n_all])
+	# the explanation is the rule: the terms add up to the target, for every estate of every nation (war and peace)
+	var bad := 0
+	gg.set_rel(gg.human_id, gg.nat_code.find("uk"), TBData.REL_WAR)
+	for n in range(1, gg.N1):
+		if n == gg.rebel or gg.alive[n] == 0: continue
+		for e in 4:
+			var tsum := 0.0
+			for tm in TBEstates.target_terms(gg, n, e): tsum += float(tm[1])
+			if absf(clampf(tsum, 0.0, 100.0) - TBEstates.target(gg, n, e)) > 0.0001: bad += 1
+	_check(bad == 0, "the terms of the drift add up to the target (%d off)" % bad)
+	var keys := {}
+	for tm2 in TBEstates.target_terms(gg, gg.human_id, 0): keys[String(tm2[0])] = true
+	_check(keys.has("base") and keys.has("weight") and keys.has("tax") and keys.has("stab"), "the terms carry their names")
 	print("ESTATES OK" if fails == 0 else "ESTATES FAIL %d" % fails)
 	quit(fails)

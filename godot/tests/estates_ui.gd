@@ -27,6 +27,9 @@ func _init() -> void:
 	var courts := _find(main._overlay, func(x): return x is Button and String((x as Button).text).to_lower().begins_with("court") and not (x as Button).disabled)
 	print("open Court buttons: ", courts.size())
 	_check(courts.size() == 4, "four estates, four Court buttons")
+	var why := _find(main._overlay, func(x): return x is Control and String((x as Control).tooltip_text).begins_with("Drifting toward"))
+	_check(why.size() == 4, "every estate row says why its loyalty moves (%d of 4)" % why.size())
+	if why.size() > 0: print("tooltip: ", String((why[0] as Control).tooltip_text).replace("\n", " | "))
 	for sc in _find(main._overlay, func(x): return x is ScrollContainer): (sc as ScrollContainer).scroll_vertical = 500
 	for i in 6: await process_frame
 	var sv0 := 0
