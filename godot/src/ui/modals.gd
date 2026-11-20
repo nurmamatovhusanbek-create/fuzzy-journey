@@ -442,7 +442,7 @@ static func council(parent: Control, g: TBGame, on_goto: Callable, tab: String =
 	for a in al:
 		var id: String = String(a["id"])
 		var m: Array = MINISTERS.get(id, ["info", "min_police", "", ""])
-		var quote: String = T.call("al_" + id, {"k": int(a["k"]), "r": _ratio(int(a["k"])), "a": g.dname(int(a["n"])) if int(a["n"]) > 0 else "", "x": _alert_name(id, int(a["k"]))})
+		var quote: String = T.call("al_" + id, {"k": int(a["k"]), "kf": K.fmt(float(a["k"])), "r": _ratio(int(a["k"])), "a": g.dname(int(a["n"])) if int(a["n"]) > 0 else "", "x": _alert_name(id, int(a["k"]))})
 		var btn := ""
 		var cb := Callable()
 		if String(m[3]) == "map" and int(a["p"]) >= 0:
@@ -582,7 +582,7 @@ static func briefing(parent: Control, g: TBGame, on_done: Callable) -> TBPanel.H
 	if not al.is_empty():
 		lcol.add_child(TBPanel.section(T.call("advisor")))
 		for i in mini(2, al.size()):
-			lcol.add_child(TBPanel.para(T.call("al_" + String(al[i]["id"]), {"k": int(al[i]["k"]), "r": _ratio(int(al[i]["k"])), "a": g.dname(int(al[i]["n"])) if int(al[i]["n"]) > 0 else ""}), 13, K.TEXT))
+			lcol.add_child(TBPanel.para(T.call("al_" + String(al[i]["id"]), {"k": int(al[i]["k"]), "kf": K.fmt(float(al[i]["k"])), "r": _ratio(int(al[i]["k"])), "a": g.dname(int(al[i]["n"])) if int(al[i]["n"]) > 0 else ""}), 13, K.TEXT))
 	var go := K.button(T.call("brief_begin"), func(): h.close(); on_done.call(), true)
 	h.actions(null, go)
 	return h
