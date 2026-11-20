@@ -424,6 +424,10 @@ static func ic_shapes(name: String) -> Array:
 	_ic_cache[nm] = subs
 	return subs
 
+## where the artwork of an icon sits in its box (fractions); the whole box for the old drawings: a plate centres what you see by it
+static func ink_box(name: String) -> Rect2:
+	return TBEmblem.ink_box(name) if TBEmblem.active() else Rect2(0.0, 0.0, 1.0, 1.0)
+
 ## one demo icon: centre c, `size` units square (the 24 grid scaled), stroke `w` on the 24 grid (1.7 by default), round caps and joins
 static func draw_ic(ci: CanvasItem, name: String, c: Vector2, size: float, col: Color, w: float = 1.7) -> void:
 	if TBEmblem.draw(ci, name, c, size, col): return

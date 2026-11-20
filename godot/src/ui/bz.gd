@@ -337,7 +337,7 @@ class Btn extends Button:
 	var small := false
 	var glyph := ""                  # demo icon id (or an old glyph name) drawn before the label
 	var glyph_px := 16.0
-		var sub := ""
+	var sub := ""
 	var kbd := ""
 	var preview_state := ""          # "hover" / "pressed" / "focus": freezes a state for specimen sheets and tests
 	var hold := 0.0                  # hold-to-confirm progress 0..1: a white .28 wash grows from the left (.bt .fill)
@@ -441,8 +441,8 @@ class Btn extends Button:
 		if off: tx = TBBz.dim(tx)
 		var x: float = (w - float(d["content"])) * 0.5
 		var nud := Vector2.ZERO
-		if float(d["icon"]) > 0.0 and TBEmblem.active():                  # the artwork does not fill its box: centre what you see, not the box
-			var ib: Rect2 = TBEmblem.ink_box(glyph); var isz: float = float(d["icon"])
+		if float(d["icon"]) > 0.0:                  # the artwork does not fill its box: centre what you see, not the box
+			var ib: Rect2 = TBGlyph.ink_box(glyph); var isz: float = float(d["icon"])
 			if text == "": nud = (Vector2(0.5, 0.5) - ib.get_center()) * isz                              # a plate with only an icon: the ink in the middle
 			else: x -= ib.position.x * isz * 0.5                                                          # icon then words: icon ink + words in the middle
 		if float(d["icon"]) > 0.0:

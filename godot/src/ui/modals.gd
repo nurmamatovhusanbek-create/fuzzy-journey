@@ -492,6 +492,7 @@ static func goals(parent: Control, g: TBGame) -> TBPanel.Handle:
 	if not amb.is_empty():
 		h.body.add_child(K.caps(T.call("amb_title"), 12, K.GOLD))
 		var ag := GridContainer.new(); ag.columns = 2
+		if TBKit.text_scale >= 1.4: ag.columns = 1                                  # the same rule as the victory cards below: two cards need room a large text size does not leave
 		ag.add_theme_constant_override("h_separation", 12); ag.add_theme_constant_override("v_separation", 12); ag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for c in amb: ag.add_child(TBBzScreens.GoalCard.new(String(c["t"]), String(c["s"]), float(c["f"]), String(c["tip"])))
 		h.body.add_child(ag)
