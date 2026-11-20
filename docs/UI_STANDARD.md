@@ -1,6 +1,18 @@
-# Interface standard (branch ui/perfect-interface)
+# Interface standard
 
-Every window follows these rules. Each rule is measured by a test, not by eye; a window is finished when its test passes at 100 % and 200 % text, in English, Russian and Uzbek, on the desktop layout and the compact phone layout.
+One interface for the computer and for Android (a phone held sideways gets the desktop layout on a taller stage). Every window follows these rules. Each rule is measured by a test, not by eye; a window is finished when its test passes at 100 % and 200 % text, in English, Russian and Uzbek. Research behind the rules: `docs/UI_RESEARCH_2026_11.md`.
+
+## Type and size (tokens: `ui_tokens.gd`)
+| Role | Size at the standard density | Where |
+|---|---|---|
+| Title | 20 | window titles, big figures |
+| Figure | 16 | numbers in tiles and rows |
+| Body | 14 | names, sentences, controls |
+| Detail | 13 | one-line effect text under a name |
+| Caption | 12 | section headings, tile captions (tracked capitals) |
+| Floor | 10.5 layout units (`FS_FLOOR`) | nothing is ever set smaller (`K.fs`, `K.fsf`) |
+
+The layout stage is divided by the interface size (`UI_STAGE_K`: compact 1.0, normal 0.84, large 0.72), relaxed by `UI_STAGE_LAPTOP` (1.10) on a screen 800 px tall and fading to 1.0 at 1080 px, so a 1080p screen shows 14 px body text and nothing under 11.5 px, and a laptop still fits the Budget, Decrees and Settings windows. Colours come from the token set only (the lint `ui_lint_tokens.gd` refuses a raw colour in `src/ui`); state and severity use `pos`, `neg`, `warn`, `info`.
 
 ## Controls: five kinds, never mixed shapes
 | Kind | Used for | Notes |
@@ -26,5 +38,11 @@ No drop-downs, no free-floating switches, no round buttons in a row of square on
 3. Rows or cards, each with name, effect text (never cut: wrap, do not ellipsize), control.
 4. Footer: the secondary action left (Revert, Main menu), the primary right (Done, Resume).
 
+## Information
+* Glanceable first: a window opens on a summary (tiles of one height, at most three figures each), then rows, then detail one level down. Two clicks deep at most.
+* A tooltip says *why*, never the only copy of something the player needs; a window that talks about a place shows it (a list row lights the country's border on the map, "Show on map" buttons); nothing opens over what it is about without being movable.
+* Matters are grouped under who raises them (the Council by minister) and carry a severity bar (neg crisis, warn warning, neutral tip). Effects are listed one per line with the sign and the meaning colour (events, decrees, institutions).
+* Sorting and filters persist between openings (Nations, Outliner).
+
 ## Tests
-`tests/menu_grid.gd` (Settings), `tests/budget_grid.gd`, `tests/decrees_grid.gd`, `tests/nations_grid.gd`, `tests/dialogs_shot.gd` (dialogs on one axis), `tests/btn_widths.gd` (the plate at every width). Run only the test of the window you changed.
+`tests/ui_type_floor.gd` (no text under the floor at 1080p, a laptop and 1440p), `tests/ui_cycle1.gd` (hover lighting, the Council grouping, the Raise bar), `tests/ui_icon_names.gd` (every icon asked for has a drawing), `tests/menu_grid.gd` (Settings), `tests/budget_grid.gd`, `tests/decrees_grid.gd`, `tests/nations_grid.gd`, `tests/dialogs_shot.gd` (dialogs on one axis), `tests/btn_widths.gd` (the plate at every width). Run only the test of the window you changed.
