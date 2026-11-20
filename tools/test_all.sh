@@ -56,6 +56,7 @@ run "Disband (half back to the levy pool)" tests/disband.gd
 run "lineages (stages, conditions, forming, claims, AI, saves)" tests/lineage.gd
 run "institutions (spread, embrace, lag, AI, saves)" tests/institutions.gd
 run "reform of the government (cost, era, cooldown, estates, AI, USSR road)" tests/regime.gd
+run "every icon a window asks for has a drawing" tests/ui_icon_names.gd
 run "estates (loyalty, courting, effects, AI, events, saves)" tests/estates.gd
 run "institution events (conditions, effects, three languages)" tests/inst_events.gd
 run "calls to arms weighed by trust, threat, border, distance, exhaustion" tests/calls.gd

@@ -69,12 +69,12 @@ static func true_minus(t: String) -> String:
 		_minus_re = RegEx.new(); _minus_re.compile("(^|[\\s(])-(?=\\d)")
 	return _minus_re.sub(t, "$1−", true)
 
-## chips from a prose effect line ("−60 gold · +30 research"): split on the middle dot; the glyph follows the sign, the tone the meaning
+## chips from a prose effect line ("−60 gold · +30 research", or the comma list of the random events: "+40 gold, +25 manpower"): one chip per effect; the glyph follows the sign, the tone the meaning
 static func chips_from_text(line: String) -> Array:
 	var out: Array = []
 	if line.strip_edges() == "": return out
 	var inf: String = T.call("infamy").to_lower()
-	for part in line.split(" · "):
+	for part in (line.split(" · ") if line.contains(" · ") else line.split(", ")):
 		var p: String = true_minus(part.strip_edges())
 		if p == "": continue
 		var neg: bool = p.contains("−")
