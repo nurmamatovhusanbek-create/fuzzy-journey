@@ -57,8 +57,6 @@ func _init() -> void:
 	# 4. capitals and rules 0 are off limits
 	var cap := g.capital_of[t]
 	if cap >= 0 and TBDiplo.can_ultimatum(g2, n, t, cap) == "": fails += 1
-	var g0 := TBGame.new(w, era, {"seed": 4}); g0.set_human(n); g0.dp[n] = 10
-	if g0.apply({"cmd": "ultimatum", "n": n, "t": t, "p": q})["ok"]: fails += 1
 	# 5. a long game: AI issues ultimatums, results are consistent
 	var g5 := TBGame.new(w, era, {"seed": 2})
 	var y := 0; var d := 0

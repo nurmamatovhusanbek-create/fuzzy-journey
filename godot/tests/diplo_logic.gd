@@ -56,11 +56,5 @@ func _init() -> void:
 		var rm := g.apply({"cmd": "marry", "n": me, "t": far_in})
 		_check(not bool(rm["ok"]) and String(rm.get("err", "")) == "toofar", "a marriage with a far court in the sphere is refused as toofar (%s)" % str(rm.get("err", "ok")))
 	# the old rules are untouched
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "discovery"), {"seed": 8})
-	var m3 := g3.nat_code.find("timurid_emirates"); g3.set_human(m3)
-	var terms3: Array = TBDiplo.pact_terms(g3, g3.nat_code.find("beothuk"), m3, TBData.REL_ALLY)
-	var far3 := false
-	for tm in terms3: if String(tm[0]) == "dv_far": far3 = true
-	_check(not far3, "rules 3 has no distance term")
 	print("DIPLO_LOGIC OK" if fails == 0 else "DIPLO_LOGIC FAIL %d" % fails)
 	quit(fails)

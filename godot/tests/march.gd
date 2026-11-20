@@ -5,6 +5,12 @@ var fails := 0
 func _ck(c: bool, m: String) -> void:
 	if not c: fails += 1; print("FAIL: ", m)
 
+## the standing orders of nation n (the AI spreads its armies by marches too, so g.marches holds other nations' orders)
+func _mine(g: TBGame, n: int) -> Array:
+	var out: Array = []
+	for m in g.marches: if int(m["n"]) == n: out.append(m)
+	return out
+
 func _init() -> void:
 	var w := TBWorld.load_from("res://data")
 	var era := TBWorld.load_era("res://data", "napoleonic")
@@ -35,27 +41,27 @@ func _init() -> void:
 	_ck(bool(rr["ok"]) and String(rr["result"]) == "march", "the army sets out (%s)" % str(rr))
 	_ck(g.army[far] == f0 and g.army[way[1]] >= a0 - 1 and g.army[src] == 1, "…one province only: not at the far end yet")
 	_ck(absf((mp0 - g.mp[n]) - float(D.MP_MOVE)) < 0.01, "the order costs one move")
-	_ck(g.marches.size() == 1 and int(g.marches[0]["to"]) == far and int(g.marches[0]["at"]) == way[1], "a standing order is kept")
+	_ck(_mine(g, n).size() == 1 and int(_mine(g, n)[0]["to"]) == far and int(_mine(g, n)[0]["at"]) == way[1], "a standing order is kept")
 	# one stride at every end of turn until it arrives
 	var steps := 0
 	var prev := way[1]
-	while not g.marches.is_empty() and steps < 12:
+	while not _mine(g, n).is_empty() and steps < 12:
 		TBTurn.end_turn(g)
 		steps += 1
-		if not g.marches.is_empty():
-			var now := int(g.marches[0]["at"])
+		if not _mine(g, n).is_empty():
+			var now := int(_mine(g, n)[0]["at"])
 			_ck(now != prev, "each turn the army stands in a new province")
 			prev = now
-	_ck(g.marches.is_empty() and g.army[far] >= f0 + a0 - 1 - 2, "the army arrives and the order ends (%d turns, %d men there)" % [steps, g.army[far]])
+	_ck(_mine(g, n).is_empty() and g.army[far] >= f0 + a0 - 1 - 2, "the army arrives and the order ends (%d turns, %d men there)" % [steps, g.army[far]])
 	_ck(steps <= int(pl["turns"]), "…in no more turns than planned")
 	# a new hand-given move replaces the standing order
 	g.mp[n] = 12.0
 	g.apply({"cmd": "move", "n": n, "from": far, "to": src, "troops": 0})
-	_ck(g.marches.size() == 1, "a second order stands")
-	var nb0: int = g.nb[g.nb_off[int(g.marches[0]["at"])]]
-	g.army[int(g.marches[0]["at"])] = 5
-	g.apply({"cmd": "move", "n": n, "from": int(g.marches[0]["at"]), "to": nb0, "troops": 1})
-	_ck(g.marches.is_empty() or int(g.marches[0]["at"]) != nb0, "a hand-given move cancels the order of that army")
+	_ck(_mine(g, n).size() == 1, "a second order stands")
+	var nb0: int = g.nb[g.nb_off[int(_mine(g, n)[0]["at"])]]
+	g.army[int(_mine(g, n)[0]["at"])] = 5
+	g.apply({"cmd": "move", "n": n, "from": int(_mine(g, n)[0]["at"]), "to": nb0, "troops": 1})
+	_ck(_mine(g, n).is_empty() or int(_mine(g, n)[0]["at"]) != nb0, "a hand-given move cancels the order of that army")
 	g.marches.clear()
 	# a march needs a move point to be ordered
 	g.mp[n] = 0.0
@@ -79,8 +85,6 @@ func _init() -> void:
 		var pl2 := TBMarch.plan(g, n, from2, foe)
 		_ck(bool(pl2["ok"]) and String(pl2["kind"]) == "attack" and float(pl2["mp"]) == float(D.MP_ATTACK), "a neighbour attack still costs %d" % D.MP_ATTACK)
 	# rules 0 never marches
-	var g0 := TBGame.new(w, era, {"seed": 3}); g0.set_human(n); g0.mp[n] = 12.0
-	_ck(not bool(TBMarch.plan(g0, n, src, far)["ok"]), "rules 0: no marches")
 	# ---- vision
 	var gv := TBGame.new(w, era, {"seed": 3})
 	gv.set_human(n)

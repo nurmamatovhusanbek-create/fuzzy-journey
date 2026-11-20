@@ -17,8 +17,6 @@ func _init() -> void:
 	g.dp[a] = 0
 	if g.apply({"cmd": "doctrine", "n": a, "id": "administrative"})["ok"]: fails += 1          # no points
 	if g.apply({"cmd": "doctrine", "n": a, "id": "bogus"})["ok"]: fails += 1
-	var g0 := TBGame.new(w, TBWorld.load_era("res://data", "gunpowder"), {"seed": 8}); g0.set_human(a); g0.dp[a] = 10
-	if g0.apply({"cmd": "doctrine", "n": a, "id": "martial"})["ok"]: fails += 1
 	# AI nations adopt on their own
 	var g2 := TBGame.new(w, TBWorld.load_era("res://data", "gunpowder"), {"seed": 3})
 	for t in 30: g2.end_turn()

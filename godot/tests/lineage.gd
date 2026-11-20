@@ -65,8 +65,6 @@ func _init() -> void:
 	TBSave.restore(g2, d)
 	_check(g2.nat_code[ru] == "ussr" and g2.stage[ru] == ussr + 1 and g2.claim[int(core[0])] == ru, "a restored game keeps the new identity and the claims")
 	# rules 4 knows nothing of it
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
-	_check(TBLineage.options(g4, g4.nat_code.find("russian_empire")).is_empty(), "rules 4: no lineages")
 	# the AI forms when it can
 	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 5})
 	var pr := g3.nat_code.find("prussia"); g3.set_human(g3.nat_code.find("france")); g3.pending.clear()

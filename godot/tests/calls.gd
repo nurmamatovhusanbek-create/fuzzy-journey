@@ -52,13 +52,6 @@ func _init() -> void:
 	elif chance <= 0.0: _check(g2.get_rel(n, o) != TBData.REL_WAR, "an impossible ally (willingness %.2f) stays out" % will)
 	_check(TBWar.call_chance(g2, o, t, n) == clampf(0.5 + (will - TBWar.CALL_YES) / (2.0 * TBWar.CALL_SPREAD), 0.0, 1.0), "the chance is the willingness mapped around %.2f" % TBWar.CALL_YES)
 	# old rules: allies always join
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
-	g3.set_human(1 if n != 1 else 2); g3.pending.clear()
-	g3.set_rel(o, t, TBData.REL_ALLY); g3.set_rel(n, o, TBData.REL_PEACE); g3.set_rel(n, t, TBData.REL_PEACE)
-	g3.truce[n * g3.N1 + o] = 0; g3.truce[o * g3.N1 + n] = 0; g3.truce[n * g3.N1 + t] = 0; g3.truce[t * g3.N1 + n] = 0
-	g3.dp[n] = 30.0; g3.exh[o] = 100.0; g3.grudge[o * g3.N1 + t] = 60
-	g3.apply({"cmd": "declareWar", "n": n, "t": t, "_force": true})
-	_check(g3.get_rel(n, o) == TBData.REL_WAR, "rules 3: an ally always joins")
 	# the player's own call (rules 4): costs envoys, answered at once by an AI, a prompt for a human
 	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
 	var me4 := _pick(g4, []); var ally4 := _pick(g4, [me4]); var foe4 := _pick(g4, [me4, ally4])

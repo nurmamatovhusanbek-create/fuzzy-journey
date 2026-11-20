@@ -89,7 +89,5 @@ func _init() -> void:
 	for n in range(1, gg.N1): for i in TBInstitutions.count(): if TBInstitutions.embraced(gg, n, i): total0 += 1
 	_check(total0 >= 109, "the AI has embraced something (%d)" % total0)
 	# rules 4: nothing
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 7})
-	_check(TBInstitutions.income_mul(g4, 5) == 1.0 and String(TBInstitutions.can_embrace(g4, 5, 0)["reason"]) == "unknown", "rules 4: nothing happens")
 	print("INSTITUTIONS ", "OK" if fails == 0 else "FAIL")
 	quit(0 if fails == 0 else 1)

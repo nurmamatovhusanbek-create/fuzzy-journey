@@ -27,7 +27,5 @@ func _init() -> void:
 	var gp := TBTurn.growth_parts(g, p)
 	var by_hand := int(round(float(g.pop[p]) * float(gp["year_rate"]) * 0.5 * float(gp["mood"]) * float(gp["order"]) * float(gp["farm"]) * float(gp["room"])))
 	_check(by_hand == int(gp["growth"]), "the listed factors multiply to the growth")
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal"})
-	_check(TBBreakdown.people(g4, 10).begins_with("Population:"), "rules 4 keeps its plain tooltip")
 	print("BREAKDOWN OK" if fails == 0 else "BREAKDOWN FAIL %d" % fails)
 	quit(fails)

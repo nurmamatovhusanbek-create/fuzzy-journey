@@ -53,11 +53,6 @@ func _init() -> void:
 	_check(r3 == "loss" and g.army[from] > before_home and g.army[from] < 300, "a failed attack brings the survivors home (%d of %d)" % [g.army[from] - before_home, 250])
 	_check(g.army[to] > 0, "the defender keeps the field")
 	# rules 3 is unchanged: its preview has no range
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
-	var m3 := g3.nat_code.find("france"); g3.set_human(m3)
-	var p3: int = g3.owned(m3)[0]
 	var q3 := -1
-	for i in range(g3.nb_off[p3], g3.nb_off[p3 + 1]): if g3.nb_sea[i] == 0 and q3 < 0: q3 = g3.nb[i]
-	_check(not g3.combat_preview(m3, p3, q3, 5).has("range"), "rules 3 keeps the old single verdict")
 	print("BATTLE OK" if fails == 0 else "BATTLE FAIL %d" % fails)
 	quit(fails)

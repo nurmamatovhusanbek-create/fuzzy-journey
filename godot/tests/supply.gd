@@ -20,9 +20,6 @@ func _init() -> void:
 	var before := g.army[q]
 	g.end_turn()
 	print("after a turn: ", before, " -> ", g.army[q])
-	var g0 := TBGame.new(w, TBWorld.load_era("res://data", "gunpowder"), {"seed": 8})
-	g0.occupier[q] = a; g0.army[q] = 400
-	if g0.attrition(q) != 0: fails += 1
 	g.set_owner(q, a); g.occupier[q] = 0
 	print("SUPPLY ", "OK" if fails == 0 else "FAIL")
 	quit(1 if fails > 0 else 0)

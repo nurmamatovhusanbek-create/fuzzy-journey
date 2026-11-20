@@ -56,8 +56,5 @@ func _init() -> void:
 	gp.normalize_levy(mep)
 	_check(gp.levy[hp] == gp.levy_cap(hp), "normalising brings the pool to its cap")
 	# old rules are untouched
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
-	var h3: int = g3.owned(g3.nat_code.find("france"))[0]
-	_check(g3.levy[h3] == 0 and g3.recruit_range(h3) == Vector3i(5, 30, 15), "rules 3 keeps the old 5 to 30 and no pools")
 	print("LEVY OK" if fails == 0 else "LEVY FAIL %d" % fails)
 	quit(fails)

@@ -203,7 +203,7 @@ func _init() -> void:
 	g.pending.clear(); main._clear_overlay(); main._select(-1)
 	main.hud.set_seal_pulse(false)
 	await _frames(200)                                                            # the start-up dive settles
-	print("PLAYTEST start: ", g.dname(me), " ", era, " provinces ", g.own_count(me), " gold ", int(g.gold[me]), " rules ", g.rules)
+	print("PLAYTEST start: ", g.dname(me), " ", era, " provinces ", g.own_count(me), " gold ", int(g.gold[me]))
 	await shot("t001")
 	var t0 := Time.get_ticks_msec()
 	var slow := 0

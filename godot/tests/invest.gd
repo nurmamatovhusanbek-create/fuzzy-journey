@@ -47,7 +47,5 @@ func _init() -> void:
 	var g2: TBGame = TBSave.from_dict(w, d)
 	_check(g2 != null and absf(g2.inv_e[p] - 0.37) < 0.001, "a save keeps the progress")
 	# the old rules keep the die
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
-	_check(g3.inv_e.size() == g3.P, "the arrays exist everywhere (empty)")
 	print("INVEST OK" if fails == 0 else "INVEST FAIL %d" % fails)
 	quit(fails)

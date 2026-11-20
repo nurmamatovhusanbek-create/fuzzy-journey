@@ -19,7 +19,7 @@ func _init() -> void:
 	_check(int(inc0["occTax"]) == 0, "nothing occupied, nothing collected")
 	g.occupier[p] = a; g.occ_rev += 1; g.unrest[p] = TBWar.RES_START; g.siege[p] = 0
 	var inc1 := g.income(a)
-	var expect := int(floor(float(g.pop[p]) / 20.0 * (float(g.budget[a * 4]) / 100.0) * (float(g.happy[p]) / 100.0) * float(TBData.REGIMES[g.regime[a]]["incTax"]) * TBWar.OCC_SHARE))
+	var expect := int(float(g.pop[p]) * g.WORKER_SHARE * g.wage(a) * 0.2 * (float(g.budget[a * 4]) / 50.0) * (float(g.happy[p]) / 70.0) * float(TBData.REGIMES[g.regime[a]]["incTax"]) * TBWar.OCC_SHARE)
 	_check(int(inc1["occTax"]) == expect and expect > 0, "the occupier collects half the tax (%d, expected %d)" % [int(inc1["occTax"]), expect])
 	g.siege[p] = 2; g.occ_rev += 1
 	_check(int(g.income(a)["occTax"]) == 0, "a province still under siege pays the occupier nothing")
@@ -46,8 +46,5 @@ func _init() -> void:
 	g.occupier[q] = a; g.occ_rev += 1; g.occ_turns[q] = 200; g.army[q] = 2000
 	for i in 3: g.end_turn()
 	_check(g.owner[q] == b, "land is not annexed by sitting on it (owner %d)" % g.owner[q])
-	# the older rules still annex
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
-	_check(g3.unrest.size() == g3.P and g3.income(1).get("occTax", 0) == 0, "rules 3 has no occupation income")
 	print("OCCUPATION OK" if fails == 0 else "OCCUPATION FAIL %d" % fails)
 	quit(fails)

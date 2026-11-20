@@ -47,8 +47,5 @@ func _init() -> void:
 	_check(g.can({"cmd": "raise", "p": full, "amount": 5})["reason"] == "full", "a full province says so")
 	# the old commands still work, and rules 4 does not know the new one
 	_check(bool(g.can({"cmd": "hire", "p": p, "amount": g.au(40.0)})["ok"]) or g.can({"cmd": "hire", "p": p, "amount": g.au(40.0)})["reason"] == "", "hire is still there")
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11})
-	g4.set_human(g4.nat_code.find("france"))
-	_check(g4.can({"cmd": "raise", "p": 0, "amount": 5})["reason"] == "unknown", "rules 4: no raise")
 	print("RAISE ", "OK" if fails == 0 else "FAIL")
 	quit(0 if fails == 0 else 1)

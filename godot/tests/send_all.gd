@@ -58,12 +58,5 @@ func _init() -> void:
 				_check(bool(fwd["ok"]), "the lone survivor can attack on (%s)" % str(fwd.get("err", "ok")))
 				break
 	# the old rules keep one man behind
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
-	var m3 := g3.nat_code.find("france"); g3.set_human(m3)
-	var pq3 := _pair(g3, m3)
-	_check(g3.keep() == 1, "rules 3 keeps one man behind")
-	g3.army[pq3.x] = 10; g3.mp[m3] = 50.0
-	g3.apply({"cmd": "move", "n": m3, "from": pq3.x, "to": pq3.y, "troops": 10})
-	_check(g3.army[pq3.x] == 1, "rules 3: one stays (%d)" % g3.army[pq3.x])
 	print("SEND_ALL OK" if fails == 0 else "SEND_ALL FAIL %d" % fails)
 	quit(fails)

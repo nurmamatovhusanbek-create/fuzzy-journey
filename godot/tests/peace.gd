@@ -104,8 +104,5 @@ func _init() -> void:
 	_check(TBCommands.normalize(g, {"cmd": "peaceDeal", "n": a, "t": b, "provs": ["x"]}).is_empty(), "a word is not a province")
 	_check(not TBCommands.normalize(g, {"cmd": "peaceDeal", "n": a, "t": b, "provs": [1, 2, 3]}).is_empty(), "a short list of real provinces passes")
 	# old rules refuse
-	var g3 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8})
-	var r3 := g3.apply({"cmd": "peaceDeal", "n": 1, "t": 2})
-	_check(not bool(r3["ok"]), "rules 3 has no peace table")
 	print("PEACE OK" if fails == 0 else "PEACE FAIL %d" % fails)
 	quit(fails)

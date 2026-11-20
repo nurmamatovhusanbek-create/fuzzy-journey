@@ -28,8 +28,5 @@ func _init() -> void:
 	var other := -1
 	for q in g.P: if g.owner[q] != me and g.owner[q] != 0: other = q; break
 	_check(g.can({"cmd": "disband", "p": other, "amount": 5})["reason"] == "notyours", "not your army")
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 11})
-	g4.set_human(g4.nat_code.find("france"))
-	_check(g4.can({"cmd": "disband", "p": 0, "amount": 5})["reason"] == "unknown", "rules 4: unknown")
 	print("DISBAND ", "OK" if fails == 0 else "FAIL")
 	quit(0 if fails == 0 else 1)

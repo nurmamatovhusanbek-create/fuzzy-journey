@@ -75,7 +75,7 @@ func _invariants(tag: String) -> void:
 		var oc: int = g.occupier[p]
 		if oc < 0 or oc >= g.N1: _check(false, "%s: occupier[%d] = %d" % [tag, p, oc]); return
 		var a: int = g.army[p]
-		if a < 0 or a > 65000: _check(false, "%s: army[%d] = %d" % [tag, p, a]); return
+		if a < 0 or a > 100000000: _check(false, "%s: army[%d] = %d" % [tag, p, a]); return
 	for n in range(1, g.N1):
 		var gd: float = g.gold[n]; var mn: float = g.manpower[n]
 		if not is_finite(gd) or absf(gd) > 1.0e9: _check(false, "%s: gold[%d] = %s" % [tag, n, str(gd)]); return
@@ -92,7 +92,6 @@ func _init() -> void:
 	TBI18n.load_lang("en")
 	var w := TBWorld.load_from("res://data")
 	var pack := TBWorld.load_era("res://data", era) if era != "modern" else {}
-	var rules_n: int = int(a[3]) if a.size() > 3 else (int(OS.get_environment("TB_FUZZ_RULES")) if OS.get_environment("TB_FUZZ_RULES") != "" else 2)
 	g = TBGame.new(w, pack, {"seed": 5})
 	var fr := 1
 	for n in range(1, g.N1):

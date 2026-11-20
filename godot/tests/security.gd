@@ -22,8 +22,8 @@ func _init() -> void:
 		var r := g.apply(bad)
 		check(not bool(r["ok"]), "hostile command refused: %s" % str(bad).substr(0, 60))
 	check(g.state_checksum() == sum0, "hostile commands changed nothing")
-	var c1 := TBCommands.normalize(g, {"cmd": "recruit", "n": me, "p": 3, "amount": 99999.0, "evil": 1, "_force": true}, false)
-	check(c1 == {"cmd": "recruit", "n": me, "p": 3, "amount": 65000}, "untrusted: unknown keys and flags dropped, quantity capped")
+	var c1 := TBCommands.normalize(g, {"cmd": "recruit", "n": me, "p": 3, "amount": 1500000000.0, "evil": 1, "_force": true}, false)
+	check(c1 == {"cmd": "recruit", "n": me, "p": 3, "amount": 1000000000}, "untrusted: unknown keys and flags dropped, quantity capped")
 	var c2 := TBCommands.normalize(g, {"cmd": "peace", "n": me, "t": other, "_force": true, "_ult": 5}, true)
 	check(c2.get("_force", false) == true and c2.get("_ult", true) == false, "trusted: flags kept, only as booleans")
 	# --- text

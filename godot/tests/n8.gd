@@ -14,8 +14,6 @@ func _init() -> void:
 	_check(bool(g.can({"cmd": "release", "n": n, "t": t})["ok"]), "a vassal can")
 	var r := g.apply({"cmd": "release", "n": n, "t": t})
 	_check(bool(r["ok"]) and g.overlord[t] == 0 and g.tribute[t] == 0 and g.infamy[n] < 10.0, "it goes free and the liberator's name improves")
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 4, "difficulty": "normal"})
-	_check(not bool(g4.can({"cmd": "release", "n": 1, "t": 2})["ok"]), "rules 4 has no release")
 	# a united region
 	var R := TBRealms.count()
 	var ri := -1

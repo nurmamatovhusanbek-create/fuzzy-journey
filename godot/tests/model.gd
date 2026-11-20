@@ -14,8 +14,6 @@ func _init() -> void:
 	var base := TBTurn.inflation(g)
 	for n in range(1, g.N1): g.gold[n] = 1.0e7
 	ok(TBTurn.inflation(g) > base and TBTurn.inflation(g) <= TBTurn.INFL_MAX + 1e-9, "a flooded money supply raises inflation, capped at %.2f" % TBTurn.INFL_MAX)
-	var g0 := TBGame.new(w, {}, {"seed": 7})
-	ok(TBTurn.inflation(g0) == 0.0, "legacy rules have no inflation")
 	# steady state: a treasury fed s per turn at inflation pi settles at s(1-pi)/pi
 	var s := 500.0; var pi := 0.02; var gold := 0.0
 	for i in 600: gold = gold * (1.0 - pi) + s

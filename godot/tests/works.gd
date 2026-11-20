@@ -46,7 +46,5 @@ func _init() -> void:
 		for i in TBWorks.COUNT: bought += TBWorks.level(ga, k, i)
 	print("AI works bought in 60 turns: ", bought)
 	_check(bought >= 20, "the AI builds state works (%d levels)" % bought)
-	var g4 := TBGame.new(w, TBWorld.load_era("res://data", "napoleonic"), {"seed": 8, "difficulty": "normal"})
-	_check(not bool(g4.can({"cmd": "works", "n": 1, "id": "academy"})["ok"]), "rules 4 has none")
 	print("WORKS OK" if fails == 0 else "WORKS FAIL %d" % fails)
 	quit(fails)

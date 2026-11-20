@@ -27,10 +27,10 @@ func _init() -> void:
 	var g3 := TBGame.new(w, {}, {"seed": 21})
 	var me := 0
 	for p in g3.P: if g3.owner[p] != 0: me = g3.owner[p]; break
-	g3.set_human(me); g3.gold[me] = 5000; g3.mp[me] = 20; g3.dp[me] = 20; g3.intel[me] = 30
+	g3.set_human(me); g3.gold[me] = 1e9; g3.mp[me] = 20; g3.dp[me] = 20; g3.intel[me] = 30
 	var mine: PackedInt32Array = g3.owned(me)
 	var a0: int = g3.army[mine[0]]
-	check(g3.apply({"cmd": "hire", "n": me, "p": mine[0], "amount": 40})["ok"] and g3.army[mine[0]] == a0 + 40, "hire mercenaries")
+	check(g3.apply({"cmd": "hire", "n": me, "p": mine[0], "amount": 40})["ok"] and g3.army[mine[0]] == a0 + g3.au(10.0), "hire mercenaries (the amount is clamped to 10 to 60 units of the scale)")
 	var d0: int = g3.dev[mine[0]]
 	var rdev := g3.apply({"cmd": "develop", "n": me, "p": mine[0]})
 	check(rdev["ok"] or rdev["err"] == "max", "develop (ok or tech-capped)")
