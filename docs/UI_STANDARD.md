@@ -33,6 +33,8 @@ No drop-downs, no free-floating switches, no round buttons in a row of square on
 - A settings row is [name + hint] left, one control right in a column of fixed width (300 px); a hairline under the row. A narrow window stacks the control under the name.
 - Tables (Budget) use fixed columns; every row is as tall as the tallest, so the pitch is even in every language.
 - A scrollbar always holds its place, so a page that scrolls and one that does not keep the same column.
+- The End Turn dial is never covered: a window docked at the right ends above it (`TBPanel.right_floor_fn`), a wide window slides left of it when a small screen would hide it (`seal_rect_fn`, never left of the rail). The province dossier widens with the text size.
+- A plate centres what you see: the artwork of an icon is measured once (`TBEmblem.ink_box`, through `TBGlyph.ink_box`) and the icon, or icon plus words, is placed by it. No hand-measured nudges.
 
 ## Hierarchy
 1. Window title with its icon and a one-line subtitle.
@@ -44,7 +46,8 @@ No drop-downs, no free-floating switches, no round buttons in a row of square on
 * Glanceable first: a window opens on a summary (tiles of one height, at most three figures each), then rows, then detail one level down. Two clicks deep at most.
 * A tooltip says *why*, never the only copy of something the player needs; a window that talks about a place shows it (a list row lights the country's border on the map, "Show on map" buttons); nothing opens over what it is about without being movable.
 * Matters are grouped under who raises them (the Council by minister) and carry a severity bar (neg crisis, warn warning, neutral tip). Effects are listed one per line with the sign and the meaning colour (events, decrees, institutions).
+* Numbers are abbreviated for reading (5.0M, 21.1k); advisor texts that carry an amount use `{kf}`, never the raw `{k}`. `tests/ui_numbers.gd` fails on a plain run of five digits.
 * Sorting and filters persist between openings (Nations, Outliner).
 
 ## Tests
-`tests/ui_type_floor.gd` (no text under the floor at 1080p, a laptop and 1440p), `tests/ui_cycle1.gd` (hover lighting, the Council grouping, the Raise bar), `tests/ui_icon_names.gd` (every icon asked for has a drawing), `tests/menu_grid.gd` (Settings), `tests/budget_grid.gd`, `tests/decrees_grid.gd`, `tests/nations_grid.gd`, `tests/dialogs_shot.gd` (dialogs on one axis), `tests/btn_widths.gd` (the plate at every width). Run only the test of the window you changed.
+`tests/ui_type_floor.gd` (no text under the floor at 1080p, a laptop and 1440p), `tests/ui_cycle1.gd` (hover lighting, the Council grouping, the Raise bar), `tests/ui_drawer_seal.gd` (the End Turn dial stays free), `tests/ui_numbers.gd` (abbreviated numbers), `tests/call_grid.gd` / `move_grid.gd` / `recruit_grid.gd` (words and icons in the middle of their plates), `tests/ui_icon_names.gd` (every icon asked for has a drawing), `tests/menu_grid.gd` (Settings), `tests/budget_grid.gd`, `tests/decrees_grid.gd`, `tests/nations_grid.gd`, `tests/dialogs_shot.gd` (dialogs on one axis), `tests/btn_widths.gd` (the plate at every width). Run only the test of the window you changed.
