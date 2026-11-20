@@ -12,6 +12,8 @@ One interface for the computer and for Android (a phone held sideways gets the d
 | Caption | 12 | section headings, tile captions (tracked capitals) |
 | Floor | 10.5 layout units (`FS_FLOOR`) | nothing is ever set smaller (`K.fs`, `K.fsf`) |
 
+Honest state: the roles are the intended scale; code reads only the floor today, and many captions are set at 10 to 11 units (the floor lifts the smallest). Moving every call to a role (`K.role("caption")`) is the next step of this standard.
+
 The layout stage is divided by the interface size (`UI_STAGE_K`: compact 1.0, normal 0.84, large 0.72), relaxed by `UI_STAGE_LAPTOP` (1.10) on a screen 800 px tall and fading to 1.0 at 1080 px, so a 1080p screen shows 14 px body text and nothing under 11.5 px, and a laptop still fits the Budget, Decrees and Settings windows. Colours come from the token set only (the lint `ui_lint_tokens.gd` refuses a raw colour in `src/ui`); state and severity use `pos`, `neg`, `warn`, `info`.
 
 ## Controls: five kinds, never mixed shapes
