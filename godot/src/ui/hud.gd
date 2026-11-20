@@ -516,14 +516,13 @@ func bottom_reserve() -> float:
 
 func _place_legend() -> void:
 	if _legend == null: return
-	var show: bool = false                                  # the lens legend boxes are gone: the lens tabs name what the map shows
+	var show: bool = _prof == Prof.DESKTOP and _lens != "political" and _legend.has_key() and _mode != null and _mode.visible      # a lens without a key cannot be read: the key sits over the lens bar while a lens other than the political map is on
 	_legend.visible = show
 	if not show: return
-	_legend.width = 220.0
+	_legend.width = 260.0
 	_legend.custom_minimum_size = Vector2(_legend.width, _legend.height_needed())
 	_legend.size = _legend.custom_minimum_size
-	var base_y: float = (_minimap.position.y if _minimap.visible else (_mode.position.y if _mode.visible else _vp.y - 16.0)) - 12.0
-	_legend.position = Vector2(float(_L.get("m", 28.0)), base_y - _legend.size.y)
+	_legend.position = Vector2(_mode.position.x, _mode.position.y - _legend.size.y - 8.0)
 	_legend.queue_redraw()
 
 func _place_strip() -> void:
@@ -570,6 +569,7 @@ func keepouts() -> Array:
 		if (b as Control).visible and not _bottom.visible:
 			out.append((b as Control).get_global_rect().grow(4.0))
 			rail_hull = (b as Control).get_global_rect() if rail_hull.size == Vector2.ZERO else rail_hull.merge((b as Control).get_global_rect())
+	if _legend != null and _legend.visible: out.append(_legend.get_global_rect().grow(6.0))
 	if rail_hull.size != Vector2.ZERO: out.append(rail_hull.grow(14.0))              # the rail as one block: a name does not sit in the gaps between its buttons
 	if _bottom.visible: out.append(_bottom.get_global_rect())
 	var tr: Rect2 = _ticker.occupied_rect()

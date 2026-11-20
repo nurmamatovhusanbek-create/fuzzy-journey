@@ -314,18 +314,30 @@ func _assign_cvd() -> void:
 	for n in range(1, n1):
 		if cnt[n] == 0 and n != g.human_id: _pal_idx[n] = -1
 
+## the value a lens treats as "full": the 92nd percentile of the owned provinces, so one giant province does not turn every other one to the bottom of the ramp (the scale of the real-people numbers is wide)
+func _full_of(values: PackedFloat32Array) -> float:
+	if values.is_empty(): return 1.0
+	var v := values.duplicate(); v.sort()
+	return maxf(1.0, v[mini(v.size() - 1, int(float(v.size()) * 0.92))])
+
+func _econ_value(p: int) -> float:
+	return g.pop[p] / (80.0 * maxf(1.0, g.pk)) + g.dev[p] * 2.0 + g.econ[p]
+
 ## call before painting a batch (computes lens normalisation)
 func prepare() -> void:
 	match mode:
 		"military":
-			max_army = 1.0
-			for p in g.P: max_army = maxf(max_army, g.army[p])
+			var a := PackedFloat32Array()
+			for p in g.P: if g.owner[p] != 0: a.append(float(g.army[p]))
+			max_army = _full_of(a)
 		"population":
-			max_pop = 1.0
-			for p in g.P: max_pop = maxf(max_pop, g.pop[p])
+			var a := PackedFloat32Array()
+			for p in g.P: if g.owner[p] != 0: a.append(float(g.pop[p]))
+			max_pop = _full_of(a)
 		"economic":
-			max_econ = 1.0
-			for p in g.P: max_econ = maxf(max_econ, g.pop[p] / 80.0 + g.dev[p] * 2.0 + g.econ[p])
+			var a := PackedFloat32Array()
+			for p in g.P: if g.owner[p] != 0: a.append(_econ_value(p))
+			max_econ = _full_of(a)
 		"wars":
 			_war_groups()
 
@@ -363,7 +375,7 @@ func color(p: int) -> int:
 			if o == me: return SELF_COL
 			return REL_COL.get(g.get_rel(me, o), 0x8a93a3)
 		"economic":
-			return ramp(ECON_RAMP, sqrt((g.pop[p] / 80.0 + g.dev[p] * 2.0 + g.econ[p]) / max_econ)) if o != 0 else neutral()
+			return ramp(ECON_RAMP, sqrt(_econ_value(p) / max_econ)) if o != 0 else neutral()
 		"military":
 			if o == 0 or (o != me and not TBVision.sees_fast(g, p)): return neutral()          # armies out of sight are not on the map
 			return ramp(ARMY_RAMP, sqrt(g.army[p] / max_army))
@@ -446,7 +458,7 @@ func describe(p: int) -> String:
 			if o == 0: return ""
 			var words := ["rel_peace", "rel_war", "rel_nap", "rel_ally", "rel_marriage"]
 			return "%s: %s" % [T.call("lens_diplomatic"), T.call("leg_self") if o == me else T.call(words[clampi(g.get_rel(me, o), 0, 4)])]
-		"economic": return "%s: %s" % [T.call("lens_economic"), TBKit.fmt(int(g.pop[p] / 80.0 + g.dev[p] * 2.0 + g.econ[p]))] if o != 0 else ""
+		"economic": return "%s: %s" % [T.call("lens_economic"), TBKit.fmt(int(_econ_value(p)))] if o != 0 else ""
 		"military": return ("%s: %s" % [T.call("lens_military"), TBKit.fmt(g.army[p]) if (o == me or TBVision.sees_fast(g, p)) else "?"]) if o != 0 else ""
 		"stability": return "%s: %d" % [T.call("lens_stability"), int(g.stab[p])] if o != 0 else ""
 		"population": return "%s: %s" % [T.call("lens_population"), TBKit.fmt(g.pop[p])] if o != 0 else ""

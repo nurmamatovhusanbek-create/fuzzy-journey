@@ -1219,9 +1219,11 @@ class Legend extends Control:
 		custom_minimum_size = Vector2(width, height_needed())
 		queue_redraw()
 	func height_needed() -> float:
-		var hd: float = TBHudParts.fs(12.0) + 10.0
-		if not ramp.is_empty(): return hd + 12.0 + 6.0 + TBHudParts.fs(12.0) + 8.0
-		return hd + ceilf(items.size() / 2.0) * (TBHudParts.fs(12.0) + 7.0) + 6.0
+		var f12: float = float(TBHudParts.fs(12.0))
+		var pad: float = 10.0 if framed else 0.0
+		var top: float = pad + 2.0 + f12 + 8.0                                 # the heading, as _draw lays it out
+		if not ramp.is_empty(): return top + 12.0 + 4.0 + f12 + 6.0 + pad          # the bar, its ticks and the low / high words
+		return top + ceilf(items.size() / 2.0) * (f12 + 7.0) + pad
 	func _draw() -> void:
 		var pad: float = 10.0 if framed else 0.0
 		if framed: TBHudParts.plate(self, Rect2(Vector2.ZERO, size), TBHudParts.al(TBHudParts.tk("bar_0"), TBHudParts.opacity), TBHudParts.tk("rule_dark"), 4.0)
