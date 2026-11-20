@@ -1,0 +1,33 @@
+# UI research, round 2: formables, explanations, onboarding
+
+Scope: what we already have (lineages and the names a nation can proclaim, estates, institutions, the budget, diplomacy, events, the first minutes of a game), looked at through what other games did and what their players said. Same method as round 1 (`UI_RESEARCH_2026_11.md`): developer diaries, patch notes and forum threads are anecdote, not usability studies, and I say so where it matters. I read search excerpts, not full pages (no fetch tool in this session); the links are the place to read more.
+
+## 1. What the games say
+
+| Topic | Source | What it says | What we do with it |
+|---|---|---|---|
+| Formables must show every requirement | [a Hearts of Iron IV mod changelog](https://steamcommunity.com/sharedfiles/filedetails/changelog/1875414471?p=9): "Fixed Rome formable requiring states in Bosnia that were not displayed in the preview and tooltip as requirements"; [the Thorns Formable Nations mod](https://steamcommunity.com/sharedfiles/filedetails/changelog/1923463122) added province highlights to every decision "making it easier to know what provinces you are missing" | A requirement that is not on the list is a bug in the player's eyes; "which provinces am I missing" wants the map. | Done (F1): a name to proclaim lists its provinces, who holds them and how many, and lights what is still to win. |
+| What a unification asks | [Victoria 3 dev diary 48](https://www.paradoxinteractive.com:443/games/victoria-3/news/dev-diary-48-unification): a candidate must be a major power, share a primary culture, own or be suzerain of enough integral state regions; at most three candidates at a time; [DD 64](https://admin-forum.paradoxplaza.com/forum/developer-diary/victoria-3-dev-diary-64-post-release-plans.1553970/page-10) says the aim was that unifications do not happen decades ahead of history | Few offers at a time, each with a clear territorial test, tied to the date. | Ours: two cards at a time, a year, a government, a share of the core, gold, moves; the share test is now readable province by province. |
+| Tooltips must match the rules | [a Victoria 3 bug thread](https://admin-forum.paradoxplaza.com/forum/threads/error-stall-tooltip.1732170): the stall tooltip listed "angry" and "unhappy" groups but the chance also counted "neutral" ones | A tooltip that disagrees with the rule it explains is worse than none. | Build explanations from the same terms the rule sums (one function, two readers), and test that they add up. |
+| Why the AI says no | [Victoria 3 dev diary 75](https://www.paradoxinteractive.com/games/victoria-3/news/dev-diary-75-diplomatic-improvements-in-1-2): an "achievable war goal" factor, the AI refuses a peace it expects to beat | The reason is part of the game; a screen can show it. | We already list "why they feel this way" per nation; a bare "They refuse" after a roll is left (the chance was shown before). |
+| Institutions on the map | [EU4 development diary, 26 May 2016](https://forum.paradoxplaza.com/forum/threads/eu4-development-diary-26th-of-may-2016.937696/): a map mode shows provinces that hold every institution in green, the rest in yellow; embrace at 10 % of development; a player notes green and yellow are hard to tell apart | A map mode for institutions; colour-blind safety. | We have the lens (`institutions`); its ramp is checked by the colour-blind tests. |
+| No direction | [an EU4 Steam thread](https://steamcommunity.com/app/236850/discussions/0/2449343220041119664): "no purpose or direction", against Civilization where you always progress toward something; [Level 99's guidelines](https://www.level99store.com/blogs/guidelines): players should learn the conditions of victory and the tools soon after starting | An open sandbox needs visible next steps. | The Goals page opens with the nation's own ambitions (a name, an institution) and now leads from an ambition to the page with the detail. |
+| Event and popup fatigue | [CK3 players on popups](https://steamcommunity.com/app/1158310/discussions/0/3791505882409065707), [a thread on message settings](https://forum.paradoxplaza.com/forum/threads/the-case-for-message-settings.1564203/): interruptions that make players stop; requests for finer filters, defaults without a popup, turning small events into modifiers; one commenter says it depends on game speed | Interruptions need a budget and settings. | We have per-kind alert settings and 39 events with cooldowns; no change this round. Watch event rate when more events are written. |
+| Onboarding where the thing is | [Civilization VII's beginner guide](https://civilization.2k.com/civ-vii/news/civilization-vii-beginners-guide/): advisors explain a system "exactly when you first encounter" it; [Total War: Three Kingdoms](https://www.redbull.com/ca-en/total-war-three-kingdoms-mandate-of-heaven-tips): F1 overlay; players reduce the advisor's interruptions in settings; [the CK3 team](https://pcgamer.com/the-crusader-kings-3-team-is-working-hard-to-make-the-game-easier-to-learn) added guidance on things players forget | Teach at the thing, not in a block of text before play. | Our "How to play" is seven text pages in a dialog over the map. It keeps its text and now points at the real controls it talks about (the top bar, the dock buttons). |
+| A UI that is "alpha" | [Civilization VII reception](https://www.cgmagonline.com/news/civilization-vii-quality-of-life-updates): cut-off text, missing icons, spacing, map readability were the first patch | Polish problems are what players call "bad UI". | The overflow, type-floor and number tests exist for exactly these; round 1 added five. |
+
+## 2. What we did and did not do
+
+Done in this round:
+1. **Which provinces, and who holds them** (the request that started it): `TBLineage.core_report`, the disclosure on the Realm card, the land lit on the map, names that turn the map to them, the Goals ambition card that leads to it, tests (`tests/lineage.gd`, `tests/formable_ui.gd`).
+2. **Why the estates feel what they feel**: the drift of an estate's loyalty is a sum of terms; the tooltip lists the same terms (one function, two readers).
+3. **The tutorial points at the real controls.**
+
+Not done on purpose:
+* A settings-wide "event pace": the event count is small; revisit with the content.
+* Nested tooltips (see round 1).
+* A formable browser for stages not on offer: the path of a line is shown, the offer stays at two.
+
+## 3. Rules these cycles keep
+
+Data-driven where it is data (`data/lineages.json`, `data/events`); the engine reports and the UI draws (`core_report`, `target_terms`); every new text in en, ru and uz (`tools/add_i18n.py`); tokens only; every new screen part has a test.
