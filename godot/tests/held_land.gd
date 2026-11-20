@@ -32,7 +32,7 @@ func _init() -> void:
 	held = coast if coast >= 0 else inland
 	g.occupier[held] = me; g.occ_rev += 1; g.army[held] = g.au(40.0); g.gold[me] = 5e8; g.mp[me] = 20.0
 	g.touch(held)
-	main.map.jump_to(g.world.lon[held], g.world.lat[held], 8.0)
+	main.map.jump_to(g.world.lon[held], g.world.lat[held], 10.0)   # close enough for a province to carry a pill (100 units wide; the larger default interface makes units bigger, so 8 no longer reaches it at 1280 px)
 	for i in 30: await process_frame
 	main._select(held)
 	for i in 30: await process_frame
