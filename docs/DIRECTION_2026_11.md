@@ -24,6 +24,14 @@ What is still weak, said plainly:
 * **Uzbek and Russian text I wrote for all of this has not been read by a native speaker.** Glossary decisions are still open (`docs/UZ_STYLE.md`).
 * **The Treasury hub and the Chronicle** are not rebuilt yet; only the Realm page became two pages (Government / Ledger) and the Goals page gained its Ambitions.
 
-## Cycle 4, first step (done) and what is left
-Done: the JS oracle is gone from the suite, the CI workflow and the README (the game plays rules 5; `reference/engine-js` stays only because `tools/bake.mjs` reads it for the map bake).
-Left, deliberately not done in one go: the `rules < 5` branches (about 600 conditions in 60 files, 35 tests build games at rules 0 to 4, most others rely on the default of 3). Collapsing them is mechanical but touches every engine file and rewrites those tests; it should be its own change with the whole suite as the safety net, file by file (`game.gd`, `turn.gd`, `diplomacy.gd`, `ai.gd`, `commands.gd` hold two thirds). Until then new games are rules 5 and the lower rules only run in the tests that name them.
+## Cycle 4: the legacy strip (done)
+The game plays one rule set. Every `rules >= N` / `rules < N` branch (about 600 in 60 files) was collapsed by script to its value at rules 5, ternaries and if/elif/else blocks resolved, and the statements the collapse left unreachable deleted; the `rules` field and the `rules` option of `TBGame.new` are gone. Saves are `VERSION 2` and refuse a file of another version (no old-save compatibility, no old-decree padding). The JS oracle left the suite, CI and README (`reference/engine-js` stays only for `tools/bake.mjs`). Tests that asserted the lower rule sets were removed; the ones that tested real features at the old numbers were rewritten for the real-people scale (`g.au()`, `g.pu()`, `g.cm()`).
+
+Real bugs this found (the tests had been running a lower rule set, so rules 5 saves had never been round-tripped):
+* a loaded game did not rebuild the institution shares, so the lag penalty vanished;
+* the occupation unrest array was not saved;
+* the labour cache survived across a save, so a loaded game and the original disagreed from the next turn;
+* `can()` priced `hire` by the old formula while `apply` used the new one.
+Both the engine suite (65 tests plus links, Uzbek and multiplayer checks) and the UI suite pass.
+
+Left, on purpose: helper functions that only the deleted branches called are still there (a dead-code sweep with a call graph is a separate change), the dead `is_phone` branches in the UI, and old comments that say "rules 4".
