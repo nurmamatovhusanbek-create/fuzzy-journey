@@ -169,7 +169,9 @@ func _px_per_unit(s: Vector2i, k: float = 1.0) -> float:
 	var vw: float = s.x / dpr; var vh: float = s.y / dpr
 	if s.y > s.x: return clampf(s.x / 360.0, 1.0, 3.0) / k                    # portrait: 360 unit wide column
 	var phone: bool = vh < 560.0 and vw < 1300.0
-	var dh: float = (phone_stage() if phone else clampf(float(s.y) / 0.8, 760.0, 1180.0)) * k          # a small desktop window (a 1366 x 768 laptop) gets a shorter stage: no less than 0.8 px a unit, so the words stay readable
+	var kp: float = float(TBTokens.UI_STAGE_K_PHONE.get(String(cfg.get("ui", "normal")), 1.0))
+	var laptop: float = 1.0 + (TBTokens.UI_STAGE_LAPTOP - 1.0) * (1.0 - clampf((float(s.y) - TBTokens.UI_STAGE_LAPTOP_PX) / (TBTokens.UI_STAGE_DESKTOP_PX - TBTokens.UI_STAGE_LAPTOP_PX), 0.0, 1.0))
+	var dh: float = (phone_stage() * kp if phone else clampf(float(s.y) / 0.8, 760.0, 1180.0) * k * laptop)          # a small desktop window (a 1366 x 768 laptop) gets a shorter stage: no less than 0.8 px a unit, so the words stay readable
 	return s.y / dh
 
 ## keep UI clear of notches / rounded corners / gesture bars on phones

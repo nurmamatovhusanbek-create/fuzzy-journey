@@ -268,6 +268,10 @@ const FOCUS_OUT := 1
 
 # ---- interface size: the layout stage is divided by this (a smaller number = a bigger interface). "normal" is what "small" used to be plus 19 %: at 1080p the body text is 14 px, not 12
 const UI_STAGE_K := {"small": 1.0, "normal": 0.84, "large": 0.72}
+const UI_STAGE_K_PHONE := {"small": 1.18, "normal": 1.0, "large": 0.86}     # a phone held sideways keeps its own stage: the desktop layout needs about 760 units of height
+const UI_STAGE_LAPTOP := 1.10       # on a screen 800 px tall or less the stage is this much taller (the interface a little smaller), shrinking to 1.0 at 1080 px: the Budget, Decrees and Settings still fit a laptop
+const UI_STAGE_LAPTOP_PX := 800.0
+const UI_STAGE_DESKTOP_PX := 1080.0
 
 # ---- type roles (px at 100 %); sizes are multiplied by the text scale elsewhere -----------------
 const FS_TITLE := 20

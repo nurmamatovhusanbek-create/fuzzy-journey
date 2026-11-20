@@ -55,7 +55,7 @@ echo "$out" | grep -q "ESTATES_UI OK" && echo "ok: tests/estates_ui.gd" || { ech
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 2000x1200x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_cycle1.gd 2>&1)
 echo "$out" | grep -q "UI_CYCLE1 OK" && echo "ok: tests/ui_cycle1.gd" || { echo "FAIL: tests/ui_cycle1.gd"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 # the type floor: no text smaller than the token floor, at a 1080p screen and a small laptop
-for sz in "1920 1080 11" "1280 800 9.5" "2560 1440 14"; do
+for sz in "1920 1080 11" "1280 800 9" "2560 1440 14"; do
   set -- $sz
   out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 2600x1500x24" "$GODOT" --path . --rendering-driver opengl3 -s tests/ui_type_floor.gd -- $1 $2 $3 2>&1)
   echo "$out" | grep -q "UI_TYPE_FLOOR OK" && echo "ok: ui_type_floor $1x$2" || { echo "FAIL: ui_type_floor $1x$2"; echo "$out" | grep -E "below|FAIL|SCRIPT" | head -6; fail=1; }
