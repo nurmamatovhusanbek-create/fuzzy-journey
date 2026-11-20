@@ -8,6 +8,11 @@
 * **Ambitions**: the Goals page starts with the nation's own next steps (a name it can proclaim, an institution to embrace), with progress, then the victory goals. New advisor tips say when one is ready (switchable in Settings > Alerts).
 * **Events tied to the systems** (data only, `godot/data/events/random.json`): a charter for the academy, a trading company, the guilds riot, a clamour for reform, the season of the salons, the railway boom. New event conditions `inst_has` and `inst_behind`.
 * **One interface**: the compact phone layout and its setting are gone; a phone in landscape gets the desktop interface (Android = desktop).
+* **Legibility** (`docs/UI_RESEARCH_2026_11.md`): no text anywhere is smaller than 10.5 units and sizes snap to the type scale (12 / 13 / 14 / 16 ...); the default interface size is 19% larger (a laptop-height screen keeps the old fit); at 1080p the body is 14 px and the smallest caption 11.5 px. A test fails below 11 px.
+* **Council** is grouped by minister (one heading with the number of matters, one row per matter with a severity bar, the gravest minister first); the Raise troops bar no longer breaks a sentence into four lines; the Nations list lights a country's border on the map while a row is hovered.
+* **Map key**: a lens with a colour code shows its key above the lens bar again; economic, military and population lenses are scaled by the 92nd percentile so one giant province no longer flattens the rest.
+* **Rows**: government forms, institutions and estates share one row component (icon, name, one line of effect, meters, control).
+* A window docked at the right (the province dossier) ends above the End Turn seal instead of covering its top.
 * Budget: the cells now add up to the net (a new Modifiers cell holds regime, technology, institutions and works); the empty Annals page no longer shows a button that did nothing; "next level by next turn"; large signed numbers abbreviate.
 
 * **Raise troops** (rules 5): Recruit and Hire are one order. You say how many men; they come from the levy pool first (cheap) and the rest are hired, one move point, and the card shows both parts and what the mix saves against hiring them all. The old commands stay underneath (saves, the AI, rules 0 to 4).
