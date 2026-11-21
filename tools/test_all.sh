@@ -76,6 +76,7 @@ run "soak: random human, 7 eras, invariants" tests/soak.gd
 run "historical events: integrity + firing" tests/hist_events.gd
 run "security: command schema, wire format, saves, settings, server text/rate rules" tests/security.gd
 run "fuzz: random and hostile commands keep the invariants" tests/fuzz_commands.gd
+echo "== layering: engine stays headless, no layer depends on one it must not (docs/ARCHITECTURE.md)"; node tools/check_layers.mjs || fail=1
 echo "== links: res paths, translation keys, language parity"; python3 tools/audit_links.py || fail=1
 echo "== uzbek apostrophes (oʻ gʻ = U+02BB, tutuq = U+02BC)"; python3 tools/uz_normalize.py --check || fail=1
 echo "== multiplayer: server + 2 clients (lockstep of mirrored state)"; tools/test_mp.sh "$GODOT" 2>&1 | tail -3; [ "${PIPESTATUS[0]}" -eq 0 ] || fail=1

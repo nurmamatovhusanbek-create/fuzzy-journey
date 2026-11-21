@@ -6,7 +6,7 @@ Code is split into **chunks (layers)** so each can be changed and tested alone.
 |---|---|---|---|
 | data | `godot/data`, `tools/bake.mjs` | — | everything |
 | engine | `godot/src/engine` | data | render, ui, net, any `Node` |
-| render | `godot/src/render` | engine (read-only) | ui, net |
+| render | `godot/src/render` | engine (read-only); `ui/ui_kit.gd` and `ui/ui_tokens.gd` for fonts, design tokens and the player's motion/accessibility prefs | ui otherwise, net |
 | ui | `godot/src/ui` | engine, render | net internals |
 | net | `godot/src/net` | engine | ui, render |
 | i18n | `godot/src/i18n` | — | — |
@@ -14,7 +14,7 @@ Code is split into **chunks (layers)** so each can be changed and tested alone.
 * **engine** is headless: `RefCounted` classes + typed arrays. Mutations happen only through `Game.apply(command)` (one mutation API) so UI, AI and network share the same path and it is trivially testable.
 * Within engine: `rng`, `data` (tables) → `game` (state/ownership/economy/combat) → `commands` (the validated mutation API behind `Game.apply`) → `turn` → `ai`, with rules>=1 systems in their own files (`rulers`, `diplomacy`, `decisions`, `trade`, `realms`, `generals`, `stats`, `advisor`, `regimes`). Each file is < ~600 lines and does one thing.
 * render reads engine arrays and writes only GPU textures.
-* `tools/check_layers.mjs` (run in tests) fails the build when a forbidden dependency appears.
+* `tools/check_layers.mjs` (run by `tools/test_all.sh`) scans every `.gd` file for a `res://src/<layer>/` reference outside what the table above allows, and for a non-`RefCounted` `extends` inside `engine`; it fails the build when one appears.
 * Tests: `godot/tests/` run with `godot --headless -s tests/run_all.gd`.
 
 
