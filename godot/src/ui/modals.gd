@@ -145,7 +145,6 @@ static func budget(parent: Control, g: TBGame, on_change: Callable) -> TBPanel.H
 	var stacked: bool = h.phone or vsb.x < 900.0 or K.text_scale >= 1.5            # a narrow window: each policy is a name line and a slider line
 	var start: Array = []
 	for i in 4: start.append(int(g.budget[n * 4 + i]))
-	var base_net: int = int(g.income(n)["net"])
 	var rows: Array = []
 	var sync_ref: Array = [Callable()]
 	var net_slot := K.hbox(16)                                  # the gauge and the six figures of the summary

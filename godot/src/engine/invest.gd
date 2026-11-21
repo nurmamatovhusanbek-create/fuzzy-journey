@@ -4,7 +4,6 @@
 class_name TBInvest
 extends RefCounted
 
-const D = preload("res://src/engine/data.gd")
 const POP_PER_LEVEL := 70.0                    # people that support one level of economy
 const OVER_STEP := 0.6                         # each level above the potential takes this much off the efficiency
 const MIN_EFF := 0.10

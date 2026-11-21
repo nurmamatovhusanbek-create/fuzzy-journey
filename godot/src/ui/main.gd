@@ -1445,15 +1445,6 @@ var _pv_to := -1
 func _troops_for(from: int) -> int:
 	return flow.troops_for(from)
 
-## compatibility entry (tests, monkey): order from -> to as the flow would after the source was selected
-func _try_move(from: int, to: int) -> void:
-	flow.g = g
-	flow.src = from
-	flow.mode = TBOrderFlow.Mode.ARMED
-	var c := flow.check(to)
-	if not c["valid"]: _set_move_from(-1); return
-	if c["preview"]: flow.preview_to(to)
-	else: _do_move(from, to)
 
 
 func _do_move(from: int, to: int) -> void:

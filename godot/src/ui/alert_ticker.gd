@@ -423,10 +423,6 @@ func _on_dismiss(rw: AlertRow) -> void:
 	dismissed[String(rw.entry["key"])] = _turn
 	update(_entries, _turn)
 
-func expand_offer(key: String) -> void:
-	if rows.has(key):
-		var rw: AlertRow = rows[key]
-		rw.set_expanded(true); _layout()
 
 ## one attention pulse on the notices of a class ("offer", "event"); static ring when motion is reduced
 func pulse(cls: String) -> void:

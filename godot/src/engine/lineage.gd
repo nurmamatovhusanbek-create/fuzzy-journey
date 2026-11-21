@@ -5,7 +5,6 @@
 class_name TBLineage
 extends RefCounted
 
-const D = preload("res://src/engine/data.gd")
 const MP_COST := 3
 const COST_TURNS := 6                # gold: turns of the nation's own output, times the stage's weight
 static var STAGES: Array = []        # [{id, line, order, name, era, year, regimes, from, any, share, min, w, core}]

@@ -413,17 +413,6 @@ static func open(parent: Control, g: TBGame, opts: Dictionary = {}) -> TBPanel.H
 				if not portrait: content.custom_minimum_size = Vector2(0, 120.0 if h.user_size.y > 0.0 else minf(470.0, cap))
 				TBPanel._fit_bz(h), CONNECT_ONE_SHOT)
 		if rows.has(n) and not portrait: (ui["list_scroll"] as ScrollContainer).ensure_control_visible.call_deferred(rows[n])
-	# ---- rankings tab
-	var build_rank := func() -> void:
-		for c in content.get_children(): c.queue_free()
-		h.clear_actions()
-		var sc := ScrollContainer.new(); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; sc.size_flags_vertical = Control.SIZE_EXPAND_FILL; sc.follow_focus = true
-		var mg := MarginContainer.new()
-		for s in ["left", "right"]: mg.add_theme_constant_override("margin_" + s, h.pad)
-		mg.add_theme_constant_override("margin_top", 12); mg.add_theme_constant_override("margin_bottom", 12)
-		mg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var v := K.vbox(10); v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; mg.add_child(v); sc.add_child(mg); content.add_child(sc)
-		_rankings(v, g, st, parent)
 	if ph0:                                                      # a phone in landscape: the panel is the full height (the demo's `height:100%`), the columns scroll inside it
 		var fit_h := func() -> void:
 			if not h.is_open(): return
@@ -691,65 +680,3 @@ static func _actions(v: VBoxContainer, g: TBGame, n: int, ctx: Dictionary, rel: 
 
 
 # ---- rankings tab: chart or table of the leading powers ----------------------------------------------------------------------------------------
-static func _rankings(v: VBoxContainer, g: TBGame, st: Dictionary, parent: Control) -> void:
-	var S := {"hidden": {}}
-	var metrics: Array = [["p", T.call("hud_prov")], ["a", T.call("army")], ["g", T.call("gold")], ["k", T.call("tech")]]
-	var seg := TBPanel.seg(metrics, String(mem["metric"]), func(id: String): mem["metric"] = id; (S["draw"] as Callable).call())
-	v.add_child(seg)
-	var view := TBPanel.seg([["chart", T.call("chart")], ["table", T.call("table")]], "table" if bool(mem["table"]) else "chart", func(id: String): mem["table"] = id == "table"; (S["draw"] as Callable).call())
-	v.add_child(view)
-	var chart := TBStatChart.new(); chart.custom_minimum_size = Vector2(0, 220)
-	chart.x_label = func(t: float) -> String:
-		var mo: int = g.start_month + int(t) * 6
-		var y: int = g.start_year + mo / 12
-		return ("%d BC" % -y) if y < 0 else str(y)
-	var legend := TBPanel.flow(6)
-	var table := K.vbox(0); table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(chart); v.add_child(legend); v.add_child(table)
-	var note := TBPanel.para(T.call("stats_wait"), 13, K.DIM); v.add_child(note)
-	note.visible = g.stats.size() < 2
-	S["draw"] = func() -> void:
-		var key: String = mem["metric"]
-		var as_table: bool = mem["table"]
-		chart.visible = not as_table; legend.visible = not as_table; table.visible = as_table
-		for c in legend.get_children(): c.queue_free()
-		for c in table.get_children(): c.queue_free()
-		if not as_table:
-			var feats := TBStats.featured(g, 6)
-			chart.series = []
-			var idx := 0
-			for n in feats:
-				var nn: int = n
-				var col: Color = TBTokens.c("oxblood") if nn == g.human_id else Color.hex((g.color[nn] << 8) | 0xFF).darkened(0.25)
-				var on: bool = not S["hidden"].has(nn)
-				if on: chart.series.append({"name": g.dname(nn), "color": col, "pts": TBStats.series(g, nn, key), "bold": nn == g.human_id, "dash": idx})
-				var cb := TBPanel.chip_button(g.dname(nn), on, func():
-					if S["hidden"].has(nn): S["hidden"].erase(nn)
-					else: S["hidden"][nn] = true
-					(S["draw"] as Callable).call())
-				legend.add_child(cb)
-				idx += 1
-			chart.queue_redraw()
-		else:
-			var ids: Array = st["ids"].duplicate()
-			var val := func(n: int) -> float:
-				match key:
-					"a": return float(st["army"][n])
-					"g": return g.gold[n]
-					"k": return g.tech_level[n]
-				return float(st["prov"][n])
-			ids.sort_custom(func(a: int, b: int) -> bool: return val.call(a) > val.call(b) if val.call(a) != val.call(b) else a < b)
-			var shown := ids.slice(0, 12)
-			if g.human_id > 0 and ids.has(g.human_id) and not shown.has(g.human_id): shown.append(g.human_id)
-			for n in shown:
-				var nn2: int = n
-				var rk: int = ids.find(nn2) + 1
-				var txt: String = "%.1f" % val.call(nn2) if key == "k" else K.fmt(val.call(nn2))
-				var row := K.ListRow.new(g.dname(nn2), txt, Callable())
-				row.focus_mode = Control.FOCUS_NONE
-				row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				row.left = "%d.  %s" % [rk, g.dname(nn2)]
-				if nn2 == g.human_id: row.left_col = TBTokens.c("oxblood")
-				table.add_child(row)
-			if ids.size() > shown.size(): table.add_child(TBPanel.para(T.call("showing_n", {"a": shown.size(), "b": ids.size()}), 13, K.DIM))
-	(S["draw"] as Callable).call()

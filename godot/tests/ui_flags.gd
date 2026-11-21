@@ -35,11 +35,6 @@ func _init() -> void:
 	await _shot("4_nations_list")
 	main._clear_overlay(); main._open_nations(other)
 	await _shot("5_nation_detail")
-	main._clear_overlay(); main._open_nations(-1, "", "rank")
-	await _shot("6_rankings_chart")
-	TBNationsScreen.mem["table"] = true
-	main._clear_overlay(); main._open_nations(-1, "", "rank")
-	await _shot("7_rankings_table")
 	main._clear_overlay()
 	TBModals.briefing(main._overlay, g, func(): pass)
 	await _shot("8_briefing")

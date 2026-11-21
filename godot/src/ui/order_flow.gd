@@ -5,8 +5,6 @@
 class_name TBOrderFlow
 extends RefCounted
 
-const CC = preload("res://src/ui/cmd_card.gd")
-const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 
 enum Mode { IDLE, ARMED, PREVIEW }

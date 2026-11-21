@@ -106,7 +106,6 @@ func setup(g: TBGame, p: int, anchor: Rect2, vp: Vector2, env: Dictionary = {}) 
 	v.add_child(split)
 	var list := VBoxContainer.new(); list.add_theme_constant_override("separation", 7); list.size_flags_horizontal = Control.SIZE_EXPAND_FILL; list.size_flags_stretch_ratio = 1.0
 	split.add_child(list)
-	var n: int = g.human_id
 	for k in range(1, TBInvest.PROJECTS.size() + 1):
 		var cn: Dictionary = g.can({"cmd": "develop", "p": p, "k": k})
 		_cans.append(cn)

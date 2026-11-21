@@ -379,7 +379,6 @@ class ShareSeg extends Control:
 			var r := Rect2(3.0 + i * w, 3.0, w, size.y - 6.0)
 			if on: draw_style_box(P.sbox(P.sel_fill(), Color.TRANSPARENT, 7.0, 0), r)
 			var t := "%d" % int(FRACS[i] * 100.0) + ("%" if i == 3 else "")
-			var tw := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13)).x
 			var c := TBCmdCard.tk("ink_0") if on else (TBCmdCard.tk("ink_off") if off[i] else TBCmdCard.tk("ink_1"))
 			var ink: Rect2 = TBKit.ink_box(f, TBCmdCard.fs(13), t)                                  # the figure's ink, not its advance, goes in the middle of the cell
 			draw_string(f, (r.get_center() - (ink.position + ink.size * 0.5)).round(), t, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(13), c)

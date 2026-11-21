@@ -296,11 +296,6 @@ func pills_fit() -> bool: return map != null and map.prov_lines_shown() and prov
 var _shrink := 1.0
 func amk() -> float: return mk() * _shrink
 
-var _hex := {}
-func _nat_col(o: int) -> Color:
-	var v: int = map.lenses.marker_rgb(o)
-	if not _hex.has(v): _hex[v] = Color.hex((v << 8) | 0xFF)
-	return _hex[v]
 
 var _core_sig := -1
 var _core_v := PackedVector3Array()
@@ -1160,7 +1155,6 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var sc := (0.6 + 0.4 * (1.0 - pow(1.0 - ease_in, 3.0))) * amk()                      # out-cubic appear, no overshoot (amk: smaller once you are close in)
 	sc *= 1.0 + 0.26 * float(st["pop"]) * float(st["pop"])
 	if map.atlas_look() and own and hot and not order_committed() and ztier > 0: return        # the command ring shows the army instead
-	var nat := _nat_col(o)
 	var ink := tk("ink_0")
 	var lift := -4.0 if (hot and ztier == 2) else 0.0
 	if ztier == 0: return                                                   # zoomed out: no army dots at all, the army appears by itself when you close in
@@ -1169,7 +1163,6 @@ func _draw_marker(p: int, pos: Vector2, st: Dictionary, al: float, nfont: Font, 
 	var near: bool = ztier == 2
 	var atlas := map.atlas_look()
 	var fsz: int = maxi(11, int(round(float(TBKit.fs(15.0 if atlas else (13.0 if near else 12.0))) * _shrink)))
-	var tw := nfont.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var bw := _badge_w(nfont, int(round(st["shown"])), near, o != 0)
 	var bh: float = _badge_h(near)
 	if atlas:

@@ -10,7 +10,6 @@ signal nation_requested(n: int)
 
 const K = preload("res://src/ui/ui_kit.gd")
 const P = preload("res://src/ui/hud_parts.gd")
-const BZ = preload("res://src/ui/bezel.gd")
 
 var map: TBMapView
 var g: TBGame
@@ -309,7 +308,6 @@ func _notification(what: int) -> void:
 func _demo_icon(id: String, c: Vector2, px: float, col: Color, w: float) -> bool:
 	var u := px / 24.0
 	var paths: Array = []                         # polylines in 24-box coordinates
-	var closed: Array = []
 	match id:
 		"move": paths = [[Vector2(3, 12), Vector2(19, 12)], [Vector2(13, 6), Vector2(19, 12), Vector2(13, 18)]]
 		"attack": paths = [[Vector2(4, 20), Vector2(16, 8)], [Vector2(16, 8), Vector2(12, 8)], [Vector2(16, 8), Vector2(16, 12)], [Vector2(20, 20), Vector2(8, 8)], [Vector2(8, 8), Vector2(12, 8)], [Vector2(8, 8), Vector2(8, 12)]]

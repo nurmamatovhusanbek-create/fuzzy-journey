@@ -3,7 +3,6 @@
 class_name TBWarParts
 extends RefCounted
 
-const K = preload("res://src/ui/ui_kit.gd")
 static var T: Callable = TBI18n.T
 
 static func rust() -> Color: return TBTokens.BZ_DNG_B

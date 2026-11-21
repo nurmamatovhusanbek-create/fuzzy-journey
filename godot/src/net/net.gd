@@ -13,7 +13,6 @@ signal proposal_received(p: Dictionary)
 signal chat_received(from: String, text: String)
 signal error_received(msg: String)
 
-const D = preload("res://src/engine/data.gd")
 const MAX_ROOMS := 50
 const ROOM_TTL_MS := 6 * 3600 * 1000
 const MAX_PEERS := 200

@@ -4,7 +4,6 @@ class_name TBInspector
 extends RefCounted
 
 const P = preload("res://src/ui/hud_parts.gd")
-const CC = preload("res://src/ui/cmd_card.gd")
 
 # ---------------------------------------------------------------- header
 ## 52 px card header: flag (or a pin for unclaimed land) + province name 16/600 + subtitle 12 (owner · relation) + close
@@ -100,7 +99,6 @@ class Grid extends Control:
 			var z1: int = P.fs(12.0)
 			var lab: String = String(c["label"])
 			lab = lab.to_upper() if TBI18n.lang != "ru" else lab
-			var lf: Font = TBKit.tracked(f1, 0)
 			draw_string(f1, Vector2(rc.position.x, rc.position.y + f1.get_ascent(z1)), P.fit(f1, lab, z1, rc.size.x), HORIZONTAL_ALIGNMENT_LEFT, -1, z1, P.tk("ink_off"))
 			var fv: Font = TBKit.mono_b()
 			var z2: int = P.fs(16.0)

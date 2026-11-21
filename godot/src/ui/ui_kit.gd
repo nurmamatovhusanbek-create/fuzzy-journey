@@ -758,7 +758,6 @@ class IconBtn extends Button:
 		else: TBGlyph.draw(self, glyph, r.get_center().round() + Vector2(0, dy), gs, col)
 		if has_focus() or preview_state == "focus": draw_style_box(TBFrame.focus(on_bar, 4, 0), r)
 
-static func icon_button(g: String, cb: Callable, px: int = 40) -> Button: return IconBtn.new(g, cb, px)
 
 # ---- Bezel instruments for headers -------------------------------------------------------------------------------------------------------------
 ## a brass instrument ring with a glyph in its face: the icon of a window header (round = instrument)
@@ -900,16 +899,6 @@ static func row(caption: String, value: String, value_col: Color = Color.TRANSPA
 		var n := num(value, 14, value_col if value_col.a > 0.0 else TEXT); n.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; h.add_child(n)
 	return h
 
-## caption  figure
-## [=====|====] (meter). A low value (< 30) carries a down triangle beside its number.
-static func meter_row(caption: String, value: float, col: Color = Color.TRANSPARENT) -> VBoxContainer:
-	var v := vbox(2)
-	var h := hbox(6); h.add_child(label(caption, 13, DIM)); h.add_child(Leader.new())
-	var m := Meter.new(value, col)
-	if m.low(): h.add_child(glyph("tri_down", 12, TBTokens.c("neg")))
-	h.add_child(num(str(int(value)), 14, TEXT)); v.add_child(h)
-	v.add_child(m)
-	return v
 
 ## the demo's fxl(): a list of leader rows [[caption, figure, sign (1 good, -1 bad, 0 zero, 2 info)], ...]; cols > 1 lays them out in a grid with a 26 unit column gap
 static func fxl(items: Array, cols: int = 0) -> Control:
@@ -1498,85 +1487,8 @@ static func card_style(state: String, recommended: bool, armed: bool) -> StyleBo
 	_card_styles[key] = f
 	return f
 
-## an order card: 32 px glyph tile, title (Alegreya 700 15), consequence line (13, ink-1), cost chip right (Mono 700 14 + coin).
-## `disabled_reason` != "" disables the card and prints the reason beneath; `unaffordable` colours the cost neg with a lock.
-## Armed (map gesture started) = 2 px brass-ink outline + 3 px bar; recommended = 3 px brass bar.
-class CommandCard extends PanelContainer:
-	signal activated
-	var armed := false:
-		set(v): armed = v; _apply()
-	var recommended := false
-	var disabled := false
-	var _hover := false
-	var _down := false
-	var _cb := Callable()
-	var preview_state := "":          # "hover" / "pressed" / "focus": freezes a state for specimen sheets and tests
-		set(v): preview_state = v; _apply(); queue_redraw()
-	func _init(glyph_id: String, title_text: String, consequence: String, cost_text: String, cb: Callable, disabled_reason: String, rec: bool, arm: bool, unaffordable: bool) -> void:
-		recommended = rec; armed = arm; _cb = cb; disabled = disabled_reason != "" or unaffordable
-		focus_mode = Control.FOCUS_ALL; mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		custom_minimum_size = Vector2(0, 56)
-		var row := TBKit.hbox(12); add_child(row)
-		var ink: Color = TBTokens.c("ink_off") if disabled else TBTokens.c("ink_0")
-		if glyph_id != "":
-			var tile := Control.new(); tile.custom_minimum_size = Vector2(32, 32); tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER; tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var tile_style := TBFrame.plate(TBTokens.c("paper_0"), TBTokens.c("hair"), 2, 0, 0, 0)
-			tile.draw.connect(func():
-				tile.draw_style_box(tile_style, Rect2(Vector2.ZERO, tile.size))
-				TBGlyph.draw(tile, glyph_id, (tile.size * 0.5).round(), 20.0, ink))
-			row.add_child(tile)
-		var col := TBKit.vbox(2); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; col.size_flags_vertical = Control.SIZE_SHRINK_CENTER; col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var t := TBKit.label(title_text, 15, ink); t.add_theme_font_override("font", TBKit.body_b())
-		t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; t.mouse_filter = Control.MOUSE_FILTER_IGNORE; t.size_flags_horizontal = Control.SIZE_EXPAND_FILL; t.custom_minimum_size.x = 40
-		col.add_child(t)
-		if consequence != "":
-			var d := TBKit.label(consequence, 13, TBTokens.c("ink_off") if disabled else TBTokens.c("ink_1")); d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			d.mouse_filter = Control.MOUSE_FILTER_IGNORE; d.size_flags_horizontal = Control.SIZE_EXPAND_FILL; d.custom_minimum_size.x = 40
-			col.add_child(d)
-		if disabled_reason != "":
-			var rr := TBKit.hbox(4); rr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var lk := TBKit.glyph("lock", 14, TBTokens.c("neg")); rr.add_child(lk)
-			var rl := TBKit.label(disabled_reason, 13, TBTokens.c("neg")); rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; rl.custom_minimum_size.x = 40
-			rr.add_child(rl); col.add_child(rr)
-			tooltip_text = disabled_reason
-		row.add_child(col)
-		if cost_text != "":
-			var cost := TBKit.hbox(4); cost.size_flags_vertical = Control.SIZE_SHRINK_CENTER; cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			cost.add_child(TBKit.glyph("lock" if unaffordable else "coin", 16, TBTokens.c("neg") if unaffordable else ink))
-			var cl := TBKit.num(cost_text, 14, TBTokens.c("neg") if unaffordable else ink); cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			cost.add_child(cl)
-			row.add_child(cost)
-		mouse_entered.connect(func(): _hover = true; _apply())
-		mouse_exited.connect(func(): _hover = false; _apply())
-		_apply()
-	func _apply() -> void:
-		var st := "disabled" if disabled else ("pressed" if (_down or preview_state == "pressed") else ("hover" if (_hover or preview_state == "hover") else "normal"))
-		add_theme_stylebox_override("panel", TBKit.card_style(st, recommended, armed))
-	func _draw() -> void:
-		if has_focus() or preview_state == "focus": draw_style_box(TBFrame.focus(false, 4, 0), Rect2(Vector2.ZERO, size))
-	func _gui_input(e: InputEvent) -> void:
-		if disabled: return
-		if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
-			if e.pressed:
-				_down = true; _apply()
-			else:
-				var fire := _down and Rect2(Vector2.ZERO, size).has_point(e.position)       # release inside fires; sliding off cancels (A11Y-TCH-005)
-				_down = false; _apply()
-				if fire: _fire()
-			accept_event()
-		elif e.is_action_pressed("ui_accept"):
-			_fire(); accept_event()
-	func _fire() -> void:
-		activated.emit()
-		if _cb.is_valid(): _cb.call()
 
-static func command_card(glyph_id: String, title_text: String, consequence: String, cost_text: String, cb: Callable, disabled_reason: String = "", recommended: bool = false, armed: bool = false, unaffordable: bool = false) -> Control:
-	return CommandCard.new(glyph_id, title_text, consequence, cost_text, cb, disabled_reason, recommended, armed, unaffordable)
 
-## event choice = a command card without glyph or cost
-static func choice_card(title_text: String, detail: String, cb: Callable, primary: bool = false) -> Control:
-	return CommandCard.new("", title_text, detail, "", cb, "", primary, false, false)
 
 ## status chip, cut 2, 28 high. tone: neutral | pos | neg | warn | info | own. Glyph backs every hue (default per tone).
 ## On paper by default; on_bar = dark furniture. Warning is an amber FILL with ink text (never amber text).
@@ -1758,7 +1670,6 @@ static func modal(parent: Control, title_text: String = "", width: int = 520, gl
 	var vp := parent.get_viewport_rect().size
 	var portrait := vp.y > vp.x
 	var pad: int = 16 if portrait else 24
-	var max_h: float = vp.y * 0.92 if portrait else vp.y - 96.0
 	var back := ColorRect.new()
 	back.color = TBTokens.ca("table", TBTokens.SCRIM_ALPHA)
 	back.set_anchors_preset(Control.PRESET_FULL_RECT)

@@ -195,9 +195,6 @@ func _assign_dark() -> void:
 
 func cvd_active() -> bool: return cvd != "off"
 
-## the colour a nation's army band / marker carries: the map colour in colour-vision modes, the raw nation colour otherwise
-func marker_rgb(n: int) -> int:
-	return nat_rgb[n] if cvd != "off" else g.color[n]
 
 # ---------------------------------------------------------------- adjacency colouring
 func _ensure_palette() -> void:

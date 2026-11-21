@@ -5,7 +5,6 @@ class_name TBMoveBar
 extends PanelContainer
 
 const K = preload("res://src/ui/ui_kit.gd")
-const CC = preload("res://src/ui/cmd_card.gd")
 static var T: Callable = TBI18n.T
 
 signal confirmed

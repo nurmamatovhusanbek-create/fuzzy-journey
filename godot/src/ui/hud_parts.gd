@@ -597,7 +597,6 @@ class Chip extends Hit:
 		queue_redraw()
 		if _shown == _target and state < 1 and _floats.is_empty() and _pulse > 0.5: set_process(false)
 	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO, size)
 		var gs: float = gbox()
 		var c := Vector2(size.x * 0.5, gs * 0.5)
 		var tone: Color = glyph_col if glyph_col.a > 0.0 else TBBezel.BRASS
@@ -689,7 +688,6 @@ class NationChip extends Hit:
 		if seat >= 0: w += 34.0
 		return ceilf(w)
 	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO, size)
 		var m: float = med()
 		var c := Vector2(m + 4.0, m + 4.0)
 		TBBezel.ring(self, c, m - 2.0, 48, TBTokens.c("bar_0"))
@@ -984,7 +982,6 @@ class Surface extends Control:
 				var tot: float = size.y
 				var ar: float = ruler_r
 				var pts := PackedVector2Array()
-				var i: int = 0
 				var n: int = int(floor(tot / 6.0))
 				for q in n + 1:
 					var y: float = minf(tot, q * 6.0)
@@ -1066,7 +1063,6 @@ class Seal extends Hit:
 		var dead: bool = state == S.BUSY or state == S.WAIT or state == S.OVER
 		var oy: float = 1.0 if (down and not dead) else 0.0
 		var brass: Color = TBHudParts.tk("brass_lt")
-		var rust: Color = TBHudParts.tk("neg_bar")
 		var on: Color = TBHudParts.tk("cream")
 		var face: Color = TBHudParts.tk("bar_2") if (hover and not dead) else TBHudParts.tk("bar_0")
 		if state == S.OVER: on = TBHudParts.tk("ink_off")

@@ -36,13 +36,3 @@ static func series(g: TBGame, n: int, key: String) -> Array:
 		if i >= 0: out.append([int(s["t"]), float(s[key][i])])
 	return out
 
-## nations worth drawing: the human plus the biggest powers now
-static func featured(g: TBGame, count: int = 6) -> Array:
-	var out: Array = []
-	if g.human_id > 0: out.append(g.human_id)
-	if g.stats.is_empty(): return out
-	var last: Dictionary = g.stats[g.stats.size() - 1]
-	for n in last["n"]:
-		if not out.has(n): out.append(n)
-		if out.size() >= count: break
-	return out

@@ -33,10 +33,9 @@ static var ver := 0                       # bumped whenever the accent changes: 
 static var accent: Color = Color("4FB3A9")
 static var _atlas: Dictionary = {}
 
-const INK_900 := Color("101317"); const INK_800 := Color("171B21"); const INK_700 := Color("1F242C"); const INK_600 := Color("2A303A"); const INK_500 := Color("3A414D")
+const INK_800 := Color("171B21"); const INK_700 := Color("1F242C"); const INK_600 := Color("2A303A"); const INK_500 := Color("3A414D")
 const PAPER_100 := Color("EEE9DF"); const PAPER_300 := Color("B9B3A6"); const PAPER_500 := Color("7F7A70")
-const SEA_900 := Color("16222A"); const SEA_700 := Color("1E2F38")
-const GOOD := Color("6CC38F"); const BAD := Color("E06A5E"); const WARN := Color("E4A94B"); const INFO := Color("7FA8E8")
+const BAD := Color("E06A5E"); const WARN := Color("E4A94B"); const INFO := Color("7FA8E8")
 
 ## Bezel brass ramp (instrument rings), the gauge track, the map-text halo, hard shadow and the hold-to-confirm bar
 const BZ_HI := Color("F1DB9C"); const BZ_BRASS := Color("C9A24B"); const BZ_LO := Color("7F6A33"); const BZ_TRACK := Color("2A2318")
@@ -245,15 +244,7 @@ const CUT_CHIP := 1             # chips <= 28 px high
 const CUT_PANEL := 2            # panels and sheets
 const SP := [0, 4, 8, 12, 16, 24, 32, 48]          # spacing scale (index = step)
 const TOUCH := 48               # minimum hit area
-const POINTER_MIN := 32
-const BTN_H := 44
-const BTN_H_TOUCH := 48
 const ROW_H := 48
-const ROW_H_COMPACT := 40
-const BAR_H := 48
-const BAR_H_PHONE := 44
-const DOCK_W := 56
-const PANEL_W := 360
 const MODAL_W_MAX := 920
 const TOUCH_LARGE := 56         # "Large targets" setting
 const ICON_VISUAL := 40         # visual square of an icon button (hit area stays 48)
@@ -262,9 +253,6 @@ const SCRIM_ALPHA := 0.72       # modal scrim = `table` at 72 %
 const Z_MODAL := 80             # draw layer of every modal: above the HUD tooltip (70) and popover (65), the map tip (50) and the inspector (60), below the negotiation dial (90)
 const SHADOW_DY := [0, 3, 6]    # hard shadow offset per elevation (art bible 3.3)
 const SHADOW_A := [0.0, 0.26, 0.32]
-const FOCUS_RING := 2           # focus ring: 2 px ring + 2 px gap + 1 px contrast line
-const FOCUS_GAP := 2
-const FOCUS_OUT := 1
 
 # ---- interface size: the layout stage is divided by this (a smaller number = a bigger interface). "normal" is what "small" used to be plus 19 %: at 1080p the body text is 14 px, not 12
 const UI_STAGE_K := {"small": 1.0, "normal": 0.84, "large": 0.72}
@@ -283,12 +271,6 @@ static func snap_fs(px: float) -> float:
 	return best
 
 # ---- type roles (px at 100 %); sizes are multiplied by the text scale elsewhere -----------------
-const FS_TITLE := 20
-const FS_BODY_PHONE := 15
-const FS_BODY := 14
-const FS_DETAIL := 13
 const FS_CAPTION := 12          # absolute floor at 100 %
 const FS_SCALE := [10.5, 12.0, 13.0, 14.0, 15.0, 16.0, 18.0, 20.0, 24.0, 28.0]     # the type scale: every size asked for snaps to the nearest step (K.fs, K.fsf), so the screens share ten sizes, not twenty-four
 const FS_FLOOR := 10.5          # no text is ever set smaller than this many layout units (K.fs / K.fsf): about 11.5 physical px on a 1080p screen at the standard interface size (tests/ui_type_floor.gd)
-const FS_FIGURE := 16
-const FS_DELTA := 12

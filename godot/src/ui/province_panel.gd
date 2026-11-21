@@ -92,7 +92,6 @@ func layout_for(vp: Vector2) -> void:
 	CC.show_hotkeys = false                       # no letter badges on the verb rows: they widened the rows and wrapped them (the shortcut keys still work)
 	reserve = 12.0
 	if profile == "P" and reserve_fn.is_valid(): reserve = float(reserve_fn.call())
-	var pw := _card_w
 	_card_w = _rect().size.x if profile != "P" else vp.x - 16.0
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	grow_vertical = Control.GROW_DIRECTION_END
@@ -398,11 +397,6 @@ func _source_for(cs: Dictionary) -> int:
 
 # ---------------------------------------------------------------- header
 
-## the sheet's drag handle: a 4 px bar, but a 48 x 48 hit area (it reaches up over the sheet's top edge)
-class _Handle extends Control:
-	func _has_point(p: Vector2) -> bool:
-		var t: float = TBCmdCard.touch()
-		return Rect2(Vector2(0.0, size.y - t), Vector2(size.x, t)).has_point(p)
 
 
 func _tag_for(cs: Dictionary) -> Array:        # [glyph, text, token]
@@ -422,62 +416,8 @@ func _tag_for(cs: Dictionary) -> Array:        # [glyph, text, token]
 
 
 
-## relation tag: glyph + word, in the semantic colour (never colour alone)
-class _RelTag extends Control:
-	var gl := ""
-	var text := ""
-	var token := "ink_1"
-	func _init(g_: String, t_: String, tk_: String) -> void:
-		gl = g_; text = t_; token = tk_
-		mouse_filter = Control.MOUSE_FILTER_PASS; tooltip_text = t_
-		size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	func _label() -> String: return text.to_upper() if TBI18n.lang != "ru" else text
-	func _get_minimum_size() -> Vector2:
-		var w := TBKit.body_b().get_string_size(_label(), HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(12)).x + 2.0 + (18.0 if gl != "" else 0.0)
-		return Vector2(w, 24.0)
-	func _draw() -> void:
-		var x := 0.0
-		var c := TBCmdCard.tk(token)
-		if gl != "":
-			TBCmdCard.glyph(self, gl, Vector2(8.0, size.y * 0.5), 14.0, c, 1.5); x = 18.0
-		draw_string(TBKit.body_b(), Vector2(x, size.y * 0.5 + 4.5), _label(), HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(12), c)
 
-## the card's close button: a drawn X with a 48 x 48 hit area whatever its visual size
-class _CloseBtn extends Button:
-	func _init(px: float) -> void:
-		flat = true; focus_mode = Control.FOCUS_ALL
-		for st in ["normal", "hover", "pressed", "focus", "disabled"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
-		custom_minimum_size = Vector2(px, px)
-		size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	func _has_point(p: Vector2) -> bool:
-		var t: float = TBCmdCard.touch()
-		var ex := Vector2(maxf(0.0, (t - size.x) * 0.5), maxf(0.0, (t - size.y) * 0.5))
-		return Rect2(-ex, size + ex * 2.0).has_point(p)
-	func _draw() -> void:
-		var hot := is_hovered() or button_pressed
-		if hot: draw_colored_polygon(TBCmdCard.chamfer(Rect2(Vector2.ZERO, size), 4.0), TBCmdCard.tk("paper_hover"))
-		TBCmdCard.glyph(self, "close", size * 0.5, 16.0, TBCmdCard.tk("oxblood") if hot else TBCmdCard.tk("ink_0"), 1.8)
-		if has_focus(): draw_rect(Rect2(Vector2.ZERO, size).grow(-1.0), TBCmdCard.tk("ink_0"), false, 2.0)
 
-## "Details ⌃": a text button with a drawn glyph (32 px high, 48 on touch via hit-slop)
-class _GlyphText extends Button:
-	var gl := ""
-	func _init(t_: String, g_: String) -> void:
-		text = ""; gl = g_; focus_mode = Control.FOCUS_ALL; flat = true
-		for st in ["normal", "hover", "pressed", "focus", "disabled"]: add_theme_stylebox_override(st, StyleBoxEmpty.new())
-		custom_minimum_size = Vector2(maxf(TBCmdCard.touch() - 8.0, TBKit.body_b().get_string_size(t_, HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(14)).x + 30.0), 36.0)
-		tooltip_text = t_
-		set_meta("label", t_)
-	func _has_point(p: Vector2) -> bool:               # a 48 x 48 hit area around the 36 px text button
-		var t: float = TBCmdCard.touch()
-		var ex := Vector2(maxf(0.0, (t - size.x) * 0.5), maxf(0.0, (t - size.y) * 0.5))
-		return Rect2(-ex, size + ex * 2.0).has_point(p)
-	func _draw() -> void:
-		var hot := is_hovered() or button_pressed
-		var c := TBCmdCard.tk("oxblood") if hot else TBCmdCard.tk("ink_0")
-		TBCmdCard.glyph(self, gl, Vector2(9.0, size.y * 0.5), 10.0, c, 1.4)
-		draw_string(TBKit.body_b(), Vector2(20.0, size.y * 0.5 + 5.0), String(get_meta("label")), HORIZONTAL_ALIGNMENT_LEFT, -1, TBCmdCard.fs(14), c)
-		if has_focus(): draw_rect(Rect2(Vector2.ZERO, size).grow(-1.0), TBCmdCard.tk("ink_0"), false, 2.0)
 
 # ---------------------------------------------------------------- chips (<= 4, priority order)
 func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
@@ -486,7 +426,6 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 	row.custom_minimum_size = Vector2(0, 28)
 	var me: int = cs["me"]
 	var list: Array = []
-	var terr: String = T.call("t_" + D.TERRAIN_ID[g.terrain[s]])
 	match int(cs["kind"]):
 		1, 2:
 			if g.gen[s] != 0:
@@ -494,7 +433,6 @@ func _build_chips(s: int, cs: Dictionary) -> HBoxContainer:
 			var outside: bool = g.owner[s] != me
 			var attr := g.attrition(s)
 			if g.army[s] > g.keep() and (outside or attr > 0):
-				var cap_txt: String = T.call("supply") if attr == 0 else T.call("attrition")
 				list.append(CC.InfoChip.new("supply", T.call("cc_supply") if attr == 0 else T.call("attrition"), "%d" % g.supply_limit(s) if attr == 0 else "−%d" % attr, "neg" if attr > 0 else "", T.call("supply_hint")))
 			if g.occupier[s] != 0 and g.occupier[s] != me:
 				list.append(CC.InfoChip.new("warning", "", TBDossier._occ_text(g, s), "neg"))
@@ -664,8 +602,6 @@ func _verb_specs(s: int, cs: Dictionary, src: int) -> Array:
 		1, 2:
 			var held: bool = cs["held"]
 			var k: int = cs["kind"]
-			var rc := g.can({"cmd": "recruit", "p": s, "amount": 15})
-			var hc := g.can({"cmd": "hire", "p": s, "amount": 40})
 			if k == 1:
 				var targets_n := flow.compute_targets().size() if (flow != null and flow.src == s) else 0
 				var mv := {"ok": true, "reason": "", "gold": 0, "moves": 1, "men": 0, "dp": 0, "short": {}}

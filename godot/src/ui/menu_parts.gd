@@ -3,7 +3,6 @@
 class_name TBMenuParts
 extends RefCounted
 
-const K = preload("res://src/ui/ui_kit.gd")
 
 ## graduated bezel (like an armillary / compass ring) that turns with the globe; a dark disc (alpha ~0.55) dims the globe under the text but keeps it visible
 class Bezel extends Control:

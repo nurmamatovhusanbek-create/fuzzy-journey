@@ -4,7 +4,6 @@ class_name TBPeaceTable
 extends RefCounted
 
 const K = preload("res://src/ui/ui_kit.gd")
-const D = preload("res://src/engine/data.gd")
 static var T: Callable = TBI18n.T
 
 static func open(parent: Control, g: TBGame, enemy: int, opts: Dictionary = {}) -> TBPanel.Handle:

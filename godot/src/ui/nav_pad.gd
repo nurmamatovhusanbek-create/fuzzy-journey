@@ -5,7 +5,6 @@
 class_name TBNavPad
 extends Control
 
-const K = preload("res://src/ui/ui_kit.gd")
 static var T: Callable = TBI18n.T
 static var setting := "auto"             # "auto" | "on" | "off" (main copies cfg["navpad"] here)
 
@@ -28,7 +27,6 @@ class NavBtn extends Button:
 		TBKit.a11y(self, label, "button")
 		pressed.connect(cb)
 		set_process(rep)
-	var _cb_hold: Callable
 	func _process(delta: float) -> void:
 		if not button_pressed: _hold = 0.0; return
 		_hold += delta

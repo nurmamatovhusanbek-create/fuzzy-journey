@@ -1397,21 +1397,3 @@ class RowBtn extends P.Hit:
 			draw_string(fm, Vector2(x - P.tw(fm, hint, P.fs(12.0)), P.base(fm, P.fs(12.0), cy)), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, P.fs(12.0), P.tk("smoke"))
 		if has_focus(): P.focus_ring(self, r)
 
-## "Political v": the lens chip for bars that cannot hold the pinned strip
-class LensChip extends P.Hit:
-	var lens: String = "political"
-	var label: String = ""
-	var compact: bool = false
-	func fv() -> int: return P.fs(13.0 if compact else 14.0)
-	func desired_w() -> float:
-		return ceilf(8.0 + 18.0 + 6.0 + P.tw(P.body_b(), label, fv()) + 8.0 + 8.0 + 8.0)
-	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO, size)
-		P.plate(self, r, P.tk("bar_2") if (hover or down) else P.tk("bar_1"), Color.TRANSPARENT, 2.0)
-		var cy: float = size.y * 0.5 + (1.0 if down else 0.0)
-		TBGlyph.draw(self, P.lens_glyph(lens), Vector2(8.0 + 9.0, cy), 18.0, P.tk("brass_lt"), 1.6)
-		var f: Font = P.body_b()
-		var x: float = 8.0 + 18.0 + 6.0
-		x += P.txt(self, f, Vector2(x, P.base(f, fv(), cy)), label, fv(), P.tk("cream")) + 8.0
-		P.tri(self, Vector2(x + 3.0, cy), 8.0, P.tk("smoke"), false)
-		if has_focus(): P.focus_ring(self, r)

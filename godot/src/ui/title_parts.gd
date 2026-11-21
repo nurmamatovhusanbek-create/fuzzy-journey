@@ -4,7 +4,6 @@
 class_name TBTitleParts
 extends RefCounted
 
-const K = preload("res://src/ui/ui_kit.gd")
 
 ## notched plate outline (cut top-left and bottom-right), clockwise
 static func notch(w: float, h: float, c: float, inset: float = 0.0) -> PackedVector2Array:
@@ -222,7 +221,6 @@ class CardBtn extends Button:
 		var f := TBKit.tracked(TBKit.alegreya(700) if TBKit.readable_fonts else TBKit.wordmark(), 3)
 		var fsz := TBTitleParts.fit(f, title, TBKit.fs(16.0 * u), maxw)
 		var ink: Color = TBTokens.c("brass_lt") if (down or hot) else TBTokens.c("cream")
-		var tw: float = minf(f.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, maxw)
 		var two := sub != ""
 		var ty: float = cy - (7.0 * u if two else 0.0) + f.get_ascent(fsz) * 0.5 - 2.0
 		draw_string(f, Vector2(tx, roundf(ty)), title, HORIZONTAL_ALIGNMENT_LEFT, maxw, fsz, ink, TextServer.JUSTIFICATION_NONE)
@@ -306,7 +304,7 @@ class SelFrame extends Control:
 			rect = Rect2(from.position.lerp(r.position, e), from.size.lerp(r.size, e)); queue_redraw(), Callable(), TBFx.LIGHT)
 	func flash() -> void:
 		if not TBFx.on(TBFx.LIGHT): return
-		var tw := TBFx.run(self, 0.28, func(t: float): _boost = 1.0 - t; queue_redraw(), Callable(), TBFx.LIGHT)
+		TBFx.run(self, 0.28, func(t: float): _boost = 1.0 - t; queue_redraw(), Callable(), TBFx.LIGHT)
 		_boost = 1.0
 	func _draw() -> void:
 		if not _has: return

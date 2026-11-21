@@ -21,7 +21,6 @@ static func open(parent: Control, ctx: Dictionary) -> TBPanel.Handle:
 	var S := {"tab": tab, "topic_open": false}
 	var h := TBPanel.open(parent, TBPanel.Kind.PANEL, T.call("menu"), "gear", {"scroll": true})
 	if h.scroll != null: h.scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS          # the scrollbar always holds its place: a page that scrolls and one that does not keep the same column
-	var ui := {}
 	var titles := {"saves": T.call("saves"), "settings": T.call("settings"), "howto": T.call("tut_help"), "honours": T.call("honours")}
 	# ---- tabs
 	var items: Array = [["saves", titles["saves"]], ["settings", titles["settings"]], ["howto", titles["howto"]], ["honours", titles["honours"]]]
@@ -308,7 +307,6 @@ static func _settings(h: TBPanel.Handle, ctx: Dictionary, parent: Control, rebui
 		if id == String(mem.get("set_cat", "display")): return
 		mem["set_cat"] = id; mem["scroll"] = 0
 		rebuild.call()
-	var nav: Control
 	if wide:
 		var rail := K.vbox(0); rail.custom_minimum_size.x = 200.0
 		for c in SET_CATS:

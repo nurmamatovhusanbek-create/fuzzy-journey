@@ -25,7 +25,7 @@ Visual language: navy lacquer and brass rules, matching the original game (`--bg
 |---|---|---|
 | `TBFrame` | `ui/frame.gd` | StyleBox: chamfered, asymmetric notches, optional second hairline + registration ticks. No rounded corners anywhere. |
 | `TBGlyph` | `ui/glyphs.gd` | ~30 engraved line icons drawn with primitives (no emoji/icon fonts: unreliable on phones). |
-| `TBKit` | `ui/ui_kit.gd` | palette, fonts, theme, helpers: `title/num/caps`, `row` (dotted leaders), `meter_row`, `Pips`, `segmented` (underlined tabs), `list_row`, `choice_card`, `modal` (+ornament rule). |
+| `TBKit` | `ui/ui_kit.gd` | palette, fonts, theme, helpers: `title/num/caps`, `row` (dotted leaders), `Pips`, `segmented` (underlined tabs), `list_row`, `modal` (+ornament rule). |
 | HUD parts | `ui/hud_parts.gd` | top ribbon, readouts, dock buttons, End-Turn seal (bezel sweeps while the turn resolves). |
 | Title screen | `ui/menu_parts.gd` | bezel ring around the globe, typographic menu entries, era timeline rows. |
 

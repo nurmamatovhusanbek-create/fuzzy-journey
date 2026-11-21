@@ -2,7 +2,6 @@
 class_name TBDecisions
 extends RefCounted
 
-const D = preload("res://src/engine/data.gd")
 const FOREVER := 1000000
 # id (<= 12 chars, sent over the network) -> definition. dur 0 = instant effect, -1 = permanent
 static var LIST: Array = [

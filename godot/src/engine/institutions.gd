@@ -4,7 +4,6 @@
 class_name TBInstitutions
 extends RefCounted
 
-const D = preload("res://src/engine/data.gd")
 const EMBRACE_SHARE := 0.25          # of a state's provinces that must carry it before it can be embraced
 const KNOWN_SHARE := 0.30            # of the world's provinces: from here a state that has not embraced it is behind
 const LAG_RESEARCH := 0.06           # per institution behind (at most LAG_MAX of them)
@@ -64,7 +63,6 @@ static func init(g: TBGame) -> void:
 static func refresh(g: TBGame) -> void:
 	ensure()
 	g.inst_share.resize(maxi(1, LIST.size()))
-	var tot := 0.0
 	for i in LIST.size():
 		var k := 0
 		for p in g.P: if (g.inst[p] >> i) & 1 == 1: k += 1
