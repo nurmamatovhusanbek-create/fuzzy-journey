@@ -46,11 +46,11 @@ Every client receives the whole world (armies, treasuries, plans) so a modified 
 * A save is written to a temporary file, **read back and checked**, and only then swapped in; the previous good save is kept as `.bak`. A power cut or full disk can no longer destroy the only save, and a damaged main file falls back to the backup.
 * Files over 48 MB are not read; objects are never decoded.
 * A checksum (SHA-256 of the contents) detects damage and casual edits. It is not a secret and does not stop a determined editor; single-player saves are the player's own. Saves from before the checksum still load.
-* On load every field is checked: wrong types or sizes, an unknown era or difficulty, owners or capitals that do not exist, or broken neighbour tables refuse the whole save (the player sees "unreadable", not a crash later); money that is not a number or absurdly large is repaired.
+* On load every field is checked: wrong types or sizes, an unknown era or difficulty, owners (or occupiers, or capitals) that do not exist or are negative, or broken neighbour tables refuse the whole save (the player sees "unreadable", not a crash later); money that is not a number or absurdly large is repaired.
 
 ## Settings file
 
-`user://settings.cfg` can be edited by hand. A value is taken only when it has the type of the default, sits inside its allowed set or range (volumes 0-100, text size 0.8-2.5, languages en/ru/uz, quality, view, effects...), and strings are at most 32 characters. Anything else falls back to the default. The saved multiplayer name is cleaned like any name.
+`user://settings.cfg` can be edited by hand. A value is taken only when it has the type of the default, sits inside its allowed set or range (volumes 0-100, text size 0.8-2.5, languages en/ru/uz, quality, view, effects...), and strings are at most 32 characters. Anything else falls back to the default. The saved multiplayer name is cleaned like any name. A window's remembered place is a free-form dictionary (so a player can have as many open windows as they like); its x/y/w/h are used only when each is a finite number (`TBPanel._num`), never an Array, Dictionary or infinity, which would otherwise throw when read back.
 
 ## Content links
 

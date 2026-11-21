@@ -793,14 +793,18 @@ class ResizeGrip extends Control:
 			var d: float = 9.0 + 8.0 * float(k)
 			draw_line(c + Vector2(-5.0 - d, -5.0), c + Vector2(-5.0, -5.0 - d), col, 1.8, true)
 
+## a settings file is hand-editable: a saved window's x/y/w/h is used only when it is a finite number (never an Array/Dictionary, which `float()` would throw on, or NAN/INF)
+static func _num(v: Variant) -> Variant:
+	return float(v) if (v is int or v is float) and is_finite(float(v)) else null
+
 ## remember / restore this screen's place and size, make the header a drag handle and add the right / bottom / corner resize handles
 static func _setup_window(h: Handle, title_text: String, glyph_id: String, opts: Dictionary) -> void:
 	h.mem_key = String(opts.get("key", glyph_id if glyph_id != "" else title_text))
 	var m: Variant = win_mem.get(h.mem_key)
 	if m is Dictionary:
 		var md: Dictionary = m
-		if md.has("x"): h.user_pos = Vector2(float(md["x"]), float(md["y"]))
-		if md.has("w"): h.user_size = Vector2(float(md["w"]), float(md["h"]))
+		if _num(md.get("x")) != null and _num(md.get("y")) != null: h.user_pos = Vector2(_num(md["x"]), _num(md["y"]))
+		if _num(md.get("w")) != null and _num(md.get("h")) != null: h.user_size = Vector2(_num(md["w"]), _num(md["h"]))
 	if h.head != null:
 		h.head.mouse_filter = Control.MOUSE_FILTER_PASS
 		h.head.mouse_default_cursor_shape = Control.CURSOR_MOVE

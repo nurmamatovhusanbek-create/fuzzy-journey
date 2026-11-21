@@ -177,14 +177,14 @@ static func _sane(g: TBGame) -> bool:
 	if g.nb_off.size() != g.P + 1 or g.nb_off[0] != 0 or g.nb_off[g.P] != g.nb.size() or g.nb_sea.size() != g.nb.size(): return false
 	for p in g.P:
 		if g.nb_off[p + 1] < g.nb_off[p]: return false
-		if g.owner[p] >= g.N1 or g.occupier[p] >= g.N1: return false
+		if g.owner[p] < 0 or g.owner[p] >= g.N1 or g.occupier[p] < 0 or g.occupier[p] >= g.N1: return false      # a negative id is never a crash (GDScript wraps it to the array's end), but it is a
 		if g.army[p] < 0: g.army[p] = clampi(g.army[p], 0, 2000000000)
 	for q in g.nb: if q < 0 or q >= g.P: return false
 	for n in range(1, g.N1):
 		var cp: int = g.capital_of[n]
 		if cp < -1 or cp >= g.P: return false
 		if g.overlord[n] < 0 or g.overlord[n] >= g.N1: return false
-		if g.regime[n] >= TBData.REGIMES.size(): return false
+		if g.regime[n] >= TBData.REGIMES.size(): return false      # a byte array: it can never hold a negative value (GDScript wraps -1 to 255 on assignment)
 	for f in FLOAT_FIELDS:
 		var arr = g.get(f)
 		for i in arr.size():

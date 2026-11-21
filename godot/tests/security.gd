@@ -66,6 +66,10 @@ func _init() -> void:
 	check(TBSave.from_dict(w, e2) == null, "save with a wrongly sized array refused")
 	var e3 := dd.duplicate(true); var ow: PackedInt32Array = e3["owner"]; ow[0] = 99999; e3["owner"] = ow
 	check(TBSave.from_dict(w, e3) == null, "save with an owner that does not exist refused")
+	var e3n := dd.duplicate(true); var own: PackedInt32Array = e3n["owner"]; own[0] = -1; e3n["owner"] = own
+	check(TBSave.from_dict(w, e3n) == null, "save with a negative owner refused (GDScript would silently wrap it to the last nation, not crash)")
+	var e3o := dd.duplicate(true); var occ: PackedInt32Array = e3o["occupier"]; occ[0] = -2; e3o["occupier"] = occ
+	check(TBSave.from_dict(w, e3o) == null, "save with a negative occupier refused")
 	var e4 := dd.duplicate(true); var gold: PackedFloat32Array = e4["gold"]; gold[me] = NAN; gold[other] = 1.0e30; e4["gold"] = gold
 	var g4 := TBSave.from_dict(w, e4)
 	check(g4 != null and is_finite(g4.gold[me]) and g4.gold[other] <= 1.0e9, "non-finite and absurd money repaired on load")
@@ -74,6 +78,10 @@ func _init() -> void:
 	var e6 := dd.duplicate(true); e6["difficulty"] = "godmode"
 	check(TBSave.from_dict(w, e6) == null, "save with an unknown difficulty refused")
 	# --- settings file
+	# --- a hand-edited settings file: a window's remembered place can hold anything
+	check(TBPanel._num(5) == 5.0 and TBPanel._num(5.5) == 5.5, "a number is accepted")
+	check(TBPanel._num("5") == null and TBPanel._num([1, 2]) == null and TBPanel._num({"a": 1}) == null and TBPanel._num(null) == null, "a string, array, dictionary or missing value is refused, not crashed on")
+	check(TBPanel._num(1.0 / 0.0) == null and TBPanel._num(-(1.0 / 0.0)) == null, "infinity is refused")
 	check(TBCfgGuard.accept("quality", "ultra", "auto") == "auto" and TBCfgGuard.accept("quality", "high", "auto") == "high", "settings: an unknown choice falls back")
 	check(TBCfgGuard.accept("vol_music", 9000, 80) == 100 and TBCfgGuard.accept("vol_music", "loud", 80) == 80 and TBCfgGuard.accept("text_scale", NAN, 1.0) == 1.0, "settings: numbers clamped, wrong types ignored")
 	check(TBCfgGuard.accept("tips", "yes", true) == true and TBCfgGuard.accept("win", 5, {}) == {}, "settings: bool and dictionary keep their kind")
