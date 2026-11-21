@@ -153,6 +153,14 @@ out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --pa
 echo "$out" | grep -q "RECRUIT_GRID OK" && echo "ok: recruit_grid" || { echo "FAIL: recruit_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/call_grid.gd -- 1280 800 1.0 2>&1)
 echo "$out" | grep -q "CALL_GRID OK" && echo "ok: call_grid" || { echo "FAIL: call_grid"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/menu_grid.gd -- 1280 800 1.0 2>&1)
+echo "$out" | grep -q "MENU_GRID OK" && echo "ok: menu_grid" || { echo "FAIL: menu_grid"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/budget_grid.gd -- 1280 800 1.0 en 2>&1)
+echo "$out" | grep -q "BUDGET_GRID OK" && echo "ok: budget_grid" || { echo "FAIL: budget_grid"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/decrees_grid.gd -- 1280 800 1.0 en 2>&1)
+echo "$out" | grep -q "DECREES_GRID OK" && echo "ok: decrees_grid" || { echo "FAIL: decrees_grid"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
+out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/nations_grid.gd -- 1280 800 1.0 en 2>&1)
+echo "$out" | grep -q "NATIONS_GRID OK" && echo "ok: nations_grid" || { echo "FAIL: nations_grid"; echo "$out" | grep -E "FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/call_tick.gd -- 1280 800 1.0 2>&1)
 echo "$out" | grep -q "CALL_TICK OK" && echo "ok: call_tick" || { echo "FAIL: call_tick"; echo "$out" | grep -E "^FAIL|SCRIPT" | head -5; fail=1; }
 out=$(TB_NOANIM=1 timeout 280 "$XV" -a -s "-screen 0 1700x1000x24" "$GODOT" --path . --rendering-driver opengl3 --fixed-fps 30 -s tests/nations_live.gd 2>&1)
